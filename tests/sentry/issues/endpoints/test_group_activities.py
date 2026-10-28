@@ -47,6 +47,16 @@ class GroupActivitiesEndpointTest(APITestCase):
     @action_log_activity_enabled()
     def test_endpoint_with_group_action_log_entries(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+            data={
+                "service_type": "example",
+                "display_name": "APP-42",
+                "web_url": "https://example.com/42",
+            },
+        )
+
         with self.feature({"projects:issue-action-log-write-to-db": False}):
             note = self.create_group_activity(
                 group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}

@@ -6,19 +6,86 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.api.serializers.models.groupactionlogentry import (
+    _FEED_EXCLUDED_ACTION_TYPES,
+    _FEED_NATIVE_TYPE_NAMES,
+    get_serialized_activity_items,
+)
+from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
 from sentry.models.pullrequest import PullRequest
 from sentry.silo.base import SiloMode
+from sentry.tasks.merge import merge_objects
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+    activity_to_action,
+)
+
+
+def test_user_visible_action_types_have_feed_policy() -> None:
+    # Pin the supported frontend contract explicitly. A new Activity mapping alone
+    # does not imply that activityItem.tsx can render it (e.g. DEPLOY).
+    supported = {
+        GroupActionType.RESOLVE: "set_resolved",
+        GroupActionType.UNRESOLVE: "set_unresolved",
+        GroupActionType.ARCHIVE: "set_ignored",
+        GroupActionType.SET_PUBLIC: "set_public",
+        GroupActionType.SET_PRIVATE: "set_private",
+        GroupActionType.SET_REGRESSED: "set_regression",
+        GroupActionType.CREATE_ISSUE: "create_issue",
+        GroupActionType.ASSIGN: "assigned",
+        GroupActionType.UNASSIGN: "unassigned",
+        GroupActionType.SET_RESOLVED_IN_RELEASE: "set_resolved_in_release",
+        GroupActionType.MERGE_FROM_OTHER: "merge",
+        GroupActionType.SET_RESOLVED_BY_AGE: "set_resolved_by_age",
+        GroupActionType.SET_RESOLVED_IN_COMMIT: "set_resolved_in_commit",
+        GroupActionType.UNMERGE_SOURCE: "unmerge_source",
+        GroupActionType.UNMERGE_DESTINATION: "unmerge_destination",
+        GroupActionType.RESOLVED_IN_PULL_REQUEST: "set_resolved_in_pull_request",
+        GroupActionType.REPROCESS: "reprocess",
+        GroupActionType.MARK_REVIEWED: "mark_reviewed",
+        GroupActionType.AUTO_SET_ONGOING: "auto_set_ongoing",
+        GroupActionType.SET_ESCALATING: "set_escalating",
+        GroupActionType.SET_PRIORITY: "set_priority",
+        GroupActionType.DELETED_ATTACHMENT: "deleted_attachment",
+        GroupActionType.REFERENCED_IN_COMMIT: "referenced_in_commit",
+        GroupActionType.SEER_RCA_STARTED: "seer_rca_started",
+        GroupActionType.SEER_RCA_COMPLETED: "seer_rca_completed",
+        GroupActionType.SEER_SOLUTION_STARTED: "seer_solution_started",
+        GroupActionType.SEER_SOLUTION_COMPLETED: "seer_solution_completed",
+        GroupActionType.SEER_CODING_STARTED: "seer_coding_started",
+        GroupActionType.SEER_CODING_COMPLETED: "seer_coding_completed",
+        GroupActionType.SEER_PR_CREATED: "seer_pr_created",
+        GroupActionType.SEER_ITERATION_STARTED: "seer_iteration_started",
+        GroupActionType.SEER_ITERATION_COMPLETED: "seer_iteration_completed",
+        GroupActionType.SEER_PR_READY_FOR_REVIEW: "seer_pr_ready_for_review",
+        GroupActionType.PULL_REQUEST_CLOSED: "pull_request_closed",
+        GroupActionType.PULL_REQUEST_REOPENED: "pull_request_reopened",
+        GroupActionType.PULL_REQUEST_MERGED: "pull_request_merged",
+        GroupActionType.PULL_REQUEST_UNLINKED: "pull_request_unlinked",
+        GroupActionType.TRIGGER_AUTOFIX: "trigger_autofix",
+        GroupActionType.UNLINK_EXTERNAL_ISSUE: "unlink_external_issue",
+        GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE: "unlink_platform_external_issue",
+    }
+    excluded = set(_FEED_EXCLUDED_ACTION_TYPES)
+    assert not (supported.keys() & excluded)
+    assert supported.keys() | excluded == GroupAction.get_user_visible_types(), (
+        "Choose a feed policy for each user-visible type: exclude it or add a renderer "
+        "and its API type to the supported contract above."
+    )
+    serialized_names = {
+        action_type: ActivityType(activity_type).name.lower()
+        for action_type, activity_type in GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE.items()
+        if action_type in supported
+    }
+    assert {**serialized_names, **_FEED_NATIVE_TYPE_NAMES} == supported
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -428,6 +495,187 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"first_seen": (first_seen or self.group.first_seen).isoformat()},
             idempotency_key=f"first_seen:{group_id or self.group.id}",
         )
+
+    def test_external_issue_feed_preserves_legacy_rows_and_unlinks(self) -> None:
+        first_seen = self._first_seen()
+        legacy_entries = []
+        external_data = {"provider": "github", "external_issue_key": "org/repo#42"}
+        platform_data = {
+            "service_type": "example",
+            "display_name": "APP-42",
+            "web_url": "https://example.com/issues/42",
+        }
+        for action_type, is_new, data in (
+            (GroupActionType.CREATE_EXTERNAL_ISSUE, True, external_data),
+            (GroupActionType.LINK_EXTERNAL_ISSUE, False, external_data),
+            (GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE, True, platform_data),
+            (GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE, False, platform_data),
+        ):
+            legacy_entries.append(
+                self.create_group_action_log_entry(
+                    type=GroupActionType.CREATE_ISSUE,
+                    data={
+                        "provider": "Example",
+                        "title": "Example issue",
+                        "location": "https://example.com/issues/42",
+                        "new": is_new,
+                    },
+                )
+            )
+            self.create_group_action_log_entry(type=action_type, data=data)
+
+        unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_EXTERNAL_ISSUE,
+            data={"provider": "github", "external_issue_key": "org/repo#42"},
+        )
+        platform_unlink = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            data={
+                "service_type": "example",
+                "display_name": "APP-42",
+                "web_url": "https://example.com/issues/42",
+            },
+        )
+
+        items = self._activity_items(limit=6)
+
+        assert [item["id"] for item in items] == [
+            str(platform_unlink.id),
+            str(unlink.id),
+            *(str(entry.id) for entry in reversed(legacy_entries)),
+            str(first_seen.id),
+        ]
+        assert [item["type"] for item in items] == [
+            "unlink_platform_external_issue",
+            "unlink_external_issue",
+            "create_issue",
+            "create_issue",
+            "create_issue",
+            "create_issue",
+            "first_seen",
+        ]
+        assert items[0]["data"] == platform_unlink.data
+        assert items[1]["data"] == unlink.data
+        assert items[2]["data"]["location"] == "https://example.com/issues/42"
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 11
+
+    def test_excluded_events_do_not_shrink_a_mixed_page(self) -> None:
+        first_seen = self._first_seen()
+        timestamp = first_seen.date_added + timedelta(seconds=1)
+        resolve = self.create_group_action_log_entry(
+            type=GroupActionType.RESOLVE, date_added=timestamp
+        )
+        unresolve = self.create_group_action_log_entry(
+            type=GroupActionType.UNRESOLVE, date_added=timestamp
+        )
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                type=ActivityType.NOTE.value, datetime=timestamp, data={"text": "live"}
+            )
+        for _ in range(5):
+            self.create_group_action_log_entry(
+                type=GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+                data={
+                    "service_type": "example",
+                    "display_name": "APP-42",
+                    "web_url": "https://example.com/42",
+                },
+                date_added=timestamp + timedelta(seconds=1),
+            )
+
+        items = self._activity_items(limit=3)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", str(note.id)),
+            ("set_unresolved", str(unresolve.id)),
+            ("set_resolved", str(resolve.id)),
+            ("first_seen", str(first_seen.id)),
+        ]
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 8
+
+    def test_unmapped_non_feed_types_keep_their_existing_names(self) -> None:
+        entry = self.create_group_action_log_entry(
+            type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+            data={"service_type": "example", "display_name": "APP-42", "web_url": ""},
+        )
+        assert serialize(entry, self.user)["type"] == "CREATE_PLATFORM_EXTERNAL_ISSUE"
+
+    def test_unlink_feed_keeps_user_app_and_source_attribution(self) -> None:
+        self._first_seen()
+        app = self.create_sentry_app(name="Issue Bot", organization=self.organization)
+        human = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_EXTERNAL_ISSUE,
+            actor_type=GroupActorType.USER,
+            actor_id=self.user.id,
+            source="mcp:codex",
+            data={"provider": "github", "external_issue_key": "org/repo#42"},
+        )
+        application = self.create_group_action_log_entry(
+            type=GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+            actor_type=GroupActorType.SENTRY_APP,
+            actor_id=app.id,
+            source="api",
+            data={"service_type": app.slug, "display_name": "APP-42", "web_url": ""},
+        )
+
+        app_item, user_item, _ = self._activity_items()
+
+        assert app_item["id"] == str(application.id)
+        assert app_item["sentry_app"]["id"] == str(app.id)
+        assert app_item["user"] is None
+        assert app_item["source"] == "api"
+        assert user_item["id"] == str(human.id)
+        assert user_item["user"]["id"] == str(self.user.id)
+        assert user_item["sentry_app"] is None
+        assert user_item["source"] == "mcp:codex"
+
+    def test_merge_feed_omits_child_event_after_relocation(self) -> None:
+        first_seen = self._first_seen()
+        child = self.create_group(project=self.project)
+        parent_event = self.create_group_action_log_entry(
+            type=GroupActionType.MERGE_FROM_OTHER,
+            data={"counterpart_group_ids": [child.id]},
+        )
+        child_event = self.create_group_action_log_entry(
+            group=child,
+            type=GroupActionType.MERGE_INTO_OTHER,
+            data={"counterpart_group_id": self.group.id},
+        )
+
+        merge_objects((GroupActionLogEntry,), child, self.group)
+        items = self._activity_items(limit=1)
+
+        child_event.refresh_from_db()
+        assert child_event.group_id == self.group.id
+        assert [item["id"] for item in items] == [str(parent_event.id), str(first_seen.id)]
+        assert items[0]["type"] == "merge"
+        assert items[0]["data"] == {"issues": [{"id": str(child.id)}]}
+
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_filtered_log_events_do_not_hide_comments_or_trigger_fallback(self) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "live"})
+        self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
+        for action_type in (
+            GroupActionType.DEPLOY,
+            GroupActionType.NEW_PROCESSING_ISSUES,
+            GroupActionType.BOOKMARK,
+            GroupActionType.SUBSCRIBE,
+            GroupActionType.UNSUBSCRIBE,
+            GroupActionType.DELETE,
+            GroupActionType.AUTOFIX_PR_CREATED,
+            GroupActionType.ROOT_CAUSE_IDENTIFIED,
+            GroupActionType.AUTOFIX_CODING_COMPLETE,
+        ):
+            self.create_group_action_log_entry(type=action_type)
+
+        items = self._activity_items(limit=1)
+
+        assert [(item["type"], item["id"]) for item in items] == [
+            ("note", str(note.id)),
+            ("first_seen", "0"),
+        ]
+        assert items[0]["data"]["text"] == "live"
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 9
 
     def test_logged_first_seen_is_not_duplicated(self) -> None:
         first_seen = self._first_seen()

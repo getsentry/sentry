@@ -135,6 +135,16 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_action_log_entry(self) -> None:
         group = self.create_group()
 
+        self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+            data={
+                "service_type": "example",
+                "display_name": "APP-42",
+                "web_url": "https://example.com/42",
+            },
+        )
+
         # activity dual writes to GALE. use action context scope to attribute it to the user rather than system
         data = {"assignee": str(self.user.id)}
         with action_context_scope(

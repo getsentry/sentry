@@ -7,8 +7,11 @@ import responses
 from django.utils.http import urlencode
 from responses.matchers import query_string_matcher
 
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import ActionSource
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -17,7 +20,7 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.action_log import action_log_activity_enabled, capture_action_log
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
@@ -50,6 +53,26 @@ class TestSentryAppCellService(TestCase):
             self.sentry_app_user = serialize_rpc_user(
                 User.objects.get(id=self.sentry_app.proxy_user_id)
             )
+
+    def _assert_external_issue_feed(
+        self, *, is_new: bool, app_actor: bool, action_type: GroupActionType
+    ) -> None:
+        with assume_test_silo_mode_of(GroupActionLogEntry):
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+            assert set(
+                GroupActionLogEntry.objects.filter(group_id=self.group.id).values_list(
+                    "type", flat=True
+                )
+            ) == {
+                GroupActionType.CREATE_ISSUE,
+                action_type,
+            }
+        assert items is not None
+        assert [item["type"] for item in items] == ["create_issue", "first_seen"]
+        assert items[0]["data"]["new"] is is_new
+        assert items[0]["data"]["location"].startswith("https://example.com/project/")
+        assert items[0]["source"] == "api"
+        assert bool(items[0]["sentry_app"]) is app_actor
 
     def _action_log_records(
         self, records: list[logging.LogRecord], action: str
@@ -487,6 +510,7 @@ class TestSentryAppCellService(TestCase):
         log.assert_not_logged()
 
     @responses.activate
+    @action_log_activity_enabled()
     def test_create_issue_link_records_action_log(self) -> None:
         responses.add(
             method=responses.POST,
@@ -525,7 +549,12 @@ class TestSentryAppCellService(TestCase):
             "web_url": "https://example.com/project/issue-id",
         }
 
+        self._assert_external_issue_feed(
+            is_new=True, app_actor=False, action_type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE
+        )
+
     @responses.activate
+    @action_log_activity_enabled()
     def test_create_issue_link_with_link_action_records_link_action_log(self) -> None:
         responses.add(
             method=responses.POST,
@@ -558,6 +587,11 @@ class TestSentryAppCellService(TestCase):
         assert getattr(records[0], "actor_id") == str(self.sentry_app.id)
         assert self._action_log_records(logs.records, "create_platform_external_issue") == []
 
+        self._assert_external_issue_feed(
+            is_new=False, app_actor=True, action_type=GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE
+        )
+
+    @action_log_activity_enabled()
     def test_create_external_issue_records_action_log(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             result = sentry_app_cell_service.create_external_issue(
@@ -577,6 +611,11 @@ class TestSentryAppCellService(TestCase):
         assert getattr(records[0], "actor_type") == "user"
         assert getattr(records[0], "actor_id") == str(self.user.id)
 
+        self._assert_external_issue_feed(
+            is_new=True, app_actor=False, action_type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE
+        )
+
+    @action_log_activity_enabled()
     def test_create_external_issue_records_sentry_app_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             result = sentry_app_cell_service.create_external_issue(
@@ -602,6 +641,10 @@ class TestSentryAppCellService(TestCase):
         assert getattr(platform_records[0], "source") == ActionSource.API
         assert getattr(platform_records[0], "actor_type") == "sentry_app"
         assert getattr(platform_records[0], "actor_id") == str(self.sentry_app.id)
+
+        self._assert_external_issue_feed(
+            is_new=True, app_actor=True, action_type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE
+        )
 
     def test_delete_external_issue_records_action_log(self) -> None:
         with assume_test_silo_mode_of(PlatformExternalIssue):

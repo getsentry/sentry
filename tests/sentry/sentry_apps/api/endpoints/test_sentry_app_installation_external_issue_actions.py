@@ -3,12 +3,16 @@ from unittest import mock
 import responses
 from django.urls import reverse
 
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
@@ -165,6 +169,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             assert not PlatformExternalIssue.objects.filter(group=self.group).exists()
 
     @responses.activate
+    @action_log_activity_enabled()
     def test_legacy_link_can_replace_existing_issue(self) -> None:
         self.login_as(user=self.user)
         existing = self.create_platform_external_issue(
@@ -198,6 +203,16 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         assert response.data["id"] == str(existing.id)
         assert response.data["webUrl"] == "https://example.com/project/issue-2"
         assert "changed" not in response.data
+
+        with assume_test_silo_mode_of(GroupActionLogEntry):
+            entries = list(GroupActionLogEntry.objects.filter(group_id=self.group.id))
+            assert [entry.type for entry in entries] == [
+                GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE
+            ]
+            assert entries[0].data["web_url"] == "https://example.com/project/issue-2"
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+        assert items is not None
+        assert [item["type"] for item in items] == ["first_seen"]
 
     @responses.activate
     def test_link_in_progress(self) -> None:

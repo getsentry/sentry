@@ -54,6 +54,36 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Feed policy only: keep these events in GAL for other consumers.
+_FEED_EXCLUDED_ACTION_TYPES = (
+    GroupActionType.FIRST_SEEN,  # Appended separately below.
+    # Preserve legacy create/link coverage. Dedicated events can also represent
+    # replacements with no legacy mirror; those stay out of the feed for now.
+    GroupActionType.CREATE_EXTERNAL_ISSUE,
+    GroupActionType.LINK_EXTERNAL_ISSUE,
+    GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+    GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+    GroupActionType.MERGE_INTO_OTHER,
+    # Project-level/obsolete Activity types without issue-feed renderers.
+    GroupActionType.DEPLOY,
+    GroupActionType.NEW_PROCESSING_ISSUES,
+    # These have no current writers or established feed behavior.
+    GroupActionType.BOOKMARK,
+    GroupActionType.SUBSCRIBE,
+    GroupActionType.UNSUBSCRIBE,
+    GroupActionType.DELETE,
+    GroupActionType.AUTOFIX_PR_CREATED,
+    GroupActionType.ROOT_CAUSE_IDENTIFIED,
+    GroupActionType.AUTOFIX_CODING_COMPLETE,
+)
+
+# These GAL-only events have explicit renderers in the issue activity feed.
+# Do not rename other unmapped types as a side effect of adding feed support.
+_FEED_NATIVE_TYPE_NAMES = {
+    GroupActionType.UNLINK_EXTERNAL_ISSUE: "unlink_external_issue",
+    GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE: "unlink_platform_external_issue",
+}
+
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
@@ -157,7 +187,7 @@ def get_serialized_activity_items(
 
     action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
-        action_log.exclude(type=GroupActionType.FIRST_SEEN.value).order_by("-date_added", "-id")[
+        action_log.exclude(type__in=_FEED_EXCLUDED_ACTION_TYPES).order_by("-date_added", "-id")[
             :limit
         ]
     )
@@ -311,7 +341,7 @@ class GroupActionLogEntrySerializer(Serializer):
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
-            else obj.get_type_display()
+            else _FEED_NATIVE_TYPE_NAMES.get(obj.type, obj.get_type_display())
         )
 
         if (
