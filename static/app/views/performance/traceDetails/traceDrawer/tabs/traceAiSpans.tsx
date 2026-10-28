@@ -170,14 +170,6 @@ export function AiSpansSplitView({
 }) {
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
-  const nodeTraceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const node of nodes) {
-      map.set(node.id, traceSlug);
-    }
-    return map;
-  }, [nodes, traceSlug]);
-
   if (nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
   }
@@ -198,10 +190,11 @@ export function AiSpansSplitView({
         </ConversationLeftPanel>
       }
       right={
-        <ConversationDetailPanel
-          selectedNode={selectedNode}
-          nodeTraceMap={nodeTraceMap}
-        />
+        <ConversationDetailPanel>
+          {selectedNode ? (
+            <AiSpanDetails node={selectedNode} traceId={traceSlug} />
+          ) : null}
+        </ConversationDetailPanel>
       }
     />
   );
