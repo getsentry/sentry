@@ -91,7 +91,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             *fields,
         ]
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user=None, **kwargs):
         client = self.get_client()
 
         project_id = data.get("project")

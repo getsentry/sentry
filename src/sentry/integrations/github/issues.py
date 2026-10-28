@@ -245,7 +245,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return [repo_field, *fields, assignee_field, label_field]
 
-    def create_issue(self, data: Mapping[str, Any], **kwargs: Any) -> Mapping[str, Any]:
+    def create_issue(
+        self, data: Mapping[str, Any], user: User | RpcUser | None = None, **kwargs: Any
+    ) -> Mapping[str, Any]:
         client = self.get_client()
         repo = data.get("repo")
         if not repo:
@@ -269,9 +271,16 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         if not data.get("description"):
             raise IntegrationFormError({"description": "Description is required"})
 
+        body = data["description"]
+        if user is not None:
+            # Attribution: let external readers know which Sentry user
+            # created the issue so they know who to follow up with.
+            display_name = user.get_display_name() or user.get_label()
+            body += f"\n\n*Created by {display_name}*"
+
         issue_data = {
             "title": data["title"],
-            "body": data["description"],
+            "body": body,
         }
 
         # Only include optional fields if they have valid values

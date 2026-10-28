@@ -214,7 +214,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
     def get_issue_url(self, key: str) -> str:
         return f"{self.instance}_workitems/edit/{key}"
 
-    def create_issue(self, data: Mapping[str, str], **kwargs: Any) -> Mapping[str, Any]:
+    def create_issue(self, data: Mapping[str, str], user=None, **kwargs: Any) -> Mapping[str, Any]:
         """
         Creates the issue on the remote service and returns an issue ID.
         """
