@@ -1,3 +1,4 @@
+import time
 from datetime import timedelta
 from io import BytesIO
 from unittest import mock
@@ -5,6 +6,7 @@ from uuid import uuid4
 
 import pytest
 import requests
+import responses
 from django.utils import timezone
 from sentry_relay.auth import SecretKey, generate_key_pair
 
@@ -59,6 +61,27 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
         )
 
         return relay_id, secret_key
+
+    def assert_warm_signature_rejected(self, event_data, headers, reason: str) -> None:
+        """Check warm-path HTTP rejection without a negative-ingestion timeout."""
+        url = self.get_relay_store_url(self.project.id)
+        responses.add_passthru(url)
+
+        # Relay initially queues requests while fetching the project config.
+        # Once warm, it rejects invalid signatures synchronously. Keep a bounded
+        # retry rather than depending on the first request having warmed the cache.
+        deadline = time.monotonic() + 8.0
+        while True:
+            resp = requests.post(url, headers=headers, json=event_data, timeout=5)
+            if resp.status_code == 403:
+                assert resp.json() == {
+                    "detail": f"event submission rejected with_reason: {reason}"
+                }
+                return
+            assert resp.status_code == 200, resp.text
+            assert resp.json().get("id"), resp.text
+            assert time.monotonic() < deadline, "Relay project config did not become warm"
+            time.sleep(0.1)
 
     # used to be test_ungzipped_data
     def test_simple_data(self) -> None:
@@ -233,7 +256,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
         signature = create_trusted_relay_signature(secret_key)
 
-        event = self.post_and_try_retrieve_event(
+        event = self.post_and_retrieve_event(
             event_data,
             headers={
                 "x-sentry-auth": self.auth_header,
@@ -278,18 +301,10 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
+        # Preserve one end-to-end check for the asynchronous cold rejection path.
+        self.post_and_assert_not_stored(event_data, headers=headers)
 
-        url = self.get_relay_store_url(self.project.id)
-        resp = requests.post(
-            url,
-            headers=headers,
-            json=event_data,
-        )
-        # Once the project config is fetched it gets rejected in the hot path
-        assert resp.status_code == 403
-        assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
+        self.assert_warm_signature_rejected(event_data, headers, "InvalidSignature")
 
     def test_expired_signature(self) -> None:
         """
@@ -312,18 +327,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
-
-        url = self.get_relay_store_url(self.project.id)
-        resp = requests.post(
-            url,
-            headers=headers,
-            json=event_data,
-        )
-        # Once the project config is fetched it gets rejected in the hot path
-        assert resp.status_code == 403
-        assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
+        self.assert_warm_signature_rejected(event_data, headers, "InvalidSignature")
 
     def test_invalid_signature(self) -> None:
         """
@@ -343,21 +347,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
-        )
-        assert event is None
-
-        url = self.get_relay_store_url(self.project.id)
-        resp = requests.post(
-            url,
-            headers=headers,
-            json=event_data,
-        )
-        # Once the project config is fetched it gets rejected in the hot path
-        assert resp.status_code == 403
-        assert resp.json() == {"detail": "event submission rejected with_reason: InvalidSignature"}
+        self.assert_warm_signature_rejected(event_data, headers, "InvalidSignature")
 
     def test_missing_signature(self) -> None:
         """
@@ -376,21 +366,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
-        )
-        assert event is None
-
-        url = self.get_relay_store_url(self.project.id)
-        resp = requests.post(
-            url,
-            headers=headers,
-            json=event_data,
-        )
-        # Once the project config is fetched it gets rejected in the hot path
-        assert resp.status_code == 403
-        assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
+        self.assert_warm_signature_rejected(event_data, headers, "MissingSignature")
 
     def test_signature_header_is_none(self) -> None:
         """
@@ -410,21 +386,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
-        )
-        assert event is None
-
-        url = self.get_relay_store_url(self.project.id)
-        resp = requests.post(
-            url,
-            headers=headers,
-            json=event_data,
-        )
-        # Once the project config is fetched it gets rejected in the hot path
-        assert resp.status_code == 403
-        assert resp.json() == {"detail": "event submission rejected with_reason: MissingSignature"}
+        self.assert_warm_signature_rejected(event_data, headers, "MissingSignature")
 
     def test_signature_with_invalid_characters(self) -> None:
         url = self.get_relay_store_url(self.project.id)
