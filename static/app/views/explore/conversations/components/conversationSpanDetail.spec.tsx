@@ -56,6 +56,26 @@ function mockDecisionAttributes() {
   ]);
 }
 
+function mockExtractionAttributes() {
+  mockAttributes('extraction-span', [
+    {name: 'gen_ai.operation.name', type: 'str', value: 'extract'},
+    {
+      name: 'gen_ai.input.messages',
+      type: 'str',
+      value: JSON.stringify([
+        {state: 'Invoice INV-2291', fields: {invoice_number: {type: 'text'}}},
+      ]),
+    },
+    {
+      name: 'gen_ai.output.messages',
+      type: 'str',
+      value: JSON.stringify([
+        {answers: {invoice_number: {type: 'text', span: [8, 16], value: 'INV-2291'}}},
+      ]),
+    },
+  ]);
+}
+
 describe('ConversationSpanDetail tabs', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
@@ -108,5 +128,48 @@ describe('ConversationSpanDetail tabs', () => {
       'true'
     );
     expect(screen.queryByRole('tab', {name: 'Decision'})).not.toBeInTheDocument();
+  });
+
+  it('shows an Extraction tab in place of Input and Output on extraction spans', async () => {
+    mockExtractionAttributes();
+    render(
+      <ConversationSpanDetail
+        node={makeNode('extraction-span', 'extract')}
+        traceId="trace-id"
+        activeTab="decision"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('tab', {name: 'Extraction'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.queryByRole('tab', {name: 'Input'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Decision'})).not.toBeInTheDocument();
+    expect(screen.getByText('invoice_number')).toBeInTheDocument();
+    expect(screen.getByText('invoice_number: INV-2291')).toBeInTheDocument();
+  });
+
+  it('shows Input on other spans when Extraction is selected', async () => {
+    mockAttributes('chat-span', [
+      {name: 'gen_ai.operation.name', type: 'str', value: 'chat'},
+    ]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('chat-span', 'chat')}
+        traceId="trace-id"
+        activeTab="extraction"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByRole('tab', {name: 'Input'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.queryByRole('tab', {name: 'Extraction'})).not.toBeInTheDocument();
   });
 });

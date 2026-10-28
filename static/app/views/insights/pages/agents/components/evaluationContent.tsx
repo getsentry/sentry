@@ -166,13 +166,7 @@ function ResultCard({result}: {result: EvaluationResult}) {
                 {t('No answer')}
               </Text>
             )}
-            {confidence === undefined ? null : (
-              <Container flexShrink={0}>
-                <Tooltip title={t('Confidence')} skipWrapper>
-                  <Badge variant="muted">{formatPercentage(confidence, 0)}</Badge>
-                </Tooltip>
-              </Container>
-            )}
+            {confidence === undefined ? null : <ConfidenceBadge value={confidence} />}
           </Flex>
         </Flex>
         {validQuestion?.instructions ? (
@@ -187,6 +181,22 @@ function ResultCard({result}: {result: EvaluationResult}) {
           <AnswerOptions answer={answer} question={validQuestion} />
         )}
       </Stack>
+    </Container>
+  );
+}
+
+export function ConfidenceBadge({
+  value,
+  title = t('Confidence'),
+}: {
+  value: number;
+  title?: React.ReactNode;
+}) {
+  return (
+    <Container flexShrink={0}>
+      <Tooltip title={title} skipWrapper>
+        <Badge variant="muted">{formatPercentage(value, 0)}</Badge>
+      </Tooltip>
     </Container>
   );
 }
@@ -254,11 +264,11 @@ export function EvaluationResultSummary({
  * Marks a question or answer that doesn't match the expected shape and is shown
  * as its raw value.
  */
-function UnrecognizedTag() {
+export function UnrecognizedTag() {
   return <Tag variant="muted">{t('Unrecognized')}</Tag>;
 }
 
-function TruncatedTag({
+export function TruncatedTag({
   children,
   variant = 'muted',
 }: {
@@ -272,7 +282,7 @@ function TruncatedTag({
   );
 }
 
-function RawValue({value}: {value: unknown}) {
+export function RawValue({value}: {value: unknown}) {
   return <TraceDrawerComponents.MultilineJSON value={value} mode="pretty" />;
 }
 
