@@ -1934,7 +1934,6 @@ module = [
     "tests.sentry.seer.test_issue_detection",
     "tests.sentry.seer.test_signed_seer_api",
     "tests.sentry.seer.test_test_generation",
-    "tests.sentry.seer.test_utils",
     "tests.sentry.sentry_apps",
     "tests.sentry.sentry_apps.tasks.*",
     "tests.sentry.sentry_apps.test_sentry_app_component_preparer",
