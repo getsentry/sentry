@@ -1,3 +1,5 @@
+import {FeatureBadge} from '@sentry/scraps/badge';
+
 import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
@@ -191,7 +193,7 @@ function getOrganizationNavigationConfiguration({
           path: `${organizationSettingsPathPrefix}/early-features/`,
           title: t('Early Features'),
           description: t('Manage early access features'),
-          badge: () => 'new',
+          badge: () => <FeatureBadge type="new" />,
           show: ({isSelfHosted}) => isSelfHosted || false,
           id: 'early-features',
           recordAnalytics: true,
@@ -253,7 +255,7 @@ function getOrganizationNavigationConfiguration({
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
-          badge: () => 'beta',
+          badge: () => <FeatureBadge type="beta" />,
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&

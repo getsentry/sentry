@@ -24,9 +24,9 @@ export type NavigationItem = {
    */
   title: string;
   /**
-   * Returns the text of the badge to render next to the navigation.
+   * Returns the badge content to render next to the navigation.
    */
-  badge?: (opts: NavigationGroupProps) => string | number | null;
+  badge?: (opts: NavigationGroupProps) => React.ReactNode;
   /**
    * The description of the settings section. This will be used in search.
    */

@@ -72,7 +72,7 @@ function ProjectsNavigationItemsImpl({
                       path: `/${project.slug}/`,
                       organization,
                     })}
-                    leading={
+                    leadingItems={
                       <SecondaryNavigation.ProjectIcon
                         projectPlatforms={
                           project.platform ? [project.platform] : ['default']

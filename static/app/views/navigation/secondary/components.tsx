@@ -278,7 +278,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   end?: boolean;
   isActive?: boolean;
   /** Content centered in a reserved 24px by 24px slot, including when empty. */
-  leading?: ReactNode;
+  leadingItems?: ReactNode;
   trailingItems?: ReactNode;
 }
 
@@ -523,7 +523,7 @@ function SecondaryNavigationLink({
   activeTo = to,
   isActive: incomingIsActive,
   end = false,
-  leading,
+  leadingItems,
   trailingItems,
   onClick,
   ...linkProps
@@ -571,7 +571,7 @@ function SecondaryNavigationLink({
 
   return (
     <SidebarNavigationLink {...sharedLinkProps}>
-      <SecondaryNavigationLeadingSlot>{leading}</SecondaryNavigationLeadingSlot>
+      <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
       <Text ellipsis variant="inherit">
         {children}
       </Text>
@@ -873,7 +873,7 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
 interface SecondaryNavigationReorderableLinkProps extends Omit<
   SecondaryNavigationItemProps,
-  'leading' | 'onClick'
+  'leadingItems' | 'onClick'
 > {
   icon: ReactNode;
   onNavigate?: () => void;

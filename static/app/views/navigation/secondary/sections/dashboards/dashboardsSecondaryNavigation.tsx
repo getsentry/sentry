@@ -177,7 +177,7 @@ function StarredDashboardItems({
             <SecondaryNavigation.Link
               to={`/organizations/${organizationSlug}/dashboard/${dashboard.id}/`}
               analyticsItemName="dashboard_starred_item"
-              leading={
+              leadingItems={
                 <SecondaryNavigation.ProjectIcon
                   projectPlatforms={dashboardProjectPlatforms}
                   allProjects={
