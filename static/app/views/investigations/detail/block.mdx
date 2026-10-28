@@ -1,0 +1,234 @@
+---
+title: Investigation block
+description: One text or query block in an investigation notebook, with its Seer run state, actions, and comments.
+source: sentry/views/investigations/detail/block
+---
+
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+import {
+  activeExecutions,
+  activeInvestigation,
+  availableBlock,
+  cancelledPanelBlock,
+  commentButtonInvestigation,
+  commentedQueryBlock,
+  commentedTextBlock,
+  completedBlock,
+  completedPanelBlock,
+  failedPanelBlock,
+  notRunBlock,
+  pendingBlock,
+  preRunInvestigation,
+  queryResultBlocks,
+  queryResultInvestigation,
+  restrictedBlock,
+  runningBlock,
+  stoppingBlock,
+  terminalPanelExecutions,
+  terminalPanelInvestigation,
+  uncommentedTextBlock,
+  waitingBlock,
+} from 'sentry/views/investigations/__stories__/blockStoryFixtures';
+import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
+import {InvestigationNotebookBlock} from 'sentry/views/investigations/detail/block';
+
+`InvestigationNotebookBlock` renders one block of an investigation notebook: its text or
+query output, the progress of its Seer run, an actions menu, and a comment button.
+
+```jsx
+<InvestigationNotebookBlock
+  block={block}
+  canRun={investigation.status === 'active'}
+  investigation={investigation}
+  commentCount={commentCounts?.[block.id]}
+  onComment={openBlockComments}
+/>
+```
+
+## When to use
+
+Use it only to render blocks in the investigation notebook. It is not a general-purpose
+card.
+
+**Do**
+
+- Pass the full `investigation` from the detail query. The waiting and blocked states read
+  the block's dependencies from `investigation.blocks`.
+- Filter blocks with `shouldDisplayInvestigationBlock` before rendering them, like the
+  notebook does. Queued blocks with nothing to show stay hidden.
+- Set `canRun` to whether the investigation is active. When it is `false`, Delete is
+  disabled. Delete is also disabled while a run is in progress.
+- Pass `onComment` only when the comments drawer can open. Without it, the comment button
+  and the Comment menu item are hidden.
+- Pass `commentCount` so blocks with comments keep the comment button visible. Without
+  comments, it only appears on hover.
+- Put query results in `output.tableMarkdown`. A short sentence above or below the table
+  is fine.
+- In stories and tests, set `currentExecution` as well as `outputStatus`. Progress and
+  failure alerts read the execution status.
+
+**Don't**
+
+- Don't render it outside an investigation. It loads data through the investigations API,
+  registers the block as Seer context, and polls a running text block every 500 ms.
+- Don't use it as a generic card or collapsible section. Use `Container`, `Stack`, or
+  `Disclosure` from `@sentry/scraps` instead.
+
+## Pre-run and terminal states
+
+export function PreRunExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-block-pre-run"
+      details={[preRunInvestigation]}
+    >
+      <Stack gap="2xl">
+        {[notRunBlock, availableBlock, restrictedBlock, waitingBlock, completedBlock].map(
+          block => (
+            <InvestigationNotebookBlock
+              key={block.id}
+              block={block}
+              canRun={block.id !== restrictedBlock.id}
+              investigation={preRunInvestigation}
+            />
+          )
+        )}
+      </Stack>
+    </InvestigationFixtureApi>
+  );
+}
+
+Not run, available, restricted, waiting for an auto-run dependency, and completed.
+
+<Storybook.Demo>
+  <PreRunExample />
+</Storybook.Demo>
+
+## Active runs
+
+export function ActiveExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-block-active"
+      details={[activeInvestigation]}
+      executions={activeExecutions}
+    >
+      <Stack gap="2xl">
+        {[pendingBlock, runningBlock, stoppingBlock].map(block => (
+          <InvestigationNotebookBlock
+            key={block.id}
+            block={block}
+            canRun
+            investigation={activeInvestigation}
+          />
+        ))}
+      </Stack>
+    </InvestigationFixtureApi>
+  );
+}
+
+Pending, running, and stopping. Delete is disabled until the run ends.
+
+<Storybook.Demo>
+  <ActiveExample />
+</Storybook.Demo>
+
+## Seer activity
+
+export function TerminalPanelExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-block-terminal-panels"
+      details={[terminalPanelInvestigation]}
+      executions={terminalPanelExecutions}
+    >
+      <Stack gap="2xl">
+        {[completedPanelBlock, failedPanelBlock, cancelledPanelBlock].map(block => (
+          <InvestigationNotebookBlock
+            key={block.id}
+            block={block}
+            canRun
+            investigation={terminalPanelInvestigation}
+          />
+        ))}
+      </Stack>
+    </InvestigationFixtureApi>
+  );
+}
+
+The activity panel after a run completes, fails, or is cancelled.
+
+<Storybook.Demo>
+  <TerminalPanelExample />
+</Storybook.Demo>
+
+## Comments
+
+export function CommentExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-block-comment-button"
+      details={[commentButtonInvestigation]}
+    >
+      <Stack gap="2xl">
+        <InvestigationNotebookBlock
+          block={uncommentedTextBlock}
+          canRun
+          investigation={commentButtonInvestigation}
+          onComment={() => {}}
+        />
+        <InvestigationNotebookBlock
+          block={commentedTextBlock}
+          canRun
+          commentCount={2}
+          investigation={commentButtonInvestigation}
+          onComment={() => {}}
+        />
+        <InvestigationNotebookBlock
+          block={commentedQueryBlock}
+          canRun
+          commentCount={3}
+          investigation={commentButtonInvestigation}
+          onComment={() => {}}
+        />
+      </Stack>
+    </InvestigationFixtureApi>
+  );
+}
+
+The first block has no comments, so its button appears on hover. The others have
+comments, so their buttons stay visible.
+
+<Storybook.Demo>
+  <CommentExample />
+</Storybook.Demo>
+
+## Query results
+
+export function QueryResultExample() {
+  return (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-block-query-results"
+      details={[queryResultInvestigation]}
+    >
+      <Stack gap="2xl">
+        {queryResultBlocks.map(block => (
+          <InvestigationNotebookBlock
+            key={block.id}
+            block={block}
+            canRun
+            investigation={queryResultInvestigation}
+          />
+        ))}
+      </Stack>
+    </InvestigationFixtureApi>
+  );
+}
+
+A table on its own, with a sentence above it, and with sentences above and below it.
+
+<Storybook.Demo>
+  <QueryResultExample />
+</Storybook.Demo>
