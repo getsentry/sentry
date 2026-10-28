@@ -2,10 +2,17 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.rules import MATCH_CHOICES, MatchType, match_values
-from sentry.rules.conditions.event_attribute import ATTR_CHOICES, attribute_registry
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.handlers.condition.utils.event_attribute import (
+    ATTR_CHOICES,
+    attribute_registry,
+)
+from sentry.workflow_engine.handlers.condition.utils.match import (
+    MATCH_CHOICES,
+    MatchType,
+    match_values,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry

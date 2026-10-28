@@ -12,9 +12,14 @@ from sentry import audit_log
 from sentry.analytics.events.cron_monitor_created import CronMonitorCreated, FirstCronMonitorCreated
 from sentry.constants import ObjectStatus
 from sentry.models.projectteam import ProjectTeam
-from sentry.models.rule import Rule, RuleSource
-from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType, is_monitor_muted
-from sentry.monitors.utils import get_detector_for_monitor
+from sentry.monitors.models import (
+    Monitor,
+    MonitorStatus,
+    ScheduleType,
+    get_detector_for_monitor,
+    is_monitor_muted,
+)
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.quotas.base import SeatAssignmentResult
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import MonitorTestCase
@@ -22,6 +27,7 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import Detector
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -582,39 +588,34 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
-        from sentry.workflow_engine.models import AlertRuleWorkflow, DetectorWorkflow, Workflow
-
+    @patch("sentry.monitors.validators.logger")
+    def test_alert_rule_disabled(self, mock_logger: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
             "type": "cron_job",
             "config": {"schedule_type": "crontab", "schedule": "@daily"},
-            "alert_rule": {
+            "alertRule": {
                 "environment": self.environment.name,
                 "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
             },
         }
-        response = self.get_success_response(self.organization.slug, **data)
 
-        monitor = Monitor.objects.get(slug=response.data["slug"])
-        alert_rule_id = monitor.config["alert_rule_id"]
-        rule = Rule.objects.get(
-            project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
+        response = self.get_error_response(self.organization.slug, status_code=400, **data)
+
+        assert response.data["alertRule"] == [
+            "Cron monitor alert rules are disabled for this organization."
+        ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule_rejected",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "create",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
         )
-        assert rule is not None
-        assert rule.environment_id == self.environment.id
-
-        # Verify the detector was created and linked to the workflow
-        detector = get_detector_for_monitor(monitor)
-        assert detector is not None
-
-        # Verify the workflow was created for the rule
-        alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
-
-        # Verify the detector is linked to the workflow
-        assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()
+        assert not Monitor.objects.filter(name="My Monitor").exists()
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
@@ -1063,6 +1064,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
     def test_bulk_disable_enable(self) -> None:
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
+        ensure_cron_detector(monitor_one)
+        ensure_cron_detector(monitor_two)
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
             "status": "disabled",
@@ -1074,6 +1077,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.DISABLED
         assert monitor_two.status == ObjectStatus.DISABLED
+        assert not Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert not Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
         data = {
             "ids": [monitor_one.guid, monitor_two.guid],
@@ -1087,6 +1092,8 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         monitor_two.refresh_from_db()
         assert monitor_one.status == ObjectStatus.ACTIVE
         assert monitor_two.status == ObjectStatus.ACTIVE
+        assert Detector.objects.get(datasource__source_id=str(monitor_one.id)).enabled
+        assert Detector.objects.get(datasource__source_id=str(monitor_two.id)).enabled
 
     @patch("sentry.quotas.backend.check_assign_seats")
     def test_enable_no_quota(self, check_assign_seats: MagicMock) -> None:

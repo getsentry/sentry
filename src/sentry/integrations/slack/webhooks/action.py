@@ -17,11 +17,10 @@ from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
 from sentry import analytics, options
-from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
-from sentry.api.client import ApiClient
+from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -46,6 +45,11 @@ from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
+from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvestigationUnavailableReason,
+    handle_seer_investigation_start,
+    record_investigation_unavailable,
+)
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
     handle_seer_agent_write_approval,
@@ -57,9 +61,10 @@ from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
+from sentry.notifications.utils.rules import get_notification_origins
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
 from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
@@ -136,18 +141,17 @@ def update_group(
     return resp
 
 
-def get_rule(rule_id: int | None, organization_id: int) -> Rule | None:
-    """Get the rule that fired"""
-    if not rule_id:
+def get_notification_origin(
+    rule_id: int | None, workflow_id: int | None, group: Group
+) -> NotificationOrigin | None:
+    if not rule_id and not workflow_id:
         return None
-    try:
-        # Scope the callback-provided rule ID to the integration-validated organization
-        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
-        # We need to add the legacy_rule_id field to the rule data since the message builder will use it to build the link to the rule
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
-    except Rule.DoesNotExist:
-        return None
-    return rule
+    origins = get_notification_origins(
+        group.project,
+        workflow_ids=[workflow_id] if workflow_id else [],
+        legacy_rule_ids=[rule_id] if rule_id else [],
+    )
+    return origins[0] if origins else None
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -351,27 +355,40 @@ class SlackActionEndpoint(Endpoint):
             )
         )
 
+    def _respond_link_identity(self, slack_request: SlackActionRequest) -> Response:
+        from sentry.integrations.slack.views.link_identity import build_linking_url
+
+        # if we don't have user_id or channel_id, we can't link the identity
+        if not slack_request.user_id or not slack_request.channel_id:
+            return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
+
+        associate_url = build_linking_url(
+            integration=slack_request.integration,
+            slack_id=slack_request.user_id,
+            channel_id=slack_request.channel_id,
+            response_url=slack_request.response_url,
+        )
+        return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
+
     def _handle_group_actions(
         self,
         slack_request: SlackActionRequest,
         request: Request,
         action_list: Sequence[BlockKitMessageAction],
     ) -> Response:
-        from sentry.integrations.slack.views.link_identity import build_linking_url
-
         group = get_group(slack_request)
         if not group:
             return self.respond(status=403)
 
         rule_id = slack_request.callback_data.get("rule")
         workflow_id = slack_request.callback_data.get("workflow")
-        rule = get_rule(rule_id, group.project.organization_id)
+        origin = get_notification_origin(rule_id, workflow_id, group)
         metrics.incr(
             "integrations.slack.action.rule_lookup",
             tags={
                 "has_rule": bool(rule_id),
                 "has_workflow": bool(workflow_id),
-                "lookup_succeeded": rule is not None,
+                "lookup_succeeded": origin is not None,
             },
             sample_rate=1.0,
         )
@@ -380,17 +397,7 @@ class SlackActionEndpoint(Endpoint):
         identity_user = slack_request.get_identity_user()
 
         if not identity or not identity_user:
-            # if we don't have user_id or channel_id, we can't link the identity
-            if not slack_request.user_id or not slack_request.channel_id:
-                return self.respond_ephemeral(NO_IDENTITY_MESSAGE)
-
-            associate_url = build_linking_url(
-                integration=slack_request.integration,
-                slack_id=slack_request.user_id,
-                channel_id=slack_request.channel_id,
-                response_url=slack_request.response_url,
-            )
-            return self.respond_ephemeral(LINK_IDENTITY_MESSAGE.format(associate_url=associate_url))
+            return self._respond_link_identity(slack_request)
 
         original_tags_from_request = slack_request.get_tags()
 
@@ -445,7 +452,7 @@ class SlackActionEndpoint(Endpoint):
                     identity=identity,
                     actions=[status_action],
                     tags=original_tags_from_request,
-                    rules=[rule] if rule else None,
+                    rules=[origin] if origin else None,
                     workflow_id=workflow_id,
                     issue_details=True,
                     skip_fallback=True,
@@ -533,7 +540,7 @@ class SlackActionEndpoint(Endpoint):
             identity=identity,
             actions=action_list,
             tags=original_tags_from_request,
-            rules=[rule] if rule else None,
+            rules=[origin] if origin else None,
             workflow_id=workflow_id,
         ).build()
         # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
@@ -776,7 +783,6 @@ class SlackActionEndpoint(Endpoint):
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
                 "integration_id": slack_request.integration.id,
-                "request_data": slack_request.data,
             },
         )
 
@@ -806,6 +812,22 @@ class SlackActionEndpoint(Endpoint):
                 organization_id=routing_data.organization_id,
             )
 
+        if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
+            identity_user = slack_request.get_identity_user()
+            if not identity_user:
+                record_investigation_unavailable(
+                    InvestigationUnavailableReason.IDENTITY_NOT_LINKED,
+                    organization_id=routing_data.organization_id,
+                    integration_id=slack_request.integration.id,
+                )
+                return self._respond_link_identity(slack_request)
+            return handle_seer_investigation_start(
+                slack_request=slack_request,
+                organization_id=routing_data.organization_id,
+                identity_user=identity_user,
+            )
+
         # If a user is just clicking a button link we return a 200
         if action_option in (
             "sentry_docs_link_clicked",
@@ -819,6 +841,7 @@ class SlackActionEndpoint(Endpoint):
         if action_id in {
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
+            SlackAction.SEER_INVESTIGATION_START.value,
         }:
             return self.respond()
 

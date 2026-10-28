@@ -91,7 +91,9 @@ def record_pr_action_analytic(
     if agent_state:
         group_id = agent_state.metadata.get("group_id") if agent_state.metadata else None
         if group_id is None:
-            raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
+            # Issue-less runs (e.g. Ask Seer chat) will soon also open PRs;
+            return
+
         group = Group.objects.get(id=group_id, project__organization_id=org.id)
 
         analytics.record(

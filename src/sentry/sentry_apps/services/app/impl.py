@@ -313,12 +313,14 @@ class DatabaseBackedAppService(AppService):
         self, *, proxy_user_id: int, organization_id: int
     ) -> RpcSentryAppInstallation | None:
         try:
-            sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
+            sentry_app = SentryApp.objects.select_related("application").get(
+                proxy_user_id=proxy_user_id
+            )
         except SentryApp.DoesNotExist:
             return None
 
         try:
-            installation = SentryAppInstallation.objects.get(
+            installation = SentryAppInstallation.objects.select_related("api_token").get(
                 sentry_app_id=sentry_app.id, organization_id=organization_id
             )
         except SentryAppInstallation.DoesNotExist:

@@ -22,7 +22,12 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {
+  buildSeerMutationResult,
+  mapSeerResponseItem,
+  useInitialSeerQuery,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -33,7 +38,11 @@ import {
   type FieldDefinitionGetter,
   type FilterKeySection,
 } from 'sentry/components/searchQueryBuilder/types';
-import {InvalidReason, WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {
+  InvalidReason,
+  TermOperator,
+  WildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -1411,6 +1420,56 @@ describe('SearchQueryBuilder', () => {
   });
 
   describe('mouse interactions', () => {
+    it('shows attribute details when hovering over a filter key that Sentry defines', async () => {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="message:foo" />);
+
+      await userEvent.hover(
+        screen.getByRole('button', {name: 'Edit key for filter: message'})
+      );
+
+      expect(
+        await screen.findByText('Error message or transaction name')
+      ).toBeInTheDocument();
+      expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+    });
+
+    it('shows attribute details when hovering over a filter key for a tag', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="tags[foo,string]:abc" />
+      );
+
+      await userEvent.hover(
+        screen.getByRole('button', {name: 'Edit key for filter: tags[foo,string]'})
+      );
+
+      expect(
+        await screen.findByText('A tag sent with one or more events')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+    });
+
+    it('shows the tag details when hovering over an explicit tag key that shares a field name', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{
+            ...defaultProps.filterKeys,
+            'tags[message]': {key: 'tags[message]', name: 'message', kind: FieldKind.TAG},
+          }}
+          initialQuery="tags[message]:foo"
+        />
+      );
+
+      await userEvent.hover(
+        screen.getByRole('button', {name: 'Edit key for filter: message'})
+      );
+
+      expect(
+        await screen.findByText('A tag sent with one or more events')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Added by Sentry')).not.toBeInTheDocument();
+    });
+
     it('can remove a token by clicking the delete button', async () => {
       const mockOnChange = jest.fn();
       render(
@@ -1974,6 +2033,21 @@ describe('SearchQueryBuilder', () => {
         name: `!browser.name:${WildcardOperators.CONTAINS}""`,
       });
       expect(browserNameFilter).toBeInTheDocument();
+    });
+
+    it.each([
+      ['!has:', '!has:""'],
+      ['!timesSeen:', '!timesSeen:100'],
+    ])('uses the filter key definition when typing %s', async (typed, filter) => {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(getLastInput());
+
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        typed
+      );
+
+      expect(await screen.findByRole('row', {name: filter})).toBeInTheDocument();
     });
 
     it('selects [Filtered] from dropdown', async () => {
@@ -3465,6 +3539,23 @@ describe('SearchQueryBuilder', () => {
 
   describe('filter types', () => {
     describe('is', () => {
+      it('shows attribute details when hovering over the key in the operator label', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
+
+        await userEvent.hover(
+          within(
+            screen.getByRole('button', {name: 'Edit operator for filter: is'})
+          ).getByText('is')
+        );
+
+        expect(
+          await screen.findByText(
+            'The properties of an issue (i.e. Resolved, unresolved)'
+          )
+        ).toBeInTheDocument();
+        expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+      });
+
       it('can modify the value by clicking into it', async () => {
         // `is` only accepts single values
         render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
@@ -3522,6 +3613,21 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('has', () => {
+      it('shows attribute details when hovering over the key in the operator label', async () => {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="has:key" />);
+
+        await userEvent.hover(
+          within(
+            screen.getByRole('button', {name: 'Edit operator for filter: has'})
+          ).getByText('has')
+        );
+
+        expect(
+          await screen.findByText('Determines if a tag or field exists in an event')
+        ).toBeInTheDocument();
+        expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
+      });
+
       it('display has and does not have as options', async () => {
         const mockOnChange = jest.fn();
         render(
@@ -6656,6 +6762,27 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('showAllFilterValues', () => {
+    it('lists every selected value instead of a count', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          showAllFilterValues
+          initialQuery="browser.name:[one,two,three,four,five]"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      for (const value of ['one', 'two', 'three', 'four', 'five']) {
+        expect(within(valueButton).getByText(value)).toBeInTheDocument();
+      }
+      expect(within(valueButton).queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+      expect(within(valueButton).getAllByText('or')).toHaveLength(4);
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
@@ -7255,6 +7382,36 @@ describe('SearchQueryBuilder', () => {
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
     });
+
+    it('should explicitly match case when toggled off', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Match case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(false);
+    });
+
+    it('should ignore case when toggled on', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={false}
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ignore case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(true);
+    });
   });
 
   describe('replaceRawSearchKeys', () => {
@@ -7662,19 +7819,18 @@ describe('SearchQueryBuilder', () => {
           method: 'POST',
         });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/setup/',
-          method: 'POST',
-        });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/query/',
+          url: '/organizations/org-slug/search-agent/translate/',
           method: 'POST',
           body: {
-            status: 'ok',
-            queries: [
+            unsupported_reason: null,
+            responses: [
               {
                 query: 'span.duration:>30s',
                 stats_period: '',
                 group_by: [],
+                start: null,
+                end: null,
+                mode: 'spans',
                 visualization: [{chart_type: 1, y_axes: ['count()']}],
                 sort: '-span.duration',
               },
@@ -7690,44 +7846,24 @@ describe('SearchQueryBuilder', () => {
               initialQuery={query}
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
-                mutationFn: async (_value: string) => {
-                  const data = await fetchMutation<{
-                    queries: Array<{
-                      group_by: string[];
-                      mode: string;
-                      query: string;
-                      sort: string;
-                      stats_period: string;
-                      visualization: Array<{chart_type: number; y_axes: string[]}>;
-                    }>;
-                    status: string;
-                    unsupported_reason: string | null;
-                  }>({
+                mutationFn: async (queryToSubmit: string) => {
+                  const data = await fetchMutation<SeerRawResponse>({
                     url: getApiUrl(
-                      '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
+                      '/organizations/$organizationIdOrSlug/search-agent/translate/',
                       {
                         path: {organizationIdOrSlug: 'org-slug'},
                       }
                     ),
                     method: 'POST',
-                    data: {},
+                    data: {
+                      natural_language_query: queryToSubmit,
+                      project_ids: [1],
+                    },
                   });
 
-                  return {
-                    ...data,
-                    queries: data.queries.map(q => ({
-                      visualizations:
-                        q?.visualization?.map((v: any) => ({
-                          chartType: v?.chart_type,
-                          yAxes: v?.y_axes,
-                        })) ?? [],
-                      query: q?.query,
-                      sort: q?.sort ?? '',
-                      groupBys: q?.group_by ?? [],
-                      statsPeriod: q?.stats_period ?? '',
-                      mode: q?.mode ?? 'spans',
-                    })),
-                  };
+                  return buildSeerMutationResult(data, [1], response =>
+                    mapSeerResponseItem(response, 'spans')
+                  );
                 },
               })}
             />
@@ -8069,6 +8205,102 @@ describe('SearchQueryBuilder', () => {
         });
         expect(mockAskSeer).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('field definition options', () => {
+    const addressFilterKeys: TagCollection = {
+      ip_address: {key: 'ip_address', name: 'ip_address', kind: FieldKind.FIELD},
+    };
+    const addressProps: SearchQueryBuilderProps = {
+      ...defaultProps,
+      filterKeys: addressFilterKeys,
+      filterKeySections: [],
+      fieldDefinitionGetter: () => ({
+        kind: FieldKind.FIELD,
+        valueType: FieldValueType.STRING,
+        allowWildcard: false,
+        disallowWildcardOperators: true,
+        operatorLabels: {
+          [TermOperator.DEFAULT]: 'matches',
+          [TermOperator.NOT_EQUAL]: 'does not match',
+        },
+        valueHint: () => 'An address or a range',
+      }),
+    };
+
+    it('names the operators the way the field asks', async () => {
+      render(
+        <SearchQueryBuilder {...addressProps} initialQuery="ip_address:10.0.0.0/8" />
+      );
+
+      const editOpBtn = screen.getByRole('button', {
+        name: 'Edit operator for filter: ip_address',
+      });
+      expect(within(editOpBtn).getByText('matches')).toBeInTheDocument();
+
+      await userEvent.click(editOpBtn);
+      expect(screen.getByRole('option', {name: 'does not match'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'is not'})).not.toBeInTheDocument();
+    });
+
+    it('shows the value hint of the field instead of the wildcard hint', async () => {
+      render(
+        <SearchQueryBuilder {...addressProps} initialQuery="ip_address:10.0.0.0/8" />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: ip_address'})
+      );
+
+      expect(await screen.findByText('An address or a range')).toBeInTheDocument();
+      expect(screen.queryByText('Wildcard (*) matching allowed')).not.toBeInTheDocument();
+    });
+
+    it('lists the comparison operators first when the field asks', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          filterKeys={{release: {key: 'release', name: 'release', kind: FieldKind.FIELD}}}
+          filterKeySections={[]}
+          fieldDefinitionGetter={() => ({
+            kind: FieldKind.FIELD,
+            valueType: FieldValueType.STRING,
+            allowComparisonOperators: true,
+            comparisonOperatorsFirst: true,
+          })}
+          initialQuery="release:1.0"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: release'})
+      );
+
+      const names = screen.getAllByRole('option').map(option => option.textContent);
+      expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+      expect(names).toContain('contains');
+    });
+
+    it('keeps the contains operator on a value pick when asked', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          keepOperatorOnValueSelect
+          initialQuery={`browser.name:${WildcardOperators.CONTAINS}""`}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
+
+      expect(
+        await screen.findByRole('row', {
+          name: `browser.name:${WildcardOperators.CONTAINS}Firefox`,
+        })
+      ).toBeInTheDocument();
     });
   });
 

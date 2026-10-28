@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -25,8 +24,7 @@ from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.search_agent_types import SearchAgentStateResponse
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
-from sentry.seer.endpoints.utils import resolve_seer_run
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission, resolve_seer_run
 from sentry.seer.models import SeerApiError
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import (
@@ -114,15 +112,6 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
 
         While the run is still being created, `session` only contains `status`.
         """
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if not has_feature:
-            return Response(
-                {"detail": "Feature flag not enabled"},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             # detail is always set when access is denied
@@ -137,7 +126,13 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        resolved = resolve_seer_run(run_id, organization)
+        user_id = request.user.id
+        if user_id is None:
+            return Response(
+                {"detail": "You do not have access to this run."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        resolved = resolve_seer_run(run_id, organization, user_id=user_id)
         if isinstance(resolved, Response):
             return resolved
         seer_run_id = resolved.seer_run_state_id

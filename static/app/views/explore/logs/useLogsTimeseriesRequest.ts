@@ -5,6 +5,7 @@ import {AggregationKey} from 'sentry/utils/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
@@ -16,6 +17,8 @@ import {
   useQueryParamsTopEventsLimit,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
+import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
 
 export const DEFAULT_LOGS_TIMESERIES_Y_AXIS = `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
 
@@ -36,15 +39,16 @@ export function useLogsTimeseriesRequest({
 }: UseLogsTimeseriesRequestOptions) {
   const logsSearch = useQueryParamsSearch();
   const groupBys = useQueryParamsGroupBys();
-  const visualizes = useQueryParamsVisualizes();
+  const visualizes = useQueryParamsVisualizes({validate: true});
+  const unvalidatedVisualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const [caseInsensitive] = useCaseInsensitivity();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [interval] = useChartInterval();
   const organization = useOrganization();
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
   );
 
   return useMemo(() => {
@@ -56,24 +60,47 @@ export function useLogsTimeseriesRequest({
       );
     }
 
+    const queries = yAxesOverride
+      ? yAxesOverride.map(yAxis => ({yAxis, transformations: []}))
+      : getVisualizeTimeseriesQueries(visualizes, transformationsEnabled);
+    if (
+      queries.some(query => query.yAxis === DEFAULT_LOGS_TIMESERIES_Y_AXIS) &&
+      !queries.some(
+        query =>
+          query.yAxis === DEFAULT_LOGS_TIMESERIES_Y_AXIS &&
+          query.transformations.length === 0
+      )
+    ) {
+      queries.push({yAxis: DEFAULT_LOGS_TIMESERIES_Y_AXIS, transformations: []});
+    }
+    const yAxes = queries.map(query => query.yAxis);
+    const fields = [...groupBys.filter(Boolean), ...yAxes];
+
+    // Drop orderbys that point at series removed by `_if` validation.
+    const allowedFields = new Set(fields);
+    const validSortBys = aggregateSortBys.filter(sort => allowedFields.has(sort.field));
     const orderby = aggregateSortBys.length
-      ? aggregateSortBys.map(formatSort)
+      ? (validSortBys.length ? validSortBys : defaultAggregateSortBys(yAxes)).map(
+          formatSort
+        )
       : undefined;
 
-    const yAxes = yAxesOverride ?? [
-      ...new Set(visualizes.map(visualize => visualize.yAxis)),
-    ];
+    // Skip only when every series failed an `_if` filter.
+    const skippedForInvalidConditionalFilter =
+      !yAxesOverride && areAllVisualizesInvalidConditionalFilters(unvalidatedVisualizes);
 
     return {
-      enabled,
+      enabled: enabled && !skippedForInvalidConditionalFilter,
       search,
       yAxis: yAxes,
+      transformations: transformationsEnabled
+        ? queries.map(query => query.transformations)
+        : undefined,
       interval,
-      fields: [...groupBys.filter(Boolean), ...yAxes],
+      fields,
       topEvents: topEventsLimit,
       orderby,
       caseInsensitive,
-      includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
       ...queryExtras,
     };
   }, [
@@ -82,12 +109,13 @@ export function useLogsTimeseriesRequest({
     caseInsensitive,
     enabled,
     groupBys,
-    hasMeasuredIngestionDelayUi,
     interval,
     logsSearch,
     queryExtras,
     timeseriesIngestDelay,
+    transformationsEnabled,
     topEventsLimit,
+    unvalidatedVisualizes,
     visualizes,
     yAxesOverride,
   ]);

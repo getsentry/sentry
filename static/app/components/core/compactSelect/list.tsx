@@ -1,16 +1,18 @@
-import {createContext, Fragment, useContext, useId, useMemo} from 'react';
+import {Fragment, useContext, useId, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import type {ListProps} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 
-import {defined} from 'sentry/utils/defined';
-import type {FormSize} from 'sentry/utils/theme';
+import {ControlContext} from '@sentry/scraps/menu';
+import type {FormSize} from '@sentry/scraps/theme';
 
-import {ControlContext} from './control';
+import {defined} from 'sentry/utils/defined';
+
 import {GridList} from './gridList';
 import {ListBox} from './listBox';
+import {SelectFilterContext} from './selectFilterContext';
 import type {
   ListItemBase,
   SelectKey,
@@ -27,8 +29,6 @@ import {
   HiddenSectionToggle,
   shouldCloseOnSelect,
 } from './utils';
-
-export const SelectFilterContext = createContext(new Set<SelectKey>());
 
 interface BaseListProps<Value extends SelectKey>
   extends

@@ -377,7 +377,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
         "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
         "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
-        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
 
     def has_object_permission(

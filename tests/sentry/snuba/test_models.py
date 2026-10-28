@@ -1,6 +1,10 @@
 from datetime import timedelta
 from unittest import mock
 
+from django.db.models import Q
+
+from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
+from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -29,6 +33,38 @@ class SnubaQueryEventTypesTest(TestCase):
             SnubaQueryEventType.EventType.ERROR,
         }
         assert snuba_query.group_by is None
+
+
+class SnubaQueryRelocationExportTest(TestCase):
+    def _create_snuba_query(self) -> SnubaQuery:
+        return create_snuba_query(
+            SnubaQuery.Type.ERROR,
+            Dataset.Events,
+            "release:123",
+            "count()",
+            timedelta(minutes=10),
+            timedelta(minutes=1),
+            None,
+        )
+
+    def test_query_for_relocation_export(self) -> None:
+        exported_query = self._create_snuba_query()
+        create_snuba_subscription(self.project, "exported", exported_query)
+
+        other_project = self.create_project(organization=self.create_organization())
+        other_query = self._create_snuba_query()
+        create_snuba_subscription(other_project, "other", other_query)
+
+        # Queries without a subscription in an exported project are not included.
+        self._create_snuba_query()
+
+        pk_map = PrimaryKeyMap()
+        pk_map.insert(
+            get_model_name(Project), self.project.id, self.project.id, ImportKind.Inserted
+        )
+
+        result = SnubaQuery.objects.filter(SnubaQuery.query_for_relocation_export(Q(), pk_map))
+        assert set(result) == {exported_query}
 
 
 class QuerySubscriptionDataSourceHandlerTest(TestCase):

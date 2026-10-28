@@ -5,9 +5,11 @@ import {
   embeddingSpansToMessages,
   enrichAgentMessages,
   evaluationSpansToMessages,
+  extractionSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  memorySpansToMessages,
   mergeEmptyTurns,
   messagesToMarkdown,
   NOT_REPORTED,
@@ -69,16 +71,11 @@ function createMockToolNode(overrides: {
   };
 }
 
-// Mirrors the node `useConversation` produces for an embeddings span: the op
-// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
-// embeddings bucket), and the span is recognized by its span op. `spanOp` can be
-// cleared to exercise the input-attribute fallback path.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
   model?: string;
-  spanOp?: string;
   startTimestamp?: number;
   tokens?: number;
 }) {
@@ -86,7 +83,6 @@ function createMockEmbeddingNode(overrides: {
     id,
     input = 'search query',
     model = 'text-embedding-005',
-    spanOp = 'gen_ai.embeddings',
     startTimestamp = 1000,
     endTimestamp,
     tokens,
@@ -104,7 +100,7 @@ function createMockEmbeddingNode(overrides: {
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      [SpanFields.SPAN_OP]: spanOp,
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
@@ -139,6 +135,69 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
         {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
       ]),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an extraction span: it reports
+// gen_ai.operation.type "ai_client" like an LLM call and is recognized by
+// gen_ai.operation.name.
+function createMockExtractionNode(overrides: {id: string; startTimestamp?: number}) {
+  const {id, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 500;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.extract',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'extract',
+      [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          state: 'Invoice INV-2291',
+          fields: {invoice_number: {type: 'text'}, po_number: {type: 'text'}},
+        },
+      ]),
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+        {
+          answers: {
+            invoice_number: {type: 'text', span: [8, 16], value: 'INV-2291'},
+            po_number: {type: 'text', value: null},
+          },
+        },
+      ]),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for a memory span: until Relay
+// sets a dedicated operation.type it reports "ai_client" like an LLM call and is
+// recognized by gen_ai.operation.name.
+function createMockMemoryNode(overrides: {
+  id: string;
+  records?: string;
+  startTimestamp?: number;
+}) {
+  const {id, records, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.search_memory',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'search_memory',
+      [SpanFields.GEN_AI_MEMORY_STORE_ID]: 'user-prefs',
+      [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: 'dietary preferences',
+      ...(records === undefined ? {} : {[SpanFields.GEN_AI_MEMORY_RECORDS]: records}),
     },
     errors: new Set(),
   };
@@ -609,25 +668,13 @@ describe('conversationMessages utilities', () => {
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
 
-    it('recognizes an embeddings span by its span op even though operation.type reports ai_client', () => {
-      // gen_ai.operation.type is a closed, ingestion-computed enum with no
-      // "embeddings" bucket, so real embeddings spans report "ai_client" —
-      // detection must key off the span op instead, or these spans get swallowed
-      // into generationSpans and silently dropped there (no chat content).
+    it('recognizes an embeddings span by its operation name even though operation.type reports ai_client', () => {
       const embeddingNode = createMockEmbeddingNode({id: 'embed-1'});
 
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
       expect(result.generationSpans).toHaveLength(0);
-    });
-
-    it('falls back to the embeddings input attribute when the span op is absent', () => {
-      const embeddingNode = createMockEmbeddingNode({id: 'embed-1', spanOp: ''});
-
-      const result = partitionSpansByType([embeddingNode] as any);
-
-      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
 
     it('separates evaluation spans from generations even though operation.type reports ai_client', () => {
@@ -637,6 +684,26 @@ describe('conversationMessages utilities', () => {
       ] as any);
 
       expect(result.evaluationSpans.map(s => s.id)).toEqual(['eval-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
+
+    it('separates extraction spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockExtractionNode({id: 'extract-1'}),
+      ] as any);
+
+      expect(result.extractionSpans.map(s => s.id)).toEqual(['extract-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
+
+    it('separates memory spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockMemoryNode({id: 'mem-1'}),
+      ] as any);
+
+      expect(result.memorySpans.map(s => s.id)).toEqual(['mem-1']);
       expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
     });
   });
@@ -654,9 +721,54 @@ describe('conversationMessages utilities', () => {
         nodeId: 'eval-1',
         duration: 500,
       });
-      expect(message?.evaluation?.input?.state).toBe('I cannot log in.');
+      expect(message?.evaluation?.input?.state).toEqual([
+        {parts: [{kind: 'text', text: 'I cannot log in.'}]},
+      ]);
       expect(message?.evaluation?.answers).toEqual([
         {kind: 'score', key: 'urgency', score: 1.6},
+      ]);
+    });
+  });
+
+  describe('extractionSpansToMessages', () => {
+    it('maps an extraction span to a standalone message', () => {
+      const [message] = extractionSpansToMessages([
+        createMockExtractionNode({id: 'extract-1'}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'extraction-extract-1',
+        role: 'extraction',
+        content: '',
+        nodeId: 'extract-1',
+        duration: 500,
+      });
+      expect(message?.extraction?.input?.source).toBe('Invoice INV-2291');
+      expect(message?.extraction?.answers?.map(answer => answer.key)).toEqual([
+        'invoice_number',
+        'po_number',
+      ]);
+    });
+  });
+
+  describe('memorySpansToMessages', () => {
+    it('maps a memory span to a standalone message with parsed records', () => {
+      const records = JSON.stringify([{content: 'User prefers dark mode', score: 0.95}]);
+      const [message] = memorySpansToMessages([
+        createMockMemoryNode({id: 'mem-1', records}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'memory-mem-1',
+        role: 'memory',
+        content: '',
+        nodeId: 'mem-1',
+        duration: 100,
+      });
+      expect(message?.memory?.operation).toBe('search_memory');
+      expect(message?.memory?.query).toBe('dietary preferences');
+      expect(message?.memory?.records).toEqual([
+        {content: 'User prefers dark mode', score: 0.95},
       ]);
     });
   });
@@ -687,14 +799,12 @@ describe('conversationMessages utilities', () => {
     });
 
     it('skips spans with no captured input', () => {
-      // The input is the whole point of the row, so a span without it (e.g. the
-      // bulk fetch didn't return gen_ai.embeddings.input) produces no message.
       const node = {
         id: 'embed-1',
         value: {start_timestamp: 1000, end_timestamp: 1200},
         attributes: {
           [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-          [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
+          [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
           [SpanFields.GEN_AI_RESPONSE_MODEL]: 'text-embedding-005',
         },
         errors: new Set(),
@@ -1672,6 +1782,16 @@ describe('conversationMessages utilities', () => {
       );
     });
 
+    it('formats extractions with the source and the values found', () => {
+      const messages = extractionSpansToMessages([
+        createMockExtractionNode({id: 'extract-1'}) as any,
+      ]);
+
+      expect(messagesToMarkdown(messages)).toBe(
+        '### Extraction\n\n> Invoice INV-2291\n\n- invoice_number: INV-2291'
+      );
+    });
+
     it('formats user messages with email', () => {
       const result = messagesToMarkdown([
         {
@@ -1758,6 +1878,28 @@ describe('conversationMessages utilities', () => {
         },
       ]);
       expect(result).toBe('### Embedding\n\n> search query');
+    });
+
+    it('formats memory messages', () => {
+      const result = messagesToMarkdown([
+        {
+          id: 'memory-1',
+          role: 'memory',
+          content: '',
+          timestamp: 1000,
+          nodeId: 'n1',
+          memory: {
+            operation: 'search_memory',
+            query: 'dietary preferences',
+            rawRecords: undefined,
+            recordCount: undefined,
+            recordId: undefined,
+            records: null,
+            storeId: 'user-prefs',
+          },
+        },
+      ]);
+      expect(result).toBe('### Memory\n\n> search_memory: “dietary preferences”');
     });
 
     it('formats a full conversation with separators between messages', () => {

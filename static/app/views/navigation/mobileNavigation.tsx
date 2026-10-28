@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme} from '@emotion/react';
+import {IconMenu} from '@sentry/icons/menu';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
@@ -8,18 +9,19 @@ import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {IconMenu} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_MOBILE_TOPBAR_HEIGHT,
-  NAVIGATION_MOBILE_CONTENT_HEIGHT,
+  PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {
   PrimaryNavigationFooterItems,
   PrimaryNavigationFooterItemsUserDropdown,
   PrimaryNavigationItems,
+  SettingsNavigationBackButton,
+  SettingsPrimaryNavigationItems,
 } from 'sentry/views/navigation/navigation';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
 import {
@@ -31,6 +33,7 @@ import {SearchButton} from 'sentry/views/navigation/searchButton';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {SecondaryNavigationContent} from 'sentry/views/navigation/secondary/content';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 
 function MobileNavigationHeader(props: FlexProps<'header'>) {
   const theme = useTheme();
@@ -66,16 +69,26 @@ function MobileHelpMenuFallback() {
 
 function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
+  const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
 
   return (
     <SizeProvider size="sm">
       <PrimaryNavigation.Sidebar>
         <PrimaryNavigation.SidebarHeader>
-          {organization && <OrganizationDropdown />}
+          {organization &&
+            (isSettingsNavigation ? (
+              <SettingsNavigationBackButton organizationSlug={organization.slug} />
+            ) : (
+              <OrganizationDropdown />
+            ))}
         </PrimaryNavigation.SidebarHeader>
         <PrimaryNavigation.List>
-          <PrimaryNavigationItems />
+          {isSettingsNavigation && organization ? (
+            <SettingsPrimaryNavigationItems organizationSlug={organization.slug} />
+          ) : (
+            <PrimaryNavigationItems />
+          )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
       {view === 'expanded' && (
@@ -137,10 +150,7 @@ export function MobileNavigation() {
 
   return (
     <SizeProvider size="sm">
-      <MobileNavigationHeader
-        padding="sm"
-        height={`${NAVIGATION_MOBILE_CONTENT_HEIGHT}px`}
-      >
+      <MobileNavigationHeader padding="sm" height={`${PRIMARY_HEADER_HEIGHT}px`}>
         <Flex align="center" gap="md" justify="between" width="100%">
           <Button
             ref={toggleButtonRef}

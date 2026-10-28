@@ -8,13 +8,17 @@ from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
+    DiscordRenderable,
 )
 from sentry.notifications.platform.discord.renderers.issue import IssueDiscordRenderer
 from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
@@ -23,12 +27,25 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
 
 
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> DiscordRenderable:
+    return IssueDiscordRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.DISCORD
+        ),
+    )
+
+
 class IssueDiscordRendererTest(TestCase):
     def _create_data(
         self,
         *,
         tags: list[str] | None = None,
         event_data: dict[str, Any] | None = None,
+        rule: SerializableRuleProxy | None = None,
     ) -> tuple[IssueNotificationData, Event, Group]:
         event = self.store_event(
             data=event_data or {"message": "test event"},
@@ -43,14 +60,7 @@ class IssueDiscordRendererTest(TestCase):
             event_id=event.event_id,
             notification_uuid="test-uuid",
             tags=tags,
-            rule=SerializableRuleProxy(
-                id=1,
-                label="Test Detector",
-                data={
-                    "actions": [{"workflow_id": 1}],
-                },
-                project_id=self.project.id,
-            ),
+            rule=rule or SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
 
         return data, event, group
@@ -62,7 +72,7 @@ class IssueDiscordRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueDiscordRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -71,7 +81,7 @@ class IssueDiscordRendererTest(TestCase):
         data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -88,7 +98,7 @@ class IssueDiscordRendererTest(TestCase):
         url = embed.get("url")
         assert (
             url is not None
-            and f"{self.organization.slug}/issues/{group.id}/events/{event.event_id}/?referrer=discord&workflow_id=1&alert_type=issue"
+            and f"{self.organization.slug}/issues/{group.id}/?referrer=discord&notification_uuid=test-uuid&workflow_id=1&alert_type=issue"
             in url
         )
         color = embed.get("color")
@@ -105,7 +115,7 @@ class IssueDiscordRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueDiscordRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -116,13 +126,26 @@ class IssueDiscordRendererTest(TestCase):
         fields = embed["fields"]
         assert any(f["name"] == "level" for f in fields)
 
+    def test_render_test_notification_uses_generic_issue_link(self) -> None:
+        data, _, group = self._create_data(
+            rule=SerializableRuleProxy(label="Test Detector", legacy_rule_id=-1)
+        )
+
+        result = render_issue(
+            data=data,
+            rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+        )
+
+        assert (
+            result["embeds"][0]["url"]
+            == f"http://testserver/organizations/{self.organization.slug}/issues/{group.id}/?referrer=discord&notification_uuid=test-uuid"
+        )
+
     def test_source(self) -> None:
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         assert data.source == NotificationSource.ISSUE
 
@@ -132,9 +155,7 @@ class IssueAlertProviderDispatchTest(TestCase):
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         renderer = DiscordNotificationProvider.get_renderer(data=data)
         assert renderer is IssueDiscordRenderer

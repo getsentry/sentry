@@ -14,7 +14,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
     def get_child_relations(self, instance: Project) -> list[BaseRelation]:
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
-        from sentry.incidents.models.incident import IncidentProject
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
@@ -93,7 +92,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectArtifactBundle,
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
-            IncidentProject,
             InvestigationProject,
             InvestigationBlockExecutionProject,
         ):

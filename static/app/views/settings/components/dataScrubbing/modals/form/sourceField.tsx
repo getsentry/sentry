@@ -2,6 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -382,7 +383,7 @@ export class SourceField extends Component<Props, State> {
     const {showSuggestions, suggestions, activeSuggestion, help} = this.state;
 
     return (
-      <Wrapper>
+      <Container width="100%" position="relative">
         <StyledInput
           {...fieldProps}
           data-test-id="source-field"
@@ -436,15 +437,10 @@ export class SourceField extends Component<Props, State> {
             <SuggestionsOverlay onClick={this.handleClickOutside} />
           </Fragment>
         )}
-      </Wrapper>
+      </Container>
     );
   }
 }
-
-const Wrapper = styled('div')`
-  position: relative;
-  width: 100%;
-`;
 
 const StyledInput = styled(Input)`
   z-index: 1002;

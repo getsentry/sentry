@@ -1,13 +1,11 @@
 import {openModal, type ModalOptions} from 'sentry/actionCreators/modal';
 
 type OpenSudoModalOptions = ModalOptions & {
+  accessMode?: 'sudo' | 'superuser' | 'staff';
   closeButton?: boolean;
-  isSuperuser?: boolean;
-  needsReload?: boolean;
   onClose?: () => void;
   orgSlug?: string;
   retryRequest?: () => Promise<any>;
-  sudo?: boolean;
 };
 
 export async function openSudo({
@@ -15,7 +13,7 @@ export async function openSudo({
   closeEvents,
   ...args
 }: OpenSudoModalOptions = {}) {
-  const {default: Modal} = await import('sentry/components/modals/sudoModal');
+  const {SudoModal} = await import('sentry/components/modals/sudoModal');
 
-  openModal(deps => <Modal {...deps} {...args} />, {onClose, closeEvents});
+  openModal(deps => <SudoModal {...deps} {...args} />, {onClose, closeEvents});
 }

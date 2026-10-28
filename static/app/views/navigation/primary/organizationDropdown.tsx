@@ -1,31 +1,54 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBuilding} from '@sentry/icons/building';
+import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
+import {useMutation} from '@tanstack/react-query';
+import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
 
-import {OrganizationAvatar} from '@sentry/scraps/avatar';
+import {
+  getOrganizationAvatarProps,
+  OrganizationAvatar,
+  ProjectAvatar,
+} from '@sentry/scraps/avatar';
 import {AvatarButton} from '@sentry/scraps/avatarButton';
-import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {
+  DropdownMenu,
+  type DropdownMenuProps,
+  type MenuItemProps,
+} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {update} from 'sentry/actionCreators/projects';
 import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
-import {IconAdd} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useApi} from 'sentry/utils/useApi';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {NavigationMenuHeader} from './navigationMenuHeader';
 
 interface OrganizationDropdownProps {
   /**
@@ -45,6 +68,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   }, []);
 
   const organization = useOrganization();
+  const settingsV3 = useSettingsV3();
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -53,46 +77,191 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   );
 
   const {projects} = useProjects();
+  const canCreateProject = useCanCreateProject();
   const [, setReferrer] = useSessionStorage<string | null>(CUSTOM_REFERRER_KEY, null);
 
-  const letterAvatarProps = {
-    identifier: organization.slug,
-    name: organization.name || organization.slug,
+  const api = useApi({persistInFlight: true});
+  // Bookmark state for in-flight toggles, keyed by project ID. Cleared once the
+  // request settles: on success ProjectsStore has the new value, on error the
+  // project falls back to its previous state.
+  const [pendingBookmarks, setPendingBookmarks] = useState<Record<string, boolean>>({});
+  const {mutate: toggleBookmark} = useMutation({
+    mutationFn: ({project, isBookmarked}: {isBookmarked: boolean; project: Project}) =>
+      update(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        data: {isBookmarked},
+      }),
+    onMutate: ({project, isBookmarked}) => {
+      setPendingBookmarks(prev => ({...prev, [project.id]: isBookmarked}));
+    },
+    onError: (_error, {project}) => {
+      addErrorMessage(t('Unable to toggle bookmark for %s', project.slug));
+    },
+    onSettled: (_data, _error, {project}) => {
+      setPendingBookmarks(prev => omit(prev, project.id));
+    },
+  });
+
+  const makeBookmarkAction = (project: Project): MenuItemTrailingAction => {
+    const isBookmarked = pendingBookmarks[project.id] ?? project.isBookmarked;
+    return {
+      icon: (
+        <IconStar variant={isBookmarked ? 'warning' : 'muted'} isSolid={isBookmarked} />
+      ),
+      label: isBookmarked ? t('Remove Bookmark') : t('Bookmark'),
+      onAction: () => toggleBookmark({project, isBookmarked: !isBookmarked}),
+    };
   };
 
+  const avatarProps = getOrganizationAvatarProps(organization);
+
   const size = useSizeContext();
+
+  const trigger: DropdownMenuProps['trigger'] = triggerProps => (
+    <AvatarButton
+      avatar={avatarProps}
+      size={size}
+      aria-label={t('Toggle organization menu')}
+      {...triggerProps}
+    />
+  );
+  const createOrganizationItem = makeCreateOrganizationMenuItem();
+
+  if (settingsV3) {
+    const memberProjects = sortProjects(projects.filter(project => project.isMember));
+    const otherProjects = sortProjects(projects.filter(project => !project.isMember));
+
+    return (
+      <DropdownMenu
+        usePortal
+        portalContainerRef={portalContainerRef}
+        zIndex={theme.zIndex.modal}
+        trigger={trigger}
+        maxWidth={258}
+        menuTitle={
+          <NavigationMenuHeader
+            organization={organization}
+            projectCount={projects.length}
+          />
+        }
+        items={[
+          {
+            key: 'organization',
+            textValue: organization.name,
+            children: [
+              {
+                key: 'settings',
+                label: t('Settings'),
+                leadingItems: <IconSettings />,
+                to: `/settings/${organization.slug}/`,
+                hidden:
+                  props.hideCurrentOrganizationLinks ||
+                  !organization.access?.includes('org:read'),
+              },
+              {
+                key: 'switch-organization',
+                label: t('Switch'),
+                leadingItems: <IconBuilding />,
+                submenu: true,
+                hidden:
+                  config.singleOrganization ||
+                  isDemoModeActive() ||
+                  (activeOrgs.length === 0 && inactiveOrgs.length === 0),
+                children: [
+                  {
+                    key: 'active-orgs',
+                    children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
+                    hidden: activeOrgs.length === 0,
+                  },
+                  {
+                    key: 'inactive-orgs',
+                    children: orderBy(inactiveOrgs, ['name']).map(
+                      makeInactiveOrganizationMenuItem
+                    ),
+                    hidden: inactiveOrgs.length === 0,
+                  },
+                ],
+              },
+              createOrganizationItem,
+            ],
+          },
+          {
+            key: 'project-settings',
+            label: t('Project Settings'),
+            hidden: props.hideCurrentOrganizationLinks,
+            children: [
+              ...sortProjects(projects.filter(project => project.isBookmarked))
+                .slice(0, 5)
+                .map(project =>
+                  makeProjectMenuItem(
+                    project,
+                    organization,
+                    makeBookmarkAction(project),
+                    'starred-project'
+                  )
+                ),
+              {
+                key: 'view-all-projects',
+                label: t('View All Projects'),
+                leadingItems: <span aria-hidden="true" />,
+                submenu: {
+                  title: t('All Projects'),
+                  emptyMessage: t('No projects found'),
+                  search: {placeholder: t('Search')},
+                  maxHeight: 240,
+                  maxWidth: 258,
+                },
+                hidden: projects.length === 0,
+                children: [
+                  {
+                    key: 'my-projects',
+                    label: t('My Projects'),
+                    hidden: memberProjects.length === 0,
+                    children: memberProjects.map(project =>
+                      makeProjectMenuItem(
+                        project,
+                        organization,
+                        makeBookmarkAction(project)
+                      )
+                    ),
+                  },
+                  {
+                    key: 'other-projects',
+                    label: t('Other Projects'),
+                    hidden: otherProjects.length === 0,
+                    children: otherProjects.map(project =>
+                      makeProjectMenuItem(
+                        project,
+                        organization,
+                        makeBookmarkAction(project)
+                      )
+                    ),
+                  },
+                ],
+              },
+              {
+                key: 'create-project',
+                label: t('Create Project'),
+                leadingItems: <IconAdd />,
+                to: canCreateProject
+                  ? makeProjectsPathname({path: '/new/', organization})
+                  : undefined,
+                disabled: !canCreateProject,
+              },
+            ],
+          },
+        ]}
+      />
+    );
+  }
 
   return (
     <DropdownMenu
       usePortal
       portalContainerRef={portalContainerRef}
       zIndex={theme.zIndex.modal}
-      trigger={triggerProps => (
-        <AvatarButton
-          avatar={
-            organization.avatar.avatarType === 'upload' && organization.avatar.avatarUrl
-              ? {
-                  type: 'upload',
-                  uploadUrl: organization.avatar.avatarUrl,
-                  ...letterAvatarProps,
-                }
-              : organization.avatar.avatarType === 'gravatar' &&
-                  organization.avatar.avatarUrl
-                ? {
-                    type: 'gravatar',
-                    gravatarId: organization.avatar.avatarUrl,
-                    ...letterAvatarProps,
-                  }
-                : {
-                    type: 'letter_avatar',
-                    ...letterAvatarProps,
-                  }
-          }
-          size={size}
-          aria-label={t('Toggle organization menu')}
-          {...triggerProps}
-        />
-      )}
+      trigger={trigger}
       position="right-start"
       minMenuWidth={200}
       items={[
@@ -169,7 +338,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                   // Hide entire submenu if there are no inactive organizations
                   hidden: inactiveOrgs.length === 0,
                 },
-                makeCreateOrganizationMenuItem(),
+                {
+                  key: 'create-organization-section',
+                  children: [
+                    {...createOrganizationItem, label: t('Create a new organization')},
+                  ],
+                  hidden: createOrganizationItem.hidden,
+                },
               ],
             },
           ],
@@ -177,6 +352,21 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       ]}
     />
   );
+}
+
+function makeProjectMenuItem(
+  project: Project,
+  organization: Organization,
+  trailingAction: MenuItemTrailingAction,
+  keyPrefix = 'project'
+): MenuItemProps {
+  return {
+    key: `${keyPrefix}-${project.id}`,
+    label: project.slug,
+    leadingItems: <ProjectAvatar project={project} size={16} />,
+    trailingAction,
+    to: `/settings/${organization.slug}/projects/${project.slug}/`,
+  };
 }
 
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
@@ -201,7 +391,8 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
   const menuItemProps: MenuItemProps = {
     key: 'create-organization',
     leadingItems: <IconAdd />,
-    label: t('Create a new organization'),
+    label: t('Create Organization'),
+    hidden: !configFeatures.has('organizations:create'),
   };
 
   if (configFeatures.has('system:multi-region')) {
@@ -211,9 +402,5 @@ function makeCreateOrganizationMenuItem(): MenuItemProps {
     menuItemProps.to = '/organizations/new/';
   }
 
-  return {
-    key: 'create-organization-section',
-    children: [menuItemProps],
-    hidden: !ConfigStore.get('features').has('organizations:create'),
-  };
+  return menuItemProps;
 }

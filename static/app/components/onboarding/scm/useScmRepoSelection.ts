@@ -112,6 +112,7 @@ export function useScmRepoSelection({
       Sentry.captureException(error);
       addErrorMessage(t('Failed to select repository'));
       onSelect(undefined);
+      // oxlint-disable-next-line react/todo
     } finally {
       setBusy(false);
     }

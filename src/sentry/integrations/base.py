@@ -268,6 +268,11 @@ class IntegrationProvider(PipelineProvider["IntegrationPipeline"], abc.ABC):
     the installer's identity to the organization integration
     """
 
+    reject_pending_deletion_reinstall = False
+    """
+    Reject an installation when its existing organization link is pending deletion.
+    """
+
     features: frozenset[IntegrationFeatures] = frozenset()
     """can be any number of IntegrationFeatures"""
 

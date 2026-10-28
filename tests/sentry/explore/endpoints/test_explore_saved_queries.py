@@ -1,6 +1,9 @@
+from itertools import product
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
@@ -96,7 +99,8 @@ class ExploreSavedQueriesTest(APITestCase):
         # User saved query
         assert response.data[4]["name"] == "Test query"
         assert sorted(response.data[4]["projects"]) == sorted(self.project_ids)
-        assert response.data[4]["range"] == "24h"
+        assert "range" not in response.data[4]
+        assert response.data[4]["statsPeriod"] == "24h"
         assert response.data[4]["query"] == [{"fields": ["span.op"], "mode": "samples"}]
         assert "createdBy" in response.data[4]
         assert response.data[4]["createdBy"]["username"] == self.user.username
@@ -496,6 +500,29 @@ class ExploreSavedQueriesTest(APITestCase):
         assert "Test query" not in names
         assert str(own_query.id) in {item["id"] for item in response.data}
 
+    def test_sync_prebuilt_llm_calls_without_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+
+    def test_sync_prebuilt_llm_calls_updates_existing_message_filter(self) -> None:
+        sync_prebuilt_queries(self.org)
+        saved_query = ExploreSavedQuery.objects.get(organization=self.org, prebuilt_id=5)
+        saved_query.prebuilt_version = 1
+        saved_query.query["query"][0]["query"] = (
+            "gen_ai.operation.type:ai_client has:gen_ai.output.messages"
+        )
+        saved_query.save(update_fields=["prebuilt_version", "query"])
+
+        sync_prebuilt_queries(self.org)
+
+        saved_query.refresh_from_db()
+        assert saved_query.prebuilt_version == 2
+        assert saved_query.query["query"][0]["query"] == "gen_ai.operation.type:ai_client"
+        assert ExploreSavedQuery.objects.filter(organization=self.org, prebuilt_id=5).count() == 1
+
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
         sync_prebuilt_queries_starred(self.org, self.user)
@@ -847,7 +874,8 @@ class ExploreSavedQueriesTest(APITestCase):
             )
         assert response.status_code == 201, response.content
         data = response.data
-        assert data["range"] == "24h"
+        assert "range" not in data
+        assert data["statsPeriod"] == "24h"
         assert data["environment"] == ["dev"]
         assert data["query"] == [
             {
@@ -859,6 +887,75 @@ class ExploreSavedQueriesTest(APITestCase):
         ]
         assert data["projects"] == self.project_ids
         assert data["dataset"] == "spans"
+
+    def test_post_with_range(self) -> None:
+        """Older clients send `range`. It is stored and returned as `statsPeriod`."""
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with range",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "24h"
+        assert response.data["interval"] == "1h"
+
+    def test_post_with_stats_period(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with stats period",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "statsPeriod": "7d",
+                    "interval": "1h",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
+        assert response.data["interval"] == "1h"
+        saved_query = ExploreSavedQuery.objects.get(name="query with stats period")
+        assert saved_query.query["statsPeriod"] == "7d"
+        assert "range" not in saved_query.query
+
+    def test_post_stats_period_overrides_range(self) -> None:
+        with self.feature(self.features):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "query with both periods",
+                    "projects": self.project_ids,
+                    "query": [
+                        {
+                            "fields": ["span.op", "count(span.duration)"],
+                            "mode": "samples",
+                        }
+                    ],
+                    "range": "24h",
+                    "statsPeriod": "7d",
+                },
+            )
+        assert response.status_code == 201, response.content
+        assert "range" not in response.data
+        assert response.data["statsPeriod"] == "7d"
 
     def test_post_all_projects(self) -> None:
         with self.feature(self.features):
@@ -1121,6 +1218,148 @@ class ExploreSavedQueriesTest(APITestCase):
         assert response.data["query"][0]["visualize"] == [
             {"yAxes": ["count(span.duration)"]},
         ]
+
+    def test_save_transformations(self) -> None:
+        queries: list[tuple[str, QueryResponseType]] = [
+            ("spans", {"mode": "aggregate"}),
+            ("logs", {"mode": "aggregate"}),
+            (
+                "metrics",
+                {
+                    "mode": "aggregate",
+                    "metric": {"name": "request.duration", "type": "distribution"},
+                },
+            ),
+        ]
+        for (dataset, query), transformations, visualization_field in product(
+            queries,
+            [
+                [],
+                ["smooth( ema , 7 , 0.25 )", "fill( linear )"],
+            ],
+            ["visualize", "aggregateField"],
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [
+                            {
+                                **query,
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 201, response.content
+            assert response.data["dataset"] == dataset
+            expected = [{"yAxes": ["count()"], "transformations": transformations}]
+            assert response.data["query"][0][visualization_field] == expected
+            saved_query = ExploreSavedQuery.objects.get(
+                id=response.data["id"], organization=self.org
+            )
+            assert saved_query.query["query"][0][visualization_field] == expected
+
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.get(self.url, data={"query": "name:Transformed"})
+
+            assert response.status_code == 200, response.content
+            saved_queries = {query["id"]: query for query in response.data}
+            assert saved_queries[str(saved_query.id)]["query"][0][visualization_field] == expected
+
+    def test_save_transformations_requires_feature(self) -> None:
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], [[], ["fill(locf)"]]
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": False}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": transformations},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "You do not have access to query transformations."}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformation_pipeline(self) -> None:
+        for visualization_field in ["visualize", "aggregateField"]:
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Invalid transformations",
+                        "projects": self.project_ids,
+                        "query": [
+                            {"mode": "aggregate"},
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"]},
+                                    {"yAxes": ["count()"], "transformations": ["unknown()"]},
+                                ],
+                            },
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert response.data == {"detail": "unknown is not a valid transformation function"}
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
+
+    def test_save_invalid_transformations(self) -> None:
+        invalid_transformations: list[object] = [None, "fill(zero)", [None], [{}]]
+        for visualization_field, transformations in product(
+            ["visualize", "aggregateField"], invalid_transformations
+        ):
+            with self.feature(
+                {**self.features, "organizations:explore-interpolation-and-smoothing": True}
+            ):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "name": "Transformed query",
+                        "projects": self.project_ids,
+                        "query": [
+                            {
+                                "mode": "aggregate",
+                                visualization_field: [
+                                    {"yAxes": ["count()"], "transformations": transformations}
+                                ],
+                            }
+                        ],
+                    },
+                )
+
+            assert response.status_code == 400, response.content
+            assert "transformations" in response.data["query"][visualization_field]
+            assert ExploreSavedQuery.objects.filter(organization=self.org).count() == 1
 
     def test_save_aggregate_field_and_orderby(self) -> None:
         with self.feature(self.features):

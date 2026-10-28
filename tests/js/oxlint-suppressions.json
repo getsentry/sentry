@@ -1,0 +1,12 @@
+{
+  "sentry-test/nuqsTestingAdapter.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 3
+    }
+  },
+  "sentry-test/reactTestingLibrary.spec.tsx": {
+    "@sentry/scraps/prefer-primitives": {
+      "count": 5
+    }
+  }
+}

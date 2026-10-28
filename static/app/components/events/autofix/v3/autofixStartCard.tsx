@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {IconBug} from '@sentry/icons/bug';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -11,8 +12,6 @@ import {Text} from '@sentry/scraps/text';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconBug} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -40,12 +39,14 @@ export function AutofixStartCard({
   const [enableBashMode] = useForceBashMode();
 
   const [startingRun, setStartingRun] = useState(false);
+  const isStarting = startingRun || autofix.isWaitingForRun;
   const handleStartRootCause = async () => {
     setStartingRun(true);
     try {
       await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
+      // oxlint-disable-next-line react/todo
     } finally {
       setStartingRun(false);
     }
@@ -57,14 +58,15 @@ export function AutofixStartCard({
       <AutofixStartCardContent />
       <Button
         size="md"
-        icon={startingRun ? <LoadingIndicator size={16} /> : <IconBug />}
+        icon={<IconBug />}
         aria-label={t('Start Analysis')}
         variant="primary"
         onClick={handleStartRootCause}
         analyticsEventKey="autofix.start_fix_clicked"
         analyticsEventName="Autofix: Start Fix Clicked"
         analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
-        disabled={startingRun}
+        busy={isStarting}
+        disabled={isStarting}
       >
         {t('Start Analysis')}
       </Button>
@@ -72,7 +74,7 @@ export function AutofixStartCard({
   );
 }
 
-export function AutofixStartCardContent() {
+function AutofixStartCardContent() {
   return (
     <Flex
       border="muted"
@@ -94,7 +96,7 @@ export function AutofixStartCardContent() {
         justify="end"
         align="center"
         aspectRatio="9 / 16"
-        height={{'screen:2xs': '78px', 'screen:lg': '98px'}}
+        height={{zero: '78px', '4xl': '98px'}}
       >
         <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
       </ImageContainer>

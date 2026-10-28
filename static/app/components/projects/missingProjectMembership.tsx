@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {IconFlag} from '@sentry/icons/flag';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -10,7 +11,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
-import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -40,6 +40,7 @@ function JoinTeamAction({teamSlug, organization}: JoinTeamActionProps) {
       addSuccessMessage(t('Request to join team sent.'));
     } catch {
       addErrorMessage(t('There was an error while trying to request access.'));
+      // oxlint-disable-next-line react/todo
     } finally {
       setIsLoading(false);
     }

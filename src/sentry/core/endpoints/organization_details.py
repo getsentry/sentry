@@ -1241,17 +1241,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 ):
                     run_calculations_per_org_task_entry.delay(organization.id)
 
-                if is_org_mode and "defaultAutofixAutomationTuning" in changed_data:
-                    organization.update_option(
-                        "sentry:default_autofix_automation_tuning",
-                        serializer.validated_data["defaultAutofixAutomationTuning"],
-                    )
-                if is_org_mode and "defaultSeerScannerAutomation" in changed_data:
-                    organization.update_option(
-                        "sentry:default_seer_scanner_automation",
-                        serializer.validated_data["defaultSeerScannerAutomation"],
-                    )
-
             if was_pending_deletion:
                 self.create_audit_entry(
                     request=request,

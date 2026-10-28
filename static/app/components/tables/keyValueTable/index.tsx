@@ -1,12 +1,11 @@
+export {KeyValueColumns} from './keyValueColumns';
+export {KeyValueRow} from './keyValueRow';
 export {
   KeyValueTableCard,
   KeyValueTableCardGrid,
   KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
 } from './keyValueTableCard';
 export {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
-  KeyValueTableSubject,
-  KeyValueTableValueSection,
 } from './keyValueTableDataRow';

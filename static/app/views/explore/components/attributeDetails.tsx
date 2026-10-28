@@ -1,9 +1,8 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {t} from 'sentry/locale';
 import type {FieldKind} from 'sentry/utils/fields';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {DEFAULT_ATTRIBUTE_DESCRIPTION, getFieldDefinition} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 interface AttributeDetailsProps {
@@ -21,7 +20,7 @@ export function AttributeDetails({
 }: AttributeDetailsProps) {
   const type = traceItemTypeToType(traceItemType);
   const definition = getFieldDefinition(column, type, kind);
-  const description = definition?.desc ?? t('An attribute sent with one or more events');
+  const description = definition?.desc ?? DEFAULT_ATTRIBUTE_DESCRIPTION;
   return (
     <Details>
       <DetailsLabel>{label}</DetailsLabel>

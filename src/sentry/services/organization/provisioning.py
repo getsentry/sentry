@@ -5,22 +5,28 @@ from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
-from sentry import options
+from sentry import analytics, audit_log
+from sentry.analytics.events.data_consent_org_creation import (
+    AggregatedDataConsentOrganizationCreatedEvent,
+)
+from sentry.analytics.events.organization_created import OrganizationCreatedEvent
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.hybridcloud.outbox.signals import process_control_outbox
+from sentry.hybridcloud.outbox.signals import process_cell_outbox, process_control_outbox
 from sentry.hybridcloud.services.cell_organization_provisioning import (
     cell_organization_provisioning_rpc_service,
 )
+from sentry.models.organization import Organization
 from sentry.models.organizationslugreservation import (
     OrganizationSlugReservation,
     OrganizationSlugReservationType,
 )
-from sentry.options.rollout import in_random_rollout
 from sentry.organizations.services.organization import RpcOrganization, organization_service
-from sentry.services.organization.model import OrganizationProvisioningOptions
+from sentry.services.organization.model import OrganizationOptions, OrganizationProvisioningOptions
+from sentry.signals import organization_created, terms_accepted
 from sentry.silo.base import SiloMode
 from sentry.types.cell import get_local_cell, get_new_org_cell_for_locality
+from sentry.utils.audit import create_audit_entry_from_user
 
 
 class OrganizationProvisioningException(Exception):
@@ -192,6 +198,83 @@ def process_provision_organization_outbox(
         return
 
 
+@receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS)
+def process_organization_provision_analytics_outbox(
+    object_identifier: int, payload: Any, **kwds: Any
+):
+    """
+    Create analytics events and audit logs for an organization
+    Separate from POST_ORGANIZATION_PROVISION (used by getsentry) so that a failure in one
+    handler doesn't cause the other handler to be skipped.
+    """
+    try:
+        provision_options = OrganizationOptions.parse_obj(payload)
+    except ValidationError as e:
+        # The provisioning payload is likely malformed and cannot be processed.
+        capture_exception(e)
+        return
+
+    try:
+        organization = Organization.objects.get_from_cache(id=object_identifier)
+    except Organization.DoesNotExist as e:
+        capture_exception(e)
+        return
+
+    # These operations involve RPC calls to control so do them outside of the transaction
+    audit_data = organization.get_audit_log_data()
+    actor_label = None
+    if provision_options.channel_name:
+        audit_data["channel"] = provision_options.channel_name
+        actor_label = f"provision_channel:{provision_options.channel_name}"
+    try:
+        create_audit_entry_from_user(
+            user=provision_options.owner,
+            ip_address=provision_options.ip_address,
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_ADD"),
+            data=audit_data,
+            actor_label=actor_label,
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    try:
+        analytics.record(
+            OrganizationCreatedEvent(
+                id=organization.id,
+                name=organization.name,
+                slug=organization.slug,
+                actor_id=provision_options.owner.id,
+            )
+        )
+    except Exception as e:
+        capture_exception(e)
+
+    if provision_options.agree_terms:
+        terms_accepted.send_robust(
+            user=provision_options.owner,
+            organization_id=organization.id,
+            ip_address=provision_options.ip_address,
+            sender="provision_analytics",
+        )
+
+    if provision_options.aggregated_data_consent:
+        organization.update_option("sentry:aggregated_data_consent", True)
+        try:
+            analytics.record(
+                AggregatedDataConsentOrganizationCreatedEvent(organization_id=organization.id)
+            )
+        except Exception as e:
+            capture_exception(e)
+
+    organization_created.send_robust(
+        organization=organization,
+        user=provision_options.owner,
+        sender="provision_analytics",
+    )
+
+
 def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):
     """
     CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
@@ -267,8 +350,4 @@ def resolve_provisioning_cell(locality_name: str) -> str:
     """
     Resolve the cell that a new organization should be created in.
     """
-    if in_random_rollout("provision_organization.override.rate"):
-        override_map = options.get("provision_organization.override.mapping")
-        if locality_name in override_map:
-            locality_name = override_map[locality_name]
     return get_new_org_cell_for_locality(locality_name).name

@@ -1,10 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import PaymentHistory from 'getsentry/views/subscriptionPage/paymentHistory';
@@ -149,5 +152,94 @@ describe('Subscription > PaymentHistory', () => {
 
     expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
     expect(screen.getByText('Paid')).toBeInTheDocument();
+  });
+
+  it('renders usage CSV downloads for platform contract receipts', async () => {
+    window.open = jest.fn();
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['invoice-usage-downloads'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+    ProjectsStore.loadInitialData([ProjectFixture({slug: 'my-project'})]);
+
+    const csv = 'https://sentry.io/organizations/dogz-rule/billing/contracts/1/export/';
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [
+        InvoiceFixture({
+          isClosed: true,
+          isPaid: true,
+          usageCsvLinks: {csv, csvPerProject: `${csv}per-project/`},
+        }),
+      ],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Download Usage CSV'})
+    ).toHaveAttribute('href', csv);
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Download Project Usage CSV'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'my-project'}));
+    expect(window.open).toHaveBeenCalledWith(`${csv}per-project/my-project/`, '_blank');
+  });
+
+  it('does not render usage CSV downloads without the feature flag', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    const csv = 'https://sentry.io/organizations/dogz-rule/billing/contracts/1/export/';
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [
+        InvoiceFixture({
+          isClosed: true,
+          isPaid: true,
+          usageCsvLinks: {csv, csvPerProject: `${csv}per-project/`},
+        }),
+      ],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Download Usage CSV'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not render usage CSV downloads for other receipts', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+      features: ['invoice-usage-downloads'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({isClosed: true, isPaid: true})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    expect(await screen.findByTestId('payment-list')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Download Usage CSV'})
+    ).not.toBeInTheDocument();
   });
 });

@@ -2072,6 +2072,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.assert_valid_deleted_log(deleted_org, org)
 
         schedule = CellScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
+        assert schedule.actor_id == self.user.id
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
         assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 

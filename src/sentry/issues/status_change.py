@@ -6,9 +6,6 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from django.db.models.signals import post_save
-
-from sentry import options
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
 from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
@@ -173,12 +170,4 @@ def handle_status_update(
         if new_status == GroupStatus.UNRESOLVED:
             kick_off_status_syncs.apply_async(
                 kwargs={"project_id": group.project_id, "group_id": group.id}
-            )
-
-        if not options.get("groups.enable-post-update-signal"):
-            post_save.send_robust(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["status", "substatus"],
             )

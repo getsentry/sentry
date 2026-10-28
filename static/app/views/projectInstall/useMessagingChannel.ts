@@ -9,7 +9,7 @@ import {
   type ChannelIdentityField,
   getChannelSelectedBy,
   type IntegrationChannel,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 import {validateChannelQueryOptions} from 'sentry/views/projectInstall/useValidateChannel';
 
 type Channel = {

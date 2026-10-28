@@ -1,11 +1,7 @@
-import {Fragment, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
-
-import {Grid} from '@sentry/scraps/layout';
+import {useMemo} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {TreeColumn as KeyValueTreeColumn} from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
@@ -13,11 +9,11 @@ import {
   type KeyValueTreeRowConfig,
 } from 'sentry/components/keyValueTree/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {KeyValueColumns} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type TagTreeContent = KeyValueTreeContent<string, EventTagWithMeta>;
@@ -30,86 +26,50 @@ interface EventTagsTreeProps {
   config?: KeyValueTreeRowConfig;
 }
 
-/**
- * Component to render proportional columns for event tags. The columns will not separate
- * branch tags from their roots, and attempt to be as evenly distributed as possible.
- */
-function TagTreeColumns({
-  tags,
-  columnCount,
-  projectSlug,
-  event,
-  config,
-}: EventTagsTreeProps & {columnCount: number}) {
+export function EventTagsTree({tags, projectSlug, event, config}: EventTagsTreeProps) {
   const organization = useOrganization();
   const {data: project, isPending} = useDetailedProject({
     orgSlug: organization.slug,
     projectSlug,
   });
-  const assembledColumns = useMemo(() => {
-    if (isPending) {
-      return <TreeLoadingIndicator />;
-    }
+  const tagTree = useMemo(
+    () =>
+      buildKeyValueTree(
+        tags.map(tag => ({
+          key: tag.key,
+          value: tag.value,
+          meta: tag.meta,
+          original: tag,
+        }))
+      ),
+    [tags]
+  );
 
-    if (!project) {
-      return [];
-    }
-
-    const tagTree = buildKeyValueTree(
-      tags.map(tag => ({
-        key: tag.key,
-        value: tag.value,
-        meta: tag.meta,
-        original: tag,
-      }))
-    );
-
-    return getKeyValueTreeColumns(tagTree, columnCount).map((rows, index) => (
-      <TreeColumn key={index} data-test-id="tag-tree-column">
-        {rows.map(row => (
-          <EventTagsTreeRow
-            key={row.uniqueKey}
-            tagKey={row.treeKey}
-            content={row.content}
-            spacerCount={row.spacerCount}
-            hasStem={row.hasStem}
-            data-test-id="tag-tree-row"
-            event={event}
-            project={project}
-            config={config}
-          />
-        ))}
-      </TreeColumn>
-    ));
-  }, [columnCount, isPending, project, event, tags, config]);
-
-  return <Fragment>{assembledColumns}</Fragment>;
-}
-
-export function EventTagsTree(props: EventTagsTreeProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useContainerColumnCount(containerRef);
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
-      <Grid
-        align="start"
-        columns={`repeat(${columnCount}, 1fr)`}
-        ref={containerRef}
-        data-test-id="event-tags-tree"
-      >
-        <TagTreeColumns columnCount={columnCount} {...props} />
-      </Grid>
+      {isPending ? (
+        <LoadingIndicator />
+      ) : project ? (
+        <KeyValueColumns data-test-id="event-tags-tree" columnTestId="tag-tree-column">
+          {columnCount =>
+            getKeyValueTreeColumns(tagTree, columnCount).map(rows =>
+              rows.map(row => (
+                <EventTagsTreeRow
+                  key={row.uniqueKey}
+                  tagKey={row.treeKey}
+                  content={row.content}
+                  spacerCount={row.spacerCount}
+                  hasStem={row.hasStem}
+                  data-test-id="tag-tree-row"
+                  event={event}
+                  project={project}
+                  config={config}
+                />
+              ))
+            )
+          }
+        </KeyValueColumns>
+      ) : null}
     </ErrorBoundary>
   );
 }
-
-export const TreeColumn = styled(KeyValueTreeColumn)`
-  grid-template-columns: minmax(auto, 175px) 1fr;
-  &:first-child {
-    margin-left: -${p => p.theme.space.md};
-  }
-`;
-
-const TreeLoadingIndicator = styled(LoadingIndicator)`
-  grid-column: 1 /-1;
-`;

@@ -1,5 +1,5 @@
 import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
-import {UNSAFE_DataRouterContext} from 'react-router-dom';
+import {UNSAFE_DataRouterContext} from 'react-router';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,

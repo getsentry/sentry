@@ -146,6 +146,36 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
         )
         assert resp["X-Hits"] == "2"  # 2 unique groups, not 4 total history records
 
+    def test_history_excludes_inaccessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        restricted_team = self.create_team()
+        restricted_project = self.create_project(
+            organization=self.organization, teams=[restricted_team]
+        )
+        self.group_2.update(project=restricted_project)
+        self.detector_2.update(project=restricted_project)
+        self.history[-1].update(date_added=before_now(hours=1))
+        self.create_detector_workflow(workflow=self.workflow, detector=self.detector)
+        self.create_detector_workflow(workflow=self.workflow, detector=self.detector_2)
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, statsPeriod="6d", per_page=1
+        )
+
+        assert [row["group"]["id"] for row in response.data] == [str(self.group.id)]
+        assert response["X-Hits"] == "1"
+
+        self.workflow.detectorworkflow_set.all().delete()
+        response = self.get_success_response(
+            self.organization.slug, self.workflow.id, statsPeriod="6d"
+        )
+
+        assert [row["group"]["id"] for row in response.data] == [str(self.group.id)]
+
     def test_sort_by_last_triggered(self) -> None:
         """Default sort is lastTriggered DESC. Explicit sort=-count orders by count DESC."""
         workflow = self.create_workflow(organization=self.organization)

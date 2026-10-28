@@ -21,9 +21,11 @@ type Props = {
   group: Group | undefined;
   projectSlug: Project['slug'];
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  initialCollapse?: boolean;
 };
 
 export function Exception({
+  initialCollapse,
   event,
   data,
   projectSlug,
@@ -58,6 +60,7 @@ export function Exception({
       hasSystemFrames={data.hasSystemFrames}
     >
       <TraceEventDataSection
+        initialCollapse={initialCollapse}
         title={t('Stack Trace')}
         type={EntryType.EXCEPTION}
         projectSlug={projectSlug}

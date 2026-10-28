@@ -82,9 +82,10 @@ export interface TraceItemDetailsResponse {
 // decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
 export type TraceItemResponseLink = {
   itemId: string;
-  sampled: boolean;
   traceId: string;
   attributes?: TraceItemResponseAttribute[];
+  /** Absent when the SDK did not record the sampling decision. */
+  sampled?: boolean;
 };
 
 type TraceItemDetailsUrlParams = {
@@ -120,7 +121,28 @@ export type TraceItemResponseAttribute =
   | {name: string; type: 'str'; value: string}
   | {name: string; type: 'int'; value: number}
   | {name: string; type: 'float'; value: number}
-  | {name: string; type: 'bool'; value: boolean};
+  | {name: string; type: 'bool'; value: boolean}
+  | {name: string; type: 'array'; value: Array<string | number | boolean>};
+
+/**
+ * The scalar value an attribute flattens to for the string-keyed maps field
+ * renderers consume. Array attributes are JSON-encoded into this shape.
+ */
+export type TraceItemAttributeScalarValue = Exclude<
+  TraceItemResponseAttribute,
+  {type: 'array'}
+>['value'];
+
+/**
+ * Flattens an attribute to a scalar for the string-keyed maps field renderers
+ * consume. Arrays are JSON-encoded so the representation matches the attribute
+ * tree rather than a lossy comma-join.
+ */
+export function getScalarAttributeValue(
+  attribute: TraceItemResponseAttribute
+): TraceItemAttributeScalarValue {
+  return attribute.type === 'array' ? JSON.stringify(attribute.value) : attribute.value;
+}
 
 /**
  * Query hook fetching trace item details in EAP.
@@ -162,7 +184,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   return result;
 }
 
-function traceItemDetailsApiOptions({
+export function traceItemDetailsApiOptions({
   organizationSlug,
   projectSlug,
   traceItemId,

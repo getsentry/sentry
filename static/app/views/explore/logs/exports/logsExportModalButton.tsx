@@ -4,6 +4,7 @@ import {
   type EventsQuerySamplingMode,
 } from 'sentry/components/exports/useDataExport';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/exploreExportModalButton';
@@ -24,6 +25,7 @@ export interface LogsQueryInfo {
   query: string;
   sampling: EventsQuerySamplingMode;
   sort: string[];
+  caseInsensitive?: '1';
   end?: string;
   environment?: string[];
   start?: string;
@@ -55,6 +57,7 @@ export function useLogsQueryInfo({
 }): LogsQueryInfo {
   const {selection} = usePageFilters();
   const logsSearch = useQueryParamsSearch();
+  const [caseInsensitive] = useCaseInsensitivity();
   const {start, end, period: statsPeriod} = selection.datetime;
   const {environments, projects} = selection;
 
@@ -69,6 +72,7 @@ export function useLogsQueryInfo({
     end: end ? new Date(end).toISOString() : undefined,
     statsPeriod: statsPeriod || undefined,
     environment: environments,
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 }
 

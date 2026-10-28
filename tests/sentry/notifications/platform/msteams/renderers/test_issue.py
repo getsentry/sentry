@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry import eventstore
 from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
@@ -48,13 +47,28 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationData,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSource,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification
 from sentry.types.actor import Actor
+
+
+def render_issue(
+    data: NotificationData, rendered_template: NotificationRenderedTemplate
+) -> AdaptiveCard:
+    return IssueMSTeamsRenderer.render(
+        data=data,
+        rendered_template=rendered_template,
+        link_decorator=NotificationLinkDecorator(
+            data=data, provider=NotificationProviderKey.MSTEAMS
+        ),
+    )
 
 
 class IssueMSTeamsRendererTest(TestCase):
@@ -77,14 +91,7 @@ class IssueMSTeamsRendererTest(TestCase):
             event_id=event.event_id,
             notification_uuid="test-uuid",
             tags=tags,
-            rule=SerializableRuleProxy(
-                id=1,
-                label="Test Detector",
-                data={
-                    "actions": [{"workflow_id": 1}],
-                },
-                project_id=self.project.id,
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
 
         return data, event, group
@@ -110,16 +117,11 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         project = Project.objects.get_from_cache(id=group.project_id)
-        rules = [
-            SerializableRuleProxy(
-                id=1,
-                label="Test Detector",
-                data={"actions": [{"workflow_id": 1}]},
-                project_id=self.project.id,
-            ).to_rule()
+        origins = [
+            SerializableRuleProxy(label="Test Detector", workflow_id=1).to_notification_origin()
         ]
         footer_text = build_footer(
-            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
+            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=origins
         )
 
         from datetime import datetime
@@ -149,7 +151,6 @@ class IssueMSTeamsRendererTest(TestCase):
                     "actionType": action_type,
                     "groupId": group.id,
                     "eventId": event.event_id,
-                    "rules": [1],
                     "workflows": [1],
                 }
             }
@@ -231,7 +232,7 @@ class IssueMSTeamsRendererTest(TestCase):
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
-            IssueMSTeamsRenderer.render(
+            render_issue(
                 data=invalid_data,
                 rendered_template=rendered_template,
             )
@@ -240,7 +241,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, event, group = self._create_data()
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -255,7 +256,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, _, group = self._create_data()
         group.update(status=GroupStatus.RESOLVED, substatus=None)
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -276,7 +277,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data, _, group = self._create_data()
         GroupAssignee.objects.assign(group, self.user)
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -291,7 +292,7 @@ class IssueMSTeamsRendererTest(TestCase):
         # them as strings regardless of what was sent.
         data, _, _ = self._create_data()
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -309,7 +310,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -328,7 +329,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -357,7 +358,7 @@ class IssueMSTeamsRendererTest(TestCase):
         )
         assert latest_event.group_id == group.id
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
         )
@@ -376,10 +377,13 @@ class IssueMSTeamsRendererTest(TestCase):
         group_event.occurrence = occurrence
 
         with (
-            patch.object(eventstore.backend, "get_event_by_id", return_value=event),
+            patch(
+                "sentry.notifications.platform.msteams.renderers.issue.fetch_event",
+                return_value=event,
+            ),
             patch.object(event, "for_group", return_value=group_event) as for_group,
         ):
-            result = IssueMSTeamsRenderer.render(
+            result = render_issue(
                 data=data,
                 rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
             )
@@ -394,7 +398,7 @@ class IssueMSTeamsRendererTest(TestCase):
         GroupAssignee.objects.assign(group, self.user)
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
-        result = IssueMSTeamsRenderer.render(
+        result = render_issue(
             data=data,
             rendered_template=rendered_template,
         )
@@ -409,7 +413,7 @@ class IssueMSTeamsRendererTest(TestCase):
         with patch.object(
             Group, "get_assignee", side_effect=Actor.InvalidActor("Assignee no longer exists")
         ):
-            result = IssueMSTeamsRenderer.render(
+            result = render_issue(
                 data=data,
                 rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
             )
@@ -421,14 +425,12 @@ class IssueMSTeamsRendererTest(TestCase):
             organization_id=1,
             group_id=999999999,
             notification_uuid="test-uuid",
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         rendered_template = NotificationRenderedTemplate(subject="Issue Alert", body=[])
 
         with pytest.raises(NotificationRenderError, match="Group 999999999 not found"):
-            IssueMSTeamsRenderer.render(
+            render_issue(
                 data=data,
                 rendered_template=rendered_template,
             )
@@ -437,9 +439,7 @@ class IssueMSTeamsRendererTest(TestCase):
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         assert data.source == NotificationSource.ISSUE
 
@@ -449,9 +449,7 @@ class IssueMSTeamsProviderDispatchTest(TestCase):
         data = IssueNotificationData(
             organization_id=1,
             group_id=self.group.id,
-            rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
-            ),
+            rule=SerializableRuleProxy(label="Test Detector", workflow_id=1),
         )
         renderer = MSTeamsNotificationProvider.get_renderer(data=data)
         assert renderer is IssueMSTeamsRenderer

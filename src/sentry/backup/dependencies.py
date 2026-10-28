@@ -477,7 +477,14 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 # either a `Team` or `User`, before this pattern was formalized by the official
                 # `Actor` model. Because of this, we avoid assuming that it is a dependency into
                 # `Actor` and just ignore it.
-                if field.name.endswith("_id") and field.name != "actor_id":
+                # Trigger/action mapping IDs are historical compatibility values, not
+                # references to the native models that are being retired. Preserve them
+                # verbatim, including while those models still exist in Django's registry.
+                if field.name.endswith("_id") and field.name not in {
+                    "actor_id",
+                    "alert_rule_trigger_id",
+                    "alert_rule_trigger_action_id",
+                }:
                     candidate = NormalizedModelName("sentry." + field.name[:-3].replace("_", ""))
                     if candidate and candidate in models_from_names:
                         foreign_keys[field.name] = ForeignField(
@@ -516,7 +523,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     # least one of those nullable relations will be present on every model.
     model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
     model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
-    model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False
 
     # Now that all `ModelRelations` have been added to the `model_dependencies_dict`, we can circle
     # back and figure out which ones are actually dangling. We do this by marking all of the root

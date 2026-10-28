@@ -16,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -38,7 +39,7 @@ from sentry.seer.endpoints.search_agent_types import (
     SEARCH_AGENT_STRATEGIES,
     SearchAgentStartResponse,
 )
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -52,6 +53,35 @@ class SearchAgentResultTarget(StrEnum):
 
     UI_SEARCH = "ui_search"
     AGENT_SEARCH = "agent_search"
+
+
+class SearchAgentReferrer(StrEnum):
+    """Allowlist of callers that may start a search agent run.
+
+    Forwarded to Seer as the run's source; every caller gets its own
+    `assisted_query.<source>.<strategy>` RPC referrer there. To add a caller, add a
+    value here and to Seer's `ASSISTED_QUERY_SOURCES`.
+    """
+
+    SEARCH_BAR = "search_bar"
+    MCP = "mcp"
+    # Web UI request that didn't declare which surface it came from
+    FRONTEND = "frontend"
+    UNKNOWN = "unknown"
+
+
+def resolve_referrer(request: Request, raw: str | None) -> SearchAgentReferrer:
+    client_kind = get_client_kind(request)
+    if client_kind == ClientKind.MCP:
+        return SearchAgentReferrer.MCP
+    if raw:
+        try:
+            return SearchAgentReferrer(raw)
+        except ValueError:
+            logger.warning("search_agent.unknown_referrer", extra={"referrer": raw})
+    if client_kind == ClientKind.FRONTEND:
+        return SearchAgentReferrer.FRONTEND
+    return SearchAgentReferrer.UNKNOWN
 
 
 def infer_result_target(request: Request) -> SearchAgentResultTarget:
@@ -89,6 +119,12 @@ class SearchAgentStartSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Optional configuration options.",
     )
+    referrer = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Which caller started the run (e.g. `search_bar`). Unknown values are ignored.",
+    )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
         if value is None:
@@ -113,6 +149,7 @@ def send_search_agent_start_request(
     reflection_step: bool = False,
     code_mode: bool = False,
     result_target: SearchAgentResultTarget | None = None,
+    referrer: SearchAgentReferrer | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -138,6 +175,9 @@ def send_search_agent_start_request(
         options["metric_context"] = metric_context
     if result_target is not None:
         options["result_target"] = result_target.value
+    if referrer is not None:
+        # Seer combines this with the strategy to pick the RPC referrer.
+        options["source"] = referrer.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -211,22 +251,19 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         metric_context = options.get("metric_context")
         result_target = infer_result_target(request)
         sentry_sdk.set_tag("search_agent.result_target", result_target.value)
+        referrer = resolve_referrer(request, validated_data.get("referrer"))
+        sentry_sdk.set_tag("referrer", referrer.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
         )
         project_ids = [project.id for project in projects]
 
-        has_feature = features.has(
-            "organizations:gen-ai-search-agent-translate", organization, actor=request.user
-        )
-        if strategy == "Issues":
-            has_feature = has_feature and features.has(
-                "organizations:gen-ai-issues-search",
-                organization,
-                actor=request.user,
-            )
-        if not has_feature:
+        if strategy == "Issues" and not features.has(
+            "organizations:gen-ai-issues-search",
+            organization,
+            actor=request.user,
+        ):
             return Response(
                 {"detail": "Feature flag not enabled"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -280,6 +317,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     actor=request.user,
                 ),
                 result_target=result_target,
+                referrer=referrer,
             )
             return Response(
                 SearchAgentStartResponse(

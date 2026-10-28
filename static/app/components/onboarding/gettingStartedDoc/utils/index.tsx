@@ -1,4 +1,6 @@
 import {Fragment} from 'react';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconCopyId} from '@sentry/icons/copyId';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -15,8 +17,6 @@ import type {
   DocsParams,
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {IconCopy} from 'sentry/icons/iconCopy';
-import {IconCopyId} from 'sentry/icons/iconCopyId';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

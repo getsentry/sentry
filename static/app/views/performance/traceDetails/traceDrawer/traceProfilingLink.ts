@@ -5,7 +5,9 @@ import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {
   generateContinuousProfileFlamechartRouteWithQuery,
   generateProfileFlamechartRouteWithQuery,
+  PROFILE_CONTEXT_WINDOW_MS,
 } from 'sentry/utils/profiling/routes';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
 export function makeTransactionProfilingLink(
@@ -25,9 +27,6 @@ export function makeTransactionProfilingLink(
   });
 }
 
-/**
- * Generates a link to a continuous profile for a given trace element type
- */
 export function makeTraceContinuousProfilingLink(
   node: BaseNode,
   profilerId: string,
@@ -38,58 +37,33 @@ export function makeTraceContinuousProfilingLink(
     traceId: string;
   }
 ): LocationDescriptor | null {
-  if (!options.projectSlug || !options.organization) {
+  if (!options.projectSlug || !options.organization || !profilerId) {
     return null;
   }
 
-  // We compute a time offset based on the duration of the span so that
-  // users can see some context of things that occurred before and after the span.
-  const transactionId = node.transactionId;
+  const start = getDateFromTimestamp(node.space[0] - PROFILE_CONTEXT_WINDOW_MS);
+  const end = getDateFromTimestamp(
+    node.space[0] + node.space[1] + PROFILE_CONTEXT_WINDOW_MS
+  );
 
-  // If the node is the transaction, we can use it directly. Otherwise, we need to find the parent transaction.
-  const transaction =
-    node.id === transactionId ? node : node.findParent(n => n.id === transactionId);
-
-  // TransactionId is required to generate a link because
-  // we need to link to the segment of the trace and fetch its spans
-  if (!transaction || !transactionId) {
+  if (start === null || end === null) {
     return null;
   }
 
-  let start = getDateFromTimestamp(transaction.space[0]);
-  let end = getDateFromTimestamp(transaction.space[0] + transaction.space[1]);
-
-  // End timestamp is required to generate a link
-  if (end === null || typeof profilerId !== 'string' || profilerId === '') {
-    return null;
-  }
-
-  // If we have an end, but no start, then we'll generate a window of time around end timestamp
-  // so that we can show context around the event.
-  if (end && end.getTime() === start?.getTime()) {
-    const PRE_CONTEXT_WINDOW_MS = 100;
-    const POST_CONTEXT_WINDOW_MS = 100;
-    start = new Date(start.getTime() - PRE_CONTEXT_WINDOW_MS);
-    end = new Date(end.getTime() + POST_CONTEXT_WINDOW_MS);
-  }
-
-  // We require a full time range to open a flamechart
-  if (start === null) {
-    return null;
-  }
-
-  const queryWithEventData: Record<string, string> = {
-    eventId: transactionId,
+  const query: Record<string, string> = {
+    spanId: node.id,
     traceId: options.traceId,
   };
+  const transactionSpanId = isEAPSpanNode(node) ? node.transactionSpanId : undefined;
 
-  if (typeof options.threadId === 'string') {
-    queryWithEventData.tid = options.threadId;
+  if (transactionSpanId) {
+    query.transactionId = transactionSpanId;
+  } else if (node.transactionId) {
+    query.eventId = node.transactionId;
   }
 
-  const nodeId = node.id;
-  if (nodeId) {
-    queryWithEventData.spanId = nodeId;
+  if (typeof options.threadId === 'string') {
+    query.tid = options.threadId;
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery({
@@ -98,6 +72,6 @@ export function makeTraceContinuousProfilingLink(
     profilerId,
     start: start.toISOString(),
     end: end.toISOString(),
-    query: queryWithEventData,
+    query,
   });
 }

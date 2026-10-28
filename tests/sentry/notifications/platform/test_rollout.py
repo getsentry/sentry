@@ -96,6 +96,32 @@ class NotificationRolloutServiceTest(TestCase):
         assert service.has_feature_flag_access() == "notifications.platform-rollout.is-sentry"
 
     @override_options(
+        {"notifications.platform-rollout.limited-access": {"data-export-success": 1.0}}
+    )
+    @with_feature("organizations:notification-platform.limited-access")
+    def test_limited_access_full_rollout(self) -> None:
+        service = NotificationRolloutService(organization=self.organization)
+        assert service.should_notify(NotificationSource.DATA_EXPORT_SUCCESS)
+
+    @with_feature("organizations:notification-platform.limited-access")
+    def test_has_feature_flag_access_returns_limited_access_key(self) -> None:
+        service = NotificationRolloutService(organization=self.organization)
+        assert service.has_feature_flag_access() == "notifications.platform-rollout.limited-access"
+
+    @with_feature("organizations:notification-platform.limited-access")
+    @with_feature("organizations:notification-platform.early-adopter")
+    @with_feature("organizations:notification-platform.general-access")
+    def test_limited_access_takes_priority_over_early_adopter(self) -> None:
+        service = NotificationRolloutService(organization=self.organization)
+        assert service.has_feature_flag_access() == "notifications.platform-rollout.limited-access"
+
+    @with_feature("organizations:notification-platform.is-sentry")
+    @with_feature("organizations:notification-platform.limited-access")
+    def test_is_sentry_takes_priority_over_limited_access(self) -> None:
+        service = NotificationRolloutService(organization=self.organization)
+        assert service.has_feature_flag_access() == "notifications.platform-rollout.is-sentry"
+
+    @override_options(
         {"notifications.platform-rollout.internal-testing": {"data-export-success": 0.75}}
     )
     def test_get_rollout_rate_returns_correct_rate(self) -> None:

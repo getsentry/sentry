@@ -5,10 +5,8 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {
-  getFunctionLabel,
-  getVisualizeLabel,
-} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getVisualizeLabel} from 'sentry/views/explore/toolbar/toolbarVisualize';
+import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
 
 /**
  * Assigns sequential labels to queries based on their type.

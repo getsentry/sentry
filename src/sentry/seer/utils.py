@@ -4,13 +4,11 @@ import logging
 
 from cryptography.fernet import Fernet
 from django.conf import settings
-from django.db.models import Q, QuerySet
+from django.db.models import QuerySet
 
-from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.models.commitauthor import CommitAuthor
-from sentry.models.repository import Repository
 from sentry.seer.models.run import SeerAgentRun
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -45,25 +43,6 @@ def encrypt_access_token_for_seer(access_token: str) -> str | None:
     except Exception:
         logger.exception("Failed to encrypt access token")
         return None
-
-
-def filter_repo_by_provider(
-    organization_id: int,
-    provider: str,
-    external_id: str,
-    owner: str,
-    name: str,
-) -> QuerySet[Repository]:
-    """
-    Filter for an active repository by its provider, external ID, and owner/name.
-    """
-    return Repository.objects.filter(
-        Q(provider=provider) | Q(provider=f"integrations:{provider}"),
-        organization_id=organization_id,
-        external_id=external_id,
-        name=f"{owner}/{name}",
-        status=ObjectStatus.ACTIVE,
-    )
 
 
 def get_github_username_for_user(

@@ -1061,6 +1061,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 True,
             ),
             (
+                "https://github.com/Test-Organization-Mobile/sentry/blob/master/src/app.py",
+                False,
+            ),
+            (
                 "https://notgithub.com/Test-Organization/sentry/blob/master/src/sentry/integrations/github/integration.py",
                 False,
             ),
@@ -2091,13 +2095,19 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
     def test_org_selection_choose_existing_installation(self) -> None:
         self._advance_to_org_selection()
 
-        resp = self._advance_step(
-            {
-                "chosen_installation_id": self.installation_id,
-            }
-        )
+        with mock.patch("sentry.integrations.github.integration.metrics.incr") as mock_incr:
+            resp = self._advance_step(
+                {
+                    "chosen_installation_id": self.installation_id,
+                }
+            )
+
         assert resp.status_code == 200
         assert resp.data["status"] == "complete"
+        assert (
+            mock.call("integrations.github.installation.missing_integration")
+            not in mock_incr.mock_calls
+        )
 
     @responses.activate
     @with_feature("organizations:integrations-scm-multi-org")
@@ -2127,17 +2137,26 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert GitHubInstallationError.PENDING_DELETION in resp.data["data"]["detail"]
 
     @responses.activate
-    def test_org_selection_new_installation_from_popup(self) -> None:
-        """When user installs the app via the GitHub popup, installation_id comes in the POST."""
+    def test_org_selection_new_installation_waiting_for_webhook(self) -> None:
+        """Reject a raw installation id until its signed webhook creates the integration."""
         self._advance_to_org_selection()
 
-        resp = self._advance_step(
-            {
-                "installation_id": self.installation_id,
-            }
+        with mock.patch("sentry.integrations.github.integration.metrics.incr") as mock_incr:
+            resp = self._advance_step(
+                {
+                    "installation_id": self.installation_id,
+                }
+            )
+
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert GitHubInstallationError.MISSING_INTEGRATION in resp.data["data"]["detail"]
+        assert (
+            mock_incr.mock_calls.count(
+                mock.call("integrations.github.installation.missing_integration")
+            )
+            == 1
         )
-        assert resp.status_code == 200
-        assert resp.data["status"] == "complete"
 
     @responses.activate
     def test_org_selection_ignores_other_provider_with_same_external_id(self) -> None:
@@ -2149,8 +2168,9 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         self._advance_to_org_selection()
 
         resp = self._advance_step({"installation_id": self.installation_id})
-        assert resp.status_code == 200
-        assert resp.data["status"] == "complete"
+        assert resp.status_code == 400
+        assert resp.data["status"] == "error"
+        assert GitHubInstallationError.MISSING_INTEGRATION in resp.data["data"]["detail"]
 
     @responses.activate
     def test_full_api_pipeline_flow_new_installation(self) -> None:
@@ -2166,6 +2186,12 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["status"] == "advance"
         assert resp.data["step"] == "org_selection"
+
+        self.create_provider_integration(
+            provider="github",
+            external_id=self.installation_id,
+            metadata={"sender": {"login": "octocat"}},
+        )
 
         resp = self._advance_step({"installation_id": self.installation_id})
         assert resp.status_code == 200

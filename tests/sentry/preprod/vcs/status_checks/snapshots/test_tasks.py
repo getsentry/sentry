@@ -130,11 +130,11 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
         assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.SUCCESS
 
-    def test_images_added_fails_when_flag_on(self):
+    def test_images_added_requires_action_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_added=5)
         assert (
             self._status_with_changes_map(artifact, metrics, criteria=_criteria(added=True))
-            == StatusCheckStatus.FAILURE
+            == StatusCheckStatus.ACTION_REQUIRED
         )
 
     def test_images_removed_ignored_when_flag_off(self):
@@ -144,13 +144,13 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
             == StatusCheckStatus.SUCCESS
         )
 
-    def test_images_removed_fails_by_default(self):
+    def test_images_removed_requires_action_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_removed=3)
-        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
+        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.ACTION_REQUIRED
 
-    def test_images_changed_fails_by_default(self):
+    def test_images_changed_requires_action_by_default(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
-        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.FAILURE
+        assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.ACTION_REQUIRED
 
     def test_images_changed_ignored_when_flag_off(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_changed=2)
@@ -163,11 +163,11 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
         assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.SUCCESS
 
-    def test_images_renamed_fails_when_flag_on(self):
+    def test_images_renamed_requires_action_when_flag_on(self):
         artifact, metrics, _ = self._make_artifact_with_comparison(images_renamed=1)
         assert (
             self._status_with_changes_map(artifact, metrics, criteria=_criteria(renamed=True))
-            == StatusCheckStatus.FAILURE
+            == StatusCheckStatus.ACTION_REQUIRED
         )
 
     def test_failed_comparison_fails_without_approval(self):
@@ -193,6 +193,22 @@ class ComputeSnapshotStatusTest(SnapshotTasksTestBase):
     def test_no_changes_succeeds(self):
         artifact, metrics, _ = self._make_artifact_with_comparison()
         assert self._status_with_changes_map(artifact, metrics) == StatusCheckStatus.SUCCESS
+
+    def test_failed_comparison_takes_precedence_over_needs_approval(self):
+        changed, changed_metrics, changed_comparison = self._make_artifact_with_comparison(
+            images_changed=2
+        )
+        failed, failed_metrics, failed_comparison = self._make_artifact_with_comparison(
+            state=PreprodSnapshotComparison.State.FAILED
+        )
+        status = _compute_snapshot_status(
+            [changed, failed],
+            {changed.id: changed_metrics, failed.id: failed_metrics},
+            {changed_metrics.id: changed_comparison, failed_metrics.id: failed_comparison},
+            {},
+            {changed.id: True, failed.id: False},
+        )
+        assert status == StatusCheckStatus.FAILURE
 
 
 @cell_silo_test
@@ -537,7 +553,7 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
 
     @patch(f"{TASK_MODULE}.get_status_check_provider")
     @patch(f"{TASK_MODULE}.get_status_check_client")
-    def test_failure_suppressed_when_newer_sibling_succeeded(
+    def test_failure_and_action_required_suppressed_when_newer_sibling_succeeded(
         self, mock_get_client, mock_get_provider
     ):
         mock_provider = Mock()
@@ -569,6 +585,42 @@ class PostSnapshotStatusCheckTaskTest(TestCase):
         )
 
         self._call_task(status=StatusCheckStatus.FAILURE.value)
+        self._call_task(status=StatusCheckStatus.ACTION_REQUIRED.value)
+
+        mock_provider.create_status_check.assert_not_called()
+
+    @patch(f"{TASK_MODULE}.get_status_check_provider")
+    @patch(f"{TASK_MODULE}.get_status_check_client")
+    def test_action_required_suppressed_when_newer_sibling_comparison_failed(
+        self, mock_get_client, mock_get_provider
+    ):
+        mock_provider = Mock()
+        mock_provider.create_status_check.return_value = "check_should_not_post"
+        mock_get_client.return_value = (Mock(), Mock())
+        mock_get_provider.return_value = mock_provider
+
+        newer_artifact = self.create_preprod_artifact(
+            project=self.project,
+            commit_comparison=self.commit_comparison,
+            app_id=self.artifact.app_id,
+            build_configuration=self.artifact.build_configuration,
+        )
+        newer_head = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_artifact, image_count=10
+        )
+        newer_base_artifact = self.create_preprod_artifact(
+            project=self.project, commit_comparison=self.commit_comparison
+        )
+        newer_base = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=newer_base_artifact, image_count=10
+        )
+        PreprodSnapshotComparison.objects.create(
+            head_snapshot_metrics=newer_head,
+            base_snapshot_metrics=newer_base,
+            state=PreprodSnapshotComparison.State.FAILED,
+        )
+
+        self._call_task(status=StatusCheckStatus.ACTION_REQUIRED.value)
 
         mock_provider.create_status_check.assert_not_called()
 

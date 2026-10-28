@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
@@ -38,6 +39,7 @@ from sentry.tasks.reprocessing2 import (
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -55,10 +57,20 @@ def _create_user_report(evt):
 
 
 @pytest.fixture(autouse=True)
-def reprocessing_feature(settings):
-    settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
+def reprocessing_feature():
+    with override_settings(SENTRY_REPROCESSING_PAGE_SIZE=1):
+        yield
 
-    yield
+
+@pytest.fixture(params=[False, True], ids=["redis", "inline"])
+def inline_payload_options(request):
+    with override_options(
+        {
+            "store.enable-inline-payloads": float(request.param),
+            "store.disable-processing-store": request.param,
+        }
+    ):
+        yield
 
 
 @pytest.fixture
@@ -110,6 +122,7 @@ def test_basic(
     process_and_save,
     register_event_preprocessor,
     django_cache,
+    inline_payload_options,
 ):
     from sentry import eventstream
 

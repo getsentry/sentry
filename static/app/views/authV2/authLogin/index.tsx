@@ -16,7 +16,8 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {AuthCritter} from 'sentry/views/authV2/authCritter';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {AccountAuthentication} from './components/accountAuthentication';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
@@ -181,7 +182,7 @@ export default function AuthLogin() {
     demoLogin.isLoading ||
     (nextUri && !focusedOrgAuth && !hasAuthOrganizationError)
   );
-  useBrandedAuthLoading(!isLoginRenderable);
+  useAuthPageLoading(!isLoginRenderable);
 
   useEffect(() => {
     if (!isLoginRenderable) {
@@ -207,7 +208,7 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <Stack width="100%" maxWidth="360px" gap="2xl">
+      <Stack position="relative" width="100%" maxWidth="360px" gap="2xl">
         <Heading as="h1" size="3xl" align="center">
           {t('Sign in to Sentry')}
         </Heading>
@@ -293,6 +294,7 @@ export default function AuthLogin() {
             )}
           </MotionStack>
         </AnimatePresence>
+        <AuthCritter />
       </Stack>
 
       {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (

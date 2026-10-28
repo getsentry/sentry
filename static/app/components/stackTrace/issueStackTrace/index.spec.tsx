@@ -1,12 +1,20 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {FrameFixture} from 'sentry-fixture/frame';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
+import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -67,6 +75,10 @@ function makeCopyTestData() {
 
 describe('IssueStackTrace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
     localStorage.clear();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
@@ -237,6 +249,67 @@ describe('IssueStackTrace', () => {
         'minified',
       ]);
     });
+  });
+
+  describe.each([
+    {view: 'issue details', StackTrace: IssueStackTrace},
+    {view: 'shared issue', StackTrace: SharedIssueStackTrace},
+  ])('$view', ({StackTrace}) => {
+    it.each(['missing', 'empty'])(
+      'opens the first available stack trace when the outer trace is %s',
+      async outerTrace => {
+        const {event, stacktrace} = makeStackTraceData();
+        const innerException = ExceptionValueFixture({
+          type: 'InnerError',
+          value: 'inner failure',
+          stacktrace: {
+            ...stacktrace,
+            frames: [
+              FrameFixture({
+                filename: 'app/main.py',
+                inApp: true,
+                lineNo: 42,
+                context: [
+                  [41, 'before_failure'],
+                  [42, 'raise ValueError()'],
+                ],
+                vars: null,
+              }),
+            ],
+          },
+        });
+        const values = [
+          {...innerException, type: 'OlderError'},
+          innerException,
+          {
+            ...innerException,
+            type: 'OuterError',
+            value: 'outer failure',
+            stacktrace: outerTrace === 'missing' ? null : {...stacktrace, frames: []},
+          },
+        ];
+
+        render(<StackTrace event={event} values={values} />);
+
+        expect(await screen.findByRole('button', {name: 'OuterError'})).toHaveAttribute(
+          'aria-expanded',
+          'true'
+        );
+        expect(screen.getByRole('button', {name: 'InnerError'})).toHaveAttribute(
+          'aria-expanded',
+          'true'
+        );
+        expect(screen.getByRole('button', {name: 'OlderError'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+        expect(
+          await within(screen.getByRole('group', {name: 'InnerError'})).findByText(
+            'before_failure'
+          )
+        ).toBeVisible();
+      }
+    );
   });
 
   it('shares display options across chained issue exceptions', async () => {
@@ -524,6 +597,33 @@ describe('IssueStackTrace', () => {
         File "app/main.py", line 42, in handle
       ValueError: list index out of range"
     `);
+  });
+
+  it('copies stack trace text without ANSI codes when the exception value contains them', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: '\x1B[31mlist index\x1B[0m out of range',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toContain('ValueError: list index out of range');
   });
 
   it('copies stack trace text including exception type and value for chained exceptions', async () => {

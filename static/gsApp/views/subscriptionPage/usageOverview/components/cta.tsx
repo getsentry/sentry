@@ -1,4 +1,9 @@
 import {Fragment, useState} from 'react';
+import {IconLightning} from '@sentry/icons/lightning';
+import {IconLock} from '@sentry/icons/lock';
+import {IconOpen} from '@sentry/icons/open';
+import {IconSeer} from '@sentry/icons/seer';
+import {IconUpload} from '@sentry/icons/upload';
 
 import seerConfigMainImg from 'sentry-images/spot/seer-config-main.svg';
 import seerConfigSeerImg from 'sentry-images/spot/seer-config-seer.svg';
@@ -9,7 +14,6 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconLightning, IconLock, IconOpen, IconSeer, IconUpload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -357,23 +361,15 @@ function SetupCta({
     return null;
   }
 
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
-
   return (
     <Cta
       isBanner={false}
       image={seerConfigSeerImg}
       imageAlt=""
       title={t('Get started with Seer')}
-      subtitle={
-        hasGitLabSupport
-          ? t(
-              'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-          : t(
-              'Finish connecting to GitHub, configure your repositories and projects, and start getting the most out of Seer.'
-            )
-      }
+      subtitle={t(
+        'Finish connecting to GitHub or GitLab, configure your repositories and projects, and start getting the most out of Seer.'
+      )}
       heightOverride={`calc(100% - ${USAGE_OVERVIEW_PANEL_HEADER_HEIGHT})`}
       buttons={
         <LinkButton

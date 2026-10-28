@@ -100,6 +100,7 @@ export function GraphQlRequestBody({data, event}: GraphQlBodyProps) {
 
   // https://prismjs.com/plugins/line-highlight/
   useEffect(() => {
+    // oxlint-disable-next-line react/todo
     import('prismjs/plugins/line-highlight/prism-line-highlight');
   }, []);
 

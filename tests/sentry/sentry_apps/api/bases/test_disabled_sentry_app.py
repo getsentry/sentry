@@ -1,3 +1,5 @@
+import responses
+
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -61,8 +63,10 @@ class DisabledSentryAppInstallationTest(APITestCase):
         disable_app(self.app)
         self.get_error_response(self.install.uuid, status_code=403)
 
+    @responses.activate
     @override_options(OPTION)
     def test_delete_installation_of_disabled_app_allowed(self) -> None:
+        responses.add(url="https://example.com/webhook", method=responses.POST, body=b"")
         disable_app(self.app)
         self.get_success_response(self.install.uuid, method="delete", status_code=204)
 

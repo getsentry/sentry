@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
+import {IconBusiness} from '@sentry/icons/business';
+import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
-import {IconBusiness, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
@@ -25,7 +27,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
           icon={<IconDelete />}
           title={t('Keep the noise down')}
           action={
-            <ButtonGroup>
+            <Grid gap="md" flow="column">
               <Button
                 size="sm"
                 variant="primary"
@@ -48,7 +50,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
               >
                 {t('About Discard and Delete')}
               </LearnMoreButton>
-            </ButtonGroup>
+            </Grid>
           }
         >
           {plan === null
@@ -74,10 +76,4 @@ export function DisabledDiscardGroup({organization, features}: Props) {
 
 const StyledEmptyMessage = styled(EmptyMessage)`
   padding: 0;
-`;
-
-const ButtonGroup = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
 `;

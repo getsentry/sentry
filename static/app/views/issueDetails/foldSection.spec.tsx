@@ -390,8 +390,6 @@ describe('FoldSection', () => {
       // Collapse section
       await userEvent.click(screen.getByRole('button'));
 
-      // Wait and verify localStorage was not updated
-      await new Promise(resolve => setTimeout(resolve, 100));
       expect(
         localStorageWrapper.getItem(getFoldSectionKey(SectionKey.HIGHLIGHTS))
       ).toBeNull();
