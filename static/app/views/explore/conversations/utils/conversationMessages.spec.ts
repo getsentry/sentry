@@ -5,6 +5,7 @@ import {
   embeddingSpansToMessages,
   enrichAgentMessages,
   evaluationSpansToMessages,
+  extractionSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -133,6 +134,41 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
       ]),
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
         {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
+      ]),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an extraction span: it reports
+// gen_ai.operation.type "ai_client" like an LLM call and is recognized by
+// gen_ai.operation.name.
+function createMockExtractionNode(overrides: {id: string; startTimestamp?: number}) {
+  const {id, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 500;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.extract',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'extract',
+      [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          state: 'Invoice INV-2291',
+          fields: {invoice_number: {type: 'text'}, po_number: {type: 'text'}},
+        },
+      ]),
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+        {
+          answers: {
+            invoice_number: {type: 'text', span: [8, 16], value: 'INV-2291'},
+            po_number: {type: 'text', value: null},
+          },
+        },
       ]),
     },
     errors: new Set(),
@@ -651,6 +687,16 @@ describe('conversationMessages utilities', () => {
       expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
     });
 
+    it('separates extraction spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockExtractionNode({id: 'extract-1'}),
+      ] as any);
+
+      expect(result.extractionSpans.map(s => s.id)).toEqual(['extract-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
+
     it('separates memory spans from generations even though operation.type reports ai_client', () => {
       const result = partitionSpansByType([
         createMockNode({id: 'gen-1'}),
@@ -680,6 +726,27 @@ describe('conversationMessages utilities', () => {
       ]);
       expect(message?.evaluation?.answers).toEqual([
         {kind: 'score', key: 'urgency', score: 1.6},
+      ]);
+    });
+  });
+
+  describe('extractionSpansToMessages', () => {
+    it('maps an extraction span to a standalone message', () => {
+      const [message] = extractionSpansToMessages([
+        createMockExtractionNode({id: 'extract-1'}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'extraction-extract-1',
+        role: 'extraction',
+        content: '',
+        nodeId: 'extract-1',
+        duration: 500,
+      });
+      expect(message?.extraction?.input?.source).toBe('Invoice INV-2291');
+      expect(message?.extraction?.answers?.map(answer => answer.key)).toEqual([
+        'invoice_number',
+        'po_number',
       ]);
     });
   });
@@ -1712,6 +1779,16 @@ describe('conversationMessages utilities', () => {
 
       expect(messagesToMarkdown(messages)).toBe(
         '### Evaluation\n\n> I cannot log in.\n\n- urgency: high (1.6)'
+      );
+    });
+
+    it('formats extractions with the source and the values found', () => {
+      const messages = extractionSpansToMessages([
+        createMockExtractionNode({id: 'extract-1'}) as any,
+      ]);
+
+      expect(messagesToMarkdown(messages)).toBe(
+        '### Extraction\n\n> Invoice INV-2291\n\n- invoice_number: INV-2291'
       );
     });
 
