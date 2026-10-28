@@ -498,7 +498,7 @@ describe('DropdownMenu', () => {
     expect(search).toHaveFocus();
   });
 
-  it.each(['Escape', 'ArrowLeft'])('clears a searchable submenu after %s', async key => {
+  it('preserves cursor navigation and clears a searchable submenu after Escape', async () => {
     render(
       <DropdownMenu
         triggerLabel="Projects"
@@ -518,15 +518,25 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.hover(screen.getByRole('menuitemradio', {name: 'All Projects'}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: 'Search projects'}),
-      'sentry'
-    );
+    const search = screen.getByRole<HTMLInputElement>('textbox', {
+      name: 'Search projects',
+    });
+    await userEvent.type(search, 'sentry');
     expect(
       screen.queryByRole('menuitemradio', {name: 'javascript'})
     ).not.toBeInTheDocument();
 
-    await userEvent.keyboard(`{${key}}`);
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(search).toHaveFocus();
+    expect(search.selectionStart).toBe(5);
+    expect(search.selectionEnd).toBe(5);
+    expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
+
+    await userEvent.keyboard('{Home}{ArrowLeft}');
+    expect(search).toHaveFocus();
+    expect(search.selectionStart).toBe(0);
+
+    await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole('menuitemradio', {name: 'All Projects'})).toHaveFocus()
