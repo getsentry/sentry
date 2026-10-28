@@ -18,6 +18,7 @@ import {Fragment, useState} from 'react';
 
 import {Input} from '@sentry/scraps/input';
 import {Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 
@@ -259,8 +260,16 @@ To ensure your input implementations are fully accessible, follow these guidelin
 
 **Placeholder Text**
 
-- Don't rely solely on placeholder text for instructions or labels
-- Placeholders disappear when typing begins and may have contrast issues
-- Use placeholders for examples, not essential information
+<Storybook.DoDont>
+  <Storybook.Do caption="Use placeholders for example values, and keep a visible label.">
+    <Stack as="label" gap="xs" width="100%">
+      <Text bold>Email</Text>
+      <Input type="email" placeholder="you@example.com" />
+    </Stack>
+  </Storybook.Do>
+  <Storybook.Dont caption="Don't rely on placeholder text for labels or instructions. It disappears when typing begins and may have low contrast.">
+    <Input type="email" aria-label="Email" placeholder="Enter your work email" />
+  </Storybook.Dont>
+</Storybook.DoDont>
 
 For more information, see the [WAI-ARIA Text Input practices](https://www.w3.org/WAI/ARIA/apg/patterns/textbox/).
