@@ -15,8 +15,10 @@ import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function SeerSecondaryNavigationImpl() {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
@@ -52,7 +54,8 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="seer_automations"
-                  leadingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
+                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -63,7 +66,8 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="seer_investigations"
-                  leadingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
+                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>

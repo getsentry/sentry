@@ -11,6 +11,7 @@ import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issu
 import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 function InboxCountBadgeImpl() {
   const {data: count} = useInboxIssueCount();
@@ -31,6 +32,7 @@ function InboxCountBadgeImpl() {
 const InboxCountBadge = registerLLMContext('navigation', InboxCountBadgeImpl);
 
 function IssuesSecondaryNavigationImpl() {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasIssueInbox = organization.features.includes('issue-inbox');
@@ -79,8 +81,13 @@ function IssuesSecondaryNavigationImpl() {
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
-                  leadingItems={<FeatureBadge type="new" />}
-                  trailingItems={<InboxCountBadge />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : undefined}
+                  trailingItems={
+                    <Fragment>
+                      <InboxCountBadge />
+                      {!settingsV3 && <FeatureBadge type="new" />}
+                    </Fragment>
+                  }
                 >
                   {t('Inbox')}
                 </SecondaryNavigation.Link>
@@ -97,7 +104,12 @@ function IssuesSecondaryNavigationImpl() {
                   to={`${baseUrl}/${key}/`}
                   end
                   analyticsItemName={`issues_types_${key}`}
-                  leadingItems={badge ? <FeatureBadge type={badge} /> : null}
+                  leadingItems={
+                    settingsV3 && badge ? <FeatureBadge type={badge} /> : null
+                  }
+                  trailingItems={
+                    !settingsV3 && badge ? <FeatureBadge type={badge} /> : null
+                  }
                 >
                   {label}
                 </SecondaryNavigation.Link>
@@ -124,7 +136,8 @@ function IssuesSecondaryNavigationImpl() {
                       to={`${baseUrl}/autofix/`}
                       analyticsItemName="issues_autofix_overview"
                       end
-                      leadingItems={<FeatureBadge type="new" />}
+                      leadingItems={settingsV3 ? <FeatureBadge type="new" /> : undefined}
+                      trailingItems={settingsV3 ? undefined : <FeatureBadge type="new" />}
                     >
                       {t('Overview')}
                     </SecondaryNavigation.Link>
