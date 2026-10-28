@@ -48,16 +48,14 @@ export function SentryMemberTeamSelectorField({
     memberOfProjectSlugs,
   });
 
-  function handleSearch(input: string) {
-    onMemberSearch(input);
-    onTeamSearch(input);
-  }
-
   return (
     <SelectField
       placeholder={placeholder}
       allowClear
-      onInputChange={handleSearch}
+      onInputChange={value => {
+        onMemberSearch(value);
+        onTeamSearch(value);
+      }}
       isLoading={fetching}
       options={options}
       {...props}
