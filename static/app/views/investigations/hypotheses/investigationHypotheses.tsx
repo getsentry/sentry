@@ -101,6 +101,8 @@ type InvestigationHypothesesProps = {
    * orchestration endpoint 404s for those, and there is nothing to poll.
    */
   enabled?: boolean;
+  /** Lets the page outline scroll to the hypotheses. */
+  id?: string;
   /**
    * Adds "Ask Seer" to each hypothesis's menu. Left out where Seer Agent can't
    * take the question.
@@ -136,6 +138,7 @@ type InvestigationHypothesesProps = {
  */
 export function InvestigationHypotheses({
   enabled = true,
+  id,
   investigationId,
   onAskSeer,
   phase: summaryPhase,
@@ -147,7 +150,11 @@ export function InvestigationHypotheses({
   // rewrite the projection behind it.
   const [commandSentAt, setCommandSentAt] = useState<number | null>(null);
 
-  const {data: projection, isPending} = useQuery({
+  const {
+    data: projection,
+    dataUpdatedAt,
+    isPending,
+  } = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigationId),
     enabled,
     refetchInterval: query => {
@@ -227,7 +234,7 @@ export function InvestigationHypotheses({
   // A finished run has nothing left to report here: the findings below speak
   // for themselves, and the header badge still says it completed. Every other
   // state — running, waiting on input, failed, stopped — keeps the block.
-  const seerStatus = getSeerStatusBlock(projection);
+  const seerStatus = getSeerStatusBlock(projection, dataUpdatedAt);
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
@@ -307,7 +314,7 @@ export function InvestigationHypotheses({
     !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="3xl">
+    <Stack id={id} gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
         <HypothesesPanel

@@ -227,7 +227,6 @@
     "react-router": "8.4.0",
     "sentry": "workspace:@sentry-internal/app@*",
     "sentry-fixture": "workspace:@sentry-internal/sentry-test@*",
-    "sentry-test": "workspace:@sentry-internal/sentry-test@*",
-    "sonner": "2.0.8"
+    "sentry-test": "workspace:@sentry-internal/sentry-test@*"
   }
 }

@@ -5,7 +5,6 @@ import orjson
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.seer.autofix.utils import AutofixStoppingPoint
-from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 from . import BaseEventTest
 
@@ -14,13 +13,6 @@ class SeerAutofixActionTest(BaseEventTest):
     def setUp(self) -> None:
         super().setUp()
         self.group = self.create_group(project=self.project)
-        self.seen_contexts: list[ViewerContext | None] = []
-
-    def linked_user_context(self) -> ViewerContext:
-        return ViewerContext(
-            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
-            organization_id=self.organization.id,
-        )
 
     def get_original_message(self):
         return {
@@ -91,7 +83,6 @@ class SeerAutofixActionTest(BaseEventTest):
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_autofix")
     def test_autofix_start_member_is_allowed(self, mock_trigger, mock_not_member_message):
-        mock_trigger.side_effect = lambda **kwargs: self.seen_contexts.append(get_viewer_context())
         # The default Slack user is linked to the org owner
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_start_action()],
@@ -101,7 +92,6 @@ class SeerAutofixActionTest(BaseEventTest):
         assert response.status_code == 200
         assert mock_trigger.called
         assert not mock_not_member_message.called
-        assert self.seen_contexts == [self.linked_user_context()]
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")
@@ -121,7 +111,6 @@ class SeerAutofixActionTest(BaseEventTest):
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")
     def test_autofix_handoff_member_is_allowed(self, mock_trigger, mock_not_member_message):
-        mock_trigger.side_effect = lambda **kwargs: self.seen_contexts.append(get_viewer_context())
         response = self.post_webhook_block_kit(
             action_data=[self.get_autofix_handoff_action()],
             original_message=self.get_original_message(),
@@ -131,4 +120,3 @@ class SeerAutofixActionTest(BaseEventTest):
         assert response.status_code == 200
         assert mock_trigger.called
         assert not mock_not_member_message.called
-        assert self.seen_contexts == [self.linked_user_context()]
