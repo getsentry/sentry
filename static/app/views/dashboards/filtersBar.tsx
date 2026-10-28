@@ -220,11 +220,12 @@ export function FiltersBar({
   const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
-  const {enabled: showQueryPriority, priority, setPriority} = useDashboardQueryPriority();
-  const queryPriorityOptions = [
-    {value: 'normal' as const, label: t('Normal')},
-    {value: 'low' as const, label: t('Low priority')},
-  ];
+  const {
+    enabled: showQueryPriority,
+    options: queryPriorityOptions,
+    priority,
+    setPriority,
+  } = useDashboardQueryPriority();
   const queryPriorityLabel =
     queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
   return (

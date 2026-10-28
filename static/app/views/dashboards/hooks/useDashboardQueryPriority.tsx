@@ -1,5 +1,6 @@
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SAMPLING_MODE,
@@ -9,6 +10,14 @@ import {
 const DASHBOARD_QUERY_PRIORITIES = ['normal', 'low'] as const;
 
 type DashboardQueryPriority = (typeof DASHBOARD_QUERY_PRIORITIES)[number];
+
+const DASHBOARD_QUERY_PRIORITY_OPTIONS: Array<{
+  label: string;
+  value: DashboardQueryPriority;
+}> = [
+  {value: 'normal', label: t('Normal')},
+  {value: 'low', label: t('Low priority')},
+];
 
 const queryPriorityParser = parseAsStringLiteral(DASHBOARD_QUERY_PRIORITIES).withDefault(
   'normal'
@@ -21,6 +30,7 @@ export function useDashboardQueryPriority() {
 
   return {
     enabled,
+    options: DASHBOARD_QUERY_PRIORITY_OPTIONS,
     priority: enabled ? priority : 'normal',
     setPriority: (value: DashboardQueryPriority) => {
       if (enabled) {
