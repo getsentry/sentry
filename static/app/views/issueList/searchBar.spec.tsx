@@ -157,6 +157,13 @@ describe('IssueListSearchBar', () => {
       statsPeriod: '7d',
       onSearch: jest.fn(),
     };
+    const makeTagValue = (value: string, count: number) => ({
+      name: value,
+      value,
+      count,
+      firstSeen: '2021-01-01T00:00:00Z',
+      lastSeen: '2021-01-01T00:00:00Z',
+    });
 
     it('displays the correct tag values for a key', async () => {
       const tagKey = 'random';
@@ -237,13 +244,6 @@ describe('IssueListSearchBar', () => {
     });
 
     it('displays tag values named like Object properties', async () => {
-      const makeTagValue = (value: string, count: number) => ({
-        name: value,
-        value,
-        count,
-        firstSeen: '2021-01-01T00:00:00Z',
-        lastSeen: '2021-01-01T00:00:00Z',
-      });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'random', name: 'random'}],
@@ -268,6 +268,52 @@ describe('IssueListSearchBar', () => {
       expect(await screen.findByRole('option', {name: '__proto__'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'toString'})).toBeInTheDocument();
       expect(screen.getByRole('option', {name: 'constructor'})).toBeInTheDocument();
+    });
+
+    it('reuses cached release values for the first release filter', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'release', name: 'release'}],
+      });
+      const errorsValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        body: [makeTagValue('v1.0.0', 15), makeTagValue('v2.0.0', 1)],
+        match: [MockApiClient.matchQuery({dataset: 'events'})],
+      });
+      const issuePlatformValuesMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/release/values/',
+        body: [makeTagValue('v2.0.0', 10)],
+        match: [MockApiClient.matchQuery({dataset: 'search_issues'})],
+      });
+
+      render(<IssueListSearchBar {...newDefaultProps} />);
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('release:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Edit value for filter: release'})
+      );
+      expect(await screen.findByRole('option', {name: 'v1.0.0'})).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+
+      // firstRelease suggests the same release values
+      await userEvent.click(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+      );
+      await userEvent.paste('firstRelease:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Edit value for filter: firstRelease'})
+      );
+
+      // Merging the cached values again keeps v1.0.0 (15) ahead of v2.0.0 (1 + 10)
+      expect(await screen.findByRole('option', {name: 'v1.0.0'})).toBeInTheDocument();
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'latest',
+        'v1.0.0',
+        'v2.0.0',
+      ]);
+      expect(errorsValuesMock).toHaveBeenCalledTimes(1);
+      expect(issuePlatformValuesMock).toHaveBeenCalledTimes(1);
     });
   });
 });
