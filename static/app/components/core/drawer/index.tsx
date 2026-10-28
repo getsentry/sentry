@@ -308,15 +308,12 @@ export function useDrawer() {
 
 /**
  * For a layout that docks its own pane against the viewport's right edge (Seer).
- * While `width` is positive, drawers cover the pane below `topOffset` pixels
- * of page banners and are at least `width` pixels wide.
+ * Drawers sit below `topOffset` pixels of page banners, even when the pane is
+ * closed. While `width` is positive, drawers are at least `width` pixels wide.
  */
 export function useDrawerDockedPane(width: number, topOffset = 0): void {
   const {setDockedPane} = useContext(DrawerContext);
   useLayoutEffect(() => {
-    if (width <= 0) {
-      return;
-    }
     setDockedPane({width, topOffset});
     return () => {
       setDockedPane(null);

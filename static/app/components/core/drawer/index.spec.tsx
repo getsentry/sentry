@@ -398,45 +398,58 @@ describe('GlobalDrawer', () => {
     expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
   });
 
-  it.each([0, 44, 88])('covers a docked pane below %ipx of banners', async topOffset => {
-    render(
-      <Fragment>
-        <DockedPane width={420} topOffset={topOffset} />
-        <GlobalDrawerTestComponent
-          config={{
-            renderer: () => (
-              <DrawerBody data-test-id="drawer-test-content">docked</DrawerBody>
-            ),
-            options: {ariaLabel, mode: 'passive'},
-          }}
-        />
-      </Fragment>
-    );
+  it.each([
+    {width: 420, topOffset: 0},
+    {width: 420, topOffset: 44},
+    {width: 420, topOffset: 88},
+    {width: 0, topOffset: 0},
+    {width: 0, topOffset: 45},
+  ])(
+    'positions a drawer with pane width $width and banner height $topOffset',
+    async ({width, topOffset}) => {
+      render(
+        <Fragment>
+          <DockedPane width={width} topOffset={topOffset} />
+          <GlobalDrawerTestComponent
+            config={{
+              renderer: () => (
+                <DrawerBody data-test-id="drawer-test-content">docked</DrawerBody>
+              ),
+              options: {ariaLabel, mode: 'passive'},
+            }}
+          />
+        </Fragment>
+      );
 
-    await userEvent.click(screen.getByTestId('drawer-test-open'));
-    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    const drawer = screen.getByRole('complementary', {name: ariaLabel});
-    // The global getComputedStyle stub only reads inline styles. Check the
-    // generated base rule so these assertions also catch a missing CSS override.
-    const rules = Array.from(document.styleSheets).flatMap(sheet =>
-      Array.from(sheet.cssRules)
-    );
-    const dockedRule = rules.find(
-      rule =>
-        rule instanceof CSSStyleRule &&
-        drawer.matches(rule.selectorText) &&
-        rule.style.getPropertyValue('min-width') === '420px'
-    ) as CSSStyleRule | undefined;
-    expect(dockedRule).toBeDefined();
-    expect(drawer).toHaveStyle({
-      top: `${topOffset}px`,
-      height: `calc(100% - ${topOffset}px)`,
-    });
+      await userEvent.click(screen.getByTestId('drawer-test-open'));
+      expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+      const drawer = screen.getByRole('complementary', {name: ariaLabel});
+      // The global getComputedStyle stub only reads inline styles. Check the
+      // generated base rule so these assertions also catch a missing CSS override.
+      const rules = Array.from(document.styleSheets).flatMap(sheet =>
+        Array.from(sheet.cssRules)
+      );
+      const dockedRule = rules.find(
+        rule =>
+          rule instanceof CSSStyleRule &&
+          drawer.matches(rule.selectorText) &&
+          rule.style.getPropertyValue('min-width') === '420px'
+      ) as CSSStyleRule | undefined;
+      if (width > 0) {
+        expect(dockedRule).toBeDefined();
+      } else {
+        expect(dockedRule).toBeUndefined();
+      }
+      expect(drawer).toHaveStyle({
+        top: `${topOffset}px`,
+        height: `calc(100% - ${topOffset}px)`,
+      });
 
-    await userEvent.click(screen.getByTestId('drawer-test-close'));
-    await waitForDrawerToHide(ariaLabel);
-    expect(
-      screen.queryByRole('complementary', {name: ariaLabel})
-    ).not.toBeInTheDocument();
-  });
+      await userEvent.click(screen.getByTestId('drawer-test-close'));
+      await waitForDrawerToHide(ariaLabel);
+      expect(
+        screen.queryByRole('complementary', {name: ariaLabel})
+      ).not.toBeInTheDocument();
+    }
+  );
 });

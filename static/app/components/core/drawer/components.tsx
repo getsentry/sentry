@@ -84,7 +84,7 @@ function DrawerPanel({
         <DrawerSlidePanel
           mode={mode}
           dockedPaneWidth={dockedPaneWidth}
-          topOffset={dockedPaneWidth ? `${dockedPaneTop ?? 0}px` : undefined}
+          topOffset={dockedPaneTop === undefined ? undefined : `${dockedPaneTop}px`}
           ariaLabel={ariaLabel}
           position="right"
           ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
