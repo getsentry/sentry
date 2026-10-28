@@ -297,7 +297,7 @@ class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
 
 class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
     repos = SeerProjectRepoCreateSerializer(
-        many=True, required=True, allow_empty=True, help_text="Repository settings to apply."
+        many=True, required=True, allow_empty=True, help_text="Repositories to link and configure for Seer in this project."
     )
 
     def validate_repos(self, value):
