@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="100" viewBox="0 0 120 100">
+<style>
+  .card { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .card { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="card" x="1" y="1" width="118" height="98" rx="10" />
+<defs><clipPath id="r"><rect x="40" y="16" width="40" height="40" rx="8" /></clipPath></defs>
+<g class="icon" clip-path="url(#r)"><svg x="40" y="16" width="40" height="40" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#512BD4"/>
+  <path fill="#fff" d="M2.58 13a.56.56 0 0 1-.58-.55.54.54 0 0 1 .17-.4.56.56 0 0 1 .4-.16.56.56 0 0 1 .42.16.53.53 0 0 1 0 .8.56.56 0 0 1-.41.15Zm6.38-.1H7.92L5.19 8.58c-.07-.11-.13-.23-.17-.35h-.03c.03.27.04.54.03.81v3.88H4.1V7h1.11l2.66 4.24c.11.18.18.28.21.36h.02a5.63 5.63 0 0 1-.04-.8V7h.91l-.01 5.9Zm4.47 0h-3.21V7h3.08v.83h-2.13v1.68h1.97v.82h-1.97v1.75h2.26v.83ZM18 7.84h-1.65v5.08h-.95V7.83h-1.64V7H18v.83Z"/>
+</svg></g>
+<text class="label" x="60" y="80" text-anchor="middle">.NET</text>
+</svg>

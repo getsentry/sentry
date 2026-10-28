@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="100" viewBox="0 0 120 100">
+<style>
+  .card { fill: #FFFFFF; stroke: #E0DCE5; }
+  .label { fill: #2B2233; font: 600 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+  @media (prefers-color-scheme: dark) {
+    .card { fill: #181225; stroke: #3E3446; }
+    .label { fill: #EBE6EF; }
+  }
+</style>
+<rect class="card" x="1" y="1" width="118" height="98" rx="10" />
+<defs><clipPath id="r"><rect x="40" y="16" width="40" height="40" rx="8" /></clipPath></defs>
+<g class="icon" clip-path="url(#r)"><svg x="40" y="16" width="40" height="40" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+  <rect width="100%" height="100%" fill="#659AD2"/>
+  <path fill="#fff" d="M3.9 5.16 8.85 2.3a2.3 2.3 0 0 1 2.3 0l4.95 2.85a2.3 2.3 0 0 1 1.15 2v5.7a2.3 2.3 0 0 1-1.15 2l-4.95 2.83a2.3 2.3 0 0 1-2.3 0L3.9 14.84a2.31 2.31 0 0 1-1.15-2v-5.7A2.3 2.3 0 0 1 3.9 5.17Zm10.46 4h-.61v.5h-.5v.6h.5v.53h.6v-.5h.5v-.6h-.5v-.53Zm2 0h-.65v.5h-.5v.6h.5v.53h.6v-.5h.5v-.6h-.5l.05-.53Zm-4.25 2a2.4 2.4 0 1 1-.02-2.35l2.13-1.23a4.84 4.84 0 1 0 0 4.84l-2.1-1.27Z"/>
+</svg></g>
+<text class="label" x="60" y="80" text-anchor="middle">C / C++</text>
+</svg>
