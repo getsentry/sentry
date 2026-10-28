@@ -205,36 +205,8 @@ class RpcServiceEndpointTest(APITestCase):
         assert ctx.actor.actor_id == 42
         assert ctx.actor.type == ActorType.USER
 
-    def test_unparseable_viewer_context_runs_without_one(self) -> None:
-        """A silo on an older release can still send the retired "unknown" actor."""
-        organization = self.create_organization()
-        captured_contexts: list[ViewerContext | None] = []
-
-        original_dispatch = __import__(
-            "sentry.hybridcloud.rpc.service", fromlist=["dispatch_to_local_service"]
-        ).dispatch_to_local_service
-
-        def capturing_dispatch(*args, **kwargs):
-            captured_contexts.append(get_viewer_context())
-            return original_dispatch(*args, **kwargs)
-
-        path = self._get_path("organization", "get_organization_by_id")
-        data = {
-            "args": {"id": organization.id},
-            "meta": {"viewer_context": {"version": 2, "actor": {"type": "unknown"}}},
-        }
-
-        with patch(
-            "sentry.api.endpoints.internal.rpc.dispatch_to_local_service",
-            side_effect=capturing_dispatch,
-        ):
-            response = self._send_post_request(path, data)
-
-        assert response.status_code == 200
-        assert captured_contexts == [None]
-
-    def test_no_viewer_context_when_meta_empty(self) -> None:
-        """No ViewerContext is set when meta has no viewer_context."""
+    def test_viewer_context_unknown_when_meta_empty(self) -> None:
+        """Empty ViewerContext with UNKNOWN actor type when meta has no viewer_context."""
         organization = self.create_organization()
         captured_contexts: list[ViewerContext | None] = []
 
@@ -256,7 +228,12 @@ class RpcServiceEndpointTest(APITestCase):
             response = self._send_post_request(path, data)
 
         assert response.status_code == 200
-        assert captured_contexts == [None]
+        assert len(captured_contexts) == 1
+        ctx = captured_contexts[0]
+        assert isinstance(ctx, ViewerContext)
+        assert ctx.actor.actor_id is None
+        assert ctx.organization_id is None
+        assert ctx.actor.type == ActorType.UNKNOWN
 
     def test_agent_viewer_context_roundtrip_through_meta(self) -> None:
         """Agent ViewerContext set on the sending side arrives on the receiving side."""
