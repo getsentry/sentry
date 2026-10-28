@@ -323,7 +323,10 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
             raise serializers.ValidationError(
                 "Transformations are not enabled for this organization."
             )
-        if any(re.fullmatch(r"0|[1-9][0-9]*", index) is None for index in value):
+        if any(
+            not index.isascii() or not index.isdigit() or (len(index) > 1 and index.startswith("0"))
+            for index in value
+        ):
             raise serializers.ValidationError("Invalid transformations index.")
         return value
 
