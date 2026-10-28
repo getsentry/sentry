@@ -22,7 +22,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow, SeerWorkflowTransaction
 from sentry.services.eventstore.models import GroupEvent
 
 
@@ -161,26 +161,27 @@ class BreachedMetricWorkflow(SeerWorkflow):
             return IgnoredMetricBreach("invalid_source")
 
         try:
-            with self._lock_config() as config:
+            with self.transaction() as transaction:
+                config = transaction.config
                 if (
                     config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
                     or not config.enabled
                 ):
                     return IgnoredMetricBreach("configuration_unavailable")
-                if not self._matches_scope(config, group.project_id, trigger.environment):
+                if not transaction.matches_scope(group.project_id, trigger.environment):
                     return IgnoredMetricBreach("out_of_scope")
-                return self._record_run(config, group, trigger)
+                return self._record_run(transaction, group, trigger)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
 
     def _record_run(
         self,
-        config: SeerWorkflowConfig,
+        transaction: SeerWorkflowTransaction,
         group: Group,
         trigger: MetricBreachTrigger,
     ) -> AcceptedMetricBreach | RejectedMetricBreach:
         trigger_key = f"issue_created:{group.id}"
-        existing = self.get_runs().filter(trigger_key=trigger_key).first()
+        existing = transaction.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
             lifecycle = SeerWorkflowRunLifecycle(
                 run_id=existing.id, organization_id=existing.organization_id
@@ -196,8 +197,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if self.has_quota_available()
             else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
         )
-        result = self._get_or_create_run_with_locked_config(
-            config, trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
+        result = transaction.get_or_create_run(
+            trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
         )
         workflow_run = result.lifecycle
         if admission.status == "rejected":

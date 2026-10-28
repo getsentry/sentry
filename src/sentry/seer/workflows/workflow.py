@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
-from dataclasses import dataclass
+from contextlib import AbstractContextManager, contextmanager
+from dataclasses import dataclass, field
 from typing import Any, assert_never
 
 from django.db import router, transaction
@@ -89,7 +89,7 @@ class SeerWorkflow:
 
     def get_config(self) -> SeerWorkflowConfig:
         """Fetch the config without acquiring a lock."""
-        return self._config_queryset().get()
+        return _config_queryset(self.config_id, self.organization_id).get()
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
@@ -107,24 +107,15 @@ class SeerWorkflow:
         extras: Mapping[str, Any] | None = None,
     ) -> WorkflowRunCreationResult:
         """Retries preserve the original configuration and inputs."""
-        if not trigger_key or len(trigger_key) > 256:
-            raise ValueError("Trigger keys must contain between 1 and 256 characters")
-
-        with self._lock_config() as config:
-            return self._get_or_create_run_with_locked_config(
-                config, trigger_key=trigger_key, inputs=inputs, extras=extras
-            )
+        with self.transaction() as locked:
+            return locked.get_or_create_run(trigger_key=trigger_key, inputs=inputs, extras=extras)
 
     def get_runs(self) -> QuerySet[SeerWorkflowRun]:
-        return (
-            SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
-            .filter(organization_id=self.organization_id, workflow_config_id=self.config_id)
-            .order_by("-date_added", "-id")
-        )
+        return _run_queryset(self.config_id, self.organization_id)
 
     def matches_scope(self, project_id: int, environment: str | None) -> bool:
         """Check the automation's scope before recording an admission decision."""
-        return self._matches_scope(self.get_config(), project_id, environment)
+        return _matches_scope(self.get_config(), project_id, environment)
 
     def has_quota_available(self) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
@@ -133,11 +124,12 @@ class SeerWorkflow:
 
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
-        return self._get_project_ids(self.get_config())
+        return _get_project_ids(self.get_config())
 
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
-        with self._lock_config() as config:
+        with self.transaction() as locked:
+            config = locked.config
             if service_account_id is not None:
                 try:
                     replica = ServiceAccountReplica.objects.get(
@@ -185,7 +177,8 @@ class SeerWorkflow:
             case _:
                 assert_never(selection)
 
-        with self._lock_config() as config:
+        with self.transaction() as locked:
+            config = locked.config
             if (
                 config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
                 and not all_projects
@@ -212,15 +205,42 @@ class SeerWorkflow:
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
 
-    def _get_or_create_run_with_locked_config(
+    def transaction(self) -> AbstractContextManager[SeerWorkflowTransaction]:
+        """Share one locked config across an atomic workflow operation."""
+        return SeerWorkflowTransaction.open(
+            config_id=self.config_id, organization_id=self.organization_id
+        )
+
+
+@dataclass
+class SeerWorkflowTransaction:
+    """Workflow operations available only while the config's row lock is held."""
+
+    _config: SeerWorkflowConfig | None = field(default=None, init=False, repr=False)
+
+    @classmethod
+    @contextmanager
+    def open(cls, *, config_id: int, organization_id: int) -> Iterator[SeerWorkflowTransaction]:
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            locked = cls()
+            locked._config = _config_queryset(config_id, organization_id).select_for_update().get()
+            try:
+                yield locked
+            finally:
+                locked._config = None
+
+    def get_or_create_run(
         self,
-        config: SeerWorkflowConfig,
         *,
         trigger_key: str,
         inputs: BaseModel,
         extras: Mapping[str, Any] | None = None,
     ) -> WorkflowRunCreationResult:
-        """Reuse the config while the caller holds its row lock."""
+        """Retries preserve the original configuration and inputs."""
+        config = self.config
+        if not trigger_key or len(trigger_key) > 256:
+            raise ValueError("Trigger keys must contain between 1 and 256 characters")
+
         existing = self.get_runs().filter(trigger_key=trigger_key).first()
         if existing is not None:
             return WorkflowRunCreationResult(
@@ -234,7 +254,7 @@ class SeerWorkflow:
             config_version=config.version,
             strategy=SeerWorkflowStrategy(config.strategy),
             filters=config.filters,
-            project_ids=tuple(self._get_project_ids(config)),
+            project_ids=tuple(_get_project_ids(config)),
             output_policy=config.output_policy,
             inputs=json.loads(inputs.json()),
         )
@@ -251,41 +271,59 @@ class SeerWorkflow:
             created=True,
         )
 
-    @contextmanager
-    def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
-        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
-            yield self._config_queryset().select_for_update().get()
+    def get_runs(self) -> QuerySet[SeerWorkflowRun]:
+        config = self.config
+        return _run_queryset(config.id, config.organization_id)
 
-    def _config_queryset(self) -> QuerySet[SeerWorkflowConfig]:
-        return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
-            id=self.config_id, organization_id=self.organization_id
-        )
+    def matches_scope(self, project_id: int, environment: str | None) -> bool:
+        return _matches_scope(self.config, project_id, environment)
 
-    def _matches_scope(
-        self, config: SeerWorkflowConfig, project_id: int, environment: str | None
-    ) -> bool:
-        filters = SeerWorkflowFilters.parse_obj(config.filters)
-        return (
-            config.enabled
-            and (not filters.environments or environment in filters.environments)
-            and self._get_projects(config).filter(id=project_id).exists()
-        )
-
-    def _get_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
-        return list(self._get_projects(config).order_by("id").values_list("id", flat=True))
-
-    def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
-        projects = Project.objects.filter(
-            organization_id=config.organization_id, status=ObjectStatus.ACTIVE
-        )
-        if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
-            projects = projects.filter(
-                id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
-            )
-        return projects
+    @property
+    def config(self) -> SeerWorkflowConfig:
+        if self._config is None:
+            raise RuntimeError("Workflow transaction is not active")
+        return self._config
 
 
 @dataclass(frozen=True)
 class WorkflowRunCreationResult:
     lifecycle: SeerWorkflowRunLifecycle
     created: bool
+
+
+def _config_queryset(config_id: int, organization_id: int) -> QuerySet[SeerWorkflowConfig]:
+    return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
+        id=config_id, organization_id=organization_id
+    )
+
+
+def _run_queryset(config_id: int, organization_id: int) -> QuerySet[SeerWorkflowRun]:
+    return (
+        SeerWorkflowRun.objects.using(router.db_for_write(SeerWorkflowRun))
+        .filter(organization_id=organization_id, workflow_config_id=config_id)
+        .order_by("-date_added", "-id")
+    )
+
+
+def _matches_scope(config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
+    filters = SeerWorkflowFilters.parse_obj(config.filters)
+    return (
+        config.enabled
+        and (not filters.environments or environment in filters.environments)
+        and _get_projects(config).filter(id=project_id).exists()
+    )
+
+
+def _get_project_ids(config: SeerWorkflowConfig) -> list[int]:
+    return list(_get_projects(config).order_by("id").values_list("id", flat=True))
+
+
+def _get_projects(config: SeerWorkflowConfig) -> QuerySet[Project]:
+    projects = Project.objects.filter(
+        organization_id=config.organization_id, status=ObjectStatus.ACTIVE
+    )
+    if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
+        projects = projects.filter(
+            id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
+        )
+    return projects

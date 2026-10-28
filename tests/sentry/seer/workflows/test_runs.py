@@ -28,7 +28,11 @@ from sentry.seer.workflows.runs import (
     get_workflow_run_status,
 )
 from sentry.seer.workflows.schemas import WorkflowResult
-from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
+from sentry.seer.workflows.workflow import (
+    SeerWorkflow,
+    SeerWorkflowTransaction,
+    SelectedProjects,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 
@@ -273,6 +277,47 @@ class SeerWorkflowRunLifecycleTest(TestCase):
             wrong_org_run.start()
         assert first.get_run().status == SeerWorkflowRunStatus.QUEUED
         assert first.get_run().date_completed is None
+
+    def test_workflow_transaction_requires_an_active_context(self) -> None:
+        transaction = SeerWorkflowTransaction()
+
+        with pytest.raises(RuntimeError, match="Workflow transaction is not active"):
+            transaction.get_or_create_run(
+                trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
+            )
+
+        assert not self.workflow.get_runs().exists()
+
+    def test_workflow_transaction_cannot_be_used_after_exit(self) -> None:
+        with self.workflow.transaction() as transaction:
+            result = transaction.get_or_create_run(
+                trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
+            )
+
+        with pytest.raises(RuntimeError, match="Workflow transaction is not active"):
+            transaction.get_or_create_run(
+                trigger_key="manual:later", inputs=RunInputs(issue_limit=10)
+            )
+        with pytest.raises(RuntimeError, match="Workflow transaction is not active"):
+            transaction.get_runs()
+        with pytest.raises(RuntimeError, match="Workflow transaction is not active"):
+            transaction.matches_scope(self.project.id, None)
+
+        assert list(self.workflow.get_runs()) == [result.lifecycle.get_run()]
+
+    def test_failed_workflow_transaction_rolls_back_and_cannot_be_reused(self) -> None:
+        with pytest.raises(ValueError, match="failed"):
+            with self.workflow.transaction() as transaction:
+                transaction.get_or_create_run(
+                    trigger_key="manual:first", inputs=RunInputs(issue_limit=10)
+                )
+                raise ValueError("failed")
+
+        assert not self.workflow.get_runs().exists()
+        with pytest.raises(RuntimeError, match="Workflow transaction is not active"):
+            transaction.get_or_create_run(
+                trigger_key="manual:retry", inputs=RunInputs(issue_limit=10)
+            )
 
     def test_lifecycle_reads_updates_from_another_instance(self) -> None:
         run = self.create_run()
