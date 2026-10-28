@@ -11,10 +11,12 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {StatusIcon} from 'sentry/views/seerWorkflows/runs/statusIcon';
-import {useWorkflowRuns} from 'sentry/views/seerWorkflows/runs/useWorkflowRuns';
-import {getWorkflowStatus} from 'sentry/views/seerWorkflows/strategies';
-import type {SeerWorkflowRun} from 'sentry/views/seerWorkflows/types';
+import {
+  getRunDisplayStatus,
+  StatusIcon,
+} from 'sentry/views/seerWorkflows/runs/statusIcon';
+import {useAutomationRuns} from 'sentry/views/seerWorkflows/runs/useAutomationRuns';
+import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'status', width: 'min-content'},
@@ -45,7 +47,7 @@ type AdditionalRunProps = {
   trigger?: {text: string; to?: string};
 };
 
-type RunRow = SeerWorkflowRun & AdditionalRunProps;
+type RunRow = SeerAutomationRun & AdditionalRunProps;
 
 function makePlaceholderRun(
   id: string,
@@ -54,13 +56,12 @@ function makePlaceholderRun(
 ): RunRow {
   return {
     id,
+    configId: 'placeholder-breached-metrics',
     dateAdded,
     dateCompleted: dateAdded,
-    errorMessage: null,
-    results: [],
-    source: 'cron',
-    strategy: 'breached_metrics',
-    extras: {status: 'complete'},
+    dateUpdated: dateAdded,
+    executions: [],
+    status: 'complete',
     ...overrides,
   };
 }
@@ -88,10 +89,20 @@ const PLACEHOLDER_RUNS: RunRow[] = [
   }),
 ];
 
-export function RunsTable() {
-  const {runs: apiRuns, isPending, isError, refetch} = useWorkflowRuns();
+type RunsTableProps = {
+  /**
+   * Only show this automation's runs
+   */
+  configId?: string;
+};
 
-  const runs: RunRow[] = [...PLACEHOLDER_RUNS, ...apiRuns].toSorted(
+export function RunsTable({configId}: RunsTableProps) {
+  const {runs: apiRuns, isPending, isError, refetch} = useAutomationRuns({configId});
+
+  const placeholderRuns = PLACEHOLDER_RUNS.filter(
+    run => configId === undefined || run.configId === configId
+  );
+  const runs: RunRow[] = [...placeholderRuns, ...apiRuns].toSorted(
     (a, b) => Date.parse(b.dateAdded) - Date.parse(a.dateAdded)
   );
 
@@ -122,7 +133,7 @@ export function RunsTable() {
         runs.map(run => (
           <SimpleTable.Row key={run.id}>
             <SimpleTable.RowCell>
-              <StatusIcon status={getWorkflowStatus(run)} />
+              <RunStatus run={run} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <Text size="sm">{run.id}</Text>
@@ -153,6 +164,14 @@ export function RunsTable() {
       )}
     </SimpleTable>
   );
+}
+
+function RunStatus({run}: {run: RunRow}) {
+  const status = getRunDisplayStatus(run.status);
+  if (!status) {
+    return <EmptyValue />;
+  }
+  return <StatusIcon status={status} />;
 }
 
 function LinkOrText({value}: {value?: {text: string; to?: string}}) {

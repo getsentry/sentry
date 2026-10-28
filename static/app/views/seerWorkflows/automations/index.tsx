@@ -55,10 +55,6 @@ type AdditionalConfig = {
    */
   costPerRun?: number;
   /**
-   * When the automation last ran, in Unix seconds (UTC)
-   */
-  lastRun?: number;
-  /**
    * Estimated tokens used per month
    */
   tokensPerMonth?: number;

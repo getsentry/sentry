@@ -82,6 +82,48 @@ export type SeerAgenticTriageRun = SeerWorkflowRunBase & {
   strategy: 'agentic_triage' | 'agentic_triage_v2'; // TODO: branch to new type when needed
 };
 
+type SeerWorkflowError = {
+  code: string;
+  message: string;
+};
+
+/**
+ * Null for historical rows recorded before run lifecycle tracking
+ */
+type SeerWorkflowActiveStatus = 'queued' | 'running' | 'complete' | null;
+
+type SeerWorkflowExecutionBase = {
+  dateAdded: string;
+  dateCompleted: string | null;
+  dateUpdated: string;
+  id: string;
+  seerRunId: string | null;
+};
+
+type SeerWorkflowExecution = SeerWorkflowExecutionBase &
+  ({status: SeerWorkflowActiveStatus} | {error: SeerWorkflowError; status: 'failed'});
+
+type SeerAutomationRunBase = {
+  configId: string;
+  dateAdded: string;
+  dateCompleted: string | null;
+  dateUpdated: string;
+  executions: SeerWorkflowExecution[];
+  id: string;
+};
+
+export type SeerAutomationRun = SeerAutomationRunBase &
+  (
+    | {status: SeerWorkflowActiveStatus}
+    | {error: SeerWorkflowError; status: 'failed' | 'rejected'}
+  );
+
+export type SeerAutomationRunStatus = SeerAutomationRun['status'];
+
+export type SeerAutomationRunsResponse = {
+  runs: SeerAutomationRun[];
+};
+
 export type WorkflowRunCreateRequest = {
   strategy: WorkflowStrategy;
 };
@@ -155,6 +197,10 @@ export type SeerWorkflowConfigResponse = {
   seededDefault: string | null;
   strategy: string;
   version: number;
+  /**
+   * When the latest visible run started, in Unix seconds. Omitted if there are none
+   */
+  lastRun?: number;
 };
 
 export type SeerWorkflowConfigsResponse = {

@@ -6,7 +6,10 @@ import {Spinner} from '@sentry/scraps/chat';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {WorkflowDisplayStatus} from 'sentry/views/seerWorkflows/types';
+import type {
+  SeerAutomationRunStatus,
+  WorkflowDisplayStatus,
+} from 'sentry/views/seerWorkflows/types';
 
 const STATUS_VARIANT = {
   succeeded: {Icon: IconCheckmark, label: 'Succeeded', text: 'success'},
@@ -21,6 +24,27 @@ const STATUS_VARIANT = {
     text: 'success' | 'danger' | 'muted' | 'warning';
   }
 >;
+
+/**
+ * Null for historical runs recorded without a status
+ */
+export function getRunDisplayStatus(
+  status: SeerAutomationRunStatus
+): WorkflowDisplayStatus | null {
+  switch (status) {
+    case 'queued':
+    case 'running':
+      return 'running';
+    case 'complete':
+      return 'succeeded';
+    case 'failed':
+      return 'failed';
+    case 'rejected':
+      return 'skipped';
+    case null:
+      return null;
+  }
+}
 
 export function StatusIcon({status}: {status: WorkflowDisplayStatus}) {
   if (status === 'running') {
