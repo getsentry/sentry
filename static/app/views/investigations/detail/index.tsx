@@ -900,6 +900,12 @@ function formatSourceType(sourceType: string) {
   if (sourceType === 'manual') {
     return t('Manual investigation');
   }
+  if (sourceType === 'autofix') {
+    return t('Autofix');
+  }
+  if (sourceType === 'agentic_triage') {
+    return t('Agentic triage');
+  }
   return sourceType.replaceAll('_', ' ');
 }
 

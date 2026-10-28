@@ -64,7 +64,14 @@ export type InvestigationBlock = {
   version: number;
 };
 
-export type InvestigationBlockKind = 'query' | 'text';
+export type InvestigationBlockKind =
+  | 'query'
+  | 'text'
+  | 'root_cause'
+  | 'solution'
+  | 'code_changes'
+  | 'pull_request'
+  | 'triage_verdicts';
 
 export type InvestigationViewer = {
   active: boolean;

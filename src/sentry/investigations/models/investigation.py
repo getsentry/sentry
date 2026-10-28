@@ -21,6 +21,8 @@ class InvestigationSourceType(models.TextChoices):
     MANUAL = "manual", "Manual"
     BREACHED_METRIC = "breached_metric", "Breached metric"
     METRIC_OPEN_PERIOD = "metric_open_period", "Metric open period"
+    AUTOFIX = "autofix", "Autofix"
+    AGENTIC_TRIAGE = "agentic_triage", "Agentic triage"
 
 
 @cell_silo_model

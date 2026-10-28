@@ -35,6 +35,11 @@ import {
 } from 'sentry/views/investigations/api';
 import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
 import {
+  ConvertedBlockContent,
+  hasConvertedBlockContent,
+  isConvertedBlockKind,
+} from 'sentry/views/investigations/detail/convertedBlocks';
+import {
   getBlockLLMContext,
   getInvestigationReference,
   useInvestigationAskSeer,
@@ -170,7 +175,7 @@ function InvestigationNotebookBlockInner({
     {
       key: 'ask-seer',
       label: t('Ask Seer'),
-      hidden: !handleAskSeer,
+      hidden: !handleAskSeer || isConvertedBlockKind(block.kind),
       onAction: handleAskSeer,
     },
     {
@@ -268,7 +273,14 @@ function InvestigationNotebookBlockInner({
       padding="0"
       data-test-id={`investigation-block-${block.id}`}
     >
-      {block.kind === 'query' ? (
+      {isConvertedBlockKind(block.kind) ? (
+        <BlockHoverSurface flex={1} minWidth={0} data-block-variant="unbordered">
+          <Grid columns="minmax(0, 1fr) auto" gap="sm" align="start">
+            <ConvertedBlockContent block={block} />
+            <Flex align="center">{blockActions}</Flex>
+          </Grid>
+        </BlockHoverSurface>
+      ) : block.kind === 'query' ? (
         <Fragment>
           <QueryResult
             actions={blockActions}
@@ -523,6 +535,9 @@ export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
   // anything.
   if (isBlockWorking(block) && block.title.trim()) {
     return true;
+  }
+  if (isConvertedBlockKind(block.kind)) {
+    return hasConvertedBlockContent(block);
   }
   if (block.kind === 'text') {
     return Boolean((getTextOutput(block.output) ?? block.content).trim());

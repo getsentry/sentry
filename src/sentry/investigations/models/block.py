@@ -18,6 +18,11 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 class InvestigationBlockKind(models.TextChoices):
     TEXT = "text", "Text"
     QUERY = "query", "Query"
+    ROOT_CAUSE = "root_cause", "Root cause"
+    SOLUTION = "solution", "Solution"
+    CODE_CHANGES = "code_changes", "Code changes"
+    PULL_REQUEST = "pull_request", "Pull request"
+    TRIAGE_VERDICTS = "triage_verdicts", "Triage verdicts"
 
 
 @cell_silo_model
