@@ -20,6 +20,52 @@ _EXCLUSION_TABLES = {
     "groupopenperiod": "sentry_groupopenperiod",
     "spendallocation": "accounts_spend_allocations",
 }
+_OUT_OF_STATE_INDEX = """\
+        SafeRunSQL(
+            sql={sql!r},
+            reverse_sql={reverse_sql!r},
+            hints={{"tables": [{table!r}]}},
+        ),
+"""
+
+
+class OutOfStateIndex(NamedTuple):
+    app: str
+    table: str
+    name: str
+    columns: tuple[str, ...]
+    unique: bool = False
+
+    @property
+    def sql(self) -> str:
+        unique = "UNIQUE " if self.unique else ""
+        columns = ", ".join(f'"{column}"' for column in self.columns)
+        return f'CREATE {unique}INDEX "{self.name}" ON "{self.table}" ({columns})'
+
+    @property
+    def reverse_sql(self) -> str:
+        return f'DROP INDEX IF EXISTS "{self.name}"'
+
+
+# Indexes that migrations create with raw SQL but keep out of Django state, so makemigrations
+# can't regenerate them in the squash. Remove an entry once a migration drops the index or
+# brings it into state.
+_OUT_OF_STATE_INDEXES = (
+    # From 1234_grouprelease_new_release_id_indexes; the new_release_id column swap consumes them.
+    OutOfStateIndex(
+        app="sentry",
+        table="sentry_grouprelease",
+        name="sentry_grouprelease_group_id_new_release_id_environment_uniq",
+        columns=("group_id", "new_release_id", "environment"),
+        unique=True,
+    ),
+    OutOfStateIndex(
+        app="sentry",
+        table="sentry_grouprelease",
+        name="sentry_grouprelease_new_release_id",
+        columns=("new_release_id",),
+    ),
+)
 
 
 def _get_kw(kws: list[ast.keyword], name: str) -> ast.keyword | None:
@@ -173,6 +219,7 @@ class FixupVisitor(ast.NodeVisitor):
     def __init__(self) -> None:
         self.initial_lineno: int | None = None
         self.is_post_deployment_lineno: int | None = None
+        self.operations_end_lineno: int | None = None
         self.first_exclude_constraint: tuple[str, int] | None = None
 
     def visit_Assign(self, node: ast.Assign) -> None:
@@ -180,6 +227,8 @@ class FixupVisitor(ast.NodeVisitor):
             self.initial_lineno = node.lineno
         elif _is_assign_to(node, "is_post_deployment"):
             self.is_post_deployment_lineno = node.lineno
+        elif _is_assign_to(node, "operations") and isinstance(node.value, ast.List):
+            self.operations_end_lineno = node.value.end_lineno
 
         self.generic_visit(node)
 
@@ -227,6 +276,21 @@ def _fixup(app: App, squash: dict[str, App]) -> None:
     visitor = FixupVisitor()
     visitor.visit(tree)
 
+    out_of_state_indexes = [index for index in _OUT_OF_STATE_INDEXES if index.app == app.name]
+    if out_of_state_indexes:
+        assert visitor.operations_end_lineno is not None
+        # Appended so each index's table already exists. Inserted first: the
+        # inserts below are all above this line, so its line number stays valid.
+        lines.insert(
+            visitor.operations_end_lineno - 1,
+            "".join(
+                _OUT_OF_STATE_INDEX.format(
+                    sql=index.sql, reverse_sql=index.reverse_sql, table=index.table
+                )
+                for index in out_of_state_indexes
+            ),
+        )
+
     if visitor.first_exclude_constraint is not None:
         gist_table, gist_line = visitor.first_exclude_constraint
         lines.insert(gist_line - 1, _GIST_EXT.format(table=gist_table))
@@ -249,7 +313,7 @@ def _fixup(app: App, squash: dict[str, App]) -> None:
 """
         lines[visitor.initial_lineno - 1] = initial_and_checked
 
-    if visitor.first_exclude_constraint is not None:
+    if visitor.first_exclude_constraint is not None or out_of_state_indexes:
         lines.insert(2, _SAFE_RUN_SQL_IMPORT)
 
     with open(app.squash_fname, "w", encoding="UTF-8") as f:
