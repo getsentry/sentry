@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentProps,
   type ReactNode,
 } from 'react';
 import type {To} from 'react-router';
@@ -381,6 +382,21 @@ interface SectionTitleProps {
   setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
+function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
+  return (
+    <Grid
+      align="center"
+      position="relative"
+      height="32px"
+      padding="0 sm 0 md"
+      radius="md"
+      {...props}
+      columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
+      gap="xs"
+    />
+  );
+}
+
 function SectionTitle(props: SectionTitleProps) {
   const settingsV3 = useSettingsV3();
   // The leading slot and padding match `SecondaryNavigation.Link`, so the
@@ -393,7 +409,7 @@ function SectionTitle(props: SectionTitleProps) {
             <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="md" />
           ) : null}
         </SecondaryNavigationLeadingSlot>
-        <Container flex="1" minWidth="0">
+        <Container minWidth="0">
           <Text bold ellipsis align="left" density="fixed">
             {props.children}
           </Text>
@@ -403,27 +419,17 @@ function SectionTitle(props: SectionTitleProps) {
 
     if (!props.canCollapse) {
       return (
-        <Flex align="center" gap="xs" width="100%" minHeight="32px" padding="0 xs 0 md">
+        <SecondaryNavigationRow width="100%" padding="0 xs 0 md">
           {content}
-        </Flex>
+        </SecondaryNavigationRow>
       );
     }
 
     return (
-      <Flex
-        align="center"
-        gap="xs"
-        justify="start"
-        position="relative"
-        height="32px"
-        padding="0 sm 0 md"
-        radius="md"
-        width="100%"
-        cursor="pointer"
-      >
-        {flexProps => (
+      <SecondaryNavigationRow width="100%" cursor="pointer">
+        {gridProps => (
           <SidebarNavigationSectionButton
-            {...flexProps}
+            {...gridProps}
             type="button"
             aria-expanded={!props.isCollapsed}
             onClick={() => props.setIsCollapsed(!props.isCollapsed)}
@@ -431,7 +437,7 @@ function SectionTitle(props: SectionTitleProps) {
             {content}
           </SidebarNavigationSectionButton>
         )}
-      </Flex>
+      </SecondaryNavigationRow>
     );
   }
 
@@ -561,27 +567,21 @@ function SecondaryNavigationLink({
   };
 
   return (
-    <Flex
-      align="center"
-      gap="xs"
-      justify="start"
-      position="relative"
-      height="32px"
-      padding="0 sm 0 md"
-      radius="md"
-    >
-      {flexProps => (
-        <SidebarNavigationLink {...mergeProps(sharedLinkProps, flexProps)}>
+    <SecondaryNavigationRow>
+      {gridProps => (
+        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)}>
           <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
-          <Container flex="1" minWidth="0">
-            <Text ellipsis variant="inherit">
-              {children}
-            </Text>
-          </Container>
-          {trailingItems}
+          <Flex align="center" gap="xs" minWidth="0">
+            <Container flex="1" minWidth="0">
+              <Text ellipsis variant="inherit">
+                {children}
+              </Text>
+            </Container>
+            {trailingItems}
+          </Flex>
         </SidebarNavigationLink>
       )}
-    </Flex>
+    </SecondaryNavigationRow>
   );
 }
 
@@ -612,14 +612,11 @@ function SecondaryNavigationSeparator() {
 
   if (settingsV3) {
     return (
-      <Container>
-        <Flex align="center" padding="md" gap="xs">
-          <Container width={LEADING_SLOT_SIZE} flexShrink={0} />
-          <Container flex="1" minWidth="0">
-            <Separator orientation="horizontal" border="muted" />
-          </Container>
-        </Flex>
-      </Container>
+      <SecondaryNavigationRow height="auto" padding="md" radius="0">
+        <Container column="2" minWidth="0">
+          <Separator orientation="horizontal" border="muted" />
+        </Container>
+      </SecondaryNavigationRow>
     );
   }
 
@@ -954,31 +951,24 @@ function SecondaryNavigationReorderableLink({
       >
         {icon}
       </Flex>
-      <Container flex="1" minWidth="0">
-        {children}
-      </Container>
-      {trailingItems}
+      <Flex align="center" gap="xs" minWidth="0">
+        <Container flex="1" minWidth="0">
+          {children}
+        </Container>
+        {trailingItems}
+      </Flex>
     </Fragment>
   );
 
   return (
     <Fragment>
-      <Flex
-        align="center"
-        gap="xs"
-        justify="start"
-        position="relative"
-        height="32px"
-        padding="0 sm 0 md"
-        radius="md"
-        cursor="pointer"
-      >
-        {flexProps => (
-          <StyledReorderableLink {...mergeProps(sharedProps, flexProps)} layout="sidebar">
+      <SecondaryNavigationRow cursor="pointer">
+        {gridProps => (
+          <StyledReorderableLink {...mergeProps(sharedProps, gridProps)} layout="sidebar">
             {content}
           </StyledReorderableLink>
         )}
-      </Flex>
+      </SecondaryNavigationRow>
       <GrabHandle />
     </Fragment>
   );
