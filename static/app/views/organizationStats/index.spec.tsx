@@ -162,6 +162,21 @@ describe('OrganizationStats', () => {
     expect(await screen.findByTestId('error-messages')).toBeInTheDocument();
   });
 
+  it('renders with an error when the stats response has no JSON body', async () => {
+    MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      statusCode: 502,
+      body: undefined,
+    });
+    render(<OrganizationStats />, {organization});
+
+    expect(await screen.findByText('Project(s) Stats')).toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(await screen.findByTestId('error-messages')).toBeInTheDocument();
+    expect(screen.queryByTestId('empty-message')).not.toBeInTheDocument();
+  });
+
   it('renders with an error when user has no projects', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({

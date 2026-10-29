@@ -18,6 +18,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -48,8 +49,11 @@ export type TableStat = {
   total: number;
 };
 
-function getErrorMessage(errorMessage: any) {
-  if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+function getErrorMessage(errors: Props['errors']) {
+  // The error may not carry a JSON body (e.g. network failures or non-JSON
+  // responses), so `responseJSON` can be undefined.
+  const projectStatsError = errors?.projectStats as RequestError | undefined;
+  if (projectStatsError?.responseJSON?.detail === 'No projects available') {
     return (
       <EmptyMessage
         icon={<IconWarning />}
