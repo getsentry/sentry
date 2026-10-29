@@ -6,12 +6,8 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupactionlogentry import (
-    _FEED_EXCLUDED_ACTION_TYPES,
-    _FEED_NATIVE_TYPE_NAMES,
-    get_serialized_activity_items,
-)
-from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.issues.action_log.types import GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -22,21 +18,7 @@ from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.utils.action_log.activity_translator import (
-    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
-    activity_to_action,
-)
-
-
-def test_user_visible_action_types_are_accounted_for() -> None:
-    """Catch new unmapped GAL types."""
-    accounted_for = {
-        *GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
-        *_FEED_EXCLUDED_ACTION_TYPES,
-        *_FEED_NATIVE_TYPE_NAMES,
-    }
-    missing = GroupAction.get_user_visible_types() - accounted_for
-    assert not missing, f"Choose a feed policy for {sorted(t.name for t in missing)}"
+from sentry.utils.action_log.activity_translator import activity_to_action
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -462,7 +444,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             type=GroupActionType.MERGE_FROM_OTHER,
             data={"counterpart_group_ids": [42]},
         )
-        # Newer audit rows must neither duplicate feed items nor consume the page.
+        # Newer non-user-visible rows must neither appear nor consume the page.
         for action_type in (
             GroupActionType.CREATE_EXTERNAL_ISSUE,
             GroupActionType.LINK_EXTERNAL_ISSUE,
@@ -471,6 +453,13 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             GroupActionType.MERGE_INTO_OTHER,
             GroupActionType.DEPLOY,
             GroupActionType.NEW_PROCESSING_ISSUES,
+            GroupActionType.BOOKMARK,
+            GroupActionType.SUBSCRIBE,
+            GroupActionType.UNSUBSCRIBE,
+            GroupActionType.DELETE,
+            GroupActionType.AUTOFIX_PR_CREATED,
+            GroupActionType.ROOT_CAUSE_IDENTIFIED,
+            GroupActionType.AUTOFIX_CODING_COMPLETE,
         ):
             self.create_group_action_log_entry(type=action_type)
 
@@ -508,17 +497,25 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             assert items[0]["data"] == data
 
     @with_feature({"projects:issue-action-log-write-to-db": False})
-    def test_excluded_only_log_serves_notes_without_fallback(self) -> None:
+    def test_first_seen_only_log_serves_notes_without_fallback(self) -> None:
         note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "live"})
         self.create_group_activity(type=ActivityType.SET_RESOLVED.value)
-        self.create_group_action_log_entry(type=GroupActionType.BOOKMARK)
+        first_seen = self._first_seen()
 
         items = self._activity_items()
 
         assert [(item["type"], item["id"]) for item in items] == [
             ("note", str(note.id)),
-            ("first_seen", "0"),
+            ("first_seen", str(first_seen.id)),
         ]
+
+    def test_hidden_only_log_falls_back_to_activity(self) -> None:
+        self.create_group_action_log_entry(type=GroupActionType.LINK_EXTERNAL_ISSUE)
+
+        with action_log_activity_enabled():
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+
+        assert items is None
 
     def test_logged_first_seen_is_not_duplicated(self) -> None:
         first_seen = self._first_seen()

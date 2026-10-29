@@ -54,33 +54,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_FEED_EXCLUDED_ACTION_TYPES = (
-    GroupActionType.FIRST_SEEN,  # Appended separately below.
-    # Preserve legacy create/link coverage. Dedicated events can also represent
-    # replacements with no legacy mirror; those stay out of the feed for now.
-    GroupActionType.CREATE_EXTERNAL_ISSUE,
-    GroupActionType.LINK_EXTERNAL_ISSUE,
-    GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
-    GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
-    GroupActionType.MERGE_INTO_OTHER,
-    # Project-level/obsolete Activity types without issue-feed renderers.
-    GroupActionType.DEPLOY,
-    GroupActionType.NEW_PROCESSING_ISSUES,
-    # These have no current writers or established feed behavior.
-    GroupActionType.BOOKMARK,
-    GroupActionType.SUBSCRIBE,
-    GroupActionType.UNSUBSCRIBE,
-    GroupActionType.DELETE,
-    GroupActionType.AUTOFIX_PR_CREATED,
-    GroupActionType.ROOT_CAUSE_IDENTIFIED,
-    GroupActionType.AUTOFIX_CODING_COMPLETE,
-)
-
-_FEED_NATIVE_TYPE_NAMES = {
-    GroupActionType.UNLINK_EXTERNAL_ISSUE: "unlink_external_issue",
-    GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE: "unlink_platform_external_issue",
-}
-
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
@@ -182,11 +155,12 @@ def get_serialized_activity_items(
         )
         return None
 
-    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
-        action_log.exclude(type__in=_FEED_EXCLUDED_ACTION_TYPES).order_by("-date_added", "-id")[
-            :limit
-        ]
+        GroupActionLogEntry.objects.user_visible()
+        .filter(group_id=group.id)
+        # Appended separately below, regardless of the limit.
+        .exclude(type=GroupActionType.FIRST_SEEN)
+        .order_by("-date_added", "-id")[:limit]
     )
     notes = list(
         Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
@@ -338,7 +312,7 @@ class GroupActionLogEntrySerializer(Serializer):
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
-            else _FEED_NATIVE_TYPE_NAMES.get(obj.type, obj.get_type_display())
+            else obj.get_type_display().lower()
         )
 
         if (
