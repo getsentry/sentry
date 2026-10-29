@@ -1117,9 +1117,11 @@ class SlackInvestigationEntrypoint(
                 lifecycle.add_extras(
                     {"investigation_id": run.investigation_id, "notification_thread_id": thread.id}
                 )
-                install = _get_install(
-                    installs, integration_id=integration_id, organization_id=organization_id
-                )
+                if integration_id not in installs:
+                    installs[integration_id] = _get_install(
+                        integration_id=integration_id, organization_id=organization_id
+                    )
+                install = installs[integration_id]
                 if install is None:
                     lifecycle.record_halt(halt_reason="integration_not_found")
                     continue
@@ -1188,23 +1190,17 @@ def _get_investigation_thread(
     )
 
 
-def _get_install(
-    installs: dict[int, SlackIntegration | None], *, integration_id: int, organization_id: int
-) -> SlackIntegration | None:
+def _get_install(*, integration_id: int, organization_id: int) -> SlackIntegration | None:
     from sentry.integrations.slack.integration import SlackIntegration
 
-    if integration_id not in installs:
-        integration = integration_service.get_integration(
-            integration_id=integration_id,
-            organization_id=organization_id,
-            status=ObjectStatus.ACTIVE,
-        )
-        installs[integration_id] = (
-            SlackIntegration(model=integration, organization_id=organization_id)
-            if integration
-            else None
-        )
-    return installs[integration_id]
+    integration = integration_service.get_integration(
+        integration_id=integration_id,
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+    )
+    if integration is None:
+        return None
+    return SlackIntegration(model=integration, organization_id=organization_id)
 
 
 def _post_conclusion(
