@@ -326,8 +326,28 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         extra_aggregations = self.dependency_aggregations.get(sort_field, [])
         required_aggregations = set([sort_field, "total"] + extra_aggregations)
         for h in having:
-            alias = h[0]
-            required_aggregations.add(alias)
+            if isinstance(h[0], str):
+                # Simple condition with string alias LHS: [alias, op, value]
+                required_aggregations.add(h[0])
+            elif len(h) == 3 and isinstance(h[1], str):
+                # Simple condition with function-expression LHS: [expr, op, value]
+                # e.g. has:times_seen → [["isNull", ["times_seen"]], "=", 1]
+                # Extract the wrapped alias from the expression's arguments.
+                expr = h[0]
+                if (
+                    isinstance(expr, (list, tuple))
+                    and len(expr) >= 2
+                    and isinstance(expr[1], (list, tuple))
+                ):
+                    for arg in expr[1]:
+                        if isinstance(arg, str) and arg in self.aggregation_defs:
+                            required_aggregations.add(arg)
+            else:
+                # Compound OR condition (e.g. from `!=` operator on a nullable field):
+                # h is a list of sub-conditions, each of the form [lhs, op, value]
+                for sub_h in h:
+                    if isinstance(sub_h, (list, tuple)) and sub_h and isinstance(sub_h[0], str):
+                        required_aggregations.add(sub_h[0])
 
         aggregations = []
         for alias in required_aggregations:
