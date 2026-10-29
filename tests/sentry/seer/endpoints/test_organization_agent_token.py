@@ -597,7 +597,6 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
-    AUDIT_ACTOR = "the audit entry records request.user as its actor"
     VIEWER_LOOKUP = "a serializer looks up the viewer's own state by request.user.id"
     GENERIC_USER = "serialize_generic_user only takes a User or RpcUser"
     CONTROL_SILO = "service account auth is cell-only"
@@ -606,34 +605,6 @@ class ServiceAccountGap(StrEnum):
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "CustomInboundFilterDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "CustomInboundFilterDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "CustomInboundFilters_post": ServiceAccountGap.AUDIT_ACTOR,
-    "GroupDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "NotificationActionsDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDashboardDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDashboardDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDashboards_post": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDetectorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDetectorDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationDetectorIndex_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationMonitorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationProjectDetectorIndex_post": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationRepositorySettings_put": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationWorkflowDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationWorkflowDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationWorkflowIndex_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "OrganizationWorkflowIndex_post": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectFilterDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectKeyDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectKeyDetails_put": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectKeys_post": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectMonitorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectOwnership_put": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectReplayDeletionJobsIndex_post": ServiceAccountGap.AUDIT_ACTOR,
-    "ProjectSeerRepos_put": ServiceAccountGap.AUDIT_ACTOR,
-    "TeamDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
     "DiscoverSavedQueryDetail": ServiceAccountGap.VIEWER_LOOKUP,
     "GroupDetails": ServiceAccountGap.VIEWER_LOOKUP,
     "GroupDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
