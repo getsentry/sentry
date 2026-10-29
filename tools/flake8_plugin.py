@@ -399,6 +399,11 @@ def _looks_like_a_class(func: ast.expr) -> bool:
     return _name_of(func).rsplit(".", 1)[-1][:1].isupper()
 
 
+def _looks_like_a_class_variable(func: ast.expr) -> bool:
+    """Callee is a class held in a variable, like serializer_cls which is another way how a serializer is defined."""
+    return _name_of(func).endswith("_cls")
+
+
 def _is_request(node: ast.expr) -> bool:
     """The handler's request argument, as `request` or `self.request`."""
     if isinstance(node, ast.Name):
@@ -1205,9 +1210,14 @@ class SentryVisitor(ast.NodeVisitor):
             # On anything but the request this is an ordinary lookup, and
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
-        # Only a serializer's data= is the target shape. `my_func(data=...)`
-        # hands the dict over exactly as a positional argument would.
-        if _looks_like_a_class(func) and any(kw.arg == "data" for kw in node.keywords):
+        # Only a serializer's data= is the target shape. This includes uppercase class
+        # names and dynamic variables ending in `_cls`. `my_func(data=...)` hands the
+        # dict over exactly as a positional argument would. The `_cls` check is kept
+        # separate from `_looks_like_a_class` because `_looks_like_a_class` has two
+        # callers and only this specific check should be expanded to allow `_cls`.
+        if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
+            kw.arg == "data" for kw in node.keywords
+        ):
             return
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
             source = ctx.source_of(argument)

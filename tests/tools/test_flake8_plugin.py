@@ -1727,6 +1727,41 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
+def test_S028_runtime_chosen_serializer_class_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return serializer_cls(data=request.data)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_serializer_class_attribute_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return self.serializer_cls(data=request.data)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_class_variable_without_data_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    def put(self, request) -> Response[X]:
+        return serializer_cls(request.data)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to serializer_cls" in errors[0]
+
+
 def test_shaped_rule_records_instead_of_gating_when_unenforced() -> None:
     src = """\
 class E(Endpoint):
