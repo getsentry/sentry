@@ -20,7 +20,7 @@ class HealSchedulerState(BaseModel):
     head_hash: str | None = None
     # Non-NULL stale pipeline hash to the next group ID to schedule.
     stale: dict[str, int] = Field(default_factory=dict)
-    # When stale hash discovery first succeeded for this state.
+    # When stale hash discovery last completed for this state; None until it does.
     discovered_at: datetime | None = None
 
 
@@ -34,8 +34,6 @@ _state_cache = CacheMapping[Literal["state"], HealSchedulerState](
 def load_state() -> HealSchedulerState | None:
     state = _state_cache.get("state")
     if not isinstance(state, HealSchedulerState) or state.version != CURRENT_STATE_VERSION:
-        return None
-    if state.discovered_at is None or state.discovered_at.tzinfo is None:
         return None
     return state
 

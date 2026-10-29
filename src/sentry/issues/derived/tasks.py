@@ -4,6 +4,7 @@ import logging
 import time
 from bisect import bisect_left
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING
 
@@ -458,40 +459,53 @@ def generate_project_derived_data_batch(
 # ---------------------------------------------------------------------------
 
 
-def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
-    """Return up to ``limit`` distinct non-null GroupDerivedData ``pipeline_hash`` values that aren't ``current_hash``.
+@dataclass(frozen=True)
+class _StaleHashDiscovery:
+    hashes: list[str]
+    error: OperationalError | None = None
+
+
+def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> _StaleHashDiscovery:
+    """Find up to ``limit`` distinct non-null GroupDerivedData ``pipeline_hash`` values that aren't ``current_hash``.
     NULL is always stale, so we don't bother finding it here.
+
+    On timeout, returns the hashes found so far rather than raising, so they can
+    be healed without waiting on a complete scan.
     """
     from sentry.issues.models.groupderiveddata import GroupDerivedData
 
     # A simple select distinct works here, but Postgres isn't (yet?) smart enough to
     # do it without O(stale rows) work. So instead, we just loop through the pipeline
-    # hashes in the table, doing one very fast btree lookup each, and ignore the current
-    # one. len(unique hashes) should always be single-digit in practice, so this should
-    # always be fast. We could also do a recursive query to avoid some roundtrips; this is
-    # just less exotic.
+    # hashes in the table, doing one btree lookup each, and ignore the current one.
+    # len(unique hashes) should always be single-digit in practice. A lookup can still
+    # be slow when it must skip many dead index entries left by a recently drained hash,
+    # though index scans mark those entries dead as they go, which tends to speed up retries.
 
     results: list[str] = []
-    cursor: str | None = ""
+    cursor = ""
     using = router.db_for_read(GroupDerivedData)
     deadline = time.monotonic() + _STALE_HASH_DISCOVERY_TIMEOUT.total_seconds()
-    while len(results) < limit:
-        remaining_seconds = deadline - time.monotonic()
-        if remaining_seconds <= 0.001:
-            raise OperationalError("stale hash discovery budget exceeded")
-        with statement_timeout(using, timedelta(seconds=remaining_seconds)):
-            cursor = (
-                GroupDerivedData.objects.using(using)
-                .filter(pipeline_hash__gt=cursor)
-                .order_by("pipeline_hash")
-                .values_list("pipeline_hash", flat=True)
-                .first()
-            )
-        if cursor is None:
-            break
-        if cursor != current_hash:
-            results.append(cursor)
-    return results
+    try:
+        while len(results) < limit:
+            remaining_seconds = deadline - time.monotonic()
+            if remaining_seconds <= 0.001:
+                raise OperationalError("stale hash discovery budget exceeded")
+            with statement_timeout(using, timedelta(seconds=remaining_seconds)):
+                next_hash = (
+                    GroupDerivedData.objects.using(using)
+                    .filter(pipeline_hash__gt=cursor)
+                    .order_by("pipeline_hash")
+                    .values_list("pipeline_hash", flat=True)
+                    .first()
+                )
+            if next_hash is None:
+                break
+            cursor = next_hash
+            if next_hash != current_hash:
+                results.append(next_hash)
+    except OperationalError as e:
+        return _StaleHashDiscovery(hashes=results, error=e)
+    return _StaleHashDiscovery(hashes=results)
 
 
 @instrumented_task(
@@ -536,6 +550,7 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     )
 
     state = load_state()
+    state_is_new = state is None
     if state is None:
         state = HealSchedulerState()
         logger.info("heal_stale_derived_data.state_regenerated")
@@ -555,38 +570,45 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     # We fetch known stale hashes and match on those for better index usage.
     # Querying for rows that aren't the fresh hash ends up being a full index scan,
     # whereas providing positive examples to match lets us do more efficient btree walking.
-    if not state.stale:
+    # Discovery is skipped while there are known hashes to heal, and after it has completed
+    # once for this state: retiring hashes leaves dead index entries that make it expensive.
+    # State expires after a quiet TTL, so a later discovery picks up anything missed.
+    if not state.stale and state.discovered_at is None:
         discovery_started_at = time.monotonic()
         logger.info("heal_stale_derived_data.stale_hash_discovery_started")
         metrics.incr(
             "issues.derived.heal_stale_hash_discovery",
             sample_rate=1.0,
-            tags={"reason": "no_state" if state.discovered_at is None else "stale_empty"},
+            tags={"reason": "no_state" if state_is_new else "incomplete"},
         )
-        try:
-            with metrics.timer("issues.derived.heal_stale_hash_discovery_duration"):
-                stale_hashes = _discover_stale_pipeline_hashes(current_hash, _MAX_STALE_HASHES)
-        except OperationalError:
-            logger.exception("heal_stale_derived_data.stale_hash_discovery_failed")
+        with metrics.timer("issues.derived.heal_stale_hash_discovery_duration"):
+            discovery = _discover_stale_pipeline_hashes(current_hash, _MAX_STALE_HASHES)
+        # Partial results are kept either way; only a complete scan counts as discovered.
+        if discovery.error is None:
+            state.discovered_at = datetime.now(timezone.utc)
+        state.stale.update(dict.fromkeys(discovery.hashes, 0))
+        hash_state_changed = True
+        discovery_extra = {
+            "stale_hashes": discovery.hashes,
+            "elapsed": time.monotonic() - discovery_started_at,
+        }
+        if discovery.error is not None:
+            logger.error(
+                "heal_stale_derived_data.stale_hash_discovery_failed",
+                exc_info=discovery.error,
+                extra=discovery_extra,
+            )
             metrics.incr("issues.derived.heal_stale_hash_discovery_failed", sample_rate=1.0)
-            stale_hashes = []
         else:
-            state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
-            state.stale.update(dict.fromkeys(stale_hashes, 0))
-            hash_state_changed = True
             logger.info(
-                "heal_stale_derived_data.stale_hash_discovery_complete",
-                extra={
-                    "stale_hashes": stale_hashes,
-                    "elapsed": time.monotonic() - discovery_started_at,
-                },
+                "heal_stale_derived_data.stale_hash_discovery_complete", extra=discovery_extra
             )
     else:
-        stale_hashes = list(state.stale)
         logger.info(
             "heal_stale_derived_data.stale_hash_discovery_skipped",
             extra={"stale_hash_count": len(state.stale)},
         )
+    stale_hashes = list(state.stale)
 
     # Checkpoint hashes before potentially expensive range selection.
     if hash_state_changed:
@@ -668,8 +690,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             old_mark = state.stale[stale_hash]
             new_mark = ranges[-1][1]
             # Marks are optimistic. Dropped tasks and old workers can leave rows
-            # below them because pipeline_hash is promoted state. Once every known
-            # hash retires, rediscovery scans from the start and picks those up.
+            # below them because pipeline_hash is promoted state. Once state goes
+            # quiet and expires, rediscovery scans from the start and picks those up.
             state.stale[stale_hash] = new_mark
             save_state(state)
             logger.info(
