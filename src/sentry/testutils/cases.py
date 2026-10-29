@@ -63,6 +63,7 @@ from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 from sentry import auth
 from sentry.api.serializers.models.dashboard import DATASET_SOURCES
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.principal import set_request_principal
 from sentry.auth.provider import Provider
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.providers.saml2.activedirectory.apps import (
@@ -297,8 +298,7 @@ class BaseTestCase(Fixtures):
 
         # order matters here, session -> user -> other things
         request.session = self.session
-        request.auth = auth
-        request.user = user or AnonymousUser()
+        set_request_principal(request, user or AnonymousUser(), auth)
         # must happen after request.user/request.session is populated
         request.superuser = Superuser(request)
         request.staff = Staff(request)
@@ -332,7 +332,7 @@ class BaseTestCase(Fixtures):
         request = self.make_request()
         with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
-        request.user = user
+        set_request_principal(request, user, request.auth)
 
         if organization_ids is None:
             organization_ids = set()
