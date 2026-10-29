@@ -1,3 +1,5 @@
+from bisect import bisect_left, bisect_right
+from collections import defaultdict
 from collections.abc import Sequence
 from unittest.mock import MagicMock, Mock, patch
 
@@ -39,9 +41,50 @@ def span(span_id: str, start: float, end: float, **attributes: object) -> dict[s
     }
 
 
-class MemorySource:
+class OrderedRows:
+    def __init__(self, rows: Sequence[Row], stream: Stream, *, reverse: bool = False) -> None:
+        ordered = sorted(
+            ((source_time(row, stream), source_key(row), row) for row in rows),
+            key=lambda entry: entry[:2],
+            reverse=reverse,
+        )
+        self.rows = tuple(entry[2] for entry in ordered)
+        self.times = tuple(-entry[0] if reverse else entry[0] for entry in ordered)
+
+
+class MemoryStorage:
+    """Static storage indexes, shared without retaining any pagination request state."""
+
     def __init__(self, rows: Sequence[Row]) -> None:
-        self.rows = rows
+        self.streams: dict[Stream, OrderedRows] = {
+            "start": OrderedRows(rows, "start"),
+            "end": OrderedRows(rows, "end"),
+        }
+        self.parents: dict[SourceKey, list[tuple[int, Row]]] = defaultdict(list)
+        children: dict[SourceKey, list[Row]] = defaultdict(list)
+        projects: dict[int, list[Row]] = defaultdict(list)
+        traces: dict[tuple[int, str], list[Row]] = defaultdict(list)
+        for index, row in enumerate(rows):
+            key = source_key(row)
+            project, trace, _ = key
+            self.parents[key].append((index, row))
+            projects[project].append(row)
+            traces[project, trace].append(row)
+            parent = row.get("parent_span")
+            if isinstance(parent, str):
+                children[project, trace, parent].append(row)
+        self.children = {key: OrderedRows(group, "start") for key, group in children.items()}
+        self.projects = {
+            project: OrderedRows(group, "end", reverse=True) for project, group in projects.items()
+        }
+        self.traces = {
+            key: OrderedRows(group, "end", reverse=True) for key, group in traces.items()
+        }
+
+
+class MemorySource:
+    def __init__(self, rows: Sequence[Row] | MemoryStorage) -> None:
+        self.storage = rows if isinstance(rows, MemoryStorage) else MemoryStorage(rows)
         self.reads = 0
         self.previous_calls = 0
         self.previous_rows = 0
@@ -52,58 +95,92 @@ class MemorySource:
         return rows
 
     def scan(self, stream: Stream, position: StreamPosition, limit: int) -> Sequence[Row]:
-        rows = sorted(
-            (row for row in self.rows if source_time(row, stream) >= position.timestamp),
-            key=lambda row: (source_time(row, stream), source_key(row)),
-        )[position.offset : position.offset + limit]
+        ordered = self.storage.streams[stream]
+        start = bisect_left(ordered.times, position.timestamp) + position.offset
+        rows = ordered.rows[start : start + limit]
         self.reads += len(rows)
         return rows
 
     def parents(self, keys: Sequence[SourceKey]) -> Sequence[Row]:
-        return [row for row in self.rows if source_key(row) in keys]
+        matches = {index: row for key in keys for index, row in self.storage.parents.get(key, ())}
+        return [matches[index] for index in sorted(matches)]
 
     def children(self, agent: Row, offset: int, limit: int) -> Sequence[Row]:
-        project, trace, span_id = source_key(agent)
-        return sorted(
-            (
-                row
-                for row in self.rows
-                if source_key(row)[:2] == (project, trace) and row.get("parent_span") == span_id
-            ),
-            key=lambda row: (source_time(row, "start"), source_key(row)),
-        )[offset : offset + limit]
+        ordered = self.storage.children.get(source_key(agent))
+        return ordered.rows[offset : offset + limit] if ordered else ()
 
     def previous(
         self, generation: Row, offset: int, limit: int, *, agent: Row | None
     ) -> Sequence[Row]:
         self.previous_calls += 1
-        rows = sorted(
-            (
-                row
-                for row in self.rows
-                if source_key(row)[0] == source_key(generation)[0]
-                and source_time(row, "end") <= source_time(generation, "end")
-                and (
-                    agent is None
-                    or (
-                        source_key(row)[1] == source_key(generation)[1]
-                        and source_time(row, "end") >= source_time(agent, "start")
-                    )
-                )
-            ),
-            key=lambda row: (source_time(row, "end"), source_key(row)),
-            reverse=True,
-        )[offset : offset + limit]
+        project, trace, _ = source_key(generation)
+        ordered = (
+            self.storage.projects.get(project)
+            if agent is None
+            else self.storage.traces.get((project, trace))
+        )
+        if ordered is None:
+            return ()
+        start = bisect_left(ordered.times, -source_time(generation, "end")) + offset
+        end = (
+            len(ordered.rows)
+            if agent is None
+            else bisect_right(ordered.times, -source_time(agent, "start"))
+        )
+        rows = ordered.rows[start : min(start + limit, end)]
         self.previous_rows += len(rows)
         return rows
 
 
+def test_memory_source_indexes_preserve_order_and_scope() -> None:
+    first = span("duplicate", 2, 4)
+    duplicate = span("duplicate", 2, 4, **{"gen_ai.operation.type": "tool"})
+    child = span("child", 2, 4, **{"parent_span": "agent"})
+    early = span("early", 1, 2, **{"parent_span": "agent"})
+    other_trace = span("other", 1, 4, **{"trace": "trace-b", "parent_span": "agent"})
+    other_project = span("other", 1, 4, **{"project.id": 2, "parent_span": "agent"})
+    agent = span("agent", 2, 6, **{"gen_ai.operation.type": "agent"})
+    late = span("late", 5, 8, **{"parent_span": "agent"})
+    storage = MemoryStorage(
+        [child, other_project, first, early, duplicate, other_trace, agent, late]
+    )
+    source = MemorySource(storage)
+    generation = span("generation", 2, 4)
+
+    assert source.scan("start", StreamPosition(2, 1), 3) == (child, first, duplicate)
+    assert source.scan("end", StreamPosition(4, 1), 3) == (first, duplicate, other_trace)
+    assert source.parents([source_key(first), source_key(child), source_key(first)]) == [
+        child,
+        first,
+        duplicate,
+    ]
+    assert source.children(agent, 1, 1) == (child,)
+    assert source.previous(generation, 1, 3, agent=agent) == (duplicate, child, early)
+    assert source.previous(generation, 0, 5, agent=None) == (
+        other_trace,
+        first,
+        duplicate,
+        child,
+        early,
+    )
+    assert source.reads == 6
+    assert source.previous_calls == 2
+    assert source.previous_rows == 8
+
+    fresh_source = MemorySource(storage)
+    assert fresh_source.reads == 0
+    assert fresh_source.previous_calls == 0
+    assert fresh_source.previous_rows == 0
+    assert fresh_source.prepared_rows == 0
+
+
 def collect(rows: Sequence[Row], per_page: int) -> list[TranscriptMessageResponse]:
+    storage = MemoryStorage(rows)
     position = TranscriptPosition(StreamPosition(0), StreamPosition(0))
     result: list[TranscriptMessageResponse] = []
     for _ in range(len(rows) * 3 + 2):
         # Every request gets a fresh source: no server-side pagination session.
-        page = paginate_transcript(MemorySource(rows), position, per_page)
+        page = paginate_transcript(MemorySource(storage), position, per_page)
         assert len(page.items) <= per_page
         result.extend(page.items)
         if not page.has_more:
@@ -744,11 +821,12 @@ def test_many_agents_do_not_scan_conversation_history(per_page: int, separate_tr
                 ),
             ]
         )
+    storage = MemoryStorage(rows)
     position = TranscriptPosition(StreamPosition(0), StreamPosition(0))
     messages: list[TranscriptMessageResponse] = []
     has_more = True
     for _ in range(600 // per_page):
-        source = MemorySource(rows)
+        source = MemorySource(storage)
         page = paginate_transcript(source, position, per_page, budget=500)
         assert source.previous_calls <= per_page // 2 + 51
         assert source.previous_rows <= per_page + 102
