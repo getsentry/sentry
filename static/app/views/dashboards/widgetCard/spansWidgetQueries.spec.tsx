@@ -277,7 +277,7 @@ describe('spansWidgetQueries', () => {
     expect(seriesMock).not.toHaveBeenCalled();
   });
 
-  it('sends low priority sampling when the flag and query priority are set', async () => {
+  it('sends low priority sampling when the flag and faster query priority are set', async () => {
     widget = WidgetFixture({
       queries: [
         {
@@ -314,7 +314,7 @@ describe('spansWidgetQueries', () => {
       {
         organization: OrganizationFixture({features: ['low-priority-queries']}),
         initialRouterConfig: {
-          location: {pathname: '/', query: {queryPriority: 'low'}},
+          location: {pathname: '/', query: {queryPriority: 'faster'}},
         },
       }
     );
@@ -367,7 +367,7 @@ describe('spansWidgetQueries', () => {
       {
         organization: OrganizationFixture(),
         initialRouterConfig: {
-          location: {pathname: '/', query: {queryPriority: 'low'}},
+          location: {pathname: '/', query: {queryPriority: 'faster'}},
         },
       }
     );

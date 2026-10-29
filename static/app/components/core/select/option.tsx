@@ -6,7 +6,6 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {ListItem} from '@sentry/scraps/menu';
 import type {SelectValue} from '@sentry/scraps/select/types';
-import type {FormSize} from '@sentry/scraps/theme';
 
 import {defined} from 'sentry/utils/defined';
 
@@ -21,8 +20,11 @@ type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
   data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
   selectProps: Pick<
     BaseSelectProps<TValue, TOption>,
-    'optionHeight' | 'renderOptionLabel' | 'showCreateOptionIcon' | 'showDividers'
-  > & {size?: FormSize};
+    'optionHeight' | 'showCreateOptionIcon' | 'showDividers'
+  > & {
+    contentComponents?: BaseSelectProps<TValue, TOption>['components'];
+    size?: BaseSelectProps<TValue, TOption>['size'];
+  };
 };
 
 export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
@@ -44,9 +46,8 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
     typeof data.leadingItems === 'function'
       ? data.leadingItems({disabled: isDisabled, isFocused, isSelected})
       : data.leadingItems;
-  const renderedLabel = selectProps.renderOptionLabel
-    ? selectProps.renderOptionLabel(data)
-    : label;
+  const OptionLabel = selectProps.contentComponents?.OptionLabel;
+  const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
   const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;

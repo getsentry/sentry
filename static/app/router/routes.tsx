@@ -3081,6 +3081,12 @@ function buildRoutes(): RouteObject[] {
     },
     traceView,
   ];
+  const inboxRoutes: SentryRouteObject = {
+    path: '/inbox/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/inbox')),
+  };
+
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
     withOrgPath: true,
@@ -3298,6 +3304,7 @@ function buildRoutes(): RouteObject[] {
       projectsRoutes,
       dashboardRoutes,
       feedbackv2Routes,
+      inboxRoutes,
       issueRoutes,
       alertRoutes,
       monitorRoutes,
