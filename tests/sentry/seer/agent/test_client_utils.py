@@ -20,6 +20,7 @@ from sentry.seer.agent.client_utils import (
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.llm_proxy_debug import force_llm_proxy_402_scope
 from sentry.seer.models import SeerUnavailableError
 from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
@@ -540,6 +541,22 @@ class SanitizeJsonStringsTest(TestCase):
 
 
 class EnqueueSeerRunSanitizeTest(TestCase):
+    def test_persists_llm_proxy_debug_override_for_async_dispatch(self) -> None:
+        with force_llm_proxy_402_scope(True):
+            run = enqueue_seer_run(
+                organization=self.organization,
+                run_type=SeerRunType.FEATURE_RUN,
+                body={"feature_id": "night_shift", "payload": {}},
+                viewer_context=None,
+                flush=False,
+            )
+
+        outbox = CellOutbox.objects.get(
+            category=OutboxCategory.SEER_RUN_CREATE, object_identifier=run.id
+        )
+        assert outbox.payload is not None
+        assert outbox.payload["force_llm_proxy_402"] is True
+
     def test_nul_in_body_does_not_break_outbox_insert(self) -> None:
         run = enqueue_seer_run(
             organization=self.organization,

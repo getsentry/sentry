@@ -37,6 +37,7 @@ from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
+from sentry.seer.llm_proxy_debug import should_force_llm_proxy_402
 from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
@@ -309,17 +310,18 @@ def enqueue_seer_run(
             )
             if on_run_created is not None:
                 on_run_created(run)
+            outbox_payload: dict[str, Any] = {
+                "body": dict(body),
+                "viewer_context": dict(viewer_context) if viewer_context else None,
+            }
+            if should_force_llm_proxy_402():
+                outbox_payload["force_llm_proxy_402"] = True
             CellOutbox(
                 shard_scope=OutboxScope.SEER_SCOPE,
                 shard_identifier=run.id,
                 category=OutboxCategory.SEER_RUN_CREATE,
                 object_identifier=run.id,
-                payload=_sanitize_json_strings(
-                    {
-                        "body": dict(body),
-                        "viewer_context": dict(viewer_context) if viewer_context else None,
-                    }
-                ),
+                payload=_sanitize_json_strings(outbox_payload),
             ).save()
     except (OutboxFlushError, OutboxDatabaseError):
         metrics.incr("seer.outbox_flush_error", tags={"type": run_type.value})

@@ -13,6 +13,7 @@ import {
 } from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
+import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
@@ -28,9 +29,20 @@ describe('api', () => {
 
   afterEach(() => {
     fetchMock.resetMocks();
+    FeatureFlagOverrides.singleton().clearStoredOverrides();
   });
 
   describe('Client', () => {
+    it('forwards the personal LLM Proxy debug override on Sentry API requests', async () => {
+      FeatureFlagOverrides.singleton().setStoredOverride('llm-proxy-force-402', true);
+      fetchMock.mockResponse(() => '{}');
+
+      await new Client().requestPromise('/test/');
+
+      const headers = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+      expect(headers.get('X-Sentry-Force-LLM-Proxy-402')).toBe('true');
+    });
+
     describe('cancel()', () => {
       it('should abort any open XHR requests', () => {
         const abort1 = jest.fn();

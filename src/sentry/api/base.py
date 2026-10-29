@@ -191,7 +191,7 @@ def apply_cors_headers(
     response["Access-Control-Allow-Headers"] = (
         "X-Sentry-Auth, X-Requested-With, Origin, Accept, "
         "Content-Type, Authentication, Authorization, Content-Encoding, "
-        "sentry-trace, baggage, X-CSRFToken"
+        "sentry-trace, baggage, X-CSRFToken, X-Sentry-Force-LLM-Proxy-402"
     )
     response["Access-Control-Expose-Headers"] = (
         "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"

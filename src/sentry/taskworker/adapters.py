@@ -24,6 +24,11 @@ from taskbroker_client.types import AtMostOnceStore
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
+from sentry.seer.llm_proxy_debug import (
+    TASK_FORCE_402_HEADER,
+    force_llm_proxy_402_scope,
+    should_force_llm_proxy_402,
+)
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
@@ -116,6 +121,8 @@ class ViewerContextHook:
     HEADER = "sentry-viewer-context"
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        if should_force_llm_proxy_402():
+            headers[TASK_FORCE_402_HEADER] = "true"
         ctx = get_viewer_context()
         if ctx is None:
             return
@@ -137,9 +144,14 @@ class ViewerContextHook:
             ctx=ctx,
             expected=bool(raw),
         )
-        if ctx is None:
+        force_llm_proxy_402 = headers.get(TASK_FORCE_402_HEADER) == "true"
+        if ctx is None and not force_llm_proxy_402:
             return contextlib.nullcontext()
-        return viewer_context_scope(ctx)
+        stack = contextlib.ExitStack()
+        if ctx is not None:
+            stack.enter_context(viewer_context_scope(ctx))
+        stack.enter_context(force_llm_proxy_402_scope(force_llm_proxy_402))
+        return stack
 
 
 _producers: dict[str, SingletonProducer] = {}

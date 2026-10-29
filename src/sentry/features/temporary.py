@@ -582,6 +582,9 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Run LLM prompt-cache issue detection in shadow mode
     manager.add("organizations:llm-cache-issue-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 
+    # Exercise LLM Proxy payment failures from a developer's local feature override.
+    manager.add("organizations:llm-proxy-force-402", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+
     # Assisted query agent feature flags — forwarded to Seer
     # Enable cross-event queries for the Traces strategy
     manager.add("organizations:seer-assisted-query-cross-event-explorer", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)

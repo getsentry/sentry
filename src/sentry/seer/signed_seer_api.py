@@ -11,6 +11,7 @@ from sentry_sdk import traces
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
 from sentry.net.http import connection_from_url
+from sentry.seer.llm_proxy_debug import SEER_FORCE_402_HEADER, should_force_llm_proxy_402
 from sentry.utils import metrics
 from sentry.viewer_context import (
     Actor,
@@ -191,6 +192,8 @@ def make_signed_seer_api_request(
         **auth_headers,
         "X-Viewer-Context": viewer_context_header,
     }
+    if should_force_llm_proxy_402():
+        headers[SEER_FORCE_402_HEADER] = "true"
 
     options: dict[str, Any] = {}
     if timeout:
