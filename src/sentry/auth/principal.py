@@ -57,7 +57,9 @@ def acting_user_id(principal: RequestPrincipal) -> int | None:
 
 def resolve_actor(user: Any, auth: Any) -> Actor | None:
     """The actor behind an authenticated ``(user, auth)`` pair, or None if there is none."""
-    from sentry.seer.agent_token import is_agent_auth  # circular: imported at app setup
+    # circular: imported at app setup
+    from sentry.seer.agent_token import is_agent_auth
+    from sentry.service_accounts.auth import is_service_account_auth
 
     superuser = (
         to_viewer_context_superuser(auth.superuser)
@@ -66,6 +68,8 @@ def resolve_actor(user: Any, auth: Any) -> Actor | None:
     )
     if is_agent_auth(auth):
         return Actor(type=ActorType.AGENT, delegated_user_id=auth.user_id, superuser=superuser)
+    if is_service_account_auth(auth):
+        return Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=auth.entity_id)
     user_id = acting_user_id(user)
     if user_id is not None:
         return Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
@@ -78,6 +82,14 @@ def set_request_principal(request: HttpRequest | Request, user: Any, auth: Any) 
 
     The only place they're set, so what lands on ``request.user`` is decided here.
     """
+    from sentry.service_accounts.auth import is_service_account_auth
+
+    # A service account is set only on a DRF Request, whose setter also copies it to Django's
+    # request.user. Until DRF authenticates it, Django's request.user is anonymous, and session
+    # auth never sees it: ViewerContextAuthentication runs before SessionAuthentication.
+    # Checked on the credential: isinstance on Django's lazy user would load the session.
+    if is_service_account_auth(auth) and not isinstance(request, Request):
+        user = AnonymousUser()
     request.user = user
     request.auth = auth
 

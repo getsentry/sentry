@@ -7,6 +7,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired
+from sentry.auth.principal import has_user
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -25,7 +26,7 @@ def is_considered_sudo(request: Request) -> bool:
         or is_api_key_auth(request.auth)
         or is_api_token_auth(request.auth)
         or is_org_auth_token_auth(request.auth)
-        or (request.user.is_authenticated and not request.user.has_usable_password())
+        or (has_user(request.user) and not request.user.has_usable_password())
     )
 
 
