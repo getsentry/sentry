@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.db import connections, router
+from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -79,6 +80,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
+                    "strategy": "breached_metric_investigation",
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -379,12 +381,17 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["seerRunId"] is None
 
     def test_execution_serialization_batches_database_reads(self) -> None:
-        runs = [self.create_run() for _ in range(3)]
-        for run in runs:
+        created = [self.create_run() for _ in range(3)]
+        for run in created:
             Factories.create_seer_workflow_run_execution(
                 run, seer_run=Factories.create_seer_run(self.organization)
             )
             Factories.create_seer_workflow_run_execution(run)
+        runs = list(
+            SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
+            .annotate(strategy=F("workflow_config__strategy"))
+            .order_by("id")
+        )
         using = router.db_for_read(SeerWorkflowRunExecution)
         with CaptureQueriesContext(connections[using]) as queries:
             result = serialize_workflow_runs(runs)
