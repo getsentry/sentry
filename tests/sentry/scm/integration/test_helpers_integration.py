@@ -531,7 +531,8 @@ class TestFetchAccessToken(TestCase):
 
         token = fetch_access_token(self.scm_repository(integration.id), "fetch")
 
-        assert token == TOKEN
+        assert token is not None
+        assert token.reveal() == TOKEN
 
     def test_returns_none_for_an_integration_the_organization_does_not_have(self) -> None:
         integration = self.create_integration(
