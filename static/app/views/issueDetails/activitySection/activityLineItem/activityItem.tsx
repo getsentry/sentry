@@ -16,6 +16,7 @@ import type {PullRequest} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
+import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
 
 import {getAssignedActivityItem} from './activityItem/assignment';
 import {getResolvedInCommitDetails} from './activityItem/commitDetails';
@@ -397,14 +398,15 @@ function getActivityItemContent({
         ) : undefined,
       };
     }
-    case GroupActivityType.UNLINK_EXTERNAL_ISSUE:
+    case GroupActivityType.UNLINK_EXTERNAL_ISSUE: {
+      const providerName = getIntegrationDisplayName(activity.data.provider);
       return {
-        title: t('Unlinked external issue'),
-        details: tct('[key] on [provider]', {
-          key: activity.data.external_issue_key,
-          provider: getProviderName(activity.data.provider),
-        }),
+        title: providerName
+          ? t('Unlinked %s issue', providerName)
+          : t('Unlinked external issue'),
+        details: activity.data.external_issue_key,
       };
+    }
     case GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE:
       return {
         title: t('Unlinked external issue'),

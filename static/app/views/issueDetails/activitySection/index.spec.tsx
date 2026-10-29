@@ -1507,6 +1507,16 @@ describe('ActivitySection', () => {
         }),
         ActivityFeedFixture({
           id: '2',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'jira_server', external_issue_key: 'APP-7'},
+        }),
+        ActivityFeedFixture({
+          id: '3',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'example', external_issue_key: 'EX-1'},
+        }),
+        ActivityFeedFixture({
+          id: '4',
           type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
           data: {
             service_type: 'linear',
@@ -1524,7 +1534,9 @@ describe('ActivitySection', () => {
     );
 
     const timeline = await screen.findByTestId('activity-timeline');
-    expect(timeline).toHaveTextContent('Unlinked external issue org/repo#42 on GitHub');
+    expect(timeline).toHaveTextContent('Unlinked GitHub issue org/repo#42');
+    expect(timeline).toHaveTextContent('Unlinked Jira Server issue APP-7');
+    expect(timeline).toHaveTextContent('Unlinked external issue EX-1');
     expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
     expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
       'href',
