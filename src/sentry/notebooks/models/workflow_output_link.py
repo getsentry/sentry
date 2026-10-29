@@ -12,7 +12,7 @@ class SeerWorkflowOutputLink(DefaultFieldsModel):
     """A many-to-many link between SeerWorkflowRunExecution (automation run shard) and related outputs.
 
     One execution can produce many outputs (e.g. an orchestrator that starts several
-    investigations). Each row links a single output; output columns are nullable so 
+    investigations). Each row links a single output; output columns are nullable so
     multiple output types can be added.
     """
 
