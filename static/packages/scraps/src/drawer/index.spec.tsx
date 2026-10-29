@@ -5,6 +5,7 @@ import {act, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {DrawerBody, DrawerHeader, DrawerPanel} from '@sentry/scraps/drawer';
+import {OverlayContextProvider} from '@sentry/scraps/overlayContext';
 import {lightTheme} from '@sentry/scraps/theme';
 
 import {dragHandle, dragMove} from '../../test/dragMove';
@@ -102,9 +103,11 @@ describe('DrawerPanel', () => {
 
   it('uses full width and hides resizing on small screens', async () => {
     render(
-      <DrawerPanel mode="blocking" ariaLabel="Details" isSmallScreen>
-        Content
-      </DrawerPanel>,
+      <OverlayContextProvider value={{isSmallScreen: true}}>
+        <DrawerPanel mode="blocking" ariaLabel="Details">
+          Content
+        </DrawerPanel>
+      </OverlayContextProvider>,
       {wrapper}
     );
     expect(await screen.findByText('Content')).toBeInTheDocument();

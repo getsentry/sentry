@@ -13,21 +13,10 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
+import {useOverlayContext, type DrawerLocation} from '@sentry/scraps/overlayContext';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {
-  DrawerHeaderHeightContext,
-  DrawerPanel,
-  type DrawerPanelProps,
-} from './components';
-
-/** Router-independent navigation data supplied by the consumer. */
-export interface DrawerLocation {
-  pathname: string;
-  query: Record<string, string | string[] | null | undefined>;
-  hash?: string;
-  search?: string;
-}
+import {DrawerPanel} from './components';
 
 export interface DrawerOptions {
   /**
@@ -128,26 +117,20 @@ function shouldCloseOnInteractOutsideByDefault(element: Element) {
 
 export interface GlobalDrawerProps {
   children: React.ReactNode;
-  boundaryComponent?: React.ComponentType<React.PropsWithChildren>;
-  headerHeight?: string;
-  location?: DrawerLocation;
-  panelComponent?: React.ComponentType<DrawerPanelProps & {drawerKey?: string}>;
-  shouldCloseOnInteractOutside?: (element: Element) => boolean;
 }
 
 function DrawerBoundary({children}: React.PropsWithChildren) {
   return children;
 }
 
-export function GlobalDrawer({
-  children,
-  boundaryComponent: Boundary = DrawerBoundary,
-  headerHeight,
-  location,
-  panelComponent: Panel = DrawerPanel,
-  shouldCloseOnInteractOutside:
-    shouldCloseOnInteractOutsideDefault = shouldCloseOnInteractOutsideByDefault,
-}: GlobalDrawerProps) {
+export function GlobalDrawer({children}: GlobalDrawerProps) {
+  const {drawer} = useOverlayContext();
+  const {
+    boundaryComponent: Boundary = DrawerBoundary,
+    location,
+    shouldCloseOnInteractOutside:
+      shouldCloseOnInteractOutsideDefault = shouldCloseOnInteractOutsideByDefault,
+  } = drawer ?? {};
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();
@@ -260,37 +243,35 @@ export function GlobalDrawer({
     : null;
 
   return (
-    <DrawerHeaderHeightContext value={headerHeight}>
-      <DrawerContext
-        value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setPlacement}}
-      >
-        <Boundary>
-          <AnimatePresence>
-            {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
-              <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
-            ) : null}
-            {isDrawerOpen && (
-              <Panel
-                key="panel"
-                ariaLabel={currentDrawerConfig.options.ariaLabel}
-                onClose={handleClose}
-                ref={panelRef}
-                mode={currentDrawerConfig.options.mode ?? 'blocking'}
-                minPanelWidth={placement?.minWidth}
-                topOffset={placement?.topOffset}
-                drawerWidth={currentDrawerConfig?.options?.drawerWidth}
-                drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
-                drawerKey={currentDrawerConfig?.options?.drawerKey}
-                resizable={currentDrawerConfig?.options?.resizable}
-              >
-                {renderedChild}
-              </Panel>
-            )}
-          </AnimatePresence>
-        </Boundary>
-        {children}
-      </DrawerContext>
-    </DrawerHeaderHeightContext>
+    <DrawerContext
+      value={{closeDrawer, activeDrawerId, openDrawer, panelRef, setPlacement}}
+    >
+      <Boundary>
+        <AnimatePresence>
+          {isDrawerOpen && currentDrawerConfig.options.mode !== 'passive' ? (
+            <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
+          ) : null}
+          {isDrawerOpen && (
+            <DrawerPanel
+              key="panel"
+              ariaLabel={currentDrawerConfig.options.ariaLabel}
+              onClose={handleClose}
+              ref={panelRef}
+              mode={currentDrawerConfig.options.mode ?? 'blocking'}
+              minPanelWidth={placement?.minWidth}
+              topOffset={placement?.topOffset}
+              drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
+              drawerKey={currentDrawerConfig?.options?.drawerKey}
+              resizable={currentDrawerConfig?.options?.resizable}
+            >
+              {renderedChild}
+            </DrawerPanel>
+          )}
+        </AnimatePresence>
+      </Boundary>
+      {children}
+    </DrawerContext>
   );
 }
 

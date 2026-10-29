@@ -17,6 +17,6 @@ export {
   useDrawerPlacement,
   type DrawerOptions,
   type DrawerConfig,
-  type DrawerLocation,
   type GlobalDrawerProps,
 } from './globalDrawer';
+export type {DrawerLocation} from '@sentry/scraps/overlayContext';

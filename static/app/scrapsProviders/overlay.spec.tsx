@@ -5,6 +5,7 @@ import {
   screen,
   userEvent,
   waitForDrawerToHide,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
@@ -17,8 +18,16 @@ import {
 } from '@sentry/scraps/drawer';
 import type {DrawerConfig} from '@sentry/scraps/drawer';
 
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
+function ExternalWidthControl() {
+  const [, setWidth] = useSyncedLocalStorageState(
+    'drawer-width:context-storage-sync',
+    50
+  );
+  return <button onClick={() => setWidth(70)}>Set saved width</button>;
+}
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
   return (
@@ -532,5 +541,30 @@ describe('GlobalDrawer', () => {
             PRIMARY_HEADER_HEIGHT + 'px'
       )
     ).toBe(true);
+  });
+  it('syncs drawer width with the existing app storage hook', async () => {
+    const storageKey = 'drawer-width:context-storage-sync';
+    localStorage.setItem(storageKey, '50');
+
+    render(
+      <Fragment>
+        <GlobalDrawerTestComponent
+          config={{
+            renderer: () => <DrawerBody>Synced content</DrawerBody>,
+            options: {ariaLabel, drawerKey: 'context-storage-sync', mode: 'passive'},
+          }}
+        />
+        <ExternalWidthControl />
+      </Fragment>
+    );
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByText('Synced content')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Set saved width'}));
+    await waitFor(() =>
+      expect(screen.getByRole('complementary', {name: ariaLabel})).toHaveStyle({
+        '--drawer-width': '70%',
+      })
+    );
+    localStorage.removeItem(storageKey);
   });
 });

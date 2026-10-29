@@ -3,6 +3,7 @@ import {createRef} from 'react';
 import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 
+import {OverlayContextProvider} from '@sentry/scraps/overlayContext';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {lightTheme} from '@sentry/scraps/theme';
 
@@ -41,9 +42,11 @@ describe('SlideOverPanel', () => {
 
   it('uses the supplied content offset for a passive panel', async () => {
     render(
-      <SlideOverPanel position="right" mode="passive" contentTop="80px">
-        Content
-      </SlideOverPanel>,
+      <OverlayContextProvider value={{contentTop: '80px'}}>
+        <SlideOverPanel position="right" mode="passive">
+          Content
+        </SlideOverPanel>
+      </OverlayContextProvider>,
       {wrapper}
     );
     expect(await screen.findByText('Content')).toBeInTheDocument();
@@ -52,9 +55,11 @@ describe('SlideOverPanel', () => {
 
   it('allows an explicit top offset to take precedence', async () => {
     render(
-      <SlideOverPanel position="left" contentTop="80px" topOffset="24px">
-        Content
-      </SlideOverPanel>,
+      <OverlayContextProvider value={{contentTop: '80px'}}>
+        <SlideOverPanel position="left" topOffset="24px">
+          Content
+        </SlideOverPanel>
+      </OverlayContextProvider>,
       {wrapper}
     );
     expect(await screen.findByText('Content')).toBeInTheDocument();

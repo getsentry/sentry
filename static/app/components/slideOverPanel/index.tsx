@@ -1,1 +1,0 @@
-export {SlideOverPanel} from './slideOverPanel';

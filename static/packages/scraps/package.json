@@ -262,6 +262,10 @@
     "./slideOverPanel": {
       "types": "./dist/slideOverPanel/index.d.ts",
       "import": "./dist/slideOverPanel/index.js"
+    },
+    "./overlayContext": {
+      "types": "./dist/overlayContext.d.ts",
+      "import": "./dist/overlayContext.js"
     }
   },
   "publishConfig": {

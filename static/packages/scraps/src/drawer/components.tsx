@@ -8,24 +8,23 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 import {useDragSeparator} from '@sentry/scraps/dragHandle';
 import {ContainerQueryProvider} from '@sentry/scraps/layout';
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {
   DEFAULT_WIDTH_PERCENT,
-  getDrawerWidthPercent,
   MAX_WIDTH_PERCENT,
   MIN_WIDTH_PERCENT,
   useDrawerResizing,
 } from './useDrawerResizing';
+import {useDrawerWidth} from './useDrawerWidth';
 
 interface DrawerContentContextType {
   ariaLabel: string;
   onClose?: () => void;
 }
-
-export const DrawerHeaderHeightContext = createContext<string | undefined>(undefined);
 
 const DrawerContentContext = createContext<DrawerContentContextType>({
   onClose: () => {},
@@ -39,10 +38,9 @@ export function useDrawerContentContext() {
 export interface DrawerPanelProps extends DrawerContentContextType {
   children: React.ReactNode;
   mode: 'blocking' | 'passive';
-  contentTop?: string;
+  drawerKey?: string;
   drawerMaxWidth?: string;
   drawerWidth?: string;
-  isSmallScreen?: boolean;
   minPanelWidth?: number;
   /** Called when a resize ends, so the consumer can save the width. */
   onWidthChange?: (widthPercent: number) => void;
@@ -61,17 +59,21 @@ export function DrawerPanel({
   ariaLabel,
   children,
   onClose,
+  drawerKey,
   drawerWidth,
   drawerMaxWidth,
-  widthPercent = getDrawerWidthPercent(drawerWidth),
-  onWidthChange,
-  isSmallScreen = false,
-  contentTop,
+  widthPercent: widthPercentProp,
+  onWidthChange: onWidthChangeProp,
   minPanelWidth,
   topOffset,
   resizable = true,
-  showResizeHandle = true,
+  showResizeHandle: showResizeHandleProp,
 }: DrawerPanelProps) {
+  const {drawer, isSmallScreen = false} = useOverlayContext();
+  const preferences = useDrawerWidth({drawerKey, drawerWidth});
+  const widthPercent = widthPercentProp ?? preferences.widthPercent;
+  const onWidthChange = onWidthChangeProp ?? preferences.onWidthChange;
+  const showResizeHandle = showResizeHandleProp ?? (!drawer?.widthStorage || !!drawerKey);
   const {panelRef, resizeHandleRef, width, handleMove, handleMoveStart, handleMoveEnd} =
     useDrawerResizing({
       widthPercent,
@@ -99,7 +101,6 @@ export function DrawerPanel({
     <DrawerContainer>
       <DrawerSlidePanel
         mode={mode}
-        contentTop={contentTop}
         minPanelWidth={minPanelWidth}
         topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
         height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
@@ -164,7 +165,7 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
-  const headerHeight = useContext(DrawerHeaderHeightContext);
+  const {headerHeight} = useOverlayContext();
   const {t} = useTranslation();
 
   return (

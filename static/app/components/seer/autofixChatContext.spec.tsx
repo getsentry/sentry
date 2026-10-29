@@ -2,12 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {
   PictureInPictureProvider,
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
-import {GlobalDrawer} from 'sentry/components/drawer';
 import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';

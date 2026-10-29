@@ -11,6 +11,7 @@ import {
   useDrawer,
   type DrawerOptions,
 } from '@sentry/scraps/drawer';
+import {OverlayContextProvider} from '@sentry/scraps/overlayContext';
 import {lightTheme} from '@sentry/scraps/theme';
 
 const wrapper = ({children}: {children: React.ReactNode}) => (
@@ -123,10 +124,14 @@ describe('GlobalDrawer', () => {
 
   it('keeps passive drawers open during outside interaction and navigation', async () => {
     const {rerender} = render(
-      <GlobalDrawer location={{pathname: '/first', query: {}}}>
-        <DrawerControl options={{mode: 'passive'}} />
-        <button>Outside</button>
-      </GlobalDrawer>,
+      <OverlayContextProvider
+        value={{drawer: {location: {pathname: '/first', query: {}}}}}
+      >
+        <GlobalDrawer>
+          <DrawerControl options={{mode: 'passive'}} />
+          <button>Outside</button>
+        </GlobalDrawer>
+      </OverlayContextProvider>,
       {wrapper}
     );
     await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
@@ -134,10 +139,14 @@ describe('GlobalDrawer', () => {
     expect(document.body).not.toHaveStyle({position: 'fixed'});
     await userEvent.click(screen.getByRole('button', {name: 'Outside'}));
     rerender(
-      <GlobalDrawer location={{pathname: '/second', query: {}}}>
-        <DrawerControl options={{mode: 'passive'}} />
-        <button>Outside</button>
-      </GlobalDrawer>
+      <OverlayContextProvider
+        value={{drawer: {location: {pathname: '/second', query: {}}}}}
+      >
+        <GlobalDrawer>
+          <DrawerControl options={{mode: 'passive'}} />
+          <button>Outside</button>
+        </GlobalDrawer>
+      </OverlayContextProvider>
     );
     expect(screen.getByRole('complementary', {name: 'Details'})).toBeInTheDocument();
   });
@@ -145,17 +154,25 @@ describe('GlobalDrawer', () => {
   it('uses supplied navigation data without calling onClose', async () => {
     const onClose = jest.fn();
     const {rerender} = render(
-      <GlobalDrawer location={{pathname: '/first', query: {}}}>
-        <DrawerControl options={{onClose}} />
-      </GlobalDrawer>,
+      <OverlayContextProvider
+        value={{drawer: {location: {pathname: '/first', query: {}}}}}
+      >
+        <GlobalDrawer>
+          <DrawerControl options={{onClose}} />
+        </GlobalDrawer>
+      </OverlayContextProvider>,
       {wrapper}
     );
     await userEvent.click(screen.getByRole('button', {name: 'Open Details'}));
     expect(await screen.findByText('Details content')).toBeInTheDocument();
     rerender(
-      <GlobalDrawer location={{pathname: '/second', query: {}}}>
-        <DrawerControl options={{onClose}} />
-      </GlobalDrawer>
+      <OverlayContextProvider
+        value={{drawer: {location: {pathname: '/second', query: {}}}}}
+      >
+        <GlobalDrawer>
+          <DrawerControl options={{onClose}} />
+        </GlobalDrawer>
+      </OverlayContextProvider>
     );
     await waitFor(() =>
       expect(screen.queryByRole('complementary')).not.toBeInTheDocument()
@@ -166,9 +183,11 @@ describe('GlobalDrawer', () => {
   it('supplies header height to callers without changing their imports', () => {
     const headerRef = createRef<HTMLHeadingElement>();
     render(
-      <GlobalDrawer headerHeight="64px">
-        <DrawerHeader ref={headerRef} />
-      </GlobalDrawer>,
+      <OverlayContextProvider value={{headerHeight: '64px'}}>
+        <GlobalDrawer>
+          <DrawerHeader ref={headerRef} />
+        </GlobalDrawer>
+      </OverlayContextProvider>,
       {wrapper}
     );
     expect(headerRef.current).toHaveStyle({'--drawer-header-height': '64px'});

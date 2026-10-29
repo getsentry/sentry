@@ -236,4 +236,6 @@ openDrawer(
 
 ## App configuration
 
-The drawer context, hooks, and UI are exported by `@sentry/scraps/drawer`. `GlobalDrawer` accepts optional location, header height, panel, and error-boundary inputs. The provider in `sentry/components/drawer` supplies Sentry routing, saved width, navigation offsets, and the modal-portal exception. Callers can keep importing `useDrawer`, `DrawerHeader`, and `DrawerBody` from scraps.
+Import the drawer provider, hooks, and UI from `@sentry/scraps/drawer` in every application. Configure app defaults through `OverlayContextProvider` from `@sentry/scraps/overlayContext`. This context is shared with `SlideOverPanel`: it supplies content offsets, header height, viewport sizing, and drawer integration behavior.
+
+Sentry installs `SentryOverlayProvider` through `ScrapsProviders`. Its organization-scoped provider preserves organization-specific navigation offsets. Saved-width storage, routing, the error boundary, and the modal-portal exception stay in the app provider.

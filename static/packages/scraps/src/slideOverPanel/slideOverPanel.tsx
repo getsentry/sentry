@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
@@ -35,8 +36,6 @@ export type SlideOverPanelProps = {
   children: React.ReactNode | ChildRenderFunction;
   ariaLabel?: string;
   className?: string;
-  /** App chrome offset used for left and passive panels. */
-  contentTop?: string;
   'data-test-id'?: string;
   height?: string;
   mode?: 'blocking' | 'passive';
@@ -54,13 +53,13 @@ export function SlideOverPanel({
   children,
   className,
   height,
-  contentTop = '0px',
   position,
   panelWidth,
   ref,
   topOffset,
 }: SlideOverPanelProps) {
   const theme = useTheme();
+  const {contentTop = '0px'} = useOverlayContext();
 
   const [isTransitioning, startTransition] = useTransition();
 
