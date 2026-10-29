@@ -20,6 +20,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.models.user import User
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -371,48 +372,77 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_put_all_projects_config_requires_global_access(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        team = self.create_team(organization=self.organization)
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
-        accessible = self.create_project(teams=[team])
-        all_projects_config = self.create_config(filters={"all_projects": True})
-        selected_config = self.create_config()
-        Factories.create_seer_workflow_config_project(selected_config, accessible)
-
+    def test_member_cannot_narrow_all_projects_config(self) -> None:
+        member, accessible = self.create_member_with_project(open_membership=False)
+        config = self.create_config(filters={"all_projects": True})
         self.login_as(member)
-        self.get_error_response(
-            self.organization.slug,
-            all_projects_config.id,
-            method="put",
-            projectIds=[accessible.id],
-            status_code=403,
-        )
-        self.get_error_response(
-            self.organization.slug,
-            selected_config.id,
-            method="put",
-            projectIds=[-1],
-            status_code=403,
-        )
-        all_projects_config.refresh_from_db()
-        selected_config.refresh_from_db()
-        assert all_projects_config.filters["all_projects"] is True
-        assert selected_config.filters.get("all_projects", False) is False
 
-        self.login_as(self.user)
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
-            all_projects_config.id,
+            config.id,
             method="put",
             projectIds=[accessible.id],
+            status_code=403,
         )
-        assert response.data["projects"] == [accessible.id]
-        all_projects_config.refresh_from_db()
-        assert all_projects_config.filters["all_projects"] is False
-        assert self.selected_project_ids(all_projects_config) == [accessible.id]
+
+        config.refresh_from_db()
+        assert config.filters["all_projects"] is True
+        assert self.selected_project_ids(config) == []
+
+    def test_member_cannot_put_all_projects(self) -> None:
+        member, accessible = self.create_member_with_project(open_membership=False)
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, accessible)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug, config.id, method="put", projectIds=[-1], status_code=403
+        )
+
+        config.refresh_from_db()
+        assert config.filters.get("all_projects", False) is False
+        assert self.selected_project_ids(config) == [accessible.id]
+
+    def test_global_access_can_narrow_all_projects_config(self) -> None:
+        config = self.create_config(filters={"all_projects": True})
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", projectIds=[self.project.id]
+        )
+
+        assert response.data["projects"] == [self.project.id]
+        config.refresh_from_db()
+        assert config.filters["all_projects"] is False
+        assert self.selected_project_ids(config) == [self.project.id]
+
+    def test_global_access_can_put_all_projects(self) -> None:
+        config = self.create_config(version=3)
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", projectIds=[-1]
+        )
+
+        assert response.data["projects"] == [-1]
+        assert response.data["version"] == 4
+        config.refresh_from_db()
+        assert config.filters["all_projects"] is True
+        assert self.selected_project_ids(config) == []
+
+    def test_open_membership_member_can_put_all_projects(self) -> None:
+        member, accessible = self.create_member_with_project(open_membership=True)
+        config = self.create_config()
+        Factories.create_seer_workflow_config_project(config, accessible)
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", projectIds=[-1]
+        )
+
+        assert response.data["projects"] == [-1]
+        config.refresh_from_db()
+        assert config.filters["all_projects"] is True
+        assert self.selected_project_ids(config) == []
 
     def test_member_put_keeps_inaccessible_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -442,6 +472,15 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.data["projects"] == [other_accessible.id]
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
+
+    def create_member_with_project(self, *, open_membership: bool) -> tuple[User, Project]:
+        """Create a member of one team and return them with that team's project."""
+        self.organization.flags.allow_joinleave = open_membership
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        return member, self.create_project(teams=[team])
 
     def nonexistent_project_id(self) -> int:
         return Project.objects.order_by("-id").values_list("id", flat=True)[0] + 1000
@@ -582,6 +621,21 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
         assert response.data["projects"] == [accessible.id]
 
+    def test_open_membership_member_can_create_all_projects_config(self) -> None:
+        member, _ = self.create_member_with_project(open_membership=True)
+        self.login_as(member)
+
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            projectIds=[-1],
+            status_code=201,
+        )
+
+        assert response.data["projects"] == [-1]
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert config.filters["all_projects"] is True
+
     def test_caps_configs_per_organization(self) -> None:
         for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
@@ -613,6 +667,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=429
         )
+
+    def create_member_with_project(self, *, open_membership: bool) -> tuple[User, Project]:
+        """Create a member of one team and return them with that team's project."""
+        self.organization.flags.allow_joinleave = open_membership
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        return member, self.create_project(teams=[team])
 
     def nonexistent_project_id(self) -> int:
         return Project.objects.order_by("-id").values_list("id", flat=True)[0] + 1000
