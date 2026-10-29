@@ -5,9 +5,8 @@ const MINUTE = 60 * 1000;
 const ago = (minutes: number) => new Date(Date.now() - minutes * MINUTE).toISOString();
 
 export const PLACEHOLDER_CONFIG_STRATEGIES: Array<[string, WorkflowStrategy]> = [
-  ['placeholder-triage', 'agentic_triage'],
+  ['placeholder-triage', 'agentic_triage_v2'],
   ['placeholder-metrics', 'breached_metrics'],
-  ['placeholder-monitors', 'duplicate_monitors'],
 ];
 
 function execution(
@@ -50,7 +49,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1006',
-    configId: 'placeholder-monitors',
+    configId: 'placeholder-triage',
     status: 'complete',
     dateAdded: ago(90),
     dateUpdated: ago(85),
@@ -96,7 +95,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1003',
-    configId: 'placeholder-monitors',
+    configId: 'placeholder-metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 3),
     dateUpdated: ago(60 * 24 * 3 - 5),
@@ -114,7 +113,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1001',
-    configId: 'deleted-config',
+    configId: 'placeholder-metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 40),
     dateUpdated: ago(60 * 24 * 40),
