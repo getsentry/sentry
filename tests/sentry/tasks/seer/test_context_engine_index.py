@@ -62,12 +62,26 @@ class TestIndexOrgProjectKnowledge(TestCase):
     def test_calls_seer_endpoint_with_correct_payload(self) -> None:
         self._assert_system_index_request(Actor(type=ActorType.SYSTEM))
 
-    def test_replaces_inherited_user_with_system(self) -> None:
+    def test_replaces_user_from_another_organization_with_system(self) -> None:
         self._assert_system_index_request(Actor(type=ActorType.USER, actor_id=123))
+
+    def test_preserves_user_from_target_organization(self) -> None:
+        actor = Actor(type=ActorType.USER, actor_id=123)
+        self._assert_system_index_request(actor, org_offset=0, expected_actor=actor)
+
+    def test_replaces_unknown_actor_with_system(self) -> None:
+        self._assert_system_index_request(Actor(type=ActorType.UNKNOWN), org_offset=0)
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @mock.patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def _assert_system_index_request(self, inherited_actor: Actor, mock_urlopen: mock.Mock) -> None:
+    def _assert_system_index_request(
+        self,
+        inherited_actor: Actor,
+        mock_urlopen: mock.Mock,
+        *,
+        org_offset: int = 1,
+        expected_actor: Actor | None = None,
+    ) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
 
         event_counts = {
@@ -92,7 +106,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
                             return_value={self.project.id: "sentry.python"},
                         ):
                             inherited_context = ViewerContext(
-                                actor=inherited_actor, organization_id=self.org.id + 1
+                                actor=inherited_actor, organization_id=self.org.id + org_offset
                             )
                             with viewer_context_scope(inherited_context):
                                 index_org_project_knowledge(self.org.id)
@@ -119,7 +133,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            actor=Actor(type=ActorType.SYSTEM), organization_id=self.org.id
+            actor=expected_actor or Actor(type=ActorType.SYSTEM), organization_id=self.org.id
         )
         assert get_viewer_context() is None
 
