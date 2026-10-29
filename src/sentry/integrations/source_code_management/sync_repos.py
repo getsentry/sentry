@@ -175,7 +175,10 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
 
         fetch_truncated = False
         try:
-            provider_repos = installation.get_repositories(raise_on_page_limit=True)
+            provider_repos = installation.get_repositories(
+                raise_on_page_limit=True,
+                parent_interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
+            )
         except ApiPaginationTruncated as e:
             # Provider fetch hit a pagination cap with more data still
             # available. We keep the partial result for create/restore — those

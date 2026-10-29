@@ -39,6 +39,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    normalize_scm_provider_key,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
 from sentry.integrations.source_code_management.repository import RepositoryClient
@@ -107,6 +108,7 @@ query SearchLabels($owner: String!, $name: String!, $search: String!) {
 # first are fetched concurrently. Bounded to keep the fan-out comfortably under
 # Github's secondary (concurrent request) rate limits.
 PAGINATION_MAX_WORKERS = 10
+GET_REPOSITORIES_METRIC = "integrations.source_code_management.get_repositories"
 
 JWT_AUTH_ROUTES = ("/app/installations", "access_tokens")
 
@@ -745,6 +747,8 @@ class GitHubBaseClient(
         page_number_limit: int | None = None,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
@@ -761,29 +765,35 @@ class GitHubBaseClient(
         (see ``_get_with_pagination``). Only interactive callers opt in; the
         background ``link_all_repos`` task keeps the serial default.
         """
-        with SCMIntegrationInteractionEvent(
-            interaction_type=SCMIntegrationInteractionType.GET_REPOSITORIES,
-            provider_key=self.integration_name,
-            integration_id=self.integration.id,
-            organization_id=self.organization_id,
-        ).capture() as lifecycle:
-            try:
-                return self._get_with_pagination(
-                    "/installation/repositories",
-                    response_key="repositories",
-                    page_number_limit=page_number_limit,
-                    api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
-                    raise_on_page_limit=raise_on_page_limit,
-                    parallel=parallel,
-                )
-            except ApiPaginationTruncated as e:
-                # Hitting the pagination cap is an expected signal.
-                # Record as halt so the lifecycle doesn't create a
-                # Sentry every time this is called.
-                lifecycle.record_halt(e, create_issue=False)
-                raise
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": (
+                str(parent_interaction_type) if parent_interaction_type else "unattributed"
+            ),
+        }
+        try:
+            repositories = self._get_with_pagination(
+                "/installation/repositories",
+                response_key="repositories",
+                page_number_limit=page_number_limit,
+                api_request_type=GitHubApiRequestType.GET_REPOSITORIES,
+                raise_on_page_limit=raise_on_page_limit,
+                parallel=parallel,
+            )
+        except Exception:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "error"})
+            raise
 
-    def get_repos_cached(self, ttl: int = 300, parallel: bool = False) -> list[CachedRepo]:
+        metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "success"})
+        return repositories
+
+    def get_repos_cached(
+        self,
+        ttl: int = 300,
+        parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
+    ) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation, cached in
         Django cache for ``ttl`` seconds.
@@ -798,7 +808,10 @@ class GitHubBaseClient(
         if cached is not None:
             return cached
 
-        all_repos = self.get_repos(parallel=parallel)
+        all_repos = self.get_repos(
+            parallel=parallel,
+            parent_interaction_type=parent_interaction_type,
+        )
         repos: list[CachedRepo] = [
             {
                 "id": r["id"],

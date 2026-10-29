@@ -37,6 +37,7 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     HaltReason,
     RepositoryInfo,
@@ -260,6 +261,8 @@ class GitHubEnterpriseIntegration(
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         def _process(raw_repos: Iterable[Mapping[str, Any]]) -> list[RepositoryInfo]:
             return [
@@ -278,6 +281,7 @@ class GitHubEnterpriseIntegration(
                 all_repos = self.get_client().get_repos(
                     page_number_limit=page_number_limit,
                     raise_on_page_limit=raise_on_page_limit,
+                    parent_interaction_type=parent_interaction_type,
                 )
             except ApiPaginationTruncated as e:
                 # Transform partial data into RepositoryInfo before re-raising

@@ -72,7 +72,12 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
             try:
                 if not query:
-                    repositories = installation.get_repositories(page_number_limit=PAGE_LIMIT)
+                    repositories = installation.get_repositories(
+                        page_number_limit=PAGE_LIMIT,
+                        parent_interaction_type=(
+                            SCMIntegrationInteractionType.HANDLE_SEARCH_REPOSITORIES
+                        ),
+                    )
                     return Response(
                         [
                             {"label": repository["name"], "value": repository["identifier"]}

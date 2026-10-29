@@ -16,6 +16,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.api.bases.organization_integrations import (
     CellOrganizationIntegrationBaseEndpoint,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
@@ -121,6 +122,7 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
                     accessible_only=accessible_only,
                     use_cache=accessible_only and bool(search),
                     parallel=True,
+                    parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
                 )
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)

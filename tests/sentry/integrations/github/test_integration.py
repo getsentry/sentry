@@ -36,6 +36,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
@@ -551,8 +552,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
             GitHubIntegration, integration, self.organization.id
         )
 
-        with patch.object(client.GitHubBaseClient, "page_size", 1):
-            result = installation.get_repositories(parallel=True)
+        with (
+            patch.object(client.GitHubBaseClient, "page_size", 1),
+            patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+        ):
+            result = installation.get_repositories(
+                parallel=True,
+                parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
+            )
             assert result == [
                 {
                     "name": "foo",
@@ -573,6 +580,49 @@ class GitHubIntegrationTest(IntegrationTestCase):
                     "default_branch": "master",
                 },
             ]
+        assert (
+            mock.call(
+                client.GET_REPOSITORIES_METRIC,
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "get_repository_choices",
+                    "result": "success",
+                },
+            )
+            in mock_incr.mock_calls
+        )
+
+    def test_get_repositories_records_error_metric(self) -> None:
+        self.assert_setup_flow()
+        integration = Integration.objects.get(provider=self.provider.key)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
+
+        with (
+            patch.object(
+                client.GitHubBaseClient,
+                "_get_with_pagination",
+                side_effect=ApiError("GitHub API error"),
+            ),
+            patch("sentry.integrations.github.client.metrics.incr") as mock_incr,
+            pytest.raises(ApiError),
+        ):
+            installation.get_repositories(
+                parent_interaction_type=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+            )
+
+        assert (
+            mock.call(
+                client.GET_REPOSITORIES_METRIC,
+                tags={
+                    "integration_name": "github",
+                    "parent_interaction_type": "derive_codemappings",
+                    "result": "error",
+                },
+            )
+            in mock_incr.mock_calls
+        )
 
     @responses.activate
     def test_get_repositories_only_first_page(self) -> None:

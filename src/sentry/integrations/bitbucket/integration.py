@@ -21,6 +21,7 @@ from sentry.integrations.base import (
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
@@ -132,6 +133,8 @@ class BitbucketIntegration(RepositoryIntegration[BitbucketApiClient], BitbucketI
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         username = self.model.metadata.get("uuid", self.username)
         if not query:

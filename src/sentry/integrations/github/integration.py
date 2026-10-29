@@ -44,6 +44,7 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     PRCommentWorkflow,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
     HaltReason,
@@ -295,6 +296,8 @@ class GitHubIntegration(
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         """
         args:
@@ -339,12 +342,16 @@ class GitHubIntegration(
         def _fetch_and_process() -> list[RepositoryInfo]:
             try:
                 raw = (
-                    client.get_repos_cached(parallel=parallel)
+                    client.get_repos_cached(
+                        parallel=parallel,
+                        parent_interaction_type=parent_interaction_type,
+                    )
                     if use_cache
                     else client.get_repos(
                         page_number_limit=page_number_limit,
                         raise_on_page_limit=raise_on_page_limit,
                         parallel=parallel,
+                        parent_interaction_type=parent_interaction_type,
                     )
                 )
             except ApiPaginationTruncated as e:

@@ -86,6 +86,8 @@ class BaseRepositoryIntegration(ABC):
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         """
         Get a list of available repositories for an installation
@@ -119,6 +121,10 @@ class BaseRepositoryIntegration(ABC):
         ``parallel`` is a hint that pages after the first may be fetched
         concurrently. Providers that do not implement parallel pagination may
         accept and ignore this argument.
+
+        ``parent_interaction_type`` attributes operational repository-list
+        telemetry to the complete SCM feature that requested it. Providers
+        without operational telemetry may accept and ignore this argument.
         """
         raise NotImplementedError
 

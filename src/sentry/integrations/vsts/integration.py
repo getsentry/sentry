@@ -34,6 +34,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository, repository_service
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     HaltReason,
     RepositoryInfo,
@@ -358,6 +359,8 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         try:
             repos = self.get_client().get_repos()

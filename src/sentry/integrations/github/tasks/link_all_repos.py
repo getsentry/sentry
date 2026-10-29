@@ -72,7 +72,9 @@ def link_all_repos(
         client = installation.get_client()
 
         try:
-            repositories = client.get_repos()
+            repositories = client.get_repos(
+                parent_interaction_type=SCMIntegrationInteractionType.LINK_ALL_REPOS
+            )
         except ApiError as e:
             if installation.is_rate_limited_error(e):
                 lifecycle.record_halt(str(LinkAllReposHaltReason.RATE_LIMITED))
