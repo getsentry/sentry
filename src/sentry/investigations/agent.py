@@ -71,7 +71,7 @@ PRIVATE_TRANSCRIPT_KEYS = {
 
 
 class TitleGenerationStatus(StrEnum):
-    """Values stored in `Investigation.title_generation_status`."""
+    """Values stored in `Notebook.title_generation_status`."""
 
     PENDING = "pending"
     RUNNING = "running"
