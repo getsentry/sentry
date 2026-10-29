@@ -59,10 +59,10 @@ class WorkflowConfigListErrorResponse(TypedDict):
 
 
 class SeerWorkflowConfigPermission(OrganizationPermission):
-    # POST is further limited to projects the caller can write to.
+    # POST is further limited to projects the caller can access.
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["project:write", "project:admin"],
+        "POST": ["project:read", "project:write", "project:admin"],
     }
 
 
@@ -167,7 +167,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         Takes one config ``id`` and the ``projectIds`` to add. Projects that are
         already selected are skipped, so the selection stays deduplicated. Every
-        project must be active and writable by the caller. Returns the updated
+        project must be active and accessible to the caller. Returns the updated
         config in the same shape as an item in ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
@@ -191,8 +191,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         # Raises PermissionDenied unless every project is active and accessible.
         projects_to_add = self.get_projects(request, organization, project_ids=set(project_ids))
         if not all(
-            request.access.has_project_scope(project, "project:write")
-            for project in projects_to_add
+            request.access.has_project_scope(project, "project:read") for project in projects_to_add
         ):
             raise PermissionDenied
 
