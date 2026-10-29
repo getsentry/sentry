@@ -207,12 +207,12 @@ def group_id_ranges_for_hash(
     )
     using = matching_group_ids.db
     matching_group_ids = matching_group_ids.using(using)
-    budgeted_statement = make_statement_timeout_budget(_GROUP_ID_RANGE_QUERY_TIMEOUT, using=using)
+    query_timeout = make_statement_timeout_budget(_GROUP_ID_RANGE_QUERY_TIMEOUT, using=using)
 
     with metrics.timer("issues.derived.group_id_range_query"):
 
         def fetch_group_ids(start: int, limit: int) -> list[int]:
-            with budgeted_statement():
+            with query_timeout():
                 return list(matching_group_ids.filter(group_id__gte=start)[:limit])
 
         requested_rows = range_size * max_ranges

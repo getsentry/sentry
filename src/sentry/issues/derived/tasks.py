@@ -474,9 +474,9 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     results: list[str] = []
     cursor: str | None = ""
     using = router.db_for_read(GroupDerivedData)
-    budgeted_statement = make_statement_timeout_budget(_STALE_HASH_DISCOVERY_TIMEOUT, using=using)
+    query_timeout = make_statement_timeout_budget(_STALE_HASH_DISCOVERY_TIMEOUT, using=using)
     while len(results) < limit:
-        with budgeted_statement():
+        with query_timeout():
             cursor = (
                 GroupDerivedData.objects.using(using)
                 .filter(pipeline_hash__gt=cursor)
