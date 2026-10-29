@@ -477,7 +477,14 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 # either a `Team` or `User`, before this pattern was formalized by the official
                 # `Actor` model. Because of this, we avoid assuming that it is a dependency into
                 # `Actor` and just ignore it.
-                if field.name.endswith("_id") and field.name != "actor_id":
+                # Trigger/action mapping IDs are historical compatibility values, not
+                # references to the native models that are being retired. Preserve them
+                # verbatim, including while those models still exist in Django's registry.
+                if field.name.endswith("_id") and field.name not in {
+                    "actor_id",
+                    "alert_rule_trigger_id",
+                    "alert_rule_trigger_action_id",
+                }:
                     candidate = NormalizedModelName("sentry." + field.name[:-3].replace("_", ""))
                     if candidate and candidate in models_from_names:
                         foreign_keys[field.name] = ForeignField(

@@ -70,7 +70,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             )
         )
 
@@ -149,7 +149,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 serialize(
                     archived,
                     request.user,
-                    InvestigationDetailsSerializer(),
+                    InvestigationDetailsSerializer(access=request.access),
                 )
             )
         try:
@@ -168,7 +168,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(),
+                InvestigationDetailsSerializer(access=request.access),
             )
         )
 

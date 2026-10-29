@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -14,6 +15,25 @@ class PreprodArtifactModelTestBase(TestCase):
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(
             teams=[self.team], organization=self.organization, name="test_project"
+        )
+
+    def _create_artifact_on_commit(
+        self,
+        head_sha: str,
+        base_sha: str | None,
+        artifact_type: int | None = None,
+        project: Project | None = None,
+    ) -> PreprodArtifact:
+        commit_comparison = self.create_commit_comparison(
+            organization=self.organization, head_sha=head_sha, base_sha=base_sha
+        )
+        if base_sha is None:
+            # create_commit_comparison replaces a None base_sha with a random one
+            commit_comparison.update(base_sha=None)
+        return self.create_preprod_artifact(
+            project=project or self.project,
+            artifact_type=artifact_type,
+            commit_comparison=commit_comparison,
         )
 
 
@@ -631,6 +651,36 @@ class PreprodArtifactBaseArtifactTest(PreprodArtifactModelTestBase):
         # Only the base comparison from the head's repo should be considered.
         result = head_artifact.get_base_artifact_for_commit().first()
         assert result == matching_repo_base_artifact
+
+    def test_get_base_artifact_multiple_commit_comparisons_falls_through_to_match(self) -> None:
+        """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
+        self._create_artifact_on_commit("b" * 40, base_sha=None, artifact_type=None)
+        size_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        assert head_artifact.get_base_artifact_for_commit().first() == size_base_artifact
+
+    def test_get_base_artifact_for_commit_excludes_other_project(self) -> None:
+        """Test that a matching base artifact from another project in the org is excluded."""
+        other_project = self.create_project(organization=self.organization)
+        self._create_artifact_on_commit(
+            "b" * 40,
+            base_sha="c" * 40,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            project=other_project,
+        )
+        base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        assert head_artifact.get_base_artifact_for_commit().first() == base_artifact
 
     def test_get_head_artifacts_for_commit_single_artifact(self) -> None:
         """Test getting head artifacts when there's only one head artifact."""
@@ -1310,23 +1360,9 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
     def test_get_base_artifacts_for_commit_no_base_sha(self) -> None:
         """Test that artifacts with commit_comparison but no base_sha return empty dict."""
-        commit_comparison = self.create_commit_comparison(
-            organization=self.organization,
-            head_sha="a" * 40,
-            base_sha=None,
-            provider="github",
-            head_repo_name="owner/repo",
-        )
+        artifact = self._create_artifact_on_commit("a" * 40, base_sha=None)
 
-        artifact = self.create_preprod_artifact(
-            project=self.project,
-            state=PreprodArtifact.ArtifactState.PROCESSED,
-            app_id="com.example.app",
-            commit_comparison=commit_comparison,
-        )
-
-        result = PreprodArtifact.get_base_artifacts_for_commit([artifact])
-        assert result == {}
+        assert PreprodArtifact.get_base_artifacts_for_commit([artifact]) == {}
 
     def test_get_base_artifacts_for_commit_single_artifact(self) -> None:
         """Test batch lookup with a single artifact."""
@@ -1681,6 +1717,75 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 
         assert len(result) == 1
         assert result[head_artifact.id] == base_artifact_with_config
+
+    def test_get_base_artifacts_for_commit_multiple_commit_comparisons_uses_oldest(self) -> None:
+        """Test that the oldest commit_comparison wins when more than one has a match."""
+        old_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert result == {head_artifact.id: old_base_artifact}
+
+    def test_get_base_artifacts_for_commit_multiple_commit_comparisons_falls_through_to_match(
+        self,
+    ) -> None:
+        """Test that a newer commit_comparison is used when the oldest has no matching artifact."""
+        self._create_artifact_on_commit("b" * 40, base_sha=None, artifact_type=None)
+        size_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="c" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert result == {head_artifact.id: size_base_artifact}
+
+    def test_get_base_artifacts_for_commit_snapshot_metrics_falls_through_to_match(self) -> None:
+        """Test that snapshot lookups skip an older commit_comparison without snapshot metrics."""
+        self._create_artifact_on_commit("b" * 40, base_sha="c" * 40, artifact_type=None)
+        snapshot_base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha=None, artifact_type=None
+        )
+        self.create_preprod_snapshot_metrics(preprod_artifact=snapshot_base_artifact)
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=None
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit(
+            [head_artifact], require_snapshot_metrics=True
+        )
+
+        assert result == {head_artifact.id: snapshot_base_artifact}
+
+    def test_get_base_artifacts_for_commit_excludes_other_project(self) -> None:
+        """Test that a matching base artifact from another project in the org is excluded."""
+        other_project = self.create_project(organization=self.organization)
+        self._create_artifact_on_commit(
+            "b" * 40,
+            base_sha="c" * 40,
+            artifact_type=PreprodArtifact.ArtifactType.APK,
+            project=other_project,
+        )
+        base_artifact = self._create_artifact_on_commit(
+            "b" * 40, base_sha="d" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+        head_artifact = self._create_artifact_on_commit(
+            "a" * 40, base_sha="b" * 40, artifact_type=PreprodArtifact.ArtifactType.APK
+        )
+
+        result = PreprodArtifact.get_base_artifacts_for_commit([head_artifact])
+
+        assert result == {head_artifact.id: base_artifact}
 
 
 @cell_silo_test

@@ -11,6 +11,11 @@ from sentry.ai_monitoring.endpoints.organization_ai_conversation_details import 
     PARENT_SPAN_ATTRIBUTES,
     OrganizationAIConversationDetailsEndpoint,
 )
+from sentry.ai_monitoring.transcript.builder import (
+    TranscriptContextError,
+    TranscriptContextReadError,
+)
+from sentry.ai_monitoring.transcript.pagination import TranscriptWorkLimitError
 from sentry.issues.grouptype import PerformanceFileIOMainThreadGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -44,6 +49,35 @@ def test_parent_fetch_groups_span_ids_by_trace() -> None:
     )
     assert run_query.call_args.kwargs["limit"] == 3
     assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
+def test_parent_repair_reuses_context_cache_between_batches() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    parent = {
+        "trace": "trace-a",
+        "span_id": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "agent",
+    }
+    first = {
+        "trace": "trace-a",
+        "span_id": "first",
+        "parent_span": "agent",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    second = {**first, "span_id": "second"}
+    cache: dict[tuple[str, str], dict[str, Any]] = {}
+    fetched: set[tuple[str, str]] = set()
+    with patch.object(Spans, "run_table_query", return_value={"data": [parent]}) as query:
+        endpoint._repair_parent_links(
+            [first], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+        endpoint._repair_parent_links(
+            [second], MagicMock(), "conversation", parent_cache=cache, fetched_parent_keys=fetched
+        )
+    query.assert_called_once()
+    assert first["parent_span"] == second["parent_span"] == "agent"
 
 
 def test_conversation_probe_fetches_only_span_id() -> None:
@@ -183,6 +217,27 @@ def test_parent_repair_is_best_effort() -> None:
         endpoint._repair_parent_links([child], MagicMock(), conversation_id)
 
     assert child["parent_span"] == "missing-parent"
+
+
+def test_transcript_parent_repair_propagates_storage_failures() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+    child = {
+        "trace": "trace-a",
+        "span_id": "child",
+        "parent_span": "bridge",
+        "gen_ai.conversation.id": "conversation",
+        "gen_ai.operation.type": "ai_client",
+    }
+    storage_error = Exception("unavailable")
+    with (
+        patch.object(endpoint, "_fetch_parent_spans", side_effect=storage_error),
+        pytest.raises(
+            TranscriptContextReadError, match="Unable to read transcript parent context"
+        ) as error,
+    ):
+        endpoint._repair_parent_links([child], MagicMock(), "conversation", strict=True)
+    assert error.value.__cause__ is storage_error
+    assert child["parent_span"] == "bridge"
 
 
 def test_parent_repair_skips_gen_ai_ancestors_from_other_conversations() -> None:
@@ -1240,6 +1295,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
     def _store_error_on_span(self, trace_id, span_id, timestamp, project=None):
         project = project or self.project
         error_data = load_data("javascript", timestamp=timestamp)
+        assert error_data is not None
         error_data["contexts"]["trace"] = {
             "type": "trace",
             "trace_id": trace_id,
@@ -1402,6 +1458,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         span_id = span["span_id"]
 
         event_data = load_data("transaction", timestamp=now)
+        assert event_data is not None
         event_data["contexts"]["trace"]["trace_id"] = trace_id
         event_data["contexts"]["trace"]["span_id"] = span_id
         event = self.store_event(event_data, project_id=self.project.id)
@@ -1659,3 +1716,314 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert response.data["title"] is None
         assert len(response.data["spans"]) == 1
         assert mock_fetch_conversation_title.call_count == 1
+
+    def _read_transcript_pages(
+        self, conversation_id: str, query: dict[str, Any]
+    ) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = []
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            for index in range(100):
+                response = self.do_request(conversation_id, query)
+                assert response.status_code == 200, response.data
+                assert len(response.data["transcript"]) <= int(query["per_page"])
+                messages.extend(response.data["transcript"])
+                if index:
+                    assert response.data["stats"] is None
+                next_link = next(
+                    link
+                    for link in parse_link_header(response.headers["Link"]).values()
+                    if link["rel"] == "next"
+                )
+                if next_link["results"] == "false":
+                    assert response.data["complete"] is True
+                    assert len({message["id"] for message in messages}) == len(messages)
+                    assert [message["timestamp"] for message in messages] == sorted(
+                        message["timestamp"] for message in messages
+                    )
+                    return messages
+                assert response.data["complete"] is False
+                query["cursor"] = next_link["cursor"]
+        pytest.fail("Transcript pagination did not terminate")
+
+    def test_transcript_requires_feature(self) -> None:
+        with self.feature({"organizations:gen-ai-conversations-backend-transcript": False}):
+            response = self.do_request("conversation-id", {"view": "transcript"})
+        assert response.status_code == 404
+        assert response.data == {"detail": "Conversation transcript is not available"}
+
+    def test_invalid_view(self) -> None:
+        response = self.do_request("conversation-id", {"view": "invalid"})
+        assert response.status_code == 400
+        assert response.data == {"detail": "view must be timeline or transcript"}
+
+    def test_timeline_view_matches_default_without_transcript_feature(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self._store_conversation_span(conversation_id, now)
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature({"organizations:gen-ai-conversations-backend-transcript": False}):
+            default = self.do_request(conversation_id, query)
+            timeline = self.do_request(conversation_id, {**query, "view": "timeline"})
+        assert default.status_code == 200
+        assert timeline.status_code == 200
+        assert timeline.data == default.data
+        assert len(timeline.data["spans"]) == 1
+        assert "transcript" not in timeline.data
+
+    def test_transcript_rejects_timeline_cursor(self) -> None:
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                "conversation-id",
+                {"project": [self.project.id], "view": "transcript", "cursor": "0:0:0"},
+            )
+        assert response.status_code == 400
+        assert "pagination" in response.data["detail"]
+
+    def test_transcript_accepts_page_size(self) -> None:
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                "conversation-id",
+                {"project": [self.project.id], "view": "transcript", "per_page": "1"},
+            )
+        assert response.status_code == 200, response.data
+        assert response.data["complete"] is True
+
+    def test_transcript_view(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=uuid4().hex,
+            input_messages=[{"role": "user", "content": "hello"}],
+            output_messages=[{"role": "assistant", "content": "hi"}],
+        )
+        query = {
+            "project": [self.project.id],
+            "view": "transcript",
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(conversation_id, query)
+        assert response.status_code == 200, response.data
+        assert response.data["complete"] is True
+        assert response.data["sourceSpanCount"] == 1
+        assert [(item["role"], item["content"]) for item in response.data["transcript"]] == [
+            ("user", "hello"),
+            ("assistant", "hi"),
+        ]
+        assert "spans" not in response.data
+
+    def test_transcript_deduplicates_across_source_pages(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        history = [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "answer 0"},
+        ]
+        for index in range(2):
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now + timedelta(seconds=index * 10),
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                trace_id=uuid4().hex,
+                input_messages=history[: 1 + index],
+                output_messages=[{"role": "assistant", "content": f"answer {index}"}],
+            )
+        messages = self._read_transcript_pages(
+            conversation_id,
+            {
+                "project": [self.project.id],
+                "view": "transcript",
+                "per_page": 1,
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            },
+        )
+        assert [item["content"] for item in messages] == ["hello", "answer 0", "answer 1"]
+
+    def test_transcript_has_stable_order_for_tied_source_timestamps(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id, trace_id = uuid4().hex, uuid4().hex
+        spans = [
+            self.store_ai_span(
+                conversation_id=conversation_id,
+                timestamp=now,
+                trace_id=trace_id,
+                op="gen_ai.chat",
+                operation_type="ai_client",
+                output_messages=[{"role": "assistant", "content": f"answer {index}"}],
+            )
+            for index in range(3)
+        ]
+        for per_page in (1, 2, 3):
+            messages = self._read_transcript_pages(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "per_page": per_page,
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+            assert [item["nodeId"] for item in messages] == sorted(
+                span["span_id"] for span in spans
+            )
+
+    def test_transcript_context_failure_is_not_partial_success(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptContextError("Invalid transcript source timestamp"), 400
+        )
+
+    def test_transcript_work_limit_returns_service_unavailable(self) -> None:
+        self._assert_transcript_context_failure(
+            TranscriptWorkLimitError("Transcript context exceeds the per-request server limit"), 503
+        )
+
+    def _assert_transcript_context_failure(
+        self, error: TranscriptContextError, status: int
+    ) -> None:
+        now = before_now(days=1)
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch(
+                "sentry.ai_monitoring.endpoints.organization_ai_conversation_details.paginate_transcript",
+                side_effect=error,
+            ),
+        ):
+            response = self.do_request(
+                "conversation-id",
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": now.isoformat(),
+                },
+            )
+        assert response.status_code == status
+        assert response.data["detail"] == str(error)
+        assert "transcript" not in response.data
+
+    def test_failed_parent_repair_aborts_transcript_but_not_timeline(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id, trace_id = uuid4().hex, uuid4().hex
+        agent = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=trace_id,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            input_messages=[{"role": "user", "content": "question"}],
+            output_messages=[{"role": "assistant", "content": "answer"}],
+            store=False,
+        )
+        agent["parent_span_id"] = None
+        bridge = self.create_span(
+            {
+                "trace_id": trace_id,
+                "parent_span_id": agent["span_id"],
+                "sentry_tags": {"op": "http.client"},
+            },
+            start_ts=now + timedelta(seconds=1),
+        )
+        generation = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=2),
+            trace_id=trace_id,
+            operation_type="ai_client",
+            store=False,
+        )
+        generation["parent_span_id"] = bridge["span_id"]
+        self.store_spans([agent, bridge, generation])
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint,
+                "_fetch_parent_spans",
+                side_effect=Exception("unavailable"),
+            ),
+        ):
+            transcript_response = self.do_request(conversation_id, {**query, "view": "transcript"})
+            timeline_response = self.do_request(conversation_id, query)
+        assert transcript_response.status_code == 503, transcript_response.data
+        assert transcript_response.data == {"detail": "Unable to read transcript parent context"}
+        assert "Link" not in transcript_response.headers
+        assert "transcript" not in transcript_response.data
+        assert timeline_response.status_code == 200, timeline_response.data
+        assert len(timeline_response.data["spans"]) == 2
+
+    def test_transcript_annotates_only_emitted_rows_once(self) -> None:
+        now = before_now(days=1).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="lookup",
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now + timedelta(seconds=10),
+            trace_id=uuid4().hex,
+            op="gen_ai.execute_tool",
+            operation_type="tool",
+            tool_name="another-lookup",
+        )
+
+        def annotate(spans, params, organization):
+            spans[0]["errors"] = [{"issue_id": 1}]
+
+        with (
+            self.feature("organizations:gen-ai-conversations-backend-transcript"),
+            patch.object(
+                OrganizationAIConversationDetailsEndpoint, "_annotate_issues", side_effect=annotate
+            ) as annotate_issues,
+        ):
+            response = self.do_request(
+                conversation_id,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "per_page": 1,
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": (now + timedelta(hours=1)).isoformat(),
+                },
+            )
+        assert response.status_code == 200, response.data
+        annotate_issues.assert_called_once()
+        assert len(annotate_issues.call_args.args[0]) == 1
+        assert response.data["transcript"][0]["toolCalls"][0]["hasError"] is True
+        assert response.data["complete"] is False
+
+    def test_transcript_empty_conversation(self) -> None:
+        now = before_now(days=1)
+        with self.feature("organizations:gen-ai-conversations-backend-transcript"):
+            response = self.do_request(
+                uuid4().hex,
+                {
+                    "project": [self.project.id],
+                    "view": "transcript",
+                    "start": (now - timedelta(hours=1)).isoformat(),
+                    "end": now.isoformat(),
+                },
+            )
+        assert response.status_code == 200
+        assert response.data["transcript"] == []
+        assert response.data["complete"] is True
+        assert response.data["sourceSpanCount"] == 0

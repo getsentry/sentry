@@ -293,7 +293,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Visibility
 /src/sentry/api/endpoints/organization_tags.py                              @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
@@ -314,7 +313,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
@@ -392,6 +390,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/interfaces/spans/                           @getsentry/data-browsing
 /static/app/components/events/viewHierarchy/*                             @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/                                @getsentry/data-browsing
+/static/packages/search-syntax/                                           @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/askSeerCombobox/                @getsentry/data-browsing @getsentry/machine-learning-ai
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
@@ -656,6 +655,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
 /src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
 /tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/src/sentry/telemetry_classifiers/                                                     @getsentry/agent-tracing
+/tests/sentry/telemetry_classifiers/                                                   @getsentry/agent-tracing
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
 /src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
 /src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
@@ -705,6 +706,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 
 ## End of ML & AI
 
@@ -914,6 +917,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Agent Interfaces
 /static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/views/seerWorkflows/                          @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend

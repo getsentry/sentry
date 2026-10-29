@@ -62,7 +62,7 @@ describe('IssuePreviewAutofixSummary', () => {
     });
   });
 
-  it('renders every result expanded', () => {
+  it('expands root cause and plan independently while keeping code changes visible', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [
         ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]}),
@@ -108,14 +108,33 @@ describe('IssuePreviewAutofixSummary', () => {
 
     expect(within(proposal).getByText('2 files changed in 2 repos')).toBeVisible();
     expect(within(proposal).getByText('org/frontend:src/user.ts')).toBeVisible();
-    expect(
-      within(rootCause).getByText(
-        'The handler accessed the user without checking for null.'
-      )
-    ).toBeVisible();
+    const rootCauseDescription = within(rootCause).getByText(
+      'The handler accessed the user without checking for null.'
+    );
+    expect(rootCauseDescription).not.toBeVisible();
+    const summary = within(rootCause).getByText(
+      'An unexpected null value reached the user handler.'
+    );
+    expect(summary).toBeVisible();
 
     expect(within(proposal).getByText('org/backend:tests/test_user.py')).toBeVisible();
+    expect(
+      within(proposal).queryByRole('button', {name: /Show more|Show less/})
+    ).not.toBeInTheDocument();
 
+    expect(within(plan).getByText('Add a null guard')).not.toBeVisible();
+
+    await userEvent.click(within(rootCause).getByRole('button', {name: 'Show more'}));
+    expect(rootCauseDescription).toBeVisible();
+    expect(summary).toBeVisible();
+    expect(within(plan).getByText('Add a null guard')).not.toBeVisible();
+    expect(within(proposal).getByText('2 files changed in 2 repos')).toBeVisible();
+    expect(within(rootCause).getByRole('button', {name: 'Re-run step'})).toBeEnabled();
+    await userEvent.click(within(rootCause).getByRole('button', {name: 'Show less'}));
+    expect(rootCauseDescription).not.toBeVisible();
+    expect(summary).toBeVisible();
+    expect(within(rootCause).getByRole('button', {name: 'Show more'})).toHaveFocus();
+    await userEvent.click(within(plan).getByRole('button', {name: 'Show more'}));
     expect(within(plan).getByText('Add a null guard')).toBeVisible();
   });
 
@@ -161,6 +180,20 @@ describe('IssuePreviewAutofixSummary', () => {
                 },
               }),
               ExplorerAutofixBlockFixture({
+                id: 'placeholder',
+                artifacts: undefined,
+                message: {content: '.', role: 'assistant'},
+              }),
+              ExplorerAutofixBlockFixture({
+                id: 'thinking-with-placeholder',
+                artifacts: undefined,
+                message: {
+                  content: ' . \n',
+                  thinking_content: 'Reviewing the serializer...',
+                  role: 'assistant',
+                },
+              }),
+              ExplorerAutofixBlockFixture({
                 id: 'thinking',
                 artifacts: undefined,
                 message: {
@@ -181,6 +214,8 @@ describe('IssuePreviewAutofixSummary', () => {
     expect(within(rootCause).getByText('Generating root cause...')).toBeInTheDocument();
     expect(within(rootCause).getByText('Inspecting the event context...')).toBeVisible();
     expect(within(rootCause).getByText('Tracing the failing request...')).toBeVisible();
+    expect(within(rootCause).getByText('Reviewing the serializer...')).toBeVisible();
+    expect(within(rootCause).queryByText('.')).not.toBeInTheDocument();
     expect(within(rootCause).queryByText('Thinking...')).not.toBeInTheDocument();
     expect(
       within(rootCause).queryByText('Start the root cause analysis')
@@ -357,7 +392,7 @@ describe('IssuePreviewAutofixSummary', () => {
     ).toBeInTheDocument();
   });
 
-  it('re-runs a section from its heading action', async () => {
+  it('re-runs a section with the supplied context', async () => {
     const runState = ExplorerAutofixStateFixture({
       blocks: [ExplorerAutofixBlockFixture({artifacts: [rootCauseArtifact]})],
     });
@@ -366,18 +401,10 @@ describe('IssuePreviewAutofixSummary', () => {
     render(<IssuePreviewAutofixSummary autofix={autofix} groupId="preview-group" />);
 
     const rootCause = screen.getByRole('region', {name: 'Root Cause'});
-    const summary = within(rootCause).getByText(
-      'An unexpected null value reached the user handler.'
-    );
     await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
     expect(
       within(rootCause).getByText('How can this root cause be improved?')
     ).toBeInTheDocument();
-    expect(
-      within(rootCause)
-        .getByText('How can this root cause be improved?')
-        .compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
     await userEvent.type(screen.getByRole('textbox'), 'Try again');
     await userEvent.click(screen.getByRole('button', {name: 'Re-run from here'}));
 

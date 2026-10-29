@@ -43,7 +43,10 @@ import {
   DashboardFilter,
   PREBUILT_DASHBOARD_LABEL,
 } from 'sentry/views/dashboards/types';
-import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {
+  getPrebuiltDashboardConfig,
+  PREBUILT_DASHBOARDS,
+} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
@@ -148,24 +151,24 @@ function ManageDashboards() {
     () =>
       dashboardsWithoutPrebuiltConfigs?.map(dashboard => {
         if (dashboard.prebuiltId && dashboard.prebuiltId in PREBUILT_DASHBOARDS) {
+          const prebuiltDashboard = getPrebuiltDashboardConfig(
+            dashboard.prebuiltId,
+            organization
+          );
           return {
             ...dashboard,
-            widgetDisplay: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-              widget => widget.displayType
-            ),
-            widgetPreview: PREBUILT_DASHBOARDS[dashboard.prebuiltId].widgets.map(
-              widget => ({
-                displayType: widget.displayType,
-                layout: widget.layout ?? null,
-              })
-            ),
-            description: PREBUILT_DASHBOARDS[dashboard.prebuiltId].description,
+            widgetDisplay: prebuiltDashboard.widgets.map(widget => widget.displayType),
+            widgetPreview: prebuiltDashboard.widgets.map(widget => ({
+              displayType: widget.displayType,
+              layout: widget.layout ?? null,
+            })),
+            description: prebuiltDashboard.description,
             projects: [],
           };
         }
         return dashboard;
       }),
-    [dashboardsWithoutPrebuiltConfigs]
+    [dashboardsWithoutPrebuiltConfigs, organization]
   );
 
   const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';

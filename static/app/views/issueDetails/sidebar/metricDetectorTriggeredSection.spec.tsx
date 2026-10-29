@@ -133,7 +133,7 @@ describe('MetricDetectorTriggeredSection', () => {
     ).toBeInTheDocument();
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
-    ).toHaveAttribute('href', '/explore/investigations/4567/');
+    ).toHaveAttribute('href', '/seer/investigations/4567/');
     expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
       'data-variant',
       'complete'
@@ -597,8 +597,6 @@ describe('MetricDetectorTriggeredSection', () => {
       expect(launchMock).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          // No templateKey: the server builds an agentic run from the metric
-          // snapshot rather than a fixed notebook.
           data: {
             source: {
               type: 'metric_open_period',
@@ -608,7 +606,7 @@ describe('MetricDetectorTriggeredSection', () => {
         })
       );
     });
-    expect(router.location.pathname).toBe('/explore/investigations/4567/');
+    expect(router.location.pathname).toBe('/seer/investigations/4567/');
   });
 
   it('hides the investigation section for a closed-membership organization', () => {

@@ -37,9 +37,9 @@ export function OrganizationSelectHeader({
           };
         })}
         onChange={(option: any) => handleOrgChange(option.value)}
-        value={organizationId}
+        value={organizationId ?? null}
         styles={{
-          container: (provided: Record<string, string>) => ({
+          container: provided => ({
             ...provided,
             minWidth: '200px',
           }),
@@ -53,4 +53,4 @@ export function OrganizationSelectHeader({
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
+` as typeof Select;

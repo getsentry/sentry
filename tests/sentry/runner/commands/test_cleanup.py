@@ -274,8 +274,8 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
 
         with (
             assume_test_silo_mode(SiloMode.CELL),

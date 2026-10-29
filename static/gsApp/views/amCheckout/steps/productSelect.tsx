@@ -7,12 +7,13 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Alert} from '@sentry/scraps/alert';
 import {Badge, Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
+import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AddOnCategory} from 'getsentry/types';
 import {
@@ -25,7 +26,6 @@ import {
   getSingularCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {formatCurrency} from 'getsentry/utils/formatCurrency';
-import {CheckoutOption} from 'getsentry/views/amCheckout/components/checkoutOption';
 import {type StepProps} from 'getsentry/views/amCheckout/types';
 import * as utils from 'getsentry/views/amCheckout/utils';
 
@@ -50,8 +50,6 @@ export function ProductSelect({
   onUpdate,
   subscription,
 }: Pick<StepProps, 'activePlan' | 'onUpdate' | 'formData' | 'subscription'>) {
-  const organization = useOrganization();
-
   const availableAddOns = Object.values(activePlan.addOnCategories).filter(
     addOnInfo =>
       // if the add-on is not available, don't show it
@@ -120,50 +118,52 @@ export function ProductSelect({
           };
           return (
             <Stack gap="xl" key={apiName}>
-              <CheckoutOption
-                ariaLabel={ariaLabel}
-                dataTestId={`product-option-${apiName}`}
-                onClick={toggleProductOption}
-                isSelected={!!isSelected}
-                ariaRole="checkbox"
-                topDecoration={
+              <ToggleCard
+                variant="checkbox"
+                aria-label={ariaLabel}
+                data-test-id={`product-option-${apiName}`}
+                value={apiName}
+                onChange={toggleProductOption}
+                checked={!!isSelected}
+              >
+                <Stack gap="lg">
                   <Flex align="center" gap="lg">
                     <IconSeer animation="idle" size="lg" />
                     <Heading as="h2">
                       {t('Detect and fix issues faster with our AI agent')}
                     </Heading>
                   </Flex>
-                }
-                optionHeader={
-                  <Flex align="center" justify="between" gap="sm" flex="1">
-                    <Heading as="h3" variant="primary">
-                      {toTitleCase(productName, {
-                        allowInnerUpperCase: true,
-                      })}
-                    </Heading>
-                    <Flex align="center" gap="md">
-                      {formattedMonthlyBudget && (
-                        <Tag
-                          variant="promotion"
-                          data-test-id="product-option-feature-credits"
-                        >
-                          {tct('Includes [includedBudget]/mo in credits', {
-                            includedBudget: formattedMonthlyBudget,
-                          })}
-                        </Tag>
-                      )}
-                      <Flex>
-                        <Text
-                          size="lg"
-                          bold
-                          variant="primary"
-                        >{`+$${priceInDollars}`}</Text>
-                        <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
+                  <Flex align="start" gap="md">
+                    <ToggleCard.Indicator />
+                    <Flex align="center" justify="between" gap="sm" flex="1">
+                      <Heading as="h3" variant="primary">
+                        {toTitleCase(productName, {
+                          allowInnerUpperCase: true,
+                        })}
+                      </Heading>
+                      <Flex align="center" gap="md">
+                        {formattedMonthlyBudget && (
+                          <Tag
+                            variant="promotion"
+                            data-test-id="product-option-feature-credits"
+                          >
+                            {tct('Includes [includedBudget]/mo in credits', {
+                              includedBudget: formattedMonthlyBudget,
+                            })}
+                          </Tag>
+                        )}
+                        <Flex>
+                          <Text
+                            size="lg"
+                            bold
+                            variant="primary"
+                          >{`+$${priceInDollars}`}</Text>
+                          <Text size="lg" variant="muted">{`/${billingInterval}`}</Text>
+                        </Flex>
                       </Flex>
                     </Flex>
                   </Flex>
-                }
-                optionDescription={
+                  <Separator orientation="horizontal" border="primary" />
                   <Stack gap="xl" paddingTop="xl">
                     {Object.entries(SUBCATEGORY_TEXT).map(([category, info]) => {
                       const pricingInfo =
@@ -207,15 +207,13 @@ export function ProductSelect({
                       );
                     })}
                   </Stack>
-                }
-                withDivider
-              />
+                </Stack>
+              </ToggleCard>
             </Stack>
           );
         }
 
         if (apiName === AddOnCategory.SEER) {
-          const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
           return (
             <Stack gap="xl" key={apiName}>
               <Flex gap="sm" align="start">
@@ -231,40 +229,40 @@ export function ProductSelect({
                   )}
                 </Alert>
               )}
-              <CheckoutOption
-                ariaLabel={ariaLabel}
-                dataTestId={`product-option-${apiName}`}
-                onClick={toggleProductOption}
-                isSelected={!!isSelected}
-                ariaRole="checkbox"
-                optionHeader={
-                  <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
-                    <Heading as="h3" variant="primary">
-                      {toTitleCase(productName, {
-                        allowInnerUpperCase: true,
-                      })}
-                    </Heading>
-                    <Flex align="start" gap="xs" wrap="wrap">
-                      {/* TODO(seer): serialize pricing info */}
-                      <Text size="lg" bold variant="primary">
-                        +$40
-                      </Text>
-                      <Text size="lg" variant="muted">
-                        {t('/ active contributor / month')}
-                      </Text>
+              <ToggleCard
+                variant="checkbox"
+                aria-label={ariaLabel}
+                data-test-id={`product-option-${apiName}`}
+                value={apiName}
+                onChange={toggleProductOption}
+                checked={!!isSelected}
+              >
+                <Stack gap="lg">
+                  <Flex align="start" gap="md">
+                    <ToggleCard.Indicator />
+                    <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
+                      <Heading as="h3" variant="primary">
+                        {toTitleCase(productName, {
+                          allowInnerUpperCase: true,
+                        })}
+                      </Heading>
+                      <Flex align="start" gap="xs" wrap="wrap">
+                        {/* TODO(seer): serialize pricing info */}
+                        <Text size="lg" bold variant="primary">
+                          +$40
+                        </Text>
+                        <Text size="lg" variant="muted">
+                          {t('/ active contributor / month')}
+                        </Text>
+                      </Flex>
                     </Flex>
                   </Flex>
-                }
-                optionDescription={
+                  <Separator orientation="horizontal" border="primary" />
                   <Stack gap="lg" data-test-id="product-option-description">
                     <Text variant="muted">
-                      {hasGitLabSupport
-                        ? t(
-                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
-                          )
-                        : t(
-                            'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-                          )}
+                      {t(
+                        'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+                      )}
                     </Text>
                     <Stack gap="xs">
                       <Text variant="muted">
@@ -277,9 +275,8 @@ export function ProductSelect({
                       </Text>
                     </Stack>
                   </Stack>
-                }
-                withDivider
-              />
+                </Stack>
+              </ToggleCard>
             </Stack>
           );
         }

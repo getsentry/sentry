@@ -6,10 +6,12 @@ import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationCon
 import {AdminSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/admin/adminSecondaryNavigation';
 import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 import {ExploreSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/explore/exploreSecondaryNavigation';
+import {InboxSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/inbox/inboxSecondaryNavigation';
 import {InsightsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/insights/insightsSecondaryNavigation';
 import {IssuesSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/issues/issuesSecondaryNavigation';
 import {MonitorsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/monitors/monitorsSecondaryNavigation';
 import {ProjectsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/projects/projectsSecondaryNavigation';
+import {SeerSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/seer/seerSecondaryNavigation';
 import {SettingsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/settings/settingsSecondaryNavigation';
 
 export function SecondaryNavigationContent(): ReactNode {
@@ -17,6 +19,8 @@ export function SecondaryNavigationContent(): ReactNode {
   const organization = useOrganization({allowNull: true});
 
   switch (activeGroup) {
+    case 'inbox':
+      return <InboxSecondaryNavigation />;
     case 'issues':
       return <IssuesSecondaryNavigation />;
     case 'insights':
@@ -28,6 +32,8 @@ export function SecondaryNavigationContent(): ReactNode {
       return <DashboardsSecondaryNavigation />;
     case 'explore':
       return <ExploreSecondaryNavigation />;
+    case 'seer':
+      return <SeerSecondaryNavigation />;
     case 'projects':
       return <ProjectsSecondaryNavigation />;
     case 'monitors':

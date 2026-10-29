@@ -1,15 +1,19 @@
 import {useId} from 'react';
 
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {
+  useAutoSaveContext,
+  useFieldContext,
+  useLabelId,
+  GroupProvider,
+  useGroupItemContext,
+  type GroupContextValue,
+  FieldMeta,
+} from '@sentry/scraps/formPresentation';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import {useAutoSaveIndicator} from './baseField';
-import {useLabelId} from './fieldIds';
-import {GroupProvider, useGroupItemContext, type GroupContextValue} from './groupContext';
-import {FieldMeta} from './meta';
 
 // Radio.Group component
 interface RadioGroupProps {

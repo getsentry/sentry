@@ -96,13 +96,6 @@ function getTestsForGroup(
     return [];
   }
 
-  const speculatedSuiteDuration = Object.values(testStats).reduce((a, b) => a + b, 0);
-  const targetDuration = speculatedSuiteDuration / nodeTotal;
-
-  if (speculatedSuiteDuration <= 0) {
-    throw new Error('Speculated suite duration is <= 0');
-  }
-
   // We are going to take all of our tests and split them into groups.
   // If we have a test without a known duration, we will default it to 2 second
   // This is to ensure that we still assign some weight to the tests and still attempt to somewhat balance them.
@@ -137,6 +130,11 @@ function getTestsForGroup(
       `All tests should be accounted for, missing ${allTests.length - tests.size}`
     );
   }
+
+  // Reports also contain standalone package tests. Balance only the selected
+  // global list, including the default duration for tests without history.
+  const speculatedSuiteDuration = Array.from(tests.values()).reduce((a, b) => a + b, 0);
+  const targetDuration = speculatedSuiteDuration / nodeTotal;
 
   const groups: string[][] = [];
 
@@ -195,7 +193,7 @@ function getTestsForGroup(
   if (!groups[nodeIndex]?.length) {
     return ['<rootDir>/__no_tests_for_this_shard__'];
   }
-  return groups[nodeIndex].map(test => `<rootDir>/${test}`);
+  return groups[nodeIndex].map(test => `<rootDir>${test}`);
 }
 
 if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
@@ -238,6 +236,11 @@ if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
   }
 }
 
+// An empty selection must not fall back to the workspace's full test suite.
+if (testMatch?.length === 0) {
+  testMatch = ['<rootDir>/__no_tests_for_this_shard__'];
+}
+
 /**
  * For performance we don't want to try and compile everything in the
  * node_modules, but some packages which use ES6 syntax only NEED to be
@@ -259,14 +262,14 @@ const ESM_NODE_MODULES = [
 const config: Config.InitialOptions = {
   rootDir,
   verbose: false,
-  cacheDirectory: `.cache/jest/router-v${process.env.SENTRY_REACT_ROUTER_VERSION ?? '6'}`,
+  cacheDirectory: '.cache/jest',
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
-  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
+  resolver: '<rootDir>/tests/js/jestWorkspaceResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
@@ -304,13 +307,12 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
-  testMatch: testMatch?.length
-    ? testMatch
-    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: testMatch ?? ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
     '<rootDir>/static/packages/icons/',
+    '<rootDir>/static/packages/search-syntax/',
   ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
@@ -333,7 +335,8 @@ const config: Config.InitialOptions = {
   ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx', 'pegjs'],
-  globals: {},
+  // Matches setupStatics, so tests run Zod's jitless parsers like production does.
+  globals: {__zod_globalConfig: {jitless: true}},
 
   reporters: ['default'],
   /**

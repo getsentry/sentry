@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import invariant from 'invariant';
 
 import {t} from 'sentry/locale';
@@ -8,17 +9,34 @@ import type {BreadcrumbFrame, RawBreadcrumbFrame} from 'sentry/utils/replays/typ
 import {isBreadcrumbFrame} from 'sentry/utils/replays/types';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
+// Categories whose SDK types require `data`. Custom breadcrumbs often omit it,
+// so only these are worth reporting when it is missing.
+const CATEGORIES_WITH_DATA = new Set([
+  'console',
+  'navigation',
+  'replay.mutations',
+  'ui.click',
+  'ui.keyDown',
+  'ui.multiClick',
+  'ui.slowClickDetected',
+]);
+
 export function hydrateBreadcrumbs(
   replayRecord: HydratedReplayRecord,
   breadcrumbFrames: RawBreadcrumbFrame[]
 ): BreadcrumbFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
+  const categoriesMissingData = new Set<string>();
 
-  return breadcrumbFrames
+  const hydrated = breadcrumbFrames
     .map((frame: RawBreadcrumbFrame) => {
       try {
         const time = new Date(frame.timestamp * 1000);
         invariant(isValidDate(time), 'breadcrumbFrame.timestamp is invalid');
+
+        if (!frame.data && CATEGORIES_WITH_DATA.has(frame.category)) {
+          categoriesMissingData.add(frame.category);
+        }
 
         if (frame.category === 'replay.hydrate-error') {
           frame.data = {
@@ -42,6 +60,16 @@ export function hydrateBreadcrumbs(
       }
     })
     .filter(isBreadcrumbFrame);
+
+  if (categoriesMissingData.size > 0) {
+    Sentry.logger.warn('Replay: breadcrumb frames are missing data', {
+      categories: [...categoriesMissingData].sort().join(','),
+      sdk_name: replayRecord.sdk.name,
+      sdk_version: replayRecord.sdk.version,
+    });
+  }
+
+  return hydrated;
 }
 
 export function replayInitBreadcrumb(

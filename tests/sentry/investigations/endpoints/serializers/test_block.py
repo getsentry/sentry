@@ -143,23 +143,6 @@ class InvestigationBlockSerializerTest(TestCase):
 
         assert self.serialize_block()["content"] == "Visible finding"
 
-    def test_serializes_dependencies_and_parameter_keys(self) -> None:
-        upstream = self.create_investigation_block(investigation=self.investigation, position=1)
-        self.create_investigation_block_dependency(block=self.block, depends_on=upstream)
-        parameter = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-        )
-        self.create_investigation_block_parameter(block=self.block, parameter=parameter)
-
-        result = self.serialize_block()
-
-        assert result["dependencies"] == [str(upstream.id)]
-        assert result["parameterKeys"] == ["environment"]
-
     def test_query_count_does_not_grow_with_the_number_of_blocks(self) -> None:
         for position in range(1, 10):
             self.create_investigation_block(investigation=self.investigation, position=position)

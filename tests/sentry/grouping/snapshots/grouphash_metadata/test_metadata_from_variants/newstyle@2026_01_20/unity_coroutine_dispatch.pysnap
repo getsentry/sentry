@@ -5,7 +5,7 @@ hash_basis: stacktrace
 hashing_metadata: {
   "num_stacktraces": 1,
   "stacktrace_location": "exception",
-  "stacktrace_type": "system"
+  "stacktrace_type": "in_app"
 }
 ---
 metrics with tags: {
@@ -16,13 +16,38 @@ metrics with tags: {
   "grouping.grouphashmetadata.event_hashing_metadata.stacktrace": {
     "chained_exception": "False",
     "stacktrace_location": "exception",
-    "stacktrace_type": "system"
+    "stacktrace_type": "in_app"
   }
 }
 ---
 contributing variants:
+  app*
+    hash: "31cfc54cd60b693b789568c5ec9278e2"
+    contributing component: exception
+    hint: None
+    root_component:
+      app*
+        exception*
+          type*
+            "System.NullReferenceException"
+          stacktrace*
+            frame* (marked in-app by the client)
+              module*
+                "GameBootstrap"
+              function*
+                "Start"
+            frame* (marked in-app by the client)
+              module*
+                "EnemySpawner+<SpawnWaves>d__4"
+              function*
+                "MoveNext"
+            frame* (marked in-app by the client)
+              module*
+                "CombatSystem"
+              function*
+                "ApplyDamage"
   system*
-    hash: "872f67574fe082419e092229105d22ca"
+    hash: "633f98691c6d46f1b91a753cfbb90cc0"
     contributing component: exception
     hint: None
     root_component:
@@ -35,24 +60,24 @@ contributing variants:
               module*
                 "GameBootstrap"
               function*
-                "GameBootstrap.Start()"
+                "Start"
             frame*
               module*
                 "UnityEngine.MonoBehaviour"
               function*
-                "UnityEngine.MonoBehaviour.StartCoroutine(System.Collections.IEnumerator)"
+                "StartCoroutine"
             frame*
               module*
                 "UnityEngine.SetupCoroutine"
               function*
-                "UnityEngine.SetupCoroutine.InvokeMoveNext(System.Collections.IEnumerator, System.IntPtr)"
+                "InvokeMoveNext"
             frame*
               module*
                 "EnemySpawner+<SpawnWaves>d__4"
               function*
-                "EnemySpawner+<SpawnWaves>d__4.MoveNext()"
+                "MoveNext"
             frame*
               module*
                 "CombatSystem"
               function*
-                "CombatSystem.ApplyDamage(UnityEngine.GameObject, System.Int32)"
+                "ApplyDamage"

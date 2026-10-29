@@ -260,6 +260,13 @@ export interface SearchQueryBuilderProps {
    */
   replaceRawSearchKeys?: string[];
   /**
+   * When true, a filter with several values shows every value and wraps them onto
+   * new lines, both at rest and while editing. By default the filter shows the
+   * first few values plus a count of the rest, and the value editor scrolls
+   * sideways.
+   */
+  showAllFilterValues?: boolean;
+  /**
    * When false, hides the leading magnifying glass icon and the padding reserved for it.
    * Defaults to true.
    */
@@ -302,7 +309,7 @@ function ActionButtons({
             variant="transparent"
             active={!isCaseInsensitive}
             onClick={() => {
-              onCaseInsensitiveClick?.(isCaseInsensitive ? null : true);
+              onCaseInsensitiveClick?.(!isCaseInsensitive);
             }}
           />
         </Tooltip>

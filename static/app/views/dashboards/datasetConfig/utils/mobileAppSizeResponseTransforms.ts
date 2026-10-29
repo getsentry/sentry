@@ -1,40 +1,14 @@
 import type {PageFilters} from 'sentry/types/core';
-import type {
-  EventsStats,
-  MultiSeriesEventsStats,
-  Organization,
-} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import {SizeUnit} from 'sentry/utils/discover/fields';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
-import {isMultiSeriesEventsStats} from 'sentry/views/dashboards/utils/isEventsStats';
 import {
   transformTimeSeriesResponse,
   type WidgetTimeSeries,
 } from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
-
-function buildSeriesResultMap<T extends AggregationOutputType | DataUnit>(
-  data: EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-  widgetQuery: WidgetQuery,
-  value: T
-): Record<string, T> {
-  const result: Record<string, T> = {};
-
-  for (const aggregate of widgetQuery.aggregates ?? []) {
-    result[aggregate] = value;
-  }
-
-  if (isMultiSeriesEventsStats(data)) {
-    for (const seriesName of Object.keys(data)) {
-      result[seriesName] = value;
-    }
-  }
-
-  return result;
-}
 
 function transformTimeSeries(
   data: EventsTimeSeriesResponse,
@@ -65,11 +39,8 @@ function transformTimeSeries(
 }
 
 export const mobileAppSizeResponseTransforms: Pick<
-  DatasetConfig<
-    EventsStats | MultiSeriesEventsStats | EventsTimeSeriesResponse,
-    TableData
-  >,
-  'transformTable' | 'transformTimeSeries' | 'getSeriesResultType' | 'getSeriesResultUnit'
+  DatasetConfig<EventsTimeSeriesResponse, TableData>,
+  'transformTable' | 'transformTimeSeries'
 > = {
   transformTable: (
     data: TableData,
@@ -80,8 +51,4 @@ export const mobileAppSizeResponseTransforms: Pick<
     return data;
   },
   transformTimeSeries,
-  getSeriesResultType: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, 'size'),
-  getSeriesResultUnit: (data, widgetQuery) =>
-    buildSeriesResultMap(data, widgetQuery, SizeUnit.BYTE),
 };

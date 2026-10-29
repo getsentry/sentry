@@ -9,8 +9,13 @@ from rest_framework.test import APIClient
 from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.types.superuser import SuperuserAccess
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    encode_viewer_context,
+)
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
@@ -26,12 +31,14 @@ class SuperuserViewerContextTest(APITestCase):
     def _viewer_header(self, expires_at: int | None) -> str:
         return encode_viewer_context(
             ViewerContext(
+                actor=Actor(
+                    type=ActorType.USER,
+                    actor_id=self.employee.id,
+                    superuser=SuperuserAccess(expires_at=expires_at)
+                    if expires_at is not None
+                    else None,
+                ),
                 organization_id=self.organization.id,
-                user_id=self.employee.id,
-                actor_type=ActorType.USER,
-                superuser=SuperuserAccess(expires_at=expires_at)
-                if expires_at is not None
-                else None,
             ),
             key=SECRET,
         )
@@ -51,7 +58,7 @@ class SuperuserViewerContextTest(APITestCase):
 
             def capture_context(*_args: Any, **kwargs: Any) -> Any:
                 resolved = _resolve_viewer_context(kwargs["viewer_context"])
-                assert resolved is not None
+                assert isinstance(resolved, ViewerContext)
                 resolved_contexts.append(resolved)
                 return outbound.return_value
 
@@ -72,7 +79,7 @@ class SuperuserViewerContextTest(APITestCase):
     def _assert_member_callback_access(self, role: str, write_status: int) -> None:
         self.create_member(user=self.employee, organization=self.organization, role=role)
         resolved = self._approved_chat_context()
-        assert resolved.superuser is None
+        assert resolved.actor.superuser is None
 
         client = APIClient()
         client.credentials(HTTP_X_VIEWER_CONTEXT=encode_viewer_context(resolved, key=SECRET))
@@ -98,10 +105,12 @@ class SuperuserViewerContextTest(APITestCase):
             resolved = self._approved_chat_context()
             assert self.client.put(self.path, {}, format="json").status_code == browser_write_status
         assert resolved.organization_id == self.organization.id
-        assert resolved.superuser is not None
-        assert type(resolved.superuser.expires_at) is int
-        assert 0 < resolved.superuser.expires_at - timezone.now().timestamp() <= 300
-        assert resolved.superuser.dict() == {"expires_at": resolved.superuser.expires_at}
+        assert resolved.actor.superuser is not None
+        assert type(resolved.actor.superuser.expires_at) is int
+        assert 0 < resolved.actor.superuser.expires_at - timezone.now().timestamp() <= 300
+        assert resolved.actor.serialize()["superuser"] == {
+            "expires_at": resolved.actor.superuser.expires_at
+        }
 
         client = APIClient()
         client.credentials(HTTP_X_VIEWER_CONTEXT=encode_viewer_context(resolved, key=SECRET))

@@ -11,7 +11,6 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.investigations.models import (
-    InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
     InvestigationBlockKind,
@@ -20,8 +19,8 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.orchestration import (
+    _create_agentic_investigation,
     accept_orchestration_command,
-    create_agentic_manual_investigation,
 )
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.seer.models import SeerApiError
@@ -34,6 +33,7 @@ from sentry.tasks.seer.investigation import (
     dispatch_investigation_orchestration_create,
 )
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorId, ActorType
 
 
 class InvestigationAutoRunTest(TestCase):
@@ -52,17 +52,17 @@ class InvestigationAutoRunTest(TestCase):
             prompt="Chart the breach",
             config={"autoRun": True},
         )
-        self.dependent = self.create_investigation_block(
+        self.sibling = self.create_investigation_block(
             investigation=self.investigation,
             position=1,
             kind=InvestigationBlockKind.TEXT,
             prompt="Explain the chart",
-            config={"autoRun": True},
         )
-        self.create_investigation_block_dependency(block=self.dependent, depends_on=self.root)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
-    def test_dispatches_in_dependency_order(self, dispatch: mock.Mock) -> None:
+    def test_dispatches_each_auto_run_block(self, dispatch: mock.Mock) -> None:
+        self.sibling.update(config={"autoRun": True})
+
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
                 investigation_id=self.investigation.id,
@@ -70,42 +70,13 @@ class InvestigationAutoRunTest(TestCase):
             )
 
         self.root.refresh_from_db()
-        self.dependent.refresh_from_db()
+        self.sibling.refresh_from_db()
         assert self.root.current_execution is not None
-        assert self.root.current_execution.status == InvestigationBlockExecutionStatus.PENDING
-        assert self.dependent.current_execution is None
-        dispatch.delay.assert_called_once_with(self.root.current_execution.id)
-
-        self.root.current_execution.update(
-            status=InvestigationBlockExecutionStatus.COMPLETED,
-            result={
-                "schemaVersion": 1,
-                "tableMarkdown": "| count |\n| --- |\n| 1 |",
-                "chart": None,
-                "preferredView": "table",
-                "isEmpty": False,
-                "chartUnavailableReason": None,
-                "queryLinks": [],
-            },
-        )
-        self.root.result_execution = self.root.current_execution
-        self.root.save(update_fields=["result_execution", "date_updated"])
-        self.root.refresh_from_db()
-        assert self.root.stale_at is None
-        assert self.root.result_execution is not None
-        assert self.root.result_execution.status == InvestigationBlockExecutionStatus.COMPLETED
-        dispatch.delay.reset_mock()
-
-        with self.captureOnCommitCallbacks(execute=True):
-            schedule_eligible_auto_run_blocks(
-                investigation_id=self.investigation.id,
-                user_id=self.user.id,
-            )
-
-        dependent = InvestigationBlock.objects.get(id=self.dependent.id)
-        assert dependent.current_execution is not None
-        assert dependent.current_execution.status == InvestigationBlockExecutionStatus.PENDING
-        dispatch.delay.assert_called_once_with(dependent.current_execution.id)
+        assert self.sibling.current_execution is not None
+        assert {call.args[0] for call in dispatch.delay.call_args_list} == {
+            self.root.current_execution.id,
+            self.sibling.current_execution.id,
+        }
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
     def test_redispatches_an_existing_pending_execution(self, dispatch: mock.Mock) -> None:
@@ -234,13 +205,13 @@ class InvestigationAutoRunTest(TestCase):
         self.root.current_execution = failed_execution
         self.root.save(update_fields=["current_execution"])
         sibling_execution = self.create_investigation_block_execution(
-            block=self.dependent,
+            block=self.sibling,
             executor="text_generation",
             status=InvestigationBlockExecutionStatus.RUNNING,
-            block_version=self.dependent.version,
+            block_version=self.sibling.version,
         )
-        self.dependent.current_execution = sibling_execution
-        self.dependent.save(update_fields=["current_execution"])
+        self.sibling.current_execution = sibling_execution
+        self.sibling.save(update_fields=["current_execution"])
 
         dispatch_investigation_execution(failed_execution.id)
 
@@ -324,11 +295,12 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self, dispatch_create: mock.Mock, dispatch_commands: mock.Mock
     ) -> None:
         with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
-            investigation, run = create_agentic_manual_investigation(
+            investigation, run = _create_agentic_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
+                orchestration_source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[],
                 filters={},
             )
@@ -437,11 +409,13 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             {
                 "runId": self.seer_run_id,
                 "requestId": str(first.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=2),
             },
             {
                 "runId": self.seer_run_id,
                 "requestId": str(second.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=3),
             },
         ]
@@ -543,6 +517,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         dispatch.return_value = {
             "runId": self.seer_run_id,
             "requestId": str(request_id),
+            "rerun": None,
             "projection": self.projection(workflow_version=2),
         }
         dispatch_investigation_orchestration_commands(self.orchestration_run.id)
@@ -591,6 +566,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
             return {
                 "runId": self.seer_run_id,
                 "requestId": str(command.request_id),
+                "rerun": None,
                 "projection": self.projection(workflow_version=command.resulting_workflow_version),
             }
 
@@ -790,6 +766,7 @@ class InvestigationOrchestrationDispatchTest(TestCase):
                 self.orchestration_run,
                 command,
                 {"organization_id": self.organization.id, "user_id": self.user.id},
+                "workflow_version_conflict",
             )
 
         self.orchestration_run.refresh_from_db()

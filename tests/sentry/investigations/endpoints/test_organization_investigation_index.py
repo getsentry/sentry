@@ -22,10 +22,6 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
-from sentry.investigations.templates.types import (
-    InvestigationTemplateSpec,
-    TemplateBlockSpec,
-)
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_create
@@ -34,7 +30,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 FEATURE = "organizations:investigations"
 
@@ -199,9 +195,8 @@ class OrganizationInvestigationIndexTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
         synchronize_projection.assert_called_once()
         dispatch_commands.assert_called_once_with(run.id)
@@ -296,7 +291,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.status_code == 400
         assert not Investigation.objects.filter(title="No access").exists()
 
-    def test_template_validation_is_strict_and_atomic(self) -> None:
+    def test_template_creation_is_rejected(self) -> None:
         before = Investigation.objects.count()
         response = self.client.post(
             self.collection_url,
@@ -307,73 +302,21 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "type": "metric_open_period",
                     "ref": {"groupId": "1", "openPeriodId": "1"},
                 },
-                "parameters": {"unexpected": True},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-        assert "parameters" in response.data
-        assert Investigation.objects.count() == before
-
-    def test_unknown_template_version_is_atomic(self) -> None:
-        before = Investigation.objects.count()
-        response = self.client.post(
-            self.collection_url,
-            data={
-                "templateKey": "breached_metric",
-                "templateVersion": 999,
-                "source": {
-                    "type": "metric_open_period",
-                    "ref": {"groupId": "1", "openPeriodId": "1"},
-                },
-                "parameters": {},
             },
             format="json",
         )
         assert response.status_code == 400
         assert Investigation.objects.count() == before
 
-    def test_cyclic_template_rolls_back_before_source_resolution(self) -> None:
-        template = InvestigationTemplateSpec(
-            key="cyclic",
-            version=1,
-            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
-            parameters=(),
-            blocks=(
-                TemplateBlockSpec(key="one", kind="text", title="One", dependencies=("two",)),
-                TemplateBlockSpec(key="two", kind="text", title="Two", dependencies=("one",)),
-            ),
-        )
-        before = Investigation.objects.count()
-        with mock.patch(
-            "sentry.investigations.services.investigations.get_investigation_template",
-            return_value=template,
-        ):
-            response = self.client.post(
-                self.collection_url,
-                data={
-                    "templateKey": "cyclic",
-                    "templateVersion": 1,
-                    "source": {"type": "metric_open_period", "ref": {"groupId": "1"}},
-                    "parameters": {},
-                },
-                format="json",
-            )
-        assert response.status_code == 400
-        assert Investigation.objects.count() == before
-
-    def test_template_rejects_wrong_issue_category(self) -> None:
+    def test_metric_source_rejects_wrong_issue_category(self) -> None:
         group = self.create_group(project=self.project)
         response = self.client.post(
             self.collection_url,
             data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
                 "source": {
                     "type": "metric_open_period",
                     "ref": {"groupId": str(group.id), "openPeriodId": "1"},
                 },
-                "parameters": {},
             },
             format="json",
         )
@@ -557,6 +500,11 @@ class OrganizationInvestigationIndexTest(APITestCase):
             "occurredAt": "2026-01-01T00:02:00+00:00",
         }
         tool = {"id": "tool-1", "title": "Query spans", "kind": "api", "status": "completed"}
+        thought = {
+            "id": "thought-1",
+            "text": "Check the spans first.",
+            "beforeActivityId": "tool-1",
+        }
         evidence = {
             "id": "evidence-1",
             "title": "Slow checkout spans",
@@ -584,6 +532,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "heartbeatAt": "2026-01-01T00:01:00+00:00",
                     "error": None,
                     "toolActivity": [tool],
+                    "thoughts": [thought],
                     "generation": 1,
                     "attempt": 0,
                     "automaticRetryCount": 0,
@@ -606,6 +555,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                         "planningStatus": "completed",
                         "heartbeatAt": "2026-01-01T00:03:00+00:00",
                         "toolActivity": [tool],
+                        "thoughts": [thought],
                         "evidence": [evidence],
                         "verificationSteps": [
                             {
@@ -646,6 +596,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "currentBlockKey": "summary",
                     "currentBlockStatus": "running",
                     "currentBlockToolActivity": [tool],
+                    "currentBlockThoughts": [thought],
                     "heartbeatAt": "2026-01-01T00:06:00+00:00",
                     "automaticRetryCount": 0,
                     "clearIntent": {

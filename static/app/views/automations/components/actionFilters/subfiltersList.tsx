@@ -182,7 +182,7 @@ function ComparisonTypeField() {
     <AutomationBuilderSelect
       name={`${subfilter_id}.type`}
       aria-label={t('Comparison type')}
-      value=""
+      value={null}
       placeholder={t('Select value type')}
       options={[
         {

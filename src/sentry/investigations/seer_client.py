@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Literal, TypedDict, cast
 from uuid import UUID, uuid5
 
@@ -8,8 +9,12 @@ from django.conf import settings
 from pydantic import BaseModel, Field, StrictBool, StrictInt, ValidationError
 from urllib3 import BaseHTTPResponse
 
+from sentry.hybridcloud.rpc.service import RpcException
+from sentry.investigations.contracts import RerunSkipReason
 from sentry.investigations.models import (
+    Investigation,
     InvestigationOrchestrationCommand,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
 )
 from sentry.net.http import connection_from_url
@@ -18,6 +23,9 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import ActorId, ActorType
+
+logger = logging.getLogger(__name__)
 
 _CREATE_REQUEST_NAMESPACE = UUID("3bed27f2-9ab9-49ce-8d64-7d78d5c3fd76")
 investigation_connection_pool = connection_from_url(
@@ -39,6 +47,29 @@ class InvestigationCommandResponse(TypedDict):
     duplicate: bool
     workflowVersion: int
     projection: dict[str, Any]
+    # Only rerun_after_connection has it.
+    rerun: InvestigationOrchestrationRerun | None
+
+
+# Why Seer turned down a command.
+CommandRejectionCode = Literal[
+    "workflow_version_conflict",
+    "idempotency_conflict",
+    "invalid_command_target",
+    "action_requests_report_changed",
+    RerunSkipReason,
+    "provider_already_used",
+]
+
+
+class SeerCommandRejected(SeerApiError):
+    def __init__(self, code: CommandRejectionCode) -> None:
+        super().__init__("Seer rejected the command", 409)
+        self.code = code
+
+
+class _CommandRejectionModel(BaseModel):
+    code: CommandRejectionCode
 
 
 class _InvestigationRunResponseModel(BaseModel):
@@ -54,18 +85,50 @@ class _InvestigationCommandResponseModel(BaseModel):
     duplicate: StrictBool
     workflow_version: StrictInt = Field(alias="workflowVersion")
     projection: dict[str, Any]
+    rerun: InvestigationOrchestrationRerun | None = None
 
 
 __all__ = [
+    "CommandRejectionCode",
     "InvestigationCommandResponse",
     "InvestigationRunResponse",
+    "SeerCommandRejected",
     "create_investigation_orchestration_run",
     "dispatch_investigation_orchestration_command",
     "get_investigation_orchestration_run",
 ]
 
 
+def _monitoring_providers(
+    investigation: Investigation, *, actor: ActorId | None
+) -> list[dict[str, Any]]:
+    """Replace Seer's connections with this actor's personal and organization connections."""
+
+    organization = investigation.organization
+    user_id = actor.id if actor is not None and actor.type == ActorType.USER else None
+    try:
+        connections = get_monitoring_provider_connections(
+            organization, user_id, skip_rpc_errors=False
+        )
+    except RpcException as error:
+        logger.warning(
+            "investigations.seer_client.monitoring_providers_failed",
+            extra={"organization_id": organization.id},
+            exc_info=True,
+        )
+        raise SeerApiError("Failed to load monitoring provider connections", 503) from error
+    return [connection.dict() for connection in connections]
+
+
 def _decode_response(response: BaseHTTPResponse) -> dict[str, Any]:
+    if response.status == 409:
+        try:
+            rejection = _CommandRejectionModel.parse_raw(response.data)
+        except ValidationError:
+            # Without a code we know, it's a version conflict.
+            pass
+        else:
+            raise SeerCommandRejected(rejection.code)
     if response.status < 200 or response.status >= 300:
         raise SeerApiError("Investigation orchestration request failed", response.status)
     try:
@@ -106,6 +169,7 @@ def _validate_command_response(value: dict[str, Any]) -> InvestigationCommandRes
         "duplicate": model.duplicate,
         "workflowVersion": model.workflow_version,
         "projection": model.projection,
+        "rerun": model.rerun,
     }
     return cast(InvestigationCommandResponse, normalized)
 
@@ -177,12 +241,9 @@ def create_investigation_orchestration_run(
         "userOrgContext": user_org_context,
         "activeTimeBudgetSeconds": 1800,
     }
-    monitoring_providers = get_monitoring_provider_connections(
-        run.investigation.organization,
-        run.investigation.created_by_id,
+    body["monitoringProviders"] = _monitoring_providers(
+        run.investigation, actor=run.investigation.creator_actor
     )
-    if monitoring_providers:
-        body["monitoringProviders"] = [provider.dict() for provider in monitoring_providers]
     response = _post(
         "/v1/automation/investigations",
         body,
@@ -207,12 +268,9 @@ def dispatch_investigation_orchestration_command(
         "expectedWorkflowVersion": command.expected_workflow_version,
         "command": {"type": command.type, **command.payload},
     }
-    monitoring_providers = get_monitoring_provider_connections(
-        investigation.organization,
-        command.actor_id or investigation.created_by_id,
+    body["monitoringProviders"] = _monitoring_providers(
+        investigation, actor=command.requested_by_actor
     )
-    if monitoring_providers:
-        body["monitoringProviders"] = [provider.dict() for provider in monitoring_providers]
     response = _post(
         f"/v1/automation/investigations/{seer_run_id}/commands",
         body,

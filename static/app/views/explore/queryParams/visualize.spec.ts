@@ -30,15 +30,25 @@ describe('VisualizeFunction', () => {
     }
   );
 
-  it('does not apply transformations to equations', () => {
+  it('keeps transformations on equations', () => {
     const [visualize] = parseVisualize({
       yAxes: ['equation|count(span.duration) * 2'],
       transformations: ['fill(locf)'],
     });
+    expect(visualize).toBeInstanceOf(VisualizeEquation);
     expect(visualize?.serialize()).toEqual({
       yAxes: ['equation|count(span.duration) * 2'],
+      transformations: ['fill(locf)'],
     });
-    expect(visualize).toBeInstanceOf(VisualizeEquation);
+    expect(
+      visualize?.replace({yAxis: 'equation|count(span.duration) * 3'}).clone().serialize()
+    ).toEqual({
+      yAxes: ['equation|count(span.duration) * 3'],
+      transformations: ['fill(locf)'],
+    });
+    expect(visualize?.replace({transformations: []}).serialize()).toEqual({
+      yAxes: ['equation|count(span.duration) * 2'],
+    });
   });
 
   it.each(['count(span.duration)', 'count_unique(span.op)', 'sum(span.duration)'])(
@@ -69,6 +79,18 @@ describe('VisualizeFunction', () => {
       chartType: ChartType.AREA,
     });
     expect(visualize.chartType).toEqual(ChartType.AREA);
+  });
+
+  it('uses line charts while in a chart group', () => {
+    const grouped = new VisualizeFunction('count(span.duration)', {
+      chartType: ChartType.BAR,
+      chartGroup: 'chart-group',
+    });
+    expect(grouped.chartType).toEqual(ChartType.LINE);
+
+    // The selected chart type comes back once the visualize leaves the group.
+    const ungrouped = grouped.replace({chartGroup: null});
+    expect(ungrouped.chartType).toEqual(ChartType.BAR);
   });
 
   it('clones', () => {

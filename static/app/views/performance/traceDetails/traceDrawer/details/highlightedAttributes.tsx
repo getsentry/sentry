@@ -20,7 +20,11 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  getScalarAttributeValue,
+  type TraceItemAttributeScalarValue,
+  type TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -30,7 +34,10 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import {getToolOutputBytesFromAttributes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {
+  getReportedToolOutputBytes,
+  getToolOutputBytesFromAttributes,
+} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
@@ -192,11 +199,11 @@ function ensureAttributeObject(
   attributes: Record<string, string | number | boolean> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
-    return attributes.reduce<Record<string, string | number | boolean>>(
+    return attributes.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those
-        acc[prettifyAttributeName(attribute.name)] = attribute.value;
+        acc[prettifyAttributeName(attribute.name)] = getScalarAttributeValue(attribute);
         return acc;
       },
       {}
@@ -323,12 +330,8 @@ function getAISpanAttributes({
   }
 
   const toolOutputBytes = getToolOutputBytesFromAttributes(key => attributes[key]);
-  const reportedSize = attributes['gen_ai.tool.call.result.size'];
   const hasReportedSize =
-    (typeof reportedSize === 'number' ||
-      (typeof reportedSize === 'string' && reportedSize.trim() !== '')) &&
-    Number.isFinite(Number(reportedSize)) &&
-    Number(reportedSize) >= 0;
+    getReportedToolOutputBytes(attributes['gen_ai.tool.call.result.size']) !== undefined;
   if (getIsExecuteToolSpan(genAiOpType) && (toolOutputBytes > 0 || hasReportedSize)) {
     highlightedAttributes.push({
       name: t('Result Size'),

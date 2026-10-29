@@ -19,6 +19,7 @@ import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/gen
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
+import {useCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/hooks/utils/useCustomReleaseSorting';
 import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
@@ -32,6 +33,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     organization,
     pageFilters,
     enabled,
+    limit,
     dashboardFilters,
     skipDashboardFilterParens,
     widgetInterval,
@@ -39,13 +41,22 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
   const {queue} = useWidgetQueryQueue();
 
+  const releaseSorting = useCustomReleaseSorting({
+    widget,
+    organization,
+    pageFilters,
+    dashboardFilters,
+    enabled,
+    limit,
+  });
+
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
-      widget,
+      releaseSorting.widget,
       dashboardFilters,
       skipDashboardFilterParens
     );
-  }, [widget, dashboardFilters, skipDashboardFilterParens]);
+  }, [releaseSorting.widget, dashboardFilters, skipDashboardFilterParens]);
 
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
@@ -103,7 +114,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
           }
           return apiFetch<SessionApiResponse>(context);
         },
-        enabled,
+        enabled: enabled && !releaseSorting.isLoading,
         retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
@@ -118,6 +129,14 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       return {
         loading: false,
         errorMessage: validationError,
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
+    if (releaseSorting.errorMessage) {
+      return {
+        loading: false,
+        errorMessage: releaseSorting.errorMessage,
         rawData: EMPTY_ARRAY,
       };
     }
@@ -149,7 +168,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         return;
       }
 
-      const responseData = q.data.json;
+      const responseData = releaseSorting.sortGroups(q.data.json);
 
       const legacySeries = releasesResponseTransforms.transformSeries?.(
         responseData,
@@ -167,12 +186,8 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         requestIndex
       );
 
-      transformedResult.forEach((result, resultIndex) => {
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
+      timeseriesResults.push(...transformedResult);
     });
-
-    // Memoize raw data to prevent unnecessary rerenders
 
     return {
       loading: false,
@@ -203,13 +218,22 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
   const {queue} = useWidgetQueryQueue();
 
+  const releaseSorting = useCustomReleaseSorting({
+    widget,
+    organization,
+    pageFilters,
+    dashboardFilters,
+    enabled,
+    limit,
+  });
+
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
-      widget,
+      releaseSorting.widget,
       dashboardFilters,
       skipDashboardFilterParens
     );
-  }, [widget, dashboardFilters, skipDashboardFilterParens]);
+  }, [releaseSorting.widget, dashboardFilters, skipDashboardFilterParens]);
 
   // Compute validation error and request options together
   const {queryRequests, validationError} = useMemo(() => {
@@ -254,7 +278,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
           }
           return apiFetch<SessionApiResponse>(context);
         },
-        enabled,
+        enabled: enabled && !releaseSorting.isLoading,
         retry: false,
         retryDelay: getRetryDelay,
         placeholderData: keepPreviousData,
@@ -269,6 +293,14 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       return {
         loading: false,
         errorMessage: validationError,
+        rawData: EMPTY_ARRAY,
+      };
+    }
+
+    if (releaseSorting.errorMessage) {
+      return {
+        loading: false,
+        errorMessage: releaseSorting.errorMessage,
         rawData: EMPTY_ARRAY,
       };
     }
@@ -301,7 +333,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
         return;
       }
 
-      const responseData = q.data.json;
+      const responseData = releaseSorting.sortGroups(q.data.json);
 
       const tableData = releasesResponseTransforms.transformTable?.(
         responseData,
@@ -324,8 +356,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       // Get page links from response headers
       responsePageLinks = q.data.headers.Link ?? undefined;
     });
-
-    // Memoize raw data to prevent unnecessary rerenders
 
     return {
       loading: false,

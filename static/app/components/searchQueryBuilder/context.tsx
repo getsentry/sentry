@@ -95,6 +95,7 @@ interface SearchQueryBuilderLayoutContextData {
   panelRef: React.RefObject<HTMLDivElement | null>;
   portalTarget: HTMLElement | null | undefined;
   setMenuContainer: (element: HTMLDivElement | null) => void;
+  showAllFilterValues: boolean;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -214,6 +215,7 @@ export function SearchQueryBuilderProvider({
   invalidFilterKeys,
   keepOperatorOnValueSelect,
   disableFullWidthFilterKeyMenu = false,
+  showAllFilterValues = false,
   asyncFilterKeyRegistryQueryKey,
 }: SearchQueryBuilderProps & {children: React.ReactNode}) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -491,6 +493,7 @@ export function SearchQueryBuilderProvider({
       panelRef,
       portalTarget: menuPresentation === 'panel' ? menuContainer : portalTarget,
       setMenuContainer,
+      showAllFilterValues,
       size,
       wrapperRef,
     };
@@ -503,6 +506,7 @@ export function SearchQueryBuilderProvider({
     menuContainer,
     panelRef,
     portalTarget,
+    showAllFilterValues,
     size,
     wrapperRef,
   ]);

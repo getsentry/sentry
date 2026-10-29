@@ -6762,6 +6762,27 @@ describe('SearchQueryBuilder', () => {
     });
   });
 
+  describe('showAllFilterValues', () => {
+    it('lists every selected value instead of a count', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          showAllFilterValues
+          initialQuery="browser.name:[one,two,three,four,five]"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+      for (const value of ['one', 'two', 'three', 'four', 'five']) {
+        expect(within(valueButton).getByText(value)).toBeInTheDocument();
+      }
+      expect(within(valueButton).queryByText(/^\+\d+$/)).not.toBeInTheDocument();
+      expect(within(valueButton).getAllByText('or')).toHaveLength(4);
+    });
+  });
+
   describe('highlightUnsupportedFilters', () => {
     it('should mark unsupported filters as invalid', async () => {
       render(
@@ -7360,6 +7381,36 @@ describe('SearchQueryBuilder', () => {
       );
 
       expect(await screen.findByRole('button', {name: 'Match case'})).toBeInTheDocument();
+    });
+
+    it('should explicitly match case when toggled off', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Match case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(false);
+    });
+
+    it('should ignore case when toggled on', async () => {
+      const onCaseInsensitiveClick = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          caseInsensitive={false}
+          onCaseInsensitiveClick={onCaseInsensitiveClick}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ignore case'}));
+
+      expect(onCaseInsensitiveClick).toHaveBeenCalledWith(true);
     });
   });
 

@@ -51,8 +51,7 @@ export function AutomationBuilder() {
                         height: '21px',
                       }),
                     }}
-                    isSearchable={false}
-                    isClearable={false}
+                    searchable={false}
                     name={`${state.triggers.id}.logicType`}
                     value={
                       // We do not expose ANY as a valid option, but it is
