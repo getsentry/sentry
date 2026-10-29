@@ -23,7 +23,6 @@ class TriageCandidate(_Base):
     group_id: int
     title: str
     culprit: str | None = None
-    fixability: float | None = None
     times_seen: int
     first_seen: str  # ISO 8601; Seer parses it back to a datetime.
     priority: str | None = None

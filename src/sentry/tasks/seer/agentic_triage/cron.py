@@ -819,7 +819,6 @@ def _build_shard_plans(
                     group_id=candidate.group.id,
                     title=candidate.group.title,
                     culprit=candidate.group.culprit,
-                    fixability=candidate.fixability,
                     times_seen=candidate.group.times_seen,
                     first_seen=candidate.group.first_seen.isoformat(),
                     priority=priority_label(candidate.group.priority),
