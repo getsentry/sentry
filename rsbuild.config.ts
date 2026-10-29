@@ -267,6 +267,9 @@ const swcReactLoaderConfig: SwcLoaderOptions = {
   isModule: 'unknown',
 };
 
+// Oxc runs the React Compiler because SWC's breaks sourcemaps
+// (https://github.com/web-infra-dev/rspack/issues/15350). Switch back
+// once https://github.com/facebook/react/pull/36921 ships in Rspack.
 const oxcReactCompilerLoaderPath = path.resolve(
   import.meta.dirname,
   './build-utils/oxc-react-compiler-loader.ts'
@@ -363,9 +366,6 @@ const appConfig: Configuration = {
           },
           {
             // Application code only.
-            // Oxc runs the React Compiler because SWC's breaks sourcemaps
-            // (https://github.com/web-infra-dev/rspack/issues/15350). Switch back
-            // once https://github.com/facebook/react/pull/36921 ships in Rspack.
             exclude: /node_modules/,
             use: [
               {loader: 'builtin:swc-loader', options: swcReactLoaderConfig},
