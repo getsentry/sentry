@@ -46,6 +46,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -335,6 +336,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
+        # The new project's default team is the creator's own, which needs a person.
+        require_user(request)
         if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")
 
