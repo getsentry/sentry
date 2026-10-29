@@ -20,26 +20,30 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def trigger_lightweight_rca_cluster(group: Group) -> None:
+def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -> None:
     """
     Call Seer's lightweight RCA clustering endpoint for the given group.
 
     Sends issue event data to Seer, which generates a lightweight root cause analysis
     and clusters the issue into supergroups based on embedding similarity.
     """
-    event = group.get_latest_event()
-    if not event:
-        logger.info(
-            "lightweight_rca_cluster.no_event",
-            extra={"group_id": group.id},
-        )
-        return
+    if event_id is None:
+        # Fallback for tasks enqueued without an event_id. Prefer passing the
+        # event_id from post_process to avoid an unbounded Snuba latest-event query.
+        event = group.get_latest_event()
+        if not event:
+            logger.info(
+                "lightweight_rca_cluster.no_event",
+                extra={"group_id": group.id},
+            )
+            return
+        event_id = event.event_id
 
-    ready_event = eventstore.get_event_by_id(group.project.id, event.event_id, group_id=group.id)
+    ready_event = eventstore.get_event_by_id(group.project.id, event_id, group_id=group.id)
     if not ready_event:
         logger.info(
             "lightweight_rca_cluster.event_not_ready",
-            extra={"group_id": group.id, "event_id": event.event_id},
+            extra={"group_id": group.id, "event_id": event_id},
         )
         return
 
