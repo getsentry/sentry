@@ -54,7 +54,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-# Feed policy only: keep these events in GAL for other consumers.
 _FEED_EXCLUDED_ACTION_TYPES = (
     GroupActionType.FIRST_SEEN,  # Appended separately below.
     # Preserve legacy create/link coverage. Dedicated events can also represent
@@ -77,8 +76,6 @@ _FEED_EXCLUDED_ACTION_TYPES = (
     GroupActionType.AUTOFIX_CODING_COMPLETE,
 )
 
-# These GAL-only events have explicit renderers in the issue activity feed.
-# Do not rename other unmapped types as a side effect of adding feed support.
 _FEED_NATIVE_TYPE_NAMES = {
     GroupActionType.UNLINK_EXTERNAL_ISSUE: "unlink_external_issue",
     GroupActionType.UNLINK_PLATFORM_EXTERNAL_ISSUE: "unlink_platform_external_issue",

@@ -29,8 +29,7 @@ from sentry.utils.action_log.activity_translator import (
 
 
 def test_user_visible_action_types_are_accounted_for() -> None:
-    # Catch new unmapped GAL types. Serialization mappings alone do not prove
-    # frontend support; new mapped types still need a renderer review.
+    """Catch new unmapped GAL types."""
     accounted_for = {
         *GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
         *_FEED_EXCLUDED_ACTION_TYPES,
