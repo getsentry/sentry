@@ -26,10 +26,11 @@ from sentry.models.organization import Organization
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
+    SeerWorkflowFilters,
     SeerWorkflowRun,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
 
 
 class SeerWorkflowConfigResponse(TypedDict):
@@ -210,8 +211,7 @@ def serialize_workflow_config(
     selected_project_ids: list[int],
     last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
-    workflow = SeerWorkflow(config)
-    filters = workflow.filters
+    filters = SeerWorkflowFilters.parse_obj(config.filters)
     result: SeerWorkflowConfigResponse = {
         "id": str(config.id),
         "strategy": config.strategy,
@@ -229,7 +229,7 @@ def serialize_workflow_config(
             snake_to_camel_case,
         ),
         "outputPolicy": config.output_policy,
-        "seededDefault": workflow.extras.seeded_default,
+        "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
