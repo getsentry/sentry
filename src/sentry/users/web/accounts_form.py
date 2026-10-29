@@ -9,60 +9,10 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.auth import password_validation
 from sentry.users.models.user import User
-from sentry.utils.auth import find_users
 from sentry.utils.dates import get_timezone_choices
 from sentry.web.forms.fields import AllowedEmailField
 
 TIMEZONE_CHOICES = get_timezone_choices()
-
-
-class RecoverPasswordForm(forms.Form):
-    user = forms.CharField(
-        label=_("Account"),
-        max_length=128,
-        widget=forms.TextInput(attrs={"placeholder": _("username or email")}),
-    )
-
-    def clean_user(self) -> User | None:
-        value = (self.cleaned_data.get("user") or "").strip()
-        if not value:
-            return None
-        users = find_users(value, with_valid_password=False)
-        if not users:
-            return None
-
-        # If we find more than one user, we likely matched on email address.
-        # We silently bail here as we emailing the 'wrong' person isn't great.
-        # They will have to retry with their username which is guaranteed
-        # to be unique
-        if len(users) > 1:
-            return None
-
-        users = [u for u in users if not getattr(u, "is_suspended", False)]
-        if not users:
-            return None
-
-        users = [u for u in users if not u.is_managed]
-        if not users:
-            raise forms.ValidationError(
-                _(
-                    "The account you are trying to recover is managed and does not support password recovery."
-                )
-            )
-        return users[0]
-
-
-class ChangePasswordRecoverForm(forms.Form):
-    password = forms.CharField(widget=forms.PasswordInput())
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        self.user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-
-    def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
-        password_validation.validate_password(password, user=self.user)
-        return password
 
 
 class EmailForm(forms.Form):
