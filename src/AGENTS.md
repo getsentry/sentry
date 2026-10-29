@@ -92,6 +92,8 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 
 ### Database Guidelines
 
+For new ORM model design, including primary keys and direct organization/project ownership, use the **`django-models`** skill (`.agents/skills/django-models/SKILL.md`).
+
 1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
 2. Data migrations using `apps.get_model()` operate on historical model classes: custom `save()` methods are absent, and signals scoped to the live model class do not run. Identify and explicitly perform required side effects such as cache invalidation; see the **`generate-migration`** skill.
 3. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
