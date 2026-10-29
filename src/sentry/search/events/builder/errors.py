@@ -123,7 +123,9 @@ class ErrorsQueryBuilderMixin(BaseQueryBuilder):
 
     @override
     def resolve_column_name(self, col: str) -> str:
-        if col in GROUP_ATTRIBUTE_FIELDS:
+        # The generic errors resolver treats unknown fields as event tags. Issue substatus
+        # is stored on group_attributes, so keep the unqualified field name for entity mapping.
+        if col == "substatus":
             return col
         return super().resolve_column_name(col)
 
