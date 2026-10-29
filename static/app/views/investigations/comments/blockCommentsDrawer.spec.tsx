@@ -10,7 +10,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationCommentFixture,

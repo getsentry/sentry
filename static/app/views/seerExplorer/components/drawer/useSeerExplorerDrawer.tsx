@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef} from 'react';
 
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';

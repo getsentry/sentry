@@ -4,9 +4,9 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
-import {useDrawer} from 'sentry/components/drawer';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';

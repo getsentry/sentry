@@ -1,10 +1,9 @@
 import {useEffect, useRef} from 'react';
 
-import {DrawerBody} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {DrawerHeader, useDrawer} from 'sentry/components/drawer';
 import {ProjectDefaultsForm} from 'sentry/components/seer/projectDefaults/projectDefaultsForm';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';

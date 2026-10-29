@@ -1,9 +1,9 @@
 import {useCallback, useEffect, useRef} from 'react';
 import {useQueryStates} from 'nuqs';
 
+import {useDrawer} from '@sentry/scraps/drawer';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
-import {useDrawer} from 'sentry/components/drawer';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';

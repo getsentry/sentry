@@ -14,6 +14,7 @@ import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {
   DEFAULT_WIDTH_PERCENT,
+  getDrawerWidthPercent,
   MAX_WIDTH_PERCENT,
   MIN_WIDTH_PERCENT,
   useDrawerResizing,
@@ -23,6 +24,8 @@ interface DrawerContentContextType {
   ariaLabel: string;
   onClose?: () => void;
 }
+
+export const DrawerHeaderHeightContext = createContext<string | undefined>(undefined);
 
 const DrawerContentContext = createContext<DrawerContentContextType>({
   onClose: () => {},
@@ -60,7 +63,7 @@ export function DrawerPanel({
   onClose,
   drawerWidth,
   drawerMaxWidth,
-  widthPercent = DEFAULT_WIDTH_PERCENT,
+  widthPercent = getDrawerWidthPercent(drawerWidth),
   onWidthChange,
   isSmallScreen = false,
   contentTop,
@@ -161,6 +164,7 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const headerHeight = useContext(DrawerHeaderHeightContext);
   const {t} = useTranslation();
 
   return (
@@ -169,7 +173,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
-      height={height}
+      height={height ?? headerHeight}
     >
       {!hideCloseButton && (
         <Fragment>

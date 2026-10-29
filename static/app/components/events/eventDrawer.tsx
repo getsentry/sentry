@@ -1,12 +1,11 @@
 import type {ComponentPropsWithoutRef} from 'react';
 import styled from '@emotion/styled';
 
-import {DrawerBody} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
-import {DrawerHeader} from 'sentry/components/drawer';
 import {MIN_NAV_HEIGHT} from 'sentry/views/issueDetails/eventTitle';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 

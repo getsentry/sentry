@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {createRef, Fragment} from 'react';
 
 import {
   render,
@@ -9,10 +9,15 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
-import {DrawerBody} from '@sentry/scraps/drawer';
+import {
+  DrawerBody,
+  useDrawer,
+  useDrawerPlacement,
+  DrawerHeader,
+} from '@sentry/scraps/drawer';
+import type {DrawerConfig} from '@sentry/scraps/drawer';
 
-import type {DrawerConfig} from 'sentry/components/drawer';
-import {useDrawer, useDrawerPlacement, DrawerHeader} from 'sentry/components/drawer';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -510,5 +515,22 @@ describe('GlobalDrawer', () => {
         .style.getPropertyValue('--drawer-width')
     ).toBe(`${savedWidth}%`);
     localStorage.removeItem(key);
+  });
+  it('supplies the app header height to the scraps header', () => {
+    const headerRef = createRef<HTMLHeadingElement>();
+    render(<DrawerHeader ref={headerRef} />);
+    // The app test environment stubs getComputedStyle to return inline styles.
+    const rules = Array.from(document.styleSheets).flatMap(sheet =>
+      Array.from(sheet.cssRules)
+    );
+    expect(
+      rules.some(
+        rule =>
+          rule instanceof CSSStyleRule &&
+          headerRef.current?.matches(rule.selectorText) &&
+          rule.style.getPropertyValue('--drawer-header-height') ===
+            PRIMARY_HEADER_HEIGHT + 'px'
+      )
+    ).toBe(true);
   });
 });

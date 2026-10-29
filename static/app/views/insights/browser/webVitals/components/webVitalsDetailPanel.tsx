@@ -2,10 +2,10 @@ import {useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {DrawerHeader} from 'sentry/components/drawer';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
   DataGrid,

@@ -8,6 +8,16 @@ export function clampDrawerWidth(width: number) {
   return Math.min(Math.max(width, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
 }
 
+export function getDrawerWidthPercent(drawerWidth?: string) {
+  if (!drawerWidth) {
+    return DEFAULT_WIDTH_PERCENT;
+  }
+  const value = parseFloat(drawerWidth);
+  return clampDrawerWidth(
+    drawerWidth.endsWith('%') ? value : (value / window.innerWidth) * 100
+  );
+}
+
 interface UseDrawerResizingOptions {
   isSmallScreen: boolean;
   widthPercent: number;

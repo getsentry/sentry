@@ -1,6 +1,5 @@
-import {useDrawerContentContext} from '@sentry/scraps/drawer';
+import {DrawerHeader, useDrawerContentContext} from '@sentry/scraps/drawer';
 
-import {DrawerHeader} from 'sentry/components/drawer';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 
 /**

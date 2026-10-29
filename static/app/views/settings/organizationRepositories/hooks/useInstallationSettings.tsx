@@ -2,13 +2,12 @@ import {Fragment} from 'react';
 import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DrawerBody} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
-import {DrawerHeader, useDrawer} from 'sentry/components/drawer';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';

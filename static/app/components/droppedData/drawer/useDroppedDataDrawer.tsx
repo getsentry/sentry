@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';

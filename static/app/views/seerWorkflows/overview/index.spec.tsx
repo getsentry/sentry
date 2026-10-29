@@ -15,7 +15,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import {
   getPageFilterStorage,

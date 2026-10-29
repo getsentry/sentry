@@ -1,10 +1,8 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
-import {DrawerBody} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
-
-import {DrawerHeader, useDrawer} from 'sentry/components/drawer';
 
 export function BasicDemo() {
   const {openDrawer, isDrawerOpen} = useDrawer();

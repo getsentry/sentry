@@ -2,9 +2,9 @@
 title: GlobalDrawer
 description: Application-wide singleton slide-out drawer, opened and closed via React hooks.
 category: overlays
-source: 'sentry/components/drawer'
+source: '@sentry/scraps/drawer'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/drawer/index.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/drawer/globalDrawer.tsx
 ---
 
 import * as Storybook from 'sentry/stories';
@@ -17,7 +17,7 @@ import {
   ShouldCloseDemo,
 } from './__stories__/demos';
 
-export const documentation = import('!!type-loader!sentry/components/drawer');
+export const documentation = import('!!type-loader!@sentry/scraps/drawer');
 
 `GlobalDrawer` is an application-wide singleton drawer that slides in from the right side of the page. Only one drawer can be open at a time. The drawer is controlled via the `useDrawer()` hook — no JSX required at the call site.
 
@@ -26,9 +26,7 @@ export const documentation = import('!!type-loader!sentry/components/drawer');
 </Storybook.Demo>
 
 ```jsx
-import {DrawerBody} from '@sentry/scraps/drawer';
-
-import {useDrawer, DrawerHeader} from 'sentry/components/drawer';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 function MyPage() {
   const {openDrawer, isDrawerOpen} = useDrawer();
@@ -189,7 +187,7 @@ Represent drawer state in the URL so the drawer reopens when the URL is shared o
 
 ```jsx
 import {useEffect} from 'react';
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {useLocation} from 'sentry/utils/useLocation';
 
 function OverviewPage() {
@@ -223,9 +221,7 @@ The drawer closes automatically on URL change in `'blocking'` mode, so no explic
 </Storybook.Demo>
 
 ```jsx
-import {DrawerBody} from '@sentry/scraps/drawer';
-
-import {DrawerHeader} from 'sentry/components/drawer';
+import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 
 openDrawer(
   () => (
@@ -238,6 +234,6 @@ openDrawer(
 );
 ```
 
-## Standalone presentation
+## App configuration
 
-Import `DrawerPanel`, `DrawerHeader`, and `DrawerBody` from `@sentry/scraps/drawer` to render a drawer outside the app. The consumer supplies header height, viewport sizing state, and width preferences. `onWidthChange` reports the percentage when resizing ends. The Sentry adapter in `sentry/components/drawer` adds saved preferences, routing, outside-click handling, and the error boundary.
+The drawer context, hooks, and UI are exported by `@sentry/scraps/drawer`. `GlobalDrawer` accepts optional location, header height, panel, and error-boundary inputs. The provider in `sentry/components/drawer` supplies Sentry routing, saved width, navigation offsets, and the modal-portal exception. Callers can keep importing `useDrawer`, `DrawerHeader`, and `DrawerBody` from scraps.

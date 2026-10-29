@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 
-import {useDrawer} from 'sentry/components/drawer';
+import {useDrawer} from '@sentry/scraps/drawer';
+
 import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

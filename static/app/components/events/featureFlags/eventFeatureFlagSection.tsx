@@ -3,11 +3,11 @@ import {IconSearch} from '@sentry/icons/search';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
+import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {useDrawer} from 'sentry/components/drawer';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {EventFeatureFlagDrawer} from 'sentry/components/events/featureFlags/eventFeatureFlagDrawer';
 import {FeatureFlagSettingsButton} from 'sentry/components/events/featureFlags/featureFlagSettingsButton';

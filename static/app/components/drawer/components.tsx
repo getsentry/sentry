@@ -1,21 +1,14 @@
 import {useTheme} from '@emotion/react';
 
 import {
-  DrawerHeader as BaseDrawerHeader,
   DrawerPanel as BaseDrawerPanel,
-  type DrawerHeaderProps,
   type DrawerPanelProps,
 } from '@sentry/scraps/drawer';
 
 import {useMedia} from 'sentry/utils/useMedia';
-import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 import {useDrawerWidth} from './useDrawerWidth';
-
-export function DrawerHeader(props: DrawerHeaderProps) {
-  return <BaseDrawerHeader height={`${PRIMARY_HEADER_HEIGHT}px`} {...props} />;
-}
 
 export function DrawerPanel({
   drawerKey,

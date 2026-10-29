@@ -62,11 +62,11 @@ try {
   await writeFile(
     source,
     `
-import {DrawerBody, DrawerHeader, DrawerPanel, type DrawerPanelProps} from '@sentry/scraps/drawer';
+import {DrawerBody, DrawerHeader, DrawerPanel, GlobalDrawer, useDrawer, type DrawerPanelProps} from '@sentry/scraps/drawer';
 import {SlideOverPanel, type SlideOverPanelProps} from '@sentry/scraps/slideOverPanel';
 const drawer: DrawerPanelProps = {ariaLabel: 'Details', mode: 'blocking', children: <DrawerBody>Body</DrawerBody>};
 const panel: SlideOverPanelProps = {contentTop: '80px', children: 'Panel'};
-export const content = <><DrawerPanel {...drawer}><DrawerHeader height="64px" /></DrawerPanel><SlideOverPanel {...panel} /></>;
+export const content = <GlobalDrawer><DrawerPanel {...drawer}><DrawerHeader height="64px" /></DrawerPanel><SlideOverPanel {...panel} /></GlobalDrawer>;
 `
   );
   const program = ts.createProgram([source], {
@@ -105,13 +105,14 @@ globalThis.getComputedStyle = dom.window.getComputedStyle.bind(dom.window);
 globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
 globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+dom.window.scrollTo = () => {};
 // jsdom has no layout observer; browsers provide this API.
 globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
 const {createElement: h} = await import('react');
 const {ThemeProvider} = await import('@emotion/react');
 const {render, screen, cleanup} = await import('@testing-library/react');
 const {default: userEvent} = await import('@testing-library/user-event');
-const {DrawerPanel, DrawerHeader, DrawerBody} = await import('@sentry/scraps/drawer');
+const {DrawerPanel, DrawerHeader, DrawerBody, GlobalDrawer, useDrawer} = await import('@sentry/scraps/drawer');
 const {SlideOverPanel} = await import('@sentry/scraps/slideOverPanel');
 const {lightTheme} = await import('@sentry/scraps/theme');
 let closed = false;
@@ -134,8 +135,19 @@ render(h(ThemeProvider, {theme: lightTheme},
 await screen.findByText('Packed panel');
 assert.equal(getComputedStyle(screen.getByRole('complementary')).top, '80px');
 cleanup();
+function DrawerControl() {
+  const {openDrawer} = useDrawer();
+  return h('button', {onClick: () => openDrawer(() => h(DrawerBody, null, 'Hook content'), {ariaLabel: 'Hook drawer'})}, 'Open hook drawer');
+}
+render(h(ThemeProvider, {theme: lightTheme}, h(GlobalDrawer, null, h(DrawerControl))));
+await userEvent.click(screen.getByRole('button', {name: 'Open hook drawer'}));
+await screen.findByText('Hook content');
+assert.equal(document.body.style.position, 'fixed');
+await userEvent.keyboard('{Escape}');
+assert.equal(document.body.style.position, '');
+cleanup();
 dom.window.close();
-console.log('Packed drawer consumer: declarations, runtime exports, close, keyboard resize, focus, and offset passed.');
+console.log('Packed drawer consumer: declarations, runtime exports, close, keyboard resize, focus, offsets, and useDrawer lifecycle passed.');
 `
   );
   execFileSync(process.execPath, [path.join(consumer, 'runtime.mjs')], {
