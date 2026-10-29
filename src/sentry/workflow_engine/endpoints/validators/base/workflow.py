@@ -47,10 +47,6 @@ class ActionFilterInput(DataConditionGroupInput):
     actions: list[ActionInput]
 
 
-class WorkflowTriggersValidator(BaseDataConditionGroupValidator):
-    handler_group = DataConditionHandler.Group.WORKFLOW_TRIGGER
-
-
 class ActionFilterValidator(BaseDataConditionGroupValidator):
     handler_group = DataConditionHandler.Group.ACTION_FILTER
     actions = serializers.ListField(child=serializers.DictField())
@@ -96,8 +92,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text="The name of the environment for the alert to evaluate in",
     )
 
-    triggers = WorkflowTriggersValidator(
+    triggers = BaseDataConditionGroupValidator(
         required=False,
+        handler_group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = ActionFilterValidator(

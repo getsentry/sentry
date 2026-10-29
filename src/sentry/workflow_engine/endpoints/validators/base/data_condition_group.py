@@ -34,6 +34,13 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     # other handler groups can never evaluate there.
     handler_group: DataConditionHandler.Group | None = None
 
+    def __init__(
+        self, *args: Any, handler_group: DataConditionHandler.Group | None = None, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if handler_group is not None:
+            self.handler_group = handler_group
+
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
