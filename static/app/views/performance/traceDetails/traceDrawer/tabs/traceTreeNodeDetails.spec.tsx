@@ -13,6 +13,22 @@ import {
   makeTraceError,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
+// Mock every panel that nodeDetails imports, not just the ones under test. Any
+// real panel left in gets loaded by the first test's lazy import, which is too
+// slow on a cold CI cache for findBy to wait out.
+jest.mock(
+  'sentry/views/performance/traceDetails/traceDrawer/details/missingInstrumentation',
+  () => ({MissingInstrumentationNodeDetails: () => null})
+);
+jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/uptime', () => ({
+  UptimeNodeDetails: () => null,
+}));
+jest.mock(
+  'sentry/views/performance/traceDetails/traceDrawer/details/uptime/timing',
+  () => ({
+    UptimeTimingDetails: () => null,
+  })
+);
 jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/span', () => ({
   EAPSpanNodeDetails: () => <div>span details</div>,
 }));
