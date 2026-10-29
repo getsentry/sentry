@@ -9,11 +9,6 @@ type SeerWorkflowError = {
   message: string;
 };
 
-/**
- * Null for historical rows recorded before run lifecycle tracking
- */
-type SeerWorkflowActiveStatus = 'queued' | 'running' | 'complete' | null;
-
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
   dateCompleted: string | null;
@@ -23,7 +18,15 @@ type SeerWorkflowExecutionBase = {
 };
 
 type SeerWorkflowExecution = SeerWorkflowExecutionBase &
-  ({status: SeerWorkflowActiveStatus} | {error: SeerWorkflowError; status: 'failed'});
+  (
+    | {
+        /**
+         * Null for historical rows recorded before run lifecycle tracking
+         */
+        status: 'queued' | 'running' | 'complete' | null;
+      }
+    | {error: SeerWorkflowError; status: 'failed'}
+  );
 
 type SeerAutomationRunBase = {
   configId: string;
@@ -37,7 +40,12 @@ type SeerAutomationRunBase = {
 
 export type SeerAutomationRun = SeerAutomationRunBase &
   (
-    | {status: SeerWorkflowActiveStatus}
+    | {
+        /**
+         * Null for historical rows recorded before run lifecycle tracking
+         */
+        status: 'queued' | 'running' | 'complete' | null;
+      }
     | {error: SeerWorkflowError; status: 'failed' | 'rejected'}
   );
 
