@@ -5,6 +5,7 @@ from datetime import timedelta
 from typing import Any
 
 import orjson
+from django.db import router, transaction
 from django.utils import timezone
 from sentry_protos.snuba.v1.endpoint_create_subscription_pb2 import CreateSubscriptionRequest
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
@@ -308,10 +309,16 @@ def _disable_subscription_with_invalid_query(
         },
     )
     # Only disable if no concurrent edit or delete has moved the row out of the
-    # status this task loaded it in; otherwise we'd clobber that change.
-    QuerySubscription.objects.filter(id=subscription.id, status=subscription.status).update(
-        status=QuerySubscription.Status.DISABLED.value, subscription_id=None
-    )
+    # status this task loaded it in; otherwise we'd clobber that change. Go through
+    # Model.update so post_save clears the cached subscription_id lookup.
+    with transaction.atomic(router.db_for_write(QuerySubscription)):
+        current = (
+            QuerySubscription.objects.select_for_update()
+            .filter(id=subscription.id, status=subscription.status)
+            .first()
+        )
+        if current is not None:
+            current.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
 
 
 # This indirection function only exists such that snql queries can be rewritten

@@ -173,6 +173,21 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.DISABLED.value
         assert sub.subscription_id is None
 
+    def test_invalid_query_clears_cached_subscription_id(self) -> None:
+        subscription_id = uuid4().hex
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+        )
+        assert (
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id).id == sub.id
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba"):
+            create_subscription_in_snuba(sub.id)
+        with pytest.raises(QuerySubscription.DoesNotExist):
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id)
+
     def test_invalid_query_does_not_overwrite_concurrent_status(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="issue:INVALID-1")
 
