@@ -41,9 +41,6 @@ const genericIcons: Record<string, React.ReactNode> = {
 export function InstrumentationGuide({
   skipDetectionForInitialProject = false,
 }: {
-  /**
-   * For a restored draft, whose URL already reflects whether a guide was open.
-   */
   skipDetectionForInitialProject?: boolean;
 }) {
   const {projects} = useProjects();

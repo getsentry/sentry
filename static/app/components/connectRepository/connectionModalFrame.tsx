@@ -5,7 +5,7 @@ import {IconLock} from '@sentry/icons/lock';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {Select, components} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -62,13 +62,7 @@ function LockedSelectField({
       aria-label={ariaLabel}
       options={[{value, label: value, leadingItems}]}
       value={value}
-      components={{
-        DropdownIndicator: props => (
-          <components.DropdownIndicator {...props}>
-            <IconLock locked size="xs" />
-          </components.DropdownIndicator>
-        ),
-      }}
+      dropdownIndicator={<IconLock locked size="xs" />}
     />
   );
 }

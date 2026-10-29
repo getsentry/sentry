@@ -5,6 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -359,7 +360,15 @@ function Graph({
                   rawMetricCounts={rawMetricCounts}
                 />
               ) : null}
-              {footerActions}
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={DiscoverDatasets.TRACEMETRICS}
+                    hasUserQuery={!!userQuery}
+                  />
+                ) : null}
+                {footerActions}
+              </Flex>
             </Flex>
           ) : undefined
         }

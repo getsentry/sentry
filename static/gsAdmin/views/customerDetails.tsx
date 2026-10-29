@@ -2,8 +2,6 @@ import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 
-import {Link} from '@sentry/scraps/link';
-
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -41,6 +39,7 @@ import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {CloseAccountInfo} from 'admin/components/closeAccountInfo';
 import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
+import {CustomerContracts} from 'admin/components/customers/customerContracts';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
@@ -483,6 +482,15 @@ export function CustomerDetails() {
             visible: !!subscription.pendingChanges,
             onAction: params =>
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
+          },
+          {
+            key: 'clearPendingPayg',
+            name: 'Clear Pending Pay-as-you-go',
+            help: 'Remove pending pay-as-you-go budget changes, keeping other pending changes.',
+            visible: !!subscription.pendingChanges,
+            onAction: params =>
+              onUpdateMutation.mutate({...params, clearPendingPayg: true}),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'changeBalance',
@@ -998,12 +1006,9 @@ export function CustomerDetails() {
             content: <CustomerPolicies orgId={orgId} />,
           },
           {
-            name: 'Contract',
-            content: (
-              <Link to={`/_admin/customers/${orgId}/contract/`}>
-                View Contract Details
-              </Link>
-            ),
+            noPanel: true,
+            visible: subscription.hasMigratedToBillingPlatform,
+            content: <CustomerContracts orgId={orgId} />,
           },
           {
             name: 'Admin Audit Log',

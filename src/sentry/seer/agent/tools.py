@@ -1001,6 +1001,7 @@ def get_repository_definition(
     name = "/".join(repo_name_parts[1:])
 
     return RepositoryDefinitionResponse(
+        repository_id=repo.id,
         organization_id=organization_id,
         integration_id=str(repo.integration_id) if repo.integration_id is not None else None,
         provider=repo.provider,

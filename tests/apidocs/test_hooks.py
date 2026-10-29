@@ -13,6 +13,7 @@ from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIn
 from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
+    _IDEMPOTENT_OPERATIONS,
     _OPERATION_SILOS,
     EXPERIMENTAL_NOTICE,
     CustomEndpointEnumerator,
@@ -169,6 +170,106 @@ class PublishStatusFilterTest(TestCase):
         assert processed["paths"]["/api/0/public/"]["get"]["description"] == "A stable endpoint"
 
 
+@patch("sentry.apidocs.hooks.__write_ownership_data")
+class IdempotentOperationsTest(TestCase):
+    """Declared idempotent methods are collected for every endpoint and stamped as a marker."""
+
+    def setUp(self) -> None:
+        _IDEMPOTENT_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+
+    def tearDown(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+        _IDEMPOTENT_OPERATIONS.clear()
+        _OPERATION_SILOS.clear()
+
+    def _endpoints(
+        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str]
+    ) -> list[tuple[Any, Any, str, Any]]:
+        view_class = type(
+            "FakeEndpoint",
+            (),
+            {
+                "owner": ApiOwner.CRONS,
+                "publish_status": methods,
+                "idempotent_methods": idempotent,
+                "servers": None,
+            },
+        )
+        callback = type("FakeCallback", (), {"view_class": view_class})
+        return [(path, path, method, callback) for method in methods]
+
+    def _operation(self, operation_id: str) -> dict[str, Any]:
+        return {
+            "tags": ["Events"],
+            "description": "An endpoint",
+            "operationId": operation_id,
+            "parameters": [],
+        }
+
+    def test_only_declared_methods_are_marked(self, _write_ownership: Any) -> None:
+        custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/assemble/",
+                {"POST": ApiPublishStatus.PUBLIC, "PUT": ApiPublishStatus.PUBLIC},
+                frozenset({"POST"}),
+            )
+        )
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/assemble/": {
+                    "post": self._operation("assemble"),
+                    "put": self._operation("update-assembly"),
+                },
+            },
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        operations = processed["paths"]["/api/0/assemble/"]
+        assert operations["post"]["x-sentry-idempotent"] is True
+        assert "x-sentry-idempotent" not in operations["put"]
+
+    def test_unpublished_methods_are_collected(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/private-assemble/",
+                {"POST": ApiPublishStatus.PRIVATE},
+                frozenset({"POST"}),
+            )
+        )
+
+        assert filtered == []
+        assert _IDEMPOTENT_OPERATIONS == {("/api/0/private-assemble/", "post")}
+
+    def test_next_build_does_not_reuse_previous_markers(self, _write_ownership: Any) -> None:
+        _IDEMPOTENT_OPERATIONS.add(("/api/0/stale/", "post"))
+
+        custom_preprocessing_hook(
+            self._endpoints("/api/0/fresh/", {"POST": ApiPublishStatus.PUBLIC}, frozenset())
+        )
+
+        assert _IDEMPOTENT_OPERATIONS == set()
+
+    def test_undeclared_method_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints(
+            "/api/0/assemble/", {"POST": ApiPublishStatus.PUBLIC}, frozenset({"PUT"})
+        )
+
+        with pytest.raises(SentryApiBuildError, match="does not implement"):
+            custom_preprocessing_hook(endpoints)
+
+    def test_safe_method_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints(
+            "/api/0/assemble/", {"GET": ApiPublishStatus.PUBLIC}, frozenset({"GET"})
+        )
+
+        with pytest.raises(SentryApiBuildError, match="safe methods"):
+            custom_preprocessing_hook(endpoints)
+
+
 class SummaryUniquenessTest(TestCase):
     def _operation(self, summary: str) -> dict[str, Any]:
         return {
@@ -200,6 +301,48 @@ class SummaryUniquenessTest(TestCase):
         }
         # Should not raise.
         custom_postprocessing_hook(result, None)
+
+
+class MapRequestBodyTest(TestCase):
+    """A body keyed by arbitrary strings documents the fields of its values."""
+
+    def _result(self, value_properties: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/assemble/": {
+                    "post": {
+                        "tags": ["Events"],
+                        "description": "An endpoint",
+                        "operationId": "assemble",
+                        "parameters": [],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": value_properties,
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+
+    def test_undescribed_value_field_raises(self) -> None:
+        with pytest.raises(SentryApiBuildError, match="'name' is missing a description"):
+            custom_postprocessing_hook(self._result({"name": {"type": "string"}}), None)
+
+    def test_described_value_fields_pass(self) -> None:
+        # Should not raise.
+        custom_postprocessing_hook(
+            self._result({"name": {"type": "string", "description": "The file name."}}), None
+        )
 
 
 class FixIssueRoutesTest(TestCase):
