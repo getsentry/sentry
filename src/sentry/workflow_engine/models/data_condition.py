@@ -176,52 +176,16 @@ class DataCondition(DefaultFieldsModel):
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
 
+        if isinstance(value, WorkflowEventData):
+            # Operator conditions are only valid for detectors. One attached to a workflow
+            # (trigger or action filter) is evaluated against WorkflowEventData and can never
+            # produce a meaningful result: ordering ops raise TypeError, while eq/ne silently
+            # return False/True (so `ne` would always trigger). Never run the operator here.
+            return self._handle_invalid_workflow_operator_condition()
+
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
-            # An empty condition group always evaluates as triggered, so deleting the last
-            # condition in a group would make the workflow fire on every event. Only delete
-            # when sibling conditions remain; otherwise keep reporting the bad configuration.
-            has_siblings = (
-                isinstance(value, WorkflowEventData)
-                and DataCondition.objects.filter(condition_group_id=self.condition_group_id)
-                .exclude(id=self.id)
-                .exists()
-            )
-            if has_siblings:
-                # Operator conditions are only valid for detectors. One attached to a workflow
-                # (trigger or action filter) is evaluated against WorkflowEventData and can never
-                # succeed, so it is invalid configuration. Remove it lazily so the workflow can
-                # evaluate its remaining conditions.
-                condition_id = self.id
-                condition_group_id = self.condition_group_id
-                try:
-                    self.delete()
-                except Exception:
-                    logger.exception(
-                        "Invalid comparison for data condition; failed to delete bad condition",
-                        extra={
-                            "comparison": self.comparison,
-                            "type": self.type,
-                            "condition_id": condition_id,
-                            "condition_group_id": condition_group_id,
-                        },
-                    )
-                else:
-                    logger.warning(
-                        "Invalid comparison for data condition; deleted bad workflow condition",
-                        extra={
-                            "comparison": self.comparison,
-                            "condition_result": self.condition_result,
-                            "type": self.type,
-                            "condition_id": condition_id,
-                            "condition_group_id": condition_group_id,
-                        },
-                    )
-                return ConditionError(msg="Invalid comparison for data condition")
-
-            # Any other TypeError (e.g. a detector receiving an unexpected value type) may be
-            # transient or a code bug; never delete detector configuration for it.
             logger.exception(
                 "Invalid comparison for data condition",
                 extra={
@@ -232,6 +196,51 @@ class DataCondition(DefaultFieldsModel):
                 },
             )
             return ConditionError(msg="Invalid comparison for data condition")
+
+    def _handle_invalid_workflow_operator_condition(self) -> ConditionError:
+        """
+        Lazily delete an operator condition attached to a workflow so the workflow can evaluate
+        its remaining conditions.
+
+        An empty condition group always evaluates as triggered, so deleting the last condition
+        in a group would make the workflow fire on every event. In that case keep the condition
+        and keep reporting the bad configuration as an error.
+        """
+        condition_id = self.id
+        condition_group_id = self.condition_group_id
+        log_extra = {
+            "comparison": self.comparison,
+            "condition_result": self.condition_result,
+            "type": self.type,
+            "condition_id": condition_id,
+            "condition_group_id": condition_group_id,
+        }
+
+        has_siblings = (
+            DataCondition.objects.filter(condition_group_id=condition_group_id)
+            .exclude(id=condition_id)
+            .exists()
+        )
+        if not has_siblings:
+            logger.error(
+                "Invalid comparison for data condition; operator condition on workflow cannot be evaluated",
+                extra=log_extra,
+            )
+            return ConditionError(msg="Invalid comparison for data condition")
+
+        try:
+            self.delete()
+        except Exception:
+            logger.exception(
+                "Invalid comparison for data condition; failed to delete bad condition",
+                extra=log_extra,
+            )
+        else:
+            logger.warning(
+                "Invalid comparison for data condition; deleted bad workflow condition",
+                extra=log_extra,
+            )
+        return ConditionError(msg="Invalid comparison for data condition")
 
     @scopedstats.timer()
     def _evaluate_condition(
