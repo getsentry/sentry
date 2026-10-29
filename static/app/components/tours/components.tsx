@@ -154,10 +154,10 @@ interface TourRenderProps {
   className?: string;
 }
 
-export interface TourElementProps<T extends TourEnumType>
-  extends
-    Omit<HTMLAttributes<HTMLElement>, 'id' | 'children' | 'title'>,
-    Pick<TourGuideProps, 'density' | 'highlight' | 'width'> {
+export interface TourElementProps<T extends TourEnumType> extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'id' | 'children' | 'title'
+> {
   /**
    * Render function that receives tour props to apply to the element.
    * This allows the tour to work with any element without wrapping it in a div.
@@ -242,9 +242,6 @@ export function TourElementContent<T extends TourEnumType>({
   className,
   actions,
   margin,
-  density,
-  highlight,
-  width,
 }: TourElementContentProps<T>) {
   const organization = useOrganization({allowNull: true});
   const {
@@ -342,9 +339,6 @@ export function TourElementContent<T extends TourEnumType>({
       stepTotal={stepTotal}
       id={`${id}`}
       margin={margin}
-      density={density}
-      highlight={highlight}
-      width={width}
     >
       {children}
     </TourGuide>
@@ -367,11 +361,7 @@ interface TourGuideProps extends Omit<
    * instead of regular buttons, since it may cause readibility issues if we use the user's theme.
    */
   actions?: React.ReactNode;
-  /** Adds padding around the header, text, and action rows. */
-  density?: 'compact' | 'comfortable';
   handleDismiss?: (e: React.MouseEvent) => void;
-  /** Disable the outline when the target already has its own visual treatment. */
-  highlight?: boolean;
   id?: string;
   margin?: number;
   offset?: UseOverlayProps['offset'];
@@ -379,7 +369,6 @@ interface TourGuideProps extends Omit<
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
-  width?: number;
 }
 
 const zIndex = {
@@ -399,9 +388,6 @@ export function TourGuide({
   title,
   description,
   actions,
-  density = 'compact',
-  highlight = true,
-  width = 360,
   className,
   isOpen,
   position,
@@ -441,7 +427,7 @@ export function TourGuide({
     <Fragment>
       <ClassNames>
         {({css, cx}) => {
-          const tourStyles = getTourElementStyles(theme, !!isOpen && highlight, margin);
+          const tourStyles = getTourElementStyles(theme, !!isOpen, margin);
           const tourClassName = tourStyles ? css(tourStyles) : undefined;
 
           return children({
@@ -458,8 +444,6 @@ export function TourGuide({
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
                     <TourOverlay
-                      width={width}
-                      density={density}
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -478,16 +462,14 @@ export function TourGuide({
                         background="primary"
                         radius="md"
                         width="100%"
-                        padding={density === 'comfortable' ? 'lg xl xl' : 'lg xl'}
-                        gap={density === 'comfortable' ? 'md' : '0'}
+                        padding="lg xl xl"
+                        gap="md"
                       >
                         {isTopRowVisible && (
                           <Flex
                             justify="between"
                             align="center"
-                            minHeight={
-                              density === 'comfortable' ? theme.form.sm.height : undefined
-                            }
+                            minHeight={theme.form.sm.height}
                           >
                             <Text size="sm" variant="muted" bold>
                               {countText}
@@ -496,13 +478,9 @@ export function TourGuide({
                               <Button
                                 variant="transparent"
                                 onClick={handleDismiss}
-                                icon={
-                                  <IconClose
-                                    size={density === 'comfortable' ? 'xs' : undefined}
-                                  />
-                                }
+                                icon={<IconClose size="xs" />}
                                 aria-label={t('Close')}
-                                size={density === 'comfortable' ? 'xs' : 'zero'}
+                                size="xs"
                               />
                             )}
                           </Flex>
@@ -518,10 +496,7 @@ export function TourGuide({
                           </Text>
                         )}
                         {actions && (
-                          <Flex
-                            justify="end"
-                            paddingTop={density === 'comfortable' ? 'xs' : 'md'}
-                          >
+                          <Flex justify="end" paddingTop="xs">
                             {actions}
                           </Flex>
                         )}
@@ -538,8 +513,6 @@ export function TourGuide({
   );
 }
 
-type TourDensityProps = {density: 'compact' | 'comfortable'};
-
 /* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
 const TourBody = styled(Stack)`
   a {
@@ -548,10 +521,10 @@ const TourBody = styled(Stack)`
   }
 `;
 
-const TourOverlay = styled(Overlay)<TourDensityProps & {width: number}>`
-  width: ${p => p.width}px;
+const TourOverlay = styled(Overlay)`
+  width: 395px;
   max-width: calc(100vw - 32px);
-  box-shadow: ${p => (p.density === 'comfortable' ? p.theme.shadow.high : 'none')};
+  box-shadow: ${p => p.theme.shadow.high};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {

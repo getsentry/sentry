@@ -109,9 +109,6 @@ export function SettingsNavigationTourElement(
   return (
     <TourElement<Step>
       tourContext={SettingsNavigationTourContext}
-      density="comfortable"
-      width={395}
-      highlight={false}
       actions={
         <Flex data-settings-navigation-tour gap="md" align="center">
           <TextTourAction onClick={isFirstStep ? tour?.endTour : tour?.previousStep}>
