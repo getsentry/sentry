@@ -34,14 +34,15 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
     {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
 )
 
-# Maximum configs with configurable strategies per organization. Configurable strategies have
-# no uniqueness constraint, so this bounds how many automations an organization can create.
-MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION = 50
+# Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
+MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 
 
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
+    # Optional user-supplied name
+    name: str | None = None
 
 
 class SeerWorkflowFilters(BaseModel):

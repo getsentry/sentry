@@ -25,7 +25,7 @@ from sentry.seer.endpoints.organization_seer_workflow_runs import (
 )
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
-    MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION,
+    MAX_WORKFLOW_CONFIGS_PER_ORG,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowExecutionStatus,
@@ -1127,7 +1127,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert response.data["projects"] == [accessible.id]
 
     def test_caps_configs_per_organization(self) -> None:
-        for _ in range(MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION):
+        for _ in range(MAX_WORKFLOW_CONFIGS_PER_ORG):
             Factories.create_seer_workflow_config(
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
             )
@@ -1140,14 +1140,13 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         assert response.data["detail"] == (
-            f"Organizations can have at most {MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION} "
-            "automations"
+            f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
         )
         assert (
             SeerWorkflowConfig.objects.filter(
                 organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
             ).count()
-            == MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION
+            == MAX_WORKFLOW_CONFIGS_PER_ORG
         )
 
     def test_rate_limits_creation(self) -> None:
