@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from typing import Any, Literal
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import pytest
 from django.db.utils import OperationalError
@@ -53,6 +53,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.db import StatementTimeoutBudgetExceeded, make_statement_timeout_budget
 
 
 class DerivedDataTaskTestBase(TestCase):
@@ -1548,11 +1549,13 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
         )
 
     def test_query_has_statement_timeout(self) -> None:
-        with patch("sentry.issues.derived.tasks_util.statement_timeout") as timeout:
+        with patch(
+            "sentry.issues.derived.tasks_util.make_statement_timeout_budget",
+            wraps=make_statement_timeout_budget,
+        ) as budget:
             group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5)
 
-        query_timeout = timeout.call_args.args[1]
-        assert timedelta(0) < query_timeout <= timedelta(seconds=40)
+        budget.assert_called_once_with(timedelta(seconds=40), using=ANY)
 
     def test_short_tail_is_one_range(self) -> None:
         null_ids = self._seed(3, None)
@@ -1605,12 +1608,9 @@ class GroupIdRangesForHashTest(DerivedDataTaskTestBase):
 
     def test_density_probes_share_one_query_budget(self) -> None:
         with (
-            patch(
-                "sentry.issues.derived.tasks_util.time.monotonic",
-                # Query deadline, metrics timer start, budget check, metrics timer end.
-                side_effect=[0.0, 0.0, 41.0, 41.0],
-            ),
-            pytest.raises(OperationalError, match="query budget exceeded"),
+            # Budget deadline, then the first query's remaining-time check.
+            patch("sentry.utils.db.monotonic", side_effect=[0.0, 41.0]),
+            pytest.raises(StatementTimeoutBudgetExceeded),
         ):
             group_id_ranges_for_hash(self.HASH, range_size=2, max_ranges=5)
 
@@ -1983,10 +1983,13 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         assert _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5) == []
 
     def test_query_has_statement_timeout(self) -> None:
-        with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
+        with patch(
+            "sentry.issues.derived.tasks.make_statement_timeout_budget",
+            wraps=make_statement_timeout_budget,
+        ) as budget:
             _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
 
-        assert timedelta(seconds=80) < timeout.call_args.args[1] <= timedelta(seconds=90)
+        budget.assert_called_once_with(timedelta(seconds=90), using=ANY)
 
     def test_exhausted_budget_raises(self) -> None:
         self._seed_hashes(["a-hash"])
