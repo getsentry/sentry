@@ -16,6 +16,10 @@ from sentry.investigations.models.orchestration import InvestigationOrchestratio
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
@@ -29,12 +33,17 @@ from sentry.notifications.platform.templates.seer import (
     SeerInvestigationStatus,
     SeerInvestigationStatusTemplate,
 )
+from sentry.notifications.platform.threading import ThreadingConfig, ThreadingService
 from sentry.notifications.platform.tracking import (
     NotificationLink,
     NotificationTrackingContext,
     record_sent,
 )
-from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
+from sentry.notifications.platform.types import (
+    NotificationData,
+    NotificationProviderKey,
+    NotificationSource,
+)
 from sentry.notifications.utils.actions import BlockKitMessageAction
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
@@ -128,8 +137,13 @@ class SlackInvestigationCachePayload(TypedDict):
     channel_id: str
     thread_ts: str
     alert_message_ts: str
-    status_message_ts: str | None
     slack_user_id: str
+
+
+class SlackInvestigationThreadState(TypedDict, total=False):
+    """What the investigation sent in a Slack thread, kept in its NotificationThread's provider_data."""
+
+    status_message_ts: str | None
     last_sent_state: str | None
     final_sent: bool
 
@@ -903,10 +917,7 @@ class SlackInvestigationEntrypoint(
             channel_id=self.channel_id,
             thread_ts=self.thread_ts,
             alert_message_ts=self.message_ts,
-            status_message_ts=None,
             slack_user_id=self.slack_user_id,
-            last_sent_state=None,
-            final_sent=False,
         )
 
     @staticmethod
@@ -952,6 +963,13 @@ class SlackInvestigationEntrypoint(
         )
         if cache_payload is None:
             return
+        thread = _get_investigation_thread(
+            investigation_id=run.investigation_id,
+            integration_id=cache_payload["integration_id"],
+            channel_id=cache_payload["channel_id"],
+            thread_ts=cache_payload["thread_ts"],
+        )
+        state: SlackInvestigationThreadState = thread.provider_data
 
         data, fingerprint = build_investigation_status(
             investigation=run.investigation,
@@ -961,10 +979,9 @@ class SlackInvestigationEntrypoint(
             updated_at=run.date_updated,
         )
         send_conclusion = (
-            run.status == InvestigationOrchestrationStatus.COMPLETED
-            and not cache_payload["final_sent"]
+            run.status == InvestigationOrchestrationStatus.COMPLETED and not state.get("final_sent")
         )
-        if fingerprint == cache_payload["last_sent_state"] and not send_conclusion:
+        if fingerprint == state.get("last_sent_state") and not send_conclusion:
             return
 
         organization_id = cache_payload["organization_id"]
@@ -978,14 +995,14 @@ class SlackInvestigationEntrypoint(
             return
 
         install = SlackIntegration(model=integration, organization_id=organization_id)
-        new_payload = cache_payload
-        if fingerprint != cache_payload["last_sent_state"]:
+        new_state = state
+        if fingerprint != state.get("last_sent_state"):
             renderable, links = NotificationService.render_template(
                 data=data,
                 template=SeerInvestigationStatusTemplate(),
                 provider=provider_registry.get(NotificationProviderKey.SLACK),
             )
-            status_message_ts = cache_payload["status_message_ts"]
+            status_message_ts = state.get("status_message_ts")
             try:
                 if status_message_ts:
                     install.update_message(
@@ -1004,8 +1021,8 @@ class SlackInvestigationEntrypoint(
                 lifecycle.record_halt(halt_reason=e)
             else:
                 _record_status_sent(data=data, links=links)
-                new_payload = {
-                    **new_payload,
+                new_state = {
+                    **new_state,
                     "status_message_ts": status_message_ts,
                     "last_sent_state": fingerprint,
                 }
@@ -1013,13 +1030,15 @@ class SlackInvestigationEntrypoint(
         if send_conclusion and SlackInvestigationEntrypoint._send_investigation_conclusion(
             run=run, install=install, cache_payload=cache_payload
         ):
-            new_payload = {**new_payload, "final_sent": True}
+            new_state = {**new_state, "final_sent": True}
 
-        if new_payload != cache_payload:
+        if new_state != state:
+            thread.update(provider_data=new_state)
+            # The cache is how updates find this thread, so keep it alive while the thread changes.
             SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
                 entrypoint_key=str(SlackInvestigationEntrypoint.key),
                 investigation_id=run.investigation_id,
-                cache_payload=new_payload,
+                cache_payload=cache_payload,
             )
 
     @staticmethod
@@ -1054,6 +1073,29 @@ class SlackInvestigationEntrypoint(
                 lifecycle.record_halt(halt_reason="conclusion_not_sent")
                 return False
             return True
+
+
+def _get_investigation_thread(
+    *, investigation_id: int, integration_id: int, channel_id: str, thread_ts: str
+) -> NotificationThread:
+    """Returns the investigation's thread for a Slack thread, creating it if needed."""
+    return ThreadingService.get_or_create_thread(
+        threading_config=ThreadingConfig(
+            key_type=NotificationSource.SEER_INVESTIGATION_CONCLUSION,
+            key_data={
+                "investigation_id": investigation_id,
+                "integration_id": integration_id,
+                "thread_ts": thread_ts,
+            },
+            provider_key=NotificationProviderKey.SLACK,
+            target_id=channel_id,
+            thread_identifier=thread_ts,
+            provider_data=None,
+            object_type=NotificationThreadObjectType.INVESTIGATION,
+            object_id=investigation_id,
+            integration_id=integration_id,
+        )
+    )
 
 
 def _record_status_sent(*, data: SeerInvestigationStatus, links: set[NotificationLink]) -> None:

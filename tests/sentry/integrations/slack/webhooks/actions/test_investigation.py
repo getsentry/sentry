@@ -19,12 +19,17 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
 from sentry.investigations.models import Investigation
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.platform.tracking import NotificationLink
 from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import process_investigation_updates
 from sentry.seer.entrypoints.slack.entrypoint import (
     SlackInvestigationCachePayload,
+    SlackInvestigationThreadState,
 )
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -163,6 +168,11 @@ class SeerInvestigationStartActionTest(BaseEventTest):
 
     def investigations(self) -> list[Investigation]:
         return list(Investigation.objects.filter(organization=self.organization))
+
+    def investigation_state(self, investigation: Investigation) -> SlackInvestigationThreadState:
+        return NotificationThread.objects.get(
+            object_type=NotificationThreadObjectType.INVESTIGATION, object_id=investigation.id
+        ).provider_data
 
     def test_unlinked_user_gets_link_prompt(self) -> None:
         response = self.click(slack_user={"id": "slack:unlinked", "team_id": "TXXXXXXX1"})
@@ -305,11 +315,12 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             channel_id=CHANNEL_ID,
             thread_ts=MESSAGE_TS,
             alert_message_ts=MESSAGE_TS,
-            status_message_ts="1702424399.000100",
             slack_user_id=self.external_id,
-            last_sent_state=ANY,
-            final_sent=False,
         )
+        assert self.investigation_state(investigation) == {
+            "status_message_ts": "1702424399.000100",
+            "last_sent_state": ANY,
+        }
 
     @with_feature(FEATURES)
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
@@ -382,7 +393,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert cache_payload["status_message_ts"] == "1702424399.000100"
+        assert self.investigation_state(investigation)["status_message_ts"] == "1702424399.000100"
 
     @with_feature(FEATURES)
     def test_slack_timeout_during_thread_post_still_caches(self) -> None:
@@ -396,7 +407,9 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             entrypoint_key="slack", investigation_id=investigation.id
         )
         assert cache_payload is not None
-        assert cache_payload["status_message_ts"] is None
+        assert not NotificationThread.objects.filter(
+            object_type=NotificationThreadObjectType.INVESTIGATION, object_id=investigation.id
+        ).exists()
 
     @with_feature(FEATURES)
     @patch(
