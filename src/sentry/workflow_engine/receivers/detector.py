@@ -25,7 +25,7 @@ def invalidate_processing_workflows_cache(
 @receiver(pre_save, sender=Detector)
 def enforce_config_schema_signal(sender: type[Detector], instance: Detector, **kwargs: Any) -> None:
     """
-    This needs to be a signal because the GroupType registry's entries are not available at import time.
+    This needs to be a signal because detector settings are not available at import time.
     """
     instance.enforce_config_schema()
 

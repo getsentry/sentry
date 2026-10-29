@@ -8,7 +8,7 @@ from sentry.issues.grouptype import GroupCategory, GroupType, NotificationConfig
 from sentry.monitors.validators import MonitorIncidentDetectorValidator
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, DetectorType
 
 
 @dataclass(frozen=True)
@@ -23,6 +23,6 @@ class MonitorIncidentType(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-@detector_settings_registry.register(MonitorIncidentType.slug)
+@detector_settings_registry.register(DetectorType.CRON)
 class MonitorIncidentDetectorSettings(DetectorSettings):
     validator = MonitorIncidentDetectorValidator

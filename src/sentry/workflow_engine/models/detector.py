@@ -21,7 +21,9 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import DataCondition
+from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
 from sentry.workflow_engine.types import DetectorSettings
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -58,7 +60,7 @@ class DetectorQuerySet(BaseQuerySet["Detector"]):
         code to ensure filtered detectors are hidden. This is the recommended
         way to query detectors.
         """
-        return self.filter(grouptype.registry.get_detector_type_filters())
+        return self.filter(get_detector_type_filters())
 
     def by_organization(self, organization_id: int) -> Self:
         """
@@ -127,7 +129,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # maps to registry (sentry.issues.grouptype.registry) entries for GroupType.slug in sentry.issues.grouptype.GroupType
+    # Selects an implementation registered in detector_settings_registry.
     type = models.CharField(max_length=200)
 
     # The user that created the detector
@@ -187,28 +189,24 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     @property
     def detector_handler(self) -> BaseDetectorHandler[Any, Any] | None:
-        group_type = self.group_type
-
-        if self.settings.handler is None:
+        handler = self.settings.handler
+        if handler is None:
             logger.error(
-                "Registered grouptype for detector has no detector_handler",
+                "Registered detector type has no detector_handler",
                 extra={
-                    "group_type": str(group_type),
                     "detector_id": self.id,
                     "detector_type": self.type,
                 },
             )
             return None
-        return self.settings.handler(self)
+        return handler(self)
 
     @property
     def settings(self) -> builtins.type[DetectorSettings]:
-        settings = self.group_type.detector_settings
-
-        if settings is None:
-            raise ValueError("Registered grouptype has no detector settings")
-
-        return settings
+        try:
+            return detector_settings_registry.get(self.type)
+        except NoRegistrationExistsError as exc:
+            raise ValueError(f"Detector type '{self.type}' not registered") from exc
 
     def get_snapshot(self) -> DetectorSnapshot:
         trigger_condition = None
@@ -255,18 +253,15 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def enforce_config_schema(self) -> None:
         """
-        Ensures the detector type is valid in the grouptype registry.
+        Ensures the detector type is registered and validates its configuration.
         This needs to be available independently so callers can validate configs
         without saving.
         """
-        group_type = self.group_type
-        if not group_type:
-            raise ValueError(f"No group type found with type {self.type}")
-
-        if not group_type.detector_settings:
+        config_schema = self.settings.config_schema
+        if config_schema is None:
             return
 
         if not isinstance(self.config, dict):
             raise ValidationError("Detector config must be a dictionary")
 
-        self.validate_config(group_type.detector_settings.config_schema)
+        self.validate_config(config_schema)

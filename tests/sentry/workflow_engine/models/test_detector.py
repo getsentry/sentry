@@ -1,14 +1,23 @@
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
+from django.db.models import Q
+from jsonschema import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorDetectorHandler, ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import get_group_type_by_slug
+from sentry.models.project import Project
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings, DetectorType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -181,3 +190,143 @@ def test_get_detector_project_type_cache_key() -> None:
     cache_key = get_detector_project_type_cache_key(project_id, detector_type)
 
     assert cache_key == f"detector:by_proj_type:{project_id}:{detector_type}"
+
+
+@pytest.mark.parametrize("detector_type", list(DetectorType))
+def test_detector_type_registration_supports_string_lookup(detector_type: DetectorType) -> None:
+    # Startup must load every declared implementation; callers still pass stored/API strings.
+    assert detector_settings_registry.get(detector_type.value) is detector_settings_registry.get(
+        detector_type
+    )
+
+
+@django_db_all
+def test_detector_type_enum_preserves_stored_value(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC)
+
+    detector.refresh_from_db()
+
+    assert type(detector.type) is str
+    assert detector.type == "metric_issue"
+    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC)
+
+
+@pytest.fixture
+def registry_only_settings() -> Generator[type[DetectorSettings]]:
+    class RegistryOnlySettings(DetectorSettings):
+        handler = ErrorDetectorHandler
+        config_schema = {
+            "type": "object",
+            "properties": {"value": {"type": "number"}, "visible": {"type": "boolean"}},
+            "required": ["value"],
+            "additionalProperties": False,
+        }
+        filter = Q(config__visible=True)
+
+    with patch.dict(detector_settings_registry.registrations):
+        detector_settings_registry.register("registry_only_detector")(RegistryOnlySettings)
+        yield RegistryOnlySettings
+
+
+@django_db_all
+def test_detector_settings_and_handler_without_group_type(
+    factories: Factories,
+    default_project: Project,
+    registry_only_settings: type[DetectorSettings],
+) -> None:
+    assert get_group_type_by_slug("registry_only_detector") is None
+    detector = factories.create_detector(
+        project=default_project,
+        type="registry_only_detector",
+        config={"value": 10, "visible": True},
+    )
+
+    detector.refresh_from_db()
+    assert detector.settings is registry_only_settings
+    handler = detector.detector_handler
+    assert isinstance(handler, ErrorDetectorHandler)
+    assert handler.detector == detector
+
+    detector.config = {"value": "invalid"}
+    with pytest.raises(ValidationError, match="Invalid config"):
+        detector.save()
+
+    detector.refresh_from_db()
+    assert detector.config == {"value": 10, "visible": True}
+
+
+@pytest.mark.parametrize(
+    ("config", "error"),
+    [
+        ([], "Detector config must be a dictionary"),
+        ({}, "Invalid config"),
+        ({"value": 10, "unexpected": True}, "Invalid config"),
+    ],
+)
+def test_registry_only_detector_validates_config(
+    registry_only_settings: type[DetectorSettings], config: object, error: str
+) -> None:
+    detector = Detector(type="registry_only_detector", config=config)
+
+    with pytest.raises(ValidationError, match=error):
+        detector.enforce_config_schema()
+
+
+@pytest.mark.parametrize("detector_type", ["unregistered_detector", "feedback"])
+def test_group_type_without_detector_registration_is_rejected(detector_type: str) -> None:
+    detector = Detector(type=detector_type, config={})
+
+    with pytest.raises(ValueError, match=f"Detector type '{detector_type}' not registered"):
+        detector.enforce_config_schema()
+
+
+@django_db_all
+def test_registry_only_detector_filters(
+    factories: Factories,
+    default_project: Project,
+    registry_only_settings: type[DetectorSettings],
+) -> None:
+    visible = factories.create_detector(
+        project=default_project,
+        type="registry_only_detector",
+        config={"value": 1, "visible": True},
+    )
+    hidden = factories.create_detector(
+        project=default_project,
+        type="registry_only_detector",
+        config={"value": 2, "visible": False},
+    )
+    unfiltered = factories.create_detector(project=default_project, type=MetricIssue.slug)
+
+    detector_ids = set(
+        Detector.objects.with_type_filters()
+        .filter(id__in=[visible.id, hidden.id, unfiltered.id])
+        .values_list("id", flat=True)
+    )
+
+    assert detector_ids == {visible.id, unfiltered.id}
+
+
+@pytest.mark.parametrize(
+    "detector_type",
+    [
+        "performance_slow_db_query",
+        "performance_large_http_payload",
+        "query_injection_vulnerability",
+    ],
+)
+@pytest.mark.parametrize("config", [{}, {"duration_threshold": 5000}, [], "legacy-config"])
+def test_performance_detector_settings_preserve_legacy_validation(
+    detector_type: str, config: object
+) -> None:
+    # Do not import issue_detection.grouptype here: startup must load these registrations.
+    detector = Detector(type=detector_type, config=config)
+
+    detector.enforce_config_schema()
+
+    assert detector.settings.handler is None
+    assert detector.settings.validator is None
+    assert detector.settings.config_schema is None
+    assert detector.detector_handler is None

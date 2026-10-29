@@ -21,7 +21,7 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:
@@ -181,26 +181,8 @@ class GroupTypeRegistry:
         return self._registry[id_]
 
     def get_detector_type_filters(self) -> Q:
-        """
-        Build a Q object that combines all detector type-specific filters.
-
-        For detector types without filters, they're included by default via a NOT IN clause.
-        For detector types with filters, we apply the specific filter condition.
-
-        This optimizes the query since most detector types won't have filters.
-        """
-        types_with_filters = []
-        filtered_type_conditions = Q()
-
-        for group_type in self.all():
-            if group_type.detector_settings and group_type.detector_settings.filter is not None:
-                filter = group_type.detector_settings.filter
-                types_with_filters.append(group_type.slug)
-                filtered_type_conditions |= Q(type=group_type.slug) & filter
-
-        # Include all types that don't have filters (type NOT IN types_with_filters)
-        # OR match the specific filter conditions for types that do have filters
-        return ~Q(type__in=types_with_filters) | filtered_type_conditions
+        """Compatibility wrapper for detector filters registered independently of issue types."""
+        return get_detector_type_filters()
 
 
 registry = GroupTypeRegistry()

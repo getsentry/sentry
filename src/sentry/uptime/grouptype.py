@@ -36,6 +36,7 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
 
 logger = logging.getLogger(__name__)
@@ -279,7 +280,7 @@ class UptimeDomainCheckFailure(GroupType):
     enable_escalation_detection = False
 
 
-@detector_settings_registry.register(UptimeDomainCheckFailure.slug)
+@detector_settings_registry.register(DetectorType.UPTIME)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator

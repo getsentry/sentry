@@ -38,6 +38,7 @@ from sentry.workflow_engine.types import (
     DetectorException,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
 
 logger = logging.getLogger(__name__)
@@ -363,7 +364,7 @@ class MetricIssue(GroupType):
     enable_user_status_and_priority_changes = False
 
 
-@detector_settings_registry.register(MetricIssue.slug)
+@detector_settings_registry.register(DetectorType.METRIC)
 class MetricIssueDetectorSettings(DetectorSettings):
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator

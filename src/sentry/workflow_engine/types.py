@@ -65,6 +65,21 @@ class DetectorException(Exception):
     pass
 
 
+class DetectorType(StrEnum):
+    """Detector implementation identities. Values are persisted and used by the API."""
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC = "metric_issue"
+    CRON = "monitor_check_in_failure"
+    UPTIME = "uptime_domain_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
+    PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
+    QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -347,7 +362,8 @@ class DetectorSettings:
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
-    config_schema: ClassVar[dict[str, Any]] = {}
+    # None preserves legacy detectors whose configuration is validated outside this model.
+    config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
 
 
