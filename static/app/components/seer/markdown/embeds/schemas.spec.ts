@@ -26,6 +26,29 @@ describe('seerEmbedsToJsonSchemas', () => {
     expect(spansQuery?.body.required).toBeUndefined();
   });
 
+  it('rejects invalid date strings for the timestamp embed value', () => {
+    // The timestamp embed previously used z.string() which allowed any value,
+    // including non-parseable dates that would cause RangeError in toISOString().
+    // It now uses isoTimestampSchema (offset required) so the LLM must always emit
+    // an unambiguous timezone offset. Offset-less strings are intentionally rejected:
+    // new Date() and moment.tz both interpret them as local time, which shifts
+    // displayed timestamps for non-UTC viewers.
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: 'not-a-date'})
+    ).toThrow();
+    // Offset-less datetimes are also rejected to prevent local-time misinterpretation.
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00'})
+    ).toThrow();
+    // Only offset-bearing ISO 8601 strings are accepted.
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00Z'})
+    ).not.toThrow();
+    expect(() =>
+      SEER_EMBED_SCHEMAS.timestamp.schema.parse({value: '2025-07-15T14:30:00+05:30'})
+    ).not.toThrow();
+  });
+
   it('exports chart axis restrictions to the agent contract', () => {
     const chart = seerEmbedsToJsonSchemas().find(widget => widget.name === 'chart');
 

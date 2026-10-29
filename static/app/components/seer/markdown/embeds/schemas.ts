@@ -116,7 +116,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Display a formatted timestamp inline. ALL datetime values MUST use this embed — never output a bare date/time or relative phrase (e.g. "two days ago") as plaintext. Use format "absolute" for a specific date/time and "relative" for a human-friendly relative duration (the UI renders it live). Do not include redundant plaintext alongside the embed.',
     level: ['inline'],
     schema: z.object({
-      value: z.string(),
+      value: isoTimestampSchema,
       format: z.enum(['absolute', 'relative']).default('absolute'),
     }),
     examples: [
