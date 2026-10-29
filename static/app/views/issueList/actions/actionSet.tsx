@@ -119,6 +119,12 @@ export function ActionSet({
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
   const {enabled: mergeSupported, disabledReason: mergeDisabledReason} =
     isActionSupported(selectedIssues, 'merge');
+  const {enabled: resolveSupported, disabledReason: resolveDisabledReason} =
+    isActionSupported(selectedIssues, 'resolve');
+  const {enabled: archiveUntilOccurrenceSupported} = isActionSupported(
+    selectedIssues,
+    'archiveUntilOccurrence'
+  );
 
   // Members may or may not have access to delete events based on organization settings
   const hasDeleteAccess = organization.access.includes('event:admin');
@@ -260,6 +266,15 @@ export function ActionSet({
         onShouldConfirm={onShouldConfirm}
         onUpdate={handleUpdate}
         anySelected={anySelected}
+        disabled={!resolveSupported}
+        disabledReason={
+          resolveSupported
+            ? undefined
+            : (resolveDisabledReason ??
+              t(
+                'One or more selected issues resolve automatically and cannot be resolved manually.'
+              ))
+        }
         confirm={confirm}
         label={label}
         selectedProjectSlug={selectedProjectSlug}
@@ -270,6 +285,7 @@ export function ActionSet({
         confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
+        disableArchiveUntilOccurrence={!archiveUntilOccurrenceSupported}
       />
       <Button
         size="xs"

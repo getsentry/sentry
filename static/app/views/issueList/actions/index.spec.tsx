@@ -163,6 +163,68 @@ describe('IssueListActions', () => {
   });
 
   describe('Bulk', () => {
+    it.each([IssueCategory.METRIC_ALERT, IssueCategory.CRON, IssueCategory.UPTIME])(
+      'disables resolve for a mixed selection containing %s issues',
+      async issueCategory => {
+        GroupStore.add([GroupFixture({id: '1'}), GroupFixture({id: '2', issueCategory})]);
+        const updateMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent selectedIds={['1', '2']} />);
+
+        const resolveButton = await screen.findByRole('button', {name: 'Resolve'});
+        expect(resolveButton).toHaveAttribute('aria-disabled', 'true');
+        expect(
+          screen.getByRole('button', {name: 'More resolve options'})
+        ).toHaveAttribute('aria-disabled', 'true');
+        await userEvent.hover(resolveButton);
+        expect(
+          await screen.findByText(
+            'One or more selected issues resolve automatically and cannot be resolved manually.'
+          )
+        ).toBeInTheDocument();
+        await userEvent.click(resolveButton);
+        expect(updateMock).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      }
+    );
+
+    it('allows resolving selected errors when an unselected metric issue is present', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1'}),
+        GroupFixture({id: '2', issueCategory: IssueCategory.METRIC_ALERT}),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1']} />);
+
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Until this occurs again…'})
+      ).toBeInTheDocument();
+    });
+
+    it('preserves supported archive options for a selection containing a metric issue', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1'}),
+        GroupFixture({id: '2', issueCategory: IssueCategory.METRIC_ALERT}),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Archive options'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Forever'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'For…'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Until this occurs again…'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Until this affects an additional…'})
+      ).not.toBeInTheDocument();
+    });
+
     describe('Total results greater than bulk limit', () => {
       it('after checking "Select all" checkbox, displays bulk select message', async () => {
         render(<WrappedComponent queryCount={1500} />);

@@ -22,7 +22,7 @@ import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/colle
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
 import {
@@ -232,6 +232,51 @@ describe('IssueListBulkCommandPaletteActions', () => {
       })
     );
   });
+
+  it.each([IssueCategory.METRIC_ALERT, IssueCategory.CRON, IssueCategory.UPTIME])(
+    'omits bulk resolve when the selection includes %s issues',
+    async issueCategory => {
+      GroupStore.add([GroupFixture({id: '1'}), GroupFixture({id: '2', issueCategory})]);
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+
+      render(
+        <CommandPaletteProvider>
+          <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+            <SelectionInitializer />
+            <IssueListBulkCommandPaletteActions
+              groupIds={['1', '2']}
+              sort={IssueSortOptions.DATE}
+              query=""
+              queryCount={10}
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: '24h', utc: true},
+              }}
+            />
+          </IssueSelectionProvider>
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
+            }}
+          />
+        </CommandPaletteProvider>,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const labels = treeRef.current.flatMap(node => [
+        node.display.label,
+        ...node.children.map(child => child.display.label),
+      ]);
+      expect(labels).not.toContain('Resolve');
+      expect(labels).toContain('Archive');
+    }
+  );
 
   it('shows a loader when marking all issues as resolved', async () => {
     const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};

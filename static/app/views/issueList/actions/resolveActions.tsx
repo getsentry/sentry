@@ -12,6 +12,8 @@ type Props = {
   onShouldConfirm: (action: ConfirmAction) => boolean;
   onUpdate: (data?: any) => void;
   selectedProjectSlug: string | undefined;
+  disabled?: boolean;
+  disabledReason?: string;
 };
 
 export function ResolveActionsContainer({
@@ -21,6 +23,8 @@ export function ResolveActionsContainer({
   selectedProjectSlug,
   confirm,
   label,
+  disabled,
+  disabledReason,
 }: Props) {
   const {initiallyLoaded, projects, fetchError} = useProjects({
     slugs: selectedProjectSlug ? [selectedProjectSlug] : [],
@@ -45,9 +49,9 @@ export function ResolveActionsContainer({
 
   // resolve requires a single project to be active in an org context
   // projectId is null when 0 or >1 projects are selected.
-  const resolveDisabled = Boolean(!anySelected || fetchError);
+  const resolveDisabled = Boolean(disabled || !anySelected || fetchError);
   const resolveDropdownDisabled = Boolean(
-    !anySelected || !project?.slug || !initiallyLoaded || fetchError
+    resolveDisabled || !project?.slug || !initiallyLoaded
   );
 
   return (
@@ -61,6 +65,7 @@ export function ResolveActionsContainer({
       confirmMessage={confirm({action: ConfirmAction.RESOLVE, canBeUndone: true})}
       confirmLabel={label('resolve')}
       disabled={resolveDisabled}
+      disabledReason={disabledReason}
       disableDropdown={resolveDropdownDisabled}
       projectFetchError={Boolean(fetchError)}
       hasSemverReleaseFeature={hasSemverReleaseFeature}

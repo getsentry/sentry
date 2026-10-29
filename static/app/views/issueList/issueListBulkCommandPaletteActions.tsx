@@ -17,6 +17,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -241,8 +242,11 @@ function useIssueListBulkCommandPaletteActions({
   );
 
   const canResolve =
-    allInQuerySelected ||
-    selectedIssues.some(issue => issue.status !== GroupStatus.RESOLVED);
+    selectedIssues.every(
+      issue => getConfigForIssueType(issue, issue.project).actions.resolve.enabled
+    ) &&
+    (allInQuerySelected ||
+      selectedIssues.some(issue => issue.status !== GroupStatus.RESOLVED));
   const canArchive =
     allInQuerySelected ||
     selectedIssues.some(issue => issue.status !== GroupStatus.IGNORED);
