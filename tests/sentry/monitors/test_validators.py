@@ -1361,6 +1361,83 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         assert detector.enabled is False
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
+    def test_create_with_owner_syncs_monitor_owner(self, mock_assign_seat):
+        condition_group = DataConditionGroup.objects.create(
+            organization_id=self.organization.id,
+            logic_type=DataConditionGroup.Type.ANY,
+        )
+        context = {**self.context, "condition_group": condition_group}
+        data = self._get_valid_detector_data(owner=f"user:{self.user.id}")
+        validator = MonitorIncidentDetectorValidator(data=data, context=context)
+        assert validator.is_valid(), validator.errors
+        detector = validator.save()
+
+        monitor = get_cron_monitor(detector)
+        assert detector.owner_user_id == self.user.id
+        assert monitor.owner_user_id == self.user.id
+        assert monitor.owner_team_id is None
+
+    def _create_linked_detector_and_monitor(self, **monitor_kwargs):
+        detector = self.create_detector(
+            project=self.project,
+            name="Test Detector",
+            type="monitor_check_in_failure",
+        )
+        monitor = self._create_monitor(name="Test Monitor", slug="test-monitor", **monitor_kwargs)
+        data_source = DataSource.objects.create(
+            type=DATA_SOURCE_CRON_MONITOR,
+            organization_id=self.organization.id,
+            source_id=str(monitor.id),
+        )
+        DataSourceDetector.objects.create(data_source=data_source, detector=detector)
+        return detector, monitor
+
+    def test_update_owner_syncs_monitor_owner(self) -> None:
+        detector, monitor = self._create_linked_detector_and_monitor(owner_user_id=self.user.id)
+        team = self.create_team(organization=self.organization)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector,
+            data={"owner": f"team:{team.id}"},
+            context=self.context,
+            partial=True,
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        detector.refresh_from_db()
+        monitor.refresh_from_db()
+        assert detector.owner_team_id == team.id
+        assert monitor.owner_team_id == team.id
+        assert monitor.owner_user_id is None
+
+    def test_update_clear_owner_syncs_monitor_owner(self) -> None:
+        detector, monitor = self._create_linked_detector_and_monitor(owner_user_id=self.user.id)
+        detector.update(owner_user_id=self.user.id)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={"owner": None}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id is None
+        assert monitor.owner_team_id is None
+
+    def test_update_without_owner_leaves_monitor_owner(self) -> None:
+        detector, monitor = self._create_linked_detector_and_monitor(owner_user_id=self.user.id)
+
+        validator = MonitorIncidentDetectorValidator(
+            instance=detector, data={"name": "Renamed"}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        validator.save()
+
+        monitor.refresh_from_db()
+        assert monitor.owner_user_id == self.user.id
+
+    @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat):
         """
         Test that enabling a previously disabled detector assigns a seat.
