@@ -112,6 +112,14 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         ).first()
         if not org_integration:
             raise Http404
+        # A repeated DELETE must not uninstall again. Uninstall hooks that skip
+        # pending rows when counting installs (Discord, Cursor Origin) would see
+        # another org as the last one and tear down the install it still uses.
+        if org_integration.status in (
+            ObjectStatus.PENDING_DELETION,
+            ObjectStatus.DELETION_IN_PROGRESS,
+        ):
+            return self.respond(status=204)
         integration = self.get_integration(organization_context.organization.id, integration_id)
         # do any integration specific deleting steps
         integration.get_installation(
