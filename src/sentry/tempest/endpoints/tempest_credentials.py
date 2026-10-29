@@ -10,6 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.models.project import Project
 from sentry.tempest.models import TempestCredentials
 from sentry.tempest.permissions import TempestCredentialsPermission
@@ -47,7 +48,9 @@ class TempestCredentialsEndpoint(ProjectEndpoint):
         serializer = DRFTempestCredentialsSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         try:
-            credentials = serializer.save(created_by_id=request.user.id, project=project)
+            credentials = serializer.save(
+                created_by_id=acting_user_id(request.user), project=project
+            )
             # Make initial call to determine the latest item ID
             fetch_latest_item_id.delay(credentials.id)
         except IntegrityError:

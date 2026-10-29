@@ -32,6 +32,7 @@ from sentry.analytics.events.member_invited import MemberInvitedEvent
 from sentry.analytics.events.project_created import ProjectCreatedEvent
 from sentry.analytics.events.project_transferred import ProjectTransferredEvent
 from sentry.analytics.events.second_platform_added import SecondPlatformAddedEvent
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.constants import InsightModules
 from sentry.integrations.base import IntegrationDomain, get_integration_types
 from sentry.integrations.services.integration import RpcIntegration, integration_service
@@ -101,8 +102,8 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
-        user_id = default_user_id = user.id
+    elif has_user(user):
+        user_id = default_user_id = acting_user_id(user)
     else:
         user_id = default_user_id = get_owner_id(project, user)
         if user_id is None:
