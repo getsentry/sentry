@@ -151,7 +151,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({
   // space instead of letting the tall page content grow it — giving Seer's pane
   // a viewport-bounded height.
   return (
-    <SplitContainer
+    <Stack
       ref={sidebarContainerRef}
       flex="1"
       minWidth="0"
@@ -171,15 +171,9 @@ function SeerExplorerSidebarLayoutInSidebarMode({
         sized={contentPane}
         fill={isOpen ? <SeerExplorerPanel /> : undefined}
       />
-    </SplitContainer>
+    </Stack>
   );
 }
-
-// Keep the divider's drag target in this layout's stacking context so global
-// drawers paint above it, including throughout their enter/exit animations.
-const SplitContainer = styled(Stack)`
-  isolation: isolate;
-`;
 
 // Match `html`'s scrollbar (the `*` default uses a transparent track) so the
 // content pane's scrollbar looks identical to the document scrollbar.
