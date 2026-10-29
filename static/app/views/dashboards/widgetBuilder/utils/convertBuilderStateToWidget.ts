@@ -121,7 +121,7 @@ export function convertBuilderStateToWidget(state: WidgetBuilderState): Widget {
             (state.yAxis ?? []).flatMap((field, fieldIndex) => {
               const value = generateFieldAsString(field);
               return !isEquation(value) || getEquation(value).trim() !== ''
-                ? [field.kind === FieldValueKind.FUNCTION ? fieldIndex : undefined]
+                ? [field.kind === FieldValueKind.FIELD ? undefined : fieldIndex]
                 : [];
             })
           ),
