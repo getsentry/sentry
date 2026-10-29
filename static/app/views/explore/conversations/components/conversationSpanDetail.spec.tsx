@@ -196,19 +196,10 @@ describe('ConversationSpanDetail tabs', () => {
       }),
       {organization}
     );
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/trace-items/${node.id}/`,
-      body: {
-        itemId: node.id,
-        timestamp: new Date().toISOString(),
-        attributes: Object.entries(attributes).map(([name, value]) => ({
-          name,
-          type: 'str',
-          value,
-        })),
-        meta: {},
-      },
-    });
+    mockAttributes(
+      node.id,
+      Object.entries(attributes).map(([name, value]) => ({name, type: 'str', value}))
+    );
     const request = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.id}/ai/code-explanation/`,
       method: 'POST',
