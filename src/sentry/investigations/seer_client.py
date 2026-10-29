@@ -23,6 +23,7 @@ from sentry.seer.agent.monitoring_providers import get_monitoring_provider_conne
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.users.services.user.service import user_service
+from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
 
@@ -98,24 +99,24 @@ __all__ = [
 ]
 
 
-def _monitoring_providers(investigation: Investigation) -> list[dict[str, Any]] | None:
-    """The run's connections, which are its creator's whoever sends the command, or None if
-    Sentry couldn't read them. Seer replaces its connections with any list it gets, and keeps
-    them when there's none.
-    """
+def _monitoring_providers(
+    investigation: Investigation, *, actor: ActorId | None
+) -> list[dict[str, Any]]:
+    """Replace Seer's connections with this actor's personal and organization connections."""
 
     organization = investigation.organization
+    user_id = actor.id if actor is not None and actor.type == ActorType.USER else None
     try:
         connections = get_monitoring_provider_connections(
-            organization, investigation.created_by_id, skip_rpc_errors=False
+            organization, user_id, skip_rpc_errors=False
         )
-    except RpcException:
+    except RpcException as error:
         logger.warning(
             "investigations.seer_client.monitoring_providers_failed",
             extra={"organization_id": organization.id},
             exc_info=True,
         )
-        return None
+        raise SeerApiError("Failed to load monitoring provider connections", 503) from error
     return [connection.dict() for connection in connections]
 
 
@@ -240,9 +241,9 @@ def create_investigation_orchestration_run(
         "userOrgContext": user_org_context,
         "activeTimeBudgetSeconds": 1800,
     }
-    monitoring_providers = _monitoring_providers(run.investigation)
-    if monitoring_providers is not None:
-        body["monitoringProviders"] = monitoring_providers
+    body["monitoringProviders"] = _monitoring_providers(
+        run.investigation, actor=run.investigation.creator_actor
+    )
     response = _post(
         "/v1/automation/investigations",
         body,
@@ -267,9 +268,9 @@ def dispatch_investigation_orchestration_command(
         "expectedWorkflowVersion": command.expected_workflow_version,
         "command": {"type": command.type, **command.payload},
     }
-    monitoring_providers = _monitoring_providers(investigation)
-    if monitoring_providers is not None:
-        body["monitoringProviders"] = monitoring_providers
+    body["monitoringProviders"] = _monitoring_providers(
+        investigation, actor=command.requested_by_actor
+    )
     response = _post(
         f"/v1/automation/investigations/{seer_run_id}/commands",
         body,

@@ -14,6 +14,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import ActorId, ActorType
 
 FEATURE = "organizations:investigations"
 
@@ -122,7 +123,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         )
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title="Shared investigation",
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[restricted_project.id],

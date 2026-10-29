@@ -57,7 +57,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -1210,11 +1210,12 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    @with_feature("organizations:investigations")
     def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
         organization = self.create_organization(owner=self.user)
         investigation, run = create_agentic_manual_investigation(
             organization=organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
