@@ -7,6 +7,7 @@ from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models.investigation import InvestigationSourceType
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -919,6 +920,7 @@ def process_autofix_updates(
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
     Sends the latest orchestration run to each entrypoint with a cache for it.
+    Metric open period runs go to each entrypoint, also without a cache.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
@@ -961,10 +963,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
-            if not cache_payload:
-                continue
-
-            if cache_payload["organization_id"] != organization.id:
+            if cache_payload is None:
+                if run.investigation.source_type != InvestigationSourceType.METRIC_OPEN_PERIOD:
+                    continue
+            elif cache_payload["organization_id"] != organization.id:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 
