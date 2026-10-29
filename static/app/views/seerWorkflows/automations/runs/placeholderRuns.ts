@@ -1,13 +1,11 @@
 // TEMPORARY: placeholder data for trying the runs list until the new runs API ships
-import type {SeerAutomationRun, WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
+import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
+
+// Turned off in tests so they exercise the runs API
+export const USE_PLACEHOLDER_RUNS = true;
 
 const MINUTE = 60 * 1000;
 const ago = (minutes: number) => new Date(Date.now() - minutes * MINUTE).toISOString();
-
-export const PLACEHOLDER_CONFIG_STRATEGIES: Array<[string, WorkflowStrategy]> = [
-  ['placeholder-triage', 'agentic_triage_v2'],
-  ['placeholder-metrics', 'breached_metrics'],
-];
 
 function execution(
   id: string,
@@ -29,6 +27,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1008',
     configId: 'placeholder-triage',
+    strategy: 'agentic_triage_v2',
     status: 'running',
     dateAdded: ago(1),
     dateUpdated: ago(0),
@@ -41,6 +40,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1007',
     configId: 'placeholder-metrics',
+    strategy: 'breached_metrics',
     status: 'queued',
     dateAdded: ago(3),
     dateUpdated: ago(3),
@@ -50,6 +50,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1006',
     configId: 'placeholder-triage',
+    strategy: 'agentic_triage_v2',
     status: 'complete',
     dateAdded: ago(90),
     dateUpdated: ago(85),
@@ -63,6 +64,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1005',
     configId: 'placeholder-triage',
+    strategy: 'agentic_triage_v2',
     status: 'failed',
     error: {code: 'seer_unavailable', message: 'Seer was unavailable. Try again later.'},
     dateAdded: ago(60 * 5),
@@ -83,6 +85,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1004',
     configId: 'placeholder-metrics',
+    strategy: 'breached_metrics',
     status: 'rejected',
     error: {
       code: 'budget_exceeded',
@@ -96,6 +99,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1003',
     configId: 'placeholder-metrics',
+    strategy: 'breached_metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 3),
     dateUpdated: ago(60 * 24 * 3 - 5),
@@ -105,6 +109,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1002',
     configId: 'placeholder-triage',
+    strategy: 'agentic_triage_v2',
     status: null,
     dateAdded: ago(60 * 24 * 10),
     dateUpdated: ago(60 * 24 * 10),
@@ -114,6 +119,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1001',
     configId: 'placeholder-metrics',
+    strategy: 'breached_metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 40),
     dateUpdated: ago(60 * 24 * 40),

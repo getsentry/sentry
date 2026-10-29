@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconFilter} from '@sentry/icons/filter';
-import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -20,7 +20,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -30,7 +29,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
-import {PLACEHOLDER_CONFIG_STRATEGIES} from 'sentry/views/seerWorkflows/automations/runs/placeholderRuns';
 import {
   getRunDisplayStatus,
   StatusIcon,
@@ -41,7 +39,6 @@ import {
 } from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerAutomationRun,
-  SeerWorkflowConfigsResponse,
   WorkflowDisplayStatus,
   WorkflowRunCreateRequest,
 } from 'sentry/views/seerWorkflows/types';
@@ -85,26 +82,7 @@ export default function AutomationRunsList() {
     },
   });
 
-  const {runs: apiRuns, isPending, isError, refetch} = useAutomationRuns();
-  // Runs only reference their config, so look up each run's strategy from its config
-  const {data: configsData} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        staleTime: 30_000,
-      }
-    )
-  );
-  const runs: RunWithStrategy[] = useMemo(() => {
-    // TEMPORARY: include placeholder configs
-    const strategies = new Map<string, string>([
-      ...PLACEHOLDER_CONFIG_STRATEGIES,
-      ...(configsData?.configs.map(config => [config.id, config.strategy] as const) ??
-        []),
-    ]);
-    return apiRuns.map(run => ({...run, strategy: strategies.get(run.configId) ?? null}));
-  }, [apiRuns, configsData]);
+  const {runs, isPending, isError, refetch} = useAutomationRuns();
 
   const strategyFilter = decodeList(location.query.strategy);
   const statusFilter = decodeList(location.query.status) as WorkflowDisplayStatus[];
@@ -118,21 +96,16 @@ export default function AutomationRunsList() {
 
   const strategyOptions = useMemo(
     () =>
-      Array.from(new Set(runs.flatMap(run => (run.strategy ? [run.strategy] : [])))).map(
-        strategy => ({
-          value: strategy,
-          label: getStrategyLabel(strategy),
-        })
-      ),
+      Array.from(new Set(runs.map(run => run.strategy))).map(strategy => ({
+        value: strategy,
+        label: getStrategyLabel(strategy),
+      })),
     [runs]
   );
 
   const filteredRuns = useMemo(() => {
     return runs.filter(run => {
-      if (
-        strategyFilter.length &&
-        (!run.strategy || !strategyFilter.includes(run.strategy))
-      ) {
+      if (strategyFilter.length && !strategyFilter.includes(run.strategy)) {
         return false;
       }
       const status = getRunDisplayStatus(run.status);
@@ -149,7 +122,7 @@ export default function AutomationRunsList() {
   const sortDirection = decodeScalar(location.query.sort) === 'asc' ? 'asc' : 'desc';
 
   const sortedRuns = useMemo(() => {
-    const cmp = (a: RunWithStrategy, b: RunWithStrategy) =>
+    const cmp = (a: SeerAutomationRun, b: SeerAutomationRun) =>
       Date.parse(a.dateAdded) - Date.parse(b.dateAdded);
     const next = filteredRuns.toSorted(cmp);
     return sortDirection === 'desc' ? next.reverse() : next;
@@ -257,7 +230,7 @@ export default function AutomationRunsList() {
         </Flex>
       </Stack>
 
-      {isError && apiRuns.length === 0 ? (
+      {isError && runs.length === 0 ? (
         <LoadingError onRetry={refetch} />
       ) : isPending ? (
         <LoadingIndicator />
@@ -386,9 +359,7 @@ export default function AutomationRunsList() {
                         </Stack>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
-                        <Text size="sm">
-                          {run.strategy ? getStrategyLabel(run.strategy) : '\u2014'}
-                        </Text>
+                        <Text size="sm">{getStrategyLabel(run.strategy)}</Text>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <Text
@@ -434,13 +405,6 @@ export default function AutomationRunsList() {
     </Stack>
   );
 }
-
-type RunWithStrategy = SeerAutomationRun & {
-  /**
-   * From the run's config. Null until configs load, or if the config is gone
-   */
-  strategy: string | null;
-};
 
 function getRunSummary(run: SeerAutomationRun): string {
   switch (run.status) {

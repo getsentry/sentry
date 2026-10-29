@@ -32,6 +32,7 @@ type SeerAutomationRunBase = {
   dateUpdated: string;
   executions: SeerWorkflowExecution[];
   id: string;
+  strategy: string;
 };
 
 export type SeerAutomationRun = SeerAutomationRunBase &
@@ -77,9 +78,13 @@ export type SeerWorkflowConfigResponse = {
   strategy: string;
   version: number;
   /**
-   * When the latest visible run started, in Unix seconds. Omitted if there are none
+   * When the latest visible run started. Omitted if there are none
    */
-  lastRun?: number;
+  dateLastRun?: string;
+  /**
+   * Status of the latest visible run. Omitted if there are none
+   */
+  lastRunStatus?: SeerAutomationRunStatus;
 };
 
 export type SeerWorkflowConfigsResponse = {

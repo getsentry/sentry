@@ -104,13 +104,13 @@ export default function AutomationDetail() {
           </Heading>
           <Text>{strategyMeta?.description ?? t('No description')}</Text>
           <Stack direction="row" align="center" gap="md" wrap="wrap">
-            {config?.lastRun !== undefined && (
+            {config?.dateLastRun !== undefined && (
               <Fragment>
                 <Text size="sm" variant="muted">
                   {tct('Last run [time]', {
                     time: (
                       <TimeSince
-                        date={new Date(config.lastRun * 1000)}
+                        date={config.dateLastRun}
                         tooltipPrefix={t('Last run')}
                       />
                     ),

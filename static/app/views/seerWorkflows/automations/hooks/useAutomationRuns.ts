@@ -2,7 +2,10 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PLACEHOLDER_RUNS} from 'sentry/views/seerWorkflows/automations/runs/placeholderRuns';
+import {
+  PLACEHOLDER_RUNS,
+  USE_PLACEHOLDER_RUNS,
+} from 'sentry/views/seerWorkflows/automations/runs/placeholderRuns';
 import type {
   SeerAutomationRunStatus,
   SeerAutomationRunsResponse,
@@ -21,7 +24,7 @@ export function useAutomationRuns({configId}: {configId?: string} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {isError, refetch} = useQuery({
+  const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<SeerAutomationRunsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
@@ -31,11 +34,15 @@ export function useAutomationRuns({configId}: {configId?: string} = {}) {
       }
     ),
     // TEMPORARY: skip the runs API until it returns the new shape
-    enabled: false,
+    enabled: !USE_PLACEHOLDER_RUNS,
     refetchInterval: query =>
       query.state.data?.json.runs.some(run => isRunInProgress(run.status)) ? 5000 : false,
   });
 
   // TEMPORARY: show placeholder runs until the new runs API ships
-  return {runs: PLACEHOLDER_RUNS, isPending: false, isError, refetch};
+  if (USE_PLACEHOLDER_RUNS) {
+    return {runs: PLACEHOLDER_RUNS, isPending: false, isError, refetch};
+  }
+
+  return {runs: data?.runs ?? [], isPending, isError, refetch};
 }

@@ -1,15 +1,21 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import AutomationRunsList from 'sentry/views/seerWorkflows/automations/runs';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
+// TEMPORARY: exercise the runs API instead of placeholder runs
+jest.mock('sentry/views/seerWorkflows/automations/runs/placeholderRuns', () => ({
+  ...jest.requireActual('sentry/views/seerWorkflows/automations/runs/placeholderRuns'),
+  USE_PLACEHOLDER_RUNS: false,
+}));
+
 function makeRun(overrides: Partial<SeerAutomationRun>): SeerAutomationRun {
   return {
     id: '1',
     configId: '1',
+    strategy: 'agentic_triage',
     dateAdded: '2026-04-20T00:00:00Z',
     dateUpdated: '2026-04-20T00:01:00Z',
     dateCompleted: '2026-04-20T00:01:00Z',
@@ -40,15 +46,6 @@ describe('AutomationRunsList', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/seer/workflows/configs/`,
-      body: {
-        configs: [
-          SeerWorkflowConfigFixture({id: '1', strategy: 'agentic_triage'}),
-          SeerWorkflowConfigFixture({id: '2', strategy: 'duplicate_monitors'}),
-        ],
-      },
-    });
   });
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
@@ -78,7 +75,11 @@ describe('AutomationRunsList', () => {
       const scanOrganization = OrganizationFixture({
         features: ['seer-automations', 'seer-workflows-monitor-cleanup'],
       });
-      const previousRun = makeRun({id: '1', configId: '2'});
+      const previousRun = makeRun({
+        id: '1',
+        configId: '2',
+        strategy: 'duplicate_monitors',
+      });
       MockApiClient.addMockResponse({url: runsUrl, body: {runs: [previousRun]}});
       const startScan = MockApiClient.addMockResponse({
         url: runsUrl,
@@ -100,6 +101,7 @@ describe('AutomationRunsList', () => {
       const runningRun = makeRun({
         id: '2',
         configId: '2',
+        strategy: 'duplicate_monitors',
         dateAdded: '2026-04-21T00:00:00Z',
         dateCompleted: null,
         status: 'running',
@@ -131,13 +133,18 @@ describe('AutomationRunsList', () => {
     });
   });
 
-  it("shows each run's strategy from its config", async () => {
+  it("shows each run's strategy", async () => {
     MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
         runs: [
           makeRun({id: '1', configId: '1'}),
-          makeRun({id: '2', configId: '2', dateAdded: '2026-04-19T00:00:00Z'}),
+          makeRun({
+            id: '2',
+            configId: '2',
+            strategy: 'duplicate_monitors',
+            dateAdded: '2026-04-19T00:00:00Z',
+          }),
         ],
       },
     });
