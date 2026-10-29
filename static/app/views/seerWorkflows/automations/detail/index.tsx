@@ -59,9 +59,7 @@ export default function AutomationDetail() {
       }
     )
   );
-  const config: AutomationConfig | undefined = automationsEnabled
-    ? (placeholderConfig ?? data)
-    : undefined;
+  const config: AutomationConfig | undefined = placeholderConfig ?? data;
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
