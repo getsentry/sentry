@@ -371,37 +371,48 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_put_all_projects_config_returns_400(self) -> None:
-        config = self.create_config(filters={"all_projects": True})
+    def test_put_all_projects_config_requires_global_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        all_projects_config = self.create_config(filters={"all_projects": True})
+        selected_config = self.create_config()
+        Factories.create_seer_workflow_config_project(selected_config, accessible)
 
-        response = self.get_error_response(
+        self.login_as(member)
+        self.get_error_response(
             self.organization.slug,
-            config.id,
+            all_projects_config.id,
             method="put",
-            projectIds=[self.project.id],
-            status_code=400,
+            projectIds=[accessible.id],
+            status_code=403,
         )
-
-        assert response.data["detail"] == "Workflow already includes all projects"
-        assert self.selected_project_ids(config) == []
-
-    def test_put_breached_metric_config_returns_400(self) -> None:
-        config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        )
-
-        response = self.get_error_response(
+        self.get_error_response(
             self.organization.slug,
-            config.id,
+            selected_config.id,
             method="put",
-            projectIds=[self.project.id],
-            status_code=400,
+            projectIds=[-1],
+            status_code=403,
         )
+        all_projects_config.refresh_from_db()
+        selected_config.refresh_from_db()
+        assert all_projects_config.filters["all_projects"] is True
+        assert selected_config.filters.get("all_projects", False) is False
 
-        assert response.data["detail"] == (
-            "Breached metric projects are selected by connecting monitors"
+        self.login_as(self.user)
+        response = self.get_success_response(
+            self.organization.slug,
+            all_projects_config.id,
+            method="put",
+            projectIds=[accessible.id],
         )
-        assert self.selected_project_ids(config) == []
+        assert response.data["projects"] == [accessible.id]
+        all_projects_config.refresh_from_db()
+        assert all_projects_config.filters["all_projects"] is False
+        assert self.selected_project_ids(all_projects_config) == [accessible.id]
 
     def test_member_put_keeps_inaccessible_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
@@ -517,27 +528,6 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert config.filters["all_projects"] is True
         assert self.selected_project_ids(config) == []
 
-    def test_breached_metric_config_covers_all_projects(self) -> None:
-        for body in ({}, {"projectIds": [-1]}):
-            response = self.get_success_response(
-                self.organization.slug,
-                strategy="breached_metric_investigation",
-                status_code=201,
-                **body,
-            )
-            assert response.data["strategy"] == "breached_metric_investigation"
-            assert response.data["projects"] == [-1]
-
-        response = self.get_error_response(
-            self.organization.slug,
-            strategy="breached_metric_investigation",
-            projectIds=[self.project.id],
-            status_code=400,
-        )
-        assert response.data["detail"] == (
-            "Breached metric projects are selected by connecting monitors"
-        )
-
     def test_nonexistent_projects_return_403(self) -> None:
         foreign = self.create_project(organization=self.create_organization())
         for project_id in (self.nonexistent_project_id(), foreign.id):
@@ -578,9 +568,6 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
                 projectIds=project_ids,
                 status_code=403,
             )
-        self.get_error_response(
-            self.organization.slug, strategy="breached_metric_investigation", status_code=403
-        )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
         response = self.get_success_response(

@@ -321,8 +321,10 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         Only the fields sent are changed. ``projectIds`` replaces the projects the
         caller can access; selected projects the caller can't access are kept. Every
-        project sent must be active and accessible to the caller. Returns the updated
-        config in the same shape as an item in the list endpoint's ``configs``.
+        project sent must be active and accessible to the caller. ``[-1]`` selects all
+        projects, and changing a config to or from all projects requires global access.
+        Returns the updated config in the same shape as an item in the list endpoint's
+        ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -337,16 +339,18 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
+            workflow = SeerWorkflow(config)
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
 
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            if all_projects:
+            if all_projects or workflow.filters.all_projects:
                 if not request.access.has_global_access:
                     raise PermissionDenied
-            else:
+
+            if not all_projects:
                 requested = self.get_projects(request, organization, project_ids=set(project_ids))
                 if not all(
                     request.access.has_project_scope(project, "project:read")
@@ -354,25 +358,25 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 ):
                     raise PermissionDenied
 
-            has_access_projects = [
-                project.id
-                for project in self.get_projects(request, organization, include_all_accessible=True)
-                if request.access.has_project_scope(project, "project:read")
-            ]
-            workflow = SeerWorkflow(config)
             try:
                 if all_projects:
                     workflow.set_project_selection(AllProjects())
                 else:
+                    has_access_projects = [
+                        project.id
+                        for project in self.get_projects(
+                            request, organization, include_all_accessible=True
+                        )
+                        if request.access.has_project_scope(project, "project:read")
+                    ]
                     workflow.set_project_selection(
                         SelectedProjects(project_ids=tuple(project_ids)),
                         has_access_projects=has_access_projects,
                     )
             except ValueError as e:
                 return Response({"detail": str(e)}, status=400)
-            config = workflow.config
 
-        return Response(self.serialize(request, organization, config))
+        return Response(self.serialize(request, organization, workflow.config))
 
 
 def serialize_workflow_configs(
