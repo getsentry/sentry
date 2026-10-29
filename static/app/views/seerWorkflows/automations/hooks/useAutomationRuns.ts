@@ -46,7 +46,9 @@ export function useAutomationRuns({
   // TEMPORARY: show placeholder runs until the new runs API ships
   if (USE_PLACEHOLDER_RUNS) {
     return {
-      runs: PLACEHOLDER_RUNS,
+      runs: configId
+        ? PLACEHOLDER_RUNS.filter(run => run.configId === configId)
+        : PLACEHOLDER_RUNS,
       pageLinks: undefined,
       isPending: false,
       isError,

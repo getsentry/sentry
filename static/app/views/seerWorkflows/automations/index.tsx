@@ -93,7 +93,7 @@ function makePlaceholderConfig(
  */
 export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
   makePlaceholderConfig('placeholder-agentic-triage', {
-    strategy: 'agentic_triage',
+    strategy: 'agentic_triage_v2',
     dateLastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
     lastRunStatus: 'complete',
     schedule: 'daily',

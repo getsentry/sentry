@@ -26,7 +26,7 @@ function execution(
 export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   {
     id: '1008',
-    configId: 'placeholder-triage',
+    configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: 'running',
     dateAdded: ago(1),
@@ -39,7 +39,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1007',
-    configId: 'placeholder-metrics',
+    configId: 'placeholder-breached-metrics',
     strategy: 'breached_metrics',
     status: 'queued',
     dateAdded: ago(3),
@@ -49,7 +49,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1006',
-    configId: 'placeholder-triage',
+    configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: 'complete',
     dateAdded: ago(90),
@@ -63,7 +63,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1005',
-    configId: 'placeholder-triage',
+    configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: 'failed',
     error: {code: 'seer_unavailable', message: 'Seer was unavailable. Try again later.'},
@@ -84,7 +84,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1004',
-    configId: 'placeholder-metrics',
+    configId: 'placeholder-breached-metrics',
     strategy: 'breached_metrics',
     status: 'rejected',
     error: {
@@ -98,7 +98,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1003',
-    configId: 'placeholder-metrics',
+    configId: 'placeholder-breached-metrics',
     strategy: 'breached_metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 3),
@@ -108,7 +108,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1002',
-    configId: 'placeholder-triage',
+    configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: null,
     dateAdded: ago(60 * 24 * 10),
@@ -118,7 +118,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
   },
   {
     id: '1001',
-    configId: 'placeholder-metrics',
+    configId: 'placeholder-breached-metrics',
     strategy: 'breached_metrics',
     status: 'complete',
     dateAdded: ago(60 * 24 * 40),
