@@ -601,8 +601,12 @@ class ScmGitEndpointTest(TestCase):
 
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.logger")
-    def test_answers_a_provider_host_on_an_internal_address_with_a_host_error(
-        self, mock_logger: mock.MagicMock, mock_sdk: mock.MagicMock
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_a_provider_host_on_an_internal_address(
+        self,
+        mock_record_count: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_sdk: mock.MagicMock,
     ) -> None:
         integration = self.create_integration(
             organization=self.organization,
@@ -627,29 +631,39 @@ class ScmGitEndpointTest(TestCase):
 
         response = self.fetch_refs(grant, repo.id)
 
-        assert response.status_code == 503
+        detail = "The repository's git remote is at an address Sentry does not connect to."
+        assert response.status_code == 502
         assert response["Content-Type"] == "text/plain; charset=utf-8"
-        assert b"".join(response) == b"Unable to reach host\n"
+        assert b"".join(response) == f"{detail}\n".encode()
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed",
+            1,
+            {"code": "git_remote_refused", "referrer": REFERRER},
+        )
         mock_logger.error.assert_called_once_with(
             "scm.git.request_failed",
             extra={
-                "code": "restricted_ip_address",
-                "detail": "The provider host resolves to an address Sentry doesn't connect to.",
+                "code": "git_remote_refused",
+                "detail": detail,
                 "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
+                "operation": "fetch",
+                "provider": "github_enterprise",
+                "remote_host": "127.0.0.1",
             },
         )
-        self.assert_reported_message(
-            mock_sdk, "The provider host resolves to an address Sentry doesn't connect to."
-        )
+        self.assert_reported_message(mock_sdk, detail)
         self.assert_reported(
             mock_sdk,
-            "restricted_ip_address",
+            "git_remote_refused",
             {
                 "repository_id": str(repo.id),
                 "organization_id": str(self.organization.id),
                 "referrer": REFERRER,
+                "operation": "fetch",
+                "provider": "github_enterprise",
+                "remote_host": "127.0.0.1",
             },
         )
 

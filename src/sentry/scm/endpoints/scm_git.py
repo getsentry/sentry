@@ -6,7 +6,7 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
-from scm.errors import SCMCodedError
+from scm.errors import GitRemoteRefused, SCMCodedError
 from scm.git.grant import require_public_keys, verify_grant
 from scm.git.relay import GitRelay
 from scm.git.server import GitServer
@@ -22,7 +22,6 @@ from sentry.exceptions import RestrictedIPAddress
 from sentry.models.organization import Organization
 from sentry.net.http import BlacklistAdapter
 from sentry.scm.private.helpers import fetch_access_token, make_fetchers, record_count_metric
-from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.utils.http import request_body_stream
 
 logger = logging.getLogger(__name__)
@@ -50,8 +49,17 @@ def make_git_server() -> GitServer:
         emit_error=report_git_error,
         # A GitHub Enterprise or self-managed GitLab host is whatever the customer configured, so
         # it may resolve to one of our own addresses.
-        relay=GitRelay(adapter=BlacklistAdapter),
+        relay=GitRelay(adapter=BlacklistAdapter, map_error=_map_relay_error),
     )
+
+
+def _map_relay_error(error: Exception) -> SCMCodedError | None:
+    # BlacklistAdapter refuses an internal address with Sentry's own exception, which scm-platform
+    # doesn't know. Mapped, GitServer counts, reports and answers it like its other refusals, and
+    # the report leaves out the address and the urllib3 frames that hold the token.
+    if isinstance(error, RestrictedIPAddress):
+        return GitRemoteRefused()
+    return None
 
 
 @internal_cell_silo_endpoint
@@ -129,26 +137,14 @@ class ScmGitEndpoint(Endpoint):
                 tags,
             )
 
-        try:
-            response = make_git_server().handle(
-                method=request.method or "",
-                repository_id=repository_id,
-                route=route,
-                query=request.META.get("QUERY_STRING", ""),
-                headers=dict(request.headers),
-                body=_request_body(request._request),
-            )
-        except RestrictedIPAddress as e:
-            # The provider host resolves to an internal address. GitServer counts that as an
-            # unhandled_exception and doesn't report it, so the report is what names the repository.
-            # Neither the report nor the client's 503 carries the address, like the ApiHostError
-            # Sentry's API clients raise.
-            _report_failure(
-                "restricted_ip_address",
-                "The provider host resolves to an address Sentry doesn't connect to.",
-                context,
-            )
-            return _plain_text(ApiHostError.from_exception(e).text, 503)
+        response = make_git_server().handle(
+            method=request.method or "",
+            repository_id=repository_id,
+            route=route,
+            query=request.META.get("QUERY_STRING", ""),
+            headers=dict(request.headers),
+            body=_request_body(request._request),
+        )
         return StreamingHttpResponse(
             response.content, status=response.status_code, headers=response.headers
         )
