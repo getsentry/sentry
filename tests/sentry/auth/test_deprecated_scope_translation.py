@@ -70,25 +70,26 @@ def test_get_deprecated_scope_translations_without_deprecated_scopes() -> None:
     assert get_deprecated_scope_translations(["project:read"]) == {}
 
 
-@patch("sentry.auth.deprecated_scope_translation.metrics")
+@patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
 def test_record_deprecated_scope_translation(mock_metrics: MagicMock) -> None:
     record_deprecated_scope_translation(["org:read"], tags={"endpoint": "SomeEndpoint"})
-    mock_metrics.incr.assert_called_once_with(
+    mock_metrics.count.assert_called_once_with(
         "auth.deprecated_scope_translation.applied",
-        tags={"endpoint": "SomeEndpoint", "deprecated_scope": "org:read"},
+        1,
+        attributes={"endpoint": "SomeEndpoint", "deprecated_scope": "org:read"},
     )
 
 
-@patch("sentry.auth.deprecated_scope_translation.metrics")
+@patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
 def test_record_deprecated_scope_translation_noop_without_added_scopes(
     mock_metrics: MagicMock,
 ) -> None:
     record_deprecated_scope_translation(["project:read"], tags={"endpoint": "SomeEndpoint"})
-    mock_metrics.incr.assert_not_called()
+    mock_metrics.count.assert_not_called()
 
 
 @override_options({"auth.deprecated-scope-translation.enabled": False})
-@patch("sentry.auth.deprecated_scope_translation.metrics")
+@patch("sentry.auth.deprecated_scope_translation.sentry_sdk.metrics")
 def test_record_deprecated_scope_translation_noop_when_disabled(mock_metrics: MagicMock) -> None:
     record_deprecated_scope_translation(["org:read"], tags={"endpoint": "SomeEndpoint"})
-    mock_metrics.incr.assert_not_called()
+    mock_metrics.count.assert_not_called()
