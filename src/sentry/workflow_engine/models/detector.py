@@ -205,9 +205,10 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         try:
             return detector_settings_registry.get(DetectorType(self.type))
         except ValueError as exc:
+            # Report unexpected types on existing detectors; new instances only raise.
             if not self._state.adding:
                 logger.exception(
-                    "workflow_engine.detector.unregistered_type",
+                    "Existing detector has a type outside DetectorType or missing settings",
                     extra={"detector_id": self.id, "detector_type": self.type},
                 )
             raise ValueError(f"Detector type '{self.type}' not registered") from exc

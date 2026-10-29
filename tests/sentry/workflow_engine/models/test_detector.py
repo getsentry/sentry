@@ -333,7 +333,7 @@ def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
         with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
             _ = detector.settings
         logger.exception.assert_called_once_with(
-            "workflow_engine.detector.unregistered_type",
+            "Existing detector has a type outside DetectorType or missing settings",
             extra={"detector_id": detector.id, "detector_type": "legacy_unknown_type"},
         )
 
