@@ -96,19 +96,31 @@ def _build_image_info(
 
 def _resolve_base_image_info(
     image_file_name: str,
+    comp_result: ComparisonImageResult,
     base_manifest: SnapshotManifest | None,
+    head_image: SnapshotImageDetailImageInfo | None,
     org_slug: str,
     project_slug: str,
 ) -> SnapshotImageDetailImageInfo | None:
-    if base_manifest is None:
+    if comp_result.status == "added":
         return None
-    base_meta = base_manifest.images.get(image_file_name)
+    base_fname = comp_result.previous_image_file_name or image_file_name
+    base_meta = base_manifest.images.get(base_fname) if base_manifest else None
     if base_meta is None:
-        return None
+        if head_image is not None and comp_result.base_hash in (None, head_image.key):
+            return head_image.copy(update={"image_file_name": base_fname})
+        if not (comp_result.base_hash and comp_result.before_width and comp_result.before_height):
+            return None
+        base_meta = ImageMetadata(
+            content_hash=comp_result.base_hash,
+            display_name=base_fname,
+            width=comp_result.before_width,
+            height=comp_result.before_height,
+        )
     return _build_image_info(
-        image_file_name,
+        base_fname,
         base_meta,
-        base_manifest.diff_threshold,
+        base_manifest.diff_threshold if base_manifest else None,
         org_slug,
         project_slug,
     )
@@ -294,14 +306,19 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
                             comparison_status="removed",
                             head_image=None,
                             base_image=_resolve_base_image_info(
-                                comp_file_name, base_manifest, org_slug, project_slug
+                                comp_file_name,
+                                comp_result,
+                                base_manifest,
+                                None,
+                                org_slug,
+                                project_slug,
                             ),
                         )
                         return Response(_to_response_dict(resp))
 
                     if comp_result.status == "skipped":
                         base_image = _resolve_base_image_info(
-                            comp_file_name, base_manifest, org_slug, project_slug
+                            comp_file_name, comp_result, base_manifest, None, org_slug, project_slug
                         )
                         resp = SnapshotImageDetailResponse(
                             image_file_name=comp_file_name,
@@ -328,16 +345,9 @@ class OrganizationPreprodSnapshotImageDetailEndpoint(OrganizationEndpoint):
             return Response(_to_response_dict(resp))
 
         status = comp_result.status
-
-        base_fname = image_file_name
-        if status == "renamed" and comp_result.previous_image_file_name:
-            base_fname = comp_result.previous_image_file_name
-
-        base_image_info = None
-        if status in ("changed", "unchanged", "renamed", "errored", "skipped"):
-            base_image_info = _resolve_base_image_info(
-                base_fname, base_manifest, org_slug, project_slug
-            )
+        base_image_info = _resolve_base_image_info(
+            image_file_name, comp_result, base_manifest, head_image, org_slug, project_slug
+        )
 
         diff_image_url = None
         diff_percentage = None
