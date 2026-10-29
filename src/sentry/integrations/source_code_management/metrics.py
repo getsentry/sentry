@@ -1,8 +1,8 @@
 from collections.abc import Mapping
 from enum import StrEnum
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from attr import dataclass
+from attr import dataclass, field
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
@@ -70,18 +70,36 @@ class SCMIntegrationInteractionType(StrEnum):
     GET_REPO_TREE = "get_repo_tree"
 
 
+class SCMIntegrationMilestoneType(StrEnum):
+    """
+    Internal operations performed while delivering an SCM integration feature.
+
+    Values remain in SCMIntegrationInteractionType until their callers migrate to
+    SCMIntegrationMilestoneEvent.
+    """
+
+    CHECK_FILE = "check_file"
+    GET = "get"
+    GET_RATE_LIMIT = "get_rate_limit"
+    GET_REPOSITORIES = "get_repositories"
+    GET_REPO_TREE = "get_repo_tree"
+
+
 class SCMResolutionHaltReason(StrEnum):
     GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
     ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
 
 
+SCMInteractionType = TypeVar("SCMInteractionType", bound=StrEnum)
+
+
 @dataclass
-class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
+class _SCMIntegrationEvent(IntegrationEventLifecycleMetric, Generic[SCMInteractionType]):
     """
-    An instance to be recorded of an SCM integration feature call.
+    Shared dimensions for an SCM integration lifecycle event.
     """
 
-    interaction_type: SCMIntegrationInteractionType
+    interaction_type: SCMInteractionType
     provider_key: str
     integration_id: int | None = None
     organization_id: int | None = None
@@ -102,6 +120,31 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return {
             "organization_id": (self.organization_id if self.organization_id else None),
             "integration_id": (self.integration_id if self.integration_id else None),
+        }
+
+
+@dataclass
+class SCMIntegrationInteractionEvent(_SCMIntegrationEvent[SCMIntegrationInteractionType]):
+    """
+    An instance to be recorded of an SCM integration feature call.
+    """
+
+
+@dataclass
+class SCMIntegrationMilestoneEvent(_SCMIntegrationEvent[SCMIntegrationMilestoneType]):
+    """
+    An internal operation performed while delivering an SCM integration feature.
+    """
+
+    parent_interaction_type: SCMIntegrationInteractionType = field(kw_only=True)
+
+    def get_metrics_domain(self) -> str:
+        return "milestone"
+
+    def get_metric_tags(self) -> Mapping[str, str]:
+        return {
+            **super().get_metric_tags(),
+            "parent_interaction_type": str(self.parent_interaction_type),
         }
 
 

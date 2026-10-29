@@ -32,6 +32,17 @@ def test_filter_tags_prod() -> None:
         }
 
 
+def test_filter_tags_allows_milestone_integration_id() -> None:
+    tags = {
+        "integration_id": 42,
+        "interaction_type": "check_file",
+        "parent_interaction_type": "get_stacktrace_link",
+    }
+
+    with override_settings(SENTRY_METRICS_DISALLOW_BAD_TAGS=True):
+        assert _filter_tags("integrations.milestone.started", tags) == tags
+
+
 def test_global() -> None:
     assert get_current_global_tags() == {}
 

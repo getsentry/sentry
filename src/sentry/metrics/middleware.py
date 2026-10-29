@@ -26,6 +26,10 @@ _METRICS_THAT_CAN_HAVE_BAD_TAGS = frozenset(
         "integrations.slo.success",
         "integrations.slo.halted",
         "integrations.slo.failure",
+        "integrations.milestone.started",
+        "integrations.milestone.success",
+        "integrations.milestone.halted",
+        "integrations.milestone.failure",
     ]
 )
 

@@ -14,6 +14,8 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    SCMIntegrationMilestoneEvent,
+    SCMIntegrationMilestoneType,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
@@ -44,6 +46,22 @@ def test_scm_interaction_event_normalizes_provider(
         "integration_domain": "source_code_management",
         "integration_name": expected_provider,
         "interaction_type": "get_stacktrace_link",
+    }
+
+
+def test_scm_milestone_event_assigns_metric_key_and_tags() -> None:
+    event = SCMIntegrationMilestoneEvent(
+        interaction_type=SCMIntegrationMilestoneType.CHECK_FILE,
+        parent_interaction_type=SCMIntegrationInteractionType.GET_STACKTRACE_LINK,
+        provider_key="integrations:github",
+    )
+
+    assert event.get_metric_key(EventLifecycleOutcome.STARTED) == "integrations.milestone.started"
+    assert event.get_metric_tags() == {
+        "integration_domain": "source_code_management",
+        "integration_name": "github",
+        "interaction_type": "check_file",
+        "parent_interaction_type": "get_stacktrace_link",
     }
 
 
