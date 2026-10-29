@@ -32,3 +32,12 @@ class GroupEmailThread(Model):
         ]
 
     __repr__ = sane_repr("email", "group_id", "msgid")
+
+    @classmethod
+    def can_track_email(cls, email: str) -> bool:
+        """
+        Whether ``email`` fits in the ``email`` column. User emails may be up to
+        200 characters, so longer addresses cannot be tracked for threading.
+        """
+        max_length = cls._meta.get_field("email").max_length
+        return max_length is None or len(email) <= max_length
