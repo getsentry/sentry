@@ -31,7 +31,6 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
-from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import (
     MAX_CHAR,
@@ -1513,14 +1512,6 @@ class JiraIntegration(IssueSyncIntegration):
         return ResolveSyncAction.from_resolve_unresolve(
             should_resolve=c_to in done_statuses and c_from not in done_statuses,
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
-        )
-
-    def migrate_issues(self):
-        migrate_issues.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
         )
 
     def parse_jira_issue_metadata(
