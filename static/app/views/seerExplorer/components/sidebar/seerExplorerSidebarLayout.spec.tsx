@@ -3,7 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {GlobalDrawer} from '@sentry/scraps/drawer';
+import {Button} from '@sentry/scraps/button';
+import * as drawerModule from '@sentry/scraps/drawer';
+import {GlobalDrawer, useDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as analytics from 'sentry/utils/analytics';
@@ -74,6 +76,7 @@ function mockWideScreen(wide: boolean) {
 
 function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
   const {openSeerExplorer, toggleSeerExplorer} = useSeerExplorerContext();
+  const {openDrawer} = useDrawer();
   return (
     <Fragment>
       <button type="button" onClick={() => openSeerExplorer(options)}>
@@ -82,6 +85,16 @@ function OpenSeerControl({options}: {options?: OpenSeerExplorerDrawerOptions}) {
       <button type="button" onClick={() => toggleSeerExplorer()}>
         toggle-seer
       </button>
+      <Button
+        onClick={() =>
+          openDrawer(() => <div>drawer content</div>, {
+            ariaLabel: 'Test drawer',
+            mode: 'passive',
+          })
+        }
+      >
+        open-drawer
+      </Button>
     </Fragment>
   );
 }
@@ -521,6 +534,43 @@ describe('SeerExplorerSidebarLayout', () => {
       expect(screen.queryByTestId('seer-explorer-input')).not.toBeInTheDocument()
     );
     expect(splitOrientation()).toBeUndefined();
+  });
+
+  it('has drawers cover Seer while it is docked right', async () => {
+    mockWideScreen(true);
+    const drawerPlacement = jest.spyOn(drawerModule, 'useDrawerPlacement');
+    renderSidebar(orgWithSidebar);
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0});
+
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    // The default 420px Seer width, measured from the container's right edge.
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 420, topOffset: 0});
+
+    await userEvent.click(screen.getByText('open-drawer'));
+    expect(
+      await screen.findByRole('complementary', {name: 'Test drawer'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
+    await waitFor(() =>
+      expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0})
+    );
+  });
+
+  it('does not have drawers cover Seer while it is docked to the bottom', async () => {
+    const drawerPlacement = jest.spyOn(drawerModule, 'useDrawerPlacement');
+    renderSidebar(orgWithSidebar);
+
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('vertical');
+    expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 0, topOffset: 0});
+
+    await userEvent.click(screen.getByText('open-drawer'));
+    expect(
+      await screen.findByRole('complementary', {name: 'Test drawer'})
+    ).toBeInTheDocument();
   });
 
   describe('explorerRunId param', () => {

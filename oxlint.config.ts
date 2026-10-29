@@ -54,7 +54,10 @@ export const incubator = defineConfig({
     },
     {
       files: testFiles,
-      rules: fakeTimerRules,
+      rules: {
+        ...fakeTimerRules,
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
   ],
 });

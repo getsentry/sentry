@@ -28,8 +28,8 @@ export type GranularPermissions = Partial<Record<string, GranularPermissionLevel
 
 /**
  * Expands the selected levels into scopes. A level grants every level before
- * it, so Dashboards at `write` becomes `dashboard:read`, `dashboard:create`, and
- * `dashboard:write`.
+ * it, so Projects at `write` becomes `project_v2:read`, `project_v2:create`, and
+ * `project_v2:write`.
  */
 export function granularPermissionsToScopes(permissions: GranularPermissions): string[] {
   return GRANULAR_SENTRY_APP_PERMISSIONS.flatMap(({label, resource, levels}) => {
