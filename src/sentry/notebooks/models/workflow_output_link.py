@@ -9,12 +9,11 @@ from sentry.db.models.base import DefaultFieldsModel
 
 @cell_silo_model
 class SeerWorkflowOutputLink(DefaultFieldsModel):
-    """A many-to-many link between a Seer workflow execution and an output it produced.
+    """A many-to-many link between SeerWorkflowRunExecution (automation run shard) and related outputs.
 
     One execution can produce many outputs (e.g. an orchestrator that starts several
-    notebooks), and one output can be linked from executions of different runs
-    when a later run reuses it. Each row links a single output; output columns are
-    nullable so new output types can be added alongside notebooks.
+    investigations). Each row links a single output; output columns are nullable so 
+    multiple output types can be added.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
