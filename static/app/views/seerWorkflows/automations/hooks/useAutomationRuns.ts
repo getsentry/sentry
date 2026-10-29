@@ -23,16 +23,17 @@ function isRunInProgress(status: SeerAutomationRunStatus) {
 export function useAutomationRuns({
   configId,
   cursor,
-}: {configId?: string; cursor?: string} = {}) {
+  perPage = 20,
+}: {configId?: string; cursor?: string; perPage?: number} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data, isPending, isError, refetch} = useQuery({
+  const {data, isPending, isLoadingError, refetch} = useQuery({
     ...apiOptions.as<SeerAutomationRunsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
         path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {config: configId, cursor},
+        query: {config: configId, cursor, per_page: perPage},
         staleTime: 0,
       }
     ),
@@ -51,7 +52,7 @@ export function useAutomationRuns({
         : PLACEHOLDER_RUNS,
       pageLinks: undefined,
       isPending: false,
-      isError,
+      isLoadingError,
       refetch,
     };
   }
@@ -60,7 +61,7 @@ export function useAutomationRuns({
     runs: data?.json.runs ?? [],
     pageLinks: data?.headers.Link,
     isPending,
-    isError,
+    isLoadingError,
     refetch,
   };
 }

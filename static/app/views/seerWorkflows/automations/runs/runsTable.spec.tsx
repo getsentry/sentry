@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {RunsTable} from 'sentry/views/seerWorkflows/automations/runs/runsTable';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
@@ -98,12 +98,54 @@ describe('RunsTable', () => {
     const request = MockApiClient.addMockResponse({
       url: runsUrl,
       body: {runs: [makeRun({id: '3', configId: '7'})]},
-      match: [MockApiClient.matchQuery({config: '7'})],
+      match: [MockApiClient.matchQuery({config: '7', per_page: 20})],
     });
 
     render(<RunsTable configId="7" />, {organization});
 
     expect(await screen.findByText('3')).toBeInTheDocument();
     expect(request).toHaveBeenCalled();
+  });
+
+  it('shows an error with retry when the first load fails', async () => {
+    MockApiClient.addMockResponse({url: runsUrl, statusCode: 500});
+
+    render(<RunsTable />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  describe('polling', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      try {
+        act(() => {
+          jest.runOnlyPendingTimers();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('keeps showing runs when a poll fails', async () => {
+      MockApiClient.addMockResponse({
+        url: runsUrl,
+        body: {runs: [makeRun({id: '5', status: 'running', dateCompleted: null})]},
+      });
+
+      render(<RunsTable />, {organization});
+      expect(await screen.findByText('5')).toBeInTheDocument();
+
+      MockApiClient.clearMockResponses();
+      const pollRequest = MockApiClient.addMockResponse({url: runsUrl, statusCode: 500});
+      act(() => jest.advanceTimersByTime(5000));
+
+      await waitFor(() => expect(pollRequest).toHaveBeenCalled());
+      expect(screen.getByText('5')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    });
   });
 });

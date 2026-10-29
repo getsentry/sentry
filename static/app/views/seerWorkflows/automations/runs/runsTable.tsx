@@ -33,12 +33,12 @@ const COLUMNS: TableColumnConfig[] = [
  */
 export function RunsTable({configId}: {configId?: string}) {
   const location = useLocation();
-  const {runs, pageLinks, isPending, isError, refetch} = useAutomationRuns({
+  const {runs, pageLinks, isPending, isLoadingError, refetch} = useAutomationRuns({
     configId,
     cursor: decodeScalar(location.query.cursor),
   });
 
-  if (isError) {
+  if (isLoadingError) {
     return <LoadingError onRetry={refetch} />;
   }
 
