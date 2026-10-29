@@ -386,11 +386,12 @@ export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
 
 /**
  * Heat maps plot the distribution of a measurement's values over time, so they
- * only make sense for `distribution` metrics. Counters (always `1`) and gauges
- * have no meaningful value distribution to visualize.
+ * only make sense for metrics that carry a value distribution: `distribution`
+ * and OTLP `histogram` (bucket rows are spread across their bounds by Snuba).
+ * Counters (always `1`) and gauges have nothing to visualize.
  */
 export function doesMetricSupportHeatMapVisualization(metric: TraceMetric): boolean {
-  return metric.type === 'distribution';
+  return metric.type === 'distribution' || metric.type === 'histogram';
 }
 
 export const RATE_AGGREGATES = new Set(['per_second', 'per_minute']);
