@@ -36,6 +36,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DataConditionHandler
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -46,7 +47,12 @@ class ActionFilterInput(DataConditionGroupInput):
     actions: list[ActionInput]
 
 
+class WorkflowTriggersValidator(BaseDataConditionGroupValidator):
+    handler_group = DataConditionHandler.Group.WORKFLOW_TRIGGER
+
+
 class ActionFilterValidator(BaseDataConditionGroupValidator):
+    handler_group = DataConditionHandler.Group.ACTION_FILTER
     actions = serializers.ListField(child=serializers.DictField())
 
     def validate_actions(self, value: ListInputData) -> ListInputData:
@@ -90,7 +96,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         help_text="The name of the environment for the alert to evaluate in",
     )
 
-    triggers = BaseDataConditionGroupValidator(
+    triggers = WorkflowTriggersValidator(
         required=False,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )

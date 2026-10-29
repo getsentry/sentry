@@ -538,6 +538,30 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.data["environment"] == test_environment.name
         assert updated_workflow.environment_id == test_environment.id
 
+    def test_update_rejects_operator_condition_in_triggers(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "type": Condition.GREATER.value,
+                    "comparison": 0,
+                    "conditionResult": 75,
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "is not a valid workflow_trigger condition" in str(response.data)
+        assert self.workflow.when_condition_group is not None
+        assert not self.workflow.when_condition_group.conditions.filter(
+            type=Condition.GREATER
+        ).exists()
+
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
@@ -553,8 +577,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "logicType": "any",
                 "conditions": [
                     {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
+                        "type": Condition.ISSUE_OCCURRENCES.value,
+                        "comparison": {"value": 1},
                         "conditionResult": True,
                     }
                 ],
@@ -1173,8 +1197,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,
-                            "type": "first_seen_event",
-                            "comparison": True,
+                            "type": "issue_occurrences",
+                            "comparison": {"value": 1},
                             "conditionResult": True,
                         }
                     ],

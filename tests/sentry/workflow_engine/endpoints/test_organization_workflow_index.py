@@ -636,8 +636,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         )
         self.basic_condition = [
             {
-                "type": Condition.EQUAL.value,
-                "comparison": 1,
+                "type": Condition.ISSUE_OCCURRENCES.value,
+                "comparison": {"value": 1},
                 "conditionResult": True,
             }
         ]
@@ -686,8 +686,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         workflow_data = {
             **self.valid_workflow,
             "triggers": {
-                "logicType": "any",
-                "conditions": self.basic_condition,
+                "logicType": "any-short",
+                "conditions": self.basic_trigger,
             },
             "actionFilters": [
                 {
@@ -801,22 +801,54 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         new_workflow = Workflow.objects.get(id=response.data["id"])
         assert response.data == serialize(new_workflow)
 
-    def test_create_workflow__with_triggers(self) -> None:
-        # TODO: the basic condition is not actually a trigger, it's an actionFilter
-        # we should restrict the Condition types to be passed through a trigger
+    def test_create_workflow__rejects_action_filter_in_triggers(self) -> None:
         self.valid_workflow["triggers"] = {
-            "logicType": "any",
+            "logicType": "any-short",
             "conditions": self.basic_condition,
         }
 
-        response = self.get_success_response(
-            self.organization.slug,
-            raw_data=self.valid_workflow,
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
         )
+        assert "is not a valid workflow_trigger condition" in str(response.data)
 
-        assert response.status_code == 201
-        new_workflow = Workflow.objects.get(id=response.data["id"])
-        assert response.data == serialize(new_workflow)
+    def test_create_workflow__rejects_operator_condition_in_triggers(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "type": Condition.GREATER.value,
+                    "comparison": 0,
+                    "conditionResult": 75,
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "is not a valid workflow_trigger condition" in str(response.data)
+        assert not Workflow.objects.filter(name=self.valid_workflow["name"]).exists()
+
+    def test_create_workflow__rejects_operator_condition_in_action_filters(self) -> None:
+        self.valid_workflow["actionFilters"] = [
+            {
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": Condition.EQUAL.value,
+                        "comparison": 1,
+                        "conditionResult": True,
+                    }
+                ],
+                "actions": [],
+            }
+        ]
+
+        response = self.get_error_response(
+            self.organization.slug, raw_data=self.valid_workflow, status_code=400
+        )
+        assert "is not a valid action_filter condition" in str(response.data)
 
     def test_create_workflow__with_triggers_valid_logic_type(self) -> None:
         self.valid_workflow["triggers"] = {
@@ -1564,8 +1596,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,
-                            "type": "first_seen_event",
-                            "comparison": True,
+                            "type": "issue_occurrences",
+                            "comparison": {"value": 1},
                             "conditionResult": True,
                         }
                     ],
