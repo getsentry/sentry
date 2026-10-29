@@ -102,28 +102,40 @@ def _resolve_base_image_info(
     org_slug: str,
     project_slug: str,
 ) -> SnapshotImageDetailImageInfo | None:
-    if comp_result.status == "added":
-        return None
     base_fname = comp_result.previous_image_file_name or image_file_name
-    base_meta = base_manifest.images.get(base_fname) if base_manifest else None
-    if base_meta is None:
-        if head_image is not None and comp_result.base_hash in (None, head_image.key):
-            return head_image.copy(update={"image_file_name": base_fname})
-        if not (comp_result.base_hash and comp_result.before_width and comp_result.before_height):
-            return None
-        base_meta = ImageMetadata(
-            content_hash=comp_result.base_hash,
-            display_name=base_fname,
-            width=comp_result.before_width,
-            height=comp_result.before_height,
+    if base_manifest is not None and base_fname in base_manifest.images:
+        return _build_image_info(
+            base_fname,
+            base_manifest.images[base_fname],
+            base_manifest.diff_threshold,
+            org_slug,
+            project_slug,
         )
-    return _build_image_info(
-        base_fname,
-        base_meta,
-        base_manifest.diff_threshold if base_manifest else None,
-        org_slug,
-        project_slug,
+    return _base_image_from_comparison(base_fname, comp_result, head_image, org_slug, project_slug)
+
+
+def _base_image_from_comparison(
+    base_fname: str,
+    comp_result: ComparisonImageResult,
+    head_image: SnapshotImageDetailImageInfo | None,
+    org_slug: str,
+    project_slug: str,
+) -> SnapshotImageDetailImageInfo | None:
+    same_content_as_head = (
+        comp_result.status == "renamed" or comp_result.base_hash == comp_result.head_hash
     )
+    if same_content_as_head and head_image is not None:
+        return head_image.copy(update={"image_file_name": base_fname})
+
+    if not (comp_result.base_hash and comp_result.before_width and comp_result.before_height):
+        return None
+    base_meta = ImageMetadata(
+        content_hash=comp_result.base_hash,
+        display_name=base_fname,
+        width=comp_result.before_width,
+        height=comp_result.before_height,
+    )
+    return _build_image_info(base_fname, base_meta, None, org_slug, project_slug)
 
 
 def _to_response_dict(resp: SnapshotImageDetailResponse) -> SnapshotImageDetailResponseDict:
