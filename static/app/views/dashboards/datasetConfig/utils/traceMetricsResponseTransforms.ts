@@ -76,7 +76,8 @@ export const traceMetricsResponseTransforms: Pick<
       {
         getSeriesName: (timeSeries, widgetQuery) =>
           formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
-        // Score breakdown charts undergo frontend side transformations that change the value type of the series to `score`
+        // Score breakdown charts undergo frontend side transformations that change
+        // the value type of the series to `score`.
         meta: isScoreBreakdown ? {valueType: 'score', valueUnit: null} : undefined,
       }
     );
