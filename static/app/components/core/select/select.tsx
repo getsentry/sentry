@@ -29,6 +29,7 @@ import {
   components as selectComponents,
 } from './reactSelectWrapper';
 import type {
+  SelectComponents,
   SelectHandle,
   SelectSelectionProps,
   SelectValue,
@@ -285,13 +286,9 @@ type SelectContentProps = Pick<
   | 'aria-invalid'
   | 'controlLeadingItems'
   | 'dropdownIndicator'
-  | 'indicator'
   | 'inputRef'
   | 'menuFooter'
-  | 'renderIndicators'
-  | 'renderMultiValueLabel'
-  | 'renderValue'
->;
+> & {contentComponents?: SelectComponents};
 
 function SelectInput({
   selectProps,
@@ -338,11 +335,14 @@ function IndicatorsContainer({
   React.ComponentProps<typeof selectComponents.IndicatorsContainer>,
   'selectProps'
 > & {selectProps: SelectContentProps}) {
-  return props.selectProps.renderIndicators ? (
-    props.selectProps.renderIndicators(children)
+  const Indicators = props.selectProps.contentComponents?.Indicators;
+  if (Indicators === null) {
+    return null;
+  }
+  return Indicators ? (
+    <Indicators>{children}</Indicators>
   ) : (
     <selectComponents.IndicatorsContainer {...props}>
-      {props.selectProps.indicator}
       {children}
     </selectComponents.IndicatorsContainer>
   );
@@ -355,11 +355,10 @@ function MultiValueLabel({
   React.ComponentProps<typeof selectComponents.MultiValueLabel>,
   'selectProps' | 'data'
 > & {data: GeneralSelectValue; selectProps: SelectContentProps}) {
+  const Label = props.selectProps.contentComponents?.MultiValueLabel;
   return (
     <selectComponents.MultiValueLabel {...props}>
-      {props.selectProps.renderMultiValueLabel
-        ? props.selectProps.renderMultiValueLabel(props.data, children)
-        : children}
+      {Label ? <Label option={props.data}>{children}</Label> : children}
     </selectComponents.MultiValueLabel>
   );
 }
@@ -421,14 +420,15 @@ function SingleValue(
   > & {data: GeneralSelectValue; selectProps: SelectContentProps}
 ) {
   const {leadingItems, label} = props.data;
+  const ValueComponent = props.selectProps.contentComponents?.Value;
   const renderedLeadingItems =
     typeof leadingItems === 'function'
       ? leadingItems({disabled: props.isDisabled, isFocused: false, isSelected: true})
       : leadingItems;
   return (
     <selectComponents.SingleValue {...props}>
-      {props.selectProps.renderValue ? (
-        props.selectProps.renderValue(props.data)
+      {ValueComponent ? (
+        <ValueComponent option={props.data} />
       ) : (
         <SingleValueWrap>
           {renderedLeadingItems}
@@ -492,6 +492,8 @@ export interface BaseSelectProps<
   /** Blur after selection. Defaults to true for single selects, false for multiple. */
   blurInputOnSelect?: boolean;
   className?: string;
+  /** Customize content while Select retains input, option, and chip behavior. */
+  components?: SelectComponents<OptionType>;
   /** Content inside the control, before the selected value and input. */
   controlLeadingItems?: React.ReactNode;
   /** Allow values that are not in `options`. */
@@ -506,7 +508,6 @@ export interface BaseSelectProps<
   /** ID of the native input, for association with a label. */
   id?: string;
   inFieldLabel?: string;
-  indicator?: React.ReactNode;
   /** Ref to the native search input. */
   inputRef?: React.Ref<HTMLInputElement>;
   inputValue?: string;
@@ -537,10 +538,6 @@ export interface BaseSelectProps<
   optionHeight?: number;
   placeholder?: React.ReactNode;
   ref?: React.Ref<SelectHandle>;
-  renderIndicators?: (indicators: React.ReactNode) => React.ReactNode;
-  renderMultiValueLabel?: (option: OptionType, label: React.ReactNode) => React.ReactNode;
-  renderOptionLabel?: (option: OptionType) => React.ReactNode;
-  renderValue?: (option: OptionType) => React.ReactNode;
   searchable?: boolean;
   showCreateOptionIcon?: boolean;
   showDividers?: boolean;
@@ -602,11 +599,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
     id,
     isOpen,
     onOpenChange,
-    renderValue,
-    renderMultiValueLabel,
-    renderOptionLabel,
-    renderIndicators,
-    indicator,
+    components,
     optionHeight,
     controlLeadingItems,
     dropdownIndicator,
@@ -759,11 +752,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       menuIsOpen={isOpen}
       onMenuOpen={() => onOpenChange?.(true)}
       onMenuClose={() => onOpenChange?.(false)}
-      renderValue={renderValue}
-      renderMultiValueLabel={renderMultiValueLabel}
-      renderOptionLabel={renderOptionLabel}
-      renderIndicators={renderIndicators}
-      indicator={indicator}
+      contentComponents={components}
       optionHeight={optionHeight}
       controlLeadingItems={controlLeadingItems}
       dropdownIndicator={dropdownIndicator}
@@ -774,7 +763,7 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
 
 type SelectPickerProps<OptionType extends GeneralSelectValue> = Omit<
   ControlProps<OptionType>,
-  'value' | 'styles' | 'defaultValue' | 'filterOption' | 'onInputChange'
+  'value' | 'styles' | 'defaultValue' | 'filterOption' | 'onInputChange' | 'components'
 > &
   Pick<
     ReactSelectProps<OptionType, boolean>,
@@ -799,7 +788,10 @@ type SelectPickerProps<OptionType extends GeneralSelectValue> = Omit<
     | 'menuIsOpen'
     | 'onMenuOpen'
     | 'onMenuClose'
-  > & {value?: ValueType<OptionType, boolean>};
+  > & {
+    contentComponents?: SelectComponents<OptionType>;
+    value?: ValueType<OptionType, boolean>;
+  };
 
 function SelectPicker<OptionType extends GeneralSelectValue>({
   creatable,

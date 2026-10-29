@@ -28,6 +28,17 @@ function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
 }
 
+function EmailMultiValueLabel({
+  option,
+  children,
+}: {
+  children: React.ReactNode;
+  option: SelectOption;
+}) {
+  const {inviteStatus} = useInviteMembersContext();
+  return <EmailValue status={inviteStatus[option.value]!}>{children}</EmailValue>;
+}
+
 // If Member Invites are enabled but Open Membership is disabled, only allow members to invite to teams they are a member of
 function orgOnlyAllowsMemberInvitesWithinTeam(organization: Organization): boolean {
   const isMemberInvite =
@@ -111,9 +122,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           placeholder={t('Enter one or more emails')}
           inputValue={inputValue}
           value={emails}
-          renderMultiValueLabel={(option, label) => (
-            <EmailValue status={inviteStatus[option.value]!}>{label}</EmailValue>
-          )}
+          components={{MultiValueLabel: EmailMultiValueLabel}}
           dropdownIndicator={null}
           options={mapToOptions(emails)}
           onBlur={(e: any) => {

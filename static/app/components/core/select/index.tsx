@@ -8,6 +8,7 @@ export {
 export {createFilter} from './filter';
 
 export type {
+  SelectComponents,
   SelectHandle,
   SelectSelectionProps,
   SelectValue,

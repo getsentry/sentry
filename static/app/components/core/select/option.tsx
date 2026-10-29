@@ -19,8 +19,11 @@ type Props = Omit<
   data: GeneralSelectValue & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
   selectProps: Pick<
     BaseSelectProps,
-    'optionHeight' | 'renderOptionLabel' | 'showCreateOptionIcon' | 'showDividers'
-  > & {size?: BaseSelectProps['size']};
+    'optionHeight' | 'showCreateOptionIcon' | 'showDividers'
+  > & {
+    contentComponents?: BaseSelectProps['components'];
+    size?: BaseSelectProps['size'];
+  };
 };
 
 export function SelectOption(props: Props) {
@@ -40,9 +43,8 @@ export function SelectOption(props: Props) {
     typeof data.leadingItems === 'function'
       ? data.leadingItems({disabled: isDisabled, isFocused, isSelected})
       : data.leadingItems;
-  const renderedLabel = selectProps.renderOptionLabel
-    ? selectProps.renderOptionLabel(data)
-    : label;
+  const OptionLabel = selectProps.contentComponents?.OptionLabel;
+  const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
   const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;

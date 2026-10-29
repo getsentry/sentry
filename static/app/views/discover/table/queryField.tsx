@@ -109,10 +109,10 @@ type Props = {
 };
 
 class _QueryField extends Component<Props> {
-  renderSelectedValue = (data: FieldValueOption): ReactNode => (
+  SelectedValue = ({option}: {option: FieldValueOption}): ReactNode => (
     <Fragment>
-      <span data-test-id="label">{data.label}</span>
-      {data.value && this.renderTag(data.value.kind, data.label, data.value.meta)}
+      <span data-test-id="label">{option.label}</span>
+      {option.value && this.renderTag(option.value.kind, option.label, option.value.meta)}
     </Fragment>
   );
 
@@ -477,7 +477,7 @@ class _QueryField extends Component<Props> {
               ...portalProps.styles,
               ...this.FieldSelectStyles,
             }}
-            renderValue={this.renderSelectedValue}
+            components={{Value: this.SelectedValue}}
           />
         );
       }
@@ -659,7 +659,7 @@ class _QueryField extends Component<Props> {
         <Select
           {...selectProps}
           styles={this.FieldSelectStyles}
-          renderValue={this.renderSelectedValue}
+          components={{Value: this.SelectedValue}}
         />
         {parameters}
       </Container>
