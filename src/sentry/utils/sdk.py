@@ -272,7 +272,24 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     return event
 
 
+def _should_drop_check_in(event: Event) -> bool:
+    """
+    Self-hosted installs report their internal telemetry to their own
+    internal project. Check-ins from Sentry's scheduled tasks would create a
+    monitor per task there, so drop them unless the operator opts in.
+    """
+    return (
+        event.get("type") == "check_in"
+        and settings.SENTRY_SELF_HOSTED
+        and not settings.IS_DEV
+        and not settings.SENTRY_SELF_HOSTED_REPORT_CRON_CHECKINS
+    )
+
+
 def before_send(event: Event, hint: Hint) -> Event | None:
+    if _should_drop_check_in(event):
+        return None
+
     if event.get("tags"):
         if settings.SILO_MODE:
             event["tags"]["silo_mode"] = str(settings.SILO_MODE)

@@ -2593,6 +2593,11 @@ if SENTRY_DEV_DSN:
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
+# Self-hosted installs drop cron monitor check-ins for Sentry's own scheduled
+# tasks so they don't show up as monitors in the internal project. Set this to
+# True to report them.
+SENTRY_SELF_HOSTED_REPORT_CRON_CHECKINS = False
+
 # The sample rate to use for profiles. This is conditional on the usage of
 # traces_sample_rate. So that means the true sample rate will be approximately
 # traces_sample_rate * profiles_sample_rate
