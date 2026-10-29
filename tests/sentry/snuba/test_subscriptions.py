@@ -14,7 +14,6 @@ from sentry.snuba.subscriptions import (
     update_snuba_query,
     update_snuba_subscription,
 )
-from sentry.snuba.tasks import SubscriptionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka, requires_snuba
 
@@ -189,8 +188,10 @@ class CreateSnubaSubscriptionTest(TestCase):
             snuba_query = create_snuba_query(
                 query_type, dataset, query, "count()", time_window, resolution, self.environment
             )
-            with pytest.raises(SubscriptionError):
-                create_snuba_subscription(self.project, subscription_type, snuba_query)
+            subscription = create_snuba_subscription(self.project, subscription_type, snuba_query)
+        subscription = QuerySubscription.objects.get(id=subscription.id)
+        assert subscription.status == QuerySubscription.Status.DISABLED.value
+        assert subscription.subscription_id is None
 
 
 class UpdateSnubaQueryTest(TestCase):
