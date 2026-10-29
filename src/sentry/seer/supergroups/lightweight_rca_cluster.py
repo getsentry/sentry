@@ -19,6 +19,9 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
+# Seconds. Must stay below the task's processing deadline (default 10s).
+LIGHTWEIGHT_RCA_CLUSTER_SEER_TIMEOUT = 5
+
 
 def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -> None:
     """
@@ -89,7 +92,12 @@ def trigger_lightweight_rca_cluster(group: Group, event_id: str | None = None) -
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
 
-    response = make_lightweight_rca_cluster_request(body, timeout=30, viewer_context=viewer_context)
+    # Keep the Seer timeout well under the task's processing deadline so a slow
+    # Seer response fails fast with a clear error instead of being killed by the
+    # taskworker deadline.
+    response = make_lightweight_rca_cluster_request(
+        body, timeout=LIGHTWEIGHT_RCA_CLUSTER_SEER_TIMEOUT, viewer_context=viewer_context
+    )
     if response.status >= 400:
         raise SeerApiError("Lightweight RCA cluster request failed", response.status)
 

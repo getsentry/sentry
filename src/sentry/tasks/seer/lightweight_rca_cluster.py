@@ -12,8 +12,6 @@ logger = logging.getLogger(__name__)
     name="sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task",
     namespace=ingest_errors_postprocess_tasks,
     alias_namespace=ingest_errors_tasks,
-    # Covers the Seer request timeout (30s) plus event lookup and serialization.
-    processing_deadline_duration=45,
 )
 def trigger_lightweight_rca_cluster_task(
     group_id: int, event_id: str | None = None, **kwargs
