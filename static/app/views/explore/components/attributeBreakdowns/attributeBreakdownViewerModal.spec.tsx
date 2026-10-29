@@ -427,6 +427,25 @@ describe('AttributeBreakdownViewerModal', () => {
       expect(mockCloseModal).toHaveBeenCalled();
     });
 
+    it('keeps the case setting it was opened with when ADD action is triggered', async () => {
+      const {router} = render(
+        <AttributeBreakdownViewerModal
+          {...stubProps}
+          mode="single"
+          attributeDistribution={mockAttributeDistribution}
+          cohortCount={mockCohortCount}
+          query=""
+          caseInsensitive
+        />
+      );
+
+      await userEvent.click(within(screen.getAllByRole('cell')[0]!).getByRole('button'));
+      await userEvent.click(await screen.findByText('Add to filter'));
+
+      await waitFor(() => expect(router.location.pathname).toContain('/explore/traces/'));
+      expect(router.location.query.caseInsensitive).toBe('1');
+    });
+
     it('navigates with negated filter when EXCLUDE action is triggered', async () => {
       const {router} = render(
         <AttributeBreakdownViewerModal

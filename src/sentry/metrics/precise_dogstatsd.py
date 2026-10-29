@@ -20,6 +20,11 @@ class PreciseDogStatsdMetricsBackend(MetricsBackend):
             # When enabled, a background thread will be used to send metric payloads to the Agent.
             "disable_background_sender": False,
         }
+        # Same option name as `datadog.initialize`, so this backend and DogStatsdMetricsBackend
+        # can be configured with the same tags. Unlike `tags`, these are appended alongside
+        # call-site tags instead of overriding them.
+        if constant_tags := kwargs.get("statsd_constant_tags"):
+            instance_kwargs["constant_tags"] = list(constant_tags)
         if socket_path := kwargs.get("statsd_socket_path"):
             instance_kwargs["socket_path"] = socket_path
         else:

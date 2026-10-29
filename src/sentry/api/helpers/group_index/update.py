@@ -12,13 +12,12 @@ import rest_framework
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q, QuerySet
-from django.db.models.signals import post_save
 from django.utils import timezone as django_timezone
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, features, options
+from sentry import analytics, features
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
@@ -524,11 +523,6 @@ def process_group_resolution(
     activity_data: MutableMapping[str, Any],
     result: MutableMapping[str, Any],
 ) -> None:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.workflow_engine.models.incident_groupopenperiod import (
-        update_incident_based_on_open_period_status_change,
-    )
-
     now = django_timezone.now()
     resolution = None
     if release:
@@ -642,13 +636,6 @@ def process_group_resolution(
     group.status = GroupStatus.RESOLVED
     group.substatus = None
     group.resolved_at = now
-    if affected and not options.get("groups.enable-post-update-signal"):
-        post_save.send_robust(
-            sender=Group,
-            instance=group,
-            created=False,
-            update_fields=["resolved_at", "status", "substatus"],
-        )
     remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
     result["inbox"] = None
 
@@ -688,8 +675,6 @@ def process_group_resolution(
             new_status=GroupStatus.RESOLVED,
             resolution_time=now,
         )
-        if group.issue_type == MetricIssue:
-            update_incident_based_on_open_period_status_change(group, GroupStatus.RESOLVED)
 
 
 def merge_groups(

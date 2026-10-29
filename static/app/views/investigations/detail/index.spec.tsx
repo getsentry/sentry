@@ -1,10 +1,11 @@
-import {useEffect, type ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   renderGlobalModal,
@@ -13,6 +14,8 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
 
 import * as indicators from 'sentry/actionCreators/indicator';
 import type {FeedbackIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
@@ -32,17 +35,31 @@ import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationActionRequestFixture,
   InvestigationAgenticDetailFixture,
+  InvestigationBlockFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationMetricSourceFixture,
   InvestigationOrchestrationFixture,
   InvestigationQueryOutputFixture,
 } from 'sentry/views/investigations/fixtures';
+import type {InvestigationActionRequest} from 'sentry/views/investigations/types';
+import type {LLMContextNodeSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {
+  SeerExplorerContext,
+  useSeerExplorerContext,
+  type SeerExplorerContextValue,
+} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 jest.unmock('@tanstack/react-pacer');
 
 const organization = OrganizationFixture({
   features: ['investigations'],
+  openMembership: true,
+});
+// Where Seer Agent can take an "Ask Seer" question.
+const askSeerOrganization = OrganizationFixture({
+  features: ['investigations', 'seer-explorer', 'seer-explorer-chat-prompts'],
+  hideAiFeatures: false,
   openMembership: true,
 });
 const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
@@ -81,17 +98,47 @@ function InstallFeedbackIntegration() {
   return null;
 }
 
+/** Stands in for Seer Agent, which is what takes an "Ask Seer" question. */
+function ChatPromptProvider({
+  children,
+  openChatPrompt,
+}: {
+  children: ReactNode;
+  openChatPrompt: SeerExplorerContextValue['openChatPrompt'];
+}) {
+  const seerExplorer = useSeerExplorerContext();
+  return (
+    <SeerExplorerContext.Provider value={{...seerExplorer, openChatPrompt}}>
+      {children}
+    </SeerExplorerContext.Provider>
+  );
+}
+
 function renderView(
   renderOrganization = organization,
   queryClient = makeTestQueryClient(),
-  withFeedback = false
+  withFeedback = false,
+  openChatPrompt?: SeerExplorerContextValue['openChatPrompt']
 ) {
   const result = render(<InvestigationDetailView />, {
-    additionalWrapper: ({children}) => (
-      <QueryClientProvider client={queryClient}>
-        {withFeedback ? <FeedbackProvider>{children}</FeedbackProvider> : children}
-      </QueryClientProvider>
-    ),
+    additionalWrapper: ({children}) => {
+      const content = withFeedback ? (
+        <FeedbackProvider>{children}</FeedbackProvider>
+      ) : (
+        children
+      );
+      return (
+        <QueryClientProvider client={queryClient}>
+          {openChatPrompt ? (
+            <ChatPromptProvider openChatPrompt={openChatPrompt}>
+              {content}
+            </ChatPromptProvider>
+          ) : (
+            content
+          )}
+        </QueryClientProvider>
+      );
+    },
     organization: renderOrganization,
     initialRouterConfig: {
       location: {
@@ -114,7 +161,35 @@ function investigationWithQueryResult() {
   return investigation;
 }
 
-async function chooseBlockAction(blockTitle: string, action: 'Delete' | 'Refine') {
+function investigationWithReportHeadings() {
+  return InvestigationDetailFixture({
+    summary: 'Errors rose across releases',
+    summaryDescription: 'All active releases increased together.',
+    blocks: [
+      InvestigationBlockFixture({
+        id: 'what-happened',
+        title: 'What happened',
+        outputStatus: 'completed',
+        output: {schemaVersion: 1, markdown: '## What happened\n\nErrors rose.'},
+      }),
+      InvestigationBlockFixture({
+        id: 'deploy-timing',
+        position: 1,
+        title: 'Deploy timing',
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          markdown: '## When it happened\n\nRight after the deploy.',
+        },
+      }),
+    ],
+  });
+}
+
+async function chooseBlockAction(
+  blockTitle: string,
+  action: 'Ask Seer' | 'Delete' | 'Show Seer activity'
+) {
   await userEvent.click(
     await screen.findByRole('button', {name: `Block actions for ${blockTitle}`})
   );
@@ -134,6 +209,13 @@ describe('Investigation detail', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
     MockApiClient.addMockResponse({url: `${detailUrl}comments/`, body: []});
+    for (const id of ['312', '320', '322']) {
+      MockApiClient.addMockResponse({
+        url: `${detailUrl}action-requests/${id}/apply/`,
+        method: 'POST',
+        body: {actionRequest: InvestigationActionRequestFixture({id})},
+      });
+    }
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -157,15 +239,26 @@ describe('Investigation detail', () => {
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText('Block actions for Summary'));
-    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
     expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Refine'})).not.toBeInTheDocument();
+    // Without Seer Agent there is nothing to take the question.
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Ask Seer'})
+    ).not.toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
 
     await userEvent.click(screen.getByLabelText('Block actions for Latency query'));
     expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Refine'})).not.toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByLabelText('Investigation actions'));
+    expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Ask Seer'})
+    ).not.toBeInTheDocument();
   });
 
   it('opens feedback scoped to the investigation', async () => {
@@ -173,7 +266,6 @@ describe('Investigation detail', () => {
       url: detailUrl,
       body: InvestigationDetailFixture({
         sourceType: 'metric_open_period',
-        template: {key: 'breached_metric', version: 1},
       }),
     });
 
@@ -191,7 +283,6 @@ describe('Investigation detail', () => {
             'feedback.owner': 'ml-ai',
             'investigation.id': 'investigation-1',
             'investigation.source_type': 'metric_open_period',
-            'investigation.template': 'breached_metric',
           },
         })
       );
@@ -307,6 +398,413 @@ describe('Investigation detail', () => {
         screen.getByRole('heading', {level: 2, name: 'Investigation details'})
       )
     ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
+  describe('while Seer re-checks a stale suggestion', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        // Unmount first: a running run's status block keeps a live clock, and
+        // flushing the query cache's timers with it mounted ticks it for minutes.
+        cleanup();
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    function investigationWith(
+      status: 'accepted' | 'acknowledged',
+      runStatus: 'completed' | 'processing' = 'completed'
+    ) {
+      return InvestigationAgenticDetailFixture({
+        blocks: [],
+        orchestration: {
+          phase: runStatus === 'completed' ? 'completed' : 'metadata',
+          status: runStatus,
+          heartbeatAt: null,
+          notebookRevision: 5,
+        },
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'superseded',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            error: {code: 'stale', current: {timeWindowSeconds: 600}},
+            followUp: {status, reason: null, rerun: null, retryable: false},
+          }),
+        ],
+      });
+    }
+
+    it('reads the investigation until Seer picks up the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+
+      const acknowledged = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(acknowledged).toHaveBeenCalled();
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Seer is checking the suggestion again/)
+        ).not.toBeInTheDocument()
+      );
+      const later = MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('reads the run again while Seer works on the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged', 'processing'),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      const processing = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'metadata',
+          status: 'processing',
+        }),
+      });
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(processing).toHaveBeenCalled();
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+
+    const completedRun = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+    });
+    const processingRun = InvestigationOrchestrationFixture({
+      phase: 'metadata',
+      status: 'processing',
+    });
+
+    async function acknowledgeRecheck(
+      body: ReturnType<typeof investigationWith> = investigationWith('acknowledged')
+    ) {
+      MockApiClient.addMockResponse({url: detailUrl, body});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      await waitFor(() =>
+        expect(
+          screen.queryByText(/Seer is checking the suggestion again/)
+        ).not.toBeInTheDocument()
+      );
+    }
+
+    it('reads the run until it shows up after Seer picks up the re-check', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await acknowledgeRecheck();
+      expect(screen.getByText(/Seer is updating its suggestion…/)).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Ask Seer about this investigation/)
+      ).not.toBeInTheDocument();
+
+      const notLive = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(notLive).toHaveBeenCalled();
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+
+    it('stops reading the run if the re-check never shows up', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('accepted'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await acknowledgeRecheck();
+
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('does not wait on a re-check that was over before the page opened', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: investigationWith('acknowledged'),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Ask Seer about this investigation/)
+      ).toBeInTheDocument();
+
+      const later = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: completedRun,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(10_000));
+      expect(later).not.toHaveBeenCalled();
+    });
+
+    it('waits on the newest re-check next to an old one', async () => {
+      function withOldRecheck(status: 'accepted' | 'acknowledged') {
+        const body = investigationWith(status);
+        const requests = body.actionRequests ?? [];
+        return {
+          ...body,
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              ...requests[0],
+              id: '310',
+              followUp: {
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              },
+            }),
+            ...requests,
+          ],
+        };
+      }
+      MockApiClient.addMockResponse({url: detailUrl, body: withOldRecheck('accepted')});
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+      renderView();
+      expect(
+        await screen.findByText(/Seer is checking the suggestion again…/)
+      ).toBeInTheDocument();
+      await act(() => jest.advanceTimersByTimeAsync(60_000));
+      await acknowledgeRecheck(withOldRecheck('acknowledged'));
+
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: processingRun});
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+
+      expect(
+        await screen.findByText(/Seer is updating its suggestion…/)
+      ).toBeInTheDocument();
+    });
+  });
+
+  it('waits for the re-check after a stale suggestion is rechecked', async () => {
+    const staleBody = {
+      code: 'stale',
+      detail: 'This changed since Seer suggested it.',
+      current: {timeWindowSeconds: 600},
+    };
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [MockApiClient.matchData({dryRun: true})],
+      body: staleBody,
+    });
+    const rechecked = InvestigationActionRequestFixture({
+      state: 'superseded',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+      error: {code: 'stale', current: {timeWindowSeconds: 600}},
+      followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
+    });
+    const recheckRequest = MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/recheck/`,
+      method: 'POST',
+      body: {actionRequest: rechecked},
+    });
+    renderView();
+
+    const recheck = await screen.findByRole('button', {name: 'Recheck suggestion'});
+    await waitFor(() => expect(recheck).toBeEnabled());
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({actionRequests: [rechecked]}),
+    });
+    await userEvent.click(recheck);
+
+    expect(recheckRequest).toHaveBeenCalledTimes(1);
+    expect(
+      await screen.findByText(/Seer is checking the suggestion again…/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Recheck suggestion'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a stale apply once the investigation is read again', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [(_url, options) => !options.data?.dryRun],
+      body: {
+        code: 'stale',
+        detail: 'This changed since Seer suggested it.',
+        current: {timeWindowSeconds: 600},
+      },
+    });
+    renderView();
+
+    const button = await screen.findByRole('button', {name: 'Update monitor'});
+    await waitFor(() => expect(button).toBeEnabled());
+    let finishDetail!: () => void;
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [
+          InvestigationActionRequestFixture({
+            state: 'superseded',
+            canApply: false,
+            cannotApplyReason: 'not_suggested',
+            error: {code: 'stale', current: {timeWindowSeconds: 600}},
+            followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
+          }),
+        ],
+      }),
+      asyncDelay: new Promise<void>(resolve => {
+        finishDetail = resolve;
+      }),
+    });
+    await userEvent.click(button);
+
+    expect(await screen.findByRole('button', {name: 'Updating monitor…'})).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Recheck suggestion'})
+    ).not.toBeInTheDocument();
+    act(() => finishDetail());
+
+    expect(
+      await screen.findByText(/Seer is checking the suggestion again…/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('Now: 10 minutes')).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('region', {name: 'Recommended action'})).getAllByText(
+        /The monitor changed since Seer suggested this/
+      )
+    ).toHaveLength(1);
+    expect(
+      screen.queryByRole('button', {name: /Update monitor|Recheck suggestion/})
+    ).not.toBeInTheDocument();
+  });
+
+  it('says a stale apply failed when the investigation leaves the request out', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        actionRequests: [InvestigationActionRequestFixture()],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}action-requests/312/apply/`,
+      method: 'POST',
+      statusCode: 409,
+      match: [(_url, options) => !options.data?.dryRun],
+      body: {
+        code: 'stale',
+        detail: 'This changed since Seer suggested it.',
+        current: {timeWindowSeconds: 600},
+      },
+    });
+    renderView();
+
+    const button = await screen.findByRole('button', {name: 'Update monitor'});
+    await waitFor(() => expect(button).toBeEnabled());
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({actionRequests: []}),
+    });
+    await userEvent.click(button);
+
+    expect(
+      await screen.findByText('The monitor changed since Seer suggested this.')
+    ).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument()
+    );
   });
 
   it('holds the next step placeholder until the investigation has its request', async () => {
@@ -612,6 +1110,371 @@ describe('Investigation detail', () => {
     ).not.toHaveTextContent('Widen the interval');
   });
 
+  describe('a connect suggestion when the window gets focus', () => {
+    const connectSuggestion = InvestigationActionRequestFixture({
+      title: 'Connect Datadog',
+      impact: null,
+      action: {kind: 'connect_telemetry', provider: 'datadog'},
+    });
+
+    function mockDetail(actionRequests: InvestigationActionRequest[]) {
+      return MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          blocks: [],
+          orchestration: {
+            phase: 'completed',
+            status: 'completed',
+            heartbeatAt: null,
+            notebookRevision: 5,
+          },
+          actionRequests,
+        }),
+      });
+    }
+
+    async function focusWindow() {
+      act(() => {
+        window.dispatchEvent(new Event('visibilitychange'));
+      });
+      await act(() => Promise.resolve());
+    }
+
+    function mockConnectionCheck(connected: boolean) {
+      return MockApiClient.addMockResponse({
+        url: `${detailUrl}action-requests/312/apply/`,
+        method: 'POST',
+        match: [MockApiClient.matchData({dryRun: true})],
+        ...(connected
+          ? {body: {actionRequest: connectSuggestion}}
+          : {
+              statusCode: 400,
+              body: {
+                detail: "The change wasn't valid.",
+                code: 'validation_failed',
+                messages: ["This provider isn't connected yet."],
+              },
+            }),
+      });
+    }
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
+      });
+      mockConnectionCheck(false);
+    });
+
+    it('offers a re-run once the provider is connected in another tab', async () => {
+      mockDetail([connectSuggestion]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([connectSuggestion]);
+      const check = mockConnectionCheck(true);
+      await focusWindow();
+
+      expect(reloaded).toHaveBeenCalled();
+      expect(check).toHaveBeenCalled();
+      expect(
+        await screen.findByRole('button', {name: 'Re-run with Datadog'})
+      ).toBeEnabled();
+    });
+
+    it('shows the provider as connected once Sentry applies it', async () => {
+      mockDetail([connectSuggestion]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([
+        {
+          ...connectSuggestion,
+          state: 'applied',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+        },
+      ]);
+      await focusWindow();
+
+      expect(reloaded).toHaveBeenCalled();
+      expect(
+        await screen.findByRole('button', {name: 'View integration (opens in a new tab)'})
+      ).toBeInTheDocument();
+    });
+
+    it('does not reload one the viewer cannot apply', async () => {
+      mockDetail([
+        {...connectSuggestion, canApply: false, cannotApplyReason: 'permission_denied'},
+      ]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([connectSuggestion]);
+      await focusWindow();
+
+      expect(reloaded).not.toHaveBeenCalled();
+    });
+
+    it('does not reload without a connect suggestion', async () => {
+      mockDetail([InvestigationActionRequestFixture()]);
+      renderView();
+      expect(
+        await screen.findByRole('button', {name: 'Update monitor'})
+      ).toBeInTheDocument();
+
+      const reloaded = mockDetail([InvestigationActionRequestFixture()]);
+      await focusWindow();
+
+      expect(reloaded).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('action requests about part of the report', () => {
+    const completedRun = InvestigationOrchestrationFixture({
+      phase: 'completed',
+      status: 'completed',
+    });
+
+    function mockAnchoredPage(actionRequests: InvestigationActionRequest[]) {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({actionRequests}),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+    }
+
+    it('places a request under the possible cause it is about', async () => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          id: '320',
+          key: 'check-cache-hit-rate',
+          primary: false,
+          anchor: {type: 'hypothesis', id: 'hypothesis-1', blockId: null},
+          title: 'Check the cache hit rate',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Check the cache hit rate'});
+      expect(card).toHaveTextContent(
+        'About the possible cause: Database or cache degradation delayed the response'
+      );
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('places a request under the block it is about', async () => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          id: '322',
+          key: 'instrument-retries',
+          primary: false,
+          anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+          title: 'Instrument checkout retries',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {
+        name: 'Instrument checkout retries',
+      });
+      expect(screen.getByText('Initial notes').compareDocumentPosition(card)).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING
+      );
+      expect(
+        screen.queryByRole('region', {name: 'Recommended action'})
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['whose block was removed', {type: 'block', id: 'cause', blockId: null}],
+      [
+        'about a cause that is gone',
+        {type: 'hypothesis', id: 'hypothesis-9', blockId: null},
+      ],
+      ['with an unknown anchor', {type: 'span', id: 'span-1', blockId: null}],
+    ] as const)('shows a request %s above the report', async (_case, anchor) => {
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          primary: false,
+          anchor,
+          title: 'Instrument checkout retries',
+          action: null,
+        }),
+      ]);
+      renderView();
+
+      const card = await screen.findByRole('region', {
+        name: 'Instrument checkout retries',
+      });
+      expect(screen.getByText('Initial notes').compareDocumentPosition(card)).toBe(
+        Node.DOCUMENT_POSITION_PRECEDING
+      );
+      expect(card).not.toHaveTextContent('About the possible cause');
+    });
+
+    it('shows requests about a possible cause above the report when the run cannot load', async () => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              primary: false,
+              anchor: {type: 'hypothesis', id: 'hypothesis-1', blockId: null},
+              title: 'Check the cache hit rate',
+              action: null,
+            }),
+          ],
+        }),
+      });
+      MockApiClient.addMockResponse({url: orchestrationUrl, statusCode: 500, body: {}});
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Check the cache hit rate'});
+      expect(card).not.toHaveTextContent('About the possible cause');
+    });
+
+    it('hides a superseded request under its block', async () => {
+      const anchored = {
+        primary: false,
+        anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+        action: null,
+      } as const;
+      mockAnchoredPage([
+        InvestigationActionRequestFixture({
+          ...anchored,
+          id: '322',
+          key: 'instrument-retries',
+          title: 'Instrument checkout retries',
+        }),
+        InvestigationActionRequestFixture({
+          ...anchored,
+          id: '323',
+          key: 'old-advice',
+          reportRevision: completedRun.report.revision - 1,
+          state: 'superseded',
+          canApply: false,
+          cannotApplyReason: 'not_suggested',
+          title: 'Old advice',
+        }),
+      ]);
+      renderView();
+
+      expect(
+        await screen.findByRole('region', {name: 'Instrument checkout retries'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('region', {name: 'Old advice'})).not.toBeInTheDocument();
+    });
+
+    it.each([
+      ['under its block', 'block-1'],
+      ['above the report', null],
+    ])('says Seer is updating a re-checked request %s', async (_case, blockId) => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: InvestigationAgenticDetailFixture({
+          actionRequests: [
+            InvestigationActionRequestFixture({
+              id: '322',
+              primary: false,
+              anchor: {type: 'block', id: 'cause', blockId},
+              title: 'Widen the interval',
+              state: 'superseded',
+              canApply: false,
+              cannotApplyReason: 'not_suggested',
+              error: {code: 'stale', current: {timeWindowSeconds: 600}},
+              followUp: {
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              },
+            }),
+          ],
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'metadata',
+          status: 'processing',
+        }),
+      });
+      renderView();
+
+      const card = await screen.findByRole('region', {name: 'Widen the interval'});
+      await waitFor(() =>
+        expect(within(card).getByRole('status')).toHaveTextContent(
+          'Seer is updating its suggestion…'
+        )
+      );
+    });
+
+    describe('before the re-check run shows up', () => {
+      beforeEach(() => {
+        jest.useFakeTimers();
+      });
+
+      afterEach(async () => {
+        try {
+          await act(() => jest.runOnlyPendingTimersAsync());
+        } finally {
+          jest.useRealTimers();
+        }
+      });
+
+      it('says Seer is updating a request under its block before the run shows up', async () => {
+        const rechecked = (status: 'accepted' | 'acknowledged') =>
+          InvestigationAgenticDetailFixture({
+            actionRequests: [
+              InvestigationActionRequestFixture({
+                id: '322',
+                primary: false,
+                anchor: {type: 'block', id: 'cause', blockId: 'block-1'},
+                title: 'Widen the interval',
+                state: 'superseded',
+                canApply: false,
+                cannotApplyReason: 'not_suggested',
+                error: {code: 'stale', current: {timeWindowSeconds: 600}},
+                followUp: {status, reason: null, rerun: null, retryable: false},
+              }),
+            ],
+          });
+        MockApiClient.addMockResponse({url: detailUrl, body: rechecked('accepted')});
+        MockApiClient.addMockResponse({url: orchestrationUrl, body: completedRun});
+        renderView();
+        const card = await screen.findByRole('region', {name: 'Widen the interval'});
+        expect(within(card).getByRole('status')).toHaveTextContent(
+          'Seer is checking the suggestion again…'
+        );
+
+        MockApiClient.addMockResponse({url: detailUrl, body: rechecked('acknowledged')});
+        await act(() => jest.advanceTimersByTimeAsync(2000));
+
+        await waitFor(() =>
+          expect(
+            within(screen.getByRole('region', {name: 'Widen the interval'})).getByRole(
+              'status'
+            )
+          ).toHaveTextContent('Seer is updating its suggestion…')
+        );
+      });
+    });
+  });
+
   it('leaves out the investigation details heading without a summary', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -623,6 +1486,127 @@ describe('Investigation detail', () => {
     expect(await screen.findByTestId('investigation-block-block-1')).toBeInTheDocument();
     expect(
       screen.queryByRole('heading', {name: 'Investigation details'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('outlines the report by its headings and scrolls to the one picked', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    expect(
+      within(outline)
+        .getAllByRole('link')
+        .map(link => link.textContent)
+    ).toEqual(['Summary', 'What happened', 'When it happened', 'Activity']);
+
+    const heading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    heading.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'When it happened'}));
+
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    expect(within(outline).getByRole('link', {name: 'When it happened'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+  });
+
+  it('follows the reader down the report, holding a picked section until they scroll', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    // Nothing is laid out, so everything sits at the top of the viewport unless
+    // placed: the reader is at the start of the page.
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'Summary'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    // Scroll the summary away, and put the second section and the activity
+    // feed below the fold.
+    jest
+      .spyOn(screen.getByTestId('investigation-summary'), 'getBoundingClientRect')
+      .mockReturnValue({top: -300} as DOMRect);
+    const nextHeading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    const nextHeadingRect = jest
+      .spyOn(nextHeading, 'getBoundingClientRect')
+      .mockReturnValue({top: 600} as DOMRect);
+    const activity = screen
+      .getByRole('heading', {level: 2, name: 'Activity'})
+      .closest('section')!;
+    jest.spyOn(activity, 'getBoundingClientRect').mockReturnValue({top: 900} as DOMRect);
+
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'What happened'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    nextHeadingRect.mockReturnValue({top: 100} as DOMRect);
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+
+    // The activity feed is too close to the end to scroll up past the fold.
+    activity.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'Activity'}));
+    expect(activity.scrollIntoView).toHaveBeenCalled();
+    fireEvent.scroll(document);
+    // Let the frame the scroll scheduled run before checking it changed nothing.
+    await act(() => new Promise(resolve => window.requestAnimationFrame(resolve)));
+    expect(within(outline).getByRole('link', {name: 'Activity'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+
+    // Once the jump has finished, the next scroll is the reader's own.
+    await act(() => new Promise(resolve => window.setTimeout(resolve, 300)));
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+  });
+
+  it('leaves the outline out of a report with a single heading', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        blocks: [investigationWithReportHeadings().blocks[0]!],
+      }),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('heading', {level: 2, name: 'What happened'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', {name: 'Investigation outline'})
     ).not.toBeInTheDocument();
   });
 
@@ -1256,11 +2240,6 @@ describe('Investigation detail', () => {
         error: null,
       },
     };
-    investigation.blocks[1] = {
-      ...investigation.blocks[1]!,
-      config: {autoRun: true},
-      dependencies: ['block-1'],
-    };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     MockApiClient.addMockResponse({
       url: `${detailUrl}blocks/block-1/executions/execution-1/`,
@@ -1277,7 +2256,7 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     await screen.findByText('Investigate database latency');
-    // The block waiting behind the running one is not shown at all.
+    // The block that hasn't started is not shown at all.
     expect(screen.getByLabelText('Block actions for Summary')).toBeInTheDocument();
     expect(screen.getByTestId('investigation-block-placeholder')).toBeInTheDocument();
     expect(
@@ -1313,7 +2292,7 @@ describe('Investigation detail', () => {
     );
   });
 
-  describe('keeps polling while an auto-run block is waiting to start with fake timers', () => {
+  describe('refetches while Seer Agent works with fake timers', () => {
     beforeEach(() => {
       jest.useFakeTimers();
     });
@@ -1326,39 +2305,65 @@ describe('Investigation detail', () => {
       }
     });
 
-    it('keeps polling while an auto-run block is waiting to start', async () => {
-      const investigation = InvestigationDetailFixture({
-        template: {key: 'breached_metric', version: 1},
-      });
-      investigation.blocks = [
-        {
-          ...investigation.blocks[0]!,
-          outputStatus: 'completed',
-          currentExecution: {
-            id: 'execution-completed',
-            status: 'completed',
-            startedAt: '2026-08-17T10:00:00Z',
-            completedAt: '2026-08-17T10:00:10Z',
-            error: null,
-          },
-        },
-        {
-          ...investigation.blocks[1]!,
-          config: {autoRun: true},
-          dependencies: ['block-1'],
-        },
-      ];
-      const request = MockApiClient.addMockResponse({
+    /** Seer Agent mid-turn, until "Seer finished" ends it. */
+    function SeerWorkingProvider({children}: {children: ReactNode}) {
+      const seerExplorer = useSeerExplorerContext();
+      const [sessionState, setSessionState] =
+        useState<SeerExplorerContextValue['sessionState']>('thinking');
+      return (
+        <SeerExplorerContext.Provider value={{...seerExplorer, sessionState}}>
+          <Button onClick={() => setSessionState('inactive')}>Seer finished</Button>
+          {children}
+        </SeerExplorerContext.Provider>
+      );
+    }
+
+    it('refetches a settled investigation while Seer Agent works and once it stops', async () => {
+      const detailRequest = MockApiClient.addMockResponse({
         url: detailUrl,
-        body: investigation,
+        body: InvestigationAgenticDetailFixture({
+          orchestration: {
+            phase: 'completed',
+            status: 'completed',
+            heartbeatAt: '2026-08-27T11:06:30Z',
+            notebookRevision: 5,
+          },
+        }),
+      });
+      const orchestrationRequest = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
+          phase: 'completed',
+          status: 'completed',
+        }),
       });
 
-      renderView();
+      render(<InvestigationDetailView />, {
+        additionalWrapper: SeerWorkingProvider,
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
+          },
+          route: '/organizations/:orgId/seer/investigations/:investigationId/',
+        },
+      });
 
-      await screen.findByText('Initial notes');
-      expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
+      expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+      expect(detailRequest).toHaveBeenCalledTimes(1);
+      expect(orchestrationRequest).toHaveBeenCalledTimes(1);
+
+      // Seer Agent's writes go to the block routes, so the page keeps reading.
       await act(() => jest.advanceTimersByTimeAsync(2000));
-      expect(request).toHaveBeenCalledTimes(2);
+      expect(detailRequest).toHaveBeenCalledTimes(2);
+
+      // One more read for what it wrote after the last poll, then it settles.
+      fireEvent.click(screen.getByRole('button', {name: 'Seer finished'}));
+      await act(() => jest.advanceTimersByTimeAsync(0));
+      expect(detailRequest).toHaveBeenCalledTimes(3);
+      expect(orchestrationRequest).toHaveBeenCalledTimes(2);
+      await act(() => jest.advanceTimersByTimeAsync(4000));
+      expect(detailRequest).toHaveBeenCalledTimes(3);
     });
   });
 
@@ -1443,79 +2448,82 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows available results and hides blocks blocked by a failed branch', async () => {
-    const investigation = InvestigationDetailFixture();
-    const textBlock = investigation.blocks[0]!;
-    const queryBlock = investigation.blocks[1]!;
-    investigation.blocks = [
-      {
-        ...textBlock,
-        outputStatus: 'failed',
-        currentExecution: {
-          id: 'execution-failed',
-          status: 'failed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: {message: 'Summary failed'},
-        },
-      },
-      {
-        ...queryBlock,
-        config: {autoRun: true},
-        dependencies: ['block-1'],
-      },
-      {
-        ...textBlock,
-        id: 'block-3',
-        position: 2,
-        title: 'Independent analysis',
-        outputStatus: 'completed',
-        currentExecution: {
-          id: 'execution-completed',
-          status: 'completed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: null,
-        },
-      },
-      {
-        ...queryBlock,
-        id: 'block-4',
-        position: 3,
-        title: 'Independent follow-up',
-        config: {autoRun: true},
-        dependencies: ['block-3'],
-      },
-    ];
+  it('asks Seer about a block with its result as context', async () => {
+    const investigation = investigationWithQueryResult();
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const openChatPrompt = jest.fn();
 
-    renderView();
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await chooseBlockAction('Latency query', 'Ask Seer');
 
-    expect(
-      await screen.findByLabelText('Block actions for Independent analysis')
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-4')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('investigation-execution-failed')
-    ).not.toBeInTheDocument();
+    expect(openChatPrompt).toHaveBeenCalledTimes(1);
+    expect(openChatPrompt).toHaveBeenCalledWith({
+      prompt: 'How do you want to steer the investigation: "Latency query"?',
+      context: {
+        investigation: {
+          id: 'investigation-1',
+          title: 'Investigate database latency',
+          version: 1,
+        },
+        block: {
+          id: 'block-2',
+          version: 1,
+          position: 1,
+          title: 'Latency query',
+          kind: 'query',
+          output: InvestigationQueryOutputFixture().tableMarkdown,
+          request: 'Find slow spans',
+        },
+      },
+    });
+    // The question goes to Seer Agent; nothing opens or runs in the block.
+    expect(screen.queryByTestId('investigation-transcript')).not.toBeInTheDocument();
   });
 
-  it('keeps the refinement composer expanded while editing', async () => {
-    MockApiClient.addMockResponse({
-      url: detailUrl,
-      body: investigationWithQueryResult(),
+  it('sends only the start of a long block result to Seer', async () => {
+    const investigation = investigationWithQueryResult();
+    const row = '| /api/checkout | 1.84s | 18,402 |\n';
+    investigation.blocks[1] = {
+      ...investigation.blocks[1]!,
+      output: InvestigationQueryOutputFixture({tableMarkdown: row.repeat(1000)}),
+    };
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await chooseBlockAction('Latency query', 'Ask Seer');
+
+    const {block} = openChatPrompt.mock.calls[0][0].context;
+    expect(block.output).toHaveLength(4000);
+    expect(row.repeat(1000).startsWith(block.output)).toBe(true);
+    expect(block.outputTruncated).toBe(true);
+  });
+
+  it('asks Seer about a text block that has only content', async () => {
+    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await chooseBlockAction('Summary', 'Ask Seer');
+
+    expect(openChatPrompt).toHaveBeenCalledWith({
+      prompt: 'How do you want to steer the investigation: "Summary"?',
+      context: {
+        investigation: {
+          id: 'investigation-1',
+          title: 'Investigate database latency',
+          version: 1,
+        },
+        block: {
+          id: 'block-1',
+          version: 1,
+          position: 0,
+          title: 'Summary',
+          kind: 'text',
+          output: 'Initial notes',
+        },
+      },
     });
-
-    renderView();
-    await chooseBlockAction('Latency query', 'Refine');
-
-    const prompt = screen.getByLabelText('Instructions for Seer');
-    expect(prompt).toHaveValue('');
-    expect(prompt).toBeVisible();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Cancel Seer request'}));
-    expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
   });
 
   it('renders block output instead of block content', async () => {
@@ -1651,7 +2659,7 @@ describe('Investigation detail', () => {
     await userEvent.click(
       screen.getByRole('button', {name: 'Block actions for Latency query'})
     );
-    expect(screen.getByRole('menuitemradio', {name: 'Refine'})).toBeVisible();
+    expect(screen.getByRole('menuitemradio', {name: 'Delete'})).toBeVisible();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
@@ -1731,7 +2739,7 @@ describe('Investigation detail', () => {
     expect(screen.getByText('shown')).toBeInTheDocument();
   });
 
-  it('renders chart metadata and offers Refine without Rerun', async () => {
+  it('renders chart metadata without offering Rerun', async () => {
     const investigation = investigationWithQueryResult();
     const block = {
       ...investigation.blocks[1]!,
@@ -1784,8 +2792,6 @@ describe('Investigation detail', () => {
 
     await userEvent.click(screen.getByLabelText('Block actions for Latency query'));
     expect(screen.queryByRole('menuitemradio', {name: 'Rerun'})).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Refine'}));
-    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
   });
 
   it('deletes a query block when it is no longer present in the cache', async () => {
@@ -1854,24 +2860,31 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('refines an existing result with new instructions', async () => {
-    MockApiClient.addMockResponse({url: detailUrl, body: investigationWithQueryResult()});
-    const updateUrl = `${detailUrl}blocks/block-2/`;
-    const updateRequest = MockApiClient.addMockResponse({
-      url: updateUrl,
-      method: 'PUT',
-      body: investigationWithQueryResult().blocks[1],
-    });
-    const runUrl = `${updateUrl}executions/`;
-    const runRequest = MockApiClient.addMockResponse({
-      url: runUrl,
-      method: 'POST',
-      body: {id: 'execution-1', status: 'running'},
-    });
+  it('keeps the previous result visible while showing a timed transcript of a run', async () => {
+    const queryClient = makeTestQueryClient();
+    const investigation = InvestigationDetailFixture({version: 7});
+    const block = investigation.blocks[0]!;
+    const running = {
+      ...block,
+      version: 3,
+      content: 'Previous successful result',
+      outputStatus: 'running' as const,
+      output: null,
+      currentExecution: {
+        id: 'execution-2',
+        status: 'running' as const,
+        startedAt: '2026-08-17T10:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
+    investigation.blocks = [running];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    const executionUrl = `${detailUrl}blocks/block-1/executions/execution-2/`;
     MockApiClient.addMockResponse({
-      url: `${runUrl}execution-1/`,
+      url: executionUrl,
       body: {
-        id: 'execution-1',
+        id: 'execution-2',
         status: 'running',
         blocks: [],
         transcriptTruncated: false,
@@ -1880,75 +2893,31 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
+    const openChatPrompt = jest.fn();
 
-    renderView();
-    expect(await screen.findByText('Investigate database latency')).toBeInTheDocument();
+    renderView(askSeerOrganization, queryClient, false, openChatPrompt);
+    expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
+    expect(await screen.findByText('Working on this analysis…')).toBeInTheDocument();
 
-    await chooseBlockAction('Latency query', 'Refine');
-    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
-    await userEvent.type(
-      screen.getByLabelText('Instructions for Seer'),
-      'Show a bar chart instead'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
-
-    await waitFor(() =>
-      expect(updateRequest).toHaveBeenCalledWith(
-        updateUrl,
-        expect.objectContaining({
-          data: {
-            investigationVersion: 1,
-            version: 1,
-            generationPrompt: 'Show a bar chart instead',
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: {
+        ...investigation,
+        blocks: [
+          {
+            ...running,
+            outputStatus: 'completed',
+            currentExecution: {
+              ...running.currentExecution,
+              status: 'completed',
+              completedAt: '2026-08-17T10:00:10Z',
+            },
           },
-        })
-      )
-    );
-
-    await waitFor(() =>
-      expect(runRequest).toHaveBeenCalledWith(
-        runUrl,
-        expect.objectContaining({
-          data: {investigationVersion: 1, version: 1},
-        })
-      )
-    );
-  });
-
-  it('keeps the previous result visible while showing a timed completed transcript', async () => {
-    const investigation = InvestigationDetailFixture({version: 7});
-    const block = investigation.blocks[0]!;
-    investigation.blocks = [
-      {
-        ...block,
-        version: 3,
-        content: 'Previous successful result',
-        outputStatus: 'completed',
-        output: null,
-        currentExecution: {
-          id: 'execution-2',
-          status: 'completed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: null,
-        },
+        ],
       },
-    ];
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-    const blockUrl = `${detailUrl}blocks/block-1/`;
-    const updateRequest = MockApiClient.addMockResponse({
-      url: blockUrl,
-      method: 'PUT',
-      body: {...investigation.blocks[0]!, version: 4},
-    });
-    const runUrl = `${blockUrl}executions/`;
-    const runRequest = MockApiClient.addMockResponse({
-      url: runUrl,
-      method: 'POST',
-      body: {id: 'execution-2', status: 'running'},
     });
     MockApiClient.addMockResponse({
-      url: `${runUrl}execution-2/`,
+      url: executionUrl,
       body: {
         id: 'execution-2',
         status: 'completed',
@@ -2031,64 +3000,54 @@ describe('Investigation detail', () => {
         error: null,
       },
     });
-
-    renderView();
-    expect(await screen.findByText('Previous successful result')).toBeInTheDocument();
-    await chooseBlockAction('Summary', 'Refine');
-    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
-    const promptInput = screen.getByLabelText('Instructions for Seer');
-    await userEvent.type(promptInput, 'Compare against deploys');
-    fireEvent.keyDown(promptInput, {key: 'Enter'});
-
-    await waitFor(() => expect(updateRequest).toHaveBeenCalledTimes(1));
-    expect(updateRequest).toHaveBeenCalledWith(
-      blockUrl,
-      expect.objectContaining({
-        data: {
-          investigationVersion: 7,
-          version: 3,
-          generationPrompt: 'Compare against deploys',
-        },
+    await act(() =>
+      queryClient.invalidateQueries({
+        queryKey: investigationExecutionDetailQueryOptions({
+          organizationSlug: organization.slug,
+          investigationId: investigation.id,
+          blockId: block.id,
+          executionId: 'execution-2',
+        }).queryKey,
       })
     );
-    await waitFor(() => expect(runRequest).toHaveBeenCalledTimes(1));
-    expect(runRequest).toHaveBeenCalledWith(
-      runUrl,
-      expect.objectContaining({data: {investigationVersion: 8, version: 4}})
-    );
+
+    expect(await screen.findByText('Analysis complete')).toBeInTheDocument();
     expect(screen.getByText('Previous successful result')).toBeInTheDocument();
-    expect(await screen.findByText('Compare against deploys')).toBeInTheDocument();
+    expect(screen.getByText('Compare against deploys')).toBeInTheDocument();
     expect(screen.getByText('The deploy lines up.')).toBeInTheDocument();
     expect(screen.queryByText(/Private agent instructions/)).not.toBeInTheDocument();
-    expect(screen.getByText('10.0s')).toBeInTheDocument();
+    expect(await screen.findByText('10.0s')).toBeInTheDocument();
     expect(screen.getByText('4.0s')).toBeInTheDocument();
     expect(screen.getByText('6.0s')).toBeInTheDocument();
     expect(screen.queryByText('2.0s')).not.toBeInTheDocument();
     expect(screen.queryByText('3.0s')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Ask Seer again'})).toBeInTheDocument();
-    expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Stop'})).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer again'}));
-    expect(screen.getByLabelText('Instructions for Seer')).toHaveValue('');
+    // A finished run hands follow-ups to Seer Agent.
+    await userEvent.click(screen.getByRole('button', {name: 'Ask Seer'}));
+    expect(openChatPrompt).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'How do you want to steer the investigation: "Summary"?',
+      })
+    );
   });
 
   it('shows "Building chart…" for a query block\'s in-progress structured result instead of raw JSON', async () => {
     const investigation = investigationWithQueryResult();
+    investigation.blocks[1] = {
+      ...investigation.blocks[1]!,
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-building',
+        status: 'running',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-    const blockUrl = `${detailUrl}blocks/block-2/`;
     MockApiClient.addMockResponse({
-      url: blockUrl,
-      method: 'PUT',
-      body: {...investigation.blocks[1]!, version: 2},
-    });
-    const runUrl = `${blockUrl}executions/`;
-    MockApiClient.addMockResponse({
-      url: runUrl,
-      method: 'POST',
-      body: {id: 'execution-building', status: 'running'},
-    });
-    MockApiClient.addMockResponse({
-      url: `${runUrl}execution-building/`,
+      url: `${detailUrl}blocks/block-2/executions/execution-building/`,
       body: {
         id: 'execution-building',
         status: 'running',
@@ -2114,12 +3073,6 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await chooseBlockAction('Latency query', 'Refine');
-    await userEvent.type(
-      screen.getByLabelText('Instructions for Seer'),
-      'Find slow spans'
-    );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
 
     expect(await screen.findByText('Building chart…')).toBeInTheDocument();
     expect(screen.queryByText(/tableMarkdown/)).not.toBeInTheDocument();
@@ -2127,21 +3080,20 @@ describe('Investigation detail', () => {
 
   it("hides a query block's completed structured result from the transcript, not just while streaming", async () => {
     const investigation = investigationWithQueryResult();
+    investigation.blocks[1] = {
+      ...investigation.blocks[1]!,
+      outputStatus: 'running',
+      currentExecution: {
+        id: 'execution-built',
+        status: 'running',
+        startedAt: '2026-08-18T20:00:00Z',
+        completedAt: null,
+        error: null,
+      },
+    };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-    const blockUrl = `${detailUrl}blocks/block-2/`;
     MockApiClient.addMockResponse({
-      url: blockUrl,
-      method: 'PUT',
-      body: {...investigation.blocks[1]!, version: 2},
-    });
-    const runUrl = `${blockUrl}executions/`;
-    MockApiClient.addMockResponse({
-      url: runUrl,
-      method: 'POST',
-      body: {id: 'execution-built', status: 'running'},
-    });
-    MockApiClient.addMockResponse({
-      url: `${runUrl}execution-built/`,
+      url: `${detailUrl}blocks/block-2/executions/execution-built/`,
       body: {
         id: 'execution-built',
         status: 'completed',
@@ -2168,12 +3120,6 @@ describe('Investigation detail', () => {
     });
 
     renderView();
-    await chooseBlockAction('Latency query', 'Refine');
-    await userEvent.type(
-      screen.getByLabelText('Instructions for Seer'),
-      'Find slow spans'
-    );
-    fireEvent.keyDown(screen.getByLabelText('Instructions for Seer'), {key: 'Enter'});
 
     // The transcript renders once the block settles, but the raw JSON answer is dropped —
     // `QueryResult` above already presents its parsed chart/table.
@@ -2182,30 +3128,26 @@ describe('Investigation detail', () => {
     expect(screen.queryByText('Building chart…')).not.toBeInTheDocument();
   });
 
-  it('stops an active refinement and leaves the rendered result visible', async () => {
+  it('stops a running block and leaves the rendered result visible', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks = [
       {
         ...investigation.blocks[0]!,
-        outputStatus: 'completed',
+        outputStatus: 'running',
         output: {schemaVersion: 1, markdown: 'Stable result'},
+        currentExecution: {
+          id: 'execution-running',
+          status: 'running',
+          startedAt: '2026-08-18T20:00:00Z',
+          completedAt: null,
+          error: null,
+        },
       },
     ];
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-    const blockUrl = `${detailUrl}blocks/block-1/`;
+    const executionUrl = `${detailUrl}blocks/block-1/executions/execution-running/`;
     MockApiClient.addMockResponse({
-      url: blockUrl,
-      method: 'PUT',
-      body: {...investigation.blocks[0]!, version: 2},
-    });
-    const runUrl = `${blockUrl}executions/`;
-    MockApiClient.addMockResponse({
-      url: runUrl,
-      method: 'POST',
-      body: {id: 'execution-running', status: 'running'},
-    });
-    MockApiClient.addMockResponse({
-      url: `${runUrl}execution-running/`,
+      url: executionUrl,
       body: {
         id: 'execution-running',
         status: 'running',
@@ -2217,21 +3159,62 @@ describe('Investigation detail', () => {
       },
     });
     const stopRequest = MockApiClient.addMockResponse({
-      url: `${runUrl}execution-running/`,
+      url: executionUrl,
       method: 'DELETE',
     });
 
     renderView();
-    await chooseBlockAction('Summary', 'Refine');
-    await userEvent.type(
-      screen.getByLabelText('Instructions for Seer'),
-      'Try another angle'
-    );
-    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Stop'}));
 
     await waitFor(() => expect(stopRequest).toHaveBeenCalledTimes(1));
     expect(screen.getByText('Stable result')).toBeInTheDocument();
+  });
+
+  it('reopens the activity of a running block after its panel is closed', async () => {
+    const investigation = investigationWithQueryResult();
+    investigation.blocks = [
+      {
+        ...investigation.blocks[0]!,
+        outputStatus: 'running',
+        output: {schemaVersion: 1, markdown: 'Stable result'},
+        currentExecution: {
+          id: 'execution-running',
+          status: 'running',
+          startedAt: '2026-08-18T20:00:00Z',
+          completedAt: null,
+          error: null,
+        },
+      },
+    ];
+    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}blocks/block-1/executions/execution-running/`,
+      body: {
+        id: 'execution-running',
+        status: 'running',
+        blocks: [],
+        transcriptTruncated: false,
+        pendingUserInput: null,
+        partialMarkdown: null,
+        error: null,
+      },
+    });
+
+    renderView();
+    await userEvent.click(await screen.findByRole('button', {name: 'Close Seer panel'}));
+    expect(screen.queryByText('Working on this analysis…')).not.toBeInTheDocument();
+
+    await chooseBlockAction('Summary', 'Show Seer activity');
+    expect(await screen.findByText('Working on this analysis…')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Stop'})).toBeInTheDocument();
+
+    // Only offered while the panel is closed.
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Block actions for Summary'})
+    );
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Show Seer activity'})
+    ).not.toBeInTheDocument();
   });
 
   it('answers a question while an execution is awaiting input', async () => {
@@ -2792,6 +3775,150 @@ describe('Investigation detail', () => {
     // The header badge carries a finished run; the block above the hypotheses
     // only shows while there is something still in flight or needing attention.
     expect(screen.queryByTestId('seer-status-block')).not.toBeInTheDocument();
+  });
+
+  it('asks Seer about the whole investigation from the title menu', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture({
+        summary: 'A cache regression',
+        projectIds: [42],
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+    await userEvent.click(screen.getByLabelText('Investigation actions'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(openChatPrompt).toHaveBeenCalledTimes(1);
+    const {prompt, context} = openChatPrompt.mock.calls[0][0];
+    expect(prompt).toBe('What would you like to know about this investigation?');
+    // The investigation's node, with its hypotheses and blocks beneath it.
+    expect(context.nodeType).toBe('investigation');
+    expect(context.data).toEqual(
+      expect.objectContaining({
+        id: 'investigation-1',
+        title: 'Investigate database latency',
+        status: 'active',
+        projectIds: [42],
+        sourceType: 'manual',
+        sourceRef: {},
+        summary: 'A cache regression',
+        runStatus: 'processing',
+        runPhase: 'reporting',
+      })
+    );
+    const childData = (nodeType: string) =>
+      context.children
+        .filter((child: LLMContextNodeSnapshot) => child.nodeType === nodeType)
+        .map((child: LLMContextNodeSnapshot) => child.data);
+    const hypotheses = childData('investigation-hypothesis');
+    expect(hypotheses).toHaveLength(3);
+    expect(hypotheses).toContainEqual(
+      expect.objectContaining({
+        number: 1,
+        statement: 'Database or cache degradation delayed the response',
+        status: 'supported',
+        isConclusion: true,
+      })
+    );
+    // Only the blocks on screen: the query has no result yet, so it is hidden.
+    expect(childData('investigation-block')).toEqual([
+      {
+        id: 'block-1',
+        version: 1,
+        position: 0,
+        title: 'Summary',
+        kind: 'text',
+        output: 'Initial notes',
+      },
+    ]);
+  });
+
+  it("sends the investigation's run state before the full run arrives", async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture(),
+    });
+    let finishOrchestration!: () => void;
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+      asyncDelay: new Promise<void>(resolve => {
+        finishOrchestration = resolve;
+      }),
+    });
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await userEvent.click(await screen.findByLabelText('Investigation actions'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    const {context} = openChatPrompt.mock.calls[0][0];
+    expect(context.data).toEqual(
+      expect.objectContaining({runStatus: 'processing', runPhase: 'investigating'})
+    );
+    finishOrchestration();
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
+  });
+
+  it('asks Seer about a hypothesis from its menu', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationAgenticDetailFixture(),
+    });
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const openChatPrompt = jest.fn();
+
+    renderView(askSeerOrganization, makeTestQueryClient(), false, openChatPrompt);
+    await screen.findAllByTestId('investigation-hypothesis');
+    // A run past verification opens with its hypotheses folded away.
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for Database or cache degradation delayed the response',
+      })
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(openChatPrompt).toHaveBeenCalledTimes(1);
+    const {prompt, context} = openChatPrompt.mock.calls[0][0];
+    expect(prompt).toBe('What would you like to know about this hypothesis?');
+    expect(context.investigation).toEqual({
+      id: 'investigation-1',
+      title: 'Investigate database latency',
+      version: 1,
+    });
+    expect(context.hypothesis).toEqual(
+      expect.objectContaining({
+        id: 'hypothesis-1',
+        number: 1,
+        statement: 'Database or cache degradation delayed the response',
+        status: 'supported',
+        isConclusion: true,
+        verdict: {
+          verdict: 'supported',
+          rationale: 'Every check points at the same cache regression.',
+          remainingGaps: [],
+        },
+      })
+    );
+    expect(context.hypothesis.verificationSteps).toHaveLength(3);
+    expect(context.hypothesis.verificationSteps[1]).toEqual({
+      title: 'Compare organization lookup spans',
+      objective: 'Isolate the slow span.',
+      status: expect.any(String),
+      result: 'The lookup slowed sharply during the incident window.',
+    });
   });
 
   it('does not reach for orchestration on a manual investigation', async () => {

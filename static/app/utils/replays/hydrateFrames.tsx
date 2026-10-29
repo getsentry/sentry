@@ -8,12 +8,24 @@ import type {
   VideoEvent,
 } from 'sentry/utils/replays/types';
 import {
+  EventType,
   isBreadcrumbFrameEvent,
   isOptionFrameEvent,
   isRecordingFrame,
   isSpanFrameEvent,
   isVideoFrameEvent,
 } from 'sentry/utils/replays/types';
+
+// The SDK occasionally records a pointer move with no positions. rrweb reads
+// the last position of every move it applies while seeking, so one of these
+// crashes playback whenever the player jumps past it.
+function isEmptyPointerMoveFrame(frame: RecordingFrame) {
+  return (
+    frame.type === EventType.IncrementalSnapshot &&
+    'positions' in frame.data &&
+    frame.data.positions.length === 0
+  );
+}
 
 export function hydrateFrames(attachments: unknown[]) {
   const rrwebFrames: RecordingFrame[] = [];
@@ -45,7 +57,7 @@ export function hydrateFrames(attachments: unknown[]) {
         id: attachment.data.payload.segmentId,
         timestamp: attachment.timestamp,
       });
-    } else if (isRecordingFrame(attachment)) {
+    } else if (isRecordingFrame(attachment) && !isEmptyPointerMoveFrame(attachment)) {
       rrwebFrames.push(attachment);
     }
   });
