@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import ANY, Mock, patch
 
@@ -74,6 +74,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -1594,6 +1595,15 @@ class SlackInvestigationEntrypointTest(TestCase):
         assert post_kwargs["thread_ts"] == self.message_ts
         state = self._get_state()
         assert state["status_message_ts"] == self.status_ts
+
+    def test_status_change_keeps_cache_alive(self) -> None:
+        with freeze_time(datetime(2024, 8, 27, 10, 0, tzinfo=UTC)) as frozen:
+            self._set_cache()
+            frozen.shift(timedelta(hours=23))
+            self._update([_hypothesis()])
+            frozen.shift(timedelta(hours=2))
+
+            assert self._get_cache() is not None
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

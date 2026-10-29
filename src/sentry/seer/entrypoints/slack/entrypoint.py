@@ -1034,6 +1034,12 @@ class SlackInvestigationEntrypoint(
 
         if new_state != state:
             thread.update(provider_data=new_state)
+            # The cache is how updates find this thread, so keep it alive while the thread changes.
+            SeerOperatorInvestigationCache[SlackInvestigationCachePayload].set(
+                entrypoint_key=str(SlackInvestigationEntrypoint.key),
+                investigation_id=run.investigation_id,
+                cache_payload=cache_payload,
+            )
 
     @staticmethod
     def _send_investigation_conclusion(
