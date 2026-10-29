@@ -55,6 +55,25 @@ describe('Inbox', () => {
     ).toBeInTheDocument();
   });
 
+  it('does not carry query params between items', async () => {
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/inbox/',
+          query: {project: '1', environment: 'production'},
+        },
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(
+      await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      })
+    ).toHaveAttribute('href', '/organizations/org-slug/inbox/notebook/203/');
+  });
+
   it('selects the item for the issue in the url', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/7656018581/',

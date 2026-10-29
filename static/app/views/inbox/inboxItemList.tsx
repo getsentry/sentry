@@ -8,7 +8,6 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {InboxItem} from 'sentry/views/inbox/types';
 import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
@@ -38,17 +37,13 @@ interface InboxItemListItemProps {
 }
 
 function InboxItemListItem({item, isSelected}: InboxItemListItemProps) {
-  const location = useLocation();
   const organization = useOrganization();
   const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
 
   return (
     <Container as="li" borderBottom="primary">
       <ItemLink
-        to={{
-          pathname: getInboxItemPath(organization, item),
-          query: location.query,
-        }}
+        to={getInboxItemPath(organization, item)}
         aria-current={isSelected ? 'true' : undefined}
         data-selected={isSelected}
       >

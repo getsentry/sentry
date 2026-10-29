@@ -78,7 +78,7 @@ describe('InboxIssuePreview', () => {
     );
   });
 
-  it('shows the event filters, graph, and details in the telemetry tab', async () => {
+  function mockTelemetryResponses() {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
@@ -111,6 +111,10 @@ describe('InboxIssuePreview', () => {
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/actionable-items/`,
       body: {errors: []},
     });
+  }
+
+  it('shows the event filters, graph, and details in the telemetry tab', async () => {
+    mockTelemetryResponses();
 
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 

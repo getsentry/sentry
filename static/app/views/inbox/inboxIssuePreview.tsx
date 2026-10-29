@@ -84,6 +84,8 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
               <PageFiltersContainer
                 key={project.id}
                 skipLoadLastUsed
+                skipInitializeUrlParams
+                disablePersistence
                 forceProject={project}
                 shouldForceProject
               >
