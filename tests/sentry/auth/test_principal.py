@@ -3,8 +3,10 @@ from collections.abc import Iterator
 from pathlib import Path
 from unittest import mock
 
+import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
+from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
@@ -126,6 +128,14 @@ class SetRequestPrincipalTest(TestCase):
         with viewer_context_scope(ViewerContext(actor=actor)):
             set_request_principal(RequestFactory().get("/"), AnonymousUser(), None)
             assert get_viewer_context() == ViewerContext(actor=actor)
+
+    def test_leaves_lazy_user_unloaded(self) -> None:
+        # Loading Django's lazy user reads the session, which adds Vary: Cookie to every response.
+        request = RequestFactory().get("/")
+        lazy_user = SimpleLazyObject(lambda: pytest.fail("loaded the lazy user"))
+        set_request_principal(request, lazy_user, None)
+        user: object = request.user
+        assert user is lazy_user
 
     def _drf_request(self, user: User | None, from_viewer_context: bool = False) -> Request:
         class Authentication(BaseAuthentication):

@@ -969,8 +969,8 @@ class ViewerContextAuthentication(BaseAuthentication):
     Identity-only contexts derive access from organization membership. An optional
     Sentry-signed superuser context instead produces an org-bound credential;
     shared access checks validate it again and cap it to read-only scopes.
-    A service account context produces a userless credential bound to the
-    account's organization and current scopes.
+    A service account context produces a ``ServiceAccountPrincipal`` and a credential
+    bound to the account's organization and current scopes.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
@@ -994,7 +994,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 return None
             sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
             sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
-            return (AnonymousUser(), service_account_auth)
+            return service_account_auth
 
         user_id = get_acting_user_id(vc)
         superuser = from_viewer_context_superuser(vc.actor.superuser) if vc is not None else None
