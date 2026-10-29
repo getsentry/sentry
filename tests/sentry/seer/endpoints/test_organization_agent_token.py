@@ -609,9 +609,6 @@ class ServiceAccountGap(StrEnum):
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "DiscoverSavedQueries": ServiceAccountGap.USER_ID_FIX,
     "DiscoverSavedQueries_post": ServiceAccountGap.USER_ID_FIX,
-    "GroupExternalIssueDetails_delete": ServiceAccountGap.USER_ID_FIX,
-    "GroupIntegrationDetails_post": ServiceAccountGap.USER_ID_FIX,
-    "GroupIntegrationDetails_put": ServiceAccountGap.USER_ID_FIX,
     "OrganizationAIConversationDetails": ServiceAccountGap.USER_ID_FIX,
     "OrganizationAIConversations": ServiceAccountGap.USER_ID_FIX,
     "OrganizationEvents": ServiceAccountGap.USER_ID_FIX,

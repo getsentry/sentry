@@ -22,6 +22,7 @@ from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignmen
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.auth.principal import has_user
 from sentry.exceptions import InvalidSearchQuery
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
@@ -203,7 +204,7 @@ def update_groups(
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
-    acting_user = user if user and user.is_authenticated else None
+    acting_user = user if user and has_user(user) else None
     data = data or request.data
 
     # so we won't have to requery for each group
@@ -531,7 +532,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is
