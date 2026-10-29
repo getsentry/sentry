@@ -645,13 +645,10 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
 
-        response = self.get_error_response(
+        self.get_error_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=400
         )
 
-        assert response.data["detail"] == (
-            f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-        )
         assert (
             SeerWorkflowConfig.objects.filter(
                 organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2

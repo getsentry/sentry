@@ -1,3 +1,4 @@
+import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -39,6 +40,8 @@ from sentry.seer.workflows.workflow import (
     SelectedProjects,
 )
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+logger = logging.getLogger(__name__)
 
 
 class SeerWorkflowConfigResponse(TypedDict):
@@ -251,8 +254,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 project_ids=project_ids,
                 name=data.get("name"),
             )
-        except ValueError as e:
-            return Response({"detail": str(e)}, status=400)
+        except ValueError:
+            logger.exception("bad request")
+            return Response(status=400)
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         result = serialize_workflow_configs(
@@ -375,8 +379,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         SelectedProjects(project_ids=tuple(project_ids)),
                         has_access_projects=has_access_projects,
                     )
-            except ValueError as e:
-                return Response({"detail": str(e)}, status=400)
+            except ValueError:
+                logger.exception("bad request")
+                return Response(status=400)
 
         return Response(self.serialize(request, organization, workflow.config))
 
