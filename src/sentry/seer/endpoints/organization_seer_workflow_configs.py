@@ -24,13 +24,17 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.organization import Organization
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
+    SeerWorkflowSchedule,
+    SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class SeerWorkflowConfigResponse(TypedDict):
@@ -58,11 +62,38 @@ class WorkflowConfigListErrorResponse(TypedDict):
 
 
 class SeerWorkflowConfigPermission(OrganizationPermission):
-    # PUT is further limited to the projects the caller can access.
+    # POST and PUT are further limited to the projects the caller can access.
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["project:read", "project:write", "project:admin"],
         "PUT": ["project:read", "project:write", "project:admin"],
     }
+
+
+class WorkflowConfigCreateSerializer(serializers.Serializer):
+    strategy = serializers.ChoiceField(
+        choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
+    )
+    enabled = serializers.BooleanField(default=False)
+    schedule = serializers.ChoiceField(
+        choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
+    )
+    environments = serializers.ListField(
+        child=serializers.CharField(max_length=64), default=list, allow_empty=True
+    )
+    # [-1] selects all projects. Omitted means no projects, or all for breached metrics.
+    projectIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
+        required=False,
+        allow_empty=True,
+    )
+
+    def validate_projectIds(self, value: list[int]) -> list[int]:
+        if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
+            raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
+        if 0 in value:
+            raise serializers.ValidationError("Project IDs must be positive.")
+        return value
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
@@ -81,8 +112,17 @@ class WorkflowConfigLastRun:
 @extend_schema(tags=["Seer"])
 class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.ML_AI
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
-    permission_classes = (OrganizationPermission,)
+    publish_status = {"GET": ApiPublishStatus.PRIVATE, "POST": ApiPublishStatus.PRIVATE}
+    permission_classes = (SeerWorkflowConfigPermission,)
+    enforce_rate_limit = True
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.USER: RateLimit(limit=5, window=60),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=60 * 60),
+            },
+        }
+    )
 
     @extend_schema(
         operation_id="List Seer automation workflows",
@@ -147,6 +187,72 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 has_global_access=request.access.has_global_access,
             ),
         )
+
+    @extend_schema(
+        operation_id="Create a Seer automation workflow",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=WorkflowConfigCreateSerializer,
+        responses={
+            201: inline_sentry_response_serializer(
+                "SeerWorkflowConfig", SeerWorkflowConfigResponse
+            ),
+        },
+    )
+    def post(self, request: Request, organization: Organization) -> Response:
+        """Create a Seer automation workflow.
+
+        ``projectIds`` of ``[-1]`` selects all projects and requires ``org:write``.
+        Otherwise every project must be active and accessible to the caller. Omitting
+        ``projectIds`` selects no projects, except for breached metric automations,
+        which always cover all projects. Returns the new config in the same shape as
+        an item in ``configs``.
+        """
+        if not features.has("organizations:seer-automations", organization, actor=request.user):
+            raise NotFound
+
+        serializer = WorkflowConfigCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        data = serializer.validated_data
+        strategy = SeerWorkflowStrategy(data["strategy"])
+
+        project_ids: list[int] | None = data.get("projectIds")
+        if project_ids is None:
+            if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                project_ids = [ALL_ACCESS_PROJECT_ID]
+            else:
+                project_ids = []
+        all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
+        if all_projects:
+            if not (request.access.has_scope("org:write") or request.access.has_scope("org:admin")):
+                raise PermissionDenied
+        elif project_ids:
+            # Raises PermissionDenied unless every project is active and accessible.
+            requested = self.get_projects(request, organization, project_ids=set(project_ids))
+            if not all(
+                request.access.has_project_scope(project, "project:read") for project in requested
+            ):
+                raise PermissionDenied
+
+        try:
+            workflow = SeerWorkflow.create(
+                organization.id,
+                strategy=strategy,
+                enabled=data["enabled"],
+                schedule=SeerWorkflowSchedule(data["schedule"]),
+                environments=data["environments"],
+                project_ids=None if all_projects else project_ids,
+            )
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=400)
+
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        result = serialize_workflow_configs(
+            [workflow.config],
+            accessible_project_ids=[p.id for p in projects],
+            has_global_access=request.access.has_global_access,
+        )
+        return Response(result["configs"][0], status=201)
 
 
 @cell_silo_endpoint

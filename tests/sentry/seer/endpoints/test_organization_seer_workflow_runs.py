@@ -14,7 +14,10 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
+from sentry.seer.endpoints.organization_seer_workflow_configs import (
+    OrganizationSeerWorkflowConfigsEndpoint,
+    serialize_workflow_configs,
+)
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
     WorkflowRunListErrorResponse,
@@ -22,6 +25,7 @@ from sentry.seer.endpoints.organization_seer_workflow_runs import (
 )
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
+    MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowExecutionStatus,
@@ -971,4 +975,193 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-configs"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_returns_404(self) -> None:
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(
+                self.organization.slug, strategy="agentic_triage_v2", status_code=404
+            )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_creates_config_with_defaults(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, strategy="agentic_triage_v2", status_code=201
+        )
+
+        config = SeerWorkflowConfig.objects.get(organization=self.organization)
+        assert response.data == {
+            "id": str(config.id),
+            "strategy": "agentic_triage_v2",
+            "enabled": False,
+            "schedule": "daily",
+            "version": 1,
+            "projects": [],
+            "environments": [],
+            "filters": {},
+            "outputPolicy": {},
+            "seededDefault": None,
+            "dateAdded": config.date_added,
+            "dateUpdated": config.date_updated,
+        }
+
+    def test_creates_config_with_fields(self) -> None:
+        other = self.create_project()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            enabled=True,
+            environments=["production"],
+            projectIds=[self.project.id, other.id, other.id],
+            status_code=201,
+        )
+
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert config.enabled is True
+        assert response.data["environments"] == ["production"]
+        assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
+        assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
+
+    def test_all_projects(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            projectIds=[-1],
+            status_code=201,
+        )
+
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert response.data["projects"] == [-1]
+        assert config.filters["all_projects"] is True
+        assert self.selected_project_ids(config) == []
+
+    def test_breached_metric_config_covers_all_projects(self) -> None:
+        for body in ({}, {"projectIds": [-1]}):
+            response = self.get_success_response(
+                self.organization.slug,
+                strategy="breached_metric_investigation",
+                status_code=201,
+                **body,
+            )
+            assert response.data["strategy"] == "breached_metric_investigation"
+            assert response.data["projects"] == [-1]
+
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            projectIds=[self.project.id],
+            status_code=400,
+        )
+        assert response.data["detail"] == (
+            "Breached metric projects are selected by connecting monitors"
+        )
+
+    # Sends more requests than the creation rate limit allows.
+    @patch.object(OrganizationSeerWorkflowConfigsEndpoint, "enforce_rate_limit", False)
+    def test_invalid_body_returns_400(self) -> None:
+        for body in (
+            {},
+            {"strategy": "agentic_triage"},
+            {"strategy": "duplicate_monitors"},
+            {"strategy": "agentic_triage_v2", "schedule": "weekly"},
+            {"strategy": "agentic_triage_v2", "projectIds": [-1, self.project.id]},
+            {"strategy": "agentic_triage_v2", "projectIds": [0]},
+            {"strategy": "agentic_triage_v2", "projectIds": [-2]},
+            {"strategy": "agentic_triage_v2", "environments": ["a" * 65]},
+        ):
+            self.get_error_response(self.organization.slug, **body, status_code=400)
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_unavailable_projects_return_403(self) -> None:
+        inactive = self.create_project(status=ObjectStatus.PENDING_DELETION)
+        foreign = self.create_project(organization=self.create_organization())
+        for project in (inactive, foreign):
+            self.get_error_response(
+                self.organization.slug,
+                strategy="agentic_triage_v2",
+                projectIds=[self.project.id, project.id],
+                status_code=403,
+            )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_member_needs_access_to_requested_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        self.login_as(member)
+
+        for project_ids in ([accessible.id, hidden.id], [-1]):
+            self.get_error_response(
+                self.organization.slug,
+                strategy="agentic_triage_v2",
+                projectIds=project_ids,
+                status_code=403,
+            )
+        self.get_error_response(
+            self.organization.slug, strategy="breached_metric_investigation", status_code=403
+        )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            projectIds=[accessible.id],
+            status_code=201,
+        )
+        assert response.data["projects"] == [accessible.id]
+
+    def test_caps_configs_per_organization(self) -> None:
+        for _ in range(MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION):
+            Factories.create_seer_workflow_config(
+                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            )
+        Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, strategy="agentic_triage_v2", status_code=400
+        )
+
+        assert response.data["detail"] == (
+            f"Organizations can have at most {MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION} "
+            "automations"
+        )
+        assert (
+            SeerWorkflowConfig.objects.filter(
+                organization=self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            ).count()
+            == MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION
+        )
+
+    def test_rate_limits_creation(self) -> None:
+        for _ in range(5):
+            self.get_success_response(
+                self.organization.slug, strategy="agentic_triage_v2", status_code=201
+            )
+        self.get_error_response(
+            self.organization.slug, strategy="agentic_triage_v2", status_code=429
+        )
+
+    def selected_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
+        return sorted(
+            SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                "project_id", flat=True
+            )
         )

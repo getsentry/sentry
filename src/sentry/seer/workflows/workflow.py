@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, assert_never
 
@@ -12,6 +12,8 @@ from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION,
+    SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -19,6 +21,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
+    SeerWorkflowSchedule,
     SeerWorkflowStrategy,
     WorkflowRunSnapshot,
 )
@@ -77,6 +80,64 @@ class SeerWorkflow:
                     if strategy.value not in existing
                 ]
             )
+
+    @classmethod
+    def create(
+        cls,
+        organization_id: int,
+        *,
+        strategy: SeerWorkflowStrategy,
+        enabled: bool = False,
+        schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
+        environments: Sequence[str] = (),
+        project_ids: Collection[int] | None,
+    ) -> SeerWorkflow:
+        """Create a user-defined automation. ``project_ids=None`` selects all projects."""
+        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
+            raise ValueError(f"{strategy} configs cannot be created")
+        if (
+            strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+            and project_ids is not None
+        ):
+            raise ValueError("Breached metric projects are selected by connecting monitors")
+        requested = set(project_ids or ())
+
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            # Serialize creation per organization so concurrent requests can't exceed the cap.
+            list(Organization.objects.select_for_update().filter(id=organization_id))
+            existing = SeerWorkflowConfig.objects.filter(
+                organization_id=organization_id,
+                strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            ).count()
+            if existing >= MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION:
+                raise ValueError(
+                    "Organizations can have at most "
+                    f"{MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION} automations"
+                )
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=organization_id, id__in=requested
+                ).values_list("id", flat=True)
+            )
+            if requested != valid_project_ids:
+                raise ValueError("Selected projects must exist in the workflow's organization")
+
+            config = SeerWorkflowConfig.objects.create(
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                schedule=schedule,
+                filters=SeerWorkflowFilters(
+                    all_projects=project_ids is None, environments=list(environments)
+                ).dict(),
+            )
+            SeerWorkflowConfigProject.objects.bulk_create(
+                [
+                    SeerWorkflowConfigProject(config=config, project_id=project_id)
+                    for project_id in sorted(requested)
+                ]
+            )
+        return cls(config)
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
