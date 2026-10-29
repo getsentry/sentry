@@ -1,15 +1,20 @@
+import itertools
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
-from sentry.cadence.registry import trigger_action_registry
-from sentry.cadence.tasks import cadence_tick, execute_scheduled_trigger
+from sentry.cadence.registry import TriggerContext, trigger_action_registry
+from sentry.cadence.tasks import _claim_batch, cadence_tick
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 
 NOW = datetime(2024, 3, 9, 12, 0, tzinfo=UTC)
+SEER_WORKFLOW = ScheduledTriggerType.SEER_WORKFLOW
 
 
 def cadence_metric_calls(mock: MagicMock) -> list[tuple[tuple[Any, ...], dict[str, Any]]]:
@@ -23,62 +28,182 @@ def test_every_trigger_type_has_an_action() -> None:
     assert set(trigger_action_registry.registrations) == set(ScheduledTriggerType)
 
 
-class CadenceTaskTestCase(TestCase):
+class CadenceTickTest(TestCase):
+    @pytest.fixture(autouse=True)
+    def action(self) -> Generator[MagicMock]:
+        self.action = MagicMock()
+        with patch.dict(trigger_action_registry.registrations, {SEER_WORKFLOW: self.action}):
+            yield self.action
+
     def setUp(self) -> None:
         super().setUp()
         self.enterContext(override_options({"cadence.tick.enabled": True}))
+        self.target_ids = itertools.count(1)
 
-    def create_trigger(
-        self,
-        next_run_at: datetime | None = NOW,
-        trigger_type: ScheduledTriggerType = ScheduledTriggerType.TRIAGE,
-    ) -> ScheduledTrigger:
+    def create_trigger(self, next_run_at: datetime | None = NOW, **kwargs: Any) -> ScheduledTrigger:
+        fields: dict[str, Any] = {
+            "schedule_type": ScheduleType.INTERVAL,
+            "interval_seconds": 3600,
+            **kwargs,
+        }
         return ScheduledTrigger.objects.create(
             organization=self.organization,
-            trigger_type=trigger_type,
-            schedule_type=ScheduleType.INTERVAL,
-            interval_seconds=3600,
+            trigger_type=SEER_WORKFLOW,
+            target_id=next(self.target_ids),
             next_run_at=next_run_at,
+            **fields,
         )
 
+    def context(self, trigger: ScheduledTrigger, scheduled_for: datetime) -> TriggerContext:
+        return TriggerContext(
+            organization_id=self.organization.id,
+            trigger_type=SEER_WORKFLOW,
+            target_id=trigger.target_id,
+            scheduled_for=scheduled_for,
+        )
 
-class CadenceTickTest(CadenceTaskTestCase):
+    def dispatched(self) -> list[TriggerContext]:
+        return [ctx for call in self.action.call_args_list for ctx in call.args[0]]
+
     @freeze_time(NOW)
-    @patch("sentry.cadence.tasks.execute_scheduled_trigger.delay")
-    def test_dispatches_due_triggers_and_advances(self, mock_delay: MagicMock) -> None:
-        due = self.create_trigger(NOW - timedelta(minutes=1))
+    def test_dispatches_due_triggers_in_one_call_and_advances(self) -> None:
+        due_1 = self.create_trigger(NOW - timedelta(minutes=1))
+        due_2 = self.create_trigger(NOW)
         future = self.create_trigger(NOW + timedelta(minutes=1))
         unscheduled = self.create_trigger(None)
 
         cadence_tick()
 
-        mock_delay.assert_called_once_with(due.id, (NOW - timedelta(minutes=1)).isoformat())
-        due.refresh_from_db()
-        assert due.next_run_at == NOW + timedelta(minutes=59)
-        assert due.last_run_at == NOW
+        self.action.assert_called_once_with(
+            [self.context(due_1, NOW - timedelta(minutes=1)), self.context(due_2, NOW)]
+        )
+        due_1.refresh_from_db()
+        assert due_1.next_run_at == NOW + timedelta(minutes=59)
+        due_2.refresh_from_db()
+        assert due_2.next_run_at == NOW + timedelta(hours=1)
         future.refresh_from_db()
         assert future.next_run_at == NOW + timedelta(minutes=1)
         unscheduled.refresh_from_db()
         assert unscheduled.next_run_at is None
 
     @freeze_time(NOW)
-    @patch("sentry.cadence.tasks.execute_scheduled_trigger.delay")
-    def test_dispatches_missed_runs_once(self, mock_delay: MagicMock) -> None:
+    def test_dispatches_missed_runs_once(self) -> None:
         trigger = self.create_trigger(NOW - timedelta(hours=3, minutes=10))
 
         cadence_tick()
         cadence_tick()
 
-        assert mock_delay.call_count == 1
+        assert self.dispatched() == [self.context(trigger, NOW - timedelta(hours=3, minutes=10))]
         trigger.refresh_from_db()
         assert trigger.next_run_at == NOW + timedelta(minutes=50)
 
     @freeze_time(NOW)
+    def test_dispatches_cron_trigger(self) -> None:
+        trigger = self.create_trigger(
+            NOW, schedule_type=ScheduleType.CRON, interval_seconds=None, cron_expression="0 * * * *"
+        )
+
+        cadence_tick()
+
+        assert self.dispatched() == [self.context(trigger, NOW)]
+        trigger.refresh_from_db()
+        assert trigger.next_run_at == NOW + timedelta(hours=1)
+
+    @freeze_time(NOW)
+    def test_claims_in_batches(self) -> None:
+        triggers = [self.create_trigger(NOW - timedelta(minutes=i)) for i in range(5)]
+
+        with patch("sentry.cadence.tasks.TICK_BATCH_SIZE", 2):
+            cadence_tick()
+
+        assert self.action.call_count == 3
+        assert sorted(ctx.target_id for ctx in self.dispatched()) == sorted(
+            t.target_id for t in triggers
+        )
+
+    @freeze_time(NOW)
+    def test_unschedulable_trigger_does_not_block_others(self) -> None:
+        broken = self.create_trigger(
+            NOW - timedelta(minutes=2),
+            schedule_type=ScheduleType.CRON,
+            interval_seconds=None,
+            cron_expression="not a cron",
+        )
+        healthy = self.create_trigger(NOW - timedelta(minutes=1))
+
+        with patch("sentry.cadence.tasks.logger") as mock_logger:
+            cadence_tick()
+
+        assert self.dispatched() == [self.context(healthy, NOW - timedelta(minutes=1))]
+        mock_logger.exception.assert_called_once()
+        broken.refresh_from_db()
+        assert broken.next_run_at is None
+
+    @freeze_time(NOW)
+    def test_unknown_trigger_type_is_unscheduled(self) -> None:
+        stale = self.create_trigger(NOW)
+        ScheduledTrigger.objects.filter(id=stale.id).update(trigger_type="removed_type")
+        healthy = self.create_trigger(NOW)
+
+        cadence_tick()
+
+        assert self.dispatched() == [self.context(healthy, NOW)]
+        stale.refresh_from_db()
+        assert stale.next_run_at is None
+
+    @freeze_time(NOW)
+    def test_skips_rows_locked_by_a_concurrent_tick(self) -> None:
+        trigger = self.create_trigger(NOW)
+
+        with patch.object(
+            ScheduledTrigger.objects,
+            "select_for_update",
+            wraps=ScheduledTrigger.objects.select_for_update,
+        ) as select_for_update:
+            _claim_batch(NOW)
+
+        select_for_update.assert_called_once_with(skip_locked=True)
+        trigger.refresh_from_db()
+        assert trigger.next_run_at == NOW + timedelta(hours=1)
+
+    @freeze_time(NOW)
+    def test_action_failure_is_contained(self) -> None:
+        self.action.side_effect = RuntimeError("boom")
+        trigger = self.create_trigger(NOW)
+
+        with (
+            patch("sentry.cadence.tasks.logger") as mock_logger,
+            patch("sentry.cadence.tasks.metrics.incr") as mock_incr,
+        ):
+            cadence_tick()
+
+        mock_logger.exception.assert_called_once_with(
+            "cadence.trigger.dispatch_failed",
+            extra={"trigger_type": "seer_workflow", "run_count": 1},
+        )
+        mock_incr.assert_called_once_with(
+            "cadence.trigger.dispatch_failed", amount=1, tags={"trigger_type": "seer_workflow"}
+        )
+        # The run is lost, not retried: the trigger has moved on to its next run.
+        trigger.refresh_from_db()
+        assert trigger.next_run_at == NOW + timedelta(hours=1)
+
+    @freeze_time(NOW)
+    def test_unregistered_trigger_type_is_contained(self) -> None:
+        self.create_trigger(NOW)
+
+        with (
+            patch.dict(trigger_action_registry.registrations, clear=True),
+            patch("sentry.cadence.tasks.logger") as mock_logger,
+        ):
+            cadence_tick()
+
+        mock_logger.exception.assert_called_once()
+
+    @freeze_time(NOW)
+    @patch("sentry.utils.metrics.timing")
     @patch("sentry.cadence.tasks.metrics.distribution")
-    @patch("sentry.cadence.tasks.execute_scheduled_trigger.delay")
-    def test_records_claim_metrics(
-        self, mock_delay: MagicMock, mock_distribution: MagicMock
-    ) -> None:
+    def test_records_metrics(self, mock_distribution: MagicMock, mock_timing: MagicMock) -> None:
         self.create_trigger(NOW - timedelta(seconds=12))
         self.create_trigger(NOW + timedelta(minutes=1))
 
@@ -86,124 +211,22 @@ class CadenceTickTest(CadenceTaskTestCase):
 
         assert cadence_metric_calls(mock_distribution) == [
             (
-                ("cadence.trigger.claim_lag", 12.0),
-                {"tags": {"trigger_type": "triage"}, "unit": "second"},
+                ("cadence.trigger.dispatch_lag", 12.0),
+                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
             ),
             (("cadence.tick.claimed", 1), {}),
         ]
+        ((timing_args, _),) = cadence_metric_calls(mock_timing)
+        assert timing_args[0] == "cadence.trigger.dispatch_duration"
+        assert timing_args[3] == {"trigger_type": "seer_workflow", "result": "success"}
 
     @freeze_time(NOW)
-    @patch("sentry.cadence.tasks.execute_scheduled_trigger.delay")
-    def test_dispatches_cron_trigger(self, mock_delay: MagicMock) -> None:
-        trigger = ScheduledTrigger.objects.create(
-            organization=self.organization,
-            trigger_type=ScheduledTriggerType.AUTOMATION,
-            schedule_type=ScheduleType.CRON,
-            cron_expression="0 * * * *",
-            next_run_at=NOW,
-        )
-
-        cadence_tick()
-
-        mock_delay.assert_called_once_with(trigger.id, NOW.isoformat())
-        trigger.refresh_from_db()
-        assert trigger.next_run_at == NOW + timedelta(hours=1)
-
-    @freeze_time(NOW)
-    @patch("sentry.cadence.tasks.execute_scheduled_trigger.delay")
-    def test_kill_switch(self, mock_delay: MagicMock) -> None:
+    def test_kill_switch(self) -> None:
         trigger = self.create_trigger(NOW - timedelta(minutes=1))
 
         with override_options({"cadence.tick.enabled": False}):
             cadence_tick()
 
-        mock_delay.assert_not_called()
+        self.action.assert_not_called()
         trigger.refresh_from_db()
         assert trigger.next_run_at == NOW - timedelta(minutes=1)
-
-
-class ExecuteScheduledTriggerTest(CadenceTaskTestCase):
-    def test_calls_registered_action(self) -> None:
-        trigger = self.create_trigger(trigger_type=ScheduledTriggerType.AUTOMATION)
-        action = MagicMock()
-        with patch.dict(
-            trigger_action_registry.registrations, {ScheduledTriggerType.AUTOMATION: action}
-        ):
-            execute_scheduled_trigger(trigger.id, NOW.isoformat())
-
-        action.assert_called_once_with(trigger.id, NOW)
-
-    def test_kill_switch(self) -> None:
-        trigger = self.create_trigger(trigger_type=ScheduledTriggerType.AUTOMATION)
-        action = MagicMock()
-        with (
-            patch.dict(
-                trigger_action_registry.registrations, {ScheduledTriggerType.AUTOMATION: action}
-            ),
-            override_options({"cadence.tick.enabled": False}),
-        ):
-            execute_scheduled_trigger(trigger.id, NOW.isoformat())
-
-        action.assert_not_called()
-
-    @freeze_time(NOW + timedelta(seconds=7))
-    @patch("sentry.utils.metrics.timing")
-    @patch("sentry.cadence.tasks.metrics.distribution")
-    def test_records_lag_and_duration(
-        self, mock_distribution: MagicMock, mock_timing: MagicMock
-    ) -> None:
-        trigger = self.create_trigger(trigger_type=ScheduledTriggerType.AUTOMATION)
-        with patch.dict(
-            trigger_action_registry.registrations, {ScheduledTriggerType.AUTOMATION: MagicMock()}
-        ):
-            execute_scheduled_trigger(trigger.id, NOW.isoformat())
-
-        assert cadence_metric_calls(mock_distribution) == [
-            (
-                ("cadence.trigger.execute_lag", 7.0),
-                {"tags": {"trigger_type": "automation"}, "unit": "second"},
-            )
-        ]
-        ((timing_args, _),) = cadence_metric_calls(mock_timing)
-        assert timing_args[0] == "cadence.trigger.execute_duration"
-        assert timing_args[3] == {"trigger_type": "automation", "result": "success"}
-
-    @patch("sentry.utils.metrics.timing")
-    @patch("sentry.cadence.tasks.logger")
-    def test_action_failure_is_contained(
-        self, mock_logger: MagicMock, mock_timing: MagicMock
-    ) -> None:
-        trigger = self.create_trigger(trigger_type=ScheduledTriggerType.AUTOMATION)
-        action = MagicMock(side_effect=RuntimeError("boom"))
-        with patch.dict(
-            trigger_action_registry.registrations, {ScheduledTriggerType.AUTOMATION: action}
-        ):
-            execute_scheduled_trigger(trigger.id, NOW.isoformat())
-
-        mock_logger.exception.assert_called_once_with(
-            "cadence.trigger.execute_failed",
-            extra={
-                "trigger_id": trigger.id,
-                "trigger_type": "automation",
-                "scheduled_for": NOW.isoformat(),
-            },
-        )
-        ((timing_args, _),) = cadence_metric_calls(mock_timing)
-        assert timing_args[3] == {"trigger_type": "automation", "result": "failure"}
-
-    @patch("sentry.cadence.tasks.logger")
-    def test_unregistered_trigger_type_is_contained(self, mock_logger: MagicMock) -> None:
-        trigger = self.create_trigger(trigger_type=ScheduledTriggerType.AUTOMATION)
-        with patch.dict(trigger_action_registry.registrations, clear=True):
-            execute_scheduled_trigger(trigger.id, NOW.isoformat())
-
-        mock_logger.exception.assert_called_once()
-
-    def test_deleted_trigger_is_ignored(self) -> None:
-        action = MagicMock()
-        with patch.dict(
-            trigger_action_registry.registrations, {ScheduledTriggerType.TRIAGE: action}
-        ):
-            execute_scheduled_trigger(123456789, NOW.isoformat())
-
-        action.assert_not_called()
