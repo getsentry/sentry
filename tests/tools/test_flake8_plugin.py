@@ -1864,6 +1864,73 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
+def test_S028_date_helper_with_documented_params_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(
+        parameters=[
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+        ]
+    )
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S028_date_helper_without_documented_params_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to get_date_range_from_params" in errors[0]
+
+
+def test_S028_date_helper_with_some_documented_params_is_still_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[GlobalParams.START, GlobalParams.END, GlobalParams.STATS_PERIOD])
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_params(request.GET)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "handed to get_date_range_from_params" in errors[0]
+
+
+def test_S028_stats_period_date_helper_with_documented_params_is_not_a_hand_off() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(
+        parameters=[
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+        ]
+    )
+    def get(self, request) -> Response[X]:
+        return get_date_range_from_stats_period(request.GET)
+"""
+    assert _run_input(src, SHAPED) == []
+
+
 def _api_violations(
     src: str, enforced: frozenset[str] = frozenset(), all_rules: bool = True
 ) -> list[ApiInputViolation]:

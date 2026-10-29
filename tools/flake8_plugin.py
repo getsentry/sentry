@@ -393,6 +393,14 @@ _CONTAINER_OPS = frozenset(
 )
 _COPY_METHODS = frozenset(("copy", "dict"))
 
+# Date range helpers should not be flagged for handoffs if allk the params are documented fully
+_DATE_RANGE_HELPERS = frozenset(("get_date_range_from_params", "get_date_range_from_stats_period"))
+# The current date keys those helpers read, by their GlobalParams name. The
+# timeframe aliases are legacy and left out of the public spec on purpose
+_DATE_RANGE_PARAMS = frozenset(
+    ("START", "END", "STATS_PERIOD", "STATS_PERIOD_START", "STATS_PERIOD_END")
+)
+
 
 def _looks_like_a_class(func: ast.expr) -> bool:
     """Callee named like a class, which is how a serializer is spelled."""
@@ -1217,6 +1225,12 @@ class SentryVisitor(ast.NodeVisitor):
         # callers and only this specific check should be expanded to allow `_cls`.
         if (_looks_like_a_class(func) or _looks_like_a_class_variable(func)) and any(
             kw.arg == "data" for kw in node.keywords
+        ):
+            return
+        # The date helpers read a fixed set of keys, so they are only a handoff
+        # when the endpoint does not document all of them.
+        if _name_of(func) in _DATE_RANGE_HELPERS and _DATE_RANGE_PARAMS.issubset(
+            ctx.declared_params
         ):
             return
         for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
