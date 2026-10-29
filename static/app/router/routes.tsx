@@ -3082,7 +3082,10 @@ function buildRoutes(): RouteObject[] {
     traceView,
   ];
   const inboxRoutes: SentryRouteObject = {
-    path: '/inbox/',
+    // TODO: Items are temporarily addressed by inbox item ID. These URLs will
+    // change to reference the item's subject (e.g. the issue or notebook)
+    // so they stay stable and shareable.
+    path: '/inbox/:id?/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
   };
