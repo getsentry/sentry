@@ -94,7 +94,7 @@ export function cronFormDataToEndpointPayload(
           ...commonConfig,
           // Number inputs store typed values as strings, but the API requires an integer
           schedule: [
-            parseInt(String(data.scheduleIntervalValue), 10),
+            Number(data.scheduleIntervalValue),
             data.scheduleIntervalUnit,
           ] as const,
           schedule_type: ScheduleType.INTERVAL,
