@@ -14,8 +14,8 @@ from sentry import features
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
-from sentry.seer.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.seer.oneshot import run_oneshot
+from sentry.seer_automations.models.workflow import SeerWorkflowRun, SeerWorkflowStrategy
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics

@@ -120,7 +120,7 @@ from sentry.seer.models.project_repository import (
     SeerProjectRepository,
     SeerProjectRepositoryBranchOverride,
 )
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer_automations.models.workflow import SeerWorkflowStrategy
 from sentry.sentry_apps.logic import SentryAppUpdater
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.models import ServiceAccount

@@ -35,9 +35,9 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0045_workflow_run_lifecycle
+seer: 0046_move_automations
 
-seer_workflow_outputs: 0001_initial
+seer_automations: 0001_initial
 
 sentry: 1245_add_login_hint_to_apidevicecode
 

@@ -58,12 +58,12 @@ from sentry.models.relay import Relay, RelayUsage
 from sentry.models.team import Team
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
-from sentry.seer.models.workflow import (
+from sentry.seer_automations.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer_automations.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProjectReplica,
@@ -2526,38 +2526,38 @@ class CustomImportBehaviorTests(ImportTestCase):
 
 
 class SeerWorkflowServiceAccountTests(ImportTestCase):
-    def create_workflows(self) -> SeerWorkflowConfig:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        with outbox_runner():
-            account = Factories.create_service_account(org, id=910001, project_ids=[project.id])
-            inactive = Factories.create_service_account(org, name="inactive", is_active=False)
-        assert ServiceAccountReplica.objects.get(service_account_id=account.id).id != account.id
-        config = Factories.create_seer_workflow_config(
-            org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            service_account_id=account.id,
-            enabled=True,
-            filters={"environments": ["production"]},
-            output_policy={"notify": True},
-            version=7,
-        )
-        Factories.create_seer_workflow_config_project(config, project)
-        Factories.create_seer_workflow_config(
-            org,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-            service_account_id=inactive.id,
-        )
-        Factories.create_seer_workflow_config(org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
-        return config
-
     def test_account_identity_remapped_before_replication(self) -> None:
+        self.assert_account_identity_remapped_before_replication(b"seer_automations")
+
+    def test_backup_with_legacy_app_label_preserves_workflows(self) -> None:
+        self.assert_account_identity_remapped_before_replication(b"seer")
+
+    def test_backup_without_account_field_imports_unset(self) -> None:
+        self.create_workflows()
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            data = orjson.loads(tmp_path.read_bytes())
+            configs = [
+                item for item in data if item["model"] == "seer_automations.seerworkflowconfig"
+            ]
+            for item in configs:
+                del item["fields"]["service_account_id"]
+            import_in_organization_scope(io.BytesIO(orjson.dumps(data)), printer=NOOP_PRINTER)
+
+        assert SeerWorkflowConfig.objects.count() == 3
+        assert SeerWorkflowConfig.objects.filter(service_account_id__isnull=True).count() == 3
+        assert SeerWorkflowConfigProject.objects.count() == 1
+
+    def assert_account_identity_remapped_before_replication(self, app_label: bytes) -> None:
         original = self.create_workflows()
         original_project_id = SeerWorkflowConfigProject.objects.get(config=original).project_id
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(tmp_file, printer=NOOP_PRINTER)
+            data = tmp_path.read_bytes()
+            data = data.replace(
+                b'"seer_automations.seerworkflow', b'"' + app_label + b".seerworkflow"
+            )
+            import_in_organization_scope(io.BytesIO(data), printer=NOOP_PRINTER)
 
         config = SeerWorkflowConfig.objects.get(enabled=True)
         project = Project.objects.get(organization_id=config.organization_id)
@@ -2604,19 +2604,30 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         config.refresh_from_db()
         assert config.version == original.version
 
-    def test_backup_without_account_field_imports_unset(self) -> None:
-        self.create_workflows()
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            data = orjson.loads(tmp_path.read_bytes())
-            configs = [item for item in data if item["model"] == "seer.seerworkflowconfig"]
-            for item in configs:
-                del item["fields"]["service_account_id"]
-            import_in_organization_scope(io.BytesIO(orjson.dumps(data)), printer=NOOP_PRINTER)
-
-        assert SeerWorkflowConfig.objects.count() == 3
-        assert SeerWorkflowConfig.objects.filter(service_account_id__isnull=True).count() == 3
-        assert SeerWorkflowConfigProject.objects.count() == 1
+    def create_workflows(self) -> SeerWorkflowConfig:
+        org = self.create_organization()
+        project = self.create_project(organization=org)
+        with outbox_runner():
+            account = Factories.create_service_account(org, id=910001, project_ids=[project.id])
+            inactive = Factories.create_service_account(org, name="inactive", is_active=False)
+        assert ServiceAccountReplica.objects.get(service_account_id=account.id).id != account.id
+        config = Factories.create_seer_workflow_config(
+            org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            service_account_id=account.id,
+            enabled=True,
+            filters={"environments": ["production"]},
+            output_policy={"notify": True},
+            version=7,
+        )
+        Factories.create_seer_workflow_config_project(config, project)
+        Factories.create_seer_workflow_config(
+            org,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            service_account_id=inactive.id,
+        )
+        Factories.create_seer_workflow_config(org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        return config
 
 
 class BatchingTests(TestCase):

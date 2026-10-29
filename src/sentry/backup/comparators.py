@@ -1022,10 +1022,10 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "seer.seerprojectrepositorybranchoverride": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
-            "seer.seerworkflowconfig": [
+            "seer_automations.seerworkflowconfig": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
-            "seer.seerworkflowconfigproject": [
+            "seer_automations.seerworkflowconfigproject": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
         },

@@ -7,4 +7,3 @@ class SeerConfig(AppConfig):
     def ready(self) -> None:
         # Register all the entrypoints for the operator to use
         import sentry.seer.entrypoints.slack.entrypoint  # noqa: F401
-        import sentry.seer.workflows.action  # noqa: F401

@@ -570,7 +570,6 @@ from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummary
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
 from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
@@ -597,13 +596,6 @@ from sentry.seer.endpoints.organization_seer_onboarding_check import Organizatio
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
-from sentry.seer.endpoints.organization_seer_workflow_configs import (
-    OrganizationSeerWorkflowConfigsEndpoint,
-)
-from sentry.seer.endpoints.organization_seer_workflow_runs import (
-    OrganizationSeerWorkflowRunsEndpoint,
-)
-from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
@@ -622,6 +614,18 @@ from sentry.seer.supergroups.endpoints.organization_supergroup_details import (
 )
 from sentry.seer.supergroups.endpoints.organization_supergroups_by_group import (
     OrganizationSupergroupsByGroupEndpoint,
+)
+from sentry.seer_automations.endpoints.admin_agentic_triage_trigger import (
+    SeerAdminAgenticTriageTriggerEndpoint,
+)
+from sentry.seer_automations.endpoints.organization_seer_workflow_configs import (
+    OrganizationSeerWorkflowConfigsEndpoint,
+)
+from sentry.seer_automations.endpoints.organization_seer_workflow_runs import (
+    OrganizationSeerWorkflowRunsEndpoint,
+)
+from sentry.seer_automations.endpoints.project_seer_agentic_triage import (
+    ProjectSeerAgenticTriageEndpoint,
 )
 from sentry.sentry_apps.api.endpoints.group_external_issue_details import (
     GroupExternalIssueDetailsEndpoint,

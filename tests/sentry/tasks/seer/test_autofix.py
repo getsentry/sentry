@@ -16,7 +16,7 @@ from sentry.seer.models import (
     SummarizeIssueScores,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
-from sentry.seer.models.workflow import (
+from sentry.seer_automations.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowRun,
     SeerWorkflowStrategy,
