@@ -20,6 +20,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_investigations_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -941,6 +942,7 @@ def process_autofix_updates(
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
     Sends the latest orchestration run to each entrypoint with a cache for it.
+    Metric open period runs go to each entrypoint, also without a cache.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
@@ -983,10 +985,10 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
-            if not cache_payload:
-                continue
-
-            if cache_payload["organization_id"] != organization.id:
+            if cache_payload is None:
+                if run.investigation.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
+                    continue
+            elif cache_payload["organization_id"] != organization.id:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 
