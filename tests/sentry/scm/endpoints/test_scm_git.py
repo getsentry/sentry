@@ -2,27 +2,36 @@ from __future__ import annotations
 
 import base64
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from typing import Any
 from unittest import mock
 
 import pytest
 import responses
+import sentry_sdk
 from django.conf import settings
+from django.core.signals import request_finished
+from django.db import close_old_connections
 from django.http import HttpResponseBase
-from django.test import override_settings
+from django.test import RequestFactory, override_settings
+from django.test.client import ClientHandler
 from django.urls import resolve, reverse
+from requests import PreparedRequest
 from responses import matchers
 from scm import Secret
 from scm.git.grant import sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import RepositoryId
+from sentry_sdk import traces
 from sentry_sdk.data_collection import _apply_key_value_collection_filtering
+from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 
 from sentry.constants import ObjectStatus
 from sentry.scm.endpoints.scm_git import report_git_error
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
+from sentry.utils.sdk import traces_sampler
 
 SECRET = "a-long-value-that-is-hard-to-guess"
 TOKEN = "ghs_installation_token"
@@ -152,6 +161,89 @@ class ScmGitEndpointTest(TestCase):
         assert response.status_code == 200
         assert b"".join(response) == b"000eunpack ok\n0000"
         assert b"".join(responses.calls[0].request.body) == b"0000PACK-bytes"
+
+    @responses.activate
+    @override_settings(SENTRY_BACKEND_APM_SAMPLING=0)
+    def test_continues_the_callers_trace(self) -> None:
+        # Seer and the credential proxy send sentry-trace with every git request, without baggage,
+        # so a fetch or push joins the trace of the step that ran it. The flag is the caller's
+        # sampling decision, and the endpoint's own sample rate decides without one.
+        incoming_trace, incoming_span = "771a43a4192642f0b136d5159a501700", "b0e6f15b45c36b12"
+        for flag, sampled in (("-1", True), ("-0", False), ("", False)):
+            seen: list[traces.StreamedSpan] = []
+
+            def advertise(request: PreparedRequest) -> tuple[int, dict[str, str], bytes]:
+                current = traces.get_current_span()
+                assert isinstance(current, traces.StreamedSpan)
+                seen.append(current)
+                return 200, {}, b"001e# service=git-upload-pack\n0000"
+
+            responses.reset()
+            responses.add_callback(
+                responses.GET,
+                "https://github.com/getsentry/sentry.git/info/refs",
+                callback=advertise,
+                content_type="application/x-git-upload-pack-advertisement",
+            )
+
+            status, body = self.serve_through_sdk(
+                "info/refs",
+                "service=git-upload-pack",
+                {
+                    GRANT_HEADER: self.fetch_grant(),
+                    "sentry-trace": f"{incoming_trace}-{incoming_span}{flag}",
+                },
+            )
+
+            assert (status, body) == ("200 OK", b"001e# service=git-upload-pack\n0000")
+            [span] = seen
+            assert span.trace_id == incoming_trace
+            assert span._segment._parent_span_id == incoming_span
+            assert span._segment.sampled is sampled
+            # Sentry's trace stays in Sentry.
+            assert "sentry-trace" not in responses.calls[0].request.headers
+
+    def serve_through_sdk(
+        self, route: str, query: str, headers: dict[str, str]
+    ) -> tuple[str, bytes]:
+        """Serve a request the way a deployed Sentry does, inside the SDK's WSGI middleware.
+
+        Tests run without an SDK client, so this one starts a streaming client like
+        sentry.utils.sdk's and takes it back afterwards.
+        """
+        url = reverse(
+            "sentry-api-0-scm-git", kwargs={"repository_id": self.repo.id, "route": route}
+        )
+        environ = RequestFactory().get(f"{url}?{query}", headers=headers).environ
+        handler = ClientHandler()
+
+        def app(environ: dict[str, Any], start_response: Callable[..., Any]) -> HttpResponseBase:
+            response = handler(environ)
+            start_response(f"{response.status_code} {response.reason_phrase}", response.items())
+            return response
+
+        statuses: list[str] = []
+        previous_client = sentry_sdk.get_client()
+        sentry_sdk.init(
+            default_integrations=False,
+            auto_enabling_integrations=False,
+            trace_lifecycle="stream",
+            traces_sampler=traces_sampler,
+        )
+        try:
+            body = SentryWsgiMiddleware(app)(environ, lambda status, _: statuses.append(status))
+            try:
+                return statuses[0], b"".join(body)
+            finally:
+                # A WSGI server closes the body, which sends request_finished. As in Django's test
+                # client, that mustn't close the test's database connection.
+                request_finished.disconnect(close_old_connections)
+                try:
+                    body.close()
+                finally:
+                    request_finished.connect(close_old_connections)
+        finally:
+            sentry_sdk.get_global_scope().set_client(previous_client)
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
