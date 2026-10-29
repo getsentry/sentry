@@ -318,10 +318,14 @@ describe('LogsAutoRefresh Integration Tests', () => {
     expect(toggleSwitch).toBeChecked();
 
     await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(5);
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
     });
 
-    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('rate_limit');
+    expect(
+      mockApi.mock.calls.filter(
+        ([, options]) => options.query.sampling === SAMPLING_MODE.NORMAL
+      )
+    ).toHaveLength(5);
   });
 
   it('continues auto-refresh when there is no more data', async () => {
@@ -419,50 +423,44 @@ describe('LogsAutoRefresh Integration Tests', () => {
     });
     expect(router.location.key).not.toBe(keyBefore);
   });
-  it('requests flex time sampling when auto-refresh returns to idle', async () => {
-    const {router} = renderWithProviders(<SetAutoRefreshButton state="idle" />, {
-      initialRouterConfig: enabledRouterConfig,
+
+  it('requests normal sampling with a timestamp filter when auto-refresh is enabled', async () => {
+    renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: routerConfig,
       organization,
     });
-    await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalled();
-    });
-    mockApiCall.mockClear();
 
     await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
 
     await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalledWith(
+      expect(mockApiCall).toHaveBeenLastCalledWith(
+        `/organizations/${organization.slug}/events/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            sampling: SAMPLING_MODE.NORMAL,
+            query: expect.stringContaining('timestamp_precise:<='),
+          }),
+        })
+      );
+    });
+  });
+
+  it('requests flex time sampling when auto-refresh is paused', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="paused" />, {
+      initialRouterConfig: enabledRouterConfig,
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenLastCalledWith(
         `/organizations/${organization.slug}/events/`,
         expect.objectContaining({
           query: expect.objectContaining({sampling: SAMPLING_MODE.FLEX_TIME}),
         })
       );
     });
-    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
-  });
-
-  it('keeps normal sampling when auto-refresh is paused', async () => {
-    const {router} = renderWithProviders(<SetAutoRefreshButton state="paused" />, {
-      initialRouterConfig: enabledRouterConfig,
-      organization,
-    });
-    await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalled();
-    });
-    mockApiCall.mockClear();
-
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
-
-    await waitFor(() => {
-      expect(mockApiCall).toHaveBeenCalled();
-    });
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
-    expect(mockApiCall).not.toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({sampling: SAMPLING_MODE.FLEX_TIME}),
-      })
-    );
   });
 });
