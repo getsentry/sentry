@@ -168,9 +168,12 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(getSaveAsAlertMenuItem({alertsUrls, submenu: true}));
+  items.push(
+    getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
+  );
 
-  const disableAddToDashboard = !organization.features.includes('dashboards-edit');
+  const disableAddToDashboard =
+    hasTransformations || !organization.features.includes('dashboards-edit');
 
   const chartOptions = useMemo(() => {
     return visualizeYAxes.map((yAxis, index) => {
@@ -290,12 +293,6 @@ export function ToolbarSaveAs() {
               {...mergeProps(triggerProps, containerProps)}
               showChevron={false}
               variant="primary"
-              disabled={hasTransformations}
-              tooltipProps={
-                hasTransformations
-                  ? {title: t('Queries with transformations cannot be saved yet.')}
-                  : undefined
-              }
               aria-label={t('Save as')}
             >
               {shouldHighlightSaveButton ? t('Save') : t('Save as')}

@@ -5,6 +5,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -279,7 +280,8 @@ describe('LogsTabContent', () => {
     );
   });
 
-  it('disables saving when any log series has transformations', async () => {
+  it('allows query saves when a hidden log series has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig: {
         location: {
@@ -301,10 +303,20 @@ describe('LogsTabContent', () => {
       additionalWrapper: ProviderWrapper,
     });
 
-    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitemradio', {name: 'Dashboard widget'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
     expect(await screen.findByText('some log message1')).toBeInTheDocument();
   });
 
