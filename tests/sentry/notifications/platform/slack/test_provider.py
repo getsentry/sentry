@@ -193,6 +193,7 @@ class SlackNotificationProviderSendTest(TestCase):
 
         assert isinstance(result, SendSuccessResult)
         assert result.provider_message_id == "1234567890.123456"
+        assert result.is_threaded is False
         mock_client_instance.chat_postMessage.assert_called_once_with(
             channel="C1234567890",
             blocks=renderable["blocks"],

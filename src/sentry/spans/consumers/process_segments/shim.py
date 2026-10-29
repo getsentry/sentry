@@ -4,6 +4,7 @@ This is only necessary for logic that is shared between the event processing pip
 and thus cannot (yet) be refactored to use the new span schema.
 """
 
+import logging
 import uuid
 from typing import Any
 from urllib.parse import parse_qsl
@@ -20,9 +21,18 @@ from sentry.spans.consumers.process_segments.types import (
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
+logger = logging.getLogger("issue_detection.shim_event_creation")
+
 FALSY_ATTRIBUTE_VALUE_ALLOWLIST = (False, 0)
+
 # Catch-all prefix for request headers which don't have their own dedicated attribute
 REQUEST_HEADER_ATTRIBUTE_PREFIX = ATTRIBUTE_NAMES.HTTP_REQUEST_HEADER_KEY.removesuffix("<key>")
+
+# The transaction's original `tags`, serialized by Relay when it converts a transaction into a
+# segment. This is the only lossless source for them; Relay also flattens tags into the segment
+# span's attributes, but drops any tag whose key collides with a trace context `data` key.
+# TODO: Add this to sentry-conventions as `ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_TAGS`.
+SENTRY_EVENT_SERIALIZED_TAGS = "sentry.event.serialized_tags"
 
 TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
@@ -30,6 +40,12 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_DIST: "dist",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_CONTEXTS: "contexts",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: "extra",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_BREADCRUMBS: "breadcrumbs",
+    # TODO: Replace with `ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_TAGS` once that's been added to
+    # sentry-conventions
+    SENTRY_EVENT_SERIALIZED_TAGS: "tags",
 }
 
 # A few of these have multiple entries per field, because which one of these attributes we get is
@@ -159,13 +175,24 @@ def _extract_attribute_values(
     """
     Pull data from the segment span's attributes for every field in the given map.
 
-    Returns a dict of all non-null, non-empty values found, keyed by event field name.
+    Returns a dict of all non-null, non-empty values found, keyed by event field name. Also attempts
+    to reinflate known JSON values.
     """
     values_by_field_name = {}
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
         if value or value in FALSY_ATTRIBUTE_VALUE_ALLOWLIST:
+            if attribute_name.startswith("sentry.event.serialized_"):
+                try:
+                    value = json.loads(value)
+                except Exception:
+                    logger.exception(
+                        f"Failed to parse serialized '{field_name}' attribute for shim transaction event",
+                        extra={"span_id": segment_span["span_id"]},
+                    )
+                    continue
+
             values_by_field_name[field_name] = value
 
     return values_by_field_name
@@ -194,12 +221,18 @@ def _is_tag_like_attribute(key: str, attribute: Attribute) -> bool:
     return True
 
 
-def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
+def _get_event_tags(
+    segment_span: CompatibleSpan, existing_tags_dict: dict[str, Any] | None
+) -> list[list[str]]:
     """
-    Build the transaction event's `tags` value from data in the segment span.
+    Build the transaction event's `tags` value from an existing tags dictionary or from data in the
+    segment span.
+
+    If an existing `tags` value is provided, just performs normalization. If not, collects all
+    unrecognized, string-valued attributes and normalizes their values.
     """
     attributes = segment_span.get("attributes") or {}
-    tags = {
+    tags = existing_tags_dict or {
         key: attribute.get("value")
         for key, attribute in attributes.items()
         if attribute and _is_tag_like_attribute(key, attribute)
@@ -210,20 +243,29 @@ def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
     return [[key, str(value)] for key, value in tags.items() if value is not None]
 
 
-def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
+def _get_event_contexts(
+    segment_span: CompatibleSpan, existing_context_data: dict[str, Any] | None
+) -> dict[str, Any]:
     """
     Build the transaction event's `contexts` value from data in the segment span.
+
+    If existing context data is provided, and a given context type is included, uses that value
+    rather than rederiving one.
     """
-    contexts = {}
+    contexts = existing_context_data or {}
 
     # Reconstruct `contexts` entries we're missing
     for context_name, sub_fields_by_attribute_name in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.items():
+        if context_name in contexts:
+            continue
+
         context = _extract_attribute_values(segment_span, sub_fields_by_attribute_name)
         if context:
             contexts[context_name] = {"type": context_name, **context}
 
-    # This is not included in the loop above because its values mostly come directly from the
-    # segment span rather than from attributes.
+    # This is not included in the loop above because Relay excludes it from the serialized context
+    # value and because its values mostly come directly from the segment span rather than from
+    # attributes, so it can't use either of the loop's branches.
     contexts["trace"] = {
         "trace_id": segment_span["trace_id"],
         "span_id": segment_span["span_id"],
@@ -420,8 +462,20 @@ def build_shim_event_data(
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
-    event["contexts"] = _get_event_contexts(segment_span)
-    event["tags"] = _get_event_tags(segment_span)
+    # Handle cases in which the legacy breadcrumb format is sent
+    if "breadcrumbs" in event and isinstance(event["breadcrumbs"], list):
+        breadcrumbs = event["breadcrumbs"]
+        event["breadcrumbs"] = {"values": breadcrumbs}
+
+    # If the segment is one Relay has converted from a transaction, both its `contexts` and (in the
+    # future) `tags` values will have been included as JSON blobs in the segment span's attributes,
+    # and will have been added to the event as part of the `_extract_attribute_values` call on
+    # `TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME` above.
+    # TODO: Remove the parentetical from the above comment once we actually are serializing tags.
+    event["contexts"] = _get_event_contexts(
+        segment_span, existing_context_data=event.get("contexts")
+    )
+    event["tags"] = _get_event_tags(segment_span, existing_tags_dict=event.get("tags"))
     event["spans"] = _get_detector_compatible_spans(spans)
 
     user_data = _get_event_user(segment_span)

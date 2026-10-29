@@ -13,7 +13,7 @@ import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {isChartHovered} from 'sentry/components/charts/utils';
-import {DroppedDataTooltip} from 'sentry/components/droppedData/band/bucketTooltip';
+import {DroppedDataTooltip} from 'sentry/components/droppedData/band/droppedDataTooltip';
 import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
 import {groupIntoBuckets, isHighlighted} from 'sentry/components/droppedData/buckets';
 import type {

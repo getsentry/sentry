@@ -20,6 +20,7 @@ import {CheckIndicator} from 'sentry/views/detectors/components/uptime/checkIndi
 import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
@@ -71,7 +72,11 @@ export function IssueUptimeCheckTimeline({group}: {group: Group}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
-  const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+  const timeWindowConfig = useIssueTimeWindowConfig({
+    timelineWidth,
+    group,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
+  });
 
   useDispatchIssueEventCount(group);
 

@@ -103,7 +103,7 @@ class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient)
         client = self.get_client()
         client.send_card(conversation_id=target.resource_id, card=payload)
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: AdaptiveCard,

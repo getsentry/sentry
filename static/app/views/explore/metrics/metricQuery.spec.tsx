@@ -1,9 +1,12 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
+  stripMetricParamsFromLocation,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
@@ -221,5 +224,26 @@ describe('defaultMetricQuery', () => {
         aggregateSortBys: [{field: EQUATION_PREFIX, kind: 'desc'}],
       }),
     });
+  });
+});
+
+describe('stripMetricParamsFromLocation', () => {
+  it('removes metric query params and keeps other params', () => {
+    const location = LocationFixture({
+      query: {
+        metric: '{"metric":{"name":"foo","type":"counter"}}',
+        id: '123',
+        title: 'My Query',
+        mode: 'aggregate',
+        query: 'env:prod',
+        project: '1',
+        statsPeriod: '14d',
+      },
+    });
+
+    const result = stripMetricParamsFromLocation(location);
+
+    expect(result.query).toEqual({project: '1', statsPeriod: '14d'});
+    expect(location.query.title).toBe('My Query');
   });
 });

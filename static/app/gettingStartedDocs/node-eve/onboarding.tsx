@@ -8,6 +8,8 @@ const EVE_GUIDE =
   'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/';
 
 export const onboarding: OnboardingConfig = {
+  // The setup installs the Node SDK whatever the project platform is.
+  sdkImportSpecifier: () => '@sentry/node',
   install: params => [
     {
       type: StepType.INSTALL,

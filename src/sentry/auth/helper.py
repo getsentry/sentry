@@ -405,7 +405,7 @@ class AuthIdentityHandler:
             ):
                 return False
             member = invite_helper.invite_context.member
-            return member is not None and member.email.lower() == self.identity["email"].lower()
+            return member is not None and emails_match(member.email, self.identity["email"])
         except Exception:
             logger.exception("sso.login-pipeline.invite-verification-check-failed")
             return False

@@ -352,7 +352,7 @@ function MultiOrgView({
       <FieldGroup label={t('Organization')} inline={false} stacked required>
         <Select
           onChange={({value}: any) => onSelectOrg(value)}
-          value={selectedOrgSlug}
+          value={selectedOrgSlug ?? null}
           placeholder={t('Select an organization')}
           options={getOrganizationOptions(organizations)}
           data-test-id="org-select"
