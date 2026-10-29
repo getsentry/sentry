@@ -1,6 +1,7 @@
 from django.utils.functional import SimpleLazyObject
 
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.principal import UserlessPrincipal
 from sentry.users.services.user.serial import serialize_generic_user
 
 
@@ -12,3 +13,6 @@ class SerializeGenericUserTest(TestCase):
         rpc = serialize_generic_user(lazy_user)
         assert rpc is not None
         assert rpc.id == user.id
+
+    def test_caller_without_human(self) -> None:
+        assert serialize_generic_user(UserlessPrincipal()) is None

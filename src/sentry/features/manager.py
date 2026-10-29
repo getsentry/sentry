@@ -25,6 +25,7 @@ from .exceptions import FeatureNotRegistered
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
+    from sentry.auth.principal import RequestPrincipal
     from sentry.features.handler import FeatureHandler
     from sentry.models.organization import Organization
     from sentry.models.project import Project
@@ -42,6 +43,16 @@ class _ProjectHandlerEvaluation:
     decisions: dict[Project, bool]
     unresolved_projects: set[Project]
     failed: bool
+
+
+def _personal_actor(
+    actor: User | RpcUser | AnonymousUser | None,
+) -> User | RpcUser | AnonymousUser | None:
+    # Callers with no human behind them, e.g. service accounts, get no per-user flags.
+    principal: RequestPrincipal | None = actor
+    if principal is not None and principal.is_authenticated and principal.user_id is None:
+        return None
+    return actor
 
 
 class RegisteredFeatureManager:
@@ -120,6 +131,7 @@ class RegisteredFeatureManager:
         >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
         """
 
+        actor = _personal_actor(actor)
         result: dict[Project, bool | None] = {}
         try:
             evaluation = self._evaluate_handlers_for_projects(name, organization, objects, actor)
@@ -326,7 +338,7 @@ class FeatureManager(RegisteredFeatureManager):
         sample_rate = 0.01
         try:
             with metrics.timer("features.has", tags={"feature": name}, sample_rate=sample_rate):
-                actor = kwargs.pop("actor", None)
+                actor = _personal_actor(kwargs.pop("actor", None))
                 feature = self.get(name, *args, **kwargs)
 
                 # Check registered feature handlers
@@ -397,6 +409,7 @@ class FeatureManager(RegisteredFeatureManager):
         exposure logging when evaluating the flags (e.g. when populating an API
         response — the user has not actually encountered the experiment yet).
         """
+        actor = _personal_actor(actor)
         try:
             if self._entity_handler:
                 if not any(self._handler_registry.get(name) for name in feature_names):
@@ -602,6 +615,7 @@ class FeatureManager(RegisteredFeatureManager):
 
         Delegates to the entity handler (FlagpoleFeatureHandler in getsentry).
         """
+        actor = _personal_actor(actor)
         try:
             if self._entity_handler:
                 return self._entity_handler.get_experiment_assignments(organization, actor)

@@ -37,7 +37,9 @@ def create_audit_entry(
     **kwargs: Any,
 ) -> AuditLogEntry:
     auth = getattr(request, "auth", None)
-    user = kwargs.pop("actor", request.user if request.user.is_authenticated else None)
+    user = kwargs.pop("actor", request.user)
+    if user is not None and user.user_id is None:
+        user = None
     if user is None:
         # An agent token acts on behalf of a member but authenticates as a non-user actor,
         # so attribute the audit entry to the delegating user.
@@ -50,6 +52,9 @@ def create_audit_entry(
     # Without this, the AuditLogEntry fails on save because it cannot find an actor_label
     if org_auth_token:
         kwargs["actor_label"] = org_auth_token.name
+    elif user is None and request.user.is_authenticated:
+        # A caller with no human behind it, e.g. a service account: label it by name.
+        kwargs.setdefault("actor_label", request.user.get_display_name())
 
     return create_audit_entry_from_user(
         user,

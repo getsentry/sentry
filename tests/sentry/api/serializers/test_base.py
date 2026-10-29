@@ -1,5 +1,10 @@
+from typing import Any
+
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, serialize
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.principal import UserlessPrincipal
 from sentry.testutils.silo import control_silo_test
 
 
@@ -15,6 +20,11 @@ class FooSerializer(Serializer):
 class VariadicSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kw):
         return {"kw": kw}
+
+
+class ViewerSerializer(Serializer):
+    def serialize(self, obj: Any, attrs: Any, user: Any, **kwargs: Any) -> Any:
+        return user
 
 
 class FailingChildSerializer(Serializer):
@@ -78,3 +88,12 @@ class BaseSerializerTest(TestCase):
         result = serialize(foo, serializer=ParentSerializer())
         assert result["parent"] == "something"
         assert result["child"] is None
+
+    def test_caller_without_human_views_as_anonymous(self) -> None:
+        principal: Any = UserlessPrincipal()
+        viewer = serialize(Foo(), principal, serializer=ViewerSerializer())
+        assert isinstance(viewer, AnonymousUser)
+
+    def test_user_viewer_is_kept(self) -> None:
+        user = self.create_user()
+        assert serialize(Foo(), user, serializer=ViewerSerializer()) == user
