@@ -316,6 +316,7 @@ function ContextPickerContent({
             <ProjectSelector
               projects={projects}
               projectsLoading={projectsLoading}
+              selectedProjectSlug={selectedProjectSlug}
               allowAllProjectsSelection={allowAllProjectsSelection}
               onSelectProject={handleSelectProject}
               autoFocus
@@ -326,6 +327,7 @@ function ContextPickerContent({
             <TeamSelector
               teams={teams}
               teamsLoading={teamsLoading}
+              selectedTeamSlug={selectedTeamSlug}
               onSelectTeam={handleSelectTeam}
               autoFocus={!shouldShowProjectSelector}
             />
@@ -339,6 +341,7 @@ function ContextPickerContent({
 function ProjectSelector({
   projects,
   projectsLoading,
+  selectedProjectSlug,
   allowAllProjectsSelection,
   onSelectProject,
   autoFocus,
@@ -347,6 +350,7 @@ function ProjectSelector({
   onSelectProject: (option: {value: string}) => void;
   projects: Project[];
   projectsLoading: boolean;
+  selectedProjectSlug: string | null;
   allowAllProjectsSelection?: boolean;
 }) {
   if (projectsLoading) {
@@ -410,7 +414,7 @@ function ProjectSelector({
       ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Project to continue')}
       name="project"
-      value={null}
+      value={selectedProjectSlug}
       options={projectOptions}
       onChange={onSelectProject}
       dropdownIndicator={null}
@@ -423,11 +427,13 @@ function ProjectSelector({
 function TeamSelector({
   teams,
   teamsLoading,
+  selectedTeamSlug,
   onSelectTeam,
   autoFocus,
 }: {
   autoFocus: boolean;
   onSelectTeam: (option: {value: string}) => void;
+  selectedTeamSlug: string | null;
   teams: Team[];
   teamsLoading: boolean;
 }) {
@@ -454,7 +460,7 @@ function TeamSelector({
       ref={autoFocus ? autoFocusSelect : undefined}
       placeholder={t('Select a Team to continue')}
       name="team"
-      value={null}
+      value={selectedTeamSlug}
       options={options}
       onChange={onSelectTeam}
       dropdownIndicator={null}
