@@ -8,6 +8,7 @@ from jsonschema import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorDetectorHandler, ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
 from sentry.issues.grouptype import get_group_type_by_slug
 from sentry.models.project import Project
 from sentry.testutils.factories import Factories
@@ -16,7 +17,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
-from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.registry import DetectorSettingsRegistry, detector_settings_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings, DetectorType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -200,6 +201,20 @@ def test_detector_type_registration_supports_string_lookup(detector_type: Detect
     )
 
 
+def test_settings_registration_requires_enum_member() -> None:
+    registry = DetectorSettingsRegistry()
+    registry.register(DetectorType.METRIC_ALERT)(DetectorSettings)
+    assert registry.get("metric_issue") is DetectorSettings
+
+
+@pytest.mark.parametrize("detector_type", ["metric_issue", "unknown_detector"])
+def test_settings_registration_rejects_strings(detector_type: str) -> None:
+    registry = DetectorSettingsRegistry()
+    with pytest.raises(ValueError, match="must be registered with a DetectorType member"):
+        registry.register(detector_type)(DetectorSettings)
+    assert registry.registrations == {}
+
+
 @django_db_all
 def test_detector_type_enum_preserves_stored_value(
     factories: Factories, default_project: Project
@@ -225,8 +240,14 @@ def registry_only_settings() -> Generator[type[DetectorSettings]]:
         }
         filter = Q(config__visible=True)
 
-    with patch.dict(detector_settings_registry.registrations):
-        detector_settings_registry.register("registry_only_detector")(RegistryOnlySettings)
+    with (
+        patch.dict(
+            detector_settings_registry.registrations,
+            {DetectorType.PERFORMANCE_SLOW_DB_QUERY: RegistryOnlySettings},
+        ),
+        patch.dict(grouptype.registry._slug_lookup),
+    ):
+        del grouptype.registry._slug_lookup[DetectorType.PERFORMANCE_SLOW_DB_QUERY]
         yield RegistryOnlySettings
 
 
@@ -236,10 +257,10 @@ def test_detector_settings_and_handler_without_group_type(
     default_project: Project,
     registry_only_settings: type[DetectorSettings],
 ) -> None:
-    assert get_group_type_by_slug("registry_only_detector") is None
+    assert get_group_type_by_slug(DetectorType.PERFORMANCE_SLOW_DB_QUERY) is None
     detector = factories.create_detector(
         project=default_project,
-        type="registry_only_detector",
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
         config={"value": 10, "visible": True},
     )
 
@@ -268,7 +289,7 @@ def test_detector_settings_and_handler_without_group_type(
 def test_registry_only_detector_validates_config(
     registry_only_settings: type[DetectorSettings], config: object, error: str
 ) -> None:
-    detector = Detector(type="registry_only_detector", config=config)
+    detector = Detector(type=DetectorType.PERFORMANCE_SLOW_DB_QUERY, config=config)
 
     with pytest.raises(ValidationError, match=error):
         detector.enforce_config_schema()
@@ -282,6 +303,44 @@ def test_group_type_without_detector_registration_is_rejected(detector_type: str
         detector.enforce_config_schema()
 
 
+def test_enum_member_without_settings_is_rejected() -> None:
+    with patch.dict(detector_settings_registry.registrations):
+        del detector_settings_registry.registrations[DetectorType.METRIC_ALERT]
+        detector = Detector(type=DetectorType.METRIC_ALERT, config={})
+        with pytest.raises(ValueError, match="Detector type 'metric_issue' not registered"):
+            detector.enforce_config_schema()
+
+
+def test_type_outside_enum_is_rejected_even_if_settings_exist() -> None:
+    with patch.dict(detector_settings_registry.registrations, {"unknown": DetectorSettings}):
+        detector = Detector(type="unknown", config={})
+        with pytest.raises(ValueError, match="Detector type 'unknown' not registered"):
+            detector.enforce_config_schema()
+
+
+@django_db_all
+def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ALERT)
+    Detector.objects.filter(id=detector.id).update(type="legacy_unknown_type")
+
+    with patch("sentry.workflow_engine.models.detector.logger") as logger:
+        detector = Detector.objects.get(id=detector.id)
+        assert detector.type == "legacy_unknown_type"
+        logger.exception.assert_not_called()
+
+        with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
+            _ = detector.settings
+        logger.exception.assert_called_once_with(
+            "workflow_engine.detector.unregistered_type",
+            extra={"detector_id": detector.id, "detector_type": "legacy_unknown_type"},
+        )
+
+        with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
+            detector.save()
+
+
 @django_db_all
 def test_registry_only_detector_filters(
     factories: Factories,
@@ -290,12 +349,12 @@ def test_registry_only_detector_filters(
 ) -> None:
     visible = factories.create_detector(
         project=default_project,
-        type="registry_only_detector",
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
         config={"value": 1, "visible": True},
     )
     hidden = factories.create_detector(
         project=default_project,
-        type="registry_only_detector",
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
         config={"value": 2, "visible": False},
     )
     unfiltered = factories.create_detector(project=default_project, type=MetricIssue.slug)

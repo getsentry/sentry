@@ -21,10 +21,9 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
-from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorSettings, DetectorType
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 from .json_config import JSONConfigBase
@@ -129,7 +128,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         on_delete=models.SET_NULL,
     )
 
-    # Selects an implementation registered in detector_settings_registry.
+    # A DetectorType value selecting an implementation in detector_settings_registry.
     type = models.CharField(max_length=200)
 
     # The user that created the detector
@@ -204,8 +203,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     @property
     def settings(self) -> builtins.type[DetectorSettings]:
         try:
-            return detector_settings_registry.get(self.type)
-        except NoRegistrationExistsError as exc:
+            return detector_settings_registry.get(DetectorType(self.type))
+        except ValueError as exc:
+            if not self._state.adding:
+                logger.exception(
+                    "workflow_engine.detector.unregistered_type",
+                    extra={"detector_id": self.id, "detector_type": self.type},
+                )
             raise ValueError(f"Detector type '{self.type}' not registered") from exc
 
     def get_snapshot(self) -> DetectorSnapshot:
@@ -253,7 +257,7 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
     def enforce_config_schema(self) -> None:
         """
-        Ensures the detector type is registered and validates its configuration.
+        Validates enum membership, registered settings, and configuration.
         This needs to be available independently so callers can validate configs
         without saving.
         """
