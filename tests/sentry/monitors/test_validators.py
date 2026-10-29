@@ -368,6 +368,9 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_name(self) -> None:
         """Test updating monitor name."""
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+
         validator = MonitorValidator(
             instance=self.monitor,
             data={"name": "Updated Monitor Name"},
@@ -383,6 +386,9 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.name == "Updated Monitor Name"
         assert updated_monitor.slug == "test-monitor"  # Slug unchanged
+
+        detector.refresh_from_db()
+        assert detector.name == "Updated Monitor Name"
 
     def test_update_slug(self) -> None:
         """Test updating monitor slug."""
@@ -489,6 +495,9 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
 
     def test_update_owner_to_team(self) -> None:
         """Test updating monitor owner to a team."""
+        detector = ensure_cron_detector(self.monitor)
+        assert detector is not None
+
         validator = MonitorValidator(
             instance=self.monitor,
             data={"owner": f"team:{self.team.id}"},
@@ -504,6 +513,10 @@ class MonitorValidatorUpdateTest(MonitorTestCase):
         updated_monitor = validator.save()
         assert updated_monitor.owner_user_id is None
         assert updated_monitor.owner_team_id == self.team.id
+
+        detector.refresh_from_db()
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id == self.team.id
 
     def test_update_owner_to_none(self) -> None:
         """Test removing monitor owner."""

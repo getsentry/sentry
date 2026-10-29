@@ -44,7 +44,10 @@ from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
-from sentry.monitors.logic.monitor_status import update_monitor_status
+from sentry.monitors.logic.monitor_status import (
+    sync_cron_detector_name_and_owner,
+    update_monitor_status,
+)
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -299,6 +302,7 @@ def _ensure_monitor_with_config(
             owner_user_id != monitor.owner_user_id or owner_team_id != monitor.owner_team_id
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
+            sync_cron_detector_name_and_owner(monitor)
 
     return (monitor, non_fatal_processing_error)
 

@@ -27,7 +27,10 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
-from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
+from sentry.monitors.logic.monitor_status import (
+    sync_cron_detector_enabled,
+    sync_cron_detector_name_and_owner,
+)
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -516,6 +519,11 @@ class MonitorValidator(CamelSnakeSerializer):
             instance.update(**params)
             if "status" in params:
                 sync_cron_detector_enabled(instance)
+            # The detector flow sets these on the detector itself
+            if ("name" in params or "owner_user_id" in params) and not self.context.get(
+                "from_detector_flow"
+            ):
+                sync_cron_detector_name_and_owner(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
