@@ -571,8 +571,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
     # Querying for rows that aren't the fresh hash ends up being a full index scan,
     # whereas providing positive examples to match lets us do more efficient btree walking.
     # Discovery is skipped while there are known hashes to heal, and after it has completed
-    # once for this state: retiring hashes leaves dead index entries that make it expensive.
-    # State expires after a quiet TTL, so a later discovery picks up anything missed.
+    # for this state: retiring hashes leaves dead index entries that make it expensive.
+    # Quiet state expires (see heal_state), so a later discovery picks up anything missed.
     if not state.stale and state.discovered_at is None:
         discovery_started_at = time.monotonic()
         logger.info("heal_stale_derived_data.stale_hash_discovery_started")
