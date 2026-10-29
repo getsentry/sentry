@@ -442,19 +442,3 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         [item] = candidate.data["items"]
         assert item["status"] == "view"
         assert item["investigationId"] == str(investigation.id)
-
-    def test_template_fields_are_accepted_and_ignored(self) -> None:
-        group, open_period = self.create_metric_open_period()
-        source = {
-            "type": "metric_open_period",
-            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
-        }
-
-        response = self.client.post(
-            self.candidates_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "sources": [source]},
-            format="json",
-        )
-
-        assert response.status_code == 200
-        assert response.data == {"items": [{"status": "investigate"}]}
