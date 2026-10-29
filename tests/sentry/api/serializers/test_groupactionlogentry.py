@@ -6,8 +6,12 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
-from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.api.serializers.models.groupactionlogentry import (
+    _FEED_EXCLUDED_ACTION_TYPES,
+    _FEED_NATIVE_TYPE_NAMES,
+    get_serialized_activity_items,
+)
+from sentry.issues.action_log.types import GroupAction, GroupActionType, GroupActorType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.commit import Commit
 from sentry.models.group import GroupStatus
@@ -18,7 +22,22 @@ from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.utils.action_log.activity_translator import activity_to_action
+from sentry.utils.action_log.activity_translator import (
+    GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+    activity_to_action,
+)
+
+
+def test_user_visible_action_types_are_accounted_for() -> None:
+    # Catch new unmapped GAL types. Serialization mappings alone do not prove
+    # frontend support; new mapped types still need a renderer review.
+    accounted_for = {
+        *GROUP_ACTION_TYPE_TO_ACTIVITY_TYPE,
+        *_FEED_EXCLUDED_ACTION_TYPES,
+        *_FEED_NATIVE_TYPE_NAMES,
+    }
+    missing = GroupAction.get_user_visible_types() - accounted_for
+    assert not missing, f"Choose a feed policy for {sorted(t.name for t in missing)}"
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
