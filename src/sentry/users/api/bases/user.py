@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -174,9 +173,9 @@ class UserEndpoint(Endpoint):
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
     ) -> Any:
         if user_id == "me":
-            if not request.user.is_authenticated:
+            user_id = request.user.user_id
+            if user_id is None:
                 raise ResourceDoesNotExist
-            user_id = request.user.id
 
         if user_id is None:
             raise ResourceDoesNotExist
@@ -207,7 +206,7 @@ class RegionSiloUserEndpoint(Endpoint):
         user: RpcUser | User | None = None
 
         if user_id == "me":
-            if isinstance(request.user, AnonymousUser) or not request.user.is_authenticated:
+            if request.user.user_id is None:
                 raise ResourceDoesNotExist
             user = request.user
         elif user_id is not None:

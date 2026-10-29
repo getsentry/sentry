@@ -1174,7 +1174,7 @@ def from_request_org_and_scopes(
             scopes=superuser_scopes,
         )
 
-    if request.auth is not None and not request.user.is_authenticated:
+    if request.auth is not None and request.user.user_id is None:
         return from_rpc_auth(request.auth, rpc_user_org_context)
 
     return from_user_and_rpc_user_org_context(
@@ -1290,7 +1290,7 @@ def from_request(
             permissions=access_service.get_permissions_for_user(request.user.id),
         )
 
-    if request.auth is not None and not request.user.is_authenticated:
+    if request.auth is not None and request.user.user_id is None:
         return from_auth(request.auth, organization)
 
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)

@@ -83,8 +83,6 @@ def get_rate_limit_key(
     if actual_user is not None:
         request_user = actual_user
 
-    from django.contrib.auth.models import AnonymousUser
-
     from sentry.auth.system import is_system_auth
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.models.apikey import ApiKey
@@ -122,13 +120,9 @@ def get_rate_limit_key(
             category = "user"
             id = request_auth.user_id
 
-    elif (
-        not isinstance(request_auth, ApiKey)
-        and request_user
-        and not isinstance(request_user, AnonymousUser)
-    ):
+    elif not isinstance(request_auth, ApiKey) and request_user and request_user.user_id is not None:
         category = "user"
-        id = request_user.id
+        id = request_user.user_id
 
     # ApiKeys & OrgAuthTokens will be treated with IP ratelimits
     elif ip_address is not None:

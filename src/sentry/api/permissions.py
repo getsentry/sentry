@@ -226,7 +226,7 @@ class SentryPermission(ScopedPermission):
     ) -> None:
         from sentry.api.base import logger
 
-        user_id = request.user.id if request.user else None
+        user_id = request.user.user_id
         agent_auth = request.auth if agent_token.is_agent_auth(request.auth) else None
 
         org_context: RpcUserOrganizationContext | None
@@ -248,7 +248,7 @@ class SentryPermission(ScopedPermission):
                 request.access = access.from_rpc_auth(
                     auth=agent_auth, rpc_user_org_context=org_context
                 )
-            elif request.user and request.user.is_authenticated:
+            elif user_id is not None:
                 request.access = access.from_request_org_and_scopes(
                     request=request,
                     rpc_user_org_context=org_context,
