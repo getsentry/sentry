@@ -217,6 +217,23 @@ class CheckSuiteFlagGate:
         ]
 
 
+def _check_suite_organization_ids(check_suite_event: CheckSuiteEvent) -> list[int] | None:
+    """Organizations behind the suite's installation, or ``None`` when there is no
+    installation to resolve."""
+    subscription_event = check_suite_event.subscription_event
+    # The GitHub webhook already resolved the installs; reuse them over the RPC.
+    if sentry_meta := subscription_event.get("sentry_meta"):
+        return [
+            meta["organization_id"] for meta in sentry_meta if meta["organization_id"] is not None
+        ]
+
+    installation_id = (subscription_event.get("extra") or {}).get("installation_id")
+    if installation_id is None:
+        return None
+    contexts = _github_installation_organization_contexts(str(installation_id), store=True)
+    return [oi.organization_id for oi in contexts.organization_integrations]
+
+
 def resolve_check_suite_flag_gate(
     check_suite_event: CheckSuiteEvent, flags: Sequence[str]
 ) -> CheckSuiteFlagGate:
@@ -236,12 +253,14 @@ def resolve_check_suite_flag_gate(
     both review-requests and releases feedback parked by a failing suite, so it
     asks about the iteration flags as well.
 
-    Deliberately stops at organizations. It reads the installation id straight off
-    ``subscription_event["extra"]`` (see ``get_scm_stream_extra`` in
-    ``integrations/github/webhook.py``), so it does not even parse the event body,
-    and it leaves the ``Repository`` query to whichever branch of the listener
-    survives. The installation RPC is memoized for this event so that branch
-    does not pay for it a second time.
+    Deliberately stops at organizations. It reads them off
+    ``subscription_event["sentry_meta"]``, which the GitHub webhook fills from the
+    installs it already resolved (see ``get_scm_stream_sentry_meta`` in
+    ``integrations/github/webhook.py``). Without it, it falls back to resolving the
+    installation id on ``subscription_event["extra"]`` over RPC. Either way it does
+    not parse the event body, and it leaves the ``Repository`` query to whichever
+    branch of the listener survives. The fallback RPC is memoized for this event so
+    that branch does not pay for it a second time.
     """
     # New event: drop any leftover memo from a prior suite on this worker.
     _installation_org_contexts.set({})
@@ -250,15 +269,12 @@ def resolve_check_suite_flag_gate(
     organization_ids_by_flag: dict[str, list[int]] = {flag: [] for flag in flags}
 
     with metrics.timer("autofix.pr_iteration.check_suite.flag_gate") as tags:
-        extra = check_suite_event.subscription_event.get("extra") or {}
-        installation_id = extra.get("installation_id")
+        resolved_organization_ids = _check_suite_organization_ids(check_suite_event)
 
-        if installation_id is None:
+        if resolved_organization_ids is None:
             tags["outcome"] = "missing_installation_id"
         else:
-            contexts = _github_installation_organization_contexts(str(installation_id), store=True)
-            organization_ids = [oi.organization_id for oi in contexts.organization_integrations]
-
+            organization_ids = resolved_organization_ids
             for organization_id in organization_ids:
                 try:
                     organization = Organization.objects.get_from_cache(id=organization_id)

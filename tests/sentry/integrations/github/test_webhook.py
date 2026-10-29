@@ -320,6 +320,18 @@ class SCMOnlyWebhookTest(APITestCase):
         assert pr_metrics_handle_check_suite in CheckSuiteWebhook.WEBHOOK_EVENT_PROCESSORS
         mock_handle.assert_called_once()
         mock_produce.assert_called_once()
+        # The installs the handler resolved ride along so listeners skip the RPC.
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id
+            )
+        assert mock_produce.call_args.args[0]["sentry_meta"] == [
+            {
+                "id": org_integration.id,
+                "integration_id": org_integration.integration_id,
+                "organization_id": self.organization.id,
+            }
+        ]
 
 
 @control_silo_test

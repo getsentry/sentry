@@ -1728,6 +1728,24 @@ class CheckSuiteFlagGateTest(TestCase):
 
         mock_contexts.assert_called_once()
 
+    @patch(f"{CHECK_SUITES_PATH}.integration_service.organization_contexts")
+    def test_uses_organizations_the_webhook_already_resolved(
+        self, mock_contexts: MagicMock
+    ) -> None:
+        other_organization = self.create_organization()
+        event = check_suite_event(installation_id=self.INSTALLATION_ID)
+        event.subscription_event["sentry_meta"] = [
+            {"id": 1, "integration_id": 2, "organization_id": self.organization.id},
+            {"id": 3, "integration_id": 2, "organization_id": other_organization.id},
+        ]
+
+        with self.feature({ITERATION_FLAG: [other_organization.slug]}):
+            gate = resolve_check_suite_flag_gate(event, FAILING_CHECK_SUITE_FLAGS)
+
+        assert gate.organization_ids == [self.organization.id, other_organization.id]
+        assert gate.flagged_organization_ids == [other_organization.id]
+        mock_contexts.assert_not_called()
+
 
 class SweepCheckRunsCostTest(TestCase):
     """The sweep's GitHub cost is the thing we budget for, so pin it down."""

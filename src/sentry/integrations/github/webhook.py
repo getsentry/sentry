@@ -93,6 +93,7 @@ from sentry.pr_metrics.webhooks import handle_review_comment as pr_metrics_handl
 from sentry.pr_metrics.webhooks import handle_review_thread as pr_metrics_handle_review_thread
 from sentry.preprod.vcs.webhooks import handle_preprod_check_run_event
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
+from sentry.scm.types import SubscriptionEventSentryMeta
 from sentry.seer.autofix.pr_iteration.mention import handle_issue_comment_for_autofix_iteration
 from sentry.seer.autofix.webhooks import (
     handle_github_pr_webhook_for_autofix,
@@ -150,6 +151,23 @@ def get_scm_stream_extra(
         "installation_id": event.get("installation", {}).get("id"),
         "repository_id": event.get("repository", {}).get("id"),
     }
+
+
+def get_scm_stream_sentry_meta(
+    organization_integrations: Sequence[RpcOrganizationIntegration] | None,
+) -> list[SubscriptionEventSentryMeta] | None:
+    """The installs the webhook handler already resolved, so SCM-stream listeners
+    can skip resolving them again over RPC. ``None`` when the handler didn't."""
+    if not organization_integrations:
+        return None
+    return [
+        {
+            "id": oi.id,
+            "integration_id": oi.integration_id,
+            "organization_id": oi.organization_id,
+        }
+        for oi in organization_integrations
+    ]
 
 
 def get_file_language(filename: str) -> str | None:
@@ -232,6 +250,9 @@ class GitHubWebhook(SCMWebhook, ABC):
     # When subclassing, add your webhook event processor here.
     WEBHOOK_EVENT_PROCESSORS: tuple[WebhookProcessor, ...] = ()
 
+    # Installs resolved by ``__call__``, forwarded to the SCM stream as ``sentry_meta``.
+    organization_integrations: Sequence[RpcOrganizationIntegration] | None = None
+
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
         if not inspect.isabstract(cls) and not hasattr(cls, "EVENT_TYPE"):
@@ -290,6 +311,8 @@ class GitHubWebhook(SCMWebhook, ABC):
         )
         integration = result.integration
         installs = result.organization_integrations
+        if integration is not None:
+            self.organization_integrations = installs
 
         if integration is None or not installs:
             # It seems possible for the GH or GHE app to be installed on their
@@ -1545,7 +1568,7 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                 "event": request.body.decode("utf-8"),
                 "extra": get_scm_stream_extra(event),
                 "received_at": int(time.time()),
-                "sentry_meta": None,
+                "sentry_meta": get_scm_stream_sentry_meta(event_handler.organization_integrations),
                 "type": IntegrationProviderSlug.GITHUB.value,
             },
             silo="region" if SiloMode.get_current_mode() == SiloMode.CELL else "control",
