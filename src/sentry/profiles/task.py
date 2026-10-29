@@ -278,7 +278,6 @@ def process_profile_task(
     sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
-    # Project flag checks read project.organization, so reuse the org we already loaded.
     if project.organization_id == organization.id:
         project.set_cached_field_value("organization", organization)
 
