@@ -134,7 +134,6 @@ def _process_segment(
         return []
 
     # Always attempt title generation, even when enrichment is skipped below.
-    # Titles are optional, so a failure here shouldn't drop the segment.
     try:
         spawn_conversation_title_generation(unprocessed_spans, project)
     except Exception:
