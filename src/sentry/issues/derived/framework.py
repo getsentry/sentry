@@ -451,7 +451,8 @@ class Pipeline[E: HasType]:
     # Bump this manually when pipeline behaviour changes in ways that affect
     # results but the feature set itself is unchanged (e.g. changing
     # aggregator execution order). This value is an input to pipeline_hash.
-    _version: ClassVar[int] = 0
+    # v1: forces a full regen so the FIRST_SEEN backfill reaches every group.
+    _version: ClassVar[int] = 1
 
     def __init__(
         self,

@@ -2,6 +2,8 @@ import moment from 'moment-timezone';
 import {z} from 'zod';
 
 import {
+  draftDescription,
+  draftField,
   draftNumber,
   draftOptionalNumber,
   type DetectorDraftSchema,
@@ -14,27 +16,27 @@ const intervalUnits = new Set(getScheduleIntervals(1).map(({value}) => value));
 
 export const CRON_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<CronDetectorFormData> =
   z.object({
-    checkinMargin: draftOptionalNumber.optional().catch(undefined),
-    failureIssueThreshold: draftNumber.optional().catch(undefined),
-    maxRuntime: draftOptionalNumber.optional().catch(undefined),
-    name: z.string().optional().catch(undefined),
-    owner: z.string().optional().catch(undefined),
-    projectId: z.string().optional().catch(undefined),
-    recoveryThreshold: draftNumber.optional().catch(undefined),
-    scheduleCrontab: z.string().optional().catch(undefined),
-    scheduleIntervalUnit: z
-      .custom<MonitorIntervalUnit>(
+    checkinMargin: draftField(draftOptionalNumber),
+    description: draftField(draftDescription),
+    failureIssueThreshold: draftField(draftNumber),
+    maxRuntime: draftField(draftOptionalNumber),
+    name: draftField(z.string()),
+    owner: draftField(z.string()),
+    projectId: draftField(z.string()),
+    recoveryThreshold: draftField(draftNumber),
+    scheduleCrontab: draftField(z.string()),
+    scheduleIntervalUnit: draftField(
+      z.custom<MonitorIntervalUnit>(
         value => typeof value === 'string' && intervalUnits.has(value)
       )
-      .optional()
-      .catch(undefined),
-    scheduleIntervalValue: draftNumber.optional().catch(undefined),
-    scheduleType: z.enum(ScheduleType).optional().catch(undefined),
-    timezone: z
-      .string()
-      .transform(value => moment.tz.zone(value)?.name)
-      .refine(value => value !== undefined)
-      .optional()
-      .catch(undefined),
-    workflowIds: z.array(z.string()).optional().catch(undefined),
+    ),
+    scheduleIntervalValue: draftField(draftNumber),
+    scheduleType: draftField(z.enum(ScheduleType)),
+    timezone: draftField(
+      z
+        .string()
+        .transform(value => moment.tz.zone(value)?.name)
+        .refine(value => value !== undefined)
+    ),
+    workflowIds: draftField(z.array(z.string())),
   });

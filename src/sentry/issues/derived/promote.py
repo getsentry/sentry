@@ -387,15 +387,20 @@ def build_and_promote_batch(
     resume_group_id = initial_generation_id.group_id if initial_generation_id is not None else None
 
     for group_id in group_ids:
-        remaining = timedelta(seconds=max(0, timeout_seconds - (time.monotonic() - start)))
+        group_started = time.monotonic()
+        remaining = timedelta(seconds=max(0, timeout_seconds - (group_started - start)))
+        resumed = group_id == resume_group_id
+        outcome = "unhandled_error"
         try:
             build_and_promote_derived_data(
                 group_id,
-                generation_id=(initial_generation_id if group_id == resume_group_id else None),
+                generation_id=(initial_generation_id if resumed else None),
                 time_limit=remaining,
             )
+            outcome = PromotionResult.PROMOTED.value
             processed[PromotionResult.PROMOTED] = processed.get(PromotionResult.PROMOTED, 0) + 1
         except Group.DoesNotExist:
+            outcome = PromotionResult.GROUP_MISSING.value
             logger.info(
                 f"{log_key}.group_not_found",
                 extra={"group_id": group_id, "project_id": project_id},
@@ -403,20 +408,32 @@ def build_and_promote_batch(
         except DerivedDataError:
             # _process_batch reported the failure. Count it without retrying it
             # or preventing the other groups from being rebuilt.
+            outcome = "error"
             errors += 1
         except PromotionFailed as e:
+            outcome = e.result.value
             processed[e.result] = processed.get(e.result, 0) + 1
             logger.exception(
                 f"{log_key}.promotion_failed",
                 extra={"group_id": e.group_id},
             )
         except GroupLogTimeout as e:
+            outcome = "timeout"
             return BatchRunResult(
                 processed=processed,
                 errors=errors,
                 resume_from_group_id=group_id,
                 resume_generation_id=e.generation_id,
                 timeout_reason="group_timeout",
+            )
+        finally:
+            # Timed-out and resumed runs cover only part of a group's log; the
+            # tags keep them apart from single-pass rebuilds of the whole log.
+            metrics.distribution(
+                "issues.derived.build_and_promote_group.duration",
+                time.monotonic() - group_started,
+                tags={"task": log_key, "outcome": outcome, "resumed": str(resumed).lower()},
+                unit="second",
             )
 
         if time.monotonic() - start >= timeout_seconds:

@@ -1025,7 +1025,6 @@ static/app/components/searchBar/utils.spec.tsx
 static/app/components/searchBar/utils.tsx
 static/app/components/searchSyntax/evaluator.spec.tsx
 static/app/components/searchSyntax/evaluator.tsx
-static/app/components/searchSyntax/grammar.pegjs
 static/app/components/searchSyntax/mutableSearch.spec.tsx
 static/app/components/searchSyntax/mutableSearch.tsx
 static/app/components/searchSyntax/parser.spec.tsx

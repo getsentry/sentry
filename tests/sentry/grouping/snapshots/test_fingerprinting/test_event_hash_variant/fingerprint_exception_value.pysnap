@@ -10,7 +10,7 @@ config:
     matchers:
     - - value
       - '*went wrong*'
-    text: value:"*went wrong*" -> "something-went-wrong{{ error.value }}"
+    text: value:"*went wrong*" -> "something-went-wrong", "{{ error.value }}"
   version: 1
 fingerprint:
 - something-went-wrong
@@ -29,7 +29,8 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: value:"*went wrong*" -> "something-went-wrong{{ error.value }}"
+    matched_rule: value:"*went wrong*" -> "something-went-wrong", "{{ error.value
+      }}"
     type: custom_fingerprint
     values:
     - something-went-wrong

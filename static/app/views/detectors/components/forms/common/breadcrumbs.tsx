@@ -27,8 +27,8 @@ export const DetectorFormBreadcrumbs = observer(function DetectorFormBreadcrumbs
         error: form?.getError('name'),
         value: value || '',
         onChange: newValue => {
-          form?.setValue('name', newValue);
           setHasSetDetectorName(true);
+          form?.setValue('name', newValue);
         },
         placeholder: t('New Monitor'),
         'aria-label': t('Monitor Name'),

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from enum import Enum
 from typing import Any, Literal, TypedDict
 
 import pytest
@@ -16,6 +17,7 @@ from sentry.apidocs.extensions import (
     SentryInlineResponseSerializerExtension,
     SentryResponseSerializerExtension,
 )
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
@@ -135,6 +137,19 @@ def test_sentry_inline_response_serializer_extension() -> None:
             },
             "required": ["b", "c", "d", "e", "f", "g", "h", "i"],
         },
+    }
+
+
+def test_enum_literal_schema() -> None:
+    class Status(Enum):
+        QUEUED = "queued"
+        RUNNING = "running"
+        FAILED = "failed"
+
+    assert resolve_type_hint(Literal[Status.QUEUED, Status.RUNNING] | None) == {
+        "enum": ["queued", "running"],
+        "type": "string",
+        "nullable": True,
     }
 
 

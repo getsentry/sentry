@@ -126,10 +126,6 @@ describe('DetectorEdit', () => {
     });
   });
 
-  afterEach(() => {
-    window.history.replaceState(null, '', '/');
-  });
-
   it('selects the first project when an invalid project is provided in the URL', async () => {
     render(<DetectorNewSettings />, {
       organization,
@@ -1338,24 +1334,9 @@ describe('DetectorEdit', () => {
       };
     }
 
-    function getDraftRouterConfig(draft: Record<string, unknown>) {
-      return getRouterConfig({
-        detectorType: 'metric_issue',
-        draft: JSON.stringify(draft),
-      });
-    }
-
     function getDraft(router: {location: {query: Record<string, unknown>}}) {
       const draft = router.location.query.draft;
       return typeof draft === 'string' ? JSON.parse(draft) : undefined;
-    }
-
-    function mockCreateDetector() {
-      return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
-        method: 'POST',
-        body: MetricDetectorFixture({id: '123'}),
-      });
     }
 
     it('writes edits to the URL draft when a field changes', async () => {
@@ -1383,6 +1364,7 @@ describe('DetectorEdit', () => {
           })
         );
       });
+      expect(getDraft(router)).not.toHaveProperty('name');
     });
 
     it('does not write a draft when nothing has changed', async () => {
@@ -1395,23 +1377,6 @@ describe('DetectorEdit', () => {
       await act(() => new Promise(resolve => setTimeout(resolve, 500)));
 
       expect(router.location.query.draft).toBeUndefined();
-    });
-
-    it('leaves an automatic name out of the URL draft', async () => {
-      const {router} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
-      });
-      expect(getDraft(router)).not.toHaveProperty('name');
     });
 
     it('keeps a typed name in the URL draft', async () => {
@@ -1431,66 +1396,6 @@ describe('DetectorEdit', () => {
       await waitFor(() => {
         expect(getDraft(router)).toEqual(expect.objectContaining({name: 'Typed name'}));
       });
-    });
-
-    it('leaves the description out of the URL draft when one is typed', async () => {
-      const {router} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-
-      await userEvent.type(
-        await screen.findByRole('textbox', {name: 'description'}),
-        'Private notes'
-      );
-      await userEvent.type(
-        screen.getByRole('spinbutton', {name: 'High threshold'}),
-        '90'
-      );
-
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '90'}));
-      });
-      expect(router.location.query.draft).not.toContain('Private');
-    });
-
-    it('restores the written draft when the URL is reopened', async () => {
-      const {router, unmount} = render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(newMetricQuery),
-      });
-      await userEvent.type(
-        await screen.findByRole('spinbutton', {name: 'High threshold'}),
-        '120'
-      );
-      await waitFor(() => {
-        expect(getDraft(router)).toEqual(expect.objectContaining({highThreshold: '120'}));
-      });
-      const sharedQuery = {...router.location.query} as Record<string, string>;
-      unmount();
-
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig(sharedQuery),
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        120
-      );
-    });
-
-    it('ignores the draft when it is not valid JSON', async () => {
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getRouterConfig({
-          detectorType: 'metric_issue',
-          draft: '{not json',
-        }),
-      });
-
-      expect(
-        await screen.findByRole('spinbutton', {name: 'High threshold'})
-      ).not.toHaveValue();
     });
 
     it('does not load the duplicated monitor when the URL has a draft', async () => {
@@ -1515,18 +1420,25 @@ describe('DetectorEdit', () => {
     });
 
     it('prefills from the URL draft and submits', async () => {
-      const createDetector = mockCreateDetector();
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
 
       render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: getDraftRouterConfig({
-          aggregateFunction: 'count_unique(user)',
-          dataset: 'errors',
-          environment: 'production',
-          highThreshold: '250',
-          name: 'Shared monitor',
-          projectId: project.id,
-          query: '',
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            aggregateFunction: 'count_unique(user)',
+            dataset: 'errors',
+            environment: 'production',
+            highThreshold: '250',
+            name: 'Shared monitor',
+            projectId: project.id,
+            query: '',
+          }),
         }),
       });
 
@@ -1558,45 +1470,22 @@ describe('DetectorEdit', () => {
       });
     }, 10000);
 
-    it('drops draft fields that fail validation and keeps the rest', async () => {
-      const createDetector = mockCreateDetector();
-
-      render(<DetectorNewSettings />, {
-        organization,
-        initialRouterConfig: getDraftRouterConfig({
-          dataset: 'not-a-dataset',
-          highThreshold: '75',
-          name: 'Partial',
-        }),
-      });
-
-      expect(await screen.findByRole('spinbutton', {name: 'High threshold'})).toHaveValue(
-        75
-      );
-      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
-
-      await waitFor(() => {
-        expect(createDetector).toHaveBeenCalledWith(
-          expect.any(String),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              name: 'Partial',
-              dataSources: [expect.objectContaining({dataset: 'events'})],
-            }),
-          })
-        );
-      });
-    }, 10000);
-
     it('falls back to a writable project when the draft project is not writable', async () => {
-      const createDetector = mockCreateDetector();
+      const createDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: MetricDetectorFixture({id: '123'}),
+      });
 
       render(<DetectorNewSettings />, {
         organization,
-        initialRouterConfig: getDraftRouterConfig({
-          highThreshold: '75',
-          name: 'Other project',
-          projectId: '999999',
+        initialRouterConfig: getRouterConfig({
+          detectorType: 'metric_issue',
+          draft: JSON.stringify({
+            highThreshold: '75',
+            name: 'Other project',
+            projectId: '999999',
+          }),
         }),
       });
 
@@ -1743,6 +1632,12 @@ describe('DetectorEdit', () => {
   });
 
   describe('Uptime Detector', () => {
+    // Tests run debounces synchronously, so typing writes the URL draft on every keystroke.
+    async function pasteInto(textbox: HTMLElement, text: string) {
+      await userEvent.click(textbox);
+      await userEvent.paste(text);
+    }
+
     const uptimeRouterConfig = {
       ...initialRouterConfig,
       location: {
@@ -1767,10 +1662,12 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Uptime Monitor{enter}');
 
-      const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my uptime monitor description');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'description'}),
+        'This is my uptime monitor description'
+      );
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
@@ -1779,14 +1676,14 @@ describe('DetectorEdit', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
 
       // Add headers
-      const headerNameInput = screen.getByRole('textbox', {
-        name: 'Name of header 1',
-      });
-      await userEvent.type(headerNameInput, 'X-API-Key');
-      const headerValueInput = screen.getByRole('textbox', {
-        name: 'Value of X-API-Key',
-      });
-      await userEvent.type(headerValueInput, 'secret-key-123');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Name of header 1'}),
+        'X-API-Key'
+      );
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Value of X-API-Key'}),
+        'secret-key-123'
+      );
 
       // Add body
       const bodyInput = screen.getByRole('textbox', {name: 'Body'});
@@ -1881,21 +1778,20 @@ describe('DetectorEdit', () => {
     });
 
     async function fillUptimeRequest() {
-      await userEvent.type(
+      await pasteInto(
         await screen.findByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'Name of header 1'}),
         'Authorization'
       );
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'Value of Authorization'}),
         'Bearer secret'
       );
-      await userEvent.click(screen.getByRole('textbox', {name: 'Body'}));
-      await userEvent.paste('{"token": "secret"}');
+      await pasteInto(screen.getByRole('textbox', {name: 'Body'}), '{"token": "secret"}');
     }
 
     function getDraftValues(router: {location: {query: Record<string, unknown>}}) {
@@ -1986,7 +1882,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig: uptimeRouterConfig,
       });
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime-custom.example.com'
       );

@@ -5,6 +5,7 @@ packages:
   - static/gsAdmin
   - static/packages/icons
   - static/packages/scraps
+  - static/packages/search-syntax
   - tests/js
   - tests/js/getsentry-test
   - static/oxlint/eslintPluginScraps
@@ -35,7 +36,6 @@ packageExtensions:
       webpack:
         optional: true
 patchedDependencies:
-  zod@4.3.5: patches/zod@4.3.5.patch
   zrender@6.1.0: patches/zrender@6.1.0.patch
   css-tree@3.2.1: patches/css-tree@3.2.1.patch
   jest-runtime@30.5.1: patches/jest-runtime@30.5.1.patch

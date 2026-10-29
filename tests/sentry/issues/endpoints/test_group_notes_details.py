@@ -1,16 +1,21 @@
 from functools import cached_property
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import responses
 
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.action_log.types import GroupActionLogPayload, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.receivers.outbox.cell import process_group_action_log_event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
@@ -52,6 +57,44 @@ class GroupNotesDetailsTest(APITestCase):
     def url(self) -> str:
         return f"/api/0/issues/{self.group.id}/comments/{self.activity.id}/"
 
+    def test_mutation_outbox_failure_rolls_back(self) -> None:
+        self.login_as(user=self.user)
+        note = self.activity
+        group = self.group
+        original_data = dict(note.data)
+        group.refresh_from_db()
+        initial_count = group.num_comments
+        self.create_group_action_log_entry(
+            type=GroupActionType.COMMENT,
+            data={"comment_id": note.id, "text": note.data.get("text")},
+            idempotency_key=f"activity:{note.id}",
+        )
+        GroupSubscription.objects.subscribe(
+            group=group, subscriber=self.user, reason=GroupSubscriptionReason.comment
+        )
+        for method in (self.client.put, self.client.delete):
+            with (
+                self.feature("projects:issue-action-log-write-to-db"),
+                patch(
+                    "sentry.issues.models.groupactionlogoutbox.GroupActionLogOutbox.save",
+                    side_effect=RuntimeError("enqueue failed"),
+                ),
+                patch("sentry.issues.comments._sync_comment") as sync,
+                patch("sentry.issues.comments.comment_updated.send_robust") as updated,
+                patch("sentry.issues.comments.comment_deleted.send_robust") as deleted,
+                self.captureOnCommitCallbacks(execute=True),
+            ):
+                response = method(self.url, data={"text": "rollback"}, format="json")
+                assert response.status_code == 500
+            note.refresh_from_db()
+            group.refresh_from_db()
+            assert note.data == original_data
+            assert group.num_comments == initial_count
+            assert GroupSubscription.objects.filter(group=group, user_id=self.user.id).exists()
+            sync.assert_not_called()
+            updated.assert_not_called()
+            deleted.assert_not_called()
+
     def test_delete_invalid_note_id(self) -> None:
         self.login_as(user=self.user)
         url = f"/api/0/issues/{self.group.id}/comments/abc/"
@@ -75,8 +118,12 @@ class GroupNotesDetailsTest(APITestCase):
 
         assert Group.objects.get(id=self.group.id).num_comments == 1
 
-        response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        with patch(
+            "sentry.issues.endpoints.group_notes_details.record_activity_read"
+        ) as record_read:
+            response = self.client.delete(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
         assert response.status_code == 204, response.status_code
+        record_read.assert_not_called()
         assert not Activity.objects.filter(id=self.activity.id).exists()
 
         assert Group.objects.get(id=self.group.id).num_comments == 0
@@ -191,6 +238,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         activity = Activity.objects.get(id=response.data["id"])
         assert response.data["commentId"] == str(activity.id)
+        assert response.data["source"] is None
         assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
@@ -226,87 +274,108 @@ class GroupNotesDetailsTest(APITestCase):
         }
 
     @action_log_activity_enabled()
-    def test_put_returns_original_comment_and_appends_edit(self) -> None:
+    def test_delayed_and_retried_events_cannot_restore_deleted_comment(self) -> None:
         self.login_as(user=self.user)
         group = self.group
-
-        # create a comment that dual writes to GALE
         post_url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.post(post_url, format="json", data={"text": "original"})
-        assert response.status_code == 201, response.content
-        comment_id = response.data["commentId"]
-        original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id,
-            idempotency_key=f"activity:{comment_id}",
-            type=GroupActionType.COMMENT.value,
+        with outbox_context(flush=False):
+            response = self.client.post(post_url, data={"text": "original"}, format="json")
+            assert response.status_code == 201
+            comment_id = int(response.data["commentId"])
+            assert response.data["id"] == str(comment_id)
+            assert response.data["source"] is None
+            url = f"{post_url}{comment_id}/"
+            assert (
+                self.client.put(url, data={"text": "edited once"}, format="json").status_code == 200
+            )
+            assert (
+                self.client.put(url, data={"text": "edited twice"}, format="json").status_code
+                == 200
+            )
+            assert self.client.delete(url, format="json").status_code == 204
+        payloads = cast(
+            list[GroupActionLogPayload],
+            list(
+                GroupActionLogOutbox.objects.filter(shard_identifier=group.id)
+                .order_by("id")
+                .values_list("payload", flat=True)
+            ),
         )
+        assert [p["type"] for p in payloads] == [
+            GroupActionType.COMMENT,
+            GroupActionType.COMMENT_EDIT,
+            GroupActionType.COMMENT_EDIT,
+            GroupActionType.COMMENT_DELETE,
+        ]
+        assert payloads[0]["idempotency_key"] == f"activity:{comment_id}"
+        keys = [p["idempotency_key"] for p in payloads[1:]]
+        assert len(set(keys)) == 3
+        assert [payload["data"] for payload in payloads] == [
+            {"comment_id": comment_id, "text": None, "mentions": None},
+            {
+                "comment_id": comment_id,
+                "comment_id_kind": "comment",
+                "text": None,
+                "mentions": None,
+            },
+            {
+                "comment_id": comment_id,
+                "comment_id_kind": "comment",
+                "text": None,
+                "mentions": None,
+            },
+            {"comment_id": comment_id, "comment_id_kind": "comment"},
+        ]
+        for payload in reversed(payloads):
+            assert payload["actor_id"] == self.user.id
+            process_group_action_log_event(payload)
+            process_group_action_log_event(payload)
+        assert GroupActionLogEntry.objects.filter(group_id=group.id).count() == 4
+        items = get_serialized_activity_items(group, self.user, endpoint="test")
+        assert items is not None
+        assert str(comment_id) not in [item["commentId"] for item in items]
+        assert not Activity.objects.filter(id=comment_id).exists()
 
-        put_url = f"{post_url}{comment_id}/"
+    @action_log_activity_enabled()
+    def test_put_returns_activity_and_appends_event(self) -> None:
+        self.login_as(user=self.user)
+        post_url = f"/api/0/issues/{self.group.id}/comments/"
+        response = self.client.post(post_url, format="json", data={"text": "original"})
+        assert response.status_code == 201
+        comment_id = response.data["commentId"]
+        created = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT
+        )
+        original_payload = dict(created.data)
         response = self.client.put(
-            put_url,
+            f"{post_url}{comment_id}/",
             format="json",
             data={"text": "updated text", "mentions": [f"user:{self.user.id}"]},
         )
-        assert response.status_code == 200, response.content
-
-        assert response.data["id"] == comment_id
-        assert response.data["commentId"] == comment_id
-        assert response.data["type"] == "note"
-        assert response.data["user"]["id"] == str(self.user.id)
-        # the fresh text is re-derived from the edited activity, not the stale GALE entry
+        assert response.status_code == 200
+        assert response.data["id"] == response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "updated text"
         assert response.data["data"]["comment_id"] == int(comment_id)
-
-        edit_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
+        assert response.data["source"] == created.source
+        edit = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT
         )
-        # the edit references the original COMMENT entry by its GALE id and carries the new text
-        assert edit_entry.data["comment_id"] == original_entry.id
-        assert edit_entry.data["text"] == "updated text"
-        assert edit_entry.data["mentions"] == [
-            {"id": self.user.id, "actor_type": "User", "slug": None}
-        ]
+        assert edit.data == {
+            "comment_id": int(comment_id),
+            "comment_id_kind": "comment",
+            "text": None,
+            "mentions": None,
+        }
+        created.refresh_from_db()
+        assert created.data == original_payload
 
-        # the original COMMENT entry is left untouched
-        original_entry.refresh_from_db()
-        assert original_entry.data["text"] == "original"
+    def test_edit_and_delete_legacy_comment(self) -> None:
+        self._assert_edit_and_delete_legacy_comment(True)
 
-    @action_log_activity_enabled()
-    def test_delete_writes_comment_delete_entry(self) -> None:
-        self.login_as(user=self.user)
-        group = self.group
+    def test_edit_and_delete_legacy_comment_without_gal_serving(self) -> None:
+        self._assert_edit_and_delete_legacy_comment(False)
 
-        post_url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.post(post_url, format="json", data={"text": "original"})
-        assert response.status_code == 201, response.content
-        comment_id = response.data["commentId"]
-
-        original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id,
-            idempotency_key=f"activity:{comment_id}",
-            type=GroupActionType.COMMENT.value,
-        )
-
-        delete_url = f"{post_url}{comment_id}/"
-        response = self.client.delete(delete_url, format="json")
-        assert response.status_code == 204, response.status_code
-
-        delete_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id, type=GroupActionType.COMMENT_DELETE.value
-        )
-        # the tombstone references the original COMMENT entry by its GALE id, the
-        # same way COMMENT_EDIT entries do, so it can be joined to the COMMENT row
-        assert delete_entry.data["comment_id"] == original_entry.id
-
-    def test_edit_and_delete_body_free_comment(self) -> None:
-        self._assert_edit_and_delete_body_free_comment(True, "api")
-
-    def test_edit_and_delete_body_free_comment_without_gal_serving(self) -> None:
-        self._assert_edit_and_delete_body_free_comment(False, None)
-
-    def _assert_edit_and_delete_body_free_comment(
-        self, serve_from_log: bool, expected_source: str | None
-    ) -> None:
+    def _assert_edit_and_delete_legacy_comment(self, serve_from_log: bool) -> None:
         self.login_as(user=self.user)
         note = self.create_group_activity(
             type=ActivityType.NOTE.value, user_id=self.user.id, data={"text": "original"}
@@ -315,7 +384,7 @@ class GroupNotesDetailsTest(APITestCase):
             # Keep GAL and Activity IDs different to catch accidental substitution.
             id=note.id + 1000,
             type=GroupActionType.COMMENT,
-            data={"comment_id": note.id},
+            data={"comment_id": note.id, "text": "historical", "mentions": []},
             idempotency_key=f"activity:{note.id}",
             source="api",
         )
@@ -329,7 +398,7 @@ class GroupNotesDetailsTest(APITestCase):
             assert response.data["id"] == response.data["commentId"] == str(note.id)
             assert response.data["type"] == "note"
             assert response.data["data"]["text"] == "updated"
-            assert response.data.get("source") == expected_source
+            assert response.data["source"] == "api"
             note.refresh_from_db()
             assert note.data["text"] == "updated"
 
@@ -342,30 +411,39 @@ class GroupNotesDetailsTest(APITestCase):
         deletion = GroupActionLogEntry.objects.get(
             group_id=self.group.id, type=GroupActionType.COMMENT_DELETE
         )
-        # This server still writes historical references, even for newer creation payloads.
-        assert edit.data["comment_id"] == deletion.data["comment_id"] == created.id
-        assert (
-            edit.data["comment_id_kind"] == deletion.data["comment_id_kind"] == "group_action_log"
-        )
-        assert edit.data["text"] == "updated"
+        expected = {"comment_id": note.id, "comment_id_kind": "comment"}
+        assert edit.data == {**expected, "text": None, "mentions": None}
+        assert deletion.data == expected
         created.refresh_from_db()
-        assert created.data == {"comment_id": note.id}
+        assert created.data == {"comment_id": note.id, "text": "historical", "mentions": []}
 
     @action_log_activity_enabled()
-    def test_put_returns_404_without_gale_entry(self) -> None:
-        # backfilled project, so GALE is authoritative for existence: a missing
-        # entry means the note is already gone and we 404 instead of editing
-        # the Activity.
+    def test_edit_and_delete_without_original_gale_entry(self) -> None:
         del self.activity.data["external_id"]
         self.activity.save()
         self.login_as(user=self.user)
-
         response = self.client.put(self.url, format="json", data={"text": "updated"})
-        assert response.status_code == 404, response.content
+        assert response.status_code == 200
+        assert response.data["id"] == response.data["commentId"] == str(self.activity.id)
+        assert response.data["data"]["text"] == "updated"
+        assert response.data["source"] is None
+        edit = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT
+        )
+        assert edit.data == {
+            "comment_id": self.activity.id,
+            "comment_id_kind": "comment",
+            "text": None,
+            "mentions": None,
+        }
 
-        assert not GroupActionLogEntry.objects.filter(
-            group_id=self.group.id, type=GroupActionType.COMMENT_EDIT.value
-        ).exists()
+        response = self.client.delete(self.url, format="json")
+        assert response.status_code == 204
+        assert not Activity.objects.filter(id=self.activity.id).exists()
+        deleted = GroupActionLogEntry.objects.get(
+            group_id=self.group.id, type=GroupActionType.COMMENT_DELETE
+        )
+        assert deleted.data == {"comment_id": self.activity.id, "comment_id_kind": "comment"}
 
     @with_feature("projects:issue-action-log-write-to-db")
     def test_put_without_gale_entry_write_only(self) -> None:

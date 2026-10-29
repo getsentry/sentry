@@ -11,7 +11,7 @@ config:
     matchers:
     - - message
       - '*dog*'
-    text: message:"*dog*" -> "dogs are great{{ message }}" title="{{ message }}"
+    text: message:"*dog*" -> "dogs are great", "{{ message }}" title="{{ message }}"
   version: 1
 fingerprint:
 - dogs are great
@@ -22,7 +22,7 @@ variants:
     contributes: true
     hint: null
     key: custom_server_fingerprint
-    matched_rule: message:"*dog*" -> "dogs are great{{ message }}" title="{{ message
+    matched_rule: message:"*dog*" -> "dogs are great", "{{ message }}" title="{{ message
       }}"
     type: custom_fingerprint
     values:

@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
@@ -527,13 +528,21 @@ function Chart({
                 rawSpanCounts={rawSpanCounts}
                 userQuery={query.trim()}
               />
-              {showTransformationControls ? (
-                <AddTransformationButton
-                  traceItemDataset={TraceItemDataset.SPANS}
-                  transformations={visualize.transformations}
-                  onChange={onTransformationsChange}
-                />
-              ) : null}
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={dataset}
+                    hasUserQuery={!!query.trim()}
+                  />
+                ) : null}
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.SPANS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
             </Flex>
           )
         }
