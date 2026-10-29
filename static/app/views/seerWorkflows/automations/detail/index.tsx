@@ -13,6 +13,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -28,6 +29,7 @@ import type {
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
+  getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
@@ -38,13 +40,10 @@ export default function AutomationDetail() {
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
     ? 'runs'
     : 'configuration';
-  const basePath =
-    activeTab === 'runs'
-      ? location.pathname.slice(0, -'runs/'.length)
-      : location.pathname;
 
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
+  const basePath = getAutomationDetailPath(organization.slug, automationId);
 
   // TEMPORARY: placeholder configs are only known to the frontend
   const placeholderConfig = PLACEHOLDER_CONFIGS.find(c => c.id === automationId);
@@ -70,12 +69,14 @@ export default function AutomationDetail() {
   const title = strategyMeta?.label ?? strategy;
   const nextUpdate = config ? getNextUpdate(config.schedule) : undefined;
 
+  if (!automationsEnabled) {
+    return <NotFound />;
+  }
+
   if (!config) {
     return (
       <Container padding="xl">
-        {automationsEnabled && isError && error.status !== 404 ? (
-          <LoadingError onRetry={refetch} />
-        ) : automationsEnabled && isPending ? (
+        {isPending ? (
           <Fragment>
             <TopBar.Slot
               name="breadcrumbs"
@@ -83,6 +84,8 @@ export default function AutomationDetail() {
             />
             <LoadingIndicator />
           </Fragment>
+        ) : isError && !(error instanceof RequestError && error.status === 404) ? (
+          <LoadingError onRetry={refetch} />
         ) : (
           <NotFound />
         )}
