@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import omit from 'lodash/omit';
 import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
 
@@ -18,8 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
 import {
-  DetectorDraftUrlSync,
-  useInitialDetectorDraft,
+  useDetectorDraft,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
@@ -33,10 +33,6 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
-  /**
-   * Syncs the in-progress monitor to the URL so it can be shared.
-   * Must be a stable reference.
-   */
   draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
@@ -63,18 +59,22 @@ export function NewDetectorLayout<
   const organization = useOrganization();
   const {projects} = useProjects();
 
-  const writableProjects = useMemo(
-    () => projects.filter(project => hasDetectorWriteAccess({organization, project})),
-    [organization, projects]
+  const [formModel] = useState(() => new FormModel());
+  const {initialValues: draftFormData, onFieldChange: syncDraftToUrl} = useDetectorDraft(
+    formModel,
+    draftSchema
   );
 
   const initialProjectId = useMemo(() => {
-    const queryProjectId = decodeScalar(location.query.project);
-    if (queryProjectId) {
-      const match = writableProjects.find(p => p.id === queryProjectId);
-      if (match) {
-        return match.id;
-      }
+    const writableProjects = projects.filter(project =>
+      hasDetectorWriteAccess({organization, project})
+    );
+    const requestedProjectId = [
+      draftFormData?.projectId,
+      decodeScalar(location.query.project),
+    ].find(id => writableProjects.some(p => p.id === id));
+    if (requestedProjectId) {
+      return requestedProjectId;
     }
     const sorted = orderBy(
       writableProjects,
@@ -82,30 +82,14 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, writableProjects]);
-
-  const draft = useInitialDetectorDraft();
-  const [draftFormData] = useState(() => {
-    if (!draftSchema || !draft) {
-      return;
-    }
-    const values = draftSchema.parse(draft);
-    if (
-      values.projectId !== undefined &&
-      !writableProjects.some(p => p.id === values.projectId)
-    ) {
-      delete values.projectId;
-    }
-    return values;
-  });
+  }, [draftFormData, location.query.project, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
     formDataToEndpointPayload,
   });
 
-  const [formModel] = useState(() => new FormModel());
-  const {onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
 
   const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {
@@ -116,7 +100,7 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
-      ...omitBy(draftFormData, value => value === undefined),
+      ...omitBy(omit(draftFormData, 'projectId'), value => value === undefined),
     };
   }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
@@ -124,7 +108,10 @@ export function NewDetectorLayout<
     model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
-    onFieldChange,
+    onFieldChange: id => {
+      validateEagerly();
+      syncDraftToUrl(id);
+    },
     mapFormErrors,
   };
 
@@ -147,9 +134,6 @@ export function NewDetectorLayout<
       <EditLayoutDeprecated.Body maxWidth={maxWidth}>
         {children}
       </EditLayoutDeprecated.Body>
-
-      {/* After the body, so fields setting their initial values don't count as edits. */}
-      {draftSchema && <DetectorDraftUrlSync formModel={formModel} schema={draftSchema} />}
 
       <NewDetectorFooter
         maxWidth={maxWidth}

@@ -8,7 +8,10 @@ import {SORTABLE_SAMPLE_COLUMNS} from 'sentry/views/explore/metrics/types';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {validateAggregateSort} from 'sentry/views/explore/queryParams/aggregateSortBy';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+import {
+  ReadableQueryParams,
+  type ReadableQueryParamsOptions,
+} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   isBaseVisualize,
   isVisualize,
@@ -180,12 +183,28 @@ export function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort
   return [{field: visualize.yAxis, kind: 'desc'}];
 }
 
+const READABLE_QUERY_PARAMS_KEYS = Object.keys({
+  aggregateCursor: true,
+  aggregateFields: true,
+  aggregateSortBys: true,
+  breakdownCursor: true,
+  breakdownQuery: true,
+  crossEvents: true,
+  cursor: true,
+  extrapolate: true,
+  fields: true,
+  id: true,
+  mode: true,
+  query: true,
+  sortBys: true,
+  title: true,
+} satisfies Record<keyof ReadableQueryParamsOptions, true>);
+
 export function stripMetricParamsFromLocation(location: Location): Location {
   const target: Location = {...location, query: {...location.query}};
-  for (const key in ReadableQueryParams.prototype) {
+  for (const key of READABLE_QUERY_PARAMS_KEYS) {
     delete target.query[key];
   }
-  // Metric context
   delete target.query.metric;
 
   return target;

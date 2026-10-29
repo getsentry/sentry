@@ -204,6 +204,44 @@ describe('TagDetailsDrawerContent', () => {
     expect(router.location.query.query).toBe('tags[project_id]:"custom-project"');
   });
 
+  it('escapes quotes in tag values when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {...TagValuesFixture()[0], name: 'say "hi"', value: 'say "hi"', query: undefined},
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: /say "hi"/}));
+
+    expect(router.location.query.query).toBe('user:"say \\"hi\\""');
+  });
+
+  it('renders null tag values as empty instead of crashing', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {
+          count: 5,
+          firstSeen: '2024-01-01T00:00:00Z',
+          lastSeen: '2024-01-01T00:00:00Z',
+          id: null,
+          value: null,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: '(empty)'}));
+
+    expect(router.location.query.query).toBe('user:""');
+  });
+
   it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],

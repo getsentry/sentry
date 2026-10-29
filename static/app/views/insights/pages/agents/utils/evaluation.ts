@@ -172,7 +172,7 @@ const inputItemSchema = z.object({
   type: z.literal('evaluation'),
   // The evaluated content is the core of the input, so it must be present.
   state: evaluatedStateSchema,
-  questions: z.unknown(),
+  questions: z.unknown().optional(),
 });
 
 const outputItemSchema = z.object({
@@ -345,6 +345,34 @@ export function findQuestion(
     (question): question is EvaluationQuestion =>
       question.kind === 'question' && question.key === key
   );
+}
+
+export interface EvaluationResult {
+  key: string;
+  answer?: EvaluationAnswer;
+  question?: EvaluationQuestionEntry;
+}
+
+/**
+ * Pairs each question with its answer by key, in question order. Answers to
+ * questions that weren't sent follow at the end.
+ */
+export function getEvaluationResults(
+  questions: EvaluationQuestionEntry[],
+  answers: EvaluationAnswer[]
+): EvaluationResult[] {
+  const answersByKey = new Map(answers.map(answer => [answer.key, answer]));
+  const questionKeys = new Set(questions.map(question => question.key));
+  return [
+    ...questions.map(question => ({
+      key: question.key,
+      question,
+      answer: answersByKey.get(question.key),
+    })),
+    ...answers
+      .filter(answer => !questionKeys.has(answer.key))
+      .map(answer => ({key: answer.key, answer})),
+  ];
 }
 
 /**

@@ -43,8 +43,10 @@ export {parseAsStringArray as parseAsFieldList};
 export type QueryParamsValues<Parsers extends ParserMap> = inferParserType<Parsers>;
 
 /**
- * Changes to apply to a page's query params: `undefined` leaves a key as is,
- * and `null` removes it.
+ * Changes to apply to a page's query params.
+ *  - `undefined` leaves a key as is
+ *  - `null` removes it the key
+ *  - any other value overrides the key
  */
 export type QueryParamsUpdates<Parsers extends ParserMap> = {
   [Key in keyof Parsers]?: inferParserType<Parsers>[Key] | null;
@@ -70,8 +72,6 @@ export function applyQueryParamsUpdates<Parsers extends ParserMap>(
       continue;
     }
     if (value === null) {
-      // Matches updateNullableLocation, which this replaced: a blank value is
-      // left in place, so it isn't treated as a change.
       if (target.query[key]) {
         delete target.query[key];
       }

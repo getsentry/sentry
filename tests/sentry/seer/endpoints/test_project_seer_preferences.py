@@ -5,7 +5,6 @@ from django.urls import reverse
 from sentry.models.repository import Repository
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -114,6 +113,40 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
             == 0
         )
+
+    def test_post_accepts_repository_id_without_legacy_identity(self) -> None:
+        response = self.client.post(
+            self.url,
+            data={"repositories": [{"repository_id": self.repository.id}]},
+        )
+
+        assert response.status_code == 204
+        seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
+        assert seer_repo.project_repository.repository_id == self.repository.id
+
+    def test_post_repository_id_ignores_stale_legacy_identity(self) -> None:
+        response = self.client.post(
+            self.url,
+            data={
+                "repositories": [
+                    {
+                        "repository_id": self.repository.id,
+                        "provider": "unsupported-provider",
+                        "owner": "stale-owner",
+                        "name": "stale-name",
+                        "external_id": "stale-external-id",
+                    }
+                ]
+            },
+        )
+
+        assert response.status_code == 204
+        get_response = self.client.get(self.url)
+        repo_data = get_response.data["preference"]["repositories"][0]
+        assert repo_data["provider"] == self.repository.provider
+        assert repo_data["owner"] == "getsentry"
+        assert repo_data["name"] == "sentry"
+        assert repo_data["external_id"] == self.repository.external_id
 
     @patch(
         "sentry.seer.endpoints.project_seer_preferences.get_autofix_repos_from_project_code_mappings",
@@ -453,8 +486,38 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             == 0
         )
 
-    def test_post_rejects_mismatched_repo_name_or_owner(self) -> None:
-        """Test that POST fails when repository name/owner don't match the database record."""
+    def test_post_rejects_repository_id_from_different_organization(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        other_project = self.create_project(organization=other_org)
+        other_repo = self.create_repo(
+            project=other_project,
+            name="other/repo",
+            provider="integrations:github",
+            external_id="other-external-id",
+        )
+        request_data = {
+            "repositories": [
+                {
+                    "repository_id": other_repo.id,
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "other",
+                    "name": "repo",
+                    "external_id": "other-external-id",
+                }
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        assert not SeerProjectRepository.objects.filter(
+            project_repository__project=self.project
+        ).exists()
+
+    def test_post_canonicalizes_repo_name_and_owner(self) -> None:
         request_data = {
             "repositories": [
                 {
@@ -470,12 +533,80 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
 
         response = self.client.post(self.url, data=request_data)
 
-        assert response.status_code == 400
-        assert response.data["detail"] == "Invalid repository"
-        assert (
-            SeerProjectRepository.objects.filter(project_repository__project=self.project).count()
-            == 0
+        assert response.status_code == 204
+
+        get_response = self.client.get(self.url)
+        repo_data = get_response.data["preference"]["repositories"][0]
+        assert repo_data["owner"] == "getsentry"
+        assert repo_data["name"] == "sentry"
+
+    def test_post_deduplicates_by_resolved_repository_id(self) -> None:
+        request_data = {
+            "repositories": [
+                {
+                    "repository_id": self.repository.id,
+                    "organization_id": self.org.id,
+                    "integration_id": "111",
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "123456",
+                    "branch_name": "first-branch",
+                },
+                {
+                    "repository_id": self.repository.id,
+                    "organization_id": self.org.id,
+                    "integration_id": "222",
+                    "provider": "gitlab",
+                    "owner": "different-owner",
+                    "name": "different-name",
+                    "external_id": "different-external-id",
+                    "branch_name": "second-branch",
+                },
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        seer_repos = list(
+            SeerProjectRepository.objects.filter(project_repository__project=self.project)
         )
+        assert len(seer_repos) == 1
+        assert seer_repos[0].project_repository.repository_id == self.repository.id
+        assert seer_repos[0].branch_name == "first-branch"
+
+    def test_post_resolves_before_deduplicating(self) -> None:
+        other_repo = self.create_repo(
+            project=self.project,
+            name="other/repo",
+            provider="integrations:github",
+            external_id="other-external-id",
+        )
+        stale_identity = {
+            "organization_id": self.org.id,
+            "integration_id": "111",
+            "provider": "github",
+            "owner": "stale-owner",
+            "name": "stale-name",
+            "external_id": "stale-external-id",
+        }
+        request_data = {
+            "repositories": [
+                {"repository_id": self.repository.id, **stale_identity},
+                {"repository_id": other_repo.id, **stale_identity},
+            ],
+        }
+
+        response = self.client.post(self.url, data=request_data)
+
+        assert response.status_code == 204
+        repository_ids = set(
+            SeerProjectRepository.objects.filter(
+                project_repository__project=self.project
+            ).values_list("project_repository__repository_id", flat=True)
+        )
+        assert repository_ids == {self.repository.id, other_repo.id}
 
     def test_post_rejects_unsupported_repo_provider(self) -> None:
         request_data = {
@@ -499,8 +630,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             == 0
         )
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_post_accepts_gitlab_repo_with_feature_flag(self) -> None:
+    def test_post_accepts_gitlab_repo(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry-gitlab",
@@ -508,6 +638,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             external_id="789",
             integration_id=456,
         )
+        gitlab_repo.update(config={"path": "getsentry/sentry-gitlab"})
 
         request_data = {
             "repositories": [
@@ -533,8 +664,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert len(seer_repos) == 1
         assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
 
-    @with_feature("organizations:seer-gitlab-support")
-    def test_post_accepts_gitlab_bare_provider_with_feature_flag(self) -> None:
+    def test_post_accepts_gitlab_bare_provider(self) -> None:
         gitlab_repo = self.create_repo(
             project=self.project,
             name="getsentry/sentry-gitlab",
@@ -542,6 +672,7 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
             external_id="789",
             integration_id=456,
         )
+        gitlab_repo.update(config={"path": "getsentry/sentry-gitlab"})
 
         request_data = {
             "repositories": [
@@ -566,3 +697,48 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         )
         assert len(seer_repos) == 1
         assert seer_repos[0].project_repository.repository_id == gitlab_repo.id
+
+    def test_gitlab_preference_round_trip_uses_repository_id(self) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:789",
+            integration_id=456,
+        )
+        gitlab_repo.update(config={"path": "url-safe-group/url-safe-project"})
+        self.create_seer_project_repository(project=self.project, repository=gitlab_repo)
+
+        get_response = self.client.get(self.url)
+        request_data = get_response.data["preference"]
+        repo_data = request_data["repositories"][0]
+        assert repo_data["repository_id"] == gitlab_repo.id
+        assert repo_data["owner"] == "url-safe-group"
+        assert repo_data["name"] == "url-safe-project"
+
+        post_response = self.client.post(self.url, data=request_data)
+
+        assert post_response.status_code == 204
+        seer_repo = SeerProjectRepository.objects.get(project_repository__project=self.project)
+        assert seer_repo.project_repository.repository_id == gitlab_repo.id
+
+    @patch("sentry.seer.endpoints.project_seer_preferences.sentry_sdk.capture_exception")
+    def test_post_rejects_gitlab_repo_without_url_path(
+        self, mock_capture_exception: MagicMock
+    ) -> None:
+        gitlab_repo = self.create_repo(
+            project=self.project,
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:missing-path",
+            integration_id=456,
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"repositories": [{"repository_id": gitlab_repo.id}]},
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Invalid repository"
+        mock_capture_exception.assert_called_once()

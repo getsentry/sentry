@@ -77,10 +77,10 @@ class FingerprintRule:
     @property
     def text(self) -> str:
         return (
-            '%s -> "%s" %s'
+            "%s -> %s %s"
             % (
                 " ".join(x.text for x in self.matchers),
-                "".join(x for x in self.fingerprint),
+                ", ".join(f'"{x}"' for x in self.fingerprint),
                 " ".join(f'{k}="{v}"' for (k, v) in sorted(self.attributes.items())),
             )
         ).rstrip()

@@ -2,12 +2,10 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {DroppedDataDrawer} from 'sentry/components/droppedData/drawer/droppedDataDrawer';
-import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  buildAskSeerPrompt,
-  droppedAndFilteredLabel,
-} from 'sentry/components/droppedData/outcomes';
+import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
+import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';

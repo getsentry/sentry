@@ -785,11 +785,7 @@ export default function SnapshotsPage() {
           overflow="auto"
           borderRight="primary"
           display={{zero: 'none', xl: 'flex'}}
-          maxWidth={{zero: '300px', '3xl': 'none'}}
-          style={{
-            width: sidebarWidth,
-            height: 'calc(100dvh - var(--top-bar-height, 53px))',
-          }}
+          style={{width: sidebarWidth}}
         >
           <SnapshotSidebarContent
             sections={sidebarSections}
@@ -804,7 +800,7 @@ export default function SnapshotsPage() {
           />
         </Flex>
         <DragHandle
-          display={{zero: 'none', '3xl': 'grid'}}
+          display={{zero: 'none', xl: 'grid'}}
           align="center"
           justifyItems="center"
           position="relative"
@@ -894,7 +890,12 @@ export default function SnapshotsPage() {
 
   return (
     <SentryDocumentTitle title={t('Snapshot')}>
-      <Stack flex={1} onClick={handleDeselectSnapshot}>
+      <Stack
+        flex={1}
+        minHeight="0"
+        maxHeight="calc(100dvh - var(--top-bar-height, 53px))"
+        onClick={handleDeselectSnapshot}
+      >
         {breadcrumbs}
         <SnapshotEntityHeader data={data} />
 

@@ -11,56 +11,56 @@ import {
   ExtrapolationMode,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
+  draftDescription,
+  draftField,
   draftNumericString,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {DEFAULT_THRESHOLD_METRIC_FORM_DATA} from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 
 export const METRIC_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<MetricDetectorFormData> = z
   .object({
-    aggregateFunction: z.string().optional().catch(undefined),
-    conditionComparisonAgo: z.number().optional().catch(undefined),
-    conditionType: z
-      .enum([DataConditionType.GREATER, DataConditionType.LESS])
-      .optional()
-      .catch(undefined),
-    dataset: z.enum(DetectorDataset).optional().catch(undefined),
-    detectionType: z.enum(['static', 'percent', 'dynamic']).optional().catch(undefined),
-    environment: z.string().optional().catch(undefined),
-    extrapolationMode: z.enum(ExtrapolationMode).optional().catch(undefined),
-    highThreshold: draftNumericString.optional().catch(undefined),
-    initialPriorityLevel: z
-      .union([
-        z.literal(DetectorPriorityLevel.MEDIUM),
-        z.literal(DetectorPriorityLevel.HIGH),
-      ])
-      .optional()
-      .catch(undefined),
-    interval: z.number().optional().catch(undefined),
-    mediumThreshold: draftNumericString.optional().catch(undefined),
-    name: z.string().optional().catch(undefined),
-    owner: z.string().optional().catch(undefined),
-    projectId: z.string().optional().catch(undefined),
-    query: z.string().optional().catch(undefined),
-    resolutionStrategy: z.enum(['default', 'custom']).optional().catch(undefined),
-    resolutionValue: draftNumericString.optional().catch(undefined),
-    sensitivity: z.enum(AlertRuleSensitivity).optional().catch(undefined),
-    thresholdType: z.enum(AlertRuleThresholdType).optional().catch(undefined),
-    workflowIds: z.array(z.string()).optional().catch(undefined),
+    aggregateFunction: draftField(z.string()),
+    conditionComparisonAgo: draftField(z.number()),
+    conditionType: draftField(
+      z.enum([DataConditionType.GREATER, DataConditionType.LESS])
+    ),
+    dataset: draftField(z.enum(DetectorDataset)),
+    description: draftField(draftDescription),
+    detectionType: draftField(z.enum(['static', 'percent', 'dynamic'])),
+    environment: draftField(z.string()),
+    extrapolationMode: draftField(z.enum(ExtrapolationMode)),
+    highThreshold: draftField(draftNumericString),
+    initialPriorityLevel: draftField(
+      z.literal([DetectorPriorityLevel.MEDIUM, DetectorPriorityLevel.HIGH])
+    ),
+    interval: draftField(z.number()),
+    mediumThreshold: draftField(draftNumericString),
+    name: draftField(z.string()),
+    owner: draftField(z.string()),
+    projectId: draftField(z.string()),
+    query: draftField(z.string()),
+    resolutionStrategy: draftField(z.enum(['default', 'custom'])),
+    resolutionValue: draftField(draftNumericString),
+    sensitivity: draftField(z.enum(AlertRuleSensitivity)),
+    thresholdType: draftField(z.enum(AlertRuleThresholdType)),
+    workflowIds: draftField(z.array(z.string())),
   })
   .transform(values => {
-    const normalized =
-      values.dataset === undefined
-        ? omit(values, ['aggregateFunction', 'extrapolationMode', 'query'])
-        : values;
-
-    const dataset = normalized.dataset ?? DEFAULT_THRESHOLD_METRIC_FORM_DATA.dataset;
-    const {supportedDetectionTypes} = getDatasetConfig(dataset);
-    return normalized.detectionType === undefined ||
-      supportedDetectionTypes.includes(normalized.detectionType)
-      ? normalized
-      : omit(normalized, ['detectionType']);
+    if (values.dataset === undefined) {
+      return omit(values, [
+        'aggregateFunction',
+        'detectionType',
+        'extrapolationMode',
+        'query',
+      ]);
+    }
+    return values.detectionType === undefined ||
+      getDatasetConfig(values.dataset).supportedDetectionTypes.includes(
+        values.detectionType
+      )
+      ? values
+      : omit(values, ['detectionType']);
   });

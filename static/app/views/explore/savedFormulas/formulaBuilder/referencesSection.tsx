@@ -25,7 +25,7 @@ import {
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-const TRACE_ITEM_DATASET_MAP: Record<FormulaDataset, TraceItemDataset> = {
+export const TRACE_ITEM_DATASET_MAP: Record<FormulaDataset, TraceItemDataset> = {
   spans: TraceItemDataset.SPANS,
   logs: TraceItemDataset.LOGS,
   metrics: TraceItemDataset.TRACEMETRICS,

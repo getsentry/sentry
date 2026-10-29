@@ -13,6 +13,7 @@ from rest_framework.request import Request
 
 from sentry import audit_log
 from sentry.api.permissions import enforce_scope
+from sentry.auth.access import Access
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -45,15 +46,6 @@ def is_system_created_detector(detector: Detector) -> bool:
     )
 
 
-def can_edit_system_created_detectors(request: Request, detector: Detector) -> bool:
-    if detector.type == IssueStreamGroupType.slug:
-        return False
-
-    return request.access.has_any_project_scope(
-        detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
-    )
-
-
 def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
     return request.access.has_any_project_scope(project, USER_CREATED_DETECTOR_REQUIRED_SCOPES)
 
@@ -79,18 +71,29 @@ def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
     )
 
 
+def can_edit_detector_with_access(detector: Detector, access: Access) -> bool:
+    """Like can_edit_detector, for callers that have an Access instead of a request."""
+    if is_system_created_detector(detector):
+        # Check this first, because the all-projects issue stream detector has no project.
+        if detector.type == IssueStreamGroupType.slug:
+            return False
+        if not access.has_any_project_scope(
+            detector.linked_project, SYSTEM_CREATED_DETECTOR_REQUIRED_SCOPES
+        ):
+            return False
+
+    return access.has_any_project_scope(
+        detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    )
+
+
 def can_edit_detector(detector: Detector, request: Request) -> bool:
     """
     Determine if the requesting user has access to detector edit. If the request does not have the "alerts:write"
     permission, then we must verify that the user is a team admin with "alerts:write" access to the project(s)
     in their request.
     """
-    if is_system_created_detector(detector) and not can_edit_system_created_detectors(
-        request, detector
-    ):
-        return False
-
-    return can_edit_user_created_detectors(request, detector.linked_project)
+    return can_edit_detector_with_access(detector, request.access)
 
 
 def can_delete_detectors(detectors: QuerySet[Detector], request: Request) -> bool:

@@ -2,6 +2,8 @@ import {z} from 'zod';
 
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {
+  draftDescription,
+  draftField,
   draftNumber,
   type DetectorDraftSchema,
 } from 'sentry/views/detectors/components/forms/common/detectorDraft';
@@ -50,14 +52,11 @@ const op: z.ZodType<UptimeOp> = z.lazy(() =>
       id: z.string(),
       op: z.literal(UptimeOpType.STATUS_CODE_CHECK),
       operator: comparison,
-      // A cleared status code is NaN, which JSON writes as null. Submitting
-      // normalizes it to 200 too.
       value: z.union([z.number(), z.null().transform(() => 200)]),
     }),
     z.object({
       id: z.string(),
       op: z.literal(UptimeOpType.JSON_PATH),
-      // Legacy ops may lack these, matching normalizeJsonPathOp.
       operand: jsonPathOperand.default({jsonpath_op: 'literal', value: ''}),
       operator: comparison.default({cmp: UptimeComparisonType.EQUALS}),
       value: z.string(),
@@ -82,11 +81,7 @@ function parseHttpUrl(url: string) {
   }
 }
 
-/**
- * Half-typed URLs don't parse, so those are checked as text: an `@` or a
- * non-numeric port in the authority may be part of a username and password.
- * (A password of only digits can't be told apart from a port until the `@`.)
- */
+// Half-typed URLs don't parse, so look for an `@` or non-numeric port as text.
 function mayHoldCredentials(url: string) {
   const parsed = parseHttpUrl(url);
   if (parsed) {
@@ -99,29 +94,22 @@ function mayHoldCredentials(url: string) {
 
 export const UPTIME_DETECTOR_DRAFT_SCHEMA: DetectorDraftSchema<UptimeDetectorFormData> =
   z.object({
-    assertion: z.object({root: andOp}).optional().catch(undefined),
-    downtimeThreshold: draftNumber.optional().catch(undefined),
-    environment: z.string().optional().catch(undefined),
-    intervalSeconds: z
-      .number()
-      .refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value))
-      .optional()
-      .catch(undefined),
-    method: z.enum(UPTIME_HTTP_METHOD_OPTIONS).optional().catch(undefined),
-    name: z.string().optional().catch(undefined),
-    owner: z.string().optional().catch(undefined),
-    projectId: z.string().optional().catch(undefined),
-    recoveryThreshold: draftNumber.optional().catch(undefined),
-    timeoutMs: z.number().optional().catch(undefined),
-    traceSampling: z.boolean().optional().catch(undefined),
-    // Headers and body are left out since they often hold credentials, and so
-    // is a URL that may hold them.
-    url: z
-      .string()
-      .refine(value => !mayHoldCredentials(value))
-      .optional()
-      .catch(undefined),
-    workflowIds: z.array(z.string()).optional().catch(undefined),
+    assertion: draftField(z.object({root: andOp})),
+    description: draftField(draftDescription),
+    downtimeThreshold: draftField(draftNumber),
+    environment: draftField(z.string()),
+    intervalSeconds: draftField(
+      z.number().refine(value => UPTIME_VALID_INTERVALS_SEC.includes(value))
+    ),
+    method: draftField(z.enum(UPTIME_HTTP_METHOD_OPTIONS)),
+    name: draftField(z.string()),
+    owner: draftField(z.string()),
+    projectId: draftField(z.string()),
+    recoveryThreshold: draftField(draftNumber),
+    timeoutMs: draftField(z.number()),
+    traceSampling: draftField(z.boolean()),
+    url: draftField(z.string().refine(value => !mayHoldCredentials(value))),
+    workflowIds: draftField(z.array(z.string())),
   });
 
 function isSameUrl(a: string, b: string) {
@@ -132,10 +120,7 @@ function isSameUrl(a: string, b: string) {
   }
 }
 
-/**
- * A shared draft can change a duplicated monitor's request, which mustn't then
- * be sent with the source monitor's headers and body (often credentials).
- */
+// A draft that changes the request mustn't reuse the source's headers and body.
 export function getUptimeDuplicateFormData(
   duplicateDetector: UptimeDetector,
   draftValues: Record<string, unknown> | undefined
