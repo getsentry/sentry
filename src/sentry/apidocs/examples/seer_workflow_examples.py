@@ -8,7 +8,7 @@ WORKFLOW_RUNS_RESPONSE = [
                 {
                     "id": "101",
                     "configId": "10",
-                    "strategy": "agentic_triage_v2",
+                    "strategy": "breached_metric_investigation",
                     "status": "complete",
                     "dateAdded": "2025-01-01T10:00:00Z",
                     "dateUpdated": "2025-01-01T10:02:00Z",
@@ -36,7 +36,7 @@ WORKFLOW_RUNS_RESPONSE = [
                 {
                     "id": "102",
                     "configId": "10",
-                    "strategy": "agentic_triage_v2",
+                    "strategy": "breached_metric_investigation",
                     "status": "failed",
                     "dateAdded": "2025-01-02T10:00:00Z",
                     "dateUpdated": "2025-01-02T10:00:20Z",
