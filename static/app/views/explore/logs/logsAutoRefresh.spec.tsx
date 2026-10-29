@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {Fragment} from 'react';
 import {createLogFixtures, initializeLogsTest} from 'sentry-fixture/log';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -19,7 +19,9 @@ import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParams
 
 function SetAutoRefreshButton({state}: {state: AutoRefreshState}) {
   const setAutoRefresh = useSetLogsAutoRefresh();
-  return <button onClick={() => setAutoRefresh(state)}>set-auto-refresh</button>;
+  return (
+    <button onClick={() => setAutoRefresh(state)}>{`set-auto-refresh-${state}`}</button>
+  );
 }
 
 describe('LogsAutoRefresh Integration Tests', () => {
@@ -58,14 +60,17 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
   const renderWithProviders = (
     children: React.ReactNode,
-    options: Parameters<typeof render>[1]
+    options: Parameters<typeof render>[1],
+    staleTime?: number
   ) => {
     const result = render(
       <LogsQueryParamsProvider
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider allowHighFidelity>{children}</LogsPageDataProvider>
+        <LogsPageDataProvider allowHighFidelity staleTime={staleTime}>
+          {children}
+        </LogsPageDataProvider>
       </LogsQueryParamsProvider>,
       options
     ) as ReturnType<typeof render> & {router: any}; // Can't select the router type without exporting it.
@@ -402,7 +407,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     const keyBefore = router.location.key;
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-idle'}));
 
     expect(router.location.key).toBe(keyBefore);
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBeUndefined();
@@ -416,7 +421,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
 
     const keyBefore = router.location.key;
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
 
     await waitFor(() => {
       expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
@@ -430,7 +435,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
 
     await waitFor(() => {
       expect(mockApiCall).toHaveBeenLastCalledWith(
@@ -451,7 +456,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh'}));
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-paused'}));
 
     await waitFor(() => {
       expect(mockApiCall).toHaveBeenLastCalledWith(
@@ -460,6 +465,35 @@ describe('LogsAutoRefresh Integration Tests', () => {
           query: expect.objectContaining({sampling: SAMPLING_MODE.FLEX_TIME}),
         })
       );
+    });
+    expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+  });
+
+  it('requests fresh flex time sampling when auto-refresh is paused after starting idle', async () => {
+    const {router} = renderWithProviders(
+      <Fragment>
+        <SetAutoRefreshButton state="enabled" />
+        <SetAutoRefreshButton state="paused" />
+      </Fragment>,
+      {initialRouterConfig: routerConfig, organization},
+      Infinity
+    );
+    await waitFor(() => {
+      expect(mockApiCall).toHaveBeenCalledTimes(1);
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-paused'}));
+
+    await waitFor(() => {
+      expect(
+        mockApiCall.mock.calls.filter(
+          ([, options]) => options.query.sampling === SAMPLING_MODE.FLEX_TIME
+        )
+      ).toHaveLength(2);
     });
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
   });

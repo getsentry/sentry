@@ -936,6 +936,36 @@ describe('LogsTabContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns that results may be incomplete while auto-refresh is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'partial'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we don't scan your full log volume while auto-refresh is on/
+      )
+    ).toBeInTheDocument();
+  });
+
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({

@@ -390,7 +390,7 @@ describe('LogsPage', () => {
       // - one for the table
       // - one for the normal sample mode count
       // - one for the high accuracy sample mode count
-      // - one for the table refetch triggered by resetQueries when auto-refresh is paused
+      // - one for the live table refetch triggered by removeQueries when auto-refresh is paused
       // - one for the high fidelity table query once auto-refresh is paused
       expect(eventTableMock).toHaveBeenCalledTimes(5);
 

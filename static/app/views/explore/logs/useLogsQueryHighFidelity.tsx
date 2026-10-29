@@ -5,8 +5,8 @@ export function useLogsQueryHighFidelity() {
   const sortBys = useQueryParamsSortBys();
   const autoRefreshEnabled = useLogsAutoRefreshEnabled();
 
-  // we can only turn on high accuracy flex time sampling when
-  // the order by is exactly timestamp descending,
+  // we can only turn on high accuracy flex time sampling when auto refresh
+  // is off and the order by is exactly timestamp descending
   return (
     !autoRefreshEnabled &&
     sortBys.length === 1 &&
