@@ -10,15 +10,22 @@ WEBHOOK_NAME = "sentry-bitbucket-server-repo-hook"
 WEBHOOK_EVENTS = ("repo:refs_changed", "pr:merged")
 
 
+def get_webhook_name(reconciliation_id: str | None = None) -> str:
+    if reconciliation_id is None:
+        return WEBHOOK_NAME
+    return f"{WEBHOOK_NAME}:{reconciliation_id}"
+
+
 def build_webhook_data(
     *,
     organization_id: int,
     integration_id: int,
     secret: str,
     active: bool,
+    reconciliation_id: str | None = None,
 ) -> BitbucketServerWebhookData:
     return {
-        "name": WEBHOOK_NAME,
+        "name": get_webhook_name(reconciliation_id),
         "url": absolute_uri(
             reverse(
                 "sentry-extensions-bitbucketserver-webhook",

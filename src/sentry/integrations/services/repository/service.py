@@ -83,6 +83,7 @@ class RepositoryService(RpcService):
         config_updates: dict[str, Any],
         config_deletions: list[str] | None = None,
         expected_integration_id: int | None = None,
+        expected_external_id: str | None = None,
         expected_config: dict[str, Any] | None = None,
     ) -> bool:
         """
@@ -95,6 +96,8 @@ class RepositoryService(RpcService):
         Returns False without changing anything unless the repository is still active,
         still belongs to ``expected_integration_id`` (when given), and its config still
         holds each ``expected_config`` value (a None value expects the key to be unset).
+        ``expected_external_id`` additionally guards against the remote repository identity
+        changing while an external request is in flight.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

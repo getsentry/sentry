@@ -183,6 +183,12 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             ),
         )
 
+    def list_hooks(self, project: str, repo: str) -> list[BitbucketServerWebhookResponse]:
+        return self._get_values(
+            BitbucketServerAPIPath.repository_hooks.format(project=project, repo=repo),
+            {"limit": 250},
+        )
+
     def update_hook(
         self,
         project: str,

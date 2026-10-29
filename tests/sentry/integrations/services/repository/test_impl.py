@@ -638,6 +638,15 @@ class UpdateRepositoryConfigTest(TestCase):
         assert self.repo.integration_id == other.id
         assert self.repo.config["webhook_id"] == 10
 
+    def test_refuses_changed_external_id(self) -> None:
+        self.repo.update(external_id="changed")
+
+        assert self._update(expected_external_id="original") is False
+
+        self.repo.refresh_from_db()
+        assert self.repo.external_id == "changed"
+        assert self.repo.config["webhook_id"] == 10
+
     def test_refuses_changed_expected_config(self) -> None:
         assert self._update(expected_config={"webhook_id": 9}) is False
         assert self._update(expected_config={"webhook_id": None}) is False

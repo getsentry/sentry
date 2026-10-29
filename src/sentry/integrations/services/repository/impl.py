@@ -126,6 +126,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         config_updates: dict[str, Any],
         config_deletions: list[str] | None = None,
         expected_integration_id: int | None = None,
+        expected_external_id: str | None = None,
         expected_config: dict[str, Any] | None = None,
     ) -> bool:
         with transaction.atomic(router.db_for_write(Repository)):
@@ -140,6 +141,8 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 expected_integration_id is not None
                 and repository.integration_id != expected_integration_id
             ):
+                return False
+            if expected_external_id is not None and repository.external_id != expected_external_id:
                 return False
             for key, value in (expected_config or {}).items():
                 if repository.config.get(key) != value:

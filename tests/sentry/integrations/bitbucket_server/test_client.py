@@ -126,6 +126,37 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert self.bb_server_client.get_hook("PROJ", "repository-name", 79) == hook
 
     @responses.activate
+    def test_list_hooks_paginates(self) -> None:
+        url = (
+            f"{self.bb_server_client.base_url}"
+            "/rest/api/1.0/projects/PROJ/repos/repository-name/webhooks"
+        )
+        responses.add(
+            responses.GET,
+            url,
+            json={
+                "values": [{"id": 1, "name": "first"}],
+                "isLastPage": False,
+                "nextPageStart": 10,
+            },
+        )
+        responses.add(
+            responses.GET,
+            url,
+            json={
+                "values": [{"id": 2, "name": "second"}],
+                "isLastPage": True,
+            },
+        )
+
+        assert self.bb_server_client.list_hooks("PROJ", "repository-name") == [
+            {"id": 1, "name": "first"},
+            {"id": 2, "name": "second"},
+        ]
+        assert responses.calls[0].request.params == {"limit": "250", "start": "0"}
+        assert responses.calls[1].request.params == {"limit": "250", "start": "10"}
+
+    @responses.activate
     def test_update_hook(self) -> None:
         hook: BitbucketServerWebhookData = {
             "name": "sentry-bitbucket-server-repo-hook",
