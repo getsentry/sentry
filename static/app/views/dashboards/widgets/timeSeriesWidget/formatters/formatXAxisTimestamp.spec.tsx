@@ -8,8 +8,8 @@ import {formatXAxisTimestamp} from './formatXAxisTimestamp';
 describe('formatXAxisTimestamp', () => {
   it.each([
     // Year starts
-    ['2025-01-01T00:00:00', 'Jan 1st 2025'],
-    ['2024-01-01T00:00:00', 'Jan 1st 2024'],
+    ['2025-01-01T00:00:00', '2025'],
+    ['2024-01-01T00:00:00', '2024'],
     // Month starts
     ['2025-02-01T00:00:00', 'Feb 1st'],
     ['2024-03-01T00:00:00', 'Mar 1st'],
@@ -63,10 +63,10 @@ describe('formatXAxisTimestamp', () => {
       // America/New_York (EST, UTC-5)
       ['2025-02-05T05:00:00', 'America/New_York', 'Feb 5th'], // 05:00 UTC = midnight EST → date
       ['2025-02-05T00:00:00', 'America/New_York', '7:00 PM'], // 00:00 UTC = 7:00 PM EST → time
-      ['2025-01-01T05:00:00', 'America/New_York', 'Jan 1st 2025'], // midnight Jan 1 EST → year
+      ['2025-01-01T05:00:00', 'America/New_York', '2025'], // midnight Jan 1 EST → year
       ['2025-01-01T00:00:00', 'America/New_York', '7:00 PM'], // still Dec 31 in EST → time
       // Asia/Kolkata (IST, UTC+5:30) — half-hour offset
-      ['2024-12-31T18:30:00', 'Asia/Kolkata', 'Jan 1st 2025'], // 18:30 UTC = midnight Jan 1 IST → year
+      ['2024-12-31T18:30:00', 'Asia/Kolkata', '2025'], // 18:30 UTC = midnight Jan 1 IST → year
       ['2025-02-04T18:30:00', 'Asia/Kolkata', 'Feb 5th'], // 18:30 UTC = midnight Feb 5 IST → date
       ['2025-02-05T06:30:00', 'Asia/Kolkata', '12:00 PM'], // 06:30 UTC = noon IST → time
       ['2025-02-05T00:00:00', 'Asia/Kolkata', '5:30 AM'], // 00:00 UTC = 5:30 AM IST → time
