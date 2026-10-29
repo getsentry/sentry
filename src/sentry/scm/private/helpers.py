@@ -4,6 +4,7 @@ from typing import NamedTuple, cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm import Secret
 from scm.errors import SCMCodedError, UnhandledException
 from scm.git.types import GitOperation
 from scm.providers.cursor_origin.provider import CursorOriginProvider
@@ -86,12 +87,13 @@ def fetch_service_provider(
         return None
 
 
-def fetch_access_token(repository: Repository, operation: GitOperation) -> str | None:
+def fetch_access_token(repository: Repository, operation: GitOperation) -> Secret | None:
     """Return a token that can run git against the repository, minted or refreshed in control.
 
     The token is the integration's: an installation token for GitHub and Cursor Origin, or the OAuth
     token of the user who installed GitLab. It isn't scoped to the repository or the operation, so a
-    fetch gets the same token as a push.
+    fetch gets the same token as a push. It's wrapped in a Secret right away, so the frames an
+    error report carries show it as [Filtered].
     """
     try:
         access_token = integration_service.get_access_token(
@@ -104,7 +106,7 @@ def fetch_access_token(repository: Repository, operation: GitOperation) -> str |
         # "HTTP 500"; GitServer turns None into a 502 that says why.
         sentry_sdk.capture_exception()
         return None
-    return access_token.token if access_token is not None else None
+    return Secret(access_token.token) if access_token is not None else None
 
 
 def fetch_repository(
