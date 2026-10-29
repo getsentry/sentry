@@ -15,6 +15,7 @@ import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import type {
   Automation,
   AutomationFireHistory,
+  AutomationType,
   NewAutomation,
 } from 'sentry/types/workflowEngine/automations';
 import type {
@@ -29,6 +30,9 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+// All user-facing alert pages only ask for "alert" workflows
+const ALERT_AUTOMATION_TYPE: AutomationType = 'alert';
+
 export const automationsApiOptions = (
   organization: Organization,
   options?: {
@@ -41,22 +45,19 @@ export const automationsApiOptions = (
     sortBy?: string;
   }
 ) => {
-  const query = options
-    ? {
-        query: options.query,
-        sortBy: options.sortBy,
-        id: options.ids,
-        per_page: options.limit,
-        cursor: options.cursor,
-        project: options.projects,
-        detector: options.detector,
-      }
-    : undefined;
-
   return queryOptions({
     ...apiOptions.as<Automation[]>()('/organizations/$organizationIdOrSlug/workflows/', {
       path: {organizationIdOrSlug: organization.slug},
-      query,
+      query: {
+        type: ALERT_AUTOMATION_TYPE,
+        query: options?.query,
+        sortBy: options?.sortBy,
+        id: options?.ids,
+        per_page: options?.limit,
+        cursor: options?.cursor,
+        project: options?.projects,
+        detector: options?.detector,
+      },
       staleTime: 0,
     }),
     retry: false,
@@ -224,6 +225,7 @@ export function useDeleteAutomationsMutation() {
             id: params.ids,
             query: params.query,
             project: params.projects,
+            type: ALERT_AUTOMATION_TYPE,
           },
         }
       );
@@ -313,6 +315,7 @@ export function useUpdateAutomationsMutation() {
             id: params.ids,
             query: params.query,
             project: params.projects,
+            type: ALERT_AUTOMATION_TYPE,
           },
         }
       );
