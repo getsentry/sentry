@@ -151,7 +151,7 @@ type LogsRowProps = {
   onEmbeddedRowClick?: (logItemId: string, event: React.MouseEvent) => void;
   onExpand?: (logItemId: string) => void;
   onExpandHeight?: (logItemId: string, estimatedHeight: number) => void;
-  onViewInTable?: (dataRow: OurLogsResponseItem) => void;
+  onScrollToLog?: (dataRow: OurLogsResponseItem) => void;
   routingHint?: string;
   setHoveredRowId?: (logItemId: string | null) => void;
   showCellActions?: boolean;
@@ -277,7 +277,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
   isHighlighted,
   setHoveredRowId,
   togglePinnedRow,
-  onViewInTable,
+  onScrollToLog,
   showCellActions,
   showExploreConnectedSpansLink,
 }: LogsRowProps) {
@@ -519,17 +519,17 @@ export const LogRowContent = memo(function LogRowContentImpl({
             isClickable: true,
           };
 
-  const viewInTableMenuItems: MenuItemProps[] = onViewInTable
+  const scrollToLogMenuItems: MenuItemProps[] = onScrollToLog
     ? [
         {
-          key: 'view-in-table',
-          label: t('View in table'),
+          key: 'scroll-to-log',
+          label: t('Scroll to log'),
           onAction: () => {
-            trackAnalytics('logs.table.pinned_row_viewed_in_table', {
+            trackAnalytics('logs.table.pinned_row_scrolled_to', {
               log_id: rowId,
               organization,
             });
-            onViewInTable(dataRow);
+            onScrollToLog(dataRow);
           },
         },
       ]
@@ -767,7 +767,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={[...(extraMenuItems ?? []), ...viewInTableMenuItems]}
+                    extraMenuItems={[...(extraMenuItems ?? []), ...scrollToLogMenuItems]}
                     pin={pin}
                   >
                     {renderedField}

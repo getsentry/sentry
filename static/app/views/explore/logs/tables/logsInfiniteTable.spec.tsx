@@ -17,6 +17,7 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
@@ -761,7 +762,7 @@ describe('LogsInfiniteTable', () => {
     expect(tbodyRow).toHaveAttribute('data-row-hover-linked', 'true');
   });
 
-  describe('view in table', () => {
+  describe('scroll to log', () => {
     const unloadedPinnedLog = LogFixture({
       [OurLogKnownFieldKey.ORGANIZATION_ID]: Number(organization.id),
       [OurLogKnownFieldKey.PROJECT_ID]: String(project.id),
@@ -804,7 +805,7 @@ describe('LogsInfiniteTable', () => {
       });
     }
 
-    async function clickViewInTable() {
+    async function clickScrollToLog() {
       const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
       const pinnedRow = await within(pinnedTableBody).findByTestId('log-table-row');
       await userEvent.hover(pinnedRow);
@@ -812,7 +813,7 @@ describe('LogsInfiniteTable', () => {
         within(pinnedRow).getAllByRole('button', {name: 'Actions'})[0]!
       );
       await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'View in table'})
+        await screen.findByRole('menuitemradio', {name: 'Scroll to log'})
       );
     }
 
@@ -831,7 +832,7 @@ describe('LogsInfiniteTable', () => {
         {initialRouterConfig: pinnedRouterConfig}
       );
 
-      await clickViewInTable();
+      await clickScrollToLog();
 
       const pinnedTableBody = await screen.findByTestId('pinned-logs-table-body');
       await waitFor(() => {
@@ -847,6 +848,7 @@ describe('LogsInfiniteTable', () => {
 
     it('shows an error when the pinned log is not in the current results', async () => {
       const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
       mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
       mockEvents(
         query => query.startsWith(`${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:`),
@@ -857,13 +859,17 @@ describe('LogsInfiniteTable', () => {
         {initialRouterConfig: pinnedRouterConfig}
       );
 
-      await clickViewInTable();
+      await clickScrollToLog();
 
       await waitFor(() => {
         expect(addErrorMessage).toHaveBeenCalledWith(
           'This log is not in the current results'
         );
       });
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'logs.table.pinned_row_not_in_results',
+        {log_id: '99', organization: expect.anything()}
+      );
       expect(await screen.findByText('test log body 1')).toBeInTheDocument();
     });
   });
