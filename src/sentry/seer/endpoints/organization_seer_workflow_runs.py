@@ -222,10 +222,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
 
 def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRunsResponse:
-    """Serialize runs loaded with ``.annotate(strategy=F("workflow_config__strategy"))``.
-
-    Runs loaded without that annotation raise ``AttributeError``.
-    """
+    """Serialize runs loaded with a `workflow_config__strategy` annotation."""
     prefetch_related_objects(
         runs,
         Prefetch(
@@ -237,10 +234,7 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
 
 
 def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
-    """Serialize a run loaded with ``.annotate(strategy=F("workflow_config__strategy"))``.
-
-    Runs loaded without that annotation raise ``AttributeError``.
-    """
+    """Serialize a run loaded with a `workflow_config__strategy` annotation."""
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
