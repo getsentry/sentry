@@ -3,7 +3,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 import sentry_sdk
@@ -473,7 +473,10 @@ def get_repo_url_path(repo: Repository) -> str:
     return repo.name
 
 
-def get_token_based_billing_repo_filter(organization: Organization, prefix: str = "") -> Q:
+def get_token_based_billing_repo_filter(
+    organization: Organization,
+    prefix: Literal["", "repository__", "projectrepository__repository__"] = "",
+) -> Q:
     """Filter for repos Seer can use under token-based billing. prefix is the lookup path to Repository."""
     return Q(
         **{
