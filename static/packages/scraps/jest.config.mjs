@@ -9,7 +9,7 @@ const config = {
   },
   transform: {
     '^.+\\.[jt]sx?$': [
-      '@swc/jest',
+      '../../../build-utils/yak-jest-transform.cjs',
       {
         jsc: {
           target: 'es2022',
@@ -22,6 +22,7 @@ const config = {
     ],
   },
   clearMocks: true,
+  transformIgnorePatterns: ['node_modules/(?!(@yak/|\\.pnpm/@yak\\+))'],
 };
 
 export default runOnFirstShard(config);

@@ -1,13 +1,13 @@
 import type * as React from 'react';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
+import {css as yakCss, styled} from '@yak/react';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
 import {useResponsivePropValue} from '@sentry/scraps/layout';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
+import {withYakProps, withYakTheme} from '@sentry/scraps/yak';
 
 export type DropdownButtonProps = DistributedOmit<ButtonProps, 'type' | 'prefix'> & {
   /**
@@ -48,7 +48,7 @@ export function DropdownButton({
       size={size}
       ref={ref}
       {...props}
-      onClick={event => {
+      onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
         event.stopPropagation();
         onClick?.(event);
@@ -69,13 +69,13 @@ export function DropdownButton({
   );
 }
 
-const ChevronWrap = styled('div')`
+const ChevronWrap = withYakTheme(styled(withYakProps('div'))`
   display: flex;
   align-items: center;
   margin-left: auto;
   padding-left: ${p => p.theme.space.xs};
   flex-shrink: 0;
-`;
+`);
 
 interface StyledButtonProps extends Required<
   Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
@@ -83,27 +83,27 @@ interface StyledButtonProps extends Required<
   hasPrefix?: boolean;
 }
 
-const StyledButton = styled(Button)<StyledButtonProps>`
+const StyledButton = withYakTheme(styled(withYakProps(Button))<StyledButtonProps>`
   position: relative;
   max-width: 100%;
 
   ${p =>
     (p.isOpen || p.disabled) &&
-    css`
+    yakCss`
       box-shadow: none;
     `}
   ${p =>
     p.hasPrefix &&
-    css`
-      font-weight: ${p.theme.font.weight.sans.regular};
+    yakCss`
+      font-weight: ${p => p.theme.font.weight.sans.regular};
     `}
-`;
+`);
 
-const LabelText = styled('span')`
+const LabelText = withYakTheme(styled(withYakProps('span'))`
   &:after {
     content: ':';
   }
 
   font-weight: ${p => p.theme.font.weight.sans.medium};
   padding-right: ${p => p.theme.space.sm};
-`;
+`);

@@ -1,12 +1,13 @@
 import type * as React from 'react';
 import {useRef, useState} from 'react';
-import {keyframes, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
+import {keyframes, styled} from '@yak/react';
 
 // Load the standalone Emotion theme augmentation without a runtime import.
 // eslint-disable-next-line unicorn/require-module-specifiers
 import type {} from '@sentry/scraps/theme';
+import {withYakProps, withYakTheme} from '@sentry/scraps/yak';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'vibrant' | 'monochrome';
@@ -96,7 +97,7 @@ export function IndeterminateLoader({
   );
 }
 
-const Track = styled('div')<{color: string; opacity: string}>`
+const Track = withYakTheme(styled(withYakProps('div'))<{color: string; opacity: string}>`
   position: relative;
   overflow: hidden;
   width: 100%;
@@ -116,9 +117,9 @@ const Track = styled('div')<{color: string; opacity: string}>`
     -webkit-mask-repeat: repeat-x;
     -webkit-mask-size: 16px 8px;
   }
-`;
+`);
 
-const ColorMask = styled('span')`
+const ColorMask = withYakTheme(styled(withYakProps('span'))`
   position: absolute;
   inset: 0;
   mask-image: ${SQUIGGLE_TILE};
@@ -127,21 +128,23 @@ const ColorMask = styled('span')`
   -webkit-mask-image: ${SQUIGGLE_TILE};
   -webkit-mask-repeat: repeat-x;
   -webkit-mask-size: 16px 8px;
-`;
+`);
 
-const Bar = styled('span')<{
-  animation: ReturnType<typeof keyframes>;
-  color: string;
-  delay: string;
-  duration: string;
-  timing: string;
-}>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: ${p => p.color};
-  animation: ${p => p.animation} ${p => p.duration} ${p => p.timing} ${p => p.delay}
-    infinite backwards;
-`;
+const Bar = withYakTheme(
+  styled(withYakProps('span'))<{
+    animation: string;
+    color: string;
+    delay: string;
+    duration: string;
+    timing: string;
+  }>`
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: ${p => p.color};
+    animation: ${p => p.animation} ${p => p.duration} ${p => p.timing} ${p => p.delay}
+      infinite backwards;
+  `
+);

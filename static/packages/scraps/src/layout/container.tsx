@@ -1,7 +1,7 @@
 import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
+import {styled} from '@yak/react';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
@@ -17,15 +17,21 @@ import {
   getMargin,
   getRadius,
   getSpacing,
-  rc,
   type Responsive,
   type Shorthand,
 } from './styles';
+import {
+  addLayoutProp,
+  finishLayoutStyle,
+  useLayoutStyle,
+  type LayoutStyle,
+} from './yakLayout';
+import {layoutCss} from './yakStyles.yak';
 
 type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
-interface ContainerLayoutProps {
+export interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<CSS['display']>;
 
@@ -176,7 +182,10 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
   ContainerLayoutProps,
   'containerType'
 > & {
-  children: (props: {className: string}) => React.ReactNode | undefined;
+  children: (props: {
+    className: string;
+    style?: React.CSSProperties;
+  }) => React.ReactNode | undefined;
   as?: never;
   /**
    * Declaring a query container is not supported with the render-prop form: the
@@ -201,7 +210,7 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
     >
   >;
 
-const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
+export const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
   'area',
   'as',
@@ -254,134 +263,192 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'whiteSpace',
 ]);
 
-export const Container = styled(
-  <T extends ContainerElement = 'div'>(
-    props: (ContainerProps<T> | ContainerPropsWithRenderFunction<T>) & {
-      className?: string;
+const handlers: {
+  [K in keyof ContainerLayoutProps]?: (
+    acc: LayoutStyle,
+    value: ContainerLayoutProps[K]
+  ) => void;
+} = {
+  containerType: (acc, value) => addLayoutProp(acc, 'containerType', value),
+  alignSelf: (acc, value) => addLayoutProp(acc, 'alignSelf', value),
+  area: (acc, value) => addLayoutProp(acc, 'gridArea', value),
+  background: (acc, value) =>
+    addLayoutProp(
+      acc,
+      'background',
+      value,
+      (v, theme) => theme.tokens.background[v as Exclude<SurfaceVariant, 'overlay'>]
+    ),
+  border: (acc, value) =>
+    addLayoutProp(acc, 'border', value, (v, theme) => getBorder(v, undefined, theme)),
+  borderTop: (acc, value) =>
+    addLayoutProp(acc, 'borderTop', value, (v, theme) => getBorder(v, undefined, theme)),
+  borderBottom: (acc, value) =>
+    addLayoutProp(acc, 'borderBottom', value, (v, theme) =>
+      getBorder(v, undefined, theme)
+    ),
+  borderLeft: (acc, value) =>
+    addLayoutProp(acc, 'borderLeft', value, (v, theme) => getBorder(v, undefined, theme)),
+  borderRight: (acc, value) =>
+    addLayoutProp(acc, 'borderRight', value, (v, theme) =>
+      getBorder(v, undefined, theme)
+    ),
+  bottom: (acc, value) => addLayoutProp(acc, 'bottom', value),
+  column: (acc, value) => addLayoutProp(acc, 'gridColumn', value),
+  contain: (acc, value) => addLayoutProp(acc, 'contain', value),
+  cursor: (acc, value) => addLayoutProp(acc, 'cursor', value),
+  display: (acc, value) => addLayoutProp(acc, 'display', value),
+  flex: (acc, value) => addLayoutProp(acc, 'flex', value),
+  flexBasis: (acc, value) => addLayoutProp(acc, 'flexBasis', value),
+  flexGrow: (acc, value) => addLayoutProp(acc, 'flexGrow', value),
+  flexShrink: (acc, value) => addLayoutProp(acc, 'flexShrink', value),
+  height: (acc, value) => addLayoutProp(acc, 'height', value),
+  inset: (acc, value) => addLayoutProp(acc, 'inset', value),
+  justifySelf: (acc, value) => addLayoutProp(acc, 'justifySelf', value),
+  left: (acc, value) => addLayoutProp(acc, 'left', value),
+  margin: (acc, value) =>
+    addLayoutProp(acc, 'margin', value, (v, theme) => getMargin(v, undefined, theme)),
+  marginTop: (acc, value) =>
+    addLayoutProp(acc, 'marginTop', value, (v, theme) => getMargin(v, undefined, theme)),
+  marginBottom: (acc, value) =>
+    addLayoutProp(acc, 'marginBottom', value, (v, theme) =>
+      getMargin(v, undefined, theme)
+    ),
+  marginLeft: (acc, value) =>
+    addLayoutProp(acc, 'marginLeft', value, (v, theme) => getMargin(v, undefined, theme)),
+  marginRight: (acc, value) =>
+    addLayoutProp(acc, 'marginRight', value, (v, theme) =>
+      getMargin(v, undefined, theme)
+    ),
+  maxHeight: (acc, value) => addLayoutProp(acc, 'maxHeight', value),
+  maxWidth: (acc, value) => addLayoutProp(acc, 'maxWidth', value),
+  minHeight: (acc, value) => addLayoutProp(acc, 'minHeight', value),
+  minWidth: (acc, value) => addLayoutProp(acc, 'minWidth', value),
+  order: (acc, value) => addLayoutProp(acc, 'order', value),
+  overflow: (acc, value) => addLayoutProp(acc, 'overflow', value),
+  overflowX: (acc, value) => addLayoutProp(acc, 'overflowX', value),
+  overflowY: (acc, value) => addLayoutProp(acc, 'overflowY', value),
+  overscrollBehavior: (acc, value) => addLayoutProp(acc, 'overscrollBehavior', value),
+  pointerEvents: (acc, value) => addLayoutProp(acc, 'pointerEvents', value),
+  padding: (acc, value) =>
+    addLayoutProp(acc, 'padding', value, (v, theme) => getSpacing(v, undefined, theme)),
+  paddingTop: (acc, value) =>
+    addLayoutProp(acc, 'paddingTop', value, (v, theme) =>
+      getSpacing(v, undefined, theme)
+    ),
+  paddingBottom: (acc, value) =>
+    addLayoutProp(acc, 'paddingBottom', value, (v, theme) =>
+      getSpacing(v, undefined, theme)
+    ),
+  paddingLeft: (acc, value) =>
+    addLayoutProp(acc, 'paddingLeft', value, (v, theme) =>
+      getSpacing(v, undefined, theme)
+    ),
+  paddingRight: (acc, value) =>
+    addLayoutProp(acc, 'paddingRight', value, (v, theme) =>
+      getSpacing(v, undefined, theme)
+    ),
+  position: (acc, value) => addLayoutProp(acc, 'position', value),
+  radius: (acc, value) =>
+    addLayoutProp(acc, 'borderRadius', value, (v, theme) =>
+      getRadius(v, undefined, theme)
+    ),
+  right: (acc, value) => addLayoutProp(acc, 'right', value),
+  row: (acc, value) => addLayoutProp(acc, 'gridRow', value),
+  top: (acc, value) => addLayoutProp(acc, 'top', value),
+  visibility: (acc, value) => addLayoutProp(acc, 'visibility', value),
+  width: (acc, value) => addLayoutProp(acc, 'width', value),
+  whiteSpace: (acc, value) => addLayoutProp(acc, 'whiteSpace', value),
+};
+export function addContainerStyles(
+  acc: LayoutStyle,
+  props: ContainerLayoutProps,
+  display = props.display
+) {
+  addLayoutProp(acc, 'display', display);
+  for (const key in props) {
+    if (key !== 'display') {
+      const handler = handlers[key as keyof ContainerLayoutProps] as
+        | ((acc: LayoutStyle, value: unknown) => void)
+        | undefined;
+      handler?.(acc, (props as Record<string, unknown>)[key]);
     }
-  ) => {
-    // Hooks must run unconditionally, before the render-prop early return.
-    const containerRef = useRef<HTMLElement>(null);
-    const {as, containerType, ref, ...rest} = props;
-
-    // A query container needs its size observed in JS so descendants can resolve
-    // container-mode responsive props (e.g. Stack orientation). We only attach a
-    // ref + observer when this element is actually a container, keeping the
-    // common (non-container) path free of any ResizeObserver overhead.
-    const isContainer = !!containerType && containerType !== 'normal';
-
-    const containerRefs = useMemo(
-      () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
-      [isContainer, ref]
-    );
-
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
-
-    const Component = as ?? 'div';
-
-    const node = <Component {...(rest as any)} ref={containerRefs} />;
-
-    if (isContainer) {
-      return (
-        <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
-      );
-    }
-
-    return node;
-  },
-  {
-    shouldForwardProp: prop => {
-      // containerType must reach the inner component to wire up the query
-      // container; it is stripped there so it never lands on the DOM.
-      if (prop === 'containerType') {
-        return true;
-      }
-      if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
-        return false;
-      }
-      return isPropValid(prop);
-    },
   }
-)<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
-  ${p => rc('container-type', p.containerType, p.theme)};
-
-  ${p => rc('display', p.display, p.theme)};
-  ${p => rc('position', p.position, p.theme)};
-
-  ${p => rc('inset', p.inset, p.theme)};
-  ${p => rc('top', p.top, p.theme)};
-  ${p => rc('bottom', p.bottom, p.theme)};
-  ${p => rc('left', p.left, p.theme)};
-  ${p => rc('right', p.right, p.theme)};
-
-  ${p => rc('overflow', p.overflow, p.theme)};
-  ${p => rc('overflow-x', p.overflowX, p.theme)};
-  ${p => rc('overflow-y', p.overflowY, p.theme)};
-
-  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
-
-  ${p => rc('pointer-events', p.pointerEvents, p.theme)};
-
-  ${p => rc('cursor', p.cursor, p.theme)};
-  ${p => rc('contain', p.contain, p.theme)};
-
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
-  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
-  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing)};
-  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
-
-  ${p => rc('margin', p.margin, p.theme, getMargin)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
-
-  ${p =>
-    rc('background', p.background, p.theme, v =>
-      v ? p.theme.tokens.background[v] : undefined
-    )};
-
-  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
-
-  ${p => rc('width', p.width, p.theme)};
-  ${p => rc('min-width', p.minWidth, p.theme)};
-  ${p => rc('max-width', p.maxWidth, p.theme)};
-
-  ${p => rc('height', p.height, p.theme)};
-  ${p => rc('min-height', p.minHeight, p.theme)};
-  ${p => rc('max-height', p.maxHeight, p.theme)};
-
-  ${p => rc('grid-area', p.area, p.theme)};
-  ${p => rc('grid-row', p.row, p.theme)};
-  ${p => rc('grid-column', p.column, p.theme)};
-
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
-  ${p => rc('flex-grow', p.flexGrow, p.theme)};
-  ${p => rc('flex-shrink', p.flexShrink, p.theme)};
-  ${p => rc('flex-basis', p.flexBasis, p.theme)};
-
-  ${p => rc('align-self', p.alignSelf, p.theme)};
-  ${p => rc('justify-self', p.justifySelf, p.theme)};
-
-  ${p => rc('border', p.border, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
-
-  ${p => rc('visibility', p.visibility, p.theme)};
-  ${p => rc('white-space', p.whiteSpace, p.theme)};
-
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+}
+interface LayoutElementProps {
+  elementProps: Omit<React.HTMLAttributes<HTMLElement>, 'children'> & {
+    as?: React.ElementType;
+    children?:
+      | React.ReactNode
+      | ((props: {className: string; style: React.CSSProperties}) => React.ReactNode);
+    className?: string;
+    containerType?: string;
+    ref?: React.Ref<any>;
+    style?: React.CSSProperties;
+  };
+  layoutStyle: LayoutStyle;
+  omitProps: ReadonlySet<string>;
+  className?: string;
+  defaultElement?: React.ElementType;
+}
+export const LayoutElement = styled(function LayoutElement({
+  elementProps: props,
+  layoutStyle,
+  omitProps,
+  className,
+  defaultElement = 'div',
+}: LayoutElementProps) {
+  const containerRef = useRef<HTMLElement>(null);
+  const {as, containerType, ref, children} = props;
+  const isContainer = !!containerType && containerType !== 'normal';
+  const containerRefs = useMemo(
+    () => (isContainer ? mergeRefs(ref, containerRef) : ref),
+    [isContainer, ref]
+  );
+  const merged = finishLayoutStyle(
+    layoutStyle,
+    [className, props.className].filter(Boolean).join(' '),
+    props.style
+  );
+  if (typeof children === 'function') {
+    return children(merged);
+  }
+  const domProps: Record<string, unknown> = {};
+  for (const key in props) {
+    if (
+      !['as', 'containerType', 'className', 'style', 'ref', 'theme'].includes(key) &&
+      !omitProps.has(key) &&
+      isPropValid(key)
+    ) {
+      domProps[key] = (props as Record<string, unknown>)[key];
+    }
+  }
+  const Component = as ?? defaultElement;
+  const node = <Component {...domProps} {...merged} ref={containerRefs} />;
+  return isContainer ? (
+    <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
+  ) : (
+    node
+  );
+})`
+  ${layoutCss};
+  &.yk-separator[aria-orientation='horizontal'] {
+    border-bottom: var(--yk-separator-border) !important;
+  }
+  &.yk-separator[aria-orientation='vertical'] {
+    border-left: var(--yk-separator-border) !important;
+  }
+`;
+export function Container<T extends ContainerElement = 'div'>(
   props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
-) => React.ReactElement;
+) {
+  const acc = useLayoutStyle(typeof props.children === 'function');
+  addContainerStyles(acc, props);
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={omitContainerProps}
+    />
+  );
+}

@@ -57,7 +57,8 @@
     "snapshots": "sentry-test --config tests/js/jest.config.snapshots.ts",
     "knip": "knip",
     "knip:prod": "pnpm run knip --production --exclude dependencies",
-    "knip:cycles": "pnpm run knip --cycles --reporter cycles"
+    "knip:cycles": "pnpm run knip --cycles --reporter cycles",
+    "gen:yak-layout": "node scripts/genYakLayout.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -76,6 +77,7 @@
     "@types/jest": "30.0.0",
     "@types/react": "19.3.0",
     "@types/trusted-types": "^2.0.7",
+    "@yak/react": "10.0.0",
     "compression-webpack-plugin": "12.0.0",
     "core-js": "3.45.0",
     "css-loader": "7.1.4",
@@ -123,6 +125,7 @@
     "oxlint": "1.88.0",
     "oxlint-plugin-eslint": "1.88.0",
     "oxlint-tsgolint": "7.0.2004",
+    "playwright": "^1.61.1",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.19.0",
     "run-on-changed": "0.4.0",

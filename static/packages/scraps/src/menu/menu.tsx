@@ -217,7 +217,9 @@ const StyledInnerWrap = styled(Flex, {
   shouldForwardProp: prop =>
     typeof prop === 'string' &&
     (isPropValid(prop) ||
-      ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
+      ['as', 'padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(
+        prop
+      )) &&
     !['disabled', 'isFocused', 'hasTrailingAction', 'priority'].includes(prop),
 })<{
   disabled: boolean;

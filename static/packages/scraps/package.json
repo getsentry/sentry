@@ -11,6 +11,7 @@
   ],
   "type": "module",
   "exports": {
+    "./styles.css": "./dist/styles.css",
     "./code/inlineCode": {
       "types": "./dist/code/inlineCode.d.ts",
       "import": "./dist/code/inlineCode.js"
@@ -252,7 +253,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rslib build",
+    "build": "rslib build && node scripts/extractYakCss.mjs",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build",
@@ -285,6 +286,7 @@
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
     "@types/react": "19.3.0",
+    "@yak/react": "10.0.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",

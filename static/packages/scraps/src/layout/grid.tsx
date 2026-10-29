@@ -1,16 +1,21 @@
-import type * as React from 'react';
-import styled from '@emotion/styled';
-
+const alignment: Record<string, string | undefined> = {
+  between: 'space-between',
+  around: 'space-around',
+  evenly: 'space-evenly',
+};
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {
-  Container,
+  addContainerStyles,
+  LayoutElement,
+  omitContainerProps,
   type ContainerElement,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
 } from './container';
-import {getSpacing, rc, type Responsive} from './styles';
+import {getSpacing, type Responsive} from './styles';
+import {addLayoutProp, useLayoutStyle} from './yakLayout';
 
 const omitGridProps = new Set<keyof GridLayoutProps | 'as'>([
   'align',
@@ -96,73 +101,22 @@ export type GridProps<T extends ContainerElement = 'div'> = ContainerProps<T> &
 export type GridPropsWithRenderFunction<T extends ContainerElement = 'div'> =
   ContainerPropsWithRenderFunction<T> & GridLayoutProps;
 
-export const Grid = styled(Container, {
-  shouldForwardProp: prop => {
-    return !omitGridProps.has(prop as keyof GridLayoutProps | 'as');
-  },
-})<GridProps<any> | GridPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'grid', p.theme)}
-
-  ${p => rc('gap', p.gap, p.theme, getSpacing)};
-
-  ${p => rc('grid-template-columns', p.columns, p.theme)};
-  ${p => rc('grid-template-rows', p.rows, p.theme)};
-  ${p => rc('grid-template-areas', p.areas, p.theme)};
-  ${p => rc('grid-auto-columns', p.autoColumns, p.theme)};
-  ${p => rc('grid-auto-rows', p.autoRows, p.theme)};
-  ${p => rc('grid-auto-flow', p.flow, p.theme)};
-
-  ${p =>
-    rc('justify-content', p.justify, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
-
-  ${p =>
-    rc('align-content', p.alignContent, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'start';
-        case 'end':
-          return 'end';
-        case 'center':
-          return 'center';
-        case 'between':
-          return 'space-between';
-        case 'around':
-          return 'space-around';
-        case 'evenly':
-          return 'space-evenly';
-        case 'stretch':
-          return 'stretch';
-        default:
-          return value;
-      }
-    })};
-
-  ${p => rc('align-items', p.align, p.theme)};
-  ${p => rc('justify-items', p.justifyItems, p.theme)};
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+const omitted = new Set<string>([...omitContainerProps, ...omitGridProps]);
+export function Grid<T extends ContainerElement = 'div'>(
   props: GridProps<T> | GridPropsWithRenderFunction<T>
-) => React.ReactElement;
+) {
+  const acc = useLayoutStyle(typeof props.children === 'function');
+  addContainerStyles(acc, props, props.display ?? 'grid');
+  addLayoutProp(acc, 'gap', props.gap, (v, theme) => getSpacing(v, undefined, theme));
+  addLayoutProp(acc, 'gridTemplateColumns', props.columns);
+  addLayoutProp(acc, 'gridTemplateRows', props.rows);
+  addLayoutProp(acc, 'gridTemplateAreas', props.areas);
+  addLayoutProp(acc, 'gridAutoColumns', props.autoColumns);
+  addLayoutProp(acc, 'gridAutoRows', props.autoRows);
+  addLayoutProp(acc, 'gridAutoFlow', props.flow);
+  addLayoutProp(acc, 'justifyContent', props.justify, v => alignment[v] ?? v);
+  addLayoutProp(acc, 'alignContent', props.alignContent, v => alignment[v] ?? v);
+  addLayoutProp(acc, 'alignItems', props.align);
+  addLayoutProp(acc, 'justifyItems', props.justifyItems);
+  return <LayoutElement elementProps={props} layoutStyle={acc} omitProps={omitted} />;
+}

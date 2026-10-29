@@ -1,9 +1,10 @@
 import {Fragment, type ReactNode} from 'react';
-import styled from '@emotion/styled';
+import {styled} from '@yak/react';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {StackProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text/text';
+import {withYakProps, withYakTheme} from '@sentry/scraps/yak';
 
 // interface + type union because `extends` doesn't play nicely with generics
 interface QuoteBaseProps {
@@ -41,7 +42,7 @@ export function Quote(props: QuoteProps) {
   );
 }
 
-const Line = styled('hr')`
+const Line = withYakTheme(styled(withYakProps('hr'))`
   position: absolute;
   top: 0;
   bottom: 0;
@@ -53,9 +54,9 @@ const Line = styled('hr')`
   padding-left: ${p => p.theme.space.xl};
   margin-left: ${p => p.theme.space.lg};
   border-left: 1px solid ${p => p.theme.tokens.border.primary};
-`;
+`);
 
-const Blockquote = styled('blockquote')`
+const Blockquote = withYakTheme(styled(withYakProps('blockquote'))`
   /**
    * Reset any properties that might be set by the global CSS styles.
    */
@@ -63,9 +64,9 @@ const Blockquote = styled('blockquote')`
   padding: 0;
   border: none;
   padding-left: calc(${p => `${p.theme.space.xl} + ${p.theme.space.lg}`});
-`;
+`);
 
-const Caption = styled('figcaption')`
+const Caption = withYakTheme(styled(withYakProps('figcaption'))`
   /**
    * Reset any properties that might be set by the global CSS styles.
    */
@@ -73,4 +74,4 @@ const Caption = styled('figcaption')`
   padding: 0;
   border: none;
   padding-left: calc(${p => `${p.theme.space.xl} + ${p.theme.space.lg}`});
-`;
+`);

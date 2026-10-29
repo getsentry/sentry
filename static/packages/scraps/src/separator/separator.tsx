@@ -1,49 +1,39 @@
 import type * as React from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
 
+import {LayoutElement} from '@sentry/scraps/layout/container';
 import type {ContainerProps} from '@sentry/scraps/layout/container';
-import {getBorder, getMargin, getSpacing, rc} from '@sentry/scraps/layout/styles';
+import {getBorder, getMargin, getSpacing} from '@sentry/scraps/layout/styles';
+import {addLayoutProp, useLayoutStyle} from '@sentry/scraps/layout/yakLayout';
 
 export type SeparatorProps = Pick<ContainerProps, 'border' | 'margin' | 'padding'> & {
   orientation: 'horizontal' | 'vertical';
   children?: never;
 } & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
 
-const omitSeparatorProps = new Set<keyof SeparatorProps>(['border']);
-
-/**
- * We require a wrapper if we want to use the orientation context,
- * otherwise the styling won't work as override needs to come from the parent.
- */
-export const Separator = styled(
-  ({orientation, ...props}: SeparatorProps) => {
-    return <hr aria-orientation={orientation} {...props} />;
-  },
-  {
-    shouldForwardProp: prop => {
-      if (omitSeparatorProps.has(prop as keyof SeparatorProps)) {
-        return false;
-      }
-      return isPropValid(prop);
-    },
-  }
-)<SeparatorProps>`
-  width: ${p => (p.orientation === 'horizontal' ? 'auto' : '1px')};
-  height: ${p => (p.orientation === 'horizontal' ? '1px' : 'auto')};
-
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('margin', p.margin ?? '0', p.theme, getMargin)};
-
-  flex-shrink: 0;
-  align-self: stretch;
-
-  border: none;
-  ${p =>
-    rc(
-      p.orientation === 'horizontal' ? 'border-bottom' : 'border-left',
-      p.border ?? 'primary',
-      p.theme,
-      (...args) => `${getBorder(...args)} !important`
-    )};
-`;
+const omitted = new Set(['orientation', 'border', 'padding', 'margin']);
+export function Separator({orientation, ...props}: SeparatorProps) {
+  const acc = useLayoutStyle();
+  acc.classNames.push('yk-separator');
+  addLayoutProp(acc, 'width', orientation === 'horizontal' ? 'auto' : '1px');
+  addLayoutProp(acc, 'height', orientation === 'horizontal' ? '1px' : 'auto');
+  addLayoutProp(acc, 'padding', props.padding, (v, theme) =>
+    getSpacing(v, undefined, theme)
+  );
+  addLayoutProp(acc, 'margin', props.margin ?? '0', (v, theme) =>
+    getMargin(v, undefined, theme)
+  );
+  addLayoutProp(acc, 'flexShrink', 0);
+  addLayoutProp(acc, 'alignSelf', 'stretch');
+  addLayoutProp(acc, 'border', 'none');
+  addLayoutProp(acc, 'separatorBorder', props.border ?? 'primary', (v, theme) =>
+    getBorder(v, undefined, theme)
+  );
+  return (
+    <LayoutElement
+      elementProps={{...props, 'aria-orientation': orientation}}
+      layoutStyle={acc}
+      omitProps={omitted}
+      defaultElement="hr"
+    />
+  );
+}

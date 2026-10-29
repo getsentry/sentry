@@ -267,6 +267,7 @@ function TagDetailsValue({
           <Text variant="primary">
             {textProps => (
               <Link
+                style={{...layoutProps.style, ...textProps.style}}
                 className={`${layoutProps.className} ${textProps.className}`}
                 to={valueLocation}
               >

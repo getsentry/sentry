@@ -15,6 +15,7 @@ import type {
 import rspack from '@rspack/core';
 import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
+import {pluginYak} from '@yak/react/rsbuild';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
@@ -26,6 +27,7 @@ import {
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
+import {YakCssPlugin} from './build-utils/yakCssPlugin.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
@@ -462,6 +464,7 @@ const appConfig: Configuration = {
       // We will cache using `Cache-Control` headers
       filename: 'entrypoints/[name].css',
     }),
+    new YakCssPlugin(),
 
     /**
      * Defines environment specific flags.
@@ -1064,15 +1067,17 @@ if (env.RSPACK_STATS) {
 const rsbuildConfig: RsbuildConfig = {
   root: import.meta.dirname,
   mode: WEBPACK_MODE,
-  plugins:
-    IS_UI_DEV_ONLY &&
+  plugins: [
+    pluginYak({strictCssProp: false}),
+    ...(IS_UI_DEV_ONLY &&
     !fs.existsSync(path.join(import.meta.dirname, 'config', 'localhost.pem'))
       ? [
           pluginBasicSsl({
             outputPath: path.join(import.meta.dirname, 'node_modules/.cache/basic-ssl'),
           }),
         ]
-      : [],
+      : []),
+  ],
   dev: {
     assetPrefix:
       typeof appConfig.output?.publicPath === 'string'
@@ -1100,7 +1105,29 @@ const rsbuildConfig: RsbuildConfig = {
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
       tools: {
         htmlPlugin: false,
-        rspack: config => ({...config, ...appConfig}),
+        rspack: config => ({
+          ...config,
+          ...appConfig,
+          module: {
+            ...appConfig.module,
+            rules: [
+              ...(appConfig.module?.rules ?? []),
+              // tools.rspack runs after plugin hooks. Preserve Yak's preloader
+              // when replacing Rsbuild's default JavaScript rules.
+              ...(config.module?.rules ?? []).filter(
+                rule => typeof rule === 'object' && rule?.enforce === 'pre'
+              ),
+              {
+                scheme: 'data',
+                mimetype: 'text/css',
+                type: 'javascript/auto',
+                use: [
+                  path.resolve(import.meta.dirname, 'build-utils/yak-css-loader.cjs'),
+                ],
+              },
+            ],
+          },
+        }),
       },
     },
     'service-worker': {
