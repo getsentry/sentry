@@ -1,8 +1,9 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo} from 'react';
+import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -19,6 +20,7 @@ import {
   type TourEnumType,
   type TourState,
   type TourStep,
+  type TourVariant,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
@@ -72,6 +74,11 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    * The assistant guide key of the tour. Should be declared in `src/sentry/assistant/guides.py`.
    */
   tourKey?: string;
+  /**
+   * How the tour presents itself. Use `subtle` for pages users already know.
+   * @default 'spotlight'
+   */
+  variant?: TourVariant;
 }
 
 export function TourContextProvider<T extends TourEnumType>({
@@ -81,6 +88,7 @@ export function TourContextProvider<T extends TourEnumType>({
   TourContext,
   orderedStepIds,
   enabled = true,
+  variant = 'spotlight',
   onEndTour,
   onStartTour,
   onStepChange,
@@ -110,12 +118,18 @@ export function TourContextProvider<T extends TourEnumType>({
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null && enabled;
   const visibleTourContextValue = useMemo(
-    () => (enabled ? tourContextValue : {...tourContextValue, currentStepId: null}),
-    [enabled, tourContextValue]
+    () => ({
+      ...tourContextValue,
+      currentStepId: enabled ? currentStepId : null,
+      variant,
+    }),
+    [enabled, tourContextValue, currentStepId, variant]
   );
 
+  // Subtle tours leave the page usable, so their guides handle these keys only
+  // while focused instead.
   useHotkeys(
-    isTourActive
+    isTourActive && variant === 'spotlight'
       ? [
           {
             match: 'Escape',
@@ -146,7 +160,9 @@ export function TourContextProvider<T extends TourEnumType>({
 
   return (
     <TourContext value={visibleTourContextValue}>
-      {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
+      {isTourActive && variant === 'spotlight' && (
+        <BlurWindow data-test-id="tour-blur-window" />
+      )}
       {children}
     </TourContext>
   );
@@ -266,6 +282,7 @@ export function TourElementContent<T extends TourEnumType>({
     previousStep,
     nextStep,
     endTour,
+    variant,
   } = tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
@@ -329,6 +346,30 @@ export function TourElementContent<T extends TourEnumType>({
     ]
   );
 
+  const dismiss = () => {
+    if (tourKey) {
+      mutate({guide: tourKey, status: 'dismissed'});
+      trackAnalytics('tour-guide.dismiss', {
+        organization,
+        id: id.toString(),
+        step_count: stepCount,
+        tour_key: tourKey,
+      });
+    }
+    endTour();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.stopPropagation();
+      dismiss();
+    } else if (event.key === 'ArrowLeft' && hasPreviousStep) {
+      previousStep();
+    } else if (event.key === 'ArrowRight' && hasNextStep) {
+      nextStep();
+    }
+  };
+
   return (
     <TourGuide
       title={title}
@@ -337,18 +378,8 @@ export function TourElementContent<T extends TourEnumType>({
       className={className}
       isOpen={isOpen}
       position={position}
-      handleDismiss={() => {
-        if (tourKey) {
-          mutate({guide: tourKey, status: 'dismissed'});
-          trackAnalytics('tour-guide.dismiss', {
-            organization,
-            id: id.toString(),
-            step_count: stepCount,
-            tour_key: tourKey,
-          });
-        }
-        endTour();
-      }}
+      handleDismiss={dismiss}
+      onKeyDown={variant === 'subtle' ? handleKeyDown : undefined}
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
@@ -379,6 +410,11 @@ interface TourGuideProps extends Omit<
   id?: string;
   margin?: number;
   offset?: UseOverlayProps['offset'];
+  /**
+   * Handles keys pressed while the guide has focus. The guide can then be
+   * focused, and keeps focus when the tour moves to another step.
+   */
+  onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
   stepCount?: number;
   stepTotal?: number;
@@ -397,6 +433,46 @@ const zIndex = {
  */
 const keepGuideInViewport = {crossAxis: true, tether: false};
 
+/**
+ * Whether focus is inside a guide, and whether a guide that had focus just
+ * closed. A step change closes one guide and opens the next in the same commit,
+ * so the next guide can take focus over. The handoff expires right after that
+ * commit, so a guide that opens later never steals focus.
+ */
+let guideHasFocus = false;
+let isHandingOffGuideFocus = false;
+
+function releaseGuideFocus() {
+  if (!guideHasFocus) {
+    return;
+  }
+  guideHasFocus = false;
+  isHandingOffGuideFocus = true;
+  queueMicrotask(() => {
+    isHandingOffGuideFocus = false;
+  });
+}
+
+function takeGuideFocus() {
+  const shouldTakeFocus = isHandingOffGuideFocus;
+  isHandingOffGuideFocus = false;
+  return shouldTakeFocus;
+}
+
+function handleGuideFocus() {
+  guideHasFocus = true;
+}
+
+function handleGuideBlur(event: React.FocusEvent<HTMLElement>) {
+  // A guide removed by a step change can still blur. Its focus is handed off.
+  if (
+    event.currentTarget.isConnected &&
+    !event.currentTarget.contains(event.relatedTarget)
+  ) {
+    guideHasFocus = false;
+  }
+}
+
 export function TourGuide({
   children,
   title,
@@ -410,6 +486,7 @@ export function TourGuide({
   stepTotal,
   offset,
   margin,
+  onKeyDown,
 }: TourGuideProps) {
   const theme = useTheme();
   const invertedTheme = useInvertedTheme();
@@ -418,7 +495,7 @@ export function TourGuide({
   const isDismissVisible = defined(handleDismiss);
   const isTopRowVisible = isStepCountVisible || isDismissVisible;
   const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
-  const {triggerProps, triggerRef, overlayProps, arrowProps} = useOverlay({
+  const {triggerProps, triggerRef, overlayProps, overlayRef, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
     position,
@@ -440,6 +517,29 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
+  // When the tour moves to another step while a guide has focus, focus the next
+  // guide so the user can keep navigating with the keyboard.
+  const isFocusable = defined(onKeyDown);
+  const shouldTakeFocusRef = useRef(false);
+  useEffect(() => {
+    if (!isOpen || !isFocusable) {
+      shouldTakeFocusRef.current = false;
+      return;
+    }
+    if (takeGuideFocus()) {
+      shouldTakeFocusRef.current = true;
+    }
+    // The guide's element can attach after it opens; this runs again then.
+    if (shouldTakeFocusRef.current && overlayRef.current) {
+      shouldTakeFocusRef.current = false;
+      overlayRef.current.focus();
+    }
+    return releaseGuideFocus;
+  }, [isOpen, isFocusable, overlayRef]);
+  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
+    ? {tabIndex: -1, onKeyDown, onFocus: handleGuideFocus, onBlur: handleGuideBlur}
+    : {};
+
   return (
     <Fragment>
       <ClassNames>
@@ -456,7 +556,10 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper zIndex={zIndex.overlay} {...overlayProps}>
+            <PositionWrapper
+              zIndex={zIndex.overlay}
+              {...mergeProps(overlayProps, focusProps)}
+            >
               <ThemeProvider theme={invertedTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (

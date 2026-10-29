@@ -115,9 +115,13 @@ describe('Settings navigation tour', () => {
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
-  it('can be dismissed with Escape', async () => {
+  it('handles Escape only while the guide has focus', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByText('Tour entry')).toBeInTheDocument();
+
+    act(() => screen.getByRole('button', {name: 'Next'}).focus());
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -130,12 +134,22 @@ describe('Settings navigation tour', () => {
     );
   });
 
-  it('blurs the page and navigates steps with the arrow keys', async () => {
+  it('does not blur the page', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    expect(screen.getByTestId('tour-blur-window')).toBeInTheDocument();
+    expect(screen.queryByTestId('tour-blur-window')).not.toBeInTheDocument();
+  });
+
+  it('navigates steps with the arrow keys while the guide has focus', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByText('Tour entry')).toBeInTheDocument();
+
+    act(() => screen.getByRole('button', {name: 'Next'}).focus());
     await userEvent.keyboard('{ArrowRight}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    // Focus moves to the new guide, so the keys keep working.
     await userEvent.keyboard('{ArrowLeft}');
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
   });
@@ -184,6 +198,13 @@ describe('Settings navigation tour', () => {
         tour_key: 'tour.settings_navigation',
       })
     );
+  });
+
+  it('stays open when the user clicks elsewhere on the page', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(document.body);
+    expect(screen.getByText('Tour entry')).toBeInTheDocument();
   });
 
   it('does not start inside settings where the organization menu is unavailable', () => {

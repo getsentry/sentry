@@ -67,6 +67,7 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
       isCompleted={false}
       orderedStepIds={STEPS}
       enabled={canShow}
+      variant="subtle"
       requireAllStepsRegistered={false}
     >
       <SettingsNavigationTourStarter shouldStart={canShow && !isSeen} />
