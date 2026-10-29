@@ -46,6 +46,13 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
+   * Whether the tour can be shown. A disabled tour is hidden from its elements
+   * without ending: it does not blur the page, mark the guide as viewed, or
+   * handle hotkeys, and resumes at the same step once enabled again.
+   * @default true
+   */
+  enabled?: boolean;
+  /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
   onEndTour?: () => void;
@@ -73,6 +80,7 @@ export function TourContextProvider<T extends TourEnumType>({
   tourKey,
   TourContext,
   orderedStepIds,
+  enabled = true,
   onEndTour,
   onStartTour,
   onStepChange,
@@ -100,7 +108,11 @@ export function TourContextProvider<T extends TourEnumType>({
     options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
-  const isTourActive = currentStepId !== null;
+  const isTourActive = currentStepId !== null && enabled;
+  const visibleTourContextValue = useMemo(
+    () => (enabled ? tourContextValue : {...tourContextValue, currentStepId: null}),
+    [enabled, tourContextValue]
+  );
 
   useHotkeys(
     isTourActive
@@ -131,7 +143,7 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey]);
 
   return (
-    <TourContext value={tourContextValue}>
+    <TourContext value={visibleTourContextValue}>
       {isTourActive && <BlurWindow data-test-id="tour-blur-window" />}
       {children}
     </TourContext>
@@ -419,7 +431,10 @@ export function TourGuide({
   // scroll that container.
   useEffect(() => {
     if (isOpen) {
-      triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
+      triggerRef.current?.scrollIntoView?.({
+        block: 'nearest',
+        behavior: 'smooth',
+      });
     }
   }, [isOpen, triggerRef]);
 

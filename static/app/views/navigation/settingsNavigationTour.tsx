@@ -1,18 +1,19 @@
-import {createContext, useContext, useEffect, useMemo, type ReactNode} from 'react';
+import {createContext, useContext, useEffect, type ReactNode} from 'react';
 
-import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
 import {
   TextTourAction,
   TourAction,
+  TourContextProvider,
   TourElement,
   type TourElementProps,
 } from 'sentry/components/tours/components';
-import {useTourReducer, type TourContextType} from 'sentry/components/tours/tourContext';
+import type {TourContextType} from 'sentry/components/tours/tourContext';
 import {useAssistant, useMutateAssistant} from 'sentry/components/tours/useAssistant';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
@@ -31,10 +32,6 @@ type Step = (typeof STEPS)[number];
 
 const SettingsNavigationTourContext = createContext<TourContextType<Step> | null>(null);
 
-/**
- * Uses the shared tour state instead of `TourContextProvider`, because this tour
- * must not blur the page and pauses, rather than ends, while it can't be shown.
- */
 export function SettingsNavigationTourProvider({children}: {children: ReactNode}) {
   const organization = useOrganization({allowNull: true});
   const user = useUser();
@@ -44,30 +41,10 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
   const navigationTour = useNavigationTour();
   const {visible: isModalVisible} = useModal();
   const {data: assistantData} = useAssistant();
-  const {mutate: mutateAssistant} = useMutateAssistant();
   // Treat the tour as seen until the assistant data says otherwise.
   const isSeen =
     assistantData?.find(item => item.guide === SETTINGS_NAVIGATION_TOUR_GUIDE_KEY)
       ?.seen ?? true;
-  const options = useMemo(
-    () => ({
-      onEndTour: () =>
-        mutateAssistant({guide: SETTINGS_NAVIGATION_TOUR_GUIDE_KEY, status: 'dismissed'}),
-      requireAllStepsRegistered: false,
-    }),
-    [mutateAssistant]
-  );
-  const tour = useTourReducer<Step>(
-    {
-      isCompleted: false,
-      isRegistered: false,
-      orderedStepIds: STEPS,
-      currentStepId: null,
-      tourKey: SETTINGS_NAVIGATION_TOUR_GUIDE_KEY,
-    },
-    options
-  );
-  const {isCompleted, currentStepId, startTour, endTour} = tour;
   const canShow =
     enabled &&
     !!organization &&
@@ -76,23 +53,35 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
     !inSettings &&
     !navigationTour.currentStepId &&
     !isModalVisible;
-  const isActive = canShow && currentStepId !== null;
+
+  // The tour pauses, rather than ends, while it can't be shown.
+  return (
+    <TourContextProvider<Step>
+      TourContext={SettingsNavigationTourContext}
+      tourKey={SETTINGS_NAVIGATION_TOUR_GUIDE_KEY}
+      isCompleted={false}
+      orderedStepIds={STEPS}
+      enabled={canShow}
+      requireAllStepsRegistered={false}
+    >
+      <SettingsNavigationTourStarter shouldStart={canShow && !isSeen} />
+      {children}
+    </TourContextProvider>
+  );
+}
+
+function SettingsNavigationTourStarter({shouldStart}: {shouldStart: boolean}) {
+  const tour = useContext(SettingsNavigationTourContext);
+  const startTour = tour?.startTour;
+  const isIdle = !!tour && !tour.isCompleted && tour.currentStepId === null;
 
   useEffect(() => {
-    if (canShow && !isSeen && !isCompleted && currentStepId === null) {
-      startTour();
+    if (shouldStart && isIdle) {
+      startTour?.();
     }
-  }, [canShow, isSeen, isCompleted, currentStepId, startTour]);
+  }, [shouldStart, isIdle, startTour]);
 
-  useHotkeys(isActive ? [{match: 'Escape', callback: endTour}] : []);
-
-  return (
-    <SettingsNavigationTourContext
-      value={canShow ? tour : {...tour, currentStepId: null}}
-    >
-      {children}
-    </SettingsNavigationTourContext>
-  );
+  return null;
 }
 
 export function useSettingsNavigationTour() {
@@ -103,18 +92,40 @@ export function SettingsNavigationTourElement(
   props: Omit<TourElementProps<Step>, 'tourContext' | 'actions'>
 ) {
   const tour = useContext(SettingsNavigationTourContext);
+  const organization = useOrganization({allowNull: true});
+  const {mutate: mutateAssistant} = useMutateAssistant();
   const isFirstStep = props.id === STEPS[0];
   const isLastStep = props.id === STEPS[STEPS.length - 1];
+  const analyticsParams = {
+    organization,
+    id: props.id,
+    step_count: STEPS.indexOf(props.id) + 1,
+    tour_key: SETTINGS_NAVIGATION_TOUR_GUIDE_KEY,
+  };
+
+  // Mirror the shared close button and finish action, which these replace.
+  const skipTour = () => {
+    mutateAssistant({
+      guide: SETTINGS_NAVIGATION_TOUR_GUIDE_KEY,
+      status: 'dismissed',
+    });
+    trackAnalytics('tour-guide.dismiss', analyticsParams);
+    tour?.endTour();
+  };
+  const finishTour = () => {
+    trackAnalytics('tour-guide.finish', analyticsParams);
+    tour?.endTour();
+  };
 
   return (
     <TourElement<Step>
       tourContext={SettingsNavigationTourContext}
       actions={
         <Flex data-settings-navigation-tour gap="md" align="center">
-          <TextTourAction onClick={isFirstStep ? tour?.endTour : tour?.previousStep}>
+          <TextTourAction onClick={isFirstStep ? skipTour : tour?.previousStep}>
             {isFirstStep ? t('Skip tour') : t('Previous')}
           </TextTourAction>
-          <TourAction onClick={isLastStep ? tour?.endTour : tour?.nextStep}>
+          <TourAction onClick={isLastStep ? finishTour : tour?.nextStep}>
             {isLastStep ? t('Done') : t('Next')}
           </TourAction>
         </Flex>

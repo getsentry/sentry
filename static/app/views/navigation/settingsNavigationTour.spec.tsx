@@ -6,6 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {Button} from '@sentry/scraps/button';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {
@@ -34,6 +35,8 @@ function Tour() {
   );
 }
 
+jest.mock('sentry/utils/analytics');
+
 const organization = OrganizationFixture({features: ['settings-v3']});
 
 describe('Settings navigation tour', () => {
@@ -61,7 +64,9 @@ describe('Settings navigation tour', () => {
   it('guides users through two steps without leaving the app', async () => {
     const {router} = render(<Tour />, {
       organization,
-      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/'},
+      },
     });
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     expect(screen.getByText('1/2')).toBeInTheDocument();
@@ -82,12 +87,10 @@ describe('Settings navigation tour', () => {
     render(<Tour />, {organization});
     await userEvent.click(await screen.findByRole('button', {name}));
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
-    expect(dismissRequest).toHaveBeenCalledWith(
-      '/assistant/',
-      expect.objectContaining({
-        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
-      })
+    const dismissals = dismissRequest.mock.calls.filter(
+      ([, options]) => options.data.status === 'dismissed'
     );
+    expect(dismissals).toHaveLength(1);
   });
 
   it('does not show once the user has seen it', async () => {
@@ -111,6 +114,62 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+
+  it('blurs the page and navigates steps with the arrow keys', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    expect(screen.getByTestId('tour-blur-window')).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowRight}');
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+  });
+
+  it('marks the guide as viewed once it shows', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(dismissRequest).toHaveBeenCalledWith(
+        '/assistant/',
+        expect.objectContaining({
+          data: {guide: 'tour.settings_navigation', status: 'viewed'},
+        })
+      )
+    );
+  });
+
+  it('tracks dismissing the guide', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Skip tour'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.dismiss',
+      expect.objectContaining({
+        id: 'entry',
+        step_count: 1,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
+  });
+
+  it('tracks finishing the guide', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Done'}));
+    expect(dismissRequest).not.toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.finish',
+      expect.objectContaining({
+        id: 'projects',
+        step_count: 2,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
   });
 
   it('does not start inside settings where the organization menu is unavailable', () => {
