@@ -181,8 +181,8 @@ jobs:
         if: needs.select-tests.outputs.has-selected-tests != 'true'
         # Keep in sync with MAX_SHARDS in .github/workflows/scripts/calculate-backend-test-shards.py
         run: |
-          echo "shard-count=22" >> "$GITHUB_OUTPUT"
-          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]" >> "$GITHUB_OUTPUT"
+          echo "shard-count=30" >> "$GITHUB_OUTPUT"
+          echo "shard-indices=[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29]" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -380,7 +380,8 @@ jobs:
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          mode: migrations
+          early-devservices: 'true'
 
       # Only master saves, so PRs restore the newest master dump.
       - name: Restore migrated test databases

@@ -314,6 +314,8 @@ class NotificationService[T: NotificationData]:
                     target_id=target.resource_id,
                     thread_identifier=result.provider_message_id,
                     provider_data=None,
+                    object_type=threading_options.thread_key.object_type,
+                    object_id=threading_options.thread_key.object_id,
                 )
                 ThreadingService.store_new_thread(
                     threading_config=threading_config,

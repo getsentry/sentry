@@ -29,6 +29,7 @@ import logging
 
 from sentry import features
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.private.event_stream import scm_event_stream
@@ -156,17 +157,19 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
         from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_review
 
         logger.info("autofix.pr_iteration.review_listener.scheduled", extra=repo_log_extra)
-        trigger_pr_iteration_from_review.delay(
-            organization_id=organization.id,
-            repo_id=repo.id,
-            integration_id=integration.id,
-            pr_number=pr_number,
-            review_id=review_id,
-            author_username=event.author.get("username"),
-            author_external_id=event.author.get("id"),
-            author_is_bot=event.is_bot,
-            delivery_authenticated=delivery_authenticated,
-        )
+        # The task inherits this through its header, as the legacy webhook handlers do.
+        with webhook_viewer_context(organization.id):
+            trigger_pr_iteration_from_review.delay(
+                organization_id=organization.id,
+                repo_id=repo.id,
+                integration_id=integration.id,
+                pr_number=pr_number,
+                review_id=review_id,
+                author_username=event.author.get("username"),
+                author_external_id=event.author.get("id"),
+                author_is_bot=event.is_bot,
+                delivery_authenticated=delivery_authenticated,
+            )
         dispatched = True
 
     if not dispatched:

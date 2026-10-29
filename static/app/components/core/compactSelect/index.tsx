@@ -11,7 +11,7 @@ export {
 
 export {CompositeSelect} from './composite';
 
-export {ControlContext} from './controlContext';
+export {ControlContext} from '@sentry/scraps/menu';
 
 export {HighlightText} from './highlightText';
 

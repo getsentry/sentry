@@ -26,6 +26,7 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 pytestmark = [requires_snuba]
 
@@ -39,6 +40,18 @@ def make_event(**kwargs: Any) -> dict[str, Any]:
 
 
 class TestGetEventSeverity(TestCase):
+    def setUp(self) -> None:
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
+        self.enterContext(
+            viewer_context_scope(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
+                    organization_id=self.organization.id,
+                    project_id=self.project.id,
+                )
+            )
+        )
+
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
         return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231})),
@@ -70,12 +83,13 @@ class TestGetEventSeverity(TestCase):
             "project_id": self.project.id,
         }
 
-        mock_urlopen.assert_called_with(
-            "POST",
-            "/v0/issues/severity-score",
-            body=orjson.dumps(payload),
-            headers={"content-type": "application/json;charset=utf-8"},
-            timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
+        call_args = mock_urlopen.call_args
+        assert call_args.args == ("POST", "/v0/issues/severity-score")
+        assert call_args.kwargs["body"] == orjson.dumps(payload)
+        assert call_args.kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
+        assert call_args.kwargs["headers"]["X-Viewer-Context"]
+        assert call_args.kwargs["timeout"] == options.get(
+            "issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT
         )
         assert severity == 0.1231
         assert reason == "ml"
@@ -99,7 +113,7 @@ class TestGetEventSeverity(TestCase):
             vc = decode_viewer_context(headers["X-Viewer-Context"], key="some-secret")
             assert isinstance(vc, ViewerContext)
             assert vc.organization_id == self.project.organization_id
-            assert vc.actor.type.value == "unknown"
+            assert vc.actor.type == ActorType.SYSTEM
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
@@ -128,12 +142,13 @@ class TestGetEventSeverity(TestCase):
                 "project_id": self.project.id,
             }
 
-            mock_urlopen.assert_called_with(
-                "POST",
-                "/v0/issues/severity-score",
-                body=orjson.dumps(payload),
-                headers={"content-type": "application/json;charset=utf-8"},
-                timeout=options.get("issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT),
+            call_args = mock_urlopen.call_args
+            assert call_args.args == ("POST", "/v0/issues/severity-score")
+            assert call_args.kwargs["body"] == orjson.dumps(payload)
+            assert call_args.kwargs["headers"]["content-type"] == "application/json;charset=utf-8"
+            assert call_args.kwargs["headers"]["X-Viewer-Context"]
+            assert call_args.kwargs["timeout"] == options.get(
+                "issues.severity.seer-timeout", settings.SEER_SEVERITY_TIMEOUT
             )
             assert severity == 0.1231
             assert reason == "ml"

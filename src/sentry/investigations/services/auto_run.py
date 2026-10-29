@@ -6,28 +6,13 @@ from django.db import router, transaction
 
 from sentry.investigations.models import (
     Investigation,
-    InvestigationBlock,
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
-    InvestigationBlockKind,
 )
 from sentry.investigations.services.executions import (
     block_execution_needs_dispatch,
     create_block_execution,
 )
-
-
-def _dependency_is_ready(block: InvestigationBlock) -> bool:
-    execution = (
-        block.result_execution
-        if block.kind == InvestigationBlockKind.QUERY
-        else block.content_execution
-    )
-    return (
-        execution is not None
-        and execution.status == InvestigationBlockExecutionStatus.COMPLETED
-        and block.stale_at is None
-    )
 
 
 def _dispatch_after_commit(execution: InvestigationBlockExecution) -> None:
@@ -52,11 +37,6 @@ def schedule_eligible_auto_run_blocks(
             .select_related(
                 "current_execution", "content_execution", "result_execution", "investigation"
             )
-            .prefetch_related(
-                "dependency_links__depends_on__current_execution",
-                "dependency_links__depends_on__content_execution",
-                "dependency_links__depends_on__result_execution",
-            )
             .order_by("position")
         )
         if any(
@@ -78,9 +58,6 @@ def schedule_eligible_auto_run_blocks(
                     InvestigationBlockExecutionStatus.CANCELLED,
                 }:
                     continue
-            dependencies = [link.depends_on for link in block.dependency_links.all()]
-            if not all(_dependency_is_ready(dependency) for dependency in dependencies):
-                continue
             execution, created = create_block_execution(
                 block=block,
                 expected_investigation_version=investigation.version,

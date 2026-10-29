@@ -112,22 +112,9 @@ class RecordSentTest(TestCase):
                 source="activity-seer-rca-completed",
                 category="activity",
                 provider="email",
-                stage=None,
                 links=["issue", "seer"],
             ),
         )
-
-    @override_options(ENABLED_OPTIONS)
-    def test_stage_tag(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
-        record_sent(replace(CONTEXT, stage="root_cause"))
-
-        tags = {
-            "source": "activity-seer-rca-completed",
-            "provider": "email",
-            "category": "activity",
-            "stage": "root_cause",
-        }
-        mock_incr.assert_called_once_with("notifications.tracking.sent", tags=tags, sample_rate=1.0)
 
     def test_disabled(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_sent(CONTEXT, links=["issue"])
@@ -182,7 +169,6 @@ class RecordEngagementTest(TestCase):
                 source="activity-seer-rca-completed",
                 category="activity",
                 provider="email",
-                stage=None,
                 link="issue",
                 mechanism="page_load",
                 user_id=2,
@@ -255,7 +241,7 @@ class RecordEngagementTest(TestCase):
             NotificationLink.SEER_AGENT_RUN,
         ),
         (
-            "https://acme.sentry.io/explore/investigations/1/",
+            "https://acme.sentry.io/seer/investigations/1/",
             NotificationLink.INVESTIGATION,
         ),
     ],
