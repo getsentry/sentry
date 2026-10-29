@@ -1,5 +1,5 @@
 import ast
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from pathlib import Path
 from typing import Any
 from unittest import mock
@@ -199,4 +199,70 @@ def test_request_user_is_only_set_by_set_request_principal() -> None:
                     offenders.append(f"{path.relative_to(SRC)}:{target.lineno}")
     assert not offenders, (
         f"Set request.user and request.auth with set_request_principal: {offenders}"
+    )
+
+
+def _is_request_user(node: ast.AST) -> bool:
+    if not (isinstance(node, ast.Attribute) and node.attr == "user"):
+        return False
+    value = node.value
+    return (isinstance(value, ast.Name) and value.id == "request") or (
+        isinstance(value, ast.Attribute) and value.attr == "request"
+    )
+
+
+def _count(predicate: Callable[[ast.AST], bool]) -> int:
+    return sum(
+        1
+        for path in SRC.rglob("*.py")
+        for node in ast.walk(ast.parse(path.read_bytes()))
+        if predicate(node)
+    )
+
+
+def _is_request_user_id(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr in ("id", "pk")
+        and _is_request_user(node.value)
+    )
+
+
+def _is_request_user_type_check(node: ast.AST) -> bool:
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in ("isinstance", "hasattr", "getattr")
+        and bool(node.args)
+        and _is_request_user(node.args[0])
+    )
+
+
+# Lower these as callers move off. Exact, so the baseline can't drift back up.
+REQUEST_USER_ID_BASELINE = 492
+REQUEST_USER_TYPE_CHECK_BASELINE = 31
+
+
+def test_request_user_id_uses_only_go_down() -> None:
+    count = _count(_is_request_user_id)
+    assert count <= REQUEST_USER_ID_BASELINE, (
+        f"{count - REQUEST_USER_ID_BASELINE} new request.user.id use(s). It isn't a user id "
+        "for callers with no human, e.g. service accounts: read request.user.user_id and "
+        "handle None, or call require_user(request) if this only works for a person."
+    )
+    assert count == REQUEST_USER_ID_BASELINE, (
+        f"request.user.id uses dropped to {count}; lower REQUEST_USER_ID_BASELINE to match."
+    )
+
+
+def test_request_user_type_checks_only_go_down() -> None:
+    count = _count(_is_request_user_type_check)
+    assert count <= REQUEST_USER_TYPE_CHECK_BASELINE, (
+        f"{count - REQUEST_USER_TYPE_CHECK_BASELINE} new isinstance/hasattr/getattr check(s) "
+        "on request.user. Callers include agents and service accounts: branch on "
+        "request.user.user_id or is_authenticated instead."
+    )
+    assert count == REQUEST_USER_TYPE_CHECK_BASELINE, (
+        f"request.user type checks dropped to {count}; lower "
+        "REQUEST_USER_TYPE_CHECK_BASELINE to match."
     )
