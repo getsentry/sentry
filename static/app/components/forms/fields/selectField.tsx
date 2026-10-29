@@ -1,5 +1,6 @@
-import {Component} from 'react';
+import {Component, createContext, useContext} from 'react';
 
+import {Flex} from '@sentry/scraps/layout';
 import type {ControlProps, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -15,6 +16,18 @@ import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices'
 import type {InputFieldProps} from './inputField';
 
 const NONE_SELECTED_LABEL = t('None selected');
+
+const SelectFieldControlStateContext = createContext<React.ReactNode>(null);
+
+function SelectFieldIndicators({children}: {children: React.ReactNode}) {
+  const controlState = useContext(SelectFieldControlStateContext);
+  return (
+    <Flex align="center" paddingRight="sm">
+      {controlState}
+      {children}
+    </Flex>
+  );
+}
 
 export interface SelectFieldProps<
   TValue,
@@ -158,73 +171,77 @@ export class SelectField<
                 : [props.value]
             : (props.value ?? null);
           return (
-            <Tooltip title={disabledReason} disabled={!disabled}>
-              <Select
-                {...props}
-                options={
-                  options ??
-                  convertFromSelect2Choices(
-                    typeof choices === 'function' ? choices(fieldProps) : choices
-                  ) ??
-                  []
-                }
-                value={value}
-                placeholder={placeholder}
-                disabled={disabled}
-                id={id}
-                clearable={allowClear}
-                multiple={multiple}
-                emptyOptionLabel={NONE_SELECTED_LABEL}
-                indicator={
-                  !hideControlState && <FormFieldControlState model={model} name={name} />
-                }
-                styles={{
-                  control: (provided: any) => ({
-                    ...provided,
-                    height: 'auto',
-                  }),
-                  ...props.styles,
-                }}
-                onChange={(val: any) => {
-                  try {
-                    if (!confirm) {
-                      this.handleChange(onBlur, onChange, val);
-                      return;
-                    }
-
-                    // Support 'confirming' selections. This only works with
-                    // `val` objects that use the new-style options format
-                    const previousValue = props.value?.toString();
-                    // `val` may be null if clearing the select for an optional field
-                    const newValue = val?.value?.toString();
-
-                    // Value not marked for confirmation, or hasn't changed
-                    if (!confirm[newValue] || previousValue === newValue) {
-                      this.handleChange(onBlur, onChange, val);
-                      return;
-                    }
-
-                    openConfirmModal({
-                      onConfirm: () => this.handleChange(onBlur, onChange, val),
-                      message: confirm[val?.value] ?? t('Continue with these changes?'),
-                    });
-                  } catch (e: any) {
-                    // Swallow expected error to prevent bubbling up.
-                    if (e.message === 'Invalid selection. Field cannot be empty.') {
-                      return;
-                    }
-                    throw e;
+            <SelectFieldControlStateContext
+              value={
+                !hideControlState && <FormFieldControlState model={model} name={name} />
+              }
+            >
+              <Tooltip title={disabledReason} disabled={!disabled}>
+                <Select
+                  {...props}
+                  options={
+                    options ??
+                    convertFromSelect2Choices(
+                      typeof choices === 'function' ? choices(fieldProps) : choices
+                    ) ??
+                    []
                   }
-                }}
-                onBlur={() => {
-                  // For multiple selects, trigger onBlur when the component actually loses focus
-                  // (as opposed to on every selection which would close the menu)
-                  if (multiple) {
-                    onBlur?.(props.value, {});
-                  }
-                }}
-              />
-            </Tooltip>
+                  value={value}
+                  placeholder={placeholder}
+                  disabled={disabled}
+                  id={id}
+                  clearable={allowClear}
+                  multiple={multiple}
+                  emptyOptionLabel={NONE_SELECTED_LABEL}
+                  components={{Indicators: SelectFieldIndicators, ...props.components}}
+                  styles={{
+                    control: (provided: any) => ({
+                      ...provided,
+                      height: 'auto',
+                    }),
+                    ...props.styles,
+                  }}
+                  onChange={(val: any) => {
+                    try {
+                      if (!confirm) {
+                        this.handleChange(onBlur, onChange, val);
+                        return;
+                      }
+
+                      // Support 'confirming' selections. This only works with
+                      // `val` objects that use the new-style options format
+                      const previousValue = props.value?.toString();
+                      // `val` may be null if clearing the select for an optional field
+                      const newValue = val?.value?.toString();
+
+                      // Value not marked for confirmation, or hasn't changed
+                      if (!confirm[newValue] || previousValue === newValue) {
+                        this.handleChange(onBlur, onChange, val);
+                        return;
+                      }
+
+                      openConfirmModal({
+                        onConfirm: () => this.handleChange(onBlur, onChange, val),
+                        message: confirm[val?.value] ?? t('Continue with these changes?'),
+                      });
+                    } catch (e: any) {
+                      // Swallow expected error to prevent bubbling up.
+                      if (e.message === 'Invalid selection. Field cannot be empty.') {
+                        return;
+                      }
+                      throw e;
+                    }
+                  }}
+                  onBlur={() => {
+                    // For multiple selects, trigger onBlur when the component actually loses focus
+                    // (as opposed to on every selection which would close the menu)
+                    if (multiple) {
+                      onBlur?.(props.value, {});
+                    }
+                  }}
+                />
+              </Tooltip>
+            </SelectFieldControlStateContext>
           );
         }}
       </FormField>

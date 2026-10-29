@@ -5,6 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {
   BaseSelectProps,
+  SelectComponents,
   SelectSelectionProps,
   SelectValue,
 } from '@sentry/scraps/select';
@@ -28,13 +29,14 @@ type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   | 'disabled'
   | 'ref'
   | 'inputRef'
-  | 'renderIndicators'
+  | 'components'
   | 'emptyOptionLabel'
   | 'id'
   | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<TOption & SelectValue<TValue>>;
+    components?: Omit<SelectComponents<TOption>, 'Indicators'>;
   };
 
 export type SelectFieldProps<
@@ -75,9 +77,7 @@ export function SelectField<
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
-            renderIndicators={indicators => (
-              <SelectIndicatorsContainer>{indicators}</SelectIndicatorsContainer>
-            )}
+            components={{...props.components, Indicators: SelectIndicatorsContainer}}
             onOpenChange={isOpen => {
               isMenuOpenRef.current = isOpen;
               props.onOpenChange?.(isOpen);

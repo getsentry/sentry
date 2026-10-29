@@ -457,6 +457,7 @@ function AggregateMultiSelect({
 
   return (
     <AggregateCompositeSelect
+      fullWidth={defined(selectedFormula)}
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -540,9 +541,13 @@ function AggregateMultiSelect({
   );
 }
 
-const AggregateCompositeSelect = styled(CompositeSelect)`
-  width: 100px;
-  flex-shrink: 0;
+const AggregateCompositeSelect = styled(CompositeSelect, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  ${p =>
+    p.fullWidth
+      ? 'flex: 1 1; min-width: 0; width: 100%;'
+      : 'width: 100px; flex-shrink: 0;'}
 
   > button {
     width: 100%;

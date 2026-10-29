@@ -383,6 +383,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
+    "sentry.middleware.request_memory.RequestMemoryMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
@@ -494,6 +495,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.workflow_engine",
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
+    "sentry.notebooks.apps.NotebooksConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
@@ -2521,7 +2523,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.10.0"
+SELF_HOSTED_STABLE_VERSION = "26.10.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses

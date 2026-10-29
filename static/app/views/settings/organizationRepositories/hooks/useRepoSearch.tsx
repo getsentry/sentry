@@ -4,7 +4,14 @@ import type {Repository} from 'sentry/types/integrations';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import type {ScmRepoMatches} from 'sentry/views/settings/organizationRepositories/types';
 
-const FUSE_OPTIONS = {keys: ['name'], minMatchCharLength: 1};
+// Allows about one typo per five characters, matched anywhere in the name.
+// Looser thresholds match most repos in orgs that share an owner prefix.
+const FUSE_OPTIONS = {
+  keys: ['name'],
+  minMatchCharLength: 1,
+  threshold: 0.1,
+  ignoreLocation: true,
+};
 
 /**
  * Builds a fuzzy search index over the given repositories and returns a

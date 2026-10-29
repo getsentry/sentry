@@ -453,17 +453,20 @@ describe('FiltersBar', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('defaults to normal and can switch to low priority', async () => {
+    it('defaults to normal and can switch to faster', async () => {
       organization = OrganizationFixture({
         features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
       });
       renderFilterBar();
 
       await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Low priority'}));
+      expect(screen.getByText('Relatively Accurate')).toBeInTheDocument();
+      expect(screen.getByText('Low Accuracy')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
 
       expect(
-        screen.getByRole('button', {name: 'Query priority: Low priority'})
+        screen.getByRole('button', {name: 'Query priority: Faster'})
       ).toBeInTheDocument();
     });
   });

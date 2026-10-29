@@ -3,6 +3,40 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {SelectField} from './selectField';
 
 describe('legacy SelectField options', () => {
+  it('shows field errors in the indicators and retains the clear control', async () => {
+    const onChange = jest.fn();
+    const {rerender} = render(
+      <SelectField
+        name="fruit"
+        label="Fruit"
+        value="apple"
+        choices={[['apple', 'Apple']]}
+        allowClear
+        error="Invalid fruit"
+        onChange={onChange}
+      />
+    );
+
+    expect(await screen.findByText('Invalid fruit')).toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText('Clear choices'));
+    expect(onChange).toHaveBeenCalledWith(null, expect.anything());
+
+    rerender(
+      <SelectField
+        name="fruit"
+        label="Fruit"
+        value="apple"
+        choices={[['apple', 'Apple']]}
+        allowClear
+        error="Invalid fruit"
+        hideControlState
+      />
+    );
+
+    expect(screen.queryByText('Invalid fruit')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Clear choices')).toBeInTheDocument();
+  });
+
   it('converts choices and returns the selected raw value', async () => {
     const onChange = jest.fn();
     render(

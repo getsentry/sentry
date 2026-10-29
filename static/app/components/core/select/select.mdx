@@ -579,17 +579,27 @@ Use multi-select for tag or category selection:
 Use the select's content props to customize its appearance. The select owns input,
 option, and chip behavior; callers do not need implementation components or their props.
 
-| Prop                                   | Purpose                                                        |
-| -------------------------------------- | -------------------------------------------------------------- |
-| `renderValue(option)`                  | Render the selected value in a single select.                  |
-| `renderOptionLabel(option)`            | Render an option label while retaining its selection behavior. |
-| `renderMultiValueLabel(option, label)` | Render chip content while retaining the remove control.        |
-| `controlLeadingItems`                  | Add content before the value and search input.                 |
-| `dropdownIndicator`                    | Replace the dropdown icon, or pass `null` to hide it.          |
-| `indicator`                            | Add status content beside the default indicators.              |
-| `renderIndicators(children)`           | Arrange or hide the indicator area.                            |
-| `menuFooter`                           | Add content after the options, outside the scroll container.   |
-| `virtualized`                          | Virtualize a large list, including grouped options.            |
+| Prop                         | Purpose                                                         |
+| ---------------------------- | --------------------------------------------------------------- |
+| `components.Value`           | Selected value content. Receives `option`.                      |
+| `components.OptionLabel`     | Option label content. Receives `option`.                        |
+| `components.MultiValueLabel` | Chip content. Receives `option` and `children`.                 |
+| `controlLeadingItems`        | Add content before the value and search input.                  |
+| `dropdownIndicator`          | Replace the dropdown icon, or pass `null` to hide it.           |
+| `components.Indicators`      | Indicator wrapper. Receives `children`; pass `null` to hide it. |
+| `menuFooter`                 | Add content after the options, outside the scroll container.    |
+| `virtualized`                | Virtualize a large list, including grouped options.             |
+
+Pass component types in `components`, for example:
+
+```tsx
+<Select options={options} components={{Value: FruitValue, Indicators: FruitIndicators}} />
+```
+
+Option components receive the full option as their `option` prop.
+`MultiValueLabel` receives the default label as `children`, and `Indicators`
+receives the default indicator controls as `children`. Define these components
+outside the parent component so they keep the same identity between renders.
 
 Set `isOpen` and `onOpenChange` to control the menu. The component `ref` exposes
 `focus()` and `blur()`. Use `inputRef` to access the native search input.
