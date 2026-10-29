@@ -23,6 +23,7 @@ from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
 
@@ -185,7 +186,9 @@ def validate_detectors_exist_and_have_permissions(
 def validate_workflows_exist(
     workflow_ids: list[int], organization: Organization
 ) -> QuerySet[Workflow]:
-    workflows = Workflow.objects.filter(organization=organization, id__in=workflow_ids)
+    workflows = Workflow.objects.filter(
+        organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
+    )
     found_workflow_ids = set(workflows.values_list("id", flat=True))
     missing_workflow_ids = set(workflow_ids) - found_workflow_ids
 
@@ -378,10 +381,13 @@ def connect_detectors_to_workflows(
             return detector_workflows_to_add
 
         if update:
+            # Hidden workflow types never appear in workflow_ids, so their
+            # connections are left untouched rather than removed.
             existing_detector_workflows = list(
                 DetectorWorkflow.objects.filter(
                     detector_id=detector_id,
                     detector__in=Detector.objects.by_organization(organization.id),
+                    workflow__type__in=VISIBLE_WORKFLOW_TYPES,
                 )
             )
             new_workflow_ids = set(workflow_ids) - {
