@@ -28,7 +28,6 @@ export default function DetectorNewSettings() {
   const [detectorType] = useDetectorTypeQueryState();
   const [duplicateFromParam] = useQueryState('duplicateFrom', parseAsString);
   const draft = useInitialDetectorDraft();
-  // Uptime drafts omit headers, body, and credentialed URLs, so keep the source.
   const duplicateFrom =
     draft && detectorType !== 'uptime_domain_failure' ? null : duplicateFromParam;
   const isDuplicateOptional = Boolean(draft);
