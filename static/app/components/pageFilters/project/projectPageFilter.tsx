@@ -6,6 +6,7 @@ import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconMyProjects} from '@sentry/icons/myProjects';
 import {IconOpen} from '@sentry/icons/open';
 import {IconSettings} from '@sentry/icons/settings';
+import {IconStar} from '@sentry/icons/star';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
 
@@ -38,7 +39,8 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
  * Maximum number of projects that can be selected at a time (due to server limits). This
- * does not apply to special values like "My Projects" and "All Projects".
+ * does not apply to special values like "My Projects" and "All Projects". It does apply
+ * to "Favorite Projects", which is committed to the URL as explicit project IDs.
  */
 const SELECTION_COUNT_LIMIT = 50;
 
@@ -121,7 +123,8 @@ export function ProjectPageFilter({
           <MenuComponents.Checkbox
             checked={
               optionSelectionIntent.kind === 'all' ||
-              (optionSelectionIntent.kind === 'my' && project.isMember)
+              (optionSelectionIntent.kind === 'my' && project.isMember) ||
+              (optionSelectionIntent.kind === 'favorites' && project.isBookmarked)
                 ? true
                 : isSelected
             }
@@ -140,6 +143,14 @@ export function ProjectPageFilter({
                 dispatchRef.current?.({
                   type: 'set staged',
                   value: memberProjectIds(projects).filter(id => id !== projectId),
+                });
+              } else if (
+                optionSelectionIntent.kind === 'favorites' &&
+                project.isBookmarked
+              ) {
+                dispatchRef.current?.({
+                  type: 'set staged',
+                  value: favoriteProjectIds(projects).filter(id => id !== projectId),
                 });
               } else {
                 toggleOptionRef.current?.(projectId);
@@ -217,9 +228,14 @@ export function ProjectPageFilter({
 
     const memberProjectList = memberProjects(projects);
     const nonMemberProjectList = nonMemberProjects(projects);
+    const showAllProjects = projects.length > 1 && nonMemberProjectList.length > 0;
+    const showMyProjects =
+      memberProjectList.length > 0 && memberProjectList.length < projects.length;
+    const favoriteProjectList = favoriteProjects(projects);
+    const showFavoriteProjects = projects.length > 1 && favoriteProjectList.length > 0;
 
     const specialItems = [
-      ...(projects.length > 1 && nonMemberProjectList.length > 0
+      ...(showAllProjects
         ? [
             {
               value: ALL_ACCESS_PROJECTS,
@@ -228,8 +244,8 @@ export function ProjectPageFilter({
                   icon={<IconAllProjects size="md" variant="muted" />}
                   label={t('All Projects')}
                   count={projects.length}
-                  // Divide from the project list if My Projects isn't shown below
-                  showDivider={memberProjectList.length === 0}
+                  // Divide from the project list if no other quick-select is shown below
+                  showDivider={!showMyProjects && !showFavoriteProjects}
                 />
               ),
               textValue: t('All Projects'),
@@ -251,7 +267,7 @@ export function ProjectPageFilter({
             } satisfies SelectOption<number>,
           ]
         : []),
-      ...(memberProjectList.length > 0 && memberProjectList.length < projects.length
+      ...(showMyProjects
         ? [
             {
               value: MY_PROJECTS_VALUE,
@@ -260,7 +276,7 @@ export function ProjectPageFilter({
                   icon={<IconMyProjects size="md" variant="muted" />}
                   label={t('My Projects')}
                   count={memberProjectList.length}
-                  showDivider
+                  showDivider={!showFavoriteProjects}
                 />
               ),
               textValue: t('My Projects'),
@@ -294,6 +310,53 @@ export function ProjectPageFilter({
                     });
                   }}
                   aria-label={t('Select My Projects')}
+                  tabIndex={-1}
+                />
+              ),
+            } satisfies SelectOption<number>,
+          ]
+        : []),
+      ...(showFavoriteProjects
+        ? [
+            {
+              value: FAVORITE_PROJECTS_VALUE,
+              label: (
+                <QuickSelectLabel
+                  icon={<IconStar size="md" variant="muted" />}
+                  label={t('Favorite Projects')}
+                  count={favoriteProjectList.length}
+                  showDivider
+                />
+              ),
+              textValue: t('Favorite Projects'),
+              leadingItems: () => (
+                <MenuComponents.Checkbox
+                  checked={
+                    optionSelectionIntent.kind === 'all' ||
+                    optionSelectionIntent.kind === 'favorites'
+                  }
+                  onChange={() => {
+                    if (optionSelectionIntent.kind === 'all') {
+                      // Remove favorite projects from the "all" selection
+                      dispatchRef.current?.({
+                        type: 'set staged',
+                        value: nonFavoriteProjectIds(projects),
+                      });
+                      return;
+                    }
+                    if (optionSelectionIntent.kind === 'favorites') {
+                      dispatchRef.current?.({
+                        type: 'set staged',
+                        value: [],
+                      });
+                      return;
+                    }
+                    dispatchRef.current?.({
+                      type: 'set staged',
+                      value: [FAVORITE_PROJECTS_VALUE],
+                    });
+                  }}
+                  aria-label={t('Select Favorite Projects')}
                   tabIndex={-1}
                 />
               ),
@@ -342,12 +405,12 @@ export function ProjectPageFilter({
   const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 
   // Selection staging and commit behavior
-  const selectionLimitExceeded = useMemo(() => {
-    const stagedSelectionIntent = selectionToIntent({
-      projects,
-      selection: stagedValue,
-    });
+  const stagedSelectionIntent = useMemo(
+    () => selectionToIntent({projects, selection: stagedValue}),
+    [projects, stagedValue]
+  );
 
+  const selectionLimitExceeded = useMemo(() => {
     if (stagedSelectionIntent.kind === 'my') {
       return false;
     }
@@ -362,11 +425,8 @@ export function ProjectPageFilter({
       return false;
     }
 
-    const realStagedValue = stagedValue.filter(
-      v => v !== ALL_ACCESS_PROJECTS && v !== MY_PROJECTS_VALUE
-    );
-    return realStagedValue.length > SELECTION_COUNT_LIMIT;
-  }, [stagedValue, urlProjectSelection, projects]);
+    return stagedSelectionIntent.ids.length > SELECTION_COUNT_LIMIT;
+  }, [stagedSelectionIntent, stagedValue, urlProjectSelection]);
 
   const onToggle = (newValue: number[]) => {
     trackAnalytics('projectselector.toggle', {
@@ -390,6 +450,8 @@ export function ProjectPageFilter({
       resolvedValue = [];
     } else if (newValue.includes(MY_PROJECTS_VALUE)) {
       resolvedValue = memberProjectIds(projects);
+    } else if (newValue.includes(FAVORITE_PROJECTS_VALUE)) {
+      resolvedValue = favoriteProjectIds(projects);
     }
 
     onChange?.(resolvedValue);
@@ -424,7 +486,9 @@ export function ProjectPageFilter({
 
   const filterOptionsOnSearch = useCallback(
     (option: SelectOption<number>) =>
-      option.value !== ALL_ACCESS_PROJECTS && option.value !== MY_PROJECTS_VALUE,
+      option.value !== ALL_ACCESS_PROJECTS &&
+      option.value !== MY_PROJECTS_VALUE &&
+      option.value !== FAVORITE_PROJECTS_VALUE,
     []
   );
 
@@ -512,7 +576,7 @@ export function ProjectPageFilter({
             "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
             {
               limit: SELECTION_COUNT_LIMIT,
-              count: stagedSelect.value.length,
+              count: stagedSelectionIntent.ids.length,
             }
           )}
         </MenuComponents.Alert>
@@ -653,7 +717,11 @@ function QuickSelectLabel({
  * "All Projects".
  */
 const MY_PROJECTS_VALUE = -2;
-type SelectionIntentKind = 'all' | 'my' | 'custom' | 'none';
+/**
+ * Sentinel value for the "Favorite Projects" quick-select option (bookmarked projects).
+ */
+const FAVORITE_PROJECTS_VALUE = -3;
+type SelectionIntentKind = 'all' | 'my' | 'favorites' | 'custom' | 'none';
 interface SelectionIntent {
   ids: number[];
   kind: SelectionIntentKind;
@@ -691,7 +759,7 @@ function urlSelectionToIntent({
 }
 
 /**
- * Converts an array of project IDs (which may contain sentinel values -1 or -2)
+ * Converts an array of project IDs (which may contain sentinel values -1, -2, or -3)
  * to a SelectionIntent. Unlike urlSelectionToIntent, an empty array means "none"
  * (no projects selected), not "My Projects".
  */
@@ -712,6 +780,9 @@ function selectionToIntent({
   if (selection.includes(MY_PROJECTS_VALUE)) {
     return {kind: 'my', ids: memberProjectIds(projects)};
   }
+  if (selection.includes(FAVORITE_PROJECTS_VALUE)) {
+    return {kind: 'favorites', ids: favoriteProjectIds(projects)};
+  }
 
   // If the user manually selected all projects
   if (hasSameValues(selection, allProjectIds(projects))) {
@@ -722,6 +793,10 @@ function selectionToIntent({
   // so closed-org users see the "My Projects" checkbox checked when appropriate.
   if (hasSameValues(selection, memberProjectIds(projects))) {
     return {kind: 'my', ids: memberProjectIds(projects)};
+  }
+
+  if (hasSameValues(selection, favoriteProjectIds(projects))) {
+    return {kind: 'favorites', ids: favoriteProjectIds(projects)};
   }
 
   return {kind: 'custom', ids: selection};
@@ -790,6 +865,20 @@ function nonMemberProjects(projects: Project[]): Project[] {
 
 function nonMemberProjectIds(projects: Project[]): number[] {
   return nonMemberProjects(projects).map(project => parseInt(project.id, 10));
+}
+
+function favoriteProjects(projects: Project[]): Project[] {
+  return projects.filter(project => project.isBookmarked);
+}
+
+function favoriteProjectIds(projects: Project[]): number[] {
+  return favoriteProjects(projects).map(project => parseInt(project.id, 10));
+}
+
+function nonFavoriteProjectIds(projects: Project[]): number[] {
+  return projects
+    .filter(project => !project.isBookmarked)
+    .map(project => parseInt(project.id, 10));
 }
 
 function allProjectIds(projects: Project[]): number[] {

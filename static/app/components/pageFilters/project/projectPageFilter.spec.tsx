@@ -24,6 +24,14 @@ const projects = [
   ProjectFixture({id: '3', slug: 'project-3', isMember: false}),
 ];
 
+const QUICK_SELECT_LABELS = ['All Projects', 'My Projects', 'Favorite Projects'];
+
+function getProjectRows() {
+  return screen
+    .getAllByRole('row')
+    .filter(row => !QUICK_SELECT_LABELS.includes(row.getAttribute('aria-label') ?? ''));
+}
+
 describe('ProjectPageFilter', () => {
   beforeEach(() => {
     OrganizationStore.init();
@@ -790,8 +798,7 @@ describe('ProjectPageFilter', () => {
     // Open menu
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    // All projects are members so no special items are shown
-    const projectRows = screen.getAllByRole('row');
+    const projectRows = getProjectRows();
 
     // Verify sort order:
     // 1. Selected project (selected-project)
@@ -834,15 +841,14 @@ describe('ProjectPageFilter', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
-    const projectRows = screen.getAllByRole('row');
+    const projectRows = getProjectRows();
 
-    // Skip the 2 special items (All Projects, My Projects)
-    expect(within(projectRows[2]!).getByText('selected-project')).toBeInTheDocument();
+    expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(
-      within(projectRows[3]!).getByText('bookmarked-non-member')
+      within(projectRows[1]!).getByText('bookmarked-non-member')
     ).toBeInTheDocument();
-    expect(within(projectRows[4]!).getByText('member-project')).toBeInTheDocument();
-    expect(within(projectRows[5]!).getByText('non-member-project')).toBeInTheDocument();
+    expect(within(projectRows[2]!).getByText('member-project')).toBeInTheDocument();
+    expect(within(projectRows[3]!).getByText('non-member-project')).toBeInTheDocument();
   });
 
   it('maintains stable sort when bookmarking, then applies new sort on menu reopen', async () => {
@@ -888,8 +894,7 @@ describe('ProjectPageFilter', () => {
       expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
     });
 
-    // All projects are members so no special items are shown
-    let projectRows = screen.getAllByRole('row');
+    let projectRows = getProjectRows();
     expect(projectRows).toHaveLength(4);
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -913,7 +918,7 @@ describe('ProjectPageFilter', () => {
     );
 
     // Verify sort order DOES NOT change while menu is still open (stable sorting)
-    projectRows = screen.getAllByRole('row');
+    projectRows = getProjectRows();
 
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
@@ -947,7 +952,7 @@ describe('ProjectPageFilter', () => {
     await userEvent.click(screen.getByRole('button', {name: 'selected-project'}));
 
     // Verify new sort order with bookmarked projects grouped together
-    projectRows = screen.getAllByRole('row');
+    projectRows = getProjectRows();
     expect(within(projectRows[0]!).getByText('selected-project')).toBeInTheDocument();
     expect(within(projectRows[1]!).getByText('already-bookmarked')).toBeInTheDocument();
     expect(within(projectRows[2]!).getByText('regular-project-a')).toBeInTheDocument();
@@ -1196,6 +1201,121 @@ describe('ProjectPageFilter', () => {
       expect(
         await screen.findByRole('button', {name: 'All Projects'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('favorite projects', () => {
+    const favoriteProjects = [
+      ProjectFixture({id: '1', slug: 'project-1', isMember: true, isBookmarked: true}),
+      ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
+      ProjectFixture({id: '3', slug: 'project-3', isMember: false, isBookmarked: true}),
+    ];
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData(favoriteProjects);
+    });
+
+    it('is hidden when no projects are bookmarked', async () => {
+      ProjectsStore.loadInitialData(projects);
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('selects only bookmarked projects and applies them to the URL', async () => {
+      const {router} = render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(screen.getByRole('row', {name: /Favorite Projects/})).toHaveTextContent(
+        '(2)'
+      );
+
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).toBeChecked();
+      expect(
+        screen.getByRole('checkbox', {name: 'Select My Projects'})
+      ).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-3'})).toBeChecked();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      await waitFor(() => {
+        expect(router.location.query.project).toEqual(['1', '3']);
+      });
+    });
+
+    it('clicking the Favorite Projects row applies favorites immediately', async () => {
+      const {router} = render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.click(screen.getByRole('row', {name: 'Favorite Projects'}));
+
+      await waitFor(() => {
+        expect(router.location.query.project).toEqual(['1', '3']);
+      });
+    });
+
+    it('deselecting a project while favorites are staged keeps the other favorites', async () => {
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-3'}));
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+    });
+
+    it('clicking Favorite Projects again deselects everything', async () => {
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'Select project-1'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-2'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+    });
+
+    it('is hidden when search is active', async () => {
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.type(screen.getByPlaceholderText('Search…'), 'project-1');
+
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeInTheDocument();
     });
   });
 
