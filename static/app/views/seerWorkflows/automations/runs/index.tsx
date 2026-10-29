@@ -30,6 +30,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
+import {PLACEHOLDER_CONFIG_STRATEGIES} from 'sentry/views/seerWorkflows/automations/runs/placeholderRuns';
 import {
   getRunDisplayStatus,
   StatusIcon,
@@ -96,9 +97,12 @@ export default function AutomationRunsList() {
     )
   );
   const runs: RunWithStrategy[] = useMemo(() => {
-    const strategies = new Map(
-      configsData?.configs.map(config => [config.id, config.strategy])
-    );
+    // TEMPORARY: include placeholder configs
+    const strategies = new Map<string, string>([
+      ...PLACEHOLDER_CONFIG_STRATEGIES,
+      ...(configsData?.configs.map(config => [config.id, config.strategy] as const) ??
+        []),
+    ]);
     return apiRuns.map(run => ({...run, strategy: strategies.get(run.configId) ?? null}));
   }, [apiRuns, configsData]);
 
