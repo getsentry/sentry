@@ -9,11 +9,11 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

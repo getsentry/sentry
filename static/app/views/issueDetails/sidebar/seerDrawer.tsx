@@ -1,8 +1,7 @@
 import {useCallback} from 'react';
 import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
-import {useDrawer} from '@sentry/scraps/drawer';
-
+import {useDrawer} from 'sentry/components/drawer';
 import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';

@@ -254,6 +254,14 @@
     "./toast": {
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
+    },
+    "./drawer": {
+      "types": "./dist/drawer/index.d.ts",
+      "import": "./dist/drawer/index.js"
+    },
+    "./slideOverPanel": {
+      "types": "./dist/slideOverPanel/index.d.ts",
+      "import": "./dist/slideOverPanel/index.js"
     }
   },
   "publishConfig": {

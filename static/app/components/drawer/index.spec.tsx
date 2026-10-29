@@ -9,13 +9,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
-import type {DrawerConfig} from '@sentry/scraps/drawer';
-import {
-  useDrawer,
-  useDrawerPlacement,
-  DrawerBody,
-  DrawerHeader,
-} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
+
+import type {DrawerConfig} from 'sentry/components/drawer';
+import {useDrawer, useDrawerPlacement, DrawerHeader} from 'sentry/components/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -460,4 +457,58 @@ describe('GlobalDrawer', () => {
       ).not.toBeInTheDocument();
     }
   );
+  it('keeps the drawer open when a modal portal is clicked', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => <DrawerBody>Drawer content</DrawerBody>,
+          options: {ariaLabel},
+        }}
+      />
+    );
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByText('Drawer content')).toBeInTheDocument();
+
+    const portal = document.createElement('div');
+    portal.id = 'modal-portal';
+    const button = document.createElement('button');
+    button.textContent = 'Modal action';
+    portal.append(button);
+    document.body.append(portal);
+    try {
+      await userEvent.click(button);
+      expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
+    } finally {
+      portal.remove();
+    }
+  });
+
+  it('saves keyboard resizing and restores the width when reopened', async () => {
+    const key = 'drawer-width:keyboard-persistence';
+    localStorage.setItem(key, '50');
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => <DrawerBody>Drawer content</DrawerBody>,
+          options: {ariaLabel, drawerKey: 'keyboard-persistence'},
+        }}
+      />
+    );
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    const separator = await screen.findByRole('separator', {name: 'Resize drawer'});
+    separator.focus();
+    await userEvent.keyboard('{ArrowLeft}');
+    const savedWidth = Number(localStorage.getItem(key));
+    expect(savedWidth).toBeGreaterThan(50);
+    await userEvent.click(screen.getByTestId('drawer-test-close'));
+    await waitForDrawerToHide(ariaLabel);
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByText('Drawer content')).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole('complementary', {name: ariaLabel})
+        .style.getPropertyValue('--drawer-width')
+    ).toBe(`${savedWidth}%`);
+    localStorage.removeItem(key);
+  });
 });

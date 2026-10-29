@@ -1,12 +1,13 @@
 import {useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DrawerHeader, useDrawer} from 'sentry/components/drawer';
 import {useIsSeerSupportedProvider} from 'sentry/components/events/autofix/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

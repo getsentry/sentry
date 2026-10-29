@@ -2,9 +2,9 @@ import {useEffect, useRef} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
 import {MetricsDrawer} from 'sentry/components/events/metrics/metricsDrawer';
 import {

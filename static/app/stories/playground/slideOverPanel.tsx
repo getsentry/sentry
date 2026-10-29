@@ -4,9 +4,9 @@ import {AnimatePresence} from 'framer-motion';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 
 import {Placeholder} from 'sentry/components/placeholder';
+import {SlideOverPanel} from 'sentry/components/slideOverPanel';
 
 export function SlideOverPanelPlayground() {
   const [isPanelOpen, setIsPanelOpen] = useState(false);

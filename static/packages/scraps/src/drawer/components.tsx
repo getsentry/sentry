@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, Fragment, useContext, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -5,13 +6,11 @@ import {mergeRefs} from '@react-aria/utils';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import type {DrawerOptions} from '@sentry/scraps/drawer';
+import {useDragSeparator} from '@sentry/scraps/dragHandle';
 import {ContainerQueryProvider} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-
-import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
 import {
   DEFAULT_WIDTH_PERCENT,
@@ -20,9 +19,10 @@ import {
   useDrawerResizing,
 } from './useDrawerResizing';
 
-const DrawerWidthContext = createContext<number | undefined>(undefined);
-
-type DrawerContentContextType = Pick<DrawerOptions, 'ariaLabel' | 'onClose'>;
+interface DrawerContentContextType {
+  ariaLabel: string;
+  onClose?: () => void;
+}
 
 const DrawerContentContext = createContext<DrawerContentContextType>({
   onClose: () => {},
@@ -33,27 +33,26 @@ export function useDrawerContentContext() {
   return useContext(DrawerContentContext);
 }
 
-/**
- * Rendering props for the inner DrawerPanel component. Inherits the shared
- * panel-configuration props directly from DrawerOptions so the two interfaces
- * can't drift. GlobalDrawer-only options (shouldClose*, onClose
- * callback) are consumed before reaching this component.
- */
-interface DrawerPanelProps extends Pick<
-  DrawerOptions,
-  'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
-> {
+export interface DrawerPanelProps extends DrawerContentContextType {
   children: React.ReactNode;
-  /** Required — GlobalDrawer applies the default before passing it down. */
-  mode: NonNullable<DrawerOptions['mode']>;
-  /** Minimum panel width in pixels, e.g. to cover a pane docked on the right. */
+  mode: 'blocking' | 'passive';
+  contentTop?: string;
+  drawerMaxWidth?: string;
+  drawerWidth?: string;
+  isSmallScreen?: boolean;
   minPanelWidth?: number;
+  /** Called when a resize ends, so the consumer can save the width. */
+  onWidthChange?: (widthPercent: number) => void;
   ref?: React.Ref<HTMLDivElement>;
-  /** Distance in pixels from the viewport top, e.g. to clear page banners. */
+  resizable?: boolean;
+  /** Whether to show the resize handle. The app requires a persistence key. */
+  showResizeHandle?: boolean;
   topOffset?: number;
+  /** Width resolved by the consumer, for example from a saved preference. */
+  widthPercent?: number;
 }
 
-function DrawerPanel({
+export function DrawerPanel({
   ref,
   mode,
   ariaLabel,
@@ -61,69 +60,82 @@ function DrawerPanel({
   onClose,
   drawerWidth,
   drawerMaxWidth,
-  drawerKey,
+  widthPercent = DEFAULT_WIDTH_PERCENT,
+  onWidthChange,
+  isSmallScreen = false,
+  contentTop,
   minPanelWidth,
   topOffset,
   resizable = true,
+  showResizeHandle = true,
 }: DrawerPanelProps) {
-  const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
+  const {panelRef, resizeHandleRef, width, handleMove, handleMoveStart, handleMoveEnd} =
     useDrawerResizing({
-      drawerKey,
+      widthPercent,
+      onWidthChange,
+      isSmallScreen,
       drawerWidth,
       drawerMaxWidth,
       enabled: resizable,
     });
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
 
-  // Calculate actual drawer width in pixels
-  const actualDrawerWidth =
-    (window.innerWidth * (enabled ? persistedWidthPercent : 100)) / 100;
+  const {t} = useTranslation();
+  const {separatorProps, cursor} = useDragSeparator({
+    orientation: 'horizontal',
+    isSizedFirst: false,
+    min: MIN_WIDTH_PERCENT,
+    max: MAX_WIDTH_PERCENT,
+    value: width,
+    onMove: handleMove,
+    onMoveStart: handleMoveStart,
+    onMoveEnd: handleMoveEnd,
+  });
 
   return (
-    <DrawerContainer mode={mode}>
-      <DrawerWidthContext.Provider value={actualDrawerWidth}>
-        <DrawerSlidePanel
-          mode={mode}
-          minPanelWidth={minPanelWidth}
-          topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
-          height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
-          ariaLabel={ariaLabel}
-          position="right"
-          ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
-            setTooltipContainer(node)
-          )}
-          panelWidth="var(--drawer-width)" // Initial width only
-          className="drawer-panel"
-        >
-          {drawerKey && enabled && (
-            <ResizeHandle
-              ref={resizeHandleRef}
-              onMouseDown={handleResizeStart}
-              data-at-min-width={(persistedWidthPercent <= MIN_WIDTH_PERCENT).toString()}
-              data-at-max-width={(
-                Math.abs(persistedWidthPercent - MAX_WIDTH_PERCENT) < 1
-              ).toString()}
-            />
-          )}
-          {/*
+    <DrawerContainer>
+      <DrawerSlidePanel
+        mode={mode}
+        contentTop={contentTop}
+        minPanelWidth={minPanelWidth}
+        topOffset={topOffset === undefined ? undefined : `${topOffset}px`}
+        height={topOffset === undefined ? undefined : `calc(100% - ${topOffset}px)`}
+        ariaLabel={ariaLabel}
+        position="right"
+        ref={mergeRefs(panelRef, ref, (node: HTMLDivElement | null) =>
+          setTooltipContainer(node)
+        )}
+        panelWidth="var(--drawer-width)" // Initial width only
+        className="drawer-panel"
+      >
+        {resizable && showResizeHandle && !isSmallScreen && (
+          <ResizeHandle
+            {...separatorProps}
+            ref={resizeHandleRef}
+            aria-label={t('Resize drawer')}
+            style={{cursor}}
+          />
+        )}
+        {/*
             This provider allows data passed to openDrawer to be accessed by drawer components.
             For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
             when it's button is pressed.
           */}
-          <TooltipContext value={{container: tooltipContainer}}>
-            <DrawerContentContext value={{onClose, ariaLabel}}>
-              {children}
-            </DrawerContentContext>
-          </TooltipContext>
-        </DrawerSlidePanel>
-      </DrawerWidthContext.Provider>
+        <TooltipContext value={{container: tooltipContainer}}>
+          <DrawerContentContext value={{onClose, ariaLabel}}>
+            {children}
+          </DrawerContentContext>
+        </TooltipContext>
+      </DrawerSlidePanel>
     </DrawerContainer>
   );
 }
 
-interface DrawerHeaderProps {
+export interface DrawerHeaderProps {
   children?: React.ReactNode;
   className?: string;
+  /** Header height supplied by the consumer. */
+  height?: string;
   /**
    * If true, hides the spacer bar separating close button from custom header content
    */
@@ -143,6 +155,7 @@ export function DrawerHeader({
   ref,
   className,
   children = null,
+  height,
   hideBar = false,
   hideCloseButton = false,
   hideCloseButtonText = false,
@@ -156,7 +169,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
-      height={`${PRIMARY_HEADER_HEIGHT}px`}
+      height={height}
     >
       {!hideCloseButton && (
         <Fragment>
@@ -232,7 +245,7 @@ const DrawerBodyElement = styled('aside')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const DrawerContainer = styled('div')<{mode?: DrawerOptions['mode']}>`
+const DrawerContainer = styled('div')`
   position: fixed;
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
@@ -318,16 +331,9 @@ const ResizeHandle = styled('div')`
   top: 0;
   bottom: 0;
   width: 8px;
-  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
   z-index: ${p => p.theme.zIndex.drawer + 2};
-
-  &[data-at-min-width='true'] {
-    cursor: w-resize;
-  }
-
-  &[data-at-max-width='true'] {
-    cursor: e-resize;
-  }
 
   &:hover,
   &:active {
@@ -348,13 +354,11 @@ const ResizeHandle = styled('div')`
     transition: background 0.1s ease;
   }
 
-  &[data-resizing]::after {
+  &:focus-visible {
+    outline: 2px solid ${p => p.theme.tokens.focus.default};
+  }
+
+  &[data-is-held='true']::after {
     background: ${p => p.theme.tokens.graphics.accent.vibrant};
   }
 `;
-
-export const DrawerComponents = {
-  DrawerBody,
-  DrawerHeader,
-  DrawerPanel,
-};

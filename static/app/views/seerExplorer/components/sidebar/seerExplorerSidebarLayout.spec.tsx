@@ -4,10 +4,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import * as drawerModule from '@sentry/scraps/drawer';
-import {GlobalDrawer, useDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import * as drawerModule from 'sentry/components/drawer';
+import {GlobalDrawer, useDrawer} from 'sentry/components/drawer';
 import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';

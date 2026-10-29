@@ -8,10 +8,10 @@ import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
+import {SlideOverPanel} from 'sentry/components/slideOverPanel';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import {AppSizeInsightsSidebarRow} from 'sentry/views/preprod/buildDetails/main/insights/appSizeInsightsSidebarRow';

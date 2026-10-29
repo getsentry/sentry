@@ -8,12 +8,13 @@ import {Alert} from '@sentry/scraps/alert';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
+import {useDrawer, DrawerHeader} from 'sentry/components/drawer';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';

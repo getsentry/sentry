@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useEffect, useId, useState, useTransition} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, useTheme} from '@emotion/react';
@@ -5,8 +6,6 @@ import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {BoundaryContextProvider} from '@sentry/scraps/boundaryContext';
-
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 const RIGHT_SIDE_PANEL_WIDTH = '50vw';
 const LEFT_SIDE_PANEL_WIDTH = '40vw';
@@ -32,10 +31,12 @@ interface ChildRenderProps {
 
 type ChildRenderFunction = (renderPropProps: ChildRenderProps) => React.ReactNode;
 
-type SlideOverPanelProps = {
+export type SlideOverPanelProps = {
   children: React.ReactNode | ChildRenderFunction;
   ariaLabel?: string;
   className?: string;
+  /** App chrome offset used for left and passive panels. */
+  contentTop?: string;
   'data-test-id'?: string;
   height?: string;
   mode?: 'blocking' | 'passive';
@@ -53,6 +54,7 @@ export function SlideOverPanel({
   children,
   className,
   height,
+  contentTop = '0px',
   position,
   panelWidth,
   ref,
@@ -80,7 +82,6 @@ export function SlideOverPanel({
   // is displayed.
   // Subsequent updates of the `children` are not deferred.
   const [isContentVisible, setIsContentVisible] = useState(false);
-  const {contentTop} = useTopOffset();
   useEffect(() => {
     startTransition(() => {
       setIsContentVisible(true);
@@ -141,7 +142,7 @@ const _SlideOverPanel = styled(motion.div, {
   mode?: 'blocking' | 'passive';
   panelWidth?: string;
   position?: 'right' | 'bottom' | 'left';
-  top?: string | number;
+  top?: string;
   topOffset?: string;
 }>`
   position: fixed;

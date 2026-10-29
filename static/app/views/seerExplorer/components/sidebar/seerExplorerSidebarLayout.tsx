@@ -1,10 +1,10 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawer, useDrawerPlacement} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
+import {useDrawer, useDrawerPlacement} from 'sentry/components/drawer';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useDimensions} from 'sentry/utils/useDimensions';

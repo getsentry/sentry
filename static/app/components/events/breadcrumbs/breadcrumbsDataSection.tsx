@@ -7,9 +7,9 @@ import {IconSearch} from '@sentry/icons/search';
 import {IconTimer} from '@sentry/icons/timer';
 
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   BreadcrumbControlOptions,

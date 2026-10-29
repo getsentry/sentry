@@ -1,7 +1,7 @@
-import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {DrawerHeader} from 'sentry/components/drawer';
 import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
 import {
   SeerPanelActions,

@@ -7,9 +7,9 @@ import {parseAsInteger, parseAsNativeArrayOf, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {useDrawer, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {useDrawer, DrawerHeader} from 'sentry/components/drawer';
 import {RadioGroup, type RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {SentryProjectSelectorField} from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import {FormContext} from 'sentry/components/forms/formContext';

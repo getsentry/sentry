@@ -1,9 +1,10 @@
 import {useEffect, useRef} from 'react';
 
-import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DrawerHeader, useDrawer} from 'sentry/components/drawer';
 import {NotFound} from 'sentry/components/errors/notFound';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

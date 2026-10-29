@@ -7,11 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {useDrawer, DrawerHeader} from 'sentry/components/drawer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';

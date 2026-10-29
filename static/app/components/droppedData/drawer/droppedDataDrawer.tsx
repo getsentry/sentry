@@ -2,13 +2,14 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {DrawerBody} from '@sentry/scraps/drawer';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {DrawerHeader} from 'sentry/components/drawer';
 import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
 import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {

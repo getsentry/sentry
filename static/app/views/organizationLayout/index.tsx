@@ -2,11 +2,11 @@ import {useRef} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
-import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
+import {GlobalDrawer} from 'sentry/components/drawer';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
 import * as Layout from 'sentry/components/layouts/thirds';

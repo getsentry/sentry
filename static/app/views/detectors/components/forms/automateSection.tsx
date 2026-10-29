@@ -5,11 +5,11 @@ import {IconEdit} from '@sentry/icons/edit';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
 import {withFieldGroup} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {Container} from 'sentry/components/workflowEngine/ui/container';

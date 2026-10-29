@@ -1,7 +1,6 @@
 import {useCallback} from 'react';
 
-import {useDrawer} from '@sentry/scraps/drawer';
-
+import {useDrawer} from 'sentry/components/drawer';
 import {t} from 'sentry/locale';
 import {
   SlideoutId,

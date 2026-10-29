@@ -24,10 +24,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {instrumentUserEvent} from 'sentry-test/instrumentedEnv/userEventIntegration';
 
-import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {GlobalDrawer} from 'sentry/components/drawer';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';

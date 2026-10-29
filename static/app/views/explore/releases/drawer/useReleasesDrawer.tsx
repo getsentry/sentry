@@ -2,8 +2,7 @@ import {useEffect} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {useQueryStates} from 'nuqs';
 
-import {useDrawer} from '@sentry/scraps/drawer';
-
+import {useDrawer} from 'sentry/components/drawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 

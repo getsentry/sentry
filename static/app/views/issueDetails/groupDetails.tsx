@@ -7,9 +7,9 @@ import isEqual from 'lodash/isEqual';
 import {parseAsBoolean, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
-import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

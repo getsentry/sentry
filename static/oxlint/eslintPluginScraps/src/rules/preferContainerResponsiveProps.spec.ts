@@ -64,15 +64,15 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       code: "import {css} from '@emotion/react'; const styles = css`content: '@media (max-width: 800px)';`;",
     },
     {
-      filename: '/project/static/app/components/core/drawer/components.tsx',
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
     {
-      filename: '/project/static/app/components/core/drawer/components.tsx',
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerContainer = styled.div`@media (max-width: 800px) { overflow-x: auto; pointer-events: auto; }`;",
     },
     {
-      filename: '/project/static/app/components/core/slideOverPanel/slideOverPanel.tsx',
+      filename: '/project/static/packages/scraps/src/slideOverPanel/slideOverPanel.tsx',
       code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
   ],
@@ -163,17 +163,17 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       errors: [{messageId: 'forbidden'}],
     },
     {
-      filename: '/project/static/app/components/core/drawer/components.tsx',
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerContent = styled.div`@media (max-width: 800px) { display: none; }`;",
       errors: [{messageId: 'forbidden'}],
     },
     {
-      filename: '/project/static/app/components/core/drawer/components.tsx',
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@container (max-width: 800px) { width: 100%; }`;",
       errors: [{messageId: 'forbidden'}],
     },
     {
-      filename: '/project/static/app/components/core/drawer/components.tsx',
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
       code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; } @media (max-width: 900px) { color: red; }`;",
       errors: [{messageId: 'forbidden'}, {messageId: 'forbidden'}],
     },

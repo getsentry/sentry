@@ -3,10 +3,10 @@ import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
+import {GlobalDrawer} from 'sentry/components/drawer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {handleExpressiveCodeCopyClick} from 'sentry/stories/view/expressiveCodeCopy';
 import {StorySidebar} from 'sentry/stories/view/storySidebar';

@@ -5,11 +5,11 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {useDrawer} from 'sentry/components/drawer';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';

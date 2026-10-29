@@ -1,10 +1,10 @@
 import {useEffect, useState, type ReactNode} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
-import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
 
 import type {RequestOptions} from 'sentry/api';
+import {GlobalDrawer} from 'sentry/components/drawer';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {AvatarUser} from 'sentry/types/user';
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';

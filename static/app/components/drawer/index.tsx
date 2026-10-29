@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {
   createContext,
   useCallback,
@@ -13,15 +14,15 @@ import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import {DrawerComponents} from './components';
+import {DrawerPanel} from './components';
 
 export interface DrawerOptions {
   /**
@@ -126,7 +127,6 @@ function shouldCloseOnInteractOutsideByDefault(element: Element) {
 
 export function GlobalDrawer({children}: any) {
   const location = useLocation();
-  const {t} = useTranslation();
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
   >();
@@ -239,7 +239,7 @@ export function GlobalDrawer({children}: any) {
             <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
           ) : null}
           {isDrawerOpen && (
-            <DrawerComponents.DrawerPanel
+            <DrawerPanel
               key="panel"
               ariaLabel={currentDrawerConfig.options.ariaLabel}
               onClose={handleClose}
@@ -253,7 +253,7 @@ export function GlobalDrawer({children}: any) {
               resizable={currentDrawerConfig?.options?.resizable}
             >
               {renderedChild}
-            </DrawerComponents.DrawerPanel>
+            </DrawerPanel>
           )}
         </AnimatePresence>
       </ErrorBoundary>
@@ -322,4 +322,4 @@ export function useDrawerPlacement({minWidth, topOffset}: DrawerPlacement): void
   }, [setPlacement, minWidth, topOffset]);
 }
 
-export {DrawerBody, DrawerHeader, useDrawerContentContext} from './components';
+export {DrawerHeader} from './components';
