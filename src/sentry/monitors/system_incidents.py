@@ -64,6 +64,92 @@ BACKFILL_CUTOFF = 1440
 BACKFILL_CHUNKS = 10
 
 
+@dataclass(frozen=True)
+class VolumeShift:
+    """
+    An expected, intentional change in check-in volume, such as enabling
+    rate-limiting in relay. Configured via the
+    `crons.system_incidents.volume_shifts` option.
+
+    Historic volume recorded before a shift does not reflect the new expected
+    volume. Without accounting for this the shift would look like a drop (or
+    spike) in volume until the shifted data fully replaces the history, which
+    takes MONITOR_VOLUME_RETENTION.
+    """
+
+    start: datetime
+    """
+    When the volume began to shift.
+    """
+
+    end: datetime
+    """
+    When the volume shift was fully applied. Volume is assumed to change
+    linearly between start and end, for changes that roll out gradually.
+    """
+
+    pct_change: float
+    """
+    The expected percentage change in volume once the shift is fully applied.
+    A value of -20 represents a 20% drop in volume.
+    """
+
+    def volume_factor(self, ts: datetime) -> float:
+        """
+        The expected volume at `ts` relative to the volume before the shift.
+        """
+        if ts <= self.start:
+            return 1.0
+        if ts >= self.end:
+            return 1.0 + self.pct_change / 100
+
+        progress = (ts - self.start) / (self.end - self.start)
+        return 1.0 + (self.pct_change / 100) * progress
+
+
+def _parse_shift_datetime(value: str | int | float | datetime) -> datetime:
+    if isinstance(value, datetime):
+        dt = value
+    elif isinstance(value, (int, float)):
+        dt = datetime.fromtimestamp(value, UTC)
+    else:
+        dt = datetime.fromisoformat(value)
+
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def get_volume_shifts() -> list[VolumeShift]:
+    """
+    Read the configured volume shifts. Invalid entries are skipped so that a
+    misconfigured option does not stop tick metrics from being recorded.
+    """
+    shifts: list[VolumeShift] = []
+
+    for entry in options.get("crons.system_incidents.volume_shifts"):
+        try:
+            start = _parse_shift_datetime(entry["start"])
+            end = _parse_shift_datetime(entry.get("end", entry["start"]))
+            pct_change = float(entry["pct_change"])
+        except Exception:
+            logger.exception("invalid_volume_shift", extra={"entry": entry})
+            continue
+
+        if end < start or pct_change <= -100:
+            logger.error("invalid_volume_shift", extra={"entry": entry})
+            continue
+
+        shifts.append(VolumeShift(start=start, end=end, pct_change=pct_change))
+
+    return shifts
+
+
+def _volume_factor(shifts: Iterable[VolumeShift], ts: datetime) -> float:
+    factor = 1.0
+    for shift in shifts:
+        factor *= shift.volume_factor(ts)
+    return factor
+
+
 def update_check_in_volume(ts_iter: Iterable[datetime]) -> None:
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
@@ -206,8 +292,18 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
         MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)) for ts in historic_timestamps
     )
 
-    past_minute_volume = _int_or_none(volumes.pop(0))
-    historic_volume: list[int] = [int(v) for v in volumes if v is not None]
+    past_minute_volume = _int_or_none(volumes[0])
+    historic_volume: list[float] = [int(v) for v in volumes[1:] if v is not None]
+
+    # Scale historic volume to match the volume expected at past_ts, so that
+    # intentional volume shifts are not detected as anomalies.
+    if shifts := get_volume_shifts():
+        past_factor = _volume_factor(shifts, past_ts)
+        historic_volume = [
+            int(v) * past_factor / _volume_factor(shifts, ts)
+            for ts, v in zip(historic_timestamps[1:], volumes[1:])
+            if v is not None
+        ]
 
     # Can't make any decisions if we didn't have data for the past minute
     if past_minute_volume is None:
