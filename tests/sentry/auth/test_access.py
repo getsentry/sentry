@@ -4,9 +4,11 @@ from unittest.mock import Mock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.request import Request
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
+from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
@@ -22,6 +24,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -1124,6 +1127,51 @@ class ServiceAccountAccessTest(TestCase):
         return access.from_service_account_auth(
             auth, (organization or self.org).id, has_open_membership
         )
+
+    def test_principal_gets_its_credential_access(self) -> None:
+        # Authenticated with no user_id: is_authenticated would send it to membership access.
+        principal = ServiceAccountPrincipal(
+            service_account_id=self.service_account.id,
+            organization_id=self.org.id,
+            name=self.service_account.name,
+        )
+        token = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=self.service_account.id,
+            organization_id=self.org.id,
+            scopes=["project:read"],
+        )
+        request = Request(self.make_request())
+        set_request_principal(request, principal, token)
+        user: object = request.user
+        assert user is principal
+        rpc_user_org_context = organization_service.get_organization_by_id(id=self.org.id)
+
+        assert isinstance(access.from_request(request, self.org), access.ServiceAccountAccess)
+        assert isinstance(
+            access.from_request_org_and_scopes(
+                request=request, rpc_user_org_context=rpc_user_org_context
+            ),
+            access.ServiceAccountAccess,
+        )
+
+    def test_principal_without_organization_gets_no_access(self) -> None:
+        request = Request(self.make_request())
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=self.service_account.id,
+                organization_id=self.org.id,
+                name=self.service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=self.service_account.id,
+                organization_id=self.org.id,
+                scopes=["project:read"],
+            ),
+        )
+        assert access.from_request(request) is access.DEFAULT
 
     def test_closed_membership_reaches_only_linked_projects(self) -> None:
         result = self._access(has_open_membership=False)
