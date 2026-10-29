@@ -36,6 +36,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import DataConditionHandler
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -123,6 +124,11 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         if "workflow" in self.context:
             self._validate_trigger_ownership(value)
 
+        BaseDataConditionGroupValidator.validate_condition_handler_groups(
+            value.get("conditions", []),
+            allowed_groups={DataConditionHandler.Group.WORKFLOW_TRIGGER},
+        )
+
         return value
 
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
@@ -130,6 +136,14 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             self._validate_action_filter_ownership(value)
 
         for action_filter in value:
+            BaseDataConditionGroupValidator.validate_condition_handler_groups(
+                action_filter.get("conditions", []),
+                allowed_groups={
+                    DataConditionHandler.Group.ACTION_FILTER,
+                    DataConditionHandler.Group.WORKFLOW_TRIGGER,
+                },
+            )
+
             for index, action in enumerate(action_filter["actions"]):
                 action_id = action.get("id")
                 if "workflow" not in self.context and action_id is not None:

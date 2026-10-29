@@ -19,6 +19,7 @@ from sentry.workflow_engine.types import (
     DataConditionHandler,
     DataConditionResult,
     DetectorPriorityLevel,
+    WorkflowEventData,
 )
 from sentry.workflow_engine.utils import scopedstats
 
@@ -178,6 +179,49 @@ class DataCondition(DefaultFieldsModel):
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
+            # An empty condition group always evaluates as triggered, so deleting the last
+            # condition in a group would make the workflow fire on every event. Only delete
+            # when sibling conditions remain; otherwise keep reporting the bad configuration.
+            has_siblings = (
+                isinstance(value, WorkflowEventData)
+                and DataCondition.objects.filter(condition_group_id=self.condition_group_id)
+                .exclude(id=self.id)
+                .exists()
+            )
+            if has_siblings:
+                # Operator conditions are only valid for detectors. One attached to a workflow
+                # (trigger or action filter) is evaluated against WorkflowEventData and can never
+                # succeed, so it is invalid configuration. Remove it lazily so the workflow can
+                # evaluate its remaining conditions.
+                condition_id = self.id
+                condition_group_id = self.condition_group_id
+                try:
+                    self.delete()
+                except Exception:
+                    logger.exception(
+                        "Invalid comparison for data condition; failed to delete bad condition",
+                        extra={
+                            "comparison": self.comparison,
+                            "type": self.type,
+                            "condition_id": condition_id,
+                            "condition_group_id": condition_group_id,
+                        },
+                    )
+                else:
+                    logger.warning(
+                        "Invalid comparison for data condition; deleted bad workflow condition",
+                        extra={
+                            "comparison": self.comparison,
+                            "condition_result": self.condition_result,
+                            "type": self.type,
+                            "condition_id": condition_id,
+                            "condition_group_id": condition_group_id,
+                        },
+                    )
+                return ConditionError(msg="Invalid comparison for data condition")
+
+            # Any other TypeError (e.g. a detector receiving an unexpected value type) may be
+            # transient or a code bug; never delete detector configuration for it.
             logger.exception(
                 "Invalid comparison for data condition",
                 extra={
