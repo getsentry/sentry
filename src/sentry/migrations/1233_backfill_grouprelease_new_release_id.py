@@ -2,7 +2,7 @@ import click
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
-from django.db.models import F, Max
+from django.db.models import F
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.iterators import chunked
@@ -27,9 +27,6 @@ def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
         resume_id = int(stored_resume_id)
         click.echo(f"Resuming from id {resume_id}, read from Redis key {RESUME_ID_KEY}")
 
-    id_bounds = GroupRelease.objects.aggregate(max_id=Max("id"))
-    max_id = id_bounds["max_id"]
-
     rows = RangeQuerySetWrapperWithProgressBarApprox(
         GroupRelease.objects.all().values_list("id", "release_id", "new_release_id", named=True),
         step=BATCH_SIZE,
@@ -47,7 +44,7 @@ def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
         redis_client.set(RESUME_ID_KEY, first_unprocessed_id, ex=RESUME_ID_TTL_SECONDS)
 
         if batch_number % BATCHES_PER_PROGRESS_LINE == 0:
-            click.echo(f"Backfilled through id {last_id} of max id {max_id}")
+            click.echo(f"Backfilled through id {last_id}")
 
     redis_client.delete(RESUME_ID_KEY)
 
