@@ -467,6 +467,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.sentry_apps",
     "sentry.integrations",
     "sentry.notifications",
+    "sentry.inbox",
     "sentry.flags",
     "sentry.monitors",
     "sentry.processing_errors",
