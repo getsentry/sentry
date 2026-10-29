@@ -375,13 +375,13 @@ wheels = [
 
 [[package]]
 name = "djangorestframework"
-version = "3.17.2"
+version = "3.18.2"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "django" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework-3.17.2-py3-none-any.whl", hash = "sha256:cb0546a7415d5b46c04e0f4fe0a54b2109f4fdd5e83ca773c8c6183a6493d042" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/djangorestframework-3.18.2-py3-none-any.whl", hash = "sha256:a92d6a4e128a2550bd2fe2e02008a9e47fe52c180e130bb438f5ba70ee933a3f" },
 ]
 
 [[package]]
@@ -828,18 +828,18 @@ grpc = [
 
 [[package]]
 name = "granian"
-version = "2.8.5"
+version = "2.8.7"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "click" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:4ea263ab8c64434080269a49dc706a1841f7939ceaf1ddec0f204edbab2d83fc" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bf44d5c35995f6009307d43c6b7c8310299f07f415d6cbecbacc5fdf8508c73f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:30c85664d3a51397c97413f5c341e7031ea08614c016d9bfb2ee82bbd6029c12" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:0ba7323572d6f0b6cc1a86fac8f6bc42d467fe0034c85429252e93b111c79a1f" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d8162358380d4b9398a2176779cefe553921fd5e433ccad7fe6d371e0845fe82" },
-    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.5-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:091fa616adfbd83460433a99df0858ff3e831e937e478d1e8170a0fb71c61431" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:674bd8d7e36285107972de356b7c3027a8be9677ec8df142d37255349cee3217" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d94228d8cae7192c0706429a8d5fb4a8e5a01a3caa6694fb0b1313ed7d450aa7" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:44b0443bbc3c335422a608668a3bd6a204ede521635948cd52ddf1ddbb8ccaf6" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp314-cp314-macosx_11_0_arm64.whl", hash = "sha256:a93feaf9a5af41cc6274c9420f3d2a10b5de0c35029f5099a9b63a31fde49321" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:179563932f7a30f05b5b8bc80fe9c6f7e06e47a8bf3e3d81a3816453973cfab9" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/granian-2.8.7-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:212b5c48109dcf8a67264e9571300cf849d9b058d1150ee8b1ad67279a8bf13f" },
 ]
 
 [package.optional-dependencies]
@@ -2368,7 +2368,7 @@ requires-dist = [
     { name = "django-crispy-forms", specifier = ">=1.14.0" },
     { name = "django-csp", specifier = ">=3.8" },
     { name = "django-pg-zero-downtime-migrations", specifier = ">=0.18" },
-    { name = "djangorestframework", specifier = ">=3.16.1" },
+    { name = "djangorestframework", specifier = ">=3.18.2" },
     { name = "drf-spectacular", specifier = ">=0.27.2" },
     { name = "emmett-prometheus", specifier = ">=0.3.0" },
     { name = "emmett-sentry", specifier = ">=0.9.0" },
@@ -2431,12 +2431,12 @@ requires-dist = [
     { name = "rfc3339-validator", specifier = ">=0.1.2" },
     { name = "rfc3986-validator", specifier = ">=0.1.1" },
     { name = "sentry-arroyo", specifier = ">=2.47.0" },
-    { name = "sentry-conventions", specifier = ">=0.29.0" },
+    { name = "sentry-conventions", specifier = ">=0.30.0" },
     { name = "sentry-forked-email-reply-parser", specifier = ">=0.5.12.post1" },
     { name = "sentry-kafka-schemas", specifier = ">=3.0.2" },
     { name = "sentry-ophio", specifier = ">=1.3.1" },
     { name = "sentry-options", specifier = ">=1.2.15" },
-    { name = "sentry-protos", specifier = ">=0.94.0" },
+    { name = "sentry-protos", specifier = ">=0.97.0" },
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.1" },
     { name = "sentry-scm", specifier = ">=2.0.0" },
@@ -2542,10 +2542,10 @@ wheels = [
 
 [[package]]
 name = "sentry-conventions"
-version = "0.29.0"
+version = "0.30.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.29.0-py3-none-any.whl", hash = "sha256:79372898935616667a8bf1a1840a97426fe980922ed8938b44a2457d1106a7c4" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_conventions-0.30.0-py3-none-any.whl", hash = "sha256:1046c502f1c45c170249dafe0beed0f6b29d46561c42ac484039ab8377e80d73" },
 ]
 
 [[package]]
@@ -2617,7 +2617,7 @@ wheels = [
 
 [[package]]
 name = "sentry-protos"
-version = "0.94.0"
+version = "0.97.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "grpc-stubs" },
@@ -2625,7 +2625,7 @@ dependencies = [
     { name = "protobuf" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.94.0-py3-none-any.whl", hash = "sha256:ef94123a7305f4661ab3dd0f07318fbb2100ec84caa26105d5883bf36071ea69" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_protos-0.97.0-py3-none-any.whl", hash = "sha256:7300411097b9a591c9147efaa0b00d1ad428ec0bc72e92b998056593fae499cf" },
 ]
 
 [[package]]

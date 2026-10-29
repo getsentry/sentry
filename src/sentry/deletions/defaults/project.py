@@ -48,6 +48,7 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.userreport import UserReport
         from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
         from sentry.monitors.models import Monitor
+        from sentry.notebooks.models import NotebookBlockExecutionProject, NotebookProject
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.seer.models.project_repository import (
             SeerProjectRepository,
@@ -94,6 +95,8 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             DiscoverSavedQueryProject,
             InvestigationProject,
             InvestigationBlockExecutionProject,
+            NotebookProject,
+            NotebookBlockExecutionProject,
         ):
             relations.append(ModelRelation(m1, {"project_id": instance.id}, BulkModelDeletionTask))
 

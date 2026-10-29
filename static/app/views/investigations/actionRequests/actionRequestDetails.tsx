@@ -56,6 +56,8 @@ type ActionRequestApplyProps = {
   check: ApplyCheck;
   finishing: boolean;
   onApply: () => void;
+  onRecheck: () => void;
+  rechecking: boolean;
 };
 
 export function ActionRequestApply({
@@ -64,6 +66,8 @@ export function ActionRequestApply({
   check,
   finishing,
   onApply,
+  onRecheck,
+  rechecking,
 }: ActionRequestApplyProps) {
   const kind = getActionKind(actionRequest.action);
   if (!kind) {
@@ -78,6 +82,8 @@ export function ActionRequestApply({
       finishing={finishing}
       message={getApplyMessage(actionRequest, check, finishing)}
       onApply={onApply}
+      onRecheck={onRecheck}
+      rechecking={rechecking}
     />
   );
 }
@@ -90,20 +96,21 @@ export function useApplyCheck(
   const checksBeforeApply =
     getActionKind(actionRequest.action)?.ui.checksBeforeApply ?? false;
   const enabled = actionRequest.canApply && checksBeforeApply;
-  const {data, isError, isPending} = useQuery({
+  const {data, isError} = useQuery({
     ...actionRequestDryRunQueryOptions(organization.slug, investigationId, actionRequest),
     enabled,
+    refetchOnWindowFocus: shouldRefreshOnFocus(actionRequest) ? 'always' : false,
   });
   if (!enabled) {
     return {status: 'passed'};
   }
+  if (data !== undefined) {
+    return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  }
   if (isError) {
     return {status: 'unavailable'};
   }
-  if (isPending) {
-    return {status: 'pending'};
-  }
-  return data ? {status: 'blocked', error: data} : {status: 'passed'};
+  return {status: 'pending'};
 }
 
 function getApplyMessage(
@@ -159,6 +166,15 @@ export function getAppliedActivityTitle(
     : tct('“[title]” was applied', {title: actionRequest.title});
 }
 
+export function getAppliedActivityNote(actionRequest: InvestigationActionRequest) {
+  const kind = getActionKind(actionRequest.action);
+  return kind?.ui.getActivityNote?.({action: kind.action, actionRequest}) ?? null;
+}
+
+export function shouldRefreshOnFocus(actionRequest: InvestigationActionRequest) {
+  return getActionKind(actionRequest.action)?.ui.refreshOnFocus?.(actionRequest) ?? false;
+}
+
 export function getApplySuccessMessage(action: InvestigationAction | null) {
   return getActionKind(action)?.ui.getSuccessMessage?.() ?? null;
 }
@@ -201,6 +217,10 @@ function getSharedCannotApplyMessage(reason: ApplyBlockReason) {
       return t('Seer changed this suggestion. Check the new one.');
     case 'validation_failed':
       return t("This change wasn't valid.");
+    case 'not_stale':
+      return t('Nothing changed since Seer suggested this.');
+    case 'not_retryable':
+      return t("This can't be sent to Seer again.");
     default:
       return null;
   }

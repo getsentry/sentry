@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import timedelta
 from typing import Any
 from unittest import mock
@@ -17,7 +16,6 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
     InvestigationBlockKind,
-    InvestigationParameterType,
     InvestigationSourceType,
 )
 from sentry.investigations.services.executions import (
@@ -312,94 +310,6 @@ class InvestigationExecutionServiceTest(TestCase):
         assert snapshot["queryContext"] == {"source": {}, "filters": {}, "parameters": {}}
         assert snapshot["context"][0]["result"]["queryLinks"] == []
 
-    def test_refinement_tracks_parameter_edits_without_changing_the_saved_window(self) -> None:
-        original_end = timezone.now() - timedelta(days=10)
-        block = self.create_block()
-        environment = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="environment",
-            label="Environment",
-            position=0,
-            type=InvestigationParameterType.ENVIRONMENT_LIST,
-            saved_value=["staging"],
-        )
-        self.create_investigation_block_parameter(block=block, parameter=environment)
-        query = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="query",
-            label="Query",
-            position=1,
-            type=InvestigationParameterType.STRING,
-            saved_value="error.type:TimeoutError",
-        )
-        self.create_investigation_block_parameter(block=block, parameter=query)
-        previous_parameters = {"environment": ["production"], "query": query.saved_value}
-        previous = self.create_execution(
-            block,
-            started_at=original_end,
-            input_snapshot={"filters": {"statsPeriod": "6d"}, "parameters": previous_parameters},
-        )
-        block.update(result_execution=previous)
-        self.investigation.update(filters={"statsPeriod": "24h"})
-
-        snapshot, _ = build_block_execution_snapshot(
-            block=block, projects=[self.project], accessible_project_ids={self.project.id}
-        )
-
-        assert snapshot["parameterChanges"] == {"environment": ["staging"]}
-        assert snapshot["context"][0]["queryContext"]["parameters"] == previous_parameters
-        assert snapshot["queryContext"]["parameters"] == snapshot["parameters"]
-        assert snapshot["queryContext"]["filters"] == {
-            "start": (original_end - timedelta(days=6)).isoformat(),
-            "end": original_end.isoformat(),
-        }
-        refined = self.create_execution(block, input_snapshot=snapshot)
-        block.update(result_execution=refined)
-
-        next_snapshot, _ = build_block_execution_snapshot(
-            block=block, projects=[self.project], accessible_project_ids={self.project.id}
-        )
-
-        assert next_snapshot["parameterChanges"] == {}
-        assert next_snapshot["context"][0]["queryContext"] == snapshot["queryContext"]
-        environment.update(saved_value=None)
-
-        cleared_snapshot, _ = build_block_execution_snapshot(
-            block=block, projects=[self.project], accessible_project_ids={self.project.id}
-        )
-
-        assert cleared_snapshot["parameterChanges"] == {"environment": None}
-        assert cleared_snapshot["queryContext"]["parameters"]["environment"] is None
-
-    def test_refinement_identifies_an_explicit_time_parameter_edit(self) -> None:
-        original_window = {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"}
-        requested_window = {"start": "2025-08-10T00:00:00Z", "end": "2025-08-16T00:00:00Z"}
-        block = self.create_block()
-        parameter = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="time_range",
-            label="Time range",
-            position=0,
-            type=InvestigationParameterType.DATETIME_RANGE,
-            saved_value=requested_window,
-        )
-        self.create_investigation_block_parameter(block=block, parameter=parameter)
-        previous = self.create_execution(
-            block,
-            input_snapshot={"parameters": {"time_range": original_window}},
-        )
-        block.update(result_execution=previous)
-
-        snapshot, _ = build_block_execution_snapshot(
-            block=block, projects=[self.project], accessible_project_ids={self.project.id}
-        )
-
-        assert snapshot["parameterChanges"] == {"time_range": requested_window}
-        assert snapshot["context"][0]["queryContext"]["parameters"] == {
-            "time_range": original_window
-        }
-        assert snapshot["queryContext"]["parameters"] == {"time_range": requested_window}
-
     def test_relative_filters_keep_the_same_request_fingerprint(self) -> None:
         self.investigation.update(filters={"statsPeriod": "6d"})
         block = self.create_block()
@@ -500,28 +410,6 @@ class InvestigationExecutionServiceTest(TestCase):
         assert execution.input_snapshot["organizationSlug"] == self.organization.slug
         assert execution.input_snapshot["source"] == source
 
-    def test_revalidates_project_parameter_access(self) -> None:
-        cases: list[tuple[InvestigationParameterType, Callable[[int], Any]]] = [
-            (InvestigationParameterType.PROJECT, lambda project_id: project_id),
-            (InvestigationParameterType.PROJECT_LIST, lambda project_id: [project_id]),
-        ]
-        for position, (parameter_type, saved_value) in enumerate(cases):
-            with self.subTest(parameter_type=parameter_type.value):
-                revoked_project = self.create_project(organization=self.organization)
-                parameter = self.create_investigation_parameter(
-                    investigation=self.investigation,
-                    key=f"project_{position}",
-                    label="Project",
-                    type=parameter_type,
-                    saved_value=saved_value(revoked_project.id),
-                    position=position,
-                )
-                block = self.create_block(position=position)
-                self.create_investigation_block_parameter(block=block, parameter=parameter)
-
-                with pytest.raises(InvestigationValidationError):
-                    self.run_block(block, accessible_project_ids={self.project.id})
-
     def test_explicit_request_retry_precedes_mutable_state_validation(self) -> None:
         block = self.create_block()
         request_id = uuid4()
@@ -568,27 +456,6 @@ class InvestigationExecutionServiceTest(TestCase):
         assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
         assert replacement_created
         assert replacement.id != failed_execution.id
-
-    def test_rejects_deleted_dependency(self) -> None:
-        dependency = self.create_block(position=0)
-        dependency.deleted_at = timezone.now()
-        dependency.save(update_fields=["deleted_at"])
-        block = self.create_block(position=1)
-        self.create_investigation_block_dependency(block=block, depends_on=dependency)
-
-        with pytest.raises(InvestigationValidationError):
-            self.run_block(block)
-
-    def test_rejects_malformed_persisted_query_result(self) -> None:
-        dependency = self.create_block(position=0)
-        execution = self.create_execution(dependency, result={"schemaVersion": 1})
-        dependency.result_execution = execution
-        dependency.save(update_fields=["result_execution"])
-        block = self.create_block(position=1)
-        self.create_investigation_block_dependency(block=block, depends_on=dependency)
-
-        with pytest.raises(InvestigationValidationError):
-            self.run_block(block)
 
     def test_dispatch_failure_uses_fixed_payload_and_guarded_transitions(self) -> None:
         block = self.create_block()

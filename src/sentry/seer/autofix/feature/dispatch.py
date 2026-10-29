@@ -7,7 +7,7 @@ from typing import Any
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
 
-from sentry import features, quotas
+from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -151,8 +151,6 @@ def trigger_autofix_feature(
         enable_coding=enable_coding,
         enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
-    if features.has("organizations:seer-autofix-code-mode", group.organization):
-        agent_run_options["enable_code_mode_tools"] = "only"
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,

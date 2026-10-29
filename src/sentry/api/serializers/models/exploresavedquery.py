@@ -31,6 +31,7 @@ class MetricResponseType(MetricResponseTypeOptional):
 
 class VisualizeResponseTypeOptional(TypedDict, total=False):
     chartType: int
+    transformations: list[str]
 
 
 class VisualizeResponseType(VisualizeResponseTypeOptional):
@@ -41,6 +42,7 @@ class AggregateFieldResponseType(TypedDict, total=False):
     chartType: int
     yAxes: list[str]
     groupBy: str
+    transformations: list[str]
 
 
 class QueryResponseTypeOptional(TypedDict, total=False):

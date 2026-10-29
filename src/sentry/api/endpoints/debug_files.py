@@ -36,7 +36,12 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.debug_file import DebugFileSerializerResponse
 from sentry.api.utils import to_valid_int_id
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -592,29 +597,61 @@ AssembleRequestPayload = dict[str, AssembleRequestFile]
 """Mapping from file checksums to the corresponding assemble request payload."""
 
 
+_SHA1_PATTERN = "^[0-9a-f]{40}$"
+
+# One file in the assemble request. Shared by validation and the OpenAPI schema.
+_ASSEMBLE_REQUEST_FILE_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "required": ["name", "chunks"],
+    "properties": {
+        "name": {
+            "type": "string",
+            "description": "The file name. A ProGuard mapping without `debug_id` can carry it in the name, as in `/proguard/mapping-<uuid>.txt`.",
+        },
+        "debug_id": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9-]+$",
+            "description": "The debug ID to store the file under, overriding the one read from the file.",
+        },
+        "chunks": {
+            "type": "array",
+            "items": {"type": "string", "pattern": _SHA1_PATTERN},
+            "description": "The SHA-1 checksums of the file's chunks, in order. Upload missing chunks with the chunk upload endpoint. Send an empty list to poll the file's state.",
+        },
+    },
+    "additionalProperties": True,
+}
+
+_ASSEMBLE_REQUEST_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "patternProperties": {_SHA1_PATTERN: _ASSEMBLE_REQUEST_FILE_SCHEMA},
+    "additionalProperties": False,
+}
+
+# OpenAPI 3.0 has no patternProperties, so the docs describe the checksum keys in prose.
+_ASSEMBLE_REQUEST_OPENAPI_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "description": "The files to assemble, keyed by the SHA-1 checksum of each whole file.",
+    "additionalProperties": _ASSEMBLE_REQUEST_FILE_SCHEMA,
+}
+
+
+class DifAssembleFileResponse(TypedDict):
+    # One of the ChunkFileState values: ok, not_found, created, assembling, or error.
+    state: str
+    missingChunks: list[str]
+    detail: NotRequired[str | None]
+    dif: NotRequired[DebugFileSerializerResponse]
+
+
+class _AssembleErrorResponse(TypedDict):
+    error: str
+
+
 def parse_assemble_request_payload(body: bytes) -> AssembleRequestPayload:
     """Parse and validate the DIF assemble request body."""
-    schema: dict[str, object] = {
-        "type": "object",
-        "patternProperties": {
-            "^[0-9a-f]{40}$": {
-                "type": "object",
-                "required": ["name", "chunks"],
-                "properties": {
-                    "name": {"type": "string"},
-                    "debug_id": {"type": "string", "pattern": "^[A-Fa-f0-9-]+$"},
-                    "chunks": {
-                        "type": "array",
-                        "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-                    },
-                },
-                "additionalProperties": True,
-            }
-        },
-        "additionalProperties": False,
-    }
     payload_obj: object = orjson.loads(body)
-    jsonschema.validate(payload_obj, schema)
+    jsonschema.validate(payload_obj, _ASSEMBLE_REQUEST_SCHEMA)
     return cast(AssembleRequestPayload, payload_obj)
 
 
@@ -629,12 +666,14 @@ def get_file_info(file: AssembleRequestFile) -> tuple[str, str | None, list[str]
     return name, debug_id, chunks
 
 
-def batch_assemble(project: Project, files: AssembleRequestPayload):
+def batch_assemble(
+    project: Project, files: AssembleRequestPayload
+) -> dict[str, DifAssembleFileResponse]:
     """
     Performs assembling in a batch fashion, issuing queries that span multiple files.
     """
     files_to_check = files.copy()
-    file_response = {}
+    file_response: dict[str, DifAssembleFileResponse] = {}
 
     # 1. Exclude all files that already have an assemble status.
     for checksum, file in list(files_to_check.items()):
@@ -903,7 +942,7 @@ def _clone_proguard_debug_file_for_reupload(
     debug_file: ProjectDebugFile,
     requested_debug_id: str,
     is_proguard_clone_source: bool,
-) -> dict[str, object]:
+) -> DifAssembleFileResponse:
     """Clone a ProGuard debug file row for a reupload and return a batch response.
 
     ``is_proguard_clone_source`` must reflect the caller's annotation-based
@@ -979,20 +1018,43 @@ def _clone_proguard_debug_file_for_reupload(
     }
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
     owner = ApiOwner.OWNERS_INGEST
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    # Assemble state is cached per checksum, so a resend reports it instead of
+    # starting a second job.
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (ProjectReleasePermission,)
 
-    def post(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="assembleProjectDebugFiles",
+        summary="Assemble Debug Information Files",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request={"application/json": _ASSEMBLE_REQUEST_OPENAPI_SCHEMA},
+        responses={
+            200: inline_sentry_response_serializer(
+                "AssembleProjectDebugFilesResponse", dict[str, DifAssembleFileResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[dict[str, DifAssembleFileResponse]] | Response[_AssembleErrorResponse]:
         """
-        Assemble one or multiple chunks (FileBlob) into debug files
-        ````````````````````````````````````````````````````````````
+        Assemble previously uploaded chunks into debug information files.
 
-        :auth: required
+        The response reports each file's `state`, keyed by the same checksums. If chunks are
+        missing, upload them and send the request again. Repeat the request to poll until the
+        state is `ok` or `error`. Resending an identical request is safe: a file that is
+        already assembling or assembled reports its state instead of starting a new job.
         """
         try:
             files = parse_assemble_request_payload(request.body)

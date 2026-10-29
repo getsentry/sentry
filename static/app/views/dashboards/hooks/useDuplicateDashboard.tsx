@@ -4,6 +4,7 @@ import {useQueryClient} from '@tanstack/react-query';
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -12,7 +13,7 @@ import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/
 import {cloneDashboard} from 'sentry/views/dashboards/utils';
 import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
 import {
-  PREBUILT_DASHBOARDS,
+  getPrebuiltDashboardConfig,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {resolveLinkedDashboardIds} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
@@ -41,7 +42,7 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
             resolveLinkedDashboardIds({
               queryClient,
               orgSlug: organization.slug,
-              dashboard: toPrebuiltDashboardDetails(dashboard.prebuiltId),
+              dashboard: toPrebuiltDashboardDetails(dashboard.prebuiltId, organization),
             }),
             hasSavedInstance
               ? fetchDashboard(api, organization.slug, dashboard.id)
@@ -115,6 +116,9 @@ function copySavedFilters(target: DashboardDetails, source: DashboardDetails): v
  * so we attach a placeholder. Neither function actually uses the `id` value, so
  * we should update those types.
  */
-function toPrebuiltDashboardDetails(prebuiltId: PrebuiltDashboardId): DashboardDetails {
-  return {id: '-1', ...PREBUILT_DASHBOARDS[prebuiltId]};
+function toPrebuiltDashboardDetails(
+  prebuiltId: PrebuiltDashboardId,
+  organization: Organization
+): DashboardDetails {
+  return {id: '-1', ...getPrebuiltDashboardConfig(prebuiltId, organization)};
 }

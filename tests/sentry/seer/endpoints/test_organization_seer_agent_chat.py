@@ -146,11 +146,11 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         mock_client_class.return_value = mock_client
 
         response = self.client.post(
-            self.url, {"query": "hi", "override_code_mode_enable": "on"}, format="json"
+            self.url, {"query": "hi", "override_code_mode_enable": "off"}, format="json"
         )
 
         assert response.status_code == 200
-        assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "on"
+        assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_no_code_mode_feature_stays_off(self, mock_client_class: MagicMock):
@@ -962,11 +962,11 @@ class TestCodeModeSerializerField:
         "input_val,expected",
         [
             ("off", "off"),
-            ("on", "on"),
+            ("on", "only"),
             ("only", "only"),
-            (True, "on"),
+            (True, "only"),
             (False, "off"),
-            ("true", "on"),
+            ("true", "only"),
             ("false", "off"),
             (None, None),
         ],

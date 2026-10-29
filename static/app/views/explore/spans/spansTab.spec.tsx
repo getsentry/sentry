@@ -178,6 +178,26 @@ describe('SpansTabContent', () => {
     });
   });
 
+  it('keeps Save beside the search controls when the sidebar is collapsed', async () => {
+    render(<SpansTabContent datePageFilterProps={datePageFilterProps} />, {
+      organization,
+      additionalWrapper: Wrapper,
+    });
+
+    const save = await screen.findByRole('button', {name: 'Save as'});
+    expect(screen.getByTestId('explore-span-toolbar')).not.toContainElement(save);
+    expect(screen.queryByRole('link', {name: /Compare/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Compare'})).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse sidebar'}));
+
+    expect(screen.queryByTestId('explore-span-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
+    localStorage.removeItem('explore-spans-toolbar');
+  });
+
   it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
