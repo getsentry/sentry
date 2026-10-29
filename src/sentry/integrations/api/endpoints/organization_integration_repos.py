@@ -111,23 +111,28 @@ class OrganizationIntegrationReposEndpoint(CellOrganizationIntegrationBaseEndpoi
             search = request.GET.get("search")
             accessible_only = request.GET.get("accessibleOnly", "false").lower() == "true"
 
-            try:
+            user_facing_error = None
+            with install.record_event(
+                SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
+            ).capture() as lifecycle:
                 # This endpoint backs interactive repo pickers (the onboarding
                 # repo selector and the code-mappings path config form), so opt
                 # into parallel pagination for the latency win. Providers that
                 # don't implement it ignore the flag; internal/background callers
                 # of get_repositories keep the serial default.
-                with install.record_event(
-                    SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES
-                ).capture():
+                try:
                     repositories = install.get_repositories(
                         search,
                         accessible_only=accessible_only,
                         use_cache=accessible_only and bool(search),
                         parallel=True,
                     )
-            except (IntegrationError, IdentityNotValid) as e:
-                return self.respond({"detail": str(e)}, status=400)
+                except (IntegrationError, IdentityNotValid) as e:
+                    lifecycle.record_halt(e, create_issue=False)
+                    user_facing_error = e
+
+            if user_facing_error is not None:
+                return self.respond({"detail": str(user_facing_error)}, status=400)
 
             installable_only = request.GET.get("installableOnly", "false").lower() == "true"
 
