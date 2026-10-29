@@ -27,9 +27,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
         mock_has_seer_credits.assert_called_once_with(
             org_id=self.organization.id,
             feature_id="autofix",
-            predicted_credit_usage=estimate_credits(
-                self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE
-            ),
+            predicted_credit_usage=estimate_credits(SeerOperation.AUTOFIX_ROOT_CAUSE),
         )
 
     @with_feature(

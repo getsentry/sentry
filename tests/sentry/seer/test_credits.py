@@ -10,7 +10,7 @@ from sentry.testutils.helpers.features import with_feature
 class SeerCreditsTest(TestCase):
     def test_estimate_credits_returns_estimate_for_every_operation(self) -> None:
         for operation in SeerOperation:
-            assert estimate_credits(self.organization, operation) > 0
+            assert estimate_credits(operation) > 0
 
     @with_feature("organizations:seer-credit-checks")
     @patch("sentry.quotas.backend.has_seer_credits", return_value=False)
@@ -39,9 +39,7 @@ class SeerCreditsTest(TestCase):
         mock_has_seer_credits.assert_called_once_with(
             org_id=self.organization.id,
             feature_id="autofix",
-            predicted_credit_usage=estimate_credits(
-                self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE
-            ),
+            predicted_credit_usage=estimate_credits(SeerOperation.AUTOFIX_ROOT_CAUSE),
         )
 
     @with_feature(
