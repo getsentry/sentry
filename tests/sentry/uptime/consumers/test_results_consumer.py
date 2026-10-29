@@ -313,6 +313,24 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         mock_deletion.assert_called_once_with(result["region"], self.subscription.subscription_id)
 
     @mock.patch("sentry.uptime.consumers.results_consumer.send_uptime_config_deletion")
+    def test_disabled_subscription_removes_shadow_region_config(
+        self, mock_deletion: MagicMock
+    ) -> None:
+        self.create_uptime_subscription_region(
+            self.subscription, "shadow", UptimeSubscriptionRegion.RegionMode.SHADOW
+        )
+        self.detector.update(enabled=False)
+        self.subscription.update(status=UptimeSubscription.Status.DISABLED.value)
+        result = self.create_uptime_result(
+            self.subscription.subscription_id, uptime_region="shadow"
+        )
+
+        with self.feature("organizations:uptime"):
+            self.send_result(result)
+
+        mock_deletion.assert_called_once_with("shadow", self.subscription.subscription_id)
+
+    @mock.patch("sentry.uptime.consumers.results_consumer.send_uptime_config_deletion")
     def test_disabled_detector_on_active_subscription_keeps_config(
         self, mock_deletion: MagicMock
     ) -> None:
