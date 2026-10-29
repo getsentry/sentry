@@ -18,7 +18,7 @@ export function ServiceField() {
       name={`${actionId}.config.targetIdentifier`}
       aria-label={t('Service')}
       value={action.config.targetIdentifier}
-      options={integration.services?.map(service => ({
+      options={(integration.services ?? []).map(service => ({
         label: service.name,
         value: service.id,
       }))}

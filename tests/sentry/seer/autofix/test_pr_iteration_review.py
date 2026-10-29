@@ -19,6 +19,7 @@ from sentry.seer.autofix.pr_iteration.listeners.review import (
 from sentry.seer.models import SeerUnavailableError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 
 REVIEW_PATH = "sentry.seer.autofix.pr_iteration.listeners.review"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
@@ -101,6 +102,24 @@ class HandlePullRequestReviewForAutofixIterationTest(TestCase):
         # Human authorship is threaded through so the task can apply the
         # automated-only streak cap.
         assert kwargs["author_is_bot"] is False
+
+    @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
+    @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")
+    def test_dispatches_as_the_orgs_integration(
+        self, mock_contexts: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        self._mock_org_contexts(mock_contexts)
+        contexts: list[ViewerContext | None] = []
+        mock_delay.side_effect = lambda **_kwargs: contexts.append(get_viewer_context())
+
+        with self.feature("organizations:autofix-pr-iteration-manual"):
+            handle_pull_request_review_for_autofix_iteration(self._event())
+
+        assert contexts == [
+            ViewerContext(
+                actor=Actor(type=ActorType.INTEGRATION), organization_id=self.organization.id
+            )
+        ]
 
     @patch(f"{TASK_PATH}.trigger_pr_iteration_from_review.delay")
     @patch(f"{REVIEW_PATH}.integration_service.organization_contexts")

@@ -34,6 +34,7 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     from sentry.integrations import models as integrations
     from sentry.investigations import models as investigations
     from sentry.monitors import models as monitors
+    from sentry.notebooks import models as notebooks
     from sentry.preprod import models as preprod
     from sentry.seer.models.run import SeerRun
     from sentry.sentry_apps import models as sentry_apps
@@ -104,9 +105,6 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(discover.DiscoverSavedQuery, defaults.DiscoverSavedQueryDeletionTask)
     manager.register(discover.DiscoverSavedQueryProject, BulkModelDeletionTask)
     manager.register(incidents.AlertRule, defaults.AlertRuleDeletionTask)
-    manager.register(incidents.AlertRuleTrigger, defaults.AlertRuleTriggerDeletionTask)
-    manager.register(incidents.AlertRuleTriggerAction, defaults.AlertRuleTriggerActionDeletionTask)
-    manager.register(incidents.Incident, defaults.IncidentDeletionTask)
     manager.register(integrations.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask)
     manager.register(integrations.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask)
     manager.register(investigations.Investigation, defaults.InvestigationDeletionTask)
@@ -119,6 +117,14 @@ def load_defaults(manager: DeletionTaskManager) -> None:
     manager.register(investigations.InvestigationFavoriteUser, BulkModelDeletionTask)
     manager.register(investigations.InvestigationProject, BulkModelDeletionTask)
     manager.register(investigations.InvestigationSeen, BulkModelDeletionTask)
+    manager.register(notebooks.Notebook, defaults.NotebookDeletionTask)
+    manager.register(notebooks.NotebookBlock, defaults.NotebookBlockDeletionTask)
+    manager.register(notebooks.NotebookBlockExecution, defaults.NotebookBlockExecutionDeletionTask)
+    manager.register(notebooks.NotebookBlockExecutionProject, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookComment, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookFavoriteUser, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookProject, BulkModelDeletionTask)
+    manager.register(notebooks.NotebookSeen, BulkModelDeletionTask)
     manager.register(monitors.Monitor, defaults.MonitorDeletionTask)
     manager.register(monitors.MonitorEnvironment, defaults.MonitorEnvironmentDeletionTask)
     manager.register(monitors.MonitorCheckIn, defaults.MonitorCheckInDeletionTask)

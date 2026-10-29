@@ -32,8 +32,6 @@ from sentry.investigations.services.executions import (
 )
 from sentry.investigations.services.investigations import (
     has_default_investigation_title,
-    investigation_source,
-    mark_downstream_blocks_stale,
 )
 from sentry.investigations.telemetry import (
     record_execution_cancelled,
@@ -980,9 +978,6 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             block.stale_at = None
             block.version += 1
             block.save()
-        mark_downstream_blocks_stale(
-            investigation_id=block.investigation_id, upstream_block_ids={block.id}
-        )
         transaction.on_commit(
             lambda: _maybe_start_title_generation(block.investigation, execution.triggered_by_id),
             using=database,
@@ -1038,7 +1033,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "and do not invent a cause. Put title "
         "first in the JSON object. Do not call any function to write or save the result.\n"
         "<source_context>\n"
-        f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
+        f"{json.dumps(investigation.source)}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 

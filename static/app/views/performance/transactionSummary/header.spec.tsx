@@ -91,10 +91,6 @@ describe('Performance > Transaction Summary Header', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-has-measurements/',
-      body: {measurements: true},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       body: {threshold: '800', metric: 'lcp'},
     });
