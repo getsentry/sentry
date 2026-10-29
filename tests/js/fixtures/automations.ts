@@ -15,6 +15,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
   return {
     id: '1',
     name: 'Automation 1',
+    type: 'alert',
     createdBy: UserFixture().id,
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
