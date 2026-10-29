@@ -35,6 +35,7 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.viewer_context import ActorId, ActorType
 
@@ -158,6 +159,7 @@ def test_default_title_names_the_investigation_type() -> None:
     assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
 
 
+@with_feature("organizations:investigations")
 class DefaultTitleTest(TestCase):
     def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
@@ -262,6 +264,7 @@ class UpdateFieldAllowlistTest(TestCase):
         assert updated.filters == {"environment": ["prod"]}
 
 
+@with_feature("organizations:investigations")
 class OrchestrationControlServiceTest(TestCase):
     def test_agentic_creation_rolls_back_the_entire_aggregate(self) -> None:
         investigation_count = Investigation.objects.count()
@@ -361,6 +364,7 @@ class OrchestrationControlServiceTest(TestCase):
         assert result["report"]["notebookRevision"] == 4
 
 
+@with_feature("organizations:investigations")
 class OrchestrationCommandConcurrencyTest(TransactionTestCase):
     def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
         investigation, run = create_agentic_manual_investigation(

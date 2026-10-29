@@ -19,8 +19,8 @@ from sentry.investigations.models import (
 )
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.orchestration import (
+    _create_agentic_investigation,
     accept_orchestration_command,
-    create_agentic_manual_investigation,
 )
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.seer.models import SeerApiError
@@ -295,11 +295,12 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self, dispatch_create: mock.Mock, dispatch_commands: mock.Mock
     ) -> None:
         with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
-            investigation, run = create_agentic_manual_investigation(
+            investigation, run = _create_agentic_investigation(
                 organization=self.organization,
                 creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
+                orchestration_source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[],
                 filters={},
             )

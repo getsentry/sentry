@@ -1210,6 +1210,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    @with_feature("organizations:investigations")
     def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
         organization = self.create_organization(owner=self.user)
         investigation, run = create_agentic_manual_investigation(

@@ -13,7 +13,7 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from sentry.constants import ObjectStatus
+from sentry.auth.access import from_user
 from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.models import (
     Investigation,
@@ -37,13 +37,14 @@ from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     _create_project_links,
+    _validate_project_ids,
     archive_investigation,
     default_investigation_title,
     update_investigation,
 )
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.viewer_context import ActorId, ActorType
 
@@ -152,26 +153,26 @@ def _validate_creation_actor(
             {"creator": "A user or service account with a positive integer ID is required."}
         )
     if creator.type == ActorType.USER:
-        return
+        user = user_service.get_user(user_id=creator.id)
+        access = from_user(user, organization=organization)
+        if not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES) or not (
+            has_investigations_access(organization, actor=user)
+        ):
+            raise PermissionDenied
+    else:
+        try:
+            account = ServiceAccountReplica.objects.get(
+                service_account_id=creator.id, organization_id=organization.id, is_active=True
+            )
+        except ServiceAccountReplica.DoesNotExist as error:
+            raise PermissionDenied from error
+        if not INVESTIGATION_SCOPES.intersection(
+            account.scope_list
+        ) or not has_investigations_access(organization):
+            raise PermissionDenied
 
-    try:
-        account = ServiceAccountReplica.objects.get(
-            service_account_id=creator.id, organization_id=organization.id, is_active=True
-        )
-    except ServiceAccountReplica.DoesNotExist as error:
-        raise PermissionDenied from error
-    if not INVESTIGATION_SCOPES.intersection(account.scope_list) or not has_investigations_access(
-        organization
-    ):
-        raise PermissionDenied
-
-    accessible_project_ids = set(
-        Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE, id__in=project_ids
-        ).values_list("id", flat=True)
-    )
-    if not set(project_ids).issubset(accessible_project_ids):
-        raise InvestigationValidationError({"projectIds": "One or more projects are inaccessible."})
+    # Open membership grants authorized members access to every active organization project.
+    _validate_project_ids(organization.id, project_ids)
 
 
 def _create_agentic_investigation(
@@ -218,6 +219,9 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
+        # Remove once dispatch can use the saved service-account identity.
+        if creator.type == ActorType.SERVICE_ACCOUNT:
+            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 

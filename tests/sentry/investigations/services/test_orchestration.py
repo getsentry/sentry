@@ -45,6 +45,7 @@ class BreachedMetricInvestigationTestCase(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(self.feature("organizations:investigations"))
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
         open_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
         ended_at = timezone.now() - timedelta(hours=1)
@@ -156,12 +157,10 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         return ActorId(ActorType.SERVICE_ACCOUNT, account.id)
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
-    def test_manual_account_attribution_without_prompt(self, dispatch: mock.Mock) -> None:
-        assert self.creator.id is not None
-        replica = ServiceAccountReplica.objects.get(service_account_id=self.creator.id)
-        assert replica.id != self.creator.id
-        with self.feature("organizations:investigations"):
-            investigation, run = create_agentic_manual_investigation(
+    def test_account_creation_is_rejected_before_dispatch(self, dispatch: mock.Mock) -> None:
+        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        with pytest.raises(PermissionDenied):
+            create_agentic_manual_investigation(
                 organization=self.organization,
                 creator=self.creator,
                 title=None,
@@ -169,10 +168,11 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                 project_ids=[self.project.id],
                 filters={},
             )
-        investigation.refresh_from_db()
-        assert investigation.created_by_id is None
-        assert investigation.creator_actor == self.creator
-        assert run.status == "awaiting_input"
+        assert (
+            Investigation.objects.count(),
+            InvestigationOrchestrationRun.objects.count(),
+        ) == before
+        dispatch.assert_not_called()
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_metric_reuse_preserves_creator_and_checks_current_access(
@@ -200,13 +200,25 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             dispatch.assert_not_called()
 
             self.investigation.update(status=InvestigationStatus.ARCHIVED)
-            investigation, created = create_agentic_breached_metric_investigation(
+            with pytest.raises(PermissionDenied):
+                create_agentic_breached_metric_investigation(creator=self.creator, **arguments)
+            assert not Investigation.objects.filter(status=InvestigationStatus.ACTIVE).exists()
+            dispatch.assert_not_called()
+
+            # Existing account attribution remains valid while new account dispatch is blocked.
+            investigation = self.investigation
+            investigation.update(
+                status=InvestigationStatus.ACTIVE,
+                created_by_id=None,
+                created_by_service_account_id=self.creator.id,
+            )
+            assert investigation.creator_actor == self.creator
+
+            reused, created = create_agentic_breached_metric_investigation(
                 creator=self.creator, **arguments
             )
-            assert created
-            assert investigation.creator_actor == self.creator
-            dispatch.assert_called_once()
-            dispatch.reset_mock()
+            assert not created
+            assert reused.id == investigation.id
 
             reused, created = create_agentic_breached_metric_investigation(
                 creator=ActorId(ActorType.USER, self.user.id), **arguments
@@ -226,12 +238,20 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         other_organization = self.create_organization()
         foreign_creator = self.account_creator(organization=other_organization)
         unprivileged_creator = self.account_creator(name="no-access", scope_list=["event:read"])
-        foreign_project = self.create_project(organization=other_organization)
+        inactive_project = self.create_project(
+            organization=self.organization, status=ObjectStatus.PENDING_DELETION
+        )
+        inactive_user = self.create_user(is_active=False)
+        self.create_member(organization=self.organization, user=inactive_user)
         arguments: dict[str, Any] = dict(
             organization=self.organization,
             creator=self.creator,
             title=None,
-            source={"type": "manual", "prompt": "Investigate latency"},
+            resolved_source=resolve_investigation_source(
+                organization=self.organization,
+                source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+                accessible_project_ids={self.project.id},
+            ),
             project_ids=[self.project.id],
             filters={},
         )
@@ -240,15 +260,55 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             ({"creator": ActorId(ActorType.USER, True)}, InvestigationValidationError),
             ({"creator": foreign_creator}, PermissionDenied),
             ({"creator": unprivileged_creator}, PermissionDenied),
-            ({"project_ids": [foreign_project.id]}, InvestigationValidationError),
+            ({"creator": ActorId(ActorType.USER, self.create_user().id)}, PermissionDenied),
+            ({"creator": ActorId(ActorType.USER, inactive_user.id)}, PermissionDenied),
+            ({"project_ids": [inactive_project.id]}, InvestigationValidationError),
+            (
+                {
+                    "creator": ActorId(ActorType.USER, self.user.id),
+                    "project_ids": [inactive_project.id],
+                },
+                InvestigationValidationError,
+            ),
         ]
         before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
         with self.feature("organizations:investigations"):
             for overrides, error in cases:
                 with self.subTest(overrides=overrides), pytest.raises(error):
-                    create_agentic_manual_investigation(**{**arguments, **overrides})
+                    create_agentic_breached_metric_investigation(**{**arguments, **overrides})
             assert (
                 Investigation.objects.count(),
                 InvestigationOrchestrationRun.objects.count(),
             ) == before
             dispatch.assert_not_called()
+
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
+    def test_both_creators_require_feature_and_open_membership(self, dispatch: mock.Mock) -> None:
+        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        source = resolve_investigation_source(
+            organization=self.organization,
+            source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+            accessible_project_ids={self.project.id},
+        )
+        for enabled, open_membership in ((False, True), (True, False)):
+            self.organization.flags.allow_joinleave = open_membership
+            self.organization.save()
+            with self.feature({"organizations:investigations": enabled}):
+                for creator in (ActorId(ActorType.USER, self.user.id), self.creator):
+                    with (
+                        self.subTest(creator=creator, enabled=enabled),
+                        pytest.raises(PermissionDenied),
+                    ):
+                        create_agentic_breached_metric_investigation(
+                            organization=self.organization,
+                            creator=creator,
+                            title=None,
+                            resolved_source=source,
+                            project_ids=[self.project.id],
+                            filters={},
+                        )
+        assert (
+            Investigation.objects.count(),
+            InvestigationOrchestrationRun.objects.count(),
+        ) == before
+        dispatch.assert_not_called()

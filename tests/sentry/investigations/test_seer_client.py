@@ -18,9 +18,11 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, viewer_context_scope
 
 
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationSeerClientTest(TestCase):
     def setUp(self) -> None:
         self.enterContext(
