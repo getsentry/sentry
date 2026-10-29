@@ -617,7 +617,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "OrganizationEvents": ServiceAccountGap.USER_ID_FIX,
     "OrganizationEventsDropped": ServiceAccountGap.USER_ID_FIX,
     "OrganizationEventsTimeseries": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationIndex": ServiceAccountGap.USER_ID_FIX,
     "OrganizationProfilingChunks": ServiceAccountGap.USER_ID_FIX,
     "OrganizationProfilingFlamegraph": ServiceAccountGap.USER_ID_FIX,
     "OrganizationReplayCount": ServiceAccountGap.USER_ID_FIX,

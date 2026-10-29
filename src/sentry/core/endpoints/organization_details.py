@@ -43,6 +43,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -845,7 +846,7 @@ def post_org_pending_deletion(
                 OrganizationRemoved(
                     organization_id=updated_organization.id,
                     slug=updated_organization.slug,
-                    user_id=request.user.id if request.user.is_authenticated else None,
+                    user_id=acting_user_id(request.user),
                     deletion_request_datetime=entry.datetime.isoformat(),
                     deletion_datetime=(entry.datetime + timedelta(seconds=ONE_DAY)).isoformat(),
                 )

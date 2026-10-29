@@ -46,7 +46,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import require_user
+from sentry.auth.principal import has_user, require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -182,7 +182,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             queryset = Project.objects.filter(organization=organization)
             if not request.access.has_global_access:
                 queryset = queryset.filter(id__in=request.access.accessible_project_ids)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
@@ -199,7 +199,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated:
+        if has_user(request.user):
             queryset = queryset.extra(
                 select={
                     "is_bookmarked": """exists (
@@ -296,7 +296,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             )
 
     def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
-        return user.is_authenticated
+        return has_user(user)
 
     @extend_schema(
         tags=["Projects"],
