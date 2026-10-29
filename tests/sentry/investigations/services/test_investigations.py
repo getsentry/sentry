@@ -10,11 +10,8 @@ from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
-    Investigation,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
-    InvestigationProject,
-    InvestigationSourceType,
 )
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.services.investigations import (
@@ -23,7 +20,6 @@ from sentry.investigations.services.investigations import (
     InvestigationValidationError,
     create_manual_investigation,
     default_investigation_title,
-    duplicate_investigation,
     lock_investigation,
     resolve_investigation_source,
     update_investigation,
@@ -33,9 +29,12 @@ from sentry.investigations.services.orchestration import (
     create_agentic_manual_investigation,
     get_orchestration_projection,
 )
+from sentry.notebooks.models import Notebook, NotebookProject, NotebookSourceType
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+from sentry.viewer_context import ActorId, ActorType
 
 
 class ProjectLinkScopingTest(TestCase):
@@ -53,7 +52,7 @@ class ProjectLinkScopingTest(TestCase):
             )
 
         assert "projectIds" in excinfo.value.errors
-        assert not InvestigationProject.objects.filter(project_id=foreign_project.id).exists()
+        assert not NotebookProject.objects.filter(project_id=foreign_project.id).exists()
 
     def test_create_accepts_projects_in_the_organization(self) -> None:
         investigation = create_manual_investigation(
@@ -65,7 +64,7 @@ class ProjectLinkScopingTest(TestCase):
         )
 
         assert list(
-            InvestigationProject.objects.filter(investigation=investigation).values_list(
+            NotebookProject.objects.filter(notebook=investigation).values_list(
                 "project_id", flat=True
             )
         ) == [self.project.id]
@@ -89,7 +88,7 @@ class ProjectLinkScopingTest(TestCase):
                 project_ids=[foreign_project.id],
             )
 
-        assert not InvestigationProject.objects.filter(project_id=foreign_project.id).exists()
+        assert not NotebookProject.objects.filter(project_id=foreign_project.id).exists()
 
 
 class BreachedMetricSourceRefTest(TestCase):
@@ -147,21 +146,18 @@ class BreachedMetricSourceRefTest(TestCase):
 
 def test_default_title_names_the_investigation_type() -> None:
     assert (
-        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD)
+        default_investigation_title(NotebookSourceType.METRIC_OPEN_PERIOD)
         == "New breached metrics investigation"
     )
-    assert (
-        default_investigation_title(InvestigationSourceType.BREACHED_METRIC)
-        == "New breached metrics investigation"
-    )
-    assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
+    assert default_investigation_title(NotebookSourceType.MANUAL) == "New manual investigation"
 
 
+@with_feature("organizations:investigations")
 class DefaultTitleTest(TestCase):
     def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -169,37 +165,6 @@ class DefaultTitleTest(TestCase):
         )
 
         assert investigation.title == "New manual investigation"
-
-
-class LegacySnapshotTest(TestCase):
-    def test_filter_updates_and_manual_duplicates_do_not_expose_the_legacy_snapshot(self) -> None:
-        snapshot = {"monitor": {"name": "Checkout errors"}}
-        source = {
-            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
-            "ref": {"groupId": "1", "openPeriodId": "2"},
-            "snapshot": snapshot,
-        }
-        investigation = self.create_investigation(
-            organization=self.organization,
-            created_by=self.user,
-            source=source,
-            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
-            source_key="source-key",
-            source_revision=1,
-            filters={"breachedMetric": snapshot},
-        )
-
-        updated = update_investigation(
-            investigation=investigation,
-            expected_version=investigation.version,
-            fields={"filters": {"environment": ["production"]}},
-            project_ids=None,
-        )
-        duplicate = duplicate_investigation(investigation=updated, user_id=self.user.id)
-
-        assert updated.filters == {"environment": ["production"]}
-        assert duplicate.source == {}
-        assert duplicate.filters == {"environment": ["production"]}
 
 
 class ConcurrentModificationTest(TestCase):
@@ -212,7 +177,7 @@ class ConcurrentModificationTest(TestCase):
             project_ids=[],
             filters={},
         )
-        Investigation.objects.filter(id=investigation.id).delete()
+        Notebook.objects.filter(id=investigation.id).delete()
 
         with pytest.raises(InvestigationSourceNotFound):
             lock_investigation(investigation, investigation.version)
@@ -261,10 +226,11 @@ class UpdateFieldAllowlistTest(TestCase):
         assert updated.filters == {"environment": ["prod"]}
 
 
+@with_feature("organizations:investigations")
 class OrchestrationControlServiceTest(TestCase):
     def test_agentic_creation_rolls_back_the_entire_aggregate(self) -> None:
-        investigation_count = Investigation.objects.count()
-        project_link_count = InvestigationProject.objects.count()
+        investigation_count = Notebook.objects.count()
+        project_link_count = NotebookProject.objects.count()
 
         with (
             mock.patch.object(
@@ -274,21 +240,21 @@ class OrchestrationControlServiceTest(TestCase):
         ):
             create_agentic_manual_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[self.project.id],
                 filters={},
             )
 
-        assert Investigation.objects.count() == investigation_count
-        assert InvestigationProject.objects.count() == project_link_count
+        assert Notebook.objects.count() == investigation_count
+        assert NotebookProject.objects.count() == project_link_count
         assert not InvestigationOrchestrationRun.objects.exists()
 
     def test_command_acceptance_rolls_back_command_and_version_together(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -315,7 +281,7 @@ class OrchestrationControlServiceTest(TestCase):
     def test_projection_serialization_overlays_authoritative_run_fields(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -360,11 +326,12 @@ class OrchestrationControlServiceTest(TestCase):
         assert result["report"]["notebookRevision"] == 4
 
 
+@with_feature("organizations:investigations")
 class OrchestrationCommandConcurrencyTest(TransactionTestCase):
     def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],

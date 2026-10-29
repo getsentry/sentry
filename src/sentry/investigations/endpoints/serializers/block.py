@@ -8,11 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
-from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockKind,
-)
+from sentry.notebooks.models import NotebookBlock, NotebookBlockExecutionStatus, NotebookBlockKind
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -59,10 +55,10 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     @override
     def get_attrs(
         self,
-        item_list: Sequence[InvestigationBlock],
+        item_list: Sequence[NotebookBlock],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[InvestigationBlock, dict[str, Any]]:
+    ) -> MutableMapping[NotebookBlock, dict[str, Any]]:
         prefetch_related_objects(
             item_list,
             "current_execution",
@@ -74,7 +70,7 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     @override
     def serialize(
         self,
-        obj: InvestigationBlock,
+        obj: NotebookBlock,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -85,12 +81,12 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             output_status = "notRun"
         else:
             visible_execution = (
-                obj.result_execution if obj.kind == InvestigationBlockKind.QUERY else execution
+                obj.result_execution if obj.kind == NotebookBlockKind.QUERY else execution
             )
             output = visible_execution.result if visible_execution is not None else None
             output_status = (
                 "available"
-                if execution.status == InvestigationBlockExecutionStatus.COMPLETED
+                if execution.status == NotebookBlockExecutionStatus.COMPLETED
                 else execution.status
             )
 
