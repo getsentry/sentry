@@ -39,7 +39,7 @@ seer: 0045_workflow_run_lifecycle
 
 sentry: 1245_add_login_hint_to_apidevicecode
 
-service_accounts: 0002_add_cell_replicas
+service_accounts: 0003_add_all_projects
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
