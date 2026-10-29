@@ -13,7 +13,10 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import interrupt_run, synchronize_execution
-from sentry.investigations.endpoints.base import OrganizationInvestigationBlockEndpoint
+from sentry.investigations.endpoints.base import (
+    OrganizationInvestigationBlockEndpoint,
+    require_authenticated_user,
+)
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationExecutionDetailsResponse,
 )
@@ -157,9 +160,11 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
         """
         Answer pending user input using inputId from execution polling. responseData may be any
         JSON value, including null. Returns 202 without a body; poll for progress. Returns 409
-        before the run starts, or 502 if the agent rejects the resume request. Requires the
-        organizations:investigations feature and open organization membership.
+        before the run starts, or 502 if the agent rejects the resume request. Requires an
+        authenticated user. Requires the organizations:investigations feature and open
+        organization membership.
         """
+        require_authenticated_user(request)
         execution = self._execution(block, execution_id)
         if not execution.seer_run or not execution.seer_run.seer_run_state_id:
             return Response({"detail": "The run has not started."}, status=status.HTTP_409_CONFLICT)
@@ -213,9 +218,11 @@ class OrganizationInvestigationBlockExecutionDetailsEndpoint(
     ) -> Response:
         """
         Cancel a queued execution immediately (204), or interrupt a started agent run and mark
-        the execution cancelled (202). Both responses have no body. Requires the
-        organizations:investigations feature and open organization membership.
+        the execution cancelled (202). Both responses have no body. Requires an authenticated
+        user. Requires the organizations:investigations feature and open organization
+        membership.
         """
+        require_authenticated_user(request)
         execution = self._execution(block, execution_id)
         if not execution.seer_run or not execution.seer_run.seer_run_state_id:
             mark_block_execution_cancelled(execution)
