@@ -448,7 +448,6 @@ class SpawnConversationTitleGenerationTest(TestCase):
 
     @override_settings(
         SEER_API_SHARED_SECRET="viewer-context-test-secret",
-        SENTRY_VIEWER_CONTEXT_ENABLED=True,
     )
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
     @patch(DELAY)

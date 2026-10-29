@@ -2687,7 +2687,6 @@ SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
         "permissions": ["object.read"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"

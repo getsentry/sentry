@@ -32,15 +32,9 @@ def ViewerContextMiddleware(
     takes precedence; ``X-Viewer-Context`` header is only used when
     there is no authenticated *user* (service-to-service calls that
     authenticate via HMAC but have no user session, e.g. Seer → Sentry).
-
-    Gated by ``viewer-context.enabled`` (FLAG_NOSTORE).
     """
-    enabled = settings.SENTRY_VIEWER_CONTEXT_ENABLED
 
     def ViewerContextMiddleware_impl(request: HttpRequest) -> HttpResponseBase:
-        if not enabled:
-            return get_response(request)
-
         # This avoids touching user session, which means we avoid
         # setting `Vary: Cookie` as a response header which will
         # break HTTP caching entirely.
