@@ -671,25 +671,27 @@ class Event(BaseEvent):
     _groups_cache: Sequence[Group] | None
 
     @property
+    def group_ids(self) -> list[int]:
+        if self._group_ids is not None:
+            return list(self._group_ids)
+
+        group_id = self.group_id
+        snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
+        group_ids = []
+        if group_id:
+            group_ids.append(group_id)
+        if snuba_group_ids:
+            group_ids.extend(snuba_group_ids)
+        return group_ids
+
+    @property
     def groups(self) -> Sequence[Group]:
         from sentry.models.group import Group
 
         if getattr(self, "_groups_cache"):
             return self._groups_cache
 
-        if self._group_ids is not None:
-            group_ids = self._group_ids
-        else:
-            snuba_group_id = self.group_id
-            # TODO: Replace `snuba_group_id` with this once we deprecate `group_id`.
-            # snuba_group_id = self._snuba_data.get(self._get_column_name(Columns.GROUP_ID))
-            snuba_group_ids = self._snuba_data.get(self._get_column_name(Columns.GROUP_IDS))
-            group_ids = []
-            if snuba_group_id:
-                group_ids.append(snuba_group_id)
-            if snuba_group_ids:
-                group_ids.extend(snuba_group_ids)
-
+        group_ids = self.group_ids
         if group_ids:
             groups = list(Group.objects.filter(id__in=group_ids))
         else:
