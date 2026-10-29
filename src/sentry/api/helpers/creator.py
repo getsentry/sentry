@@ -18,18 +18,18 @@ def get_creator_reference(request: Request) -> CreatorReference:
     """
     Creator columns for a resource created by this request. At most one is set.
 
-    Service accounts and org auth tokens authenticate as an anonymous user, so
-    `request.user.id` alone can't attribute what they create.
+    The credential in `request.auth` is checked before `request.user`, because
+    service account and org auth token requests can also carry a user.
     """
     reference: CreatorReference = {
         "created_by_id": None,
         "created_by_service_account_id": None,
         "created_by_org_auth_token_id": None,
     }
-    if request.user.is_authenticated:
-        reference["created_by_id"] = request.user.id
-    elif is_service_account_auth(request.auth):
+    if is_service_account_auth(request.auth):
         reference["created_by_service_account_id"] = request.auth.entity_id
     elif is_org_auth_token_auth(request.auth):
         reference["created_by_org_auth_token_id"] = get_org_auth_token_id_from_auth(request.auth)
+    elif request.user.is_authenticated:
+        reference["created_by_id"] = request.user.id
     return reference

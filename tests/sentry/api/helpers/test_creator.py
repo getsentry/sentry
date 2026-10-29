@@ -40,6 +40,21 @@ class GetCreatorReferenceTest(TestCase):
             "created_by_org_auth_token_id": None,
         }
 
+    def test_service_account_with_user(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=service_account.id,
+            organization_id=self.organization.id,
+        )
+        request = self.make_drf_request(user=self.user, auth=auth)
+
+        assert get_creator_reference(request) == {
+            "created_by_id": None,
+            "created_by_service_account_id": service_account.id,
+            "created_by_org_auth_token_id": None,
+        }
+
     def test_org_auth_token(self) -> None:
         with assume_test_silo_mode_of(OrgAuthToken):
             token = self.create_org_auth_token(
