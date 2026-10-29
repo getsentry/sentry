@@ -4,7 +4,7 @@ import {ThemeProvider} from '@emotion/react';
 import {render, screen} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
-import {lightTheme} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
 import {ExternalLink, Link, type LinkProps} from './link';
@@ -176,4 +176,21 @@ describe('ExternalLink', () => {
       }
     }
   );
+});
+
+describe('Link color', () => {
+  it.each([
+    ['light', lightTheme],
+    ['dark', darkTheme],
+  ])('uses the link color of the nearest %s theme', (_name, theme) => {
+    render(
+      <ThemeProvider theme={theme}>
+        <ExternalLink href="https://example.com/">Docs</ExternalLink>
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole('link', {name: 'Docs'})).toHaveStyle({
+      color: theme.tokens.interactive.link.accent.rest,
+    });
+  });
 });
