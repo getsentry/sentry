@@ -171,9 +171,7 @@ function getAggregatePipelines(
   return Object.fromEntries(
     Object.entries(widgetQuery.transformations ?? {}).filter(
       ([index, pipeline]) =>
-        Number(index) < widgetQuery.aggregates.length &&
-        !isEquation(widgetQuery.aggregates[Number(index)]!) &&
-        pipeline.length
+        Number(index) < widgetQuery.aggregates.length && pipeline.length
     )
   );
 }

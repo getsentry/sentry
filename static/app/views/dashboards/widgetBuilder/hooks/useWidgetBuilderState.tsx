@@ -1014,9 +1014,9 @@ export function useWidgetBuilderState(): {
           setYAxis(action.payload, options);
           if (transformations) {
             const sourceIndices = action.payload.map((field, index) =>
-              field.kind === FieldValueKind.FUNCTION
-                ? (action.sourceIndices?.[index] ?? index)
-                : undefined
+              field.kind === FieldValueKind.FIELD
+                ? undefined
+                : (action.sourceIndices?.[index] ?? index)
             );
             setTransformations(
               transformations.map(pipelines =>

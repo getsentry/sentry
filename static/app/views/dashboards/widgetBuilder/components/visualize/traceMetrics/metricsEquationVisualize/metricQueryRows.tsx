@@ -8,6 +8,8 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {BuilderStateMetricsQueryParamsProvider} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/builderStateMetricsQueryParamsProvider';
 import {MetricToolbar} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/metricToolbar';
 import {dispatchYAxisUpdate} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
@@ -15,6 +17,10 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constant
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import type {EquationModeSnapshot} from 'sentry/views/dashboards/widgetBuilder/hooks/useTraceMetricsVisualizeModeState';
 import {getTraceMetricAggregates} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {MAX_METRIC_ALLOWED_LABEL_VALUE} from 'sentry/views/explore/metrics/constants';
 import {
   extractReferenceLabels,
@@ -36,6 +42,7 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 function computeEquationReferencedLabels(
   equationQuery: MetricQuery | undefined,
@@ -71,9 +78,23 @@ export function MetricQueryRows({
   useEffect(() => {
     if (equationSnapshot) {
       // oxlint-disable-next-line react/immutability
-      equationSnapshot.current = {queries: metricQueries, selectedLabel};
+      equationSnapshot.current = {
+        queries: metricQueries,
+        selectedLabel,
+        transformations: state.transformations,
+      };
     }
-  }, [equationSnapshot, metricQueries, selectedLabel]);
+  }, [equationSnapshot, metricQueries, selectedLabel, state.transformations]);
+  const organization = useOrganization();
+  const canTransform =
+    organization.features.includes('explore-interpolation-and-smoothing') &&
+    supportsWidgetTransformations(state.dataset, state.displayType);
+  const plottedTransformations = state.transformations?.[0]?.[0] ?? [];
+  const setPlottedTransformations = (transformations: readonly string[]) =>
+    dispatch({
+      type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+      payload: {index: 0, transformations},
+    });
   const referenceMap = useMetricReferences(metricQueries);
   const addAggregate = useAddMetricQuery({});
 
@@ -272,6 +293,15 @@ export function MetricQueryRows({
           />
         </BuilderStateMetricsQueryParamsProvider>
       )}
+      {canTransform && plottedTransformations.length > 0 && (
+        <VisualizeTransformationRows
+          traceItemDataset={TraceItemDataset.TRACEMETRICS}
+          analyticsSource="dashboards"
+          transformations={plottedTransformations}
+          layout="inline"
+          onChange={setPlottedTransformations}
+        />
+      )}
       <Flex gap="md" align="center">
         <Button
           icon={<IconAdd />}
@@ -293,6 +323,14 @@ export function MetricQueryRows({
         >
           {t('Add Equation')}
         </Button>
+        {canTransform && (
+          <AddTransformationButton
+            traceItemDataset={TraceItemDataset.TRACEMETRICS}
+            analyticsSource="dashboards"
+            transformations={plottedTransformations}
+            onChange={setPlottedTransformations}
+          />
+        )}
       </Flex>
     </Stack>
   );
