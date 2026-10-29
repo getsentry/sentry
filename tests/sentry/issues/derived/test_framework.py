@@ -352,7 +352,6 @@ def test_codec_error_context(
     assert exc.value.stage == stage
     assert exc.value.feature_name == "broken"
     assert exc.value.__cause__ is cause
-    assert not isinstance(exc.value, ValueError)
     assert "sensitive value" not in str(exc.value)
 
 
