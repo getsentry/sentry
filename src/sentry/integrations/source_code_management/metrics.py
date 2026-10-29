@@ -24,7 +24,6 @@ class SCMIntegrationInteractionType(StrEnum):
     # RepositoryIntegration
     GET_STACKTRACE_LINK = "get_stacktrace_link"
     GET_CODEOWNER_FILE = "get_codeowner_file"
-    CHECK_FILE = "check_file"
 
     # SourceCodeIssueIntegration (SCM only)
     GET_REPOSITORY_CHOICES = "get_repository_choices"

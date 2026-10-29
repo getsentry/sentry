@@ -345,7 +345,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_absolute_depot_path(self, mock_check_file):
         """Test check_file with absolute depot path (//depot/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp")
+        result = self.installation._check_file(self.repo, "//depot/app/services/processor.cpp")
         assert result is not None
         assert "//depot/app/services/processor.cpp" in result
 
@@ -353,7 +353,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_path_with_depot_name(self, mock_check_file):
         """Test check_file with path starting with depot name (depot/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp")
+        result = self.installation._check_file(self.repo, "depot/app/services/processor.cpp")
         assert result is not None
         # Should not duplicate depot name in result
         assert "//depot/app/services/processor.cpp" in result
@@ -363,7 +363,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_relative_path(self, mock_check_file):
         """Test check_file with normal relative path (app/...)"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "app/services/processor.cpp")
+        result = self.installation._check_file(self.repo, "app/services/processor.cpp")
         assert result is not None
         assert "//depot/app/services/processor.cpp" in result
 
@@ -371,7 +371,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_with_revision_syntax_absolute(self, mock_check_file):
         """Test check_file with #revision syntax on absolute path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "//depot/app/services/processor.cpp#1")
+        result = self.installation._check_file(self.repo, "//depot/app/services/processor.cpp#1")
         assert result is not None
         assert "#1" in result
 
@@ -379,7 +379,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_with_revision_syntax_depot_name(self, mock_check_file):
         """Test check_file with #revision syntax on path with depot name"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "depot/app/services/processor.cpp#1")
+        result = self.installation._check_file(self.repo, "depot/app/services/processor.cpp#1")
         assert result is not None
         assert "#1" in result
         assert "depot/depot" not in result
@@ -388,7 +388,7 @@ class PerforceIntegrationTest(IntegrationTestCase):
     def test_check_file_with_revision_syntax_relative(self, mock_check_file):
         """Test check_file with #revision syntax on relative path"""
         mock_check_file.return_value = {"depotFile": "//depot/app/services/processor.cpp"}
-        result = self.installation.check_file(self.repo, "app/services/processor.cpp#1")
+        result = self.installation._check_file(self.repo, "app/services/processor.cpp#1")
         assert result is not None
         assert "#1" in result
 
@@ -404,6 +404,28 @@ class PerforceIntegrationTest(IntegrationTestCase):
         # The # character is preserved as-is (not URL-encoded in this method)
         assert url == "p4://depot/app/services/processor.cpp#1"
         assert "#1" in url
+
+    @patch(
+        "sentry.integrations.perforce.client.PerforceClient.check_file",
+        side_effect=RuntimeError("unexpected error"),
+    )
+    @patch("sentry.integrations.source_code_management.repository.metrics.incr")
+    def test_get_stacktrace_link_records_file_check_as_unavailable(
+        self, mock_incr, _mock_check_file
+    ):
+        result = self.installation.get_stacktrace_link(
+            self.repo, "app/services/processor.cpp", "", None
+        )
+
+        assert result is None
+        mock_incr.assert_any_call(
+            "integrations.source_code_management.check_file",
+            tags={
+                "integration_name": "perforce",
+                "parent_interaction_type": "get_stacktrace_link",
+                "result": "unavailable",
+            },
+        )
 
     @patch("sentry.integrations.perforce.client.PerforceClient.check_file")
     def test_get_stacktrace_link_changelist_not_url_encoded(self, mock_check_file):

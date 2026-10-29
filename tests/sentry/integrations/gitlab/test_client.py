@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -461,19 +462,25 @@ class GitlabRefreshAuthTest(GitLabClientTest):
             json={"text": 200},
         )
 
-        source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
+        with mock.patch.object(
+            self.installation,
+            "check_file",
+            wraps=self.installation.check_file,
+        ) as mock_check_file:
+            source_url = self.installation.get_stacktrace_link(self.repo, path, "master", ref)
         assert (
             source_url
             == "https://example.gitlab.com/example-repo/blob/537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3/src/file.py"
         )
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        mock_check_file.assert_called_once_with(
+            self.repo,
+            path,
+            ref,
+            parent_interaction_type=SCMIntegrationInteractionType.GET_STACKTRACE_LINK,
+        )
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch(
@@ -494,14 +501,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
 
         source_url = self.installation.get_stacktrace_link(self.repo, path, "master", None)
         assert source_url is None
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 
     @responses.activate
     @mock.patch("requests.sessions.Session.send")
@@ -521,14 +523,9 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         with pytest.raises(ApiHostError):
             self.installation.get_stacktrace_link(self.repo, path, "master", None)
 
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.HALTED  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.HALTED
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.HALTED
 
     @mock.patch(
         "sentry.integrations.gitlab.integration.GitlabIntegration.check_file",
@@ -553,6 +550,12 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
 
         assert result == GITLAB_CODEOWNERS
+        mock_check_file.assert_called_once_with(
+            self.config.project_repository.repository,
+            "CODEOWNERS",
+            self.config.default_branch,
+            parent_interaction_type=SCMIntegrationInteractionType.GET_CODEOWNER_FILE,
+        )
 
         assert (
             len(mock_record.mock_calls) == 2
