@@ -4,9 +4,9 @@ from typing import Any, NotRequired, TypedDict
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.constants import DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -16,6 +16,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -54,6 +55,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.viewer_context import ActorId, ActorType
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
     SentryAppEventType.SEER_ROOT_CAUSE_STARTED: ActivityType.SEER_RCA_STARTED,
@@ -535,10 +537,18 @@ class SeerAgentOperator[CachePayloadT]:
             )
 
             enable_code_mode_tools = "off"
+            has_create_pr = False
             if category_key == "slack_thread" and features.has(
                 "organizations:seer-slack-code-mode", organization
             ):
                 enable_code_mode_tools = "only"
+                # Same gate as Ask Seer; Seer only exposes write_pull_request with coding and bash on.
+                has_create_pr = features.has(
+                    "organizations:ask-seer-create-pr", organization, actor=user
+                )
+            enable_coding = has_create_pr and organization.get_option(
+                "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+            )
 
             try:
                 # RpcUser is not in SeerAgentClient's type signature but works at runtime
@@ -549,7 +559,10 @@ class SeerAgentOperator[CachePayloadT]:
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
                     is_interactive=True,
-                    enable_coding=False,
+                    enable_coding=enable_coding,
+                    # The client still requires seer-explorer-allow-bash-mode.
+                    enable_bash_mode=enable_coding,
+                    enable_write_pull_request=enable_coding,
                     enable_code_mode_tools=enable_code_mode_tools,
                     # Entrypoints (e.g. Slack) render responses as plain markdown and
                     # can't display embed widgets, so the raw Markdoc tags would leak as
@@ -635,7 +648,7 @@ class SeerInvestigationOperator[CachePayloadT]:
         organization: Organization,
         user_id: int,
         resolved_source: BreachedMetricSource,
-    ) -> tuple[Investigation, bool] | None:
+    ) -> tuple[Notebook, bool] | None:
         """
         Gets or creates the investigation for a breached metric and returns it with a created flag.
         Only a new investigation runs the success callback and gets a cache entry.
@@ -650,7 +663,7 @@ class SeerInvestigationOperator[CachePayloadT]:
             try:
                 investigation, created = create_agentic_breached_metric_investigation(
                     organization=organization,
-                    user_id=user_id,
+                    creator=ActorId(ActorType.USER, user_id),
                     title=None,
                     resolved_source=resolved_source,
                     project_ids=[resolved_source.project_id],
@@ -1117,6 +1130,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
     """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
+    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
     It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 

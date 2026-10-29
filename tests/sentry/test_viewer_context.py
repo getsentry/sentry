@@ -3,21 +3,42 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import threading
+from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.viewer_context import (
     Actor,
+    ActorId,
     ActorType,
     SuperuserAccess,
     ViewerContext,
+    actor_id_from_references,
     get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
     set_viewer_context_organization,
     viewer_context_scope,
 )
+
+
+def test_actor_id_from_references() -> None:
+    assert actor_id_from_references(user_id=7, service_account_id=None) == ActorId(
+        ActorType.USER, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=7) == ActorId(
+        ActorType.SERVICE_ACCOUNT, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=None) is None
+
+
+@pytest.mark.parametrize(("user_id", "service_account_id"), [(7, 7), (0, None), (None, True)])
+def test_actor_id_from_references_rejects_invalid_input(
+    user_id: Any, service_account_id: Any
+) -> None:
+    with pytest.raises(ValueError):
+        actor_id_from_references(user_id=user_id, service_account_id=service_account_id)
 
 
 class TestActorType:

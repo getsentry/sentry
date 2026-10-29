@@ -12,6 +12,7 @@ import {
   VALID_ISSUE_CATEGORIES,
   AI_DETECTED_ISSUE_TYPES,
   VISIBLE_ISSUE_TYPES,
+  type Tag,
   type TagCollection,
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -82,24 +83,15 @@ const SEARCHABLE_ISSUE_CATEGORIES = VALID_ISSUE_CATEGORIES.filter(
  * Certain field keys may conflict with custom tags. In this case, the tag will be
  * renamed, e.g. `platform` -> `tags[platform]`
  */
-const renameConflictingTags = (tags: TagCollection): TagCollection => {
-  const renamedTags: TagCollection = {};
-
-  for (const [key, tag] of Object.entries(tags)) {
-    const newKey = escapeIssueTagKey(key);
-    if (key === newKey) {
-      renamedTags[key] = tag;
-    } else {
-      renamedTags[newKey] = {
-        ...tag,
-        key: newKey,
-        name: newKey,
-      };
-    }
-  }
-
-  return renamedTags;
-};
+const renameConflictingTags = (tags: Map<string, Tag>): TagCollection =>
+  // fromEntries defines own properties, so a "__proto__" tag key stays a tag
+  // instead of replacing the object's prototype.
+  Object.fromEntries(
+    Array.from(tags, ([key, tag]) => {
+      const newKey = escapeIssueTagKey(key);
+      return key === newKey ? [key, tag] : [newKey, {...tag, key: newKey, name: newKey}];
+    })
+  );
 
 /**
  * Fetches the tags from both the Errors and IssuePlatform dataset
@@ -156,42 +148,33 @@ export const useFetchIssueTags = ({
     const issuePlatformTags = issuePlatformTagsQuery.data || [];
     const featureFlagTags = featureFlagTagsQuery.data || [];
 
-    const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
-      (acc, tag) => {
-        acc[tag.key] = {...tag, kind: FieldKind.TAG};
-        return acc;
-      },
-      {}
-    );
+    const tagsToMerge: Tag[] = [
+      ...eventsTags.map(tag => ({...tag, kind: FieldKind.TAG})),
+      ...issuePlatformTags.map(tag => ({...tag, kind: FieldKind.TAG})),
+      ...featureFlagTags.map(tag => ({
+        ...tag,
+        kind: FieldKind.FEATURE_FLAG,
+        key: makeFeatureFlagSearchKey(tag.key), // Update with wrapped key.
+      })),
+    ];
 
-    issuePlatformTags.forEach(tag => {
-      if (allTagsCollection[tag.key]) {
-        allTagsCollection[tag.key]!.totalValues =
-          (allTagsCollection[tag.key]!.totalValues ?? 0) + (tag.totalValues ?? 0);
+    // A Map, because tag keys like "constructor" or "__proto__" collide with
+    // properties every plain object already has.
+    const tagsByKey = new Map<string, Tag>();
+    for (const tag of tagsToMerge) {
+      const existing = tagsByKey.get(tag.key);
+      if (existing) {
+        existing.totalValues = (existing.totalValues ?? 0) + (tag.totalValues ?? 0);
       } else {
-        allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
+        tagsByKey.set(tag.key, tag);
       }
-    });
-
-    featureFlagTags.forEach(tag => {
-      const key = makeFeatureFlagSearchKey(tag.key);
-      if (allTagsCollection[key]) {
-        allTagsCollection[key].totalValues =
-          (allTagsCollection[key].totalValues ?? 0) + (tag.totalValues ?? 0);
-      } else {
-        allTagsCollection[key] = {
-          ...tag,
-          kind: FieldKind.FEATURE_FLAG,
-          key, // Update with wrapped key.
-        };
-      }
-    });
-
-    for (const excludedTag of EXCLUDED_TAGS) {
-      delete allTagsCollection[excludedTag];
     }
 
-    const renamedTags = renameConflictingTags(allTagsCollection);
+    for (const excludedTag of EXCLUDED_TAGS) {
+      tagsByKey.delete(excludedTag);
+    }
+
+    const renamedTags = renameConflictingTags(tagsByKey);
 
     const additionalTags = builtInIssuesFields({
       currentTags: renamedTags,

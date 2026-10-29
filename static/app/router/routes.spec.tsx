@@ -116,7 +116,6 @@ describe('buildRoutes()', () => {
             {
               type: 'project',
               to: '/settings/:orgId/projects/:projectId/',
-              switchTo: '/settings/:orgId/projects/:projectId/keys/',
             },
             {
               type: 'link',
@@ -252,6 +251,8 @@ describe('buildRoutes()', () => {
     it.each([
       ['/seer/automations/', 'automations/', true],
       ['/organizations/test-org/seer/automations/', 'automations/', false],
+      ['/seer/automations/runs/', 'runs/', true],
+      ['/organizations/test-org/seer/automations/runs/', 'runs/', false],
       ['/seer/investigations/', 'investigations/', true],
       ['/seer/investigations/investigation-1/', 'investigations/:investigationId/', true],
       ['/organizations/test-org/seer/investigations/', 'investigations/', false],

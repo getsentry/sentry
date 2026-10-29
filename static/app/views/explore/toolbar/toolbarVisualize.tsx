@@ -31,7 +31,6 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {VisualizeEquation as VisualizeEquationInput} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeEquation';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
@@ -389,22 +388,6 @@ function ToolbarVisualizeItem({
       loading={numberTagsLoading || stringTagsLoading || booleanTagsLoading}
       onSearch={setSearch}
       onClose={() => setSearch(undefined)}
-      transformationControls={
-        organization.features.includes('explore-interpolation-and-smoothing') &&
-        isVisualizeFunction(visualize) ? (
-          <VisualizeTransformations
-            traceItemDataset={TraceItemDataset.SPANS}
-            transformations={visualize.transformations}
-            onChange={transformations =>
-              onReplace(
-                visualizes.map(v =>
-                  isVisualizeFunction(v) ? v.replace({transformations}) : v
-                )
-              )
-            }
-          />
-        ) : undefined
-      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar
@@ -474,6 +457,7 @@ function AggregateMultiSelect({
 
   return (
     <AggregateCompositeSelect
+      fullWidth={defined(selectedFormula)}
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -557,9 +541,13 @@ function AggregateMultiSelect({
   );
 }
 
-const AggregateCompositeSelect = styled(CompositeSelect)`
-  width: 100px;
-  flex-shrink: 0;
+const AggregateCompositeSelect = styled(CompositeSelect, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth: boolean}>`
+  ${p =>
+    p.fullWidth
+      ? 'flex: 1 1; min-width: 0; width: 100%;'
+      : 'width: 100px; flex-shrink: 0;'}
 
   > button {
     width: 100%;

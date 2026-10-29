@@ -21,20 +21,14 @@ from sentry.investigations.contracts import (
     validate_text_result,
 )
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionProject,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
-    InvestigationBlockKind,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
-    InvestigationProject,
-    InvestigationStatus,
 )
 from sentry.investigations.services.action_requests import (
     supersede_action_requests_before,
@@ -43,7 +37,24 @@ from sentry.investigations.services.action_requests import (
     upsert_action_request,
     withdraw_action_request,
 )
+from sentry.investigations.services.orchestration import (
+    clear_command_dispatch_error,
+    command_can_be_requeued,
+    requeue_commands_behind,
+    schedule_orchestration_commands,
+)
 from sentry.models.project import Project
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionProject,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
+    NotebookBlockKind,
+    NotebookProject,
+    NotebookStatus,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
 
@@ -138,7 +149,7 @@ def _validate_projection_project_scope(
     if not project_ids:
         return
     allowed_project_ids = set(
-        InvestigationProject.objects.filter(investigation=run.investigation).values_list(
+        NotebookProject.objects.filter(notebook=run.investigation).values_list(
             "project_id", flat=True
         )
     )
@@ -204,7 +215,7 @@ def _notebook_writes_are_fenced(
     *,
     event_generation: int,
 ) -> bool:
-    if run.investigation.status == InvestigationStatus.ARCHIVED:
+    if run.investigation.status == NotebookStatus.ARCHIVED:
         return True
     fence_generation = _control(run).get("notebookWriteFenceGeneration")
     return (
@@ -273,6 +284,40 @@ def _set_projection(
         run.error = deepcopy(projection_error)
 
 
+def _update_rerun(run: InvestigationOrchestrationRun, payload: dict[str, Any]) -> None:
+    """Record whether Seer started or dropped a re-run it held. It can arrive before the
+    command's response, or after Sentry gave up on one that was lost. Either way Seer has the
+    command, so it doesn't hold up the commands behind it. A command Seer turned down is left
+    alone.
+    """
+
+    # It can settle a command the dispatch task gave up on, so send whatever's still queued.
+    schedule_orchestration_commands(run.id)
+    for command in InvestigationOrchestrationCommand.objects.select_for_update().filter(
+        orchestration_run=run, request_id=payload["requestId"]
+    ):
+        lost_response = command.status == InvestigationOrchestrationCommandStatus.FAILED and (
+            command_can_be_requeued(command)
+        )
+        if not lost_response and command.status not in (
+            InvestigationOrchestrationCommandStatus.ACCEPTED,
+            InvestigationOrchestrationCommandStatus.DISPATCHED,
+            InvestigationOrchestrationCommandStatus.ACKNOWLEDGED,
+        ):
+            continue
+        if lost_response:
+            requeue_commands_behind(run, command)
+            clear_command_dispatch_error(run, request_id=command.request_id)
+        command.rerun = payload["rerun"]
+        if payload["rerun"] == InvestigationOrchestrationRerun.SKIPPED:
+            command.status = InvestigationOrchestrationCommandStatus.FAILED
+            command.error = {"code": "rerun_skipped", "reason": payload["reason"]}
+        else:
+            command.status = InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+            command.error = None
+        command.save(update_fields=["rerun", "status", "error", "date_updated"])
+
+
 def _projection_is_stale(
     run: InvestigationOrchestrationRun,
     projection: dict[str, Any],
@@ -294,24 +339,24 @@ def _finish_report_executions(
     status: str,
     error: dict[str, Any],
     revision: int | None = None,
-    stable_agent_key: str | None = None,
+    producer_key: str | None = None,
     block_ids: list[int] | None = None,
 ) -> int:
-    executions = InvestigationBlockExecution.objects.filter(
-        block__investigation=run.investigation,
-        block__report_revision__isnull=False,
-        block__stable_agent_key__isnull=False,
+    executions = NotebookBlockExecution.objects.filter(
+        block__notebook=run.investigation,
+        block__producer_revision__isnull=False,
+        block__producer_key__isnull=False,
         status__in=(
-            InvestigationBlockExecutionStatus.PENDING,
-            InvestigationBlockExecutionStatus.RUNNING,
-            InvestigationBlockExecutionStatus.AWAITING_INPUT,
-            InvestigationBlockExecutionStatus.STOPPING,
+            NotebookBlockExecutionStatus.PENDING,
+            NotebookBlockExecutionStatus.RUNNING,
+            NotebookBlockExecutionStatus.AWAITING_INPUT,
+            NotebookBlockExecutionStatus.STOPPING,
         ),
     )
     if revision is not None:
-        executions = executions.filter(block__report_revision=revision)
-    if stable_agent_key is not None:
-        executions = executions.filter(block__stable_agent_key=stable_agent_key)
+        executions = executions.filter(block__producer_revision=revision)
+    if producer_key is not None:
+        executions = executions.filter(block__producer_key=producer_key)
     if block_ids is not None:
         executions = executions.filter(block_id__in=block_ids)
     now = timezone.now()
@@ -327,18 +372,18 @@ def _cancel_report_executions(
     run: InvestigationOrchestrationRun,
     *,
     revision: int | None = None,
-    stable_agent_key: str | None = None,
+    producer_key: str | None = None,
     block_ids: list[int] | None = None,
 ) -> int:
     return _finish_report_executions(
         run,
-        status=InvestigationBlockExecutionStatus.CANCELLED,
+        status=NotebookBlockExecutionStatus.CANCELLED,
         error={
             "code": "investigation_report_restarted",
             "message": "The investigation report was restarted.",
         },
         revision=revision,
-        stable_agent_key=stable_agent_key,
+        producer_key=producer_key,
         block_ids=block_ids,
     )
 
@@ -350,7 +395,7 @@ def _fail_report_executions(
 ) -> int:
     return _finish_report_executions(
         run,
-        status=InvestigationBlockExecutionStatus.FAILED,
+        status=NotebookBlockExecutionStatus.FAILED,
         error={
             "code": "investigation_report_failed",
             "message": "The investigation report could not be completed.",
@@ -362,7 +407,7 @@ def _fail_report_executions(
 def _cancel_workflow_report_executions(run: InvestigationOrchestrationRun) -> int:
     return _finish_report_executions(
         run,
-        status=InvestigationBlockExecutionStatus.CANCELLED,
+        status=NotebookBlockExecutionStatus.CANCELLED,
         error={
             "code": "investigation_cancelled",
             "message": "The investigation was cancelled.",
@@ -393,37 +438,37 @@ def _adopt_preserved_report_revision(
         or revision <= _report_revision(run)
     ):
         return False
-    live_blocks = InvestigationBlock.objects.filter(
-        investigation=run.investigation,
-        report_revision__isnull=False,
-        stable_agent_key__isnull=False,
+    live_blocks = NotebookBlock.objects.filter(
+        notebook=run.investigation,
+        producer_revision__isnull=False,
+        producer_key__isnull=False,
         deleted_at__isnull=True,
     )
     completed_ids = list(
         live_blocks.filter(
-            current_execution__status=InvestigationBlockExecutionStatus.COMPLETED
+            current_execution__status=NotebookBlockExecutionStatus.COMPLETED
         ).values_list("id", flat=True)
     )
     discarded_ids = list(live_blocks.exclude(id__in=completed_ids).values_list("id", flat=True))
     now = timezone.now()
     if completed_ids:
-        InvestigationBlock.objects.filter(id__in=completed_ids).update(
-            report_revision=revision,
+        NotebookBlock.objects.filter(id__in=completed_ids).update(
+            producer_revision=revision,
             date_updated=now,
         )
     if discarded_ids:
         _cancel_report_executions(run, block_ids=discarded_ids)
-        discarded = InvestigationBlock.objects.filter(id__in=discarded_ids)
+        discarded = NotebookBlock.objects.filter(id__in=discarded_ids)
         supersede_block_action_requests(
             run.investigation,
-            [key for key in discarded.values_list("stable_agent_key", flat=True) if key],
+            [key for key in discarded.values_list("producer_key", flat=True) if key],
         )
         discarded.update(deleted_at=now, date_updated=now)
     _control(run).update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
 
-def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Investigation) -> None:
+def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Notebook) -> None:
     run.notebook_revision += 1
     report = run.projection.setdefault("report", {})
     if isinstance(report, dict):
@@ -434,7 +479,7 @@ def _bump_notebook(run: InvestigationOrchestrationRun, investigation: Investigat
 
 
 def _default_display(kind: str) -> dict[str, Any]:
-    if kind == InvestigationBlockKind.TEXT:
+    if kind == NotebookBlockKind.TEXT:
         return {"type": "markdown"}
     return {
         "version": 1,
@@ -450,16 +495,16 @@ def _upsert_report_block(
     payload: dict[str, Any],
     complete: bool,
     from_snapshot: bool = False,
-) -> InvestigationBlock:
+) -> NotebookBlock:
     investigation = run.investigation
     revision = payload["reportRevision"]
     key = payload["stableAgentKey"]
     kind = payload["kind"]
     block = (
-        InvestigationBlock.objects.filter(
-            investigation=investigation,
-            report_revision=revision,
-            stable_agent_key=key,
+        NotebookBlock.objects.filter(
+            notebook=investigation,
+            producer_revision=revision,
+            producer_key=key,
         )
         .select_related("current_execution")
         .first()
@@ -470,10 +515,10 @@ def _upsert_report_block(
         if "position" not in payload:
             raise serializers.ValidationError({"payload": "position is required for a new block."})
         position = payload["position"]
-        block = InvestigationBlock(
-            investigation=investigation,
-            report_revision=revision,
-            stable_agent_key=key,
+        block = NotebookBlock(
+            notebook=investigation,
+            producer_revision=revision,
+            producer_key=key,
             position=position,
             kind=kind,
         )
@@ -507,7 +552,7 @@ def _upsert_report_block(
     elif not isinstance(incoming_display, dict):
         raise serializers.ValidationError({"payload": "display must be an object."})
     display = {**_default_display(kind), **block.display, **incoming_display}
-    if kind == InvestigationBlockKind.QUERY:
+    if kind == NotebookBlockKind.QUERY:
         if incoming_display.get("type") in {"table", "chart"} and "version" not in incoming_display:
             display["defaultView"] = incoming_display["type"]
         if display["type"] == "chart":
@@ -540,22 +585,22 @@ def _upsert_report_block(
         _REPORT_EXECUTION_NAMESPACE,
         f"{run.id}:{revision}:{key}:{kind}",
     )
-    execution = InvestigationBlockExecution.objects.filter(request_id=request_id).first()
+    execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
     result = (
         payload["result"]
-        if kind == InvestigationBlockKind.QUERY and complete
+        if kind == NotebookBlockKind.QUERY and complete
         else validate_text_result({"schemaVersion": 1, "markdown": block.generated_content})
         if complete
         else None
     )
     published_execution = (
-        block.result_execution if kind == InvestigationBlockKind.QUERY else block.content_execution
+        block.result_execution if kind == NotebookBlockKind.QUERY else block.content_execution
     )
     if published_execution is None and complete and payload.get("useInvestigationProjectScope"):
         published_execution = (
-            InvestigationBlockExecution.objects.filter(
+            NotebookBlockExecution.objects.filter(
                 block=block,
-                status=InvestigationBlockExecutionStatus.COMPLETED,
+                status=NotebookBlockExecutionStatus.COMPLETED,
                 result=result,
             )
             .order_by("-id")
@@ -563,20 +608,20 @@ def _upsert_report_block(
         )
     if published_execution is None and complete and payload.get("useInvestigationProjectScope"):
         previous_block = (
-            InvestigationBlock.objects.filter(
-                investigation=investigation,
-                stable_agent_key=key,
+            NotebookBlock.objects.filter(
+                notebook=investigation,
+                producer_key=key,
                 kind=kind,
-                report_revision__lt=revision,
+                producer_revision__lt=revision,
             )
             .select_related("content_execution", "result_execution")
-            .order_by("-report_revision")
+            .order_by("-producer_revision")
             .first()
         )
         if previous_block is not None:
             published_execution = (
                 previous_block.result_execution
-                if kind == InvestigationBlockKind.QUERY
+                if kind == NotebookBlockKind.QUERY
                 else previous_block.content_execution
             )
     scope_execution = execution
@@ -599,7 +644,7 @@ def _upsert_report_block(
         scoped_project_ids = (
             scope_execution.data_project_links.values_list("project_id", flat=True)
             if scope_execution is not None
-            else InvestigationProject.objects.filter(investigation=investigation).values_list(
+            else NotebookProject.objects.filter(notebook=investigation).values_list(
                 "project_id", flat=True
             )
         )
@@ -607,7 +652,7 @@ def _upsert_report_block(
         if not project_ids:
             raise serializers.ValidationError({"payload": "Investigation project scope is empty."})
     if execution is not None and (
-        from_snapshot or execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        from_snapshot or execution.status == NotebookBlockExecutionStatus.COMPLETED
     ):
         project_ids = sorted(
             set(project_ids)
@@ -635,17 +680,16 @@ def _upsert_report_block(
     if complete:
         completed_at = (
             execution.completed_at
-            if execution is not None
-            and execution.status == InvestigationBlockExecutionStatus.COMPLETED
+            if execution is not None and execution.status == NotebookBlockExecutionStatus.COMPLETED
             else now
         )
     defaults = {
         "block": block,
-        "executor": InvestigationBlockExecutor.CODE_MODE,
+        "executor": NotebookBlockExecutor.CODE_MODE,
         "status": (
-            InvestigationBlockExecutionStatus.COMPLETED
+            NotebookBlockExecutionStatus.COMPLETED
             if complete
-            else InvestigationBlockExecutionStatus.RUNNING
+            else NotebookBlockExecutionStatus.RUNNING
         ),
         "block_version": block.version,
         "result_schema_version": 1,
@@ -653,7 +697,7 @@ def _upsert_report_block(
         "error": None,
         "completed_at": completed_at,
     }
-    execution, _ = InvestigationBlockExecution.objects.update_or_create(
+    execution, _ = NotebookBlockExecution.objects.update_or_create(
         request_id=request_id,
         defaults=defaults,
         create_defaults={
@@ -665,15 +709,15 @@ def _upsert_report_block(
             "started_at": now,
         },
     )
-    InvestigationBlockExecutionProject.objects.filter(execution=execution).delete()
-    InvestigationBlockExecutionProject.objects.bulk_create(
+    NotebookBlockExecutionProject.objects.filter(execution=execution).delete()
+    NotebookBlockExecutionProject.objects.bulk_create(
         [
-            InvestigationBlockExecutionProject(execution=execution, project=project)
+            NotebookBlockExecutionProject(execution=execution, project=project)
             for project in projects
         ]
     )
     block.current_execution = execution
-    if kind == InvestigationBlockKind.QUERY:
+    if kind == NotebookBlockKind.QUERY:
         if complete or block.result_execution_id is None:
             block.result_execution = execution
     else:
@@ -708,10 +752,10 @@ def _clear_report(
     ):
         return False
     now = timezone.now()
-    live_blocks = InvestigationBlock.objects.filter(
-        investigation=run.investigation,
-        report_revision__isnull=False,
-        stable_agent_key__isnull=False,
+    live_blocks = NotebookBlock.objects.filter(
+        notebook=run.investigation,
+        producer_revision__isnull=False,
+        producer_key__isnull=False,
         deleted_at__isnull=True,
     )
     _cancel_report_executions(
@@ -837,6 +881,12 @@ def _apply_event(
     # schemas change. Normalizing here is what lets the apply path read coerced
     # values and defaults without re-checking any types.
     payload = _validate_event_payload(event.type, _event_data(event), log_drops=True)
+    if event.type == "rerun_updated":
+        # It's about a command, so any generation counts. A re-run that starts sends it ahead
+        # of the new generation's projection.
+        _update_rerun(run, payload)
+        run.heartbeat_at = timezone.now()
+        return True, None
     generation = _event_generation(event)
     if generation < run.generation:
         return False, "stale_generation"
@@ -898,12 +948,12 @@ def _apply_event(
             )
             _bump_notebook(run, run.investigation)
         elif event.type == "report_text_delta":
-            block = InvestigationBlock.objects.filter(
-                investigation=run.investigation,
-                report_revision=revision,
-                stable_agent_key=payload["stableAgentKey"],
+            block = NotebookBlock.objects.filter(
+                notebook=run.investigation,
+                producer_revision=revision,
+                producer_key=payload["stableAgentKey"],
                 deleted_at__isnull=True,
-                kind=InvestigationBlockKind.TEXT,
+                kind=NotebookBlockKind.TEXT,
             ).first()
             if block is None:
                 raise serializers.ValidationError({"payload": "Text block was not started."})
@@ -933,22 +983,22 @@ def _apply_event(
             _cancel_report_executions(
                 run,
                 revision=revision,
-                stable_agent_key=payload["stableAgentKey"],
+                producer_key=payload["stableAgentKey"],
             )
-            updated = InvestigationBlock.objects.filter(
-                investigation=run.investigation,
-                report_revision=revision,
-                stable_agent_key=payload["stableAgentKey"],
+            updated = NotebookBlock.objects.filter(
+                notebook=run.investigation,
+                producer_revision=revision,
+                producer_key=payload["stableAgentKey"],
                 deleted_at__isnull=True,
             ).update(deleted_at=now, date_updated=now)
             if updated:
                 supersede_block_action_requests(run.investigation, [payload["stableAgentKey"]])
                 _bump_notebook(run, run.investigation)
         elif event.type == "report_block_moved":
-            block = InvestigationBlock.objects.filter(
-                investigation=run.investigation,
-                report_revision=revision,
-                stable_agent_key=payload["stableAgentKey"],
+            block = NotebookBlock.objects.filter(
+                notebook=run.investigation,
+                producer_revision=revision,
+                producer_key=payload["stableAgentKey"],
                 deleted_at__isnull=True,
             ).first()
             if block is None:
@@ -1053,9 +1103,7 @@ def _mark_event(
 def _lock_run_after_investigation(
     orchestration_run_id: int,
 ) -> InvestigationOrchestrationRun:
-    Investigation.objects.select_for_update(of=("self",)).get(
-        orchestration_run__id=orchestration_run_id
-    )
+    Notebook.objects.select_for_update(of=("self",)).get(orchestration_run__id=orchestration_run_id)
     return (
         InvestigationOrchestrationRun.objects.select_for_update(of=("self",))
         .select_related("investigation")

@@ -2,6 +2,7 @@ import uuid
 from hashlib import md5
 from typing import Any
 from unittest import mock
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -33,6 +34,8 @@ from sentry.spans.consumers.process_segments.message import (
     EVIDENCE_SPAN_DATA_KEYS,
     MAX_EVIDENCE_LIST_ITEMS,
     MAX_EVIDENCE_VALUE_LENGTH,
+    MAX_OCCURRENCE_BREADCRUMBS_BYTES,
+    MAX_OCCURRENCE_EXTRA_BYTES,
     MAX_OCCURRENCE_TAGS_BYTES,
     MAX_SPAN_DATA_VALUE_LENGTH,
     MAX_SPAN_DESCRIPTION_LENGTH,
@@ -653,17 +656,29 @@ def test_truncate_value_for_occurrence_recurses_and_leaves_scalars_alone() -> No
 def test_trim_oversize_event_data() -> None:
     event_data = {
         "tags": [[f"dog_{i}", "very good"] for i in range(3000)],
+        "extra": {f"dog_{i}": "great" for i in range(3000)},
+        "breadcrumbs": {
+            "values": [{"type": "default", "message": "adopt don't shop"} for _ in range(500)]
+        },
     }
 
     original_tag_bytes = get_json_bytes(event_data["tags"])
+    original_extra_bytes = get_json_bytes(event_data["extra"])
+    original_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     _trim_event_data_for_occurrence(event_data)
 
     trimmed_tag_bytes = get_json_bytes(event_data["tags"])
+    trimmed_extra_bytes = get_json_bytes(event_data["extra"])
+    trimmed_breadcrumb_bytes = get_json_bytes(event_data["breadcrumbs"])
 
     assert original_tag_bytes > MAX_OCCURRENCE_TAGS_BYTES
+    assert original_extra_bytes > MAX_OCCURRENCE_EXTRA_BYTES
+    assert original_breadcrumb_bytes > MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
     assert trimmed_tag_bytes <= MAX_OCCURRENCE_TAGS_BYTES
+    assert trimmed_extra_bytes <= MAX_OCCURRENCE_EXTRA_BYTES
+    assert trimmed_breadcrumb_bytes <= MAX_OCCURRENCE_BREADCRUMBS_BYTES
 
 
 def test_trim_event_data_caps_tag_values_by_character_count() -> None:
@@ -721,6 +736,173 @@ def test_trim_event_data_keeps_each_tag_whole() -> None:
             bare_extra_key = extra_naively_trimmed_tag[0]
             assert bare_extra_key.endswith("...")
             assert bare_extra_key not in orig_keys
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_drops_corrupted_last_breadcrumb(field_name: str, value: str) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a corrupted key
+        # field value
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert "..." in raw_trimmed_breadcrumbs[1][field_name]
+
+        # Trimming using the helper, however, drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+    # Now set the byte limit so that the key field doesn't have room to appear at all, and the
+    # behavior will be the same, with the corrupted breadcrumb dropped.
+    orig_breadcrumbs = {
+        "values": [
+            {"type": "default", "message": "dogs_are_great"},
+            {"type": "http", field_name: value},
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(value)
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the key field entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert field_name not in raw_trimmed_breadcrumbs[1]
+
+        # And as before, trimming using the helper drops the second breadcrumb
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"}
+        ]
+        mock_logger_info.assert_called_once_with(
+            "issue_detection.shim.breadcrumbs_dropped",
+            extra={"initial_count": 2, "final_count": 1},
+        )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("event_id", "11212012123120120415201309082013"),
+        ("level", "warning"),
+        ("timestamp", "2012-12-31T11:21:33Z"),
+    ],
+)
+def test_trim_event_data_keeps_last_breadcrumb_if_non_key_field_truncated(
+    field_name: str, value: str
+) -> None:
+    # Ensure that the second breadcrumb will get trimmed. Within the second breadcrumb, since all of
+    # the key fields have values which are longer than `http`, they'll be the ones to have their
+    # values chopped.
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - 1
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # A naive trim leaves both breadcrumbs present, with the second one having a trimmed non-key
+        # field but intact key field
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "..." in raw_trimmed_breadcrumbs[1]["type"]
+
+        # Trimming using the helper keeps the second breadcrumb, because the trimmed field isn't a
+        # key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadc...",
+                field_name: value,
+            },
+        ]
+        mock_logger_info.assert_not_called()
+
+    # Now set the byte limit so that the non-key field doesn't have room to appear at all, and the
+    # behavior will be the same, with both breadcrumbs kept
+    orig_breadcrumbs = {
+        "values": [
+            {
+                "type": "default",
+                "message": "dogs_are_great",
+            },
+            {
+                "type": "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb",
+                field_name: value,
+            },
+        ]
+    }
+    breadcrumb_byte_limit = get_json_bytes(orig_breadcrumbs) - len(
+        "really_long_type_guaranteed_to_be_the_longest_value_in_the_breadcrumb"
+    )
+
+    with (
+        patch.object(message_module, "MAX_OCCURRENCE_BREADCRUMBS_BYTES", breadcrumb_byte_limit),
+        patch.object(message_module.logger, "info") as mock_logger_info,
+    ):
+        # As before, both breadcrumbs are kept, but this time trimming removes the non-key field
+        # entirely
+        raw_trimmed_breadcrumbs = strict_trim(orig_breadcrumbs, breadcrumb_byte_limit)["values"]
+        assert len(raw_trimmed_breadcrumbs) == 2
+        assert raw_trimmed_breadcrumbs[1][field_name] == value
+        assert "type" not in raw_trimmed_breadcrumbs
+
+        # And as before, trimming using the helper keeps the second breadcrumb because the omitted
+        # field wasn't a key field
+        event_data = {"breadcrumbs": orig_breadcrumbs}
+        _trim_event_data_for_occurrence(event_data)
+        assert event_data["breadcrumbs"]["values"] == [
+            {"type": "default", "message": "dogs_are_great"},
+            {field_name: value},
+        ]
+        mock_logger_info.assert_not_called()
 
 
 def test_evidence_stays_under_the_producer_message_limit() -> None:

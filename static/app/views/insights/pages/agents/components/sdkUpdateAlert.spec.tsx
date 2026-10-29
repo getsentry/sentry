@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -66,6 +67,77 @@ describe('SdkUpdateAlert', () => {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('names the outdated package when given several', async () => {
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.nextjs',
+          sdkVersion: '9.0.0',
+        },
+      ],
+    });
+
+    render(
+      <SdkUpdateAlert
+        projectId={project.id}
+        minVersion="10.0.0"
+        packageName={['@sentry/nextjs', '@sentry/cloudflare']}
+      />,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/nextjs version is below the minimum required for agent monitoring. Update to 10.0.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not render for an outdated package outside the list', async () => {
+    renderMockSdkUpdateRequest({
+      organization,
+      body: [
+        {
+          projectId: project.id,
+          sdkName: 'sentry.javascript.node',
+          sdkVersion: '9.0.0',
+        },
+      ],
+    });
+
+    render(
+      <Fragment>
+        <div data-test-id="outside-list">
+          <SdkUpdateAlert
+            projectId={project.id}
+            minVersion="10.0.0"
+            packageName={['@sentry/nextjs', '@sentry/cloudflare']}
+          />
+        </div>
+        {/* Lists the outdated package, so it shows once the updates have loaded */}
+        <SdkUpdateAlert
+          projectId={project.id}
+          minVersion="10.0.0"
+          packageName="@sentry/node"
+        />
+      </Fragment>,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/node version is below the minimum required for agent monitoring. Update to 10.0.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('outside-list')).toBeEmptyDOMElement();
   });
 
   it('does not render when there is an error', async () => {

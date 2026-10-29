@@ -24,6 +24,10 @@ class AtlassianConnectValidationError(Exception):
     pass
 
 
+class AtlassianConnectTokenExpiredError(AtlassianConnectValidationError):
+    pass
+
+
 def get_query_hash(
     uri: str, method: str, query_params: Mapping[str, str | Sequence[str]] | None = None
 ) -> str:
@@ -112,7 +116,7 @@ def get_integration_from_jwt(
     except InvalidSignatureError as e:
         raise AtlassianConnectValidationError("Signature is invalid") from e
     except ExpiredSignatureError as e:
-        raise AtlassianConnectValidationError("Signature is expired") from e
+        raise AtlassianConnectTokenExpiredError("Signature is expired") from e
     except InvalidAlgorithmError as e:
         raise AtlassianConnectValidationError("Algorithm is invalid") from e
     except MissingRequiredClaimError as e:

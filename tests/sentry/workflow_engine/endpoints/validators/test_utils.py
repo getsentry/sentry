@@ -4,10 +4,14 @@ from rest_framework.request import Request
 from rest_framework.serializers import ValidationError
 
 from sentry.auth.access import Access, NoAccess, SystemAccess, from_user
+from sentry.grouping.grouptype import ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.utils import (
+    can_edit_detector,
+    can_edit_detector_with_access,
     connect_detectors_to_workflows,
     validate_detectors_exist_and_have_permissions,
     validate_workflow_connections,
@@ -172,3 +176,46 @@ class TestValidateDetectorsExistAndHavePermissions(TestCase):
 
         with pytest.raises(PermissionDenied):
             validate_detectors_exist_and_have_permissions([detector.id], self.organization, request)
+
+
+class TestCanEditDetectorWithAccess(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.update_option("sentry:alerts_member_write", False)
+        self.member = self.create_user()
+        self.create_member(user=self.member, organization=self.organization, role="member")
+        self.metric_detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        self.error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+
+    def test_user_created_detectors_need_alerts_write(self) -> None:
+        assert can_edit_detector_with_access(
+            self.metric_detector, from_user(self.user, self.organization)
+        )
+        assert not can_edit_detector_with_access(
+            self.metric_detector, from_user(self.member, self.organization)
+        )
+        assert not can_edit_detector_with_access(self.metric_detector, NoAccess())
+
+    def test_system_created_detectors_need_org_write(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", True)
+        member_access = from_user(self.member, self.organization)
+
+        assert can_edit_detector_with_access(self.metric_detector, member_access)
+        assert not can_edit_detector_with_access(self.error_detector, member_access)
+        assert can_edit_detector_with_access(
+            self.error_detector, from_user(self.user, self.organization)
+        )
+
+    def test_the_all_projects_detector_cannot_be_edited(self) -> None:
+        detector = ensure_default_all_projects_detector(self.organization.id)
+
+        assert detector.project_id is None
+        assert not can_edit_detector_with_access(detector, from_user(self.user, self.organization))
+
+    def test_request_variant_uses_the_request_access(self) -> None:
+        request: Request = self.make_request(user=self.member)  # type: ignore[assignment]
+        request.access = from_user(self.member, self.organization)
+        assert not can_edit_detector(self.metric_detector, request)
+
+        request.access = from_user(self.user, self.organization)
+        assert can_edit_detector(self.metric_detector, request)

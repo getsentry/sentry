@@ -33,6 +33,7 @@ import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/w
 
 const RESULT_LIMIT = 50;
 const EMBEDDED_RESULT_LIMIT = 100;
+const EMPTY_META: EventsMetaType = {fields: {}, units: {}};
 
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
@@ -59,7 +60,7 @@ export function MetricsSamplesTable({
 
   const {
     result: {data},
-    meta = {fields: {}, units: {}},
+    meta = EMPTY_META,
     error,
     isFetching,
   } = useMetricSamplesTable({

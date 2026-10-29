@@ -11,7 +11,7 @@ import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesW
  * ``TimeSeries`` produced by ``widgetQuery`` within ``widget``.
  *
  * This is the label-parts assembly that previously lived inline in
- * ``transformWidgetSeriesToTimeSeries``; it is shared with the chartcuterie
+ * ``transformMultipleWidgetSeriesToTimeSeries``; it is shared with the chartcuterie
  * dashboards-widget renderer so the server-rendered legend stays in lockstep
  * with the FE.
  */

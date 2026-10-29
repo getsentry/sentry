@@ -5,6 +5,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -48,10 +49,7 @@ import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -194,11 +192,7 @@ function Graph({
     const rawSeries = [
       ...new Set(
         visualizes.flatMap(v =>
-          getTimeSeriesForQuery(
-            timeseriesResult.data,
-            v.yAxis,
-            isVisualizeFunction(v) ? v.transformations : []
-          )
+          getTimeSeriesForQuery(timeseriesResult.data, v.yAxis, v.transformations)
         )
       ),
     ];
@@ -359,7 +353,15 @@ function Graph({
                   rawMetricCounts={rawMetricCounts}
                 />
               ) : null}
-              {footerActions}
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={DiscoverDatasets.TRACEMETRICS}
+                    hasUserQuery={!!userQuery}
+                  />
+                ) : null}
+                {footerActions}
+              </Flex>
             </Flex>
           ) : undefined
         }

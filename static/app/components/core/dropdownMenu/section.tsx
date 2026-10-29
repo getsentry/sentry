@@ -23,11 +23,13 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   return (
     <SectionGroup {...itemProps}>
       {node.rendered && (
-        <SectionLabel padding="md xl" {...headingProps}>
+        <SectionLabel padding="md xl" size="md" {...headingProps}>
           {node.rendered}
         </SectionLabel>
       )}
-      <SectionList {...groupProps}>{children}</SectionList>
+      <SectionList gap="2xs" {...groupProps}>
+        {children}
+      </SectionList>
     </SectionGroup>
   );
 }

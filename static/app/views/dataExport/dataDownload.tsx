@@ -32,6 +32,7 @@ interface ExploreQueryInfo {
   project: number[];
   query: string;
   sort: string[];
+  caseInsensitive?: '1';
   end?: string;
   environment?: string[];
   equations?: string[];
@@ -326,6 +327,7 @@ export default function DataDownload() {
         },
         query: info.query,
         field: info.field,
+        caseInsensitive: info.caseInsensitive,
       });
       navigate(url);
       return;

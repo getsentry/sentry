@@ -25,7 +25,7 @@ dependencies = [
   "django-crispy-forms>=1.14.0",
   "django-csp>=3.8",
   "django-pg-zero-downtime-migrations>=0.18",
-  "djangorestframework>=3.16.1",
+  "djangorestframework>=3.18.2",
   "drf-spectacular>=0.27.2",
   "emmett55>=1.3.0",
   "emmett-prometheus>=0.3.0",
@@ -51,7 +51,7 @@ dependencies = [
   # Note, grpcio>1.30.0 requires setting GRPC_POLL_STRATEGY=epoll1
   # See https://github.com/grpc/grpc/issues/23796 and
   # https://github.com/grpc/grpc/blob/v1.35.x/doc/core/grpc-polling-engines.md#polling-engine-implementations-in-grpc
-  "grpcio>=1.71.2",
+  "grpcio>=1.84.1",
   # not directly used, but provides a speedup for redis
   "hiredis>=2.3.2",
   "jsonschema>=4.20.0",
@@ -61,7 +61,7 @@ dependencies = [
   "mmh3>=4.0.0",
   "msgspec>=0.19.0",
   "msgpack>=1.2.1",
-  "objectstore-client>=0.2.10",
+  "objectstore-client>=0.3.0",
   "orjson>=3.10.10",
   "packaging>=24.1",
   "parsimonious>=0.10.0",
@@ -90,17 +90,17 @@ dependencies = [
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
   "sentry-arroyo>=2.47.0",
-  "sentry-conventions>=0.29.0",
+  "sentry-conventions>=0.30.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=3.0.2",
   "sentry-ophio>=1.3.1",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.15",
-  "sentry-protos>=0.91.0",
+  "sentry-protos>=0.97.0",
   "sentry-redis-tools>=0.5.0",
-  "sentry-viewercontext>=0.1.0",
+  "sentry-viewercontext>=0.2.0",
   "sentry-relay>=0.10.1",
-  "sentry-scm>=1.9.0",
+  "sentry-scm>=2.0.0",
   "sentry-sdk[http2]>=2.72.0",
   "sentry-usage-accountant>=0.0.10",
   "simplejson>=3.17.6",
@@ -109,8 +109,8 @@ dependencies = [
   "sqlparse>=0.5.0",
   "statsd>=3.3.0",
   "structlog>=22.1.0",
-  "symbolic>=13.1.1",
-  "taskbroker-client>=0.20.30",
+  "symbolic>=14.0.0a4",
+  "taskbroker-client>=0.20.32",
   "tiktoken>=0.8.0",
   "tokenizers>=0.22.0",
   "tldextract>=5.1.2",
@@ -180,13 +180,13 @@ dev = [
   "openapi-core>=0.18.2",
   "openapi-pydantic>=0.4.0",
   "prek>=0.3.6",
-  "pytest>=9.0.3",
+  "pytest>=9.1.1",
   "pytest-cov>=4.0.0",
   "pytest-django>=4.12.0",
   "pytest-fail-slow>=0.3.0",
   "pytest-json-report>=1.5.0",
   "pytest-rerunfailures>=16.2",
-  "pytest-sentry>=0.3.0",
+  "pytest-sentry>=0.7.0",
   "pytest-xdist>=3.8.0",
   "responses>=0.23.1",
   "ruff>=0.14.0",
@@ -325,6 +325,10 @@ filterwarnings = [
   # PyJWT 2.12.0 introduced InsecureKeyLengthWarning for HMAC keys shorter than
   # 32 bytes. Tests use short secrets intentionally; production secrets are long enough.
   "ignore:.*HMAC key.*below the minimum recommended length.*:jwt.warnings.InsecureKeyLengthWarning",
+
+  # DRF 3.18 deprecated the list-based ListSerializer error format; we keep it until
+  # callers handle the dict format (removed in DRF 3.20).
+  "ignore:The list-based error format for `ListSerializer` is deprecated.*:PendingDeprecationWarning",
 ]
 looponfailroots = ["src", "tests"]
 
@@ -504,7 +508,6 @@ module = [
     "sentry.api.endpoints.organization_details",
     "sentry.api.endpoints.organization_events",
     "sentry.api.endpoints.organization_events_facets",
-    "sentry.api.endpoints.organization_events_histogram",
     "sentry.api.endpoints.organization_events_meta",
     "sentry.api.endpoints.organization_events_stats",
     "sentry.api.endpoints.organization_events_timeseries",
@@ -1387,7 +1390,6 @@ module = [
     "sentry.uptime.endpoints.*",
     "sentry.uptime.grouptype",
     "sentry.uptime.models",
-    "sentry.uptime.seer_assertions",
     "sentry.uptime.subscriptions.*",
     "sentry.uptime.types",
     "sentry.uptime.utils",
@@ -1431,7 +1433,6 @@ module = [
     "sentry.utils.pagination_factory",
     "sentry.utils.patch_set",
     "sentry.utils.platform_categories",
-    "sentry.utils.retries",
     "sentry.utils.rollout",
     "sentry.utils.rust",
     "sentry.utils.safe",
@@ -1932,8 +1933,6 @@ module = [
     "tests.sentry.seer.test_breakpoints",
     "tests.sentry.seer.test_issue_detection",
     "tests.sentry.seer.test_signed_seer_api",
-    "tests.sentry.seer.test_test_generation",
-    "tests.sentry.seer.test_utils",
     "tests.sentry.sentry_apps",
     "tests.sentry.sentry_apps.tasks.*",
     "tests.sentry.sentry_apps.test_sentry_app_component_preparer",
@@ -2068,7 +2067,6 @@ module = [
     "tests.sentry.uptime.subscriptions.*",
     "tests.sentry.uptime.test_grouptype",
     "tests.sentry.uptime.test_models",
-    "tests.sentry.uptime.test_seer_assertions",
     "tests.sentry.uptime.test_utils",
     "tests.sentry.utils",
     "tests.sentry.utils.kafka.*",
@@ -2128,7 +2126,6 @@ module = [
     "tests.sentry.utils.test_ratelimits",
     "tests.sentry.utils.test_redis",
     "tests.sentry.utils.test_registry",
-    "tests.sentry.utils.test_retries",
     "tests.sentry.utils.test_rollout",
     "tests.sentry.utils.test_rust",
     "tests.sentry.utils.test_safe",

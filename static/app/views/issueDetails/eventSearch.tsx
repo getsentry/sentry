@@ -1,7 +1,7 @@
 import {useCallback, useMemo} from 'react';
+import {useQueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {
   SearchQueryBuilder,
   type SearchQueryBuilderProps,
@@ -10,12 +10,10 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import {t} from 'sentry/locale';
 import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 import {ALL_EVENTS_EXCLUDED_TAGS} from 'sentry/views/issueDetails/hooks/useEventQuery';
-import {mergeAndSortTagValues} from 'sentry/views/issueDetails/utils';
+import {fetchIssueTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 interface EventSearchProps {
@@ -63,7 +61,7 @@ export function EventSearch({
   handleSearch,
   queryBuilderProps = {},
 }: EventSearchProps) {
-  const api = useApi();
+  const queryClient = useQueryClient();
   const organization = useOrganization();
   const groupTagsQuery = useGroupTags({groupId: group.id, environment: environments}, {});
 
@@ -91,32 +89,14 @@ export function EventSearch({
   }, [groupTagsQuery.data]);
 
   const tagValueLoader = useCallback(
-    async (key: string, search: string) => {
-      const orgSlug = organization.slug;
-      const projectIds = [group.project.id];
-
-      const [eventsDatasetValues, issuePlatformDatasetValues] = await Promise.all([
-        fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          dataset: Dataset.ERRORS,
-        }),
-        fetchTagValues({
-          api,
-          orgSlug,
-          tagKey: key,
-          search,
-          projectIds,
-          dataset: Dataset.ISSUE_PLATFORM,
-        }),
-      ]);
-
-      return mergeAndSortTagValues(eventsDatasetValues, issuePlatformDatasetValues);
-    },
-    [api, group.project.id, organization.slug]
+    (key: string, search: string) =>
+      fetchIssueTagValues(queryClient, {
+        orgSlug: organization.slug,
+        tagKey: key,
+        search,
+        projectIds: [group.project.id],
+      }),
+    [group.project.id, organization.slug, queryClient]
   );
 
   const getTagValues = useMemo(

@@ -33,8 +33,14 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {shouldRefreshOnFocus} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {
+  AnchoredActionRequests,
+  groupActionRequestsByPlacement,
+} from 'sentry/views/investigations/actionRequests/anchoredActionRequests';
 import {
   getPrimaryActionRequest,
+  isRunWorking,
   NextStepCard,
 } from 'sentry/views/investigations/actionRequests/nextStepCard';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
@@ -44,6 +50,7 @@ import {
   investigationListQueryOptions,
   investigationOrchestrationQueryOptions,
   investigationTitleGenerationQueryOptions,
+  isFollowUpPending,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useRenameInvestigationMutation,
@@ -57,6 +64,13 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/block';
 import {InvestigationBlockPlaceholder} from 'sentry/views/investigations/detail/blockPlaceholder';
+import {
+  ACTIVITY_ELEMENT_ID,
+  getInvestigationOutline,
+  HYPOTHESES_ELEMENT_ID,
+  InvestigationOutline,
+  SUMMARY_ELEMENT_ID,
+} from 'sentry/views/investigations/detail/outline';
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
@@ -64,6 +78,12 @@ import {
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
+import {
+  getHypothesisLLMContext,
+  getInvestigationLLMContext,
+  getInvestigationReference,
+  useInvestigationAskSeer,
+} from 'sentry/views/investigations/investigationLLMContext';
 import {InvestigationSummaryCard} from 'sentry/views/investigations/investigationSummaryCard';
 import {getInvestigationSource} from 'sentry/views/investigations/source';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
@@ -71,6 +91,7 @@ import type {
   InvestigationActionRequest,
   InvestigationBlock,
   InvestigationDetail,
+  InvestigationHypothesis,
   InvestigationOrchestration,
 } from 'sentry/views/investigations/types';
 import {
@@ -80,6 +101,9 @@ import {
 } from 'sentry/views/investigations/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 const DEFAULT_INVESTIGATION_TITLE = 'Untitled investigation';
 
@@ -179,17 +203,76 @@ function useRefetchStaleActionRequests(
   return detailUpdates === refresh.detailUpdates;
 }
 
+const RECHECK_RUN_WAIT_MS = 60_000;
+
+type RecheckRunWait = {pending: string[]; waiting: string[]};
+
+/**
+ * Seer can acknowledge a re-check before the investigation shows its run, and then
+ * nothing would read the run again. Wait for the run only on re-checks this page saw
+ * pending, since an old acknowledged follow-up stays on the request after it's over.
+ */
+function useRecheckRunWait(actionRequests: InvestigationActionRequest[] = []) {
+  const [wait, setWait] = useState<RecheckRunWait>({pending: [], waiting: []});
+  const acknowledged = new Set(
+    actionRequests
+      .filter(
+        request =>
+          request.state !== 'withdrawn' && request.followUp?.status === 'acknowledged'
+      )
+      .map(request => request.id)
+  );
+  const next: RecheckRunWait = {
+    pending: actionRequests.filter(isFollowUpPending).map(request => request.id),
+    waiting: [...new Set([...wait.waiting, ...wait.pending])].filter(id =>
+      acknowledged.has(id)
+    ),
+  };
+  if (
+    next.pending.join() !== wait.pending.join() ||
+    next.waiting.join() !== wait.waiting.join()
+  ) {
+    setWait(next);
+  }
+  const waitingKey = next.waiting.join();
+  useEffect(() => {
+    if (!waitingKey) {
+      return;
+    }
+    const timer = setTimeout(
+      () => setWait(current => ({...current, waiting: []})),
+      RECHECK_RUN_WAIT_MS
+    );
+    return () => clearTimeout(timer);
+  }, [waitingKey]);
+  return {
+    waiting: next.waiting.length > 0,
+    stop: () => setWait(current => ({...current, waiting: []})),
+  };
+}
+
+function isRunLive(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration !== undefined && shouldPollInvestigationRun(orchestration.status);
+}
+
 export function InvestigationBootstrapPage({investigationId}: {investigationId: string}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
     organization.slug,
     investigationId
   );
+  // Seer Agent can write blocks, start their runs, and steer the investigation
+  // from a chat on this page. Its writes go to routes under the investigation,
+  // which the refresh after a Seer write doesn't tie to these queries, and a
+  // settled investigation has stopped polling.
+  const isSeerWorking = useSeerExplorerContext().sessionState === 'thinking';
   const {
     data: investigation,
     error,
     isError,
     isPending,
+    refetch,
   } = useQuery({
     ...detailOptions,
     refetchInterval: query => {
@@ -200,13 +283,34 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
       // has since finished.
       const orchestrationActive =
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return orchestrationActive ||
+      return isSeerWorking ||
+        orchestrationActive ||
+        data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)
         ? 2000
         : false;
     },
+    refetchOnWindowFocus: query =>
+      query.state.data?.json.actionRequests?.some(shouldRefreshOnFocus)
+        ? 'always'
+        : false,
   });
+
+  const wasSeerWorking = useRef(isSeerWorking);
+  useEffect(() => {
+    if (wasSeerWorking.current && !isSeerWorking) {
+      // Picks up what it wrote after the last poll, and a run it restarted.
+      void refetch();
+      void queryClient.invalidateQueries({
+        queryKey: investigationOrchestrationQueryOptions(
+          organization.slug,
+          investigationId
+        ).queryKey,
+      });
+    }
+    wasSeerWorking.current = isSeerWorking;
+  }, [investigationId, isSeerWorking, organization.slug, queryClient, refetch]);
 
   if (isPending && !investigation) {
     return <LoadingIndicator />;
@@ -225,7 +329,11 @@ export function InvestigationBootstrapPage({investigationId}: {investigationId: 
   return <InvestigationPageContent investigation={investigation} />;
 }
 
-function InvestigationPageContent({investigation}: {investigation: InvestigationDetail}) {
+function InvestigationPageContentInner({
+  investigation,
+}: {
+  investigation: InvestigationDetail;
+}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -264,10 +372,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
       ? titleGenerationQuery.data?.preview
       : null;
   const displayedTitle = draftTitle ?? generatedTitlePreview ?? investigation.title;
+  const recheckRunWait = useRecheckRunWait(investigation.actionRequests);
   const {data: orchestration, isPending: orchestrationPending} = useQuery({
     ...investigationOrchestrationQueryOptions(organization.slug, investigation.id),
     enabled: Boolean(investigation.orchestration),
+    refetchInterval: query =>
+      (investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status)) ||
+      isRunLive(query.state.data?.json) ||
+      recheckRunWait.waiting
+        ? 2000
+        : false,
   });
+  if (recheckRunWait.waiting && isRunLive(orchestration)) {
+    recheckRunWait.stop();
+  }
   const actionRequestsStale = useRefetchStaleActionRequests(
     investigation.id,
     orchestration,
@@ -395,15 +514,75 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
     shouldDisplayInvestigationBlock(block)
   );
   const awaitingReportBlock = isAwaitingReportBlock(investigation);
+  const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
+  const hypothesisStatements = new Map(
+    orchestration?.hypotheses.map(({id, statement}) => [id, statement])
+  );
+  const placedActionRequests = groupActionRequestsByPlacement(
+    investigation.actionRequests ?? [],
+    anchor => {
+      if (anchor?.type === 'hypothesis' && investigation.orchestration) {
+        if (orchestration) {
+          return hypothesisStatements.has(anchor.id) ? 'hypotheses' : 'unplaced';
+        }
+        return orchestrationPending ? null : 'unplaced';
+      }
+      if (
+        anchor?.type === 'block' &&
+        visibleBlocks.some(({id}) => id === anchor.blockId)
+      ) {
+        return `block:${anchor.blockId}`;
+      }
+      return 'unplaced';
+    }
+  );
   const source = getInvestigationSource(investigation);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
     awaitingReportBlock;
+  const hasSummary = Boolean(investigation.summary && investigation.summaryDescription);
   // The "Investigation details" heading only appears below a summary.
-  const showDetailsHeading =
-    hasDetails && Boolean(investigation.summary && investigation.summaryDescription);
+  const showDetailsHeading = hasDetails && hasSummary;
   const showActivity = isInvestigationRunDone(investigation);
+  // Push the investigation into the LLM context tree for Seer Explorer. Its
+  // hypotheses and blocks register their own nodes beneath it.
+  const {getLLMContext} = useLLMContext(
+    getInvestigationLLMContext(investigation, orchestration),
+    // Page context waits for the run, so its state and hypotheses come along.
+    {isLoading: Boolean(investigation.orchestration) && orchestrationPending}
+  );
+  const askSeer = useInvestigationAskSeer();
+  const askSeerAboutInvestigation = askSeer
+    ? () =>
+        askSeer({
+          prompt: t('What would you like to know about this investigation?'),
+          // This node with everything beneath it, so the hypotheses and blocks on
+          // screen come along.
+          context: getLLMContext(true).nodes[0],
+        })
+    : undefined;
+  const askSeerAboutHypothesis = askSeer
+    ? (hypothesis: InvestigationHypothesis) =>
+        askSeer({
+          prompt: t('What would you like to know about this hypothesis?'),
+          context: {
+            investigation: getInvestigationReference(investigation),
+            hypothesis: getHypothesisLLMContext(
+              hypothesis,
+              hypothesis.id === orchestration?.report.primaryHypothesisId
+            ),
+          },
+        })
+    : undefined;
+  const outline = getInvestigationOutline({
+    blocks: visibleBlocks,
+    hasActivity: showActivity,
+    hasHypotheses: Boolean(
+      investigation.orchestration && orchestration?.hypotheses.length
+    ),
+    hasSummary,
+  });
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -416,6 +595,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             trailingActions: {
               type: 'menu',
               items: [
+                ...(askSeerAboutInvestigation
+                  ? [
+                      {
+                        key: 'ask-seer',
+                        label: t('Ask Seer'),
+                        onAction: askSeerAboutInvestigation,
+                      },
+                    ]
+                  : []),
                 {
                   key: 'copy-link',
                   label: t('Copy link'),
@@ -552,9 +740,6 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                       'feedback.owner': 'ml-ai',
                       'investigation.id': investigation.id,
                       'investigation.source_type': investigation.sourceType,
-                      ...(investigation.template
-                        ? {'investigation.template': investigation.template.key}
-                        : {}),
                     },
                   }}
                 >
@@ -566,89 +751,146 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </Container>
         <Layout.Body padding={{xl: '0 lg lg', '3xl': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
-              <InvestigationSummaryCard
-                summary={investigation.summary}
-                summaryDescription={investigation.summaryDescription}
-              />
-              <NextStepCard
-                actionRequests={investigation.actionRequests}
-                actionRequestsStale={actionRequestsStale}
-                source={investigation.source}
-                orchestration={orchestration}
-                orchestrationLoading={
-                  Boolean(investigation.orchestration) && orchestrationPending
-                }
-              />
-
-              {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
-
-              {hasDetails ? (
-                <Stack gap="lg">
-                  {showDetailsHeading ? (
-                    <Heading as="h2" size="lg">
-                      {t('Investigation details')}
-                    </Heading>
-                  ) : null}
-                  <DetailsBody gap="3xl">
-                    {/*
-                     * Only an agentic investigation has hypotheses, and `orchestration`
-                     * being present is the only thing that says one is: it is null for
-                     * manual and template investigations, whose orchestration endpoint
-                     * 404s.
-                     */}
-                    {investigation.orchestration ? (
-                      <InvestigationHypotheses
-                        investigationId={investigation.id}
-                        phase={investigation.orchestration.phase}
-                        status={investigation.orchestration.status}
-                      />
-                    ) : null}
-                    {visibleBlocks.length > 0 || awaitingReportBlock ? (
-                      <Stack>
-                        {visibleBlocks.map((block, index) => (
-                          <Container
-                            key={block.id}
-                            paddingTop={getBlockSpacing(block, index)}
-                          >
-                            <InvestigationNotebookBlock
-                              block={block}
-                              canRun={investigation.status === 'active'}
-                              investigation={investigation}
-                              commentCount={commentCounts?.[block.id]}
-                              onComment={
-                                isArchived && commentCounts && !commentCounts[block.id]
-                                  ? undefined
-                                  : openBlockComments
-                              }
-                            />
-                          </Container>
-                        ))}
-                        {awaitingReportBlock ? (
-                          <Container paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}>
-                            <InvestigationBlockPlaceholder />
-                          </Container>
-                        ) : null}
-                      </Stack>
-                    ) : null}
-                  </DetailsBody>
-                </Stack>
+            {/*
+             * The report keeps to the middle column, as wide as the header above
+             * it, which leaves the left one free for the outline.
+             */}
+            <Grid columns="minmax(0, 1fr) min(960px, 100%) minmax(0, 1fr)">
+              {outline.length > 0 ? (
+                <Container
+                  column="1"
+                  display={{zero: 'none', '4xl': 'block'}}
+                  justifySelf="end"
+                  paddingRight="2xl"
+                >
+                  <InvestigationOutline entries={outline} />
+                </Container>
               ) : null}
-              {showActivity ? (
-                <InvestigationActivity
-                  investigation={investigation}
-                  composerRef={composerRef}
-                  ref={activityRef}
+              <Stack column="2" minWidth={0} gap="3xl">
+                <InvestigationSummaryCard
+                  id={SUMMARY_ELEMENT_ID}
+                  summary={investigation.summary}
+                  summaryDescription={investigation.summaryDescription}
                 />
-              ) : null}
-              <Container height="128px" flexShrink={0} aria-hidden />
-            </Stack>
+                <NextStepCard
+                  actionRequests={investigation.actionRequests}
+                  actionRequestsStale={actionRequestsStale}
+                  investigationId={investigation.id}
+                  source={investigation.source}
+                  orchestration={orchestration}
+                  orchestrationLoading={
+                    Boolean(investigation.orchestration) && orchestrationPending
+                  }
+                  waitingOnRun={recheckRunWait.waiting}
+                />
+                <AnchoredActionRequests
+                  actionRequests={placedActionRequests.get('unplaced')}
+                  investigationId={investigation.id}
+                  runProcessing={runProcessing}
+                  source={investigation.source}
+                />
+
+                {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
+
+                {hasDetails ? (
+                  <Stack gap="lg">
+                    {showDetailsHeading ? (
+                      <Heading as="h2" size="lg">
+                        {t('Investigation details')}
+                      </Heading>
+                    ) : null}
+                    <DetailsBody gap="3xl">
+                      {/*
+                       * Only an agentic investigation has hypotheses, and `orchestration`
+                       * being present is the only thing that says one is: it is null for
+                       * manual and template investigations, whose orchestration endpoint
+                       * 404s.
+                       */}
+                      {investigation.orchestration ? (
+                        <InvestigationHypotheses
+                          id={HYPOTHESES_ELEMENT_ID}
+                          investigationId={investigation.id}
+                          phase={investigation.orchestration.phase}
+                          status={investigation.orchestration.status}
+                          onAskSeer={askSeerAboutHypothesis}
+                        />
+                      ) : null}
+                      <AnchoredActionRequests
+                        actionRequests={placedActionRequests.get('hypotheses')}
+                        investigationId={investigation.id}
+                        runProcessing={runProcessing}
+                        source={investigation.source}
+                        getLabel={anchor => {
+                          const statement = anchor
+                            ? hypothesisStatements.get(anchor.id)
+                            : undefined;
+                          return statement
+                            ? tct('About the possible cause: [statement]', {statement})
+                            : null;
+                        }}
+                      />
+                      {visibleBlocks.length > 0 || awaitingReportBlock ? (
+                        <Stack>
+                          {visibleBlocks.map((block, index) => (
+                            <Container
+                              key={block.id}
+                              paddingTop={getBlockSpacing(block, index)}
+                            >
+                              <InvestigationNotebookBlock
+                                block={block}
+                                canRun={investigation.status === 'active'}
+                                investigation={investigation}
+                                commentCount={commentCounts?.[block.id]}
+                                onComment={
+                                  isArchived && commentCounts && !commentCounts[block.id]
+                                    ? undefined
+                                    : openBlockComments
+                                }
+                              />
+                              <AnchoredActionRequests
+                                actionRequests={placedActionRequests.get(
+                                  `block:${block.id}`
+                                )}
+                                investigationId={investigation.id}
+                                runProcessing={runProcessing}
+                                source={investigation.source}
+                              />
+                            </Container>
+                          ))}
+                          {awaitingReportBlock ? (
+                            <Container
+                              paddingTop={visibleBlocks.length > 0 ? '3xl' : '0'}
+                            >
+                              <InvestigationBlockPlaceholder />
+                            </Container>
+                          ) : null}
+                        </Stack>
+                      ) : null}
+                    </DetailsBody>
+                  </Stack>
+                ) : null}
+                {showActivity ? (
+                  <InvestigationActivity
+                    id={ACTIVITY_ELEMENT_ID}
+                    investigation={investigation}
+                    composerRef={composerRef}
+                    ref={activityRef}
+                  />
+                ) : null}
+                <Container height="128px" flexShrink={0} aria-hidden />
+              </Stack>
+            </Grid>
           </Layout.Main>
         </Layout.Body>
       </Stack>
     </SentryDocumentTitle>
   );
 }
+
+const InvestigationPageContent = registerLLMContext(
+  'investigation',
+  InvestigationPageContentInner
+);
 
 /**
  * Text blocks start a new section with a large gap. Query blocks sit close to the
