@@ -3,7 +3,7 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {LegacyAutomationRunsList} from 'sentry/views/seerWorkflows/automations/runs/legacyRunsList';
+import AutomationRunsList from 'sentry/views/seerWorkflows/automations/runs';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
 function makeRun(overrides: Partial<SeerAutomationRun>): SeerAutomationRun {
@@ -33,7 +33,7 @@ function makeExecution(
   } as SeerAutomationRun['executions'][number];
 }
 
-describe('LegacyAutomationRunsList', () => {
+describe('AutomationRunsList', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
   const runsUrl = `/organizations/${organization.slug}/seer/workflows/runs/`;
   const runsPath = `/organizations/${organization.slug}/seer/automations/runs/`;
@@ -53,7 +53,7 @@ describe('LegacyAutomationRunsList', () => {
 
   it('hides the monitor scan trigger when its flag is disabled', async () => {
     MockApiClient.addMockResponse({url: runsUrl, body: {runs: []}});
-    render(<LegacyAutomationRunsList />, {organization});
+    render(<AutomationRunsList />, {organization});
     expect(await screen.findByText('No workflow runs yet.')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Run…'})).not.toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe('LegacyAutomationRunsList', () => {
         statusCode: 202,
         body: {runId: '2'},
       });
-      const {router} = render(<LegacyAutomationRunsList />, {
+      const {router} = render(<AutomationRunsList />, {
         organization: scanOrganization,
         initialRouterConfig: {
           location: {
@@ -142,7 +142,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    render(<LegacyAutomationRunsList />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('Agentic triage')).toBeInTheDocument();
     expect(screen.getByText('Duplicate monitors')).toBeInTheDocument();
@@ -168,7 +168,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    render(<LegacyAutomationRunsList />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(
       await screen.findByText('No error details are available.')
@@ -200,7 +200,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    render(<LegacyAutomationRunsList />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByText('2 executions')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Expand run'}));
@@ -231,7 +231,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    const {router} = render(<LegacyAutomationRunsList />, {organization});
+    const {router} = render(<AutomationRunsList />, {organization});
 
     const resultsDesc = (await screen.findAllByText(/executions?$/)).map(
       el => el.textContent
@@ -256,7 +256,7 @@ describe('LegacyAutomationRunsList', () => {
       body: {detail: 'not found'},
     });
 
-    render(<LegacyAutomationRunsList />, {organization});
+    render(<AutomationRunsList />, {organization});
 
     expect(await screen.findByRole('button', {name: /retry/i})).toBeInTheDocument();
   });
@@ -277,7 +277,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    render(<LegacyAutomationRunsList />, {
+    render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {location: {pathname: runsPath, query: {status: 'failed'}}},
     });
@@ -292,7 +292,7 @@ describe('LegacyAutomationRunsList', () => {
       body: {runs: [makeRun({executions: [makeExecution({})]})]},
     });
 
-    const {router} = render(<LegacyAutomationRunsList />, {
+    const {router} = render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {
@@ -329,7 +329,7 @@ describe('LegacyAutomationRunsList', () => {
       },
     });
 
-    render(<LegacyAutomationRunsList />, {
+    render(<AutomationRunsList />, {
       organization,
       initialRouterConfig: {
         location: {

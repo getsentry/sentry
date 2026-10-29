@@ -27,7 +27,6 @@ import type {
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
-  getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
@@ -38,10 +37,13 @@ export default function AutomationDetail() {
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
     ? 'runs'
     : 'configuration';
+  const basePath =
+    activeTab === 'runs'
+      ? location.pathname.slice(0, -'runs/'.length)
+      : location.pathname;
 
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
-  const basePath = getAutomationDetailPath(organization.slug, automationId);
 
   // TODO(aliu): Fetch the single config once the API supports it
   const {data, isPending} = useQuery(
