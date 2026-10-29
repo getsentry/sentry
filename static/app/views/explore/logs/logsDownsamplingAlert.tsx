@@ -46,7 +46,10 @@ export function LogsDownSamplingAlert({
   const tableDataScanned = tableResult.dataScanned;
   const tableSamples = tableResult.data.length;
 
-  if (!highFidelity && (tableDataScanned === 'partial' || tableResult.isEmpty)) {
+  if (
+    !highFidelity &&
+    (tableDataScanned === 'partial' || (!autoRefreshEnabled && tableResult.isEmpty))
+  ) {
     return (
       <Alert.Container>
         <Alert variant="warning">
