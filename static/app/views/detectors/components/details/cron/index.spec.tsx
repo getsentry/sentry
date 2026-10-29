@@ -218,6 +218,31 @@ describe('CronDetectorDetails - check-ins', () => {
     );
   });
 
+  it('falls back to UTC when the monitor has no timezone', async () => {
+    const noTimezoneDetector = CronDetectorFixture({
+      ...detector,
+      dataSources: [
+        {
+          ...cronDataSource,
+          queryObj: {
+            ...cronDataSource.queryObj,
+            config: {
+              ...cronDataSource.queryObj.config,
+              schedule: '0 9 * * 6-7',
+              timezone: null,
+            },
+          },
+        },
+      ],
+    });
+
+    render(<CronDetectorDetails detector={noTimezoneDetector} project={project} />);
+
+    expect(
+      await screen.findByText('At 09:00 AM, Saturday through Sunday (UTC)')
+    ).toBeInTheDocument();
+  });
+
   describe('check-ins', () => {
     it('shows recent check-ins with an empty table', async () => {
       render(<CronDetectorDetails detector={detector} project={project} />);
