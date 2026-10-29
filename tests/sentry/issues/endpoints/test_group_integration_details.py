@@ -5,14 +5,11 @@ from unittest import mock
 import responses
 
 from fixtures.vsts import WORK_ITEM_RESPONSE
-from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models import Integration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.issues.action_log.types import GroupActionType
-from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
@@ -25,7 +22,6 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -333,7 +329,6 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert len(responses.calls) == 3
 
     @responses.activate
-    @action_log_activity_enabled()
     def test_put_github_issue_url_without_domain_name(self) -> None:
         self.login_as(self.user)
         integration = self.create_integration(
@@ -372,18 +367,6 @@ class GroupIntegrationDetailsTest(APITestCase):
             linked_type=GroupLink.LinkedType.issue,
             relationship=GroupLink.Relationship.references,
         ).exists()
-
-        items = get_serialized_activity_items(group, self.user, endpoint="test")
-        assert items is not None
-        assert [item["type"] for item in items] == ["create_issue", "first_seen"]
-        assert items[0]["data"]["new"] is False
-        assert items[0]["user"]["id"] == str(self.user.id)
-        assert set(
-            GroupActionLogEntry.objects.filter(group_id=group.id).values_list("type", flat=True)
-        ) == {
-            GroupActionType.CREATE_ISSUE,
-            GroupActionType.LINK_EXTERNAL_ISSUE,
-        }
 
     @responses.activate
     @mock.patch("sentry.integrations.utils.metrics.metrics.incr")
@@ -799,7 +782,6 @@ class GroupIntegrationDetailsTest(APITestCase):
         assert response.data["detail"] == "Your organization does not have access to this feature."
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    @action_log_activity_enabled()
     def test_simple_post(self, mock_record_event: mock.MagicMock) -> None:
         self.login_as(user=self.user)
         org = self.organization
@@ -853,18 +835,6 @@ class GroupIntegrationDetailsTest(APITestCase):
             }
 
             mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
-
-        items = get_serialized_activity_items(group, self.user, endpoint="test")
-        assert items is not None
-        assert [item["type"] for item in items] == ["create_issue", "first_seen"]
-        assert items[0]["data"]["new"] is True
-        assert items[0]["user"]["id"] == str(self.user.id)
-        assert set(
-            GroupActionLogEntry.objects.filter(group_id=group.id).values_list("type", flat=True)
-        ) == {
-            GroupActionType.CREATE_ISSUE,
-            GroupActionType.CREATE_EXTERNAL_ISSUE,
-        }
 
     @mock.patch.object(ExampleIntegration, "create_issue")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")

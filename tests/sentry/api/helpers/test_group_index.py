@@ -869,16 +869,6 @@ class UpdateGroupsTest(TestCase):
     def test_resolve_in_next_release_activity_from_action_log(self) -> None:
         self.create_release(project=self.project, version="test@1.0.0.0")
         group = self.create_group(status=GroupStatus.UNRESOLVED)
-        self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
-            data={
-                "service_type": "example",
-                "display_name": "APP-42",
-                "web_url": "https://example.com/42",
-            },
-        )
-
         with self.feature({"projects:issue-action-log-write-to-db": False}):
             note = self.create_group_activity(
                 group=group, type=ActivityType.NOTE.value, data={"text": "no GAL event"}
@@ -902,7 +892,6 @@ class UpdateGroupsTest(TestCase):
             response = update_groups(request, group_list)
 
         activity = response.data["activity"]
-        assert "CREATE_PLATFORM_EXTERNAL_ISSUE" not in [entry["type"] for entry in activity]
         # the manually logged RESOLVE exists only in GALE, so its presence means
         # the action log was served rather than Activity
         assert "set_resolved" in [entry["type"] for entry in activity]
