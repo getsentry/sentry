@@ -797,6 +797,16 @@ class Fixtures:
             organization = self.organization
         return Factories.create_explore_saved_formula(organization, *args, **kwargs)
 
+    def create_explore_saved_query(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_explore_saved_query(organization, **kwargs)
+
+    def create_discover_saved_query(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_discover_saved_query(organization, **kwargs)
+
     def create_dashboard_favorite_user(self, *args, **kwargs):
         return Factories.create_dashboard_favorite_user(*args, **kwargs)
 

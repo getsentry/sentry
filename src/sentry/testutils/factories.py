@@ -41,9 +41,11 @@ from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
+from sentry.discover.models import DiscoverSavedQuery
 from sentry.event_manager import EventManager
 from sentry.explore.models import (
     ExploreSavedFormula,
+    ExploreSavedQuery,
     ExploreSavedQueryDataset,
     ExploreSavedVariable,
     KindItemTypes,
@@ -2674,6 +2676,32 @@ class Factories:
                 order=param["order"],
             )
         return formula
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_explore_saved_query(
+        organization: Organization,
+        projects: Sequence[Project] = (),
+        **kwargs: Any,
+    ) -> ExploreSavedQuery:
+        kwargs.setdefault("name", petname.generate(2, " ", letters=10).title())
+        kwargs.setdefault("query", {"query": [{"fields": ["span.op"], "mode": "samples"}]})
+        query = ExploreSavedQuery.objects.create(organization=organization, **kwargs)
+        query.set_projects([project.id for project in projects])
+        return query
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_discover_saved_query(
+        organization: Organization,
+        projects: Sequence[Project] = (),
+        **kwargs: Any,
+    ) -> DiscoverSavedQuery:
+        kwargs.setdefault("name", petname.generate(2, " ", letters=10).title())
+        kwargs.setdefault("query", {"fields": ["count()"]})
+        query = DiscoverSavedQuery.objects.create(organization=organization, **kwargs)
+        query.set_projects([project.id for project in projects])
+        return query
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

@@ -1929,6 +1929,8 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:write",
+    "saved_query:read",
+    "saved_query:write",
     "seer:read",
     "seer:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1946,6 +1948,7 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "saved_query:read",
     "seer:read",
 }
 
@@ -1977,6 +1980,8 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
+    "saved_query:read": {"saved_query:read"},
+    "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
     "openid": {"openid"},
@@ -2003,6 +2008,8 @@ GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
         "dashboard:write",
+        "saved_query:read",
+        "saved_query:write",
     ]
 )
 
@@ -2026,6 +2033,8 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "org:read",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
         ]
     ),
 }
@@ -2088,6 +2097,10 @@ SENTRY_SCOPE_SETS = (
     (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
+    ),
+    (
+        ("saved_query:write", "Write access to saved queries."),
+        ("saved_query:read", "Read access to saved queries."),
     ),
     (
         (
@@ -2309,6 +2322,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
         },
@@ -2345,6 +2360,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
         },
@@ -2376,6 +2393,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
         },
@@ -2414,6 +2433,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
         },

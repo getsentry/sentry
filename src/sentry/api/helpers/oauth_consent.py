@@ -186,6 +186,15 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "saved_queries",
+        "Saved queries",
+        ("saved_query:read", "saved_query:write"),
+        access_descriptions={
+            "read": "View saved queries in Discover and Explore.",
+            "write": "Create, update, and delete saved queries.",
+        },
+    ),
+    OAuthPermissionResource(
         "seer",
         "Seer",
         ("seer:read", "seer:write"),
@@ -221,6 +230,7 @@ _PERMISSION_ACTIONS = {
     "invite": ("invite",),
     # Granular write scopes do not imply read.
     "dashboard:write": ("write",),
+    "saved_query:write": ("write",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }
