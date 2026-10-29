@@ -2550,6 +2550,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
+    "sentry.integrations.aws.integration.AwsIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
