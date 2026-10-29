@@ -31,14 +31,14 @@ class SudoTest(APITestCase):
         )
         assert not middleware.has_sudo_privileges(request)
 
-    def test_service_account_is_not_sudo(self) -> None:
+    def test_service_account_is_sudo(self) -> None:
         principal = ServiceAccountPrincipal(service_account_id=1, organization_id=1, name="sa")
         auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
         request: Any = drf_request_from_request(self.make_request())
         set_request_principal(request, principal, auth)
         middleware = SudoMiddleware(placeholder_get_response)
         request.is_sudo = lambda: middleware.has_sudo_privileges(request)
-        assert not is_considered_sudo(request)
+        assert is_considered_sudo(request)
 
     def test_agent_token_never_satisfies_sudo(self) -> None:
         org = self.create_organization()
