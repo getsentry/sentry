@@ -362,12 +362,10 @@ const appConfig: Configuration = {
             options: swcReactLoaderConfig,
           },
           {
-            // Application code only. Oxc runs the React Compiler first
-            // because SWC's drops source locations from the code it rewrites,
-            // https://github.com/web-infra-dev/rspack/issues/15350
-            // Switch back to SWC's `reactCompiler` once
-            // https://github.com/facebook/react/pull/36921 reaches an Rspack
-            // release and compiled component frames map in a production build.
+            // Application code only.
+            // Oxc runs the React Compiler because SWC's breaks sourcemaps
+            // (https://github.com/web-infra-dev/rspack/issues/15350). Switch back
+            // once https://github.com/facebook/react/pull/36921 ships in Rspack.
             exclude: /node_modules/,
             use: [
               {loader: 'builtin:swc-loader', options: swcReactLoaderConfig},
