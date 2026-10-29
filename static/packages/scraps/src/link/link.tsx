@@ -59,8 +59,6 @@ const getLinkStyles = ({
 }) => css`
   border-radius: 2px;
   pointer-events: ${disabled ? 'none' : undefined};
-  /* Read the color from the theme so links follow a nested ThemeProvider,
-   * which the global anchor styles can't. */
   color: ${
     disabled ? theme.tokens.content.disabled : theme.tokens.interactive.link.accent.rest
   };
