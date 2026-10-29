@@ -336,9 +336,255 @@ const security = {
   },
 } satisfies Suite;
 
+const brandNames = ['Sentry', 'Seer', 'Autofix', 'Spotlight', 'dotagents'];
+const brandCaseExamples = brandNames
+  .map(
+    name =>
+      `"${name === name.toLowerCase() ? name.toUpperCase() : name.toLowerCase()}" should be "${name}"`
+  )
+  .join('; ');
+const productNames = [
+  ...brandNames,
+  'Agent Monitoring',
+  'AI Code Review',
+  'Application Metrics',
+  'Build Distribution',
+  'Code Review',
+  'Continuous Profiling',
+  'Cron Monitoring',
+  'Crons',
+  'Discover',
+  'Error Monitoring',
+  'Explore',
+  'Insights',
+  'Logging',
+  'Logs',
+  'MCP Monitoring',
+  'Performance Monitoring',
+  'Profiling',
+  'Relay',
+  'Seer Agent',
+  'Session Replay',
+  'Size Analysis',
+  'Snapshots',
+  'Structured Logs',
+  'Trace Explorer',
+  'Tracing',
+  'UI Profiling',
+  'Uptime Monitoring',
+  'User Feedback',
+  'User Feedback Widget',
+];
+const acronyms = [
+  '2FA',
+  'AI',
+  'ANR',
+  'AOT',
+  'API',
+  'ARN',
+  'ASGI',
+  'AWS',
+  'CD',
+  'CDN',
+  'CI',
+  'CIDR',
+  'CLI',
+  'CLS',
+  'CORS',
+  'CPU',
+  'CSP',
+  'CSS',
+  'CSV',
+  'DB',
+  'DEX',
+  'DNS',
+  'DOM',
+  'DSN',
+  'ELF',
+  'ESM',
+  'FCP',
+  'FID',
+  'FIFO',
+  'FPS',
+  'GC',
+  'GCP',
+  'GCS',
+  'GDPR',
+  'GPU',
+  'GraphQL',
+  'GUID',
+  'HEIC',
+  'HTML',
+  'HTTP',
+  'HTTPS',
+  'HMAC',
+  'IAM',
+  'ID',
+  'IdP',
+  'INP',
+  'IP',
+  'JAR',
+  'JPEG',
+  'JS',
+  'JSON',
+  'JSONL',
+  'JVM',
+  'JWT',
+  'LCP',
+  'LLM',
+  'MAUI',
+  'MCP',
+  'MIME',
+  'NDA',
+  'NDK',
+  'OAuth',
+  'OAuth2',
+  'OIDC',
+  'OOM',
+  'OS',
+  'OTel',
+  'OTLP',
+  'OTP',
+  'PDB',
+  'PE',
+  'PEM',
+  'PHP',
+  'PII',
+  'PKCE',
+  'PNG',
+  'PR',
+  'QR',
+  'RAM',
+  'REST',
+  'RSA',
+  'RPC',
+  'RSS',
+  'S3',
+  'SAML',
+  'SAML2',
+  'SCIM',
+  'SCM',
+  'SDK',
+  'SHA',
+  'SMS',
+  'SMTP',
+  'SPM',
+  'SQL',
+  'SQS',
+  'SSL',
+  'SSO',
+  'SSR',
+  'STARTTLS',
+  'SVG',
+  'TCP',
+  'TLS',
+  'TPM',
+  'TTFB',
+  'TTFD',
+  'TTID',
+  'TTL',
+  'U2F',
+  'UI',
+  'URI',
+  'URL',
+  'UTC',
+  'UDP',
+  'UTF-8',
+  'UUID',
+  'UWP',
+  'UX',
+  'WSGI',
+  'XSS',
+  'XML',
+  'YAML',
+  'ZIP',
+];
+const uiCopyScope =
+  'Inspect only hardcoded English in the FIRST argument of t or tct and the FIRST TWO text arguments of tn imported from sentry/locale, including aliases. Calls to unrelated or locally shadowed helpers do not count. Ignore all other arguments, even if they contain English strings. Ignore unwrapped strings, code, URLs, identifiers, search keywords, and user data. Labels, headings, placeholders, productName fields, and body messages can be UI copy. In tct, [link:text] and [strong:text] display text; [code:text] displays code. In a diff, imports may be omitted; only changed literals count.';
+
+// Proposed sentence-case guidance for copy review; the MDX currently requires title case.
+const voice = {
+  files: ['static/app/**/*.ts*'],
+  ignores: [
+    '**/*.tsbuildinfo',
+    ...['spec', 'test', 'stories', 'd', 'figma'].map(kind => `**/*.${kind}.ts*`),
+    ...['tests', 'fixtures', 'stories'].flatMap(directory => [
+      `**/${directory}/**`,
+      `**/__${directory}__/**`,
+    ]),
+    ...['testutils', 'dist', 'vendor', '.types', '.artifacts'].map(
+      directory => `**/${directory}/**`
+    ),
+  ],
+  threshold: 0.7,
+  unchecked: 'warn',
+  rules: {
+    usesTitleCaseInUiCopy: {
+      // Distinct contexts evaluate each copy rule independently.
+      context: {
+        copyKind: 'heading and label capitalization',
+      },
+      prompt: `${uiCopyScope}\n\nDoes a heading, button, or label incorrectly use Title Case after its first word, or ALL CAPS for an ordinary English word? This includes bold section headings, table/chart labels, sidebar items, form labels, and widget titles. Use sentence case: "Last seen", not "Last Seen"; "Settings", not "SETTINGS". Preserve proper names and named products (${productNames.join(', ')}). Preserve recognized acronyms and their plurals, including ${acronyms.join(', ')}. These examples are not exhaustive. Preserve canonical mixed/lowercase names and metric notation. An ordinary English word does not become an acronym just because it is uppercase. Body prose and strings in other function arguments do not count.`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'An ordinary word in a translated heading or label uses title case after the first word, or unnecessary ALL CAPS. The offending word is in a translation text argument, not another argument or an unwrapped string.',
+          severity: 'warn',
+          report:
+            'Use sentence case for this title or label. Preserve the canonical spelling of product names, proper nouns, and acronyms.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Every ordinary word has sentence-case spelling: only the first letter of an ordinary first word is capitalized, and later ordinary words are lowercase. Other capitalization belongs to proper names, acronyms, or technical notation.',
+        },
+      ],
+    },
+    miscapitalizesProductName: {
+      context: {copyKind: 'product name capitalization'},
+      threshold: 0.6,
+      prompt: `${uiCopyScope}\n\nDoes UI text use the wrong capitalization for a named product or feature? Canonical names: ${productNames.join(', ')}. These are proper names: retain ALL their canonical word capitalization even inside a sentence; do not sentence-case a product name. Match names ignoring case, then compare exact spelling. Brand-reference examples: ${brandCaseExamples}. A productName field explicitly identifies a product label. Mentioning a named Sentry product/feature in setup or navigation also counts, including visible link text. For example, "Sentry's continuous profiling product" names a product; "profiling an application" is a generic activity. Generic activities/resources do not count as names.`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'A translated UI literal names a product or feature but spells it with different capitalization from the canonical list, including lowercasing ordinary-looking words inside a proper product name.',
+          severity: 'warn',
+          report:
+            'Use the canonical spelling for this named Sentry product or feature. Leave generic descriptions lowercase and preserve package names and identifiers.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Brand mentions have canonical spelling, and descriptive feature words are either generic activities/resources or correctly spelled named features. Exempt identifiers and keywords do not count.',
+        },
+      ],
+    },
+    directsFrustrationAtUser: {
+      prompt: `${uiCopyScope}\n\nDoes UI copy direct frustration, ridicule, contempt, or a judgment about competence at the user? Flag insults or scolding, not ordinary second-person instructions. Neutral explanations of permissions, invalid input, configuration mistakes, or responsibility do not count. "You do not have permission" and "Check your connection" are neutral. Empathetic humor about the situation, the product itself, missing pages, or slow loading does not count as user-directed frustration. Do not flag all humor or all uses of "you".`,
+      values: [
+        {
+          value: 'TRUE',
+          description:
+            'The wording mocks, belittles, or scolds the user, rather than explaining the problem or joking about the situation.',
+          severity: 'warn',
+          report:
+            'Direct frustration or humor at the situation. Explain what happened and what the user can do next without blaming or belittling them.',
+        },
+        {
+          value: 'FALSE',
+          description:
+            'Copy is neutral, helpful, empathetic, or jokes about the situation without attacking the user.',
+        },
+      ],
+    },
+  },
+} satisfies Suite;
+
 export default {
   model: jev,
   files: ['src/sentry/**/*.py'],
   ignores: ['**/tests/**', '**/testutils/**'],
-  suites: {api, audit, security},
+  suites: {api, audit, security, voice},
 } satisfies Config;
