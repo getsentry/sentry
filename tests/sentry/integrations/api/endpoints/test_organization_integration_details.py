@@ -243,6 +243,41 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
 
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_repeat_delete_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        assert org_integration.status == ObjectStatus.PENDING_DELETION
+        assert (
+            ScheduledDeletion.objects.filter(
+                model_name="OrganizationIntegration", object_id=org_integration.id
+            ).count()
+            == 1
+        )
+        assert (
+            AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                organization_id=self.organization.id,
+            ).count()
+            == 1
+        )
+
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_delete_in_progress_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 0
+
 
 @control_silo_test
 class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
