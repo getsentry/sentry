@@ -8,6 +8,7 @@ import type {StrictStoreDefinition} from './types';
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
 type State = {
+  modalId: number;
   options: ModalOptions;
   renderer: Renderer | null;
   focusTrap?: FocusTrap;
@@ -23,7 +24,7 @@ interface ModalStoreDefinition extends StrictStoreDefinition<State> {
 }
 
 const storeConfig: ModalStoreDefinition = {
-  state: {renderer: null, options: {}},
+  state: {modalId: 0, renderer: null, options: {}},
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
@@ -37,6 +38,7 @@ const storeConfig: ModalStoreDefinition = {
 
   reset() {
     this.state = {
+      modalId: this.state.modalId,
       renderer: null,
       options: {},
       focusTrap: this.state.focusTrap,
@@ -51,7 +53,13 @@ const storeConfig: ModalStoreDefinition = {
   openModal(renderer: Renderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.state = {renderer, options, focusTrap: this.state.focusTrap, triggerElement};
+    this.state = {
+      modalId: this.state.modalId + 1,
+      renderer,
+      options,
+      focusTrap: this.state.focusTrap,
+      triggerElement,
+    };
     this.trigger(this.state);
   },
 

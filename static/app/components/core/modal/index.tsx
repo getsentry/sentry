@@ -1,15 +1,19 @@
-import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
+import {Fragment, useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {Alert} from '@sentry/scraps/alert';
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 import {TooltipContext} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import {ModalStore} from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -106,10 +110,22 @@ function useModalStore() {
   };
 }
 
+// Call the renderer below the boundary so errors in the callback are caught too.
+function ModalContent({
+  renderer,
+  renderProps,
+}: {
+  renderProps: ModalRenderProps;
+  renderer: ((props: ModalRenderProps) => React.ReactNode) | null;
+}) {
+  return renderer?.(renderProps);
+}
+
 export function GlobalModal() {
-  const {renderer, options, visible, triggerElement} = useModalStore();
+  const {modalId, renderer, options, visible, triggerElement} = useModalStore();
   const location = useLocation();
   const theme = useTheme();
+  const {t} = useTranslation();
   const closeEvents = options.closeEvents ?? 'all';
 
   const closeModal = useCallback(
@@ -209,15 +225,15 @@ export function GlobalModal() {
 
   const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
-  // oxlint-disable-next-line react/refs
-  const renderedChild = renderer?.({
+  const renderProps: ModalRenderProps = {
     CloseButton: makeCloseButton(onCloseButtonClick),
     Header: makeClosableHeader(onCloseButtonClick),
     Body: ModalBody,
     Footer: ModalFooter,
     modalContainerRef: containerRef,
     closeModal,
-  });
+  };
+  const {Header} = renderProps;
 
   return createPortal(
     <ContainerQueryProvider elementRef={portalRef}>
@@ -289,7 +305,27 @@ export function GlobalModal() {
                       padding={{zero: '3xl 2xl', '3xl': '3xl'}}
                       {...p}
                     >
-                      {renderedChild}
+                      <ErrorBoundary
+                        key={modalId}
+                        customComponent={() => (
+                          <Fragment>
+                            <Header closeButton>
+                              <Heading as="h2">{t('Unable to display dialog')}</Heading>
+                            </Header>
+                            <ModalBody>
+                              <Alert.Container>
+                                <Alert variant="danger" role="alert">
+                                  {t(
+                                    'There was a problem rendering this dialog. Close it and try again.'
+                                  )}
+                                </Alert>
+                              </Alert.Container>
+                            </ModalBody>
+                          </Fragment>
+                        )}
+                      >
+                        <ModalContent renderer={renderer} renderProps={renderProps} />
+                      </ErrorBoundary>
                     </Container>
                   )}
                 </Surface>
