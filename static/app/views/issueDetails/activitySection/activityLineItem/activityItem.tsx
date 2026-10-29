@@ -398,7 +398,6 @@ function getActivityItemContent({
       };
     }
     case GroupActivityType.UNLINK_EXTERNAL_ISSUE:
-    case GroupActivityType.LEGACY_UNLINK_EXTERNAL_ISSUE:
       return {
         title: t('Unlinked external issue'),
         details: tct('[key] on [provider]', {
@@ -407,7 +406,6 @@ function getActivityItemContent({
         }),
       };
     case GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE:
-    case GroupActivityType.LEGACY_UNLINK_PLATFORM_EXTERNAL_ISSUE:
       return {
         title: t('Unlinked external issue'),
         details: activity.data.web_url ? (

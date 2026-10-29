@@ -1495,55 +1495,43 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('img', {name: 'Activity update'})).toBeInTheDocument();
   });
 
-  it.each([
-    [
-      GroupActivityType.UNLINK_EXTERNAL_ISSUE,
-      GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
-    ],
-    [
-      GroupActivityType.LEGACY_UNLINK_EXTERNAL_ISSUE,
-      GroupActivityType.LEGACY_UNLINK_PLATFORM_EXTERNAL_ISSUE,
-    ],
-  ] as const)(
-    'renders %s and platform unlink events with provider details and available links',
-    async (externalType, platformType) => {
-      const captureMessage = jest.spyOn(Sentry, 'captureMessage');
-      const unlinkGroup = GroupFixture({
-        project,
-        activity: [
-          ActivityFeedFixture({
-            id: '1',
-            type: externalType,
-            data: {provider: 'github', external_issue_key: 'org/repo#42'},
-          }),
-          ActivityFeedFixture({
-            id: '2',
-            type: platformType,
-            data: {
-              service_type: 'linear',
-              display_name: 'APP-42',
-              web_url: 'https://linear.app/example/issue/APP-42',
-            },
-          }),
-        ],
-      });
+  it('renders unlink events with provider details and available links', async () => {
+    const captureMessage = jest.spyOn(Sentry, 'captureMessage');
+    const unlinkGroup = GroupFixture({
+      project,
+      activity: [
+        ActivityFeedFixture({
+          id: '1',
+          type: GroupActivityType.UNLINK_EXTERNAL_ISSUE,
+          data: {provider: 'github', external_issue_key: 'org/repo#42'},
+        }),
+        ActivityFeedFixture({
+          id: '2',
+          type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE,
+          data: {
+            service_type: 'linear',
+            display_name: 'APP-42',
+            web_url: 'https://linear.app/example/issue/APP-42',
+          },
+        }),
+      ],
+    });
 
-      render(
-        <GroupDataContextProvider group={unlinkGroup} project={project}>
-          <ActivitySection group={unlinkGroup} />
-        </GroupDataContextProvider>
-      );
+    render(
+      <GroupDataContextProvider group={unlinkGroup} project={project}>
+        <ActivitySection group={unlinkGroup} />
+      </GroupDataContextProvider>
+    );
 
-      const timeline = await screen.findByTestId('activity-timeline');
-      expect(timeline).toHaveTextContent('Unlinked external issue org/repo#42 on GitHub');
-      expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
-      expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
-        'href',
-        'https://linear.app/example/issue/APP-42'
-      );
-      expect(captureMessage).not.toHaveBeenCalled();
-    }
-  );
+    const timeline = await screen.findByTestId('activity-timeline');
+    expect(timeline).toHaveTextContent('Unlinked external issue org/repo#42 on GitHub');
+    expect(timeline).toHaveTextContent('Unlinked external issue APP-42');
+    expect(screen.getByRole('link', {name: 'APP-42'})).toHaveAttribute(
+      'href',
+      'https://linear.app/example/issue/APP-42'
+    );
+    expect(captureMessage).not.toHaveBeenCalled();
+  });
 
   it.each([
     {actor: 'user', user: UserFixture({name: 'Jane Doe'}), sentry_app: undefined},

@@ -680,9 +680,6 @@ export enum GroupActivityType {
   TRIGGER_AUTOFIX = 'trigger_autofix',
   UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
-  // Accept older API responses while the lowercase serializer rolls out.
-  LEGACY_UNLINK_EXTERNAL_ISSUE = 'UNLINK_EXTERNAL_ISSUE',
-  LEGACY_UNLINK_PLATFORM_EXTERNAL_ISSUE = 'UNLINK_PLATFORM_EXTERNAL_ISSUE',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -1146,16 +1143,12 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
 
 interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
   data: {external_issue_key: string; provider: string};
-  type:
-    | GroupActivityType.UNLINK_EXTERNAL_ISSUE
-    | GroupActivityType.LEGACY_UNLINK_EXTERNAL_ISSUE;
+  type: GroupActivityType.UNLINK_EXTERNAL_ISSUE;
 }
 
 interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   data: {display_name: string; service_type: string; web_url: string};
-  type:
-    | GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE
-    | GroupActivityType.LEGACY_UNLINK_PLATFORM_EXTERNAL_ISSUE;
+  type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
 }
 
 export type GroupActivity =
