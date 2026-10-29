@@ -33,7 +33,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow, SeerWorkflowConfigError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -243,8 +243,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 environments=data["environments"],
                 project_ids=None if all_projects else project_ids,
             )
-        except ValueError:
-            return Response({"detail": "Invalid workflow configuration."}, status=400)
+        except SeerWorkflowConfigError as e:
+            return Response({"detail": str(e)}, status=400)
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         result = serialize_workflow_configs(
@@ -329,7 +329,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         if request.access.has_project_scope(project, "project:read")
                     ],
                 )
-            except ValueError as e:
+            except SeerWorkflowConfigError as e:
                 return Response({"detail": str(e)}, status=400)
             config = workflow.config
 

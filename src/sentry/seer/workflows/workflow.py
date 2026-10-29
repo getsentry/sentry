@@ -32,6 +32,10 @@ from sentry.utils import json
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
 
+class SeerWorkflowConfigError(ValueError):
+    """A config validation failure with a message safe to show to the user."""
+
+
 @dataclass(frozen=True)
 class AllProjects:
     pass
@@ -94,12 +98,14 @@ class SeerWorkflow:
     ) -> SeerWorkflow:
         """Create a user-defined automation. ``project_ids=None`` selects all projects."""
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
-            raise ValueError(f"{strategy} configs cannot be created")
+            raise SeerWorkflowConfigError(f"{strategy} configs cannot be created")
         if (
             strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
             and project_ids is not None
         ):
-            raise ValueError("Breached metric projects are selected by connecting monitors")
+            raise SeerWorkflowConfigError(
+                "Breached metric projects are selected by connecting monitors"
+            )
         requested = set(project_ids or ())
 
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
@@ -110,7 +116,7 @@ class SeerWorkflow:
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             ).count()
             if existing >= MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION:
-                raise ValueError(
+                raise SeerWorkflowConfigError(
                     "Organizations can have at most "
                     f"{MAX_CONFIGURABLE_WORKFLOWS_PER_ORGANIZATION} automations"
                 )
@@ -120,7 +126,9 @@ class SeerWorkflow:
                 ).values_list("id", flat=True)
             )
             if requested != valid_project_ids:
-                raise ValueError("Selected projects must exist in the workflow's organization")
+                raise SeerWorkflowConfigError(
+                    "Selected projects must exist in the workflow's organization"
+                )
 
             config = SeerWorkflowConfig.objects.create(
                 organization_id=organization_id,
@@ -315,16 +323,20 @@ class SeerWorkflow:
                 id=self.config.id, organization_id=self.config.organization_id
             )
             if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise ValueError("Breached metric projects are selected by connecting monitors")
+                raise SeerWorkflowConfigError(
+                    "Breached metric projects are selected by connecting monitors"
+                )
             if SeerWorkflowFilters.parse_obj(config.filters).all_projects:
-                raise ValueError("Workflow already includes all projects")
+                raise SeerWorkflowConfigError("Workflow already includes all projects")
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=requested
                 ).values_list("id", flat=True)
             )
             if requested != valid_project_ids:
-                raise ValueError("Selected projects must exist in the workflow's organization")
+                raise SeerWorkflowConfigError(
+                    "Selected projects must exist in the workflow's organization"
+                )
 
             existing = set(
                 SeerWorkflowConfigProject.objects.filter(config=config).values_list(
