@@ -440,15 +440,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
   useHotkeys(
     isModalOpen
       ? []
-      : (
-          [
-            'Mod+/', // QWERTY (US, UK, most CJK, RTL scripts)
-            'Mod+.', // macOS-friendly alternative
-            'Mod+Shift+7', // QWERTZ (German, Austrian, Swiss): / === Shift+7
-            'Mod+Shift+.', // AZERTY (French, Belgian): / === Shift+.
-            'Mod+Shift+-', // QWERTY Latin variants (Spanish, Italian, Portuguese): / === Shift+-
-          ] as const
-        ).map(hotkey => ({
+      : (['Mod+/', 'Mod+.'] as const).map(hotkey => ({
           hotkey,
           callback: event => {
             // AZERTY produces + at the physical Slash position. Keep browser zoom.
