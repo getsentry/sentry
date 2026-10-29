@@ -7,6 +7,11 @@ import {decodeList, decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  hasIgnoreCaseDefault,
+  isCaseIndependent,
+} from 'sentry/views/explore/caseInsensitivityDefault';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {defaultSortBys} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
@@ -200,16 +205,37 @@ function parseQuery(raw: string): ReadableExploreQueryParts {
   }
 }
 
+function withCaseInsensitiveDefault(
+  query: ReadableExploreQueryParts
+): ReadableExploreQueryParts {
+  if (defined(query.caseInsensitive)) {
+    return query;
+  }
+  return {
+    ...query,
+    caseInsensitive: isCaseIndependent({
+      query: query.query,
+      yAxes: query.yAxes,
+      groupBys: query.groupBys,
+    })
+      ? '1'
+      : '0',
+  };
+}
+
 export function useReadQueriesFromLocation(): ReadableExploreQueryParts[] {
   const location = useLocation();
+  const organization = useOrganization();
   const rawQueries = decodeList(location.query.queries);
+  const ignoreCaseByDefault = hasIgnoreCaseDefault(organization);
 
   const parsedQueries = useMemo(() => {
-    if (!defined(rawQueries) || rawQueries.length === 0) {
-      return [DEFAULT_QUERY];
-    }
-    return rawQueries.map(parseQuery);
-  }, [rawQueries]);
+    const queries =
+      !defined(rawQueries) || rawQueries.length === 0
+        ? [DEFAULT_QUERY]
+        : rawQueries.map(parseQuery);
+    return ignoreCaseByDefault ? queries.map(withCaseInsensitiveDefault) : queries;
+  }, [ignoreCaseByDefault, rawQueries]);
 
   return parsedQueries;
 }

@@ -28,6 +28,7 @@ import {
   type MaxPickableDaysOptions,
 } from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreCaseInsensitivityDefault} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
   MAX_DAYS_FOR_CROSS_EVENTS,
@@ -63,7 +64,9 @@ export function ExploreContent() {
 
   return (
     <SpansQueryParamsProvider>
-      <ExploreContentInner />
+      <ExploreCaseInsensitivityDefault>
+        <ExploreContentInner />
+      </ExploreCaseInsensitivityDefault>
     </SpansQueryParamsProvider>
   );
 }

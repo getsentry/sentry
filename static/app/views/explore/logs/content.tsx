@@ -16,6 +16,7 @@ import {defined} from 'sentry/utils/defined';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ExploreCaseInsensitivityDefault} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -63,18 +64,20 @@ export default function LogsContent() {
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
                 source="location"
               >
-                <LogsHeader />
-                <LogsPageDataProvider allowHighFidelity>
-                  {defined(onboardingProject) ? (
-                    <LogsTabOnboarding
-                      organization={organization}
-                      project={onboardingProject}
-                      datePageFilterProps={datePageFilterProps}
-                    />
-                  ) : (
-                    <LogsTabContent datePageFilterProps={datePageFilterProps} />
-                  )}
-                </LogsPageDataProvider>
+                <ExploreCaseInsensitivityDefault>
+                  <LogsHeader />
+                  <LogsPageDataProvider allowHighFidelity>
+                    {defined(onboardingProject) ? (
+                      <LogsTabOnboarding
+                        organization={organization}
+                        project={onboardingProject}
+                        datePageFilterProps={datePageFilterProps}
+                      />
+                    ) : (
+                      <LogsTabContent datePageFilterProps={datePageFilterProps} />
+                    )}
+                  </LogsPageDataProvider>
+                </ExploreCaseInsensitivityDefault>
               </LogsQueryParamsProvider>
             </LogsPageStack>
           </AiQueryProvider>
