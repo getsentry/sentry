@@ -1,4 +1,4 @@
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ErrorBoundary} from './errorBoundary';
 
@@ -102,7 +102,7 @@ describe('ErrorBoundary', () => {
     errorSpy.mockRestore();
   });
 
-  it('resets the boundary and calls onDismiss when dismissed', async () => {
+  it('lets onDismiss handle dismissal without retrying the children', async () => {
     const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const onDismiss = jest.fn();
     const {rerender} = render(
@@ -120,40 +120,8 @@ describe('ErrorBoundary', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Dismiss error'}));
 
     expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(screen.getByText('hello')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    errorSpy.mockRestore();
-  });
-
-  it('waits for asynchronous dismissal before resetting the boundary', async () => {
-    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const dismissal = Promise.withResolvers<void>();
-    const onDismiss = jest.fn(() => dismissal.promise);
-    const {rerender} = render(
-      <ErrorBoundary mini allowDismiss onDismiss={onDismiss}>
-        <ErrorComponent />
-      </ErrorBoundary>
-    );
-
-    rerender(
-      <ErrorBoundary mini allowDismiss onDismiss={onDismiss}>
-        <HelloComponent />
-      </ErrorBoundary>
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Dismiss error'}));
-
-    expect(onDismiss).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
     expect(screen.queryByText('hello')).not.toBeInTheDocument();
-
-    await act(async () => {
-      dismissal.resolve();
-      await dismissal.promise;
-    });
-
-    expect(screen.getByText('hello')).toBeInTheDocument();
-    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
     errorSpy.mockRestore();
   });
 

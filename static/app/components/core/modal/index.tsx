@@ -124,19 +124,7 @@ export function GlobalModal() {
   const location = useLocation();
   const theme = useTheme();
   const {t} = useTranslation();
-  const errorDismissalResolvers = useRef(new Map<number, Array<() => void>>());
   const closeEvents = options.closeEvents ?? 'all';
-
-  const finishErrorDismissal = useCallback((dismissedModalId: number) => {
-    const resolvers = errorDismissalResolvers.current.get(dismissedModalId);
-    errorDismissalResolvers.current.delete(dismissedModalId);
-    for (const resolve of resolvers ?? []) {
-      resolve();
-    }
-  }, []);
-
-  // Also finish pending dismissals if the modal is replaced or its host unmounts.
-  useEffect(() => () => finishErrorDismissal(modalId), [finishErrorDismissal, modalId]);
 
   const closeModal = useCallback(
     (reason?: 'close-button' | 'backdrop-click' | 'escape-key') => {
@@ -235,14 +223,6 @@ export function GlobalModal() {
 
   const onCloseButtonClick = useCallback(() => closeModal('close-button'), [closeModal]);
 
-  const onErrorDismiss = () =>
-    new Promise<void>(resolve => {
-      const resolvers = errorDismissalResolvers.current.get(modalId) ?? [];
-      resolvers.push(resolve);
-      errorDismissalResolvers.current.set(modalId, resolvers);
-      onCloseButtonClick();
-    });
-
   const renderProps: ModalRenderProps = {
     CloseButton: makeCloseButton(onCloseButtonClick),
     Header: makeClosableHeader(onCloseButtonClick),
@@ -287,13 +267,7 @@ export function GlobalModal() {
             container: portal,
           }}
         >
-          <AnimatePresence
-            onExitComplete={() => {
-              if (!visible) {
-                finishErrorDismissal(modalId);
-              }
-            }}
-          >
+          <AnimatePresence>
             {visible && (
               <MotionContainer
                 role="dialog"
@@ -332,7 +306,7 @@ export function GlobalModal() {
                         key={modalId}
                         mini
                         allowDismiss
-                        onDismiss={onErrorDismiss}
+                        onDismiss={onCloseButtonClick}
                         message={t('There was a problem rendering the dialog.')}
                       >
                         <ModalContent renderer={renderer} renderProps={renderProps} />

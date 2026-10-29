@@ -133,26 +133,6 @@ describe('GlobalModal', () => {
       ).toBeInTheDocument();
       expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     });
-
-    it('can reopen a failed modal before its exit animation finishes', async () => {
-      const {waitForModalToHide} = renderGlobalModal();
-      const error = new Error('Modal render failed');
-      const renderer = () => <ThrowingModal error={error} />;
-
-      act(() => openModal(renderer));
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-
-      act(() => closeModal());
-      act(() => openModal(renderer));
-
-      expect(screen.getByRole('alert')).toBeInTheDocument();
-      expect(Sentry.captureException).toHaveBeenCalledTimes(2);
-
-      await userEvent.click(screen.getByRole('button', {name: 'Dismiss error'}));
-      await waitForModalToHide();
-
-      expect(Sentry.captureException).toHaveBeenCalledTimes(2);
-    });
   });
 
   it('uses actionCreators to open and close Modal', async () => {
