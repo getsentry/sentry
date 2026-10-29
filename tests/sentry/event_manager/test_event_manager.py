@@ -45,6 +45,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
+from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.integrations.models.external_issue import ExternalIssue
@@ -65,7 +66,6 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
@@ -655,7 +655,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
+    @mock.patch("sentry.models.groupopenperiod.get_group_type_by_type_id")
+    def test_unresolves_group(
+        self, mock_get_group_type: mock.MagicMock, send_robust: mock.MagicMock
+    ) -> None:
+        mock_get_group_type.return_value = MetricIssue
         ts = before_now(minutes=5).isoformat()
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -4410,93 +4414,6 @@ class DSLatestReleaseBoostTest(TestCase):
 
 
 class TestSaveGroupHashAndGroup(TestCase):
-    @override_options(
-        {
-            "workflow_engine.associate_error_detectors": False,
-            "workflow_engine.ensure_detector_association": True,
-        }
-    )
-    def test_regression_records_opened_after_association(self) -> None:
-        self.create_detector(project=self.project, type=ErrorGroupType.slug)
-        event = EventManager(
-            make_event(
-                fingerprint=["regressing-error"],
-                timestamp=before_now(minutes=5).isoformat(),
-            )
-        ).save(self.project.id)
-        assert event.group_id is not None
-        group = Group.objects.get(id=event.group_id)
-        assert not group.detectorgroup_set.exists()
-        old_period = GroupOpenPeriod.objects.get(group=group)
-
-        resolved_at = before_now(minutes=4)
-        group.update(status=GroupStatus.RESOLVED, substatus=None)
-        self.create_group_activity(
-            group, type=ActivityType.SET_RESOLVED.value, datetime=resolved_at
-        )
-        old_period.close_open_period(resolved_at)
-
-        regression = EventManager(
-            make_event(
-                fingerprint=["regressing-error"],
-                timestamp=before_now(minutes=3).isoformat(),
-            )
-        ).save(self.project.id)
-
-        assert regression.group_id == group.id
-        assert group.detectorgroup_set.exists()
-        new_period = GroupOpenPeriod.objects.get(group=group, date_ended__isnull=True)
-        assert new_period.id != old_period.id
-        assert GroupOpenPeriodActivity.objects.filter(
-            group_open_period=new_period, type=OpenPeriodActivityType.OPENED
-        ).exists()
-
-    @override_options({"workflow_engine.associate_error_detectors": True})
-    def test_shared_group_creation_does_not_associate_detector(self) -> None:
-        self.create_detector(project=self.project, type=ErrorGroupType.slug)
-        event = _get_event_instance(
-            make_event(**load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))),
-            project_id=self.project.id,
-        )
-
-        group, created, _ = save_grouphash_and_group(
-            self.project,
-            event,
-            "unassociated-finding",
-        )
-
-        assert created
-        assert not group.detectorgroup_set.exists()
-        assert GroupOpenPeriod.objects.filter(group=group).exists()
-        assert not GroupOpenPeriodActivity.objects.filter(group_open_period__group=group).exists()
-
-    @override_options({"workflow_engine.associate_error_detectors": True})
-    def test_new_error_records_opened_after_default_association(self) -> None:
-        self.create_detector(project=self.project, type=ErrorGroupType.slug)
-        event = EventManager(make_event(timestamp=before_now(minutes=1).isoformat())).save(
-            self.project.id
-        )
-        assert event.group_id is not None
-        group = Group.objects.get(id=event.group_id)
-        assert group.detectorgroup_set.exists()
-        activity = GroupOpenPeriodActivity.objects.get(
-            group_open_period__group=group, type=OpenPeriodActivityType.OPENED
-        )
-        assert activity.event_id == event.event_id
-
-    @override_options({"workflow_engine.associate_error_detectors": False})
-    def test_unassociated_group_has_open_period_without_activities(self) -> None:
-        event = _get_event_instance(
-            make_event(**load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))),
-            project_id=self.project.id,
-        )
-
-        group, created, _ = save_grouphash_and_group(self.project, event, "unassociated-finding")
-
-        assert created
-        assert GroupOpenPeriod.objects.filter(group=group).exists()
-        assert not GroupOpenPeriodActivity.objects.filter(group_open_period__group=group).exists()
-
     def test_simple(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         perf_data["event_id"] = "a" * 32

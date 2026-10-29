@@ -15,10 +15,24 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 
 logger = logging.getLogger(__name__)
+
+# Preserve the existing OPENED/CLOSED activity policy independently of detector registration.
+_OPEN_PERIOD_ACTIVITY_GROUP_TYPES = frozenset(
+    {
+        "error",
+        "issue_stream",
+        "metric_issue",
+        "monitor_check_in_failure",
+        "preprod_size_analysis",
+        "sourcemap_configuration",
+        "uptime_domain_failure",
+    }
+)
 
 
 class TsTzRange(models.Func):
@@ -34,10 +48,9 @@ def should_create_open_periods(type_id: int) -> bool:
     return type_id not in get_group_types_without_open_periods()
 
 
-def should_record_open_period_activity(group: Group) -> bool:
+def should_record_open_period_activity(type_id: int) -> bool:
     """Whether to record OPENED/CLOSED activities; priority activities have a separate policy."""
-    # A relationship remains after detector deletion, with a null detector_id.
-    return group.detectorgroup_set.exists()
+    return get_group_type_by_type_id(type_id).slug in _OPEN_PERIOD_ACTIVITY_GROUP_TYPES
 
 
 @cell_silo_model
@@ -104,7 +117,7 @@ class GroupOpenPeriod(DefaultFieldsModel):
 
         self.update(date_ended=resolution_time)
 
-        if should_record_open_period_activity(self.group):
+        if should_record_open_period_activity(self.group.type):
             GroupOpenPeriodActivity.objects.create(
                 group_open_period=self,
                 type=OpenPeriodActivityType.CLOSED,
@@ -209,36 +222,21 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
 
         # There are some historical cases where we log multiple regressions for the same group,
         # but we only want to create a new open period for the first regression
-        GroupOpenPeriod.objects.create(
+        open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
             date_started=start_time,
             date_ended=None,
         )
 
-        record_open_period_opened_activity(group, event_id)
-
-
-def record_open_period_opened_activity(group: Group, event_id: str | None = None) -> None:
-    """Record OPENED once, including when association follows open-period creation."""
-    if not should_record_open_period_activity(group):
-        return
-
-    with transaction.atomic(router.db_for_write(Group)):
-        # Serialize with period creation and other attempts to record the same opening.
-        Group.objects.select_for_update().filter(id=group.id).first()
-        open_period = get_latest_open_period(group)
-        if open_period is None or open_period.date_ended is not None:
-            return
-
-        GroupOpenPeriodActivity.objects.get_or_create(
-            group_open_period=open_period,
-            type=OpenPeriodActivityType.OPENED,
-            defaults={
-                "value": group.priority,
-                "event_id": event_id,
-            },
-        )
+        if should_record_open_period_activity(group.type):
+            GroupOpenPeriodActivity.objects.create(
+                date_added=start_time,
+                group_open_period=open_period,
+                type=OpenPeriodActivityType.OPENED,
+                value=group.priority,
+                event_id=event_id,
+            )
 
 
 def update_group_open_period(

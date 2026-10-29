@@ -116,7 +116,7 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.grouplink import GroupLink
-from sentry.models.groupopenperiod import create_open_period, record_open_period_opened_activity
+from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
@@ -1531,8 +1531,6 @@ def handle_existing_grouphash(
 
     # Ensure the group has a DetectorGroup association for existing groups
     ensure_association_with_detector(group)
-    if is_regression:
-        record_open_period_opened_activity(group, job["event"].event_id)
 
     return GroupInfo(group=group, is_new=False, is_regression=is_regression)
 
@@ -1596,7 +1594,6 @@ def create_group_with_grouphashes(job: Job, grouphashes: list[GroupHash]) -> Gro
 
             group = _create_group(project, event, **_get_group_processing_kwargs(job))
             associate_new_group_with_detector(group)
-            record_open_period_opened_activity(group, event.event_id)
             add_group_id_to_grouphashes(group, grouphashes)
 
             return GroupInfo(group=group, is_new=True, is_regression=False)

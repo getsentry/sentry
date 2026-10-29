@@ -19,7 +19,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
-    record_open_period_opened_activity,
+    should_record_open_period_activity,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
@@ -41,6 +41,7 @@ from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 @freeze_time()
@@ -762,24 +763,17 @@ class DetectorOpensNewIssuePerActivationTest(TestCase):
         PreprodSizeAnalysisGroupType,
         SourcemapConfigurationType,
         UptimeDomainCheckFailure,
-        AIDetectedHTTPGroupType,
-        PerformanceSlowDBQueryGroupType,
-        PerformanceLargeHTTPPayloadGroupType,
-        QueryInjectionVulnerabilityGroupType,
-        FeedbackGroup,
     ],
 )
-def test_detector_association_records_open_period_activities_without_settings(
+def test_records_open_period_activities_without_detector_settings(
     factories: Factories, default_project: Project, issue_type: type[GroupType]
 ) -> None:
-    detector = factories.create_detector(project=default_project, type=MetricIssue.slug)
     group = factories.create_group(
         project=default_project,
         type=issue_type.type_id,
         priority=PriorityLevel.MEDIUM,
         create_open_period=False,
     )
-    factories.create_detector_group(detector=detector, group=group)
     start_time = timezone.now()
     resolution_time = start_time + timedelta(minutes=1)
     event_id = "a" * 32
@@ -804,12 +798,16 @@ def test_detector_association_records_open_period_activities_without_settings(
     ).exists()
 
 
+def test_issue_stream_open_period_activity_policy_without_detector_settings() -> None:
+    # Issue stream is a synthetic type and cannot be stored as a Group row.
+    with patch.dict(detector_settings_registry.registrations, clear=True):
+        assert should_record_open_period_activity(IssueStreamGroupType.type_id)
+
+
 @django_db_all
 @pytest.mark.parametrize(
     "issue_type",
     [
-        ErrorGroupType,
-        MetricIssue,
         PerformanceSlowDBQueryGroupType,
         PerformanceLargeHTTPPayloadGroupType,
         QueryInjectionVulnerabilityGroupType,
@@ -817,7 +815,7 @@ def test_detector_association_records_open_period_activities_without_settings(
         FeedbackGroup,
     ],
 )
-def test_detector_settings_without_association_do_not_record_open_period_activities(
+def test_detector_registration_does_not_enable_open_period_activities(
     factories: Factories, default_project: Project, issue_type: type[GroupType]
 ) -> None:
     group = factories.create_group(
@@ -827,7 +825,7 @@ def test_detector_settings_without_association_do_not_record_open_period_activit
     resolution_time = start_time + timedelta(minutes=1)
 
     with patch.dict(detector_settings_registry.registrations):
-        detector_settings_registry.registrations[issue_type.slug] = DetectorSettings
+        detector_settings_registry.register(issue_type.slug)(DetectorSettings)
 
         create_open_period(group, start_time)
         open_period = GroupOpenPeriod.objects.get(group=group)
@@ -836,70 +834,3 @@ def test_detector_settings_without_association_do_not_record_open_period_activit
     open_period.refresh_from_db()
     assert open_period.date_ended == resolution_time
     assert not GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).exists()
-
-
-@django_db_all
-def test_detector_deletion_preserves_open_period_activities(
-    factories: Factories, default_project: Project
-) -> None:
-    detector = factories.create_detector(project=default_project, type=MetricIssue.slug)
-    group = factories.create_group(project=default_project, create_open_period=False)
-    association = factories.create_detector_group(detector=detector, group=group)
-    detector.delete()
-    association.refresh_from_db()
-    assert association.detector_id is None
-
-    start_time = timezone.now()
-    create_open_period(group, start_time)
-    open_period = GroupOpenPeriod.objects.get(group=group)
-    open_period.close_open_period(start_time + timedelta(minutes=1))
-
-    assert set(
-        GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).values_list(
-            "type", flat=True
-        )
-    ) == {OpenPeriodActivityType.OPENED, OpenPeriodActivityType.CLOSED}
-
-
-@django_db_all
-def test_existing_open_period_closes_without_occurrence_or_opened_activity(
-    factories: Factories, default_project: Project
-) -> None:
-    detector = factories.create_detector(project=default_project, type=MetricIssue.slug)
-    group = factories.create_group(project=default_project)
-    factories.create_detector_group(detector=detector, group=group)
-    open_period = GroupOpenPeriod.objects.get(group=group)
-    assert not GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).exists()
-
-    open_period.close_open_period(timezone.now())
-
-    assert GroupOpenPeriodActivity.objects.filter(
-        group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
-    ).exists()
-
-
-@django_db_all
-def test_opened_activity_can_follow_association_without_duplicates(
-    factories: Factories, default_project: Project
-) -> None:
-    detector = factories.create_detector(project=default_project, type=MetricIssue.slug)
-    group = factories.create_group(project=default_project, create_open_period=False)
-    start_time = timezone.now() - timedelta(minutes=1)
-    create_open_period(group, start_time, "a" * 32)
-    open_period = GroupOpenPeriod.objects.get(group=group)
-    assert not GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).exists()
-
-    factories.create_detector_group(detector=detector, group=group)
-    record_open_period_opened_activity(group, "a" * 32)
-    original_activity = GroupOpenPeriodActivity.objects.get(
-        group_open_period=open_period, type=OpenPeriodActivityType.OPENED
-    )
-    record_open_period_opened_activity(group, "b" * 32)
-
-    activity = GroupOpenPeriodActivity.objects.get(
-        group_open_period=open_period, type=OpenPeriodActivityType.OPENED
-    )
-    open_period.refresh_from_db()
-    assert open_period.date_started == start_time
-    assert activity.date_added == original_activity.date_added
-    assert activity.event_id == "a" * 32

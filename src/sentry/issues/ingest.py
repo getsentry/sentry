@@ -28,10 +28,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.priority import PriorityChangeReason, update_priority
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupopenperiod import (
-    get_latest_open_period,
-    record_open_period_opened_activity,
-)
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.release import Release
 from sentry.ratelimits.sliding_windows import RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.services.eventstore.models import Event, GroupEvent, augment_message_with_occurrence
@@ -269,7 +266,6 @@ def save_issue_from_occurrence(
                     else None
                 )
                 associate_new_group_with_detector(group, detector_id)
-                record_open_period_opened_activity(group, event.event_id)
 
             open_period = get_latest_open_period(group)
             if open_period is not None:
@@ -346,8 +342,6 @@ def save_issue_from_occurrence(
             occurrence.evidence_data.get("detector_id") if occurrence.evidence_data else None
         )
         ensure_association_with_detector(group, detector_id)
-        if is_regression:
-            record_open_period_opened_activity(group, event.event_id)
 
         # if it's a regression and the priority changed, we should update the existing GroupOpenPeriodActivity
         # row if applicable. Otherwise, we should record a new row if applicable.
