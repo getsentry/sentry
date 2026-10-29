@@ -243,8 +243,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 environments=data["environments"],
                 project_ids=None if all_projects else project_ids,
             )
-        except ValueError as e:
-            return Response({"detail": str(e)}, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid workflow configuration."}, status=400)
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         result = serialize_workflow_configs(
