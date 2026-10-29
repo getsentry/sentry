@@ -51,6 +51,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateAdded: datetime
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
+    lastRunStatus: NotRequired[str | None]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
@@ -106,6 +107,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
 class WorkflowConfigLastRun:
     config_id: int
     last_run_at: datetime | None
+    last_run_status: str | None
 
 
 @cell_silo_endpoint
@@ -159,8 +161,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
-        ``dateLastRun`` is the latest visible run's creation time,
-        omitted if none are visible under the runs endpoint's project-scope rules.
+        ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
+        is its status (null for older runs that predate status tracking). Both are
+        omitted if no runs are visible under the runs endpoint's project-scope rules.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -371,13 +374,13 @@ def serialize_workflow_configs(
         accessible_project_ids=accessible_project_ids,
         has_global_access=has_global_access,
     )
-    last_run_dates_by_config_id = {run.config_id: run.last_run_at for run in last_runs}
+    last_runs_by_config_id = {run.config_id: run for run in last_runs}
     return {
         "configs": [
             serialize_workflow_config(
                 config,
                 selected_project_ids=selected_projects[config.id],
-                last_run=last_run_dates_by_config_id.get(config.id),
+                last_run=last_runs_by_config_id.get(config.id),
             )
             for config in configs
         ]
@@ -407,19 +410,28 @@ def get_config_last_runs(
     )
     if not has_global_access:
         runs = runs.filter(extras__snapshot__project_ids__contained_by=list(accessible_project_ids))
+    latest_run = runs.order_by("-date_added", "-id")
     last_runs = (
         SeerWorkflowConfig.objects.filter(id__in=[config.id for config in configs])
-        .annotate(last_run_at=Subquery(runs.order_by("-date_added").values("date_added")[:1]))
-        .values_list("id", "last_run_at")
+        .annotate(
+            last_run_at=Subquery(latest_run.values("date_added")[:1]),
+            last_run_status=Subquery(latest_run.values("status")[:1]),
+        )
+        .values_list("id", "last_run_at", "last_run_status")
     )
     return [
-        WorkflowConfigLastRun(config_id=config_id, last_run_at=last_run_at)
-        for config_id, last_run_at in last_runs
+        WorkflowConfigLastRun(
+            config_id=config_id, last_run_at=last_run_at, last_run_status=last_run_status
+        )
+        for config_id, last_run_at, last_run_status in last_runs
     ]
 
 
 def serialize_workflow_config(
-    config: SeerWorkflowConfig, *, selected_project_ids: list[int], last_run: datetime | None
+    config: SeerWorkflowConfig,
+    *,
+    selected_project_ids: list[int],
+    last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
     workflow = SeerWorkflow(config)
     filters = workflow.filters
@@ -444,6 +456,7 @@ def serialize_workflow_config(
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
-    if last_run is not None:
-        result["dateLastRun"] = last_run
+    if last_run is not None and last_run.last_run_at is not None:
+        result["dateLastRun"] = last_run.last_run_at
+        result["lastRunStatus"] = last_run.last_run_status
     return result
