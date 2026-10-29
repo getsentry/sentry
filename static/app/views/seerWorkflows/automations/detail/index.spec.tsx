@@ -16,14 +16,18 @@ async function findLoadedPage() {
 
 describe('AutomationDetail', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
-  const configUrl = `/organizations/${organization.slug}/seer/workflows/configs/42/`;
+  const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
 
   function mockConfig(config: SeerWorkflowConfigResponse) {
-    return MockApiClient.addMockResponse({url: configUrl, body: config});
+    return MockApiClient.addMockResponse({
+      url: configsUrl,
+      body: {configs: [config]},
+      match: [MockApiClient.matchQuery({id: '42'})],
+    });
   }
 
   function renderDetail(
@@ -99,7 +103,11 @@ describe('AutomationDetail', () => {
   });
 
   it('shows not found when the config does not exist', async () => {
-    const request = MockApiClient.addMockResponse({url: configUrl, statusCode: 404});
+    const request = MockApiClient.addMockResponse({
+      url: configsUrl,
+      body: {configs: []},
+      match: [MockApiClient.matchQuery({id: '42'})],
+    });
     renderDetail();
     await waitFor(() => expect(request).toHaveBeenCalled());
 
@@ -108,7 +116,7 @@ describe('AutomationDetail', () => {
   });
 
   it('shows an error with retry when the config fails to load', async () => {
-    MockApiClient.addMockResponse({url: configUrl, statusCode: 500});
+    MockApiClient.addMockResponse({url: configsUrl, statusCode: 500});
     renderDetail();
 
     expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();

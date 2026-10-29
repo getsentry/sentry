@@ -13,7 +13,6 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -25,7 +24,7 @@ import {
 } from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
-  SeerWorkflowConfigResponse,
+  SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -47,19 +46,20 @@ export default function AutomationDetail() {
 
   // TEMPORARY: placeholder configs are only known to the frontend
   const placeholderConfig = PLACEHOLDER_CONFIGS.find(c => c.id === automationId);
-  const {data, isPending, isError, error, refetch} = useQuery(
-    apiOptions.as<SeerWorkflowConfigResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<SeerWorkflowConfigsResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
         path:
           automationsEnabled && !placeholderConfig
-            ? {organizationIdOrSlug: organization.slug, configId: automationId}
+            ? {organizationIdOrSlug: organization.slug}
             : skipToken,
+        query: {id: automationId},
         staleTime: 0,
       }
     )
   );
-  const config: AutomationConfig | undefined = placeholderConfig ?? data;
+  const config: AutomationConfig | undefined = placeholderConfig ?? data?.configs[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
@@ -82,7 +82,7 @@ export default function AutomationDetail() {
             />
             <LoadingIndicator />
           </Fragment>
-        ) : isError && !(error instanceof RequestError && error.status === 404) ? (
+        ) : isError ? (
           <LoadingError onRetry={refetch} />
         ) : (
           <NotFound />
