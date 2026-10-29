@@ -4,7 +4,6 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 
-
 GROUP_EMAIL_THREAD_EMAIL_MAX_LENGTH = 75
 
 
