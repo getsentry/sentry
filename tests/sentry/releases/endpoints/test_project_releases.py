@@ -10,7 +10,8 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.release import Release
+from sentry.models.project import Project
+from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
@@ -322,6 +323,79 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
 
 
 class ProjectReleaseCreateTest(APITestCase):
+    def projects_of_two_teams(self, *, open_membership: bool) -> tuple[Project, Project]:
+        """Returns (project, other_project), each owned by its own team."""
+        self.organization.flags.allow_joinleave = open_membership
+        self.organization.save()
+        project = self.create_project(teams=[self.create_team(organization=self.organization)])
+        other_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        return project, other_project
+
+    def log_in_member_of(self, project: Project) -> None:
+        user = self.create_user()
+        self.create_member(
+            teams=list(project.teams.all()), user=user, organization=project.organization
+        )
+        self.login_as(user=user)
+
+    def releases_url(self, project: Project) -> str:
+        return reverse(
+            "sentry-api-0-project-releases",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+
+    def test_existing_release_of_project_of_another_team(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=False)
+        release = self.create_release(other_project, version="1.2.1")
+        self.log_in_member_of(project)
+
+        response = self.client.post(
+            self.releases_url(project), data={"version": "1.2.1", "status": "archived"}
+        )
+
+        assert response.status_code == 403, response.content
+        assert not ReleaseProject.objects.filter(release=release, project=project).exists()
+        assert Release.objects.get(id=release.id).status == ReleaseStatus.OPEN
+
+    def test_existing_release_of_project_of_another_team_open_membership(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=True)
+        release = self.create_release(other_project, version="1.2.1")
+        self.log_in_member_of(project)
+
+        response = self.client.post(self.releases_url(project), data={"version": "1.2.1"})
+
+        assert response.status_code == 201, response.content
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
+    def test_existing_release_of_project_of_another_team_org_auth_token(self) -> None:
+        project, other_project = self.projects_of_two_teams(open_membership=False)
+        release = self.create_release(other_project, version="1.2.1")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token_str = generate_token(self.organization.slug, "")
+            OrgAuthToken.objects.create(
+                organization_id=self.organization.id,
+                name="token 1",
+                token_hashed=hash_token(token_str),
+                token_last_characters="ABCD",
+                scope_list=["org:ci"],
+                date_last_used=None,
+            )
+
+        with outbox_runner():
+            response = self.client.post(
+                self.releases_url(project),
+                data={"version": "1.2.1"},
+                HTTP_AUTHORIZATION=f"Bearer {token_str}",
+            )
+
+        assert response.status_code == 201, response.content
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+
     def test_minimal(self) -> None:
         self.login_as(user=self.user)
 
