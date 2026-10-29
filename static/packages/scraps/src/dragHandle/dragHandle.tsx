@@ -38,6 +38,8 @@ export type DragHandleProps = DragHandleNameProps & {
   onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
+  /** Makes the handle inert: it cannot be dragged, focused, or hovered. */
+  disabled?: boolean;
   onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
@@ -47,6 +49,7 @@ export type DragHandleProps = DragHandleNameProps & {
 export function DragHandle({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledby,
+  disabled,
   variant = 'solid',
   isSizedFirst,
   max,
@@ -79,6 +82,7 @@ export function DragHandle({
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledby}
           data-variant={variant}
+          inert={disabled}
         />
       )}
     </Container>

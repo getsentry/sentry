@@ -546,11 +546,14 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     // The default 420px Seer width, measured from the container's right edge.
     expect(drawerPlacement).toHaveBeenLastCalledWith({minWidth: 420, topOffset: 0});
+    expect(screen.getByRole('separator')).not.toHaveAttribute('inert');
 
     await userEvent.click(screen.getByText('open-drawer'));
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
+    // The divider's hit area extends past the drawer's edge, so it stops resizing.
+    expect(screen.getByRole('separator', {hidden: true})).toHaveAttribute('inert');
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Seer'}));
     await waitFor(() =>
@@ -571,6 +574,7 @@ describe('SeerExplorerSidebarLayout', () => {
     expect(
       await screen.findByRole('complementary', {name: 'Test drawer'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('separator')).not.toHaveAttribute('inert');
   });
 
   describe('explorerRunId param', () => {

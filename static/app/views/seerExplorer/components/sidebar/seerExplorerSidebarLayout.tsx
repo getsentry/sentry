@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import {useDrawerPlacement} from '@sentry/scraps/drawer';
+import {useDrawer, useDrawerPlacement} from '@sentry/scraps/drawer';
 import {Stack} from '@sentry/scraps/layout';
 import {SplitPanel, type SplitPanelHandle} from '@sentry/scraps/splitPanel';
 
@@ -76,6 +76,7 @@ function SeerExplorerSidebarLayoutInSidebarMode({
 }) {
   const organization = useOrganization({allowNull: true});
   const {isOpen, sidebarPosition, sidebarContainerRef} = useSeerExplorerContext();
+  const {isAnyDrawerOpen} = useDrawer();
   const {width, height} = useDimensions({elementRef: sidebarContainerRef});
   const orientation = useSeerExplorerSidebarOrientation(
     sidebarPosition,
@@ -168,6 +169,10 @@ function SeerExplorerSidebarLayoutInSidebarMode({
         minSize={minContent}
         fillMinSize={minSeer}
         onResizeEnd={({endSize}) => persistSeerSize(endSize)}
+        // An open drawer covers Seer docked right, but the divider's hit area
+        // extends past the drawer's left edge, where it would resize the covered
+        // pane instead of the drawer.
+        resizable={!(isRight && isAnyDrawerOpen)}
         sized={contentPane}
         fill={isOpen ? <SeerExplorerPanel /> : undefined}
       />
