@@ -134,7 +134,7 @@ class SeerWorkflow:
                     all_projects=all_projects,
                     environments=list(environments),
                 ).dict(),
-                extras=SeerWorkflowConfigExtras(name=name).dict(),
+                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
             )
             if requested:
                 SeerWorkflowConfigProject.objects.bulk_create(

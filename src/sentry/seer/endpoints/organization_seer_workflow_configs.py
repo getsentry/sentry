@@ -56,6 +56,7 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
     lastRunStatus: NotRequired[str | None]
+    name: NotRequired[str]
 
 
 class SeerWorkflowConfigsResponse(TypedDict):
@@ -171,6 +172,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         ``filters`` contains strategy-specific filters. ``seededDefault`` records
         the seeded strategy even after edits.
         ``outputPolicy`` is the saved, opaque policy document.
+        ``name`` is the user-supplied name, omitted if unset.
         ``dateLastRun`` is the latest visible run's creation time and ``lastRunStatus``
         is its status (null for older runs that predate status tracking). Both are
         omitted if no runs are visible under the runs endpoint's project-scope rules.
@@ -478,4 +480,6 @@ def serialize_workflow_config(
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
+    if workflow.extras.name is not None:
+        result["name"] = workflow.extras.name
     return result

@@ -496,6 +496,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
+        assert config.extras == {}
 
     def test_creates_config_with_fields(self) -> None:
         other = self.create_project()
@@ -506,11 +507,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             enabled=True,
             environments=["production"],
             projectIds=[self.project.id, other.id, other.id],
+            name="Checkout triage",
             status_code=201,
         )
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.enabled is True
+        assert config.extras == {"name": "Checkout triage"}
+        assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
