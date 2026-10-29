@@ -553,8 +553,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "logicType": "any",
                 "conditions": [
                     {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
+                        "type": Condition.ISSUE_OCCURRENCES.value,
+                        "comparison": {"value": 1},
                         "conditionResult": True,
                     }
                 ],

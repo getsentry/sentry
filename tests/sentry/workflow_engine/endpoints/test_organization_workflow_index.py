@@ -636,8 +636,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         )
         self.basic_condition = [
             {
-                "type": Condition.EQUAL.value,
-                "comparison": 1,
+                "type": Condition.ISSUE_OCCURRENCES.value,
+                "comparison": {"value": 1},
                 "conditionResult": True,
             }
         ]
@@ -686,8 +686,8 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         workflow_data = {
             **self.valid_workflow,
             "triggers": {
-                "logicType": "any",
-                "conditions": self.basic_condition,
+                "logicType": "any-short",
+                "conditions": self.basic_trigger,
             },
             "actionFilters": [
                 {
@@ -802,11 +802,9 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert response.data == serialize(new_workflow)
 
     def test_create_workflow__with_triggers(self) -> None:
-        # TODO: the basic condition is not actually a trigger, it's an actionFilter
-        # we should restrict the Condition types to be passed through a trigger
         self.valid_workflow["triggers"] = {
-            "logicType": "any",
-            "conditions": self.basic_condition,
+            "logicType": "any-short",
+            "conditions": self.basic_trigger,
         }
 
         response = self.get_success_response(
