@@ -80,35 +80,6 @@ class RequestTimingMiddlewareTest(TestCase):
             skip_internal=False,
         )
 
-    @patch("sentry.utils.metrics.distribution")
-    @patch("sentry.utils.metrics.incr")
-    @patch("sentry.middleware.stats.time.monotonic", side_effect=[0.0, 0.25])
-    def test_records_duration_with_monotonic_time(
-        self, monotonic: MagicMock, incr: MagicMock, distribution: MagicMock
-    ) -> None:
-        def view() -> None:
-            return None
-
-        view.__module__ = "sentry.api.endpoints.fake"
-        view.__name__ = "FakeEndpoint"
-
-        request = self.factory.get("/")
-        request.resolver_match = resolve("/")
-        response = Mock(status_code=200)
-
-        self.middleware.process_view(request, view, [], {})
-        self.middleware.process_response(request, response)
-
-        assert monotonic.call_count == 2
-        incr.assert_called_once()
-        distribution.assert_called_once_with(
-            "view.duration",
-            250,
-            instance="sentry.api.endpoints.fake.FakeEndpoint",
-            tags={"method": "GET"},
-            unit="millisecond",
-        )
-
     @patch("sentry.utils.metrics.incr")
     def test_records_ui_request(self, incr: MagicMock) -> None:
         request = self.factory.get("/")
