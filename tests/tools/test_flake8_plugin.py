@@ -2043,3 +2043,26 @@ class S(serializers.Serializer):
     errors = _run_s023(src)
     assert len(errors) == 1
     assert "deprecate='gone'" in errors[0]
+
+
+def test_S032() -> None:
+    src = """\
+def get(self, request):
+    Bookmark.objects.filter(user_id=request.user.user_id)  # bad
+    Bookmark.objects.get_or_create(user_id=self.request.user.user_id)  # bad
+    Bookmark.objects.create(created_by_id=request.user.user_id)  # ok: records no human
+    Bookmark.objects.filter(user_id=request.user.id)  # ok: raises for no human
+    organization_service.get(user_id=request.user.user_id)  # ok: not a queryset
+    Bookmark.objects.filter(project=p).exclude(user_id=request.user.user_id)  # bad
+    user_id = request.user.user_id  # ok
+"""
+    msg = (
+        "S032 request.user.user_id is None when no human is calling (e.g. a service account), "
+        "and a None lookup matches rows with no user; call require_user(request) or handle "
+        "None first"
+    )
+    assert _run(src, filename="src/sentry/example.py") == [
+        f"t.py:2:28: {msg}",
+        f"t.py:3:35: {msg}",
+        f"t.py:7:47: {msg}",
+    ]

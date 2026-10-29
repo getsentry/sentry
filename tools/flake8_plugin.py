@@ -184,6 +184,15 @@ S031_msg = (
     "override_options(...) so the change is undone in order"
 )
 
+S032_msg = (
+    "S032 request.user.user_id is None when no human is calling (e.g. a service account), "
+    "and a None lookup matches rows with no user; call require_user(request) or handle "
+    "None first"
+)
+# Lookups only: writing None, e.g. to created_by_id, is how a caller with no human is
+# recorded.
+_S032_query_methods = frozenset(("filter", "exclude", "get", "get_or_create", "update_or_create"))
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
 S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
@@ -445,6 +454,19 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_request_user_id(node: ast.expr) -> bool:
+    """`request.user.user_id` or `self.request.user.user_id`."""
+    if not (isinstance(node, ast.Attribute) and node.attr == "user_id"):
+        return False
+    user = node.value
+    if not (isinstance(user, ast.Attribute) and user.attr == "user"):
+        return False
+    request = user.value
+    return (isinstance(request, ast.Name) and request.id == "request") or (
+        isinstance(request, ast.Attribute) and request.attr == "request"
+    )
 
 
 def _is_seer_connection_pool_call(node: ast.expr) -> bool:
@@ -1311,6 +1333,16 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        # S032: a caller's possibly-None user_id used as a queryset lookup.
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in _S032_query_methods
+            and ".objects" in _name_of(node.func.value)
+        ):
+            for keyword in node.keywords:
+                if _is_request_user_id(keyword.value):
+                    self.errors.append((keyword.lineno, keyword.col_offset, S032_msg))
 
         if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
             for keyword in node.keywords:
