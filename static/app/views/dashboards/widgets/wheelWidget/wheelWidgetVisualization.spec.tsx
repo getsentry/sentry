@@ -71,8 +71,6 @@ describe('WheelWidgetVisualization', () => {
       <WheelWidgetVisualization tableResults={tableResults} widget={widget} />
     );
 
-    // INP has no data, so the 70 remaining weight points are rescaled to 100:
-    // LCP is 30/70 of the total at half score, the rest are full.
     expect(screen.getByText('79')).toBeInTheDocument();
     // eslint-disable-next-line testing-library/no-container
     expect(container.querySelectorAll('circle')).toHaveLength(10); // 2 per vital
