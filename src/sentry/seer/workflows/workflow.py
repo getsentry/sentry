@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, assert_never
 
@@ -238,6 +238,43 @@ class SeerWorkflow:
             config.filters = config.filters | filters.dict()
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
+
+        self.config = config
+
+    def add_projects(self, project_ids: Sequence[int]) -> None:
+        """Add projects to the selection, skipping any already selected."""
+        with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
+            config = SeerWorkflowConfig.objects.select_for_update().get(
+                id=self.config.id, organization_id=self.config.organization_id
+            )
+            if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                raise ValueError("Breached metric projects are selected by connecting monitors")
+            if SeerWorkflowFilters.parse_obj(config.filters).all_projects:
+                raise ValueError("Workflow already includes all projects")
+            requested = set(project_ids)
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=config.organization_id, id__in=requested
+                ).values_list("id", flat=True)
+            )
+            if requested != valid_project_ids:
+                raise ValueError("Selected projects must exist in the workflow's organization")
+
+            existing = set(
+                SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                    "project_id", flat=True
+                )
+            )
+            new_project_ids = requested - existing
+            if new_project_ids:
+                SeerWorkflowConfigProject.objects.bulk_create(
+                    [
+                        SeerWorkflowConfigProject(config=config, project_id=project_id)
+                        for project_id in sorted(new_project_ids)
+                    ]
+                )
+                config.version += 1
+                config.save(update_fields=["version", "date_updated"])
 
         self.config = config
 

@@ -693,6 +693,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             str(empty_config.id): None,
         }
         assert "dateLastRun" not in response.data["configs"][2]
+        assert response.data["configs"][0]["lastRunStatus"] == "running"
+        assert response.data["configs"][1]["lastRunStatus"] is None
+        assert "lastRunStatus" not in response.data["configs"][2]
 
         assert (
             datetime.fromisoformat(response.json()["configs"][0]["dateLastRun"])
@@ -734,7 +737,9 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["configs"][0]["dateLastRun"] == visible_run.date_added
+        assert response.data["configs"][0]["lastRunStatus"] == visible_run.status
         assert "dateLastRun" not in response.data["configs"][1]
+        assert "lastRunStatus" not in response.data["configs"][1]
 
     def test_serialization_batches_database_reads(self) -> None:
         configs = [self.create_config() for _ in range(3)]
