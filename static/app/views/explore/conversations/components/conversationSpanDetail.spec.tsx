@@ -87,6 +87,10 @@ describe('ConversationSpanDetail tabs', () => {
     });
   });
 
+  afterEach(() => {
+    ProjectsStore.reset();
+  });
+
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
     mockDecisionAttributes();
     render(
@@ -172,13 +176,8 @@ describe('ConversationSpanDetail tabs', () => {
     );
     expect(screen.queryByRole('tab', {name: 'Extraction'})).not.toBeInTheDocument();
   });
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
 
   it('keeps legacy MCP arguments as JSON without requesting a Code Mode summary', async () => {
-    const organization = OrganizationFixture();
-    const project = ProjectFixture({id: '1'});
     const attributes = {
       'gen_ai.operation.type': 'tool',
       'gen_ai.tool.name': 'execute_code',
@@ -197,7 +196,6 @@ describe('ConversationSpanDetail tabs', () => {
       }),
       {organization}
     );
-    act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/trace-items/${node.id}/`,
       body: {
