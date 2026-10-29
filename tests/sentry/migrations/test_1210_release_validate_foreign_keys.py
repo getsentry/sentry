@@ -1,3 +1,4 @@
+import pytest
 from django.db import connection
 
 from sentry.testutils.cases import TestMigrations
@@ -17,6 +18,7 @@ def fetch_release_foreign_keys():
         return cursor.fetchall()
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class ValidateReleaseForeignKeysTest(TestMigrations):
     app = "sentry"
     # Starts before 1207 so its replay re-adds the keys NOT VALID; reversing 1210 cannot

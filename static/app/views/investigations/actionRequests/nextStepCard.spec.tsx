@@ -1,8 +1,9 @@
-import {QueryClientProvider} from '@tanstack/react-query';
+import {focusManager, QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -15,13 +16,18 @@ import {
   getPrimaryActionRequest,
   NextStepCard,
 } from 'sentry/views/investigations/actionRequests/nextStepCard';
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
+import {
+  getInvestigationDetailQueryOptions,
+  type ActionRequestFollowUp,
+} from 'sentry/views/investigations/api';
 import {
   InvestigationActionRequestFixture,
   InvestigationDetailFixture,
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import type {
+  InvestigationAction,
+  InvestigationActionRequest,
   InvestigationDetail,
   InvestigationOrchestration,
   InvestigationUpdateDetectorAction,
@@ -97,8 +103,45 @@ const finishingRun = runWith(
   {status: 'completed'}
 );
 
+const rerunningRun = runWith(
+  {status: 'not_started', error: null},
+  {phase: 'investigating', status: 'processing'},
+  {revision: completedRun.report.revision + 1}
+);
+
+function connectRequest(overrides: Partial<InvestigationActionRequest> = {}) {
+  return InvestigationActionRequestFixture({
+    title: 'Connect Datadog',
+    rationale: 'Checkout logs live in Datadog.',
+    impact: null,
+    action: {kind: 'connect_telemetry', provider: 'datadog'},
+    ...overrides,
+  });
+}
+
+const notConnectedBody = {
+  detail: "The change wasn't valid.",
+  code: 'validation_failed',
+  messages: ["This provider isn't connected yet."],
+};
+
+function connectedRequest(followUp: InvestigationActionRequest['followUp']) {
+  return connectRequest({
+    state: 'applied',
+    canApply: false,
+    cannotApplyReason: 'not_suggested',
+    dateApplied: '2026-08-27T12:00:00Z',
+    appliedDetails: {provider: 'datadog'},
+    followUp,
+  });
+}
+
 const applyUrl =
   '/organizations/org-slug/investigations/investigation-1/action-requests/312/apply/';
+const recheckUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/recheck/';
+const retryFollowUpUrl =
+  '/organizations/org-slug/investigations/investigation-1/action-requests/312/retry-follow-up/';
 
 type MockResponse = Parameters<typeof MockApiClient.addMockResponse>[0];
 
@@ -134,6 +177,10 @@ async function findApplyButton() {
 describe('NextStepCard', () => {
   beforeEach(() => {
     mockDryRun();
+  });
+
+  afterEach(() => {
+    focusManager.setFocused(undefined);
   });
 
   it('renders the primary request', () => {
@@ -1283,6 +1330,467 @@ describe('NextStepCard', () => {
     expect(card).not.toHaveTextContent('Applied by');
   });
 
+  it('offers to connect a provider through its integration settings', async () => {
+    const dryRun = mockDryRun({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    await waitFor(() => expect(dryRun).toHaveBeenCalled());
+    const card = getCard();
+    const connect = await within(card).findByRole('button', {
+      name: 'Connect Datadog (opens in a new tab)',
+    });
+    expect(card).toHaveTextContent('Connect Datadog. Checkout logs live in Datadog.');
+    expect(connect).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
+    expect(connect).toHaveAttribute('target', '_blank');
+  });
+
+  it.each([
+    ['permission_denied', 'You need permission to install integrations.'],
+    ['investigation_archived', 'Archived investigations are read-only.'],
+  ] as const)('says why a provider cannot be connected: %s', (reason, message) => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest({canApply: false, cannotApplyReason: reason})]}
+      />
+    );
+
+    const connect = within(getCard()).getByRole('button', {
+      name: 'Connect Datadog (opens in a new tab)',
+    });
+    expect(connect).toHaveAttribute('aria-disabled', 'true');
+    expect(connect).toHaveAccessibleDescription(message);
+  });
+
+  it('offers a re-run once the provider is connected', async () => {
+    const connected = connectRequest({
+      state: 'applied',
+      canApply: false,
+      cannotApplyReason: 'not_suggested',
+    });
+    const apply = mockApply({body: {actionRequest: connected}});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    );
+
+    expect(apply).toHaveBeenCalledWith(
+      applyUrl,
+      expect.objectContaining({method: 'POST', data: {action: connected.action}})
+    );
+  });
+
+  it('checks the connection before offering either button', () => {
+    mockDryRun({asyncDelay: 1_000_000});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    expect(
+      within(getCard()).getByRole('button', {name: 'Checking the Datadog connection…'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the re-run when a later connection check fails', async () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+    await screen.findByRole('button', {name: 'Re-run with Datadog'});
+
+    const failed = mockDryRun({statusCode: 500, body: {}});
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+    await waitFor(() => expect(failed).toHaveBeenCalled());
+
+    expect(screen.getByRole('button', {name: 'Re-run with Datadog'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers to connect again when the re-run finds no connection', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      "This change could not be applied. This provider isn't connected yet."
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Re-run with Datadog'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('drops the not-connected error once the provider connects', async () => {
+    mockApply({statusCode: 400, body: notConnectedBody});
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectRequest()]}
+      />
+    );
+
+    const rerun = await screen.findByRole('button', {name: 'Re-run with Datadog'});
+    mockDryRun({statusCode: 400, body: notConnectedBody});
+    await userEvent.click(rerun);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await screen.findByRole('button', {name: 'Connect Datadog (opens in a new tab)'});
+
+    mockDryRun();
+    act(() => focusManager.setFocused(false));
+    act(() => focusManager.setFocused(true));
+
+    expect(
+      await screen.findByRole('button', {name: 'Re-run with Datadog'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it.each([
+    {
+      status: 'accepted',
+      rerun: null,
+      note: 'Seer will re-run the investigation with it.',
+    },
+    {
+      status: 'dispatched',
+      rerun: null,
+      note: 'Seer will re-run the investigation with it.',
+    },
+    {
+      status: 'acknowledged',
+      rerun: 'held',
+      note: 'Seer will re-run the investigation with it once the current run finishes.',
+    },
+  ] as const)(
+    'says Seer will re-run with a connected provider while the re-run is $status',
+    ({status, rerun, note}) => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            connectedRequest({status, reason: null, rerun, retryable: false}),
+          ]}
+        />
+      );
+
+      const card = getCard();
+      expect(card).toHaveTextContent(`Datadog connected. ${note}`);
+      expect(
+        within(card).getByRole('button', {name: 'View integration (opens in a new tab)'})
+      ).toHaveAttribute('href', '/settings/org-slug/integrations/datadog/');
+    }
+  );
+
+  it('drops a connected provider from an older report once the re-run starts', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={rerunningRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      screen.queryByRole('region', {name: 'Recommended action'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows only that a provider connected when no re-run follows', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[connectedRequest(null)]}
+      />
+    );
+
+    const card = getCard();
+    expect(card).toHaveTextContent('Datadog connected.');
+    expect(card).not.toHaveTextContent('re-run');
+  });
+
+  it('says why Seer did not re-run with a connected provider', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: 'run_cancelled',
+            rerun: 'skipped',
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      "Datadog connected. Seer didn't re-run the investigation because it was cancelled."
+    );
+  });
+
+  it('says when Seer started the re-run with a connected provider', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'acknowledged',
+            reason: null,
+            rerun: 'started',
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      'Datadog connected. Seer started re-running the investigation with it.'
+    );
+  });
+
+  it('says the re-run failed when Seer gives no reason', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(getCard()).toHaveTextContent(
+      "Datadog connected. Seer couldn't re-run the investigation with it."
+    );
+  });
+
+  it('tries a re-run that never reached Seer again', async () => {
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      body: {
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
+      },
+    });
+    const failed = connectedRequest({
+      status: 'failed',
+      reason: null,
+      rerun: null,
+      retryable: true,
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[failed]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(retry).toHaveBeenCalledWith(
+      retryFollowUpUrl,
+      expect.objectContaining({data: {action: failed.action}})
+    );
+  });
+
+  it('says when a re-run can no longer be sent again', async () => {
+    MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: "There's nothing to send Seer again.", code: 'not_retryable'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
+      />
+    );
+
+    await userEvent.click(within(getCard()).getByRole('button', {name: 'Try again'}));
+
+    expect(
+      await screen.findByText("This can't be sent to Seer again.")
+    ).toBeInTheDocument();
+  });
+
+  it('sends a retry once when Try again is clicked twice', async () => {
+    let respond!: () => void;
+    const retry = MockApiClient.addMockResponse({
+      url: retryFollowUpUrl,
+      method: 'POST',
+      asyncDelay: new Promise<void>(resolve => {
+        respond = resolve;
+      }),
+      body: {
+        actionRequest: connectedRequest({
+          status: 'accepted',
+          reason: null,
+          rerun: null,
+          retryable: false,
+        }),
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: true,
+          }),
+        ]}
+      />
+    );
+
+    const button = within(getCard()).getByRole('button', {name: 'Try again'});
+    await userEvent.click(button);
+    await waitFor(() => expect(button).toBeDisabled());
+    await userEvent.click(button);
+    respond();
+
+    await waitFor(() => expect(retry).toHaveBeenCalled());
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer to retry a re-run that failed behind another command', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run on an archived investigation', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          {
+            ...connectedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: true,
+            }),
+            cannotApplyReason: 'investigation_archived',
+          },
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('does not offer to retry a re-run Seer turned down', () => {
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[
+          connectedRequest({
+            status: 'failed',
+            reason: 'provider_already_used',
+            rerun: null,
+            retryable: false,
+          }),
+        ]}
+      />
+    );
+
+    expect(
+      within(getCard()).queryByRole('button', {name: 'Try again'})
+    ).not.toBeInTheDocument();
+  });
+
   it('keeps the title of an applied change of a kind it does not know', () => {
     render(
       <NextStepCard
@@ -1290,9 +1798,9 @@ describe('NextStepCard', () => {
         orchestration={completedRun}
         actionRequests={[
           InvestigationActionRequestFixture({
-            title: 'Connect Datadog',
+            title: 'Open a ticket',
             rationale: 'Seer needs traces.',
-            action: {kind: 'connect_telemetry', provider: 'datadog'},
+            action: {kind: 'open_ticket'} as unknown as InvestigationAction,
             state: 'applied',
             canApply: false,
             cannotApplyReason: 'not_suggested',
@@ -1304,7 +1812,7 @@ describe('NextStepCard', () => {
     );
 
     const card = getCard();
-    expect(card).toHaveTextContent('Connect Datadog. Seer needs traces.');
+    expect(card).toHaveTextContent('Open a ticket. Seer needs traces.');
     expect(within(card).getByText('Applied')).toBeInTheDocument();
   });
 
@@ -1435,10 +1943,227 @@ describe('NextStepCard', () => {
     expect(screen.getAllByRole('status')[0]).toHaveTextContent(
       'The monitor changed since Seer suggested this.'
     );
-    expect(screen.getByRole('button', {name: 'Update monitor'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Recheck suggestion'})).toBeEnabled();
     expect(
       screen.getAllByText(/The monitor changed since Seer suggested this/)
     ).toHaveLength(1);
+  });
+
+  it('rechecks a stale suggestion without applying it', async () => {
+    mockDryRun({statusCode: 409, body: staleBody});
+    const apply = mockApply({body: {actionRequest: staleRequest}});
+    const recheck = MockApiClient.addMockResponse({
+      url: recheckUrl,
+      method: 'POST',
+      body: {
+        actionRequest: {
+          ...staleRequest,
+          followUp: {status: 'accepted', reason: null, rerun: null, retryable: false},
+        },
+      },
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Recheck suggestion'})
+    );
+
+    expect(recheck).toHaveBeenCalledWith(
+      recheckUrl,
+      expect.objectContaining({data: {action: staleRequest.action}})
+    );
+    expect(apply).not.toHaveBeenCalled();
+  });
+
+  it('checks the change again when nothing changed after all', async () => {
+    mockDryRun({statusCode: 409, body: staleBody});
+    MockApiClient.addMockResponse({
+      url: recheckUrl,
+      method: 'POST',
+      statusCode: 409,
+      body: {detail: 'This still matches the monitor.', code: 'not_stale'},
+    });
+    render(
+      <NextStepCard
+        investigationId="investigation-1"
+        orchestration={completedRun}
+        actionRequests={[InvestigationActionRequestFixture()]}
+      />
+    );
+    const recheck = await screen.findByRole('button', {name: 'Recheck suggestion'});
+    await waitFor(() => expect(recheck).toBeEnabled());
+    const check = mockDryRun();
+
+    await userEvent.click(recheck);
+
+    expect(
+      await screen.findByText('Nothing changed since Seer suggested this.')
+    ).toBeInTheDocument();
+    await waitFor(() => expect(check).toHaveBeenCalled());
+    expect(await findApplyButton()).toBeEnabled();
+  });
+
+  describe('when Seer re-checks a stale suggestion', () => {
+    function recheckedRequest(followUp: ActionRequestFollowUp) {
+      return InvestigationActionRequestFixture({...staleRequest, followUp});
+    }
+
+    it.each(['accepted', 'dispatched'] as const)(
+      'waits while the re-check is %s',
+      status => {
+        render(
+          <NextStepCard
+            investigationId="investigation-1"
+            orchestration={completedRun}
+            actionRequests={[
+              recheckedRequest({status, reason: null, rerun: null, retryable: false}),
+            ]}
+          />
+        );
+
+        const notice = screen.getByRole('status');
+        expect(notice).toHaveTextContent(
+          'The monitor changed since Seer suggested this. Seer is checking the suggestion again…'
+        );
+        expect(notice).not.toHaveTextContent('Ask Seer');
+      }
+    );
+
+    it('points to Ask Seer once Seer has the re-check', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({
+              status: 'acknowledged',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'The monitor changed since Seer suggested this. Ask Seer about this investigation for a new suggestion.'
+      );
+    });
+
+    it.each(['pending', 'processing'] as const)(
+      'says Seer is updating its suggestion while the run is %s',
+      status => {
+        render(
+          <NextStepCard
+            investigationId="investigation-1"
+            orchestration={runWith(
+              {status: 'generating', error: null},
+              {phase: 'metadata', status}
+            )}
+            actionRequests={[
+              recheckedRequest({
+                status: 'acknowledged',
+                reason: null,
+                rerun: null,
+                retryable: false,
+              }),
+            ]}
+          />
+        );
+
+        const notice = screen.getByRole('status');
+        expect(notice).toHaveTextContent(
+          'The monitor changed since Seer suggested this. Seer is updating its suggestion…'
+        );
+        expect(notice).not.toHaveTextContent('Ask Seer');
+      }
+    );
+
+    it('says the re-check failed when Seer gives no reason', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "The monitor changed since Seer suggested this. Seer couldn't check it again."
+      );
+    });
+
+    it('tries a failed re-check again', async () => {
+      const recheck = MockApiClient.addMockResponse({
+        url: recheckUrl,
+        method: 'POST',
+        body: {
+          actionRequest: recheckedRequest({
+            status: 'accepted',
+            reason: null,
+            rerun: null,
+            retryable: false,
+          }),
+        },
+      });
+      const apply = mockApply({body: {actionRequest: staleRequest}});
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({
+              status: 'failed',
+              reason: null,
+              rerun: null,
+              retryable: false,
+            }),
+          ]}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+
+      expect(recheck).toHaveBeenCalledWith(
+        recheckUrl,
+        expect.objectContaining({data: {action: staleRequest.action}})
+      );
+      expect(apply).not.toHaveBeenCalled();
+    });
+
+    it('says why Seer could not check it again', () => {
+      render(
+        <NextStepCard
+          investigationId="investigation-1"
+          orchestration={completedRun}
+          actionRequests={[
+            recheckedRequest({
+              status: 'failed',
+              reason: 'action_requests_report_changed',
+              rerun: null,
+              retryable: false,
+            }),
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        "The monitor changed since Seer suggested this. Seer couldn't check it again because the report changed. Ask Seer about this investigation for a new suggestion."
+      );
+    });
   });
 
   it('shows only the settings that moved', () => {

@@ -30,6 +30,7 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
@@ -37,7 +38,10 @@ export const incubator = defineConfig({
   overrides: [
     {
       files: coreComponentFiles,
-      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+      rules: {
+        '@sentry/scraps/no-dom-coupling': 'off',
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
     {
       files: [
@@ -50,7 +54,10 @@ export const incubator = defineConfig({
     },
     {
       files: testFiles,
-      rules: fakeTimerRules,
+      rules: {
+        ...fakeTimerRules,
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
   ],
 });
@@ -147,6 +154,11 @@ const config = defineConfig({
       {
         type: 'icons',
         pattern: 'static/packages/icons/src',
+        partialMatch: false,
+      },
+      {
+        type: 'search-syntax',
+        pattern: 'static/packages/search-syntax/src',
         partialMatch: false,
       },
       // Domain badges stay in the app after the generic badge primitives move.
@@ -289,6 +301,7 @@ const config = defineConfig({
   ignorePatterns: [
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
+    'static/packages/search-syntax/**/*',
     '.devenv/**/*',
     '.agents/**/*',
     '.github/**/*',
@@ -351,7 +364,13 @@ const config = defineConfig({
                 to: {
                   element: {
                     types: {
-                      anyOf: ['sentry*', 'getsentry', 'gsAdmin', 'icons'],
+                      anyOf: [
+                        'sentry*',
+                        'getsentry',
+                        'gsAdmin',
+                        'icons',
+                        'search-syntax',
+                      ],
                     },
                   },
                 },

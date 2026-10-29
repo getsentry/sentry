@@ -25,6 +25,7 @@ import type {
   InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   InvestigationViewer,
+  ManualInvestigationSource,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -384,11 +385,7 @@ export function investigationCandidatesQueryOptions({
     {
       path: {organizationIdOrSlug: organizationSlug},
       method: 'POST',
-      data: {
-        templateKey: 'breached_metric',
-        templateVersion: 1,
-        sources,
-      },
+      data: {sources},
       staleTime: 30_000,
     }
   );
@@ -466,15 +463,35 @@ export function useLaunchInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        // No `templateKey`: the metric snapshot is enough for the server to
-        // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook blocks. The
-        // candidates endpoint matches agentic and template lineage keys alike,
-        // so an already-investigated breach still resolves to "View".
         data: {source},
       }),
     options,
     {invalidateCandidates: true}
+  );
+}
+
+type StartManualInvestigationVariables = {
+  projectIds: number[];
+  source: ManualInvestigationSource;
+};
+
+export function useStartManualInvestigationMutation(
+  organizationSlug: string,
+  options?: MutationOptions<InvestigationDetail, StartManualInvestigationVariables>
+) {
+  return useInvestigationMutation(
+    organizationSlug,
+    ({source, projectIds}) =>
+      fetchMutation<InvestigationDetail>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
+        method: 'POST',
+        // A manual run can only read the investigation's own projects, so
+        // without any it has nothing to query.
+        data: {source, projectIds},
+      }),
+    options
   );
 }
 
@@ -635,6 +652,8 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
       'already_applied',
       'withdrawn',
       'action_changed',
+      'not_stale',
+      'not_retryable',
     ]),
   }),
   z.object({
@@ -646,6 +665,39 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
 
 export type ActionRequestError = z.infer<typeof actionRequestErrorSchema>;
 
+const actionRequestFollowUpSchema = z.object({
+  status: z.enum(['accepted', 'dispatched', 'acknowledged', 'failed']),
+  reason: z
+    .enum([
+      'workflow_version_conflict',
+      'idempotency_conflict',
+      'invalid_command_target',
+      'action_requests_report_changed',
+      'run_cancelled',
+      'run_failed',
+      'provider_not_connected',
+      'provider_already_used',
+    ])
+    .nullable(),
+  rerun: z.enum(['started', 'held', 'skipped']).nullable(),
+  retryable: z.boolean(),
+});
+
+export type ActionRequestFollowUp = z.infer<typeof actionRequestFollowUpSchema>;
+
+export function isFollowUpPending(actionRequest: InvestigationActionRequest) {
+  const status = actionRequest.followUp?.status;
+  return status === 'accepted' || status === 'dispatched';
+}
+
+export function canRetryFollowUp(actionRequest: InvestigationActionRequest) {
+  return (
+    actionRequest.state === 'applied' &&
+    actionRequest.followUp?.retryable === true &&
+    actionRequest.cannotApplyReason !== 'investigation_archived'
+  );
+}
+
 export function parseApplyError(error: unknown): ActionRequestError | null {
   const parsed = actionRequestErrorSchema.safeParse(
     error instanceof RequestError ? error.responseJSON : undefined
@@ -653,21 +705,32 @@ export function parseApplyError(error: unknown): ActionRequestError | null {
   return parsed.success ? parsed.data : null;
 }
 
-function getActionRequestApplyUrl(
+type ActionRequestCommand = 'apply' | 'recheck' | 'retry-follow-up';
+
+function getActionRequestUrl(
   organizationSlug: string,
   investigationId: string,
-  actionRequestId: string
+  actionRequestId: string,
+  command: ActionRequestCommand
 ) {
-  return getApiUrl(
-    '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        investigationId,
-        actionRequestId,
-      },
-    }
-  );
+  const path = {organizationIdOrSlug: organizationSlug, investigationId, actionRequestId};
+  switch (command) {
+    case 'apply':
+      return getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/apply/',
+        {path}
+      );
+    case 'recheck':
+      return getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/recheck/',
+        {path}
+      );
+    case 'retry-follow-up':
+      return getApiUrl(
+        '/organizations/$organizationIdOrSlug/investigations/$investigationId/action-requests/$actionRequestId/retry-follow-up/',
+        {path}
+      );
+  }
 }
 
 export function actionRequestDryRunQueryOptions(
@@ -675,10 +738,11 @@ export function actionRequestDryRunQueryOptions(
   investigationId: string,
   actionRequest: InvestigationActionRequest
 ) {
-  const url = getActionRequestApplyUrl(
+  const url = getActionRequestUrl(
     organizationSlug,
     investigationId,
-    actionRequest.id
+    actionRequest.id,
+    'apply'
   );
   const endpoint = {
     method: 'POST',
@@ -705,9 +769,10 @@ export function actionRequestDryRunQueryOptions(
   });
 }
 
-export function useApplyInvestigationActionRequestMutation(
+export function useInvestigationActionRequestMutation(
   organizationSlug: string,
   investigationId: string,
+  command: ActionRequestCommand,
   options?: MutationOptions<
     InvestigationActionRequestApplyResponse,
     InvestigationActionRequest
@@ -727,10 +792,11 @@ export function useApplyInvestigationActionRequestMutation(
     ...options,
     mutationFn: actionRequest =>
       fetchMutation<InvestigationActionRequestApplyResponse>({
-        url: getActionRequestApplyUrl(
+        url: getActionRequestUrl(
           organizationSlug,
           investigationId,
-          actionRequest.id
+          actionRequest.id,
+          command
         ),
         method: 'POST',
         data: {action: actionRequest.action},
@@ -756,6 +822,13 @@ export function useApplyInvestigationActionRequestMutation(
       await options?.onSuccess?.(response, variables, onMutateResult, context);
     },
     onError: async (error, variables, onMutateResult, context) => {
+      void queryClient.invalidateQueries({
+        queryKey: actionRequestDryRunQueryOptions(
+          organizationSlug,
+          investigationId,
+          variables
+        ).queryKey,
+      });
       await Promise.all([
         queryClient.invalidateQueries({queryKey: detailOptions.queryKey}),
         queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey}),

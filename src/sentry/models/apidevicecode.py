@@ -34,6 +34,9 @@ USER_CODE_GROUP_LENGTH = USER_CODE_LENGTH // 2  # Characters per group in "XXXX-
 # Device code entropy: 32 bytes = 256 bits
 DEVICE_CODE_BYTES = 32
 
+# Matches the length of User.email, which login hints are compared against
+LOGIN_HINT_MAX_LENGTH = 200
+
 
 def default_expiration() -> datetime:
     return timezone.now() + DEFAULT_EXPIRATION
@@ -116,6 +119,10 @@ class ApiDeviceCode(Model):
         on_delete="CASCADE",
     )
 
+    # Email of the account the client expects to approve the request. When set,
+    # only the user with this primary email may approve it.
+    login_hint = models.CharField(max_length=LOGIN_HINT_MAX_LENGTH, null=True)
+
     # Requested scopes (space-delimited in requests, stored as array)
     scope_list = ArrayField(models.TextField(), default=list)
 
@@ -177,10 +184,14 @@ class ApiDeviceCode(Model):
         sanitizer.set_string(
             json, SanitizableField(model_name, "user_code"), lambda _: generate_user_code()
         )
+        sanitizer.set_email(json, SanitizableField(model_name, "login_hint"))
 
     @classmethod
     def create_with_retry(
-        cls, application: ApiApplication, scope_list: list[str] | None = None
+        cls,
+        application: ApiApplication,
+        scope_list: list[str] | None = None,
+        login_hint: str | None = None,
     ) -> ApiDeviceCode:
         """
         Create a new device code with retry logic for user code collisions.
@@ -191,6 +202,7 @@ class ApiDeviceCode(Model):
         Args:
             application: The ApiApplication requesting authorization
             scope_list: Optional list of requested scopes
+            login_hint: Optional email of the account expected to approve
 
         Returns:
             A new ApiDeviceCode instance
@@ -207,6 +219,7 @@ class ApiDeviceCode(Model):
                 return cls.objects.create(
                     application=application,
                     scope_list=scope_list,
+                    login_hint=login_hint,
                 )
             except IntegrityError as e:
                 # Collision on device_code or user_code, retry with new generated codes

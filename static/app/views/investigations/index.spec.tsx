@@ -180,7 +180,6 @@ describe('Explore Investigations', () => {
         parameters: [],
         projectIds: [],
         source: {type: 'manual', ref: {}, revision: null},
-        template: null,
         titleGeneration: {status: null},
       },
     });

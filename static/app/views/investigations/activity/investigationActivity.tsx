@@ -16,7 +16,10 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getAppliedActivityTitle} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
+import {
+  getAppliedActivityNote,
+  getAppliedActivityTitle,
+} from 'sentry/views/investigations/actionRequests/actionRequestDetails';
 import {INVESTIGATION_COMMENTS_PAGE_SIZE} from 'sentry/views/investigations/api';
 import {CommentActions} from 'sentry/views/investigations/comments/commentActions';
 import {
@@ -43,10 +46,12 @@ import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/
 export function InvestigationActivity({
   investigation,
   composerRef,
+  id,
   ref,
 }: {
   investigation: InvestigationDetail;
   composerRef?: React.RefObject<HTMLDivElement | null>;
+  id?: string;
   ref?: React.Ref<HTMLElement>;
 }) {
   const {data, isPending, refetch} = useInvestigationComments(investigation.id, {
@@ -68,7 +73,7 @@ export function InvestigationActivity({
   );
 
   return (
-    <Stack ref={ref} as="section" gap="lg" paddingTop="2xl" borderTop="primary">
+    <Stack ref={ref} as="section" id={id} gap="lg" paddingTop="2xl" borderTop="primary">
       <Heading as="h2" size="lg">
         {t('Activity')}
       </Heading>
@@ -185,6 +190,7 @@ function AppliedActionRow({
           appliedBy ? getActorName(appliedBy) : null,
           organization.slug
         )}
+        details={getAppliedActivityNote(actionRequest)}
         timestamp={<TimeSince date={dateApplied} />}
       />
     </ActivityLineRow>
