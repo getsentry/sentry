@@ -164,6 +164,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST", "DELETE"})
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (OrganizationTeamMemberPermission,)
 

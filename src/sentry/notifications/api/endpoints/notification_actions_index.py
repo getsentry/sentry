@@ -50,6 +50,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     """
     View existing NotificationActions or create a new one.

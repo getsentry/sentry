@@ -401,6 +401,7 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listProjectSeerRepositories",

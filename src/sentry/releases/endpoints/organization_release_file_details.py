@@ -49,6 +49,7 @@ class OrganizationReleaseFileDetailsEndpoint(
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="getOrganizationReleaseFile",

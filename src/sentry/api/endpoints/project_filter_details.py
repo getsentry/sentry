@@ -27,6 +27,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="updateProjectFilter",

@@ -37,6 +37,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
 
     @extend_schema(
         operation_id="deleteOrganizationIssueExternalIssue",

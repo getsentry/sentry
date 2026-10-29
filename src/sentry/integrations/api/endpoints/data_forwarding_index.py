@@ -39,6 +39,7 @@ class DataForwardingIndexEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationDataForwardingDetailsPermission,)
 
     @extend_schema(

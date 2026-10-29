@@ -45,6 +45,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PRIVATE,
     }
+    idempotent_methods = frozenset()
 
     permission_classes = (ReplayDetailsPermission,)
 

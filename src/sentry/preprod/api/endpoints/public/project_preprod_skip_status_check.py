@@ -137,6 +137,7 @@ class ProjectPreprodSizeAnalysisSkipStatusCheckEndpoint(BaseProjectPreprodSkipSt
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
 
 @extend_schema(tags=["Snapshots"])
@@ -158,3 +159,4 @@ class ProjectPreprodSnapshotSkipStatusCheckEndpoint(BaseProjectPreprodSkipStatus
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()

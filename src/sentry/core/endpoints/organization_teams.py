@@ -85,6 +85,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationTeamsPermission,)
 
     def team_serializer_for_post(self):

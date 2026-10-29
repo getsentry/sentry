@@ -65,6 +65,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
