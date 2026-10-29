@@ -64,7 +64,7 @@ describe('legacy SelectField options', () => {
       <SelectField
         name="fruit"
         label="Fruit"
-        choices={props => [[props.value, 'Selected fruit']]}
+        choices={props => [[String(props.value), 'Selected fruit']]}
         value="apple"
       />
     );

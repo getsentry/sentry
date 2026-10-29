@@ -59,7 +59,7 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
       </Flex>
       {GRANULAR_SENTRY_APP_PERMISSIONS.map(({label, help, levels}) => (
         <FieldGroup key={label} label={label} help={help}>
-          <Select
+          <Select<GranularPermissionLevel | typeof NO_ACCESS>
             aria-label={label}
             name={`${label}--granular-permission`}
             value={permissions[label] ?? NO_ACCESS}

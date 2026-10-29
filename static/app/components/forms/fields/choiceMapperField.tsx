@@ -45,7 +45,10 @@ interface DefaultProps {
   perItemMapping?: boolean;
 }
 
-type MappedSelector = Partial<ControlProps> & {choices?: Choices};
+type MappedSelector = DistributedOmit<ControlProps<string | number>, 'options'> & {
+  choices?: Choices;
+  options?: ControlProps<string | number>['options'];
+};
 type MappedSelectors = Record<string, MappedSelector>;
 
 function getSelectProps({choices, options, ...props}: MappedSelector = {}) {

@@ -182,7 +182,7 @@ function SelectMembers({
   }
 
   return (
-    <Select<MentionableUser>
+    <Select<string, MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
       components={{Value: MemberValue}}

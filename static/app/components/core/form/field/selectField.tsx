@@ -23,8 +23,8 @@ function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
 }
 
 // Base props shared by all select variants
-type BaseSelectFieldProps<TValue> = Omit<
-  BaseSelectProps<SelectValue<TValue>>,
+type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
+  BaseSelectProps<TValue, TOption>,
   | 'onBlur'
   | 'disabled'
   | 'ref'
@@ -35,14 +35,19 @@ type BaseSelectFieldProps<TValue> = Omit<
   | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
-    options: ReadonlyArray<SelectValue<TValue>>;
-    components?: Omit<SelectComponents<SelectValue<TValue>>, 'Indicators'>;
+    options: ReadonlyArray<TOption & SelectValue<TValue>>;
+    components?: Omit<SelectComponents<TOption>, 'Indicators'>;
   };
 
-export type SelectFieldProps<TValue> = BaseSelectFieldProps<TValue> &
-  SelectSelectionProps<TValue>;
+export type SelectFieldProps<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+> = BaseSelectFieldProps<TValue, TOption> & SelectSelectionProps<TValue>;
 
-export function SelectField<TValue>({
+export function SelectField<
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>({
   onChange,
   disabled,
   multiple,
@@ -50,7 +55,7 @@ export function SelectField<TValue>({
   value,
   ref,
   ...props
-}: SelectFieldProps<TValue>) {
+}: SelectFieldProps<TValue, TOption>) {
   const autoSaveContext = useAutoSaveContext();
   const selectVariantProps = multiple
     ? {multiple: true as const, clearable, value}
@@ -80,9 +85,7 @@ export function SelectField<TValue>({
                 fieldProps.onBlur();
               }
             }}
-            onChange={(
-              option: SelectValue<TValue> | Array<SelectValue<TValue>> | null
-            ) => {
+            onChange={(option: TOption | TOption[] | null) => {
               if (multiple) {
                 // For multi-select, option is an array
                 onChange(Array.isArray(option) ? option.map(o => o.value) : []);
@@ -101,9 +104,7 @@ export function SelectField<TValue>({
                   return;
                 }
                 // For single-select, option is a single value
-                (onChange as (value: TValue) => void)(
-                  (option as SelectValue<TValue>).value
-                );
+                (onChange as (value: TValue) => void)((option as TOption).value);
                 // Preserve blur validation and auto-save after selection.
                 fieldProps.onBlur();
               }

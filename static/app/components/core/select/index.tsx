@@ -1,9 +1,4 @@
-export {
-  Select,
-  type ControlProps,
-  type BaseSelectProps,
-  type GeneralSelectValue,
-} from './select';
+export {Select, type ControlProps, type BaseSelectProps} from './select';
 
 export {createFilter} from './filter';
 

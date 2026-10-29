@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
+import type {DistributedOmit} from 'type-fest';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
@@ -45,7 +46,9 @@ const organization = OrganizationFixture({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(
-  props: Partial<React.ComponentProps<typeof TeamSelector>> = {},
+  props: DistributedOmit<React.ComponentProps<typeof TeamSelector>, 'onChange'> & {
+    onChange?: React.ComponentProps<typeof TeamSelector>['onChange'];
+  } = {},
   org?: Organization
 ) {
   return render(

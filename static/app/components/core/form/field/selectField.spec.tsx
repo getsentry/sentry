@@ -281,7 +281,10 @@ describe('SelectField', () => {
                   options={[{value: 1, label: 'Apple'}]}
                   components={{
                     OptionLabel: ({option}) => {
-                      expectTypeOf(option).toEqualTypeOf<SelectValue<number>>();
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: number;
+                      }>();
                       return option.label;
                     },
                   }}
@@ -314,7 +317,10 @@ describe('SelectField', () => {
                   options={[{value: {id: 1}, label: 'Apple'}]}
                   components={{
                     OptionLabel: ({option}) => {
-                      expectTypeOf(option).toEqualTypeOf<SelectValue<{id: number}>>();
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: {id: number};
+                      }>();
                       return option.label;
                     },
                   }}

@@ -112,7 +112,7 @@ export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends Query
       <Text as="label" htmlFor={inputId} bold>
         {label}
       </Text>
-      <Select<AdminSearchComboboxOption<TResult>>
+      <Select<string, AdminSearchComboboxOption<TResult>>
         id={inputId}
         inputValue={inputValue}
         isLoading={isLoading}
