@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from typing import Any, assert_never
 
@@ -241,8 +241,14 @@ class SeerWorkflow:
 
         self.config = config
 
-    def add_projects(self, project_ids: Sequence[int]) -> None:
-        """Add projects to the selection, skipping any already selected."""
+    def replace_projects(
+        self, project_ids: Collection[int], *, editable_project_ids: Collection[int]
+    ) -> None:
+        """Replace the editable part of the selection, keeping other selected projects."""
+        requested = set(project_ids)
+        editable = set(editable_project_ids)
+        if not requested <= editable:
+            raise ValueError("Selected projects must be editable")
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
             config = SeerWorkflowConfig.objects.select_for_update().get(
                 id=self.config.id, organization_id=self.config.organization_id
@@ -251,7 +257,6 @@ class SeerWorkflow:
                 raise ValueError("Breached metric projects are selected by connecting monitors")
             if SeerWorkflowFilters.parse_obj(config.filters).all_projects:
                 raise ValueError("Workflow already includes all projects")
-            requested = set(project_ids)
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=requested
@@ -265,14 +270,21 @@ class SeerWorkflow:
                     "project_id", flat=True
                 )
             )
-            new_project_ids = requested - existing
-            if new_project_ids:
+            selected = (existing - editable) | requested
+            removed = existing - selected
+            added = selected - existing
+            if removed:
+                SeerWorkflowConfigProject.objects.filter(
+                    config=config, project_id__in=removed
+                ).delete()
+            if added:
                 SeerWorkflowConfigProject.objects.bulk_create(
                     [
                         SeerWorkflowConfigProject(config=config, project_id=project_id)
-                        for project_id in sorted(new_project_ids)
+                        for project_id in sorted(added)
                     ]
                 )
+            if removed or added:
                 config.version += 1
                 config.save(update_fields=["version", "date_updated"])
 
