@@ -264,7 +264,9 @@ class SeerWorkflow:
             raise ValueError("Service account is inactive")
         return replica
 
-    def set_project_selection(self, selection: ProjectSelection) -> None:
+    def set_project_selection(
+        self, selection: ProjectSelection, *, no_access_projects: Collection[int] = ()
+    ) -> None:
         match selection:
             case AllProjects():
                 all_projects = True
@@ -292,7 +294,10 @@ class SeerWorkflow:
             if project_ids != valid_project_ids:
                 raise ValueError("Selected projects must exist in the workflow's organization")
 
-            SeerWorkflowConfigProject.objects.filter(config=config).delete()
+            # Prevent closed membership members from overwriting no access projects
+            SeerWorkflowConfigProject.objects.filter(
+                config=config, project__not_in=no_access_projects
+            ).delete()
             SeerWorkflowConfigProject.objects.bulk_create(
                 [
                     SeerWorkflowConfigProject(config=config, project_id=project_id)
