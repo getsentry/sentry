@@ -26,8 +26,8 @@ from sentry.investigations.endpoints.validators.comment import (
     CommentCreateValidator,
     CommentListValidator,
 )
-from sentry.investigations.models import Investigation, InvestigationComment
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookComment
 
 
 @extend_schema(tags=["Investigations"])
@@ -57,7 +57,7 @@ class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationEndpoin
         },
     )
     def get(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         List comments newest first as a paginated array. Optionally filter to one block using
@@ -65,7 +65,7 @@ class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationEndpoin
         organizations:investigations feature and open organization membership.
         """
         # A deleted block's comments are hidden, and come back if Seer restores the block.
-        comments = InvestigationComment.objects.filter(investigation=investigation).filter(
+        comments = NotebookComment.objects.filter(notebook=investigation).filter(
             Q(block__isnull=True) | Q(block__deleted_at__isnull=True)
         )
         validator = CommentListValidator(data=request.GET)
@@ -105,7 +105,7 @@ class OrganizationInvestigationCommentsEndpoint(OrganizationInvestigationEndpoin
         ],
     )
     def post(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Add a comment to the investigation or an active block. Requires an authenticated user

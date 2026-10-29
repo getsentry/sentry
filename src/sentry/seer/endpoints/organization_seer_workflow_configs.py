@@ -29,7 +29,9 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.models.workflow import (
     SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
+    SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
+    SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
@@ -268,7 +270,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         result = serialize_workflow_configs(
-            [workflow.config],
+            [workflow.get_config()],
             accessible_project_ids=[p.id for p in projects],
             has_global_access=request.access.has_global_access,
         )
@@ -358,14 +360,14 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
-            workflow = SeerWorkflow(config)
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
-            if all_projects or workflow.filters.all_projects:
+            if all_projects or SeerWorkflowFilters.parse_obj(config.filters).all_projects:
                 if not request.access.has_global_access:
                     raise PermissionDenied
 
@@ -395,8 +397,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             except ValueError:
                 logger.exception("bad request")
                 return Response(status=400)
+            config = workflow.get_config()
 
-        return Response(self.serialize(request, organization, workflow.config))
+        return Response(self.serialize(request, organization, config))
 
 
 def serialize_workflow_configs(
@@ -472,8 +475,7 @@ def serialize_workflow_config(
     selected_project_ids: list[int],
     last_run: WorkflowConfigLastRun | None,
 ) -> SeerWorkflowConfigResponse:
-    workflow = SeerWorkflow(config)
-    filters = workflow.filters
+    filters = SeerWorkflowFilters.parse_obj(config.filters)
     result: SeerWorkflowConfigResponse = {
         "id": str(config.id),
         "strategy": config.strategy,
@@ -491,13 +493,14 @@ def serialize_workflow_config(
             snake_to_camel_case,
         ),
         "outputPolicy": config.output_policy,
-        "seededDefault": workflow.extras.seeded_default,
+        "seededDefault": SeerWorkflowConfigExtras.parse_obj(config.extras).seeded_default,
         "dateAdded": config.date_added,
         "dateUpdated": config.date_updated,
     }
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
-    if workflow.extras.name is not None:
-        result["name"] = workflow.extras.name
+    name = SeerWorkflowConfigExtras.parse_obj(config.extras).name
+    if name is not None:
+        result["name"] = name
     return result

@@ -9,12 +9,15 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {InboxItemList} from 'sentry/views/inbox/inboxItemList';
+import {InboxItemPreview} from 'sentry/views/inbox/inboxItemPreview';
 import {useInboxItems} from 'sentry/views/inbox/useInboxItems';
+import {INBOX_SUBJECT_CONFIG} from 'sentry/views/inbox/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 const INBOX_LIST_SIZE_STORAGE_KEY = 'universal-inbox-list-size';
@@ -24,7 +27,8 @@ const INBOX_LIST_MAX_SIZE = 640;
 
 function InboxContent() {
   const {data: items, isPending, isError, refetch} = useInboxItems();
-  const {id: selectedItemId = null} = useParams<{id?: string}>();
+  const {id} = useParams<{id?: string}>();
+  const location = useLocation();
   const listContainerRef = useRef<HTMLDivElement>(null);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_LIST_SIZE_STORAGE_KEY,
@@ -56,6 +60,15 @@ function InboxContent() {
     );
   }
 
+  const selectedItem =
+    items.find(
+      item =>
+        item.subjectId === id &&
+        location.pathname.includes(
+          `/inbox/${INBOX_SUBJECT_CONFIG[item.subjectType].pathSegment}/`
+        )
+    ) ?? null;
+
   return (
     <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
       <Stack
@@ -68,7 +81,7 @@ function InboxContent() {
         borderRight="primary"
       >
         <Container flex={1} overflowY="auto" minHeight={0}>
-          <InboxItemList items={items} selectedItemId={selectedItemId} />
+          <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
         </Container>
         <Container top="0" right="0" bottom="0" width="8px" position="absolute">
           {props => (
@@ -82,7 +95,9 @@ function InboxContent() {
           )}
         </Container>
       </Stack>
-      <Container overflowY="auto" minHeight={0} />
+      <Container overflowY="auto" minHeight={0}>
+        <InboxItemPreview item={selectedItem} />
+      </Container>
     </Grid>
   );
 }

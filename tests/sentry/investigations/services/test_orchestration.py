@@ -11,22 +11,20 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationOrchestrationRun,
-    InvestigationStatus,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.investigations import (
     InvestigationValidationError,
     resolve_investigation_source,
 )
 from sentry.investigations.services.orchestration import (
+    agentic_breached_metric_source_key,
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
     rebuild_orchestration_source,
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -84,7 +82,12 @@ class BreachedMetricInvestigationTestCase(TestCase):
             detector=self.detector,
         )
         self.create_detector_group(detector=self.detector, group=group)
-        self.investigation, _ = create_agentic_breached_metric_investigation(
+        self.group = group
+        self.open_period = open_period
+        self.investigation, _ = self.launch()
+
+    def launch(self) -> tuple[Notebook, bool]:
+        return create_agentic_breached_metric_investigation(
             organization=self.organization,
             creator=ActorId(ActorType.USER, self.user.id),
             title=None,
@@ -92,7 +95,10 @@ class BreachedMetricInvestigationTestCase(TestCase):
                 organization=self.organization,
                 source={
                     "type": "metric_open_period",
-                    "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+                    "ref": {
+                        "groupId": str(self.group.id),
+                        "openPeriodId": str(self.open_period.id),
+                    },
                 },
                 accessible_project_ids={self.project.id},
             ),
@@ -100,8 +106,47 @@ class BreachedMetricInvestigationTestCase(TestCase):
             filters={},
         )
 
-    def started_source(self, investigation: Investigation) -> dict[str, Any]:
+    def started_source(self, investigation: Notebook) -> dict[str, Any]:
         return InvestigationOrchestrationRun.objects.get(investigation=investigation).source
+
+
+def test_source_key_is_the_readable_open_period_ref() -> None:
+    assert (
+        agentic_breached_metric_source_key(
+            {"type": "metric_open_period", "ref": {"groupId": "12", "openPeriodId": "34"}}
+        )
+        == "metric_open_period:12:34"
+    )
+    assert (
+        agentic_breached_metric_source_key(
+            {"type": "metric_open_period", "ref": {"groupId": 12, "openPeriodId": 34}}
+        )
+        == "metric_open_period:12:34"
+    )
+
+
+class AgenticBreachedMetricInvestigationTest(BreachedMetricInvestigationTestCase):
+    def test_stores_the_readable_source_key(self) -> None:
+        assert (
+            self.investigation.source_key
+            == f"metric_open_period:{self.group.id}:{self.open_period.id}"
+        )
+        assert self.investigation.source_revision == 1
+
+    def test_reuses_the_active_notebook_for_the_same_source(self) -> None:
+        investigation, created = self.launch()
+
+        assert not created
+        assert investigation.id == self.investigation.id
+
+    def test_starts_a_new_revision_once_the_active_one_is_archived(self) -> None:
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
+
+        investigation, created = self.launch()
+
+        assert created
+        assert investigation.source_key == self.investigation.source_key
+        assert investigation.source_revision == 2
 
 
 class RebuildOrchestrationSourceTest(BreachedMetricInvestigationTestCase):
@@ -158,7 +203,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_account_creation_is_rejected_before_dispatch(self, dispatch: mock.Mock) -> None:
-        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())
         with pytest.raises(PermissionDenied):
             create_agentic_manual_investigation(
                 organization=self.organization,
@@ -169,7 +214,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                 filters={},
             )
         assert (
-            Investigation.objects.count(),
+            Notebook.objects.count(),
             InvestigationOrchestrationRun.objects.count(),
         ) == before
         dispatch.assert_not_called()
@@ -181,7 +226,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
         assert self.creator.id is not None
         source = resolve_investigation_source(
             organization=self.organization,
-            source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+            source={"type": "metric_open_period", "ref": self.investigation.source["ref"]},
             accessible_project_ids={self.project.id},
         )
         arguments: dict[str, Any] = dict(
@@ -199,16 +244,16 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                     )
             dispatch.assert_not_called()
 
-            self.investigation.update(status=InvestigationStatus.ARCHIVED)
+            self.investigation.update(status=NotebookStatus.ARCHIVED)
             with pytest.raises(PermissionDenied):
                 create_agentic_breached_metric_investigation(creator=self.creator, **arguments)
-            assert not Investigation.objects.filter(status=InvestigationStatus.ACTIVE).exists()
+            assert not Notebook.objects.filter(status=NotebookStatus.ACTIVE).exists()
             dispatch.assert_not_called()
 
             # Existing account attribution remains valid while new account dispatch is blocked.
             investigation = self.investigation
             investigation.update(
-                status=InvestigationStatus.ACTIVE,
+                status=NotebookStatus.ACTIVE,
                 created_by_id=None,
                 created_by_service_account_id=self.creator.id,
             )
@@ -249,7 +294,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
             title=None,
             resolved_source=resolve_investigation_source(
                 organization=self.organization,
-                source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+                source={"type": "metric_open_period", "ref": self.investigation.source["ref"]},
                 accessible_project_ids={self.project.id},
             ),
             project_ids=[self.project.id],
@@ -271,23 +316,23 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                 InvestigationValidationError,
             ),
         ]
-        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())
         with self.feature("organizations:investigations"):
             for overrides, error in cases:
                 with self.subTest(overrides=overrides), pytest.raises(error):
                     create_agentic_breached_metric_investigation(**{**arguments, **overrides})
             assert (
-                Investigation.objects.count(),
+                Notebook.objects.count(),
                 InvestigationOrchestrationRun.objects.count(),
             ) == before
             dispatch.assert_not_called()
 
     @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay")
     def test_both_creators_require_feature_and_open_membership(self, dispatch: mock.Mock) -> None:
-        before = (Investigation.objects.count(), InvestigationOrchestrationRun.objects.count())
+        before = (Notebook.objects.count(), InvestigationOrchestrationRun.objects.count())
         source = resolve_investigation_source(
             organization=self.organization,
-            source={"type": "metric_open_period", "ref": self.investigation.source_ref},
+            source={"type": "metric_open_period", "ref": self.investigation.source["ref"]},
             accessible_project_ids={self.project.id},
         )
         for enabled, open_membership in ((False, True), (True, False)):
@@ -308,7 +353,7 @@ class ServiceAccountCreationTest(BreachedMetricInvestigationTestCase):
                             filters={},
                         )
         assert (
-            Investigation.objects.count(),
+            Notebook.objects.count(),
             InvestigationOrchestrationRun.objects.count(),
         ) == before
         dispatch.assert_not_called()
