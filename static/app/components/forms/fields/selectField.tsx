@@ -40,8 +40,8 @@ export interface SelectFieldProps<
       | 'ref'
       | 'aria-invalid'
       | 'onChange'
+      | 'value'
       | 'options'
-      | 'defaultValue'
       | 'disabled'
       | 'name'
       | 'onBlur'
@@ -75,6 +75,7 @@ export interface SelectFieldProps<
    */
   inFieldLabel?: string;
   options?: ControlProps<TValue, TOption>['options'];
+  value?: ControlProps<TValue, TOption>['value'];
 }
 
 function getChoices<TValue, TOption extends SelectValue<TValue>>(
@@ -162,6 +163,13 @@ export class SelectField<
             options,
             ...props
           } = fieldProps;
+          const value = multiple
+            ? Array.isArray(props.value)
+              ? props.value
+              : props.value === undefined || props.value === null || props.value === ''
+                ? []
+                : [props.value]
+            : (props.value ?? null);
           return (
             <SelectFieldControlStateContext
               value={
@@ -178,7 +186,7 @@ export class SelectField<
                     ) ??
                     []
                   }
-                  value={props.value}
+                  value={value}
                   placeholder={placeholder}
                   disabled={disabled}
                   id={id}

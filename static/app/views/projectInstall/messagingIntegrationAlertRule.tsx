@@ -223,7 +223,7 @@ export function MessagingIntegrationAlertRule(props: IssueAlertNotificationProps
           <InlineSelectControl
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />

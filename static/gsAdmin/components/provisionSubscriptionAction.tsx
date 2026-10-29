@@ -198,7 +198,7 @@ const SoftCapTypeField = memo(function SoftCapTypeField({
         clearable
         options={SOFT_CAP_TYPE_OPTIONS}
         disabled={disabled}
-        value={value}
+        value={value ?? null}
         onChange={(option: any) => onChange(capitalizedApiName, option?.value)}
       />
     </SelectFieldWrapper>

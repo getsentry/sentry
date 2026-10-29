@@ -14,10 +14,35 @@ resources:
     WAI-ARIA Listbox: https://www.w3.org/WAI/ARIA/apg/patterns/listbox/
 ---
 
+import {useState} from 'react';
+
 import {Select} from '@sentry/scraps/select';
 
 import {IconGraphBar} from '@sentry/icons/graphBar';
 import * as Storybook from 'sentry/stories';
+
+export function SingleSelectDemo({initialValue = null, ...props}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <Select
+      {...props}
+      value={value}
+      onChange={option => setValue(option?.value ?? null)}
+    />
+  );
+}
+
+export function MultipleSelectDemo({initialValue = [], ...props}) {
+  const [value, setValue] = useState(initialValue);
+  return (
+    <Select
+      {...props}
+      multiple
+      value={value}
+      onChange={options => setValue(options.map(option => option.value))}
+    />
+  );
+}
 
 export const documentation = import('!!type-loader!@sentry/scraps/select');
 
@@ -26,14 +51,18 @@ export const documentation = import('!!type-loader!@sentry/scraps/select');
 Use `<Select>` for form fields where users need to choose from a predefined set of options. For more complex selection scenarios with sections or custom triggers, consider `<CompactSelect>` instead.
 
 ```jsx
+const [value, setValue] = useState(null);
+
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   placeholder="Choose an option"
   options={[
     {value: 'option1', label: 'Option 1'},
     {value: 'option2', label: 'Option 2'},
     {value: 'option3', label: 'Option 3'},
   ]}
-/>
+/>;
 ```
 
 ## Sizes
@@ -42,7 +71,7 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       size="md"
       placeholder="medium"
       options={[
@@ -50,16 +79,16 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="sm"
       placeholder="small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="xs"
       placeholder="x-small"
       options={[
@@ -71,9 +100,9 @@ Use `<Select>` for form fields where users need to choose from a predefined set 
 </Storybook.Demo>
 
 ```jsx
-<Select size="md" placeholder="medium" options={options} />
-<Select size="sm" placeholder="small" options={options} />
-<Select size="xs" placeholder="x-small" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="md" placeholder="medium" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="sm" placeholder="small" options={options} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} size="xs" placeholder="x-small" options={options} />
 ```
 
 ## Disabled State
@@ -82,7 +111,7 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       disabled
       size="md"
       placeholder="medium"
@@ -91,17 +120,17 @@ Use the `disabled` prop to disable the select, preventing user interaction.
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       disabled
       size="sm"
       placeholder="small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       disabled
       size="xs"
       placeholder="x-small"
@@ -114,7 +143,13 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 </Storybook.Demo>
 
 ```jsx
-<Select disabled placeholder="Disabled select" options={options} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  disabled
+  placeholder="Disabled select"
+  options={options}
+/>
 ```
 
 ## In-Field Label
@@ -123,7 +158,7 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       inFieldLabel="Environment"
       size="md"
       placeholder="medium"
@@ -132,17 +167,17 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="sm"
       placeholder="small"
       inFieldLabel="Environment"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       size="xs"
       placeholder="x-small"
       inFieldLabel="Environment"
@@ -155,7 +190,13 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
 </Storybook.Demo>
 
 ```jsx
-<Select inFieldLabel="Environment" placeholder="Choose environment" options={options} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  inFieldLabel="Environment"
+  placeholder="Choose environment"
+  options={options}
+/>
 ```
 
 > [!NOTE]
@@ -167,9 +208,9 @@ Set `clearable` to allow users to clear their selection by clicking an "×" butt
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       clearable
-      defaultValue={'item1'}
+      initialValue={'item1'}
       size="md"
       placeholder="medium"
       options={[
@@ -177,19 +218,19 @@ Set `clearable` to allow users to clear their selection by clicking an "×" butt
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       clearable
       size="sm"
       placeholder="small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       clearable
-      defaultValue={'item1'}
+      initialValue={'item1'}
       size="xs"
       placeholder="x-small"
       options={[
@@ -201,7 +242,12 @@ Set `clearable` to allow users to clear their selection by clicking an "×" butt
 </Storybook.Demo>
 
 ```jsx
-<Select clearable defaultValue={'item1'} options={options} />
+<Select
+  onChange={option => setValue(option?.value ?? null)}
+  clearable
+  value={value}
+  options={options}
+/>
 ```
 
 ## Searchable
@@ -210,7 +256,7 @@ Enable `searchable` to allow users to filter options by typing. This is essentia
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       searchable
       size="md"
       placeholder="medium"
@@ -219,17 +265,17 @@ Enable `searchable` to allow users to filter options by typing. This is essentia
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       searchable
       size="sm"
       placeholder="small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       searchable
       size="xs"
       placeholder="x-small"
@@ -242,7 +288,13 @@ Enable `searchable` to allow users to filter options by typing. This is essentia
 </Storybook.Demo>
 
 ```jsx
-<Select searchable placeholder="Search for an option" options={manyOptions} />
+<Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
+  searchable
+  placeholder="Search for an option"
+  options={manyOptions}
+/>
 ```
 
 > [!TIP]
@@ -254,31 +306,31 @@ Options can include `leadingItems` (typically icons) to provide visual context f
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <SingleSelectDemo
       searchable
       size="md"
       placeholder="medium"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       searchable
       size="sm"
       placeholder="small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
       ]}
     />
-    <Select
+    <SingleSelectDemo
       searchable
       size="xs"
       placeholder="x-small"
-      defaultValue={'item1'}
+      initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1', leadingItems: <IconGraphBar />},
         {value: 'item2', label: 'Item 2', leadingItems: <IconGraphBar />},
@@ -289,6 +341,8 @@ Options can include `leadingItems` (typically icons) to provide visual context f
 
 ```jsx
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   options={[
     {value: 'chart', label: 'Chart View', leadingItems: <IconGraphBar />},
     {value: 'table', label: 'Table View', leadingItems: <IconTable />},
@@ -302,7 +356,7 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <MultipleSelectDemo
       size="md"
       multiple
       placeholder="medium"
@@ -312,18 +366,18 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       size="sm"
       multiple
       placeholder="small"
-      defaultValue={['item1', 'item3']}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       size="xs"
       multiple
       placeholder="x-small"
@@ -338,6 +392,8 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 ```jsx
 <Select
+  value={value}
+  onChange={options => setValue(options.map(option => option.value))}
   multiple
   placeholder="Select multiple items"
   options={[
@@ -354,10 +410,10 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <MultipleSelectDemo
       multiple
       clearable
-      defaultValue={['item1', 'item3']}
+      initialValue={['item1', 'item3']}
       size="md"
       placeholder="medium"
       options={[
@@ -366,22 +422,22 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       clearable
       multiple
       size="sm"
       placeholder="small"
-      defaultValue={['item1', 'item3']}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       clearable
       multiple
-      defaultValue={['item1', 'item3']}
+      initialValue={['item1', 'item3']}
       size="xs"
       placeholder="x-small"
       options={[
@@ -394,7 +450,13 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
 </Storybook.Demo>
 
 ```jsx
-<Select multiple clearable defaultValue={['item1', 'item3']} options={options} />
+<Select
+  onChange={options => setValue(options.map(option => option.value))}
+  multiple
+  clearable
+  value={value}
+  options={options}
+/>
 ```
 
 ### Multiple Selection with Search
@@ -403,7 +465,7 @@ Combine `multiple` and `searchable` for efficient selection from large lists.
 
 <Storybook.Demo>
   <Storybook.Grid>
-    <Select
+    <MultipleSelectDemo
       searchable
       multiple
       size="md"
@@ -414,19 +476,19 @@ Combine `multiple` and `searchable` for efficient selection from large lists.
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       searchable
       multiple
       size="sm"
       placeholder="small"
-      defaultValue={['item1', 'item3']}
+      initialValue={['item1', 'item3']}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
         {value: 'item3', label: 'Item 3'},
       ]}
     />
-    <Select
+    <MultipleSelectDemo
       searchable
       multiple
       size="xs"
@@ -442,6 +504,8 @@ Combine `multiple` and `searchable` for efficient selection from large lists.
 
 ```jsx
 <Select
+  value={value}
+  onChange={options => setValue(options.map(option => option.value))}
   multiple
   searchable
   placeholder="Search and select multiple"
@@ -459,6 +523,8 @@ Pair selects with labels for accessible forms:
 <label htmlFor="environment">
   Environment
   <Select
+    value={value}
+    onChange={option => setValue(option?.value ?? null)}
     id="environment"
     placeholder="Choose an environment"
     options={[
@@ -472,20 +538,21 @@ Pair selects with labels for accessible forms:
 
 ### Controlled Selects
 
-For controlled selects, manage the value in React state. `value` and `defaultValue`
-use the raw option value, or an array of raw values for multiple selections.
+`Select` is controlled. Pass `value` and `onChange`, and keep the selected value
+in React state. Use `null` for an empty single selection and `[]` for an empty
+multiple selection. `value` uses the raw option value, or an array of raw values
+for multiple selections.
+When `disabled` is `true`, `onChange` is optional. `value` is always required.
 `onChange` receives the selected option, an array of selected options, or `null`
 when a clearable single selection is cleared:
 
 ```jsx
-const [value, setValue] = useState(null);
-
 <Select
   clearable
   value={value}
   onChange={option => setValue(option?.value ?? null)}
   options={options}
-/>;
+/>
 ```
 
 ### Multi-Select for Tags
@@ -501,7 +568,7 @@ Use multi-select for tag or category selection:
     clearable
     placeholder="Add tags"
     value={selectedTags}
-    onChange={setSelectedTags}
+    onChange={options => setSelectedTags(options.map(option => option.value))}
     options={allTags}
   />
 </label>
@@ -577,16 +644,16 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 ```jsx
 // Good: Visible label with htmlFor
 <label htmlFor="project">Project</label>
-<Select id="project" options={projects} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} id="project" options={projects} />
 
 // Good: Wrapping label
 <label>
   Project
-  <Select options={projects} />
+  <Select value={value} onChange={option => setValue(option?.value ?? null)} options={projects} />
 </label>
 
 // Good: aria-label when context is clear
-<Select aria-label="Filter by project" options={projects} />
+<Select value={value} onChange={option => setValue(option?.value ?? null)} aria-label="Filter by project" options={projects} />
 ```
 
 **Keyboard Navigation**
@@ -603,6 +670,8 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 ```jsx
 <Select
+  value={value}
+  onChange={option => setValue(option?.value ?? null)}
   id="project"
   options={projects}
   aria-invalid={hasError}

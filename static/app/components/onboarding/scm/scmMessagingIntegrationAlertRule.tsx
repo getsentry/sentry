@@ -74,7 +74,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
           <FullWidthSelect
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />

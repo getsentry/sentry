@@ -138,12 +138,80 @@ describe('selection types', () => {
     void [number, object];
   });
 
+  it('allows disabled selects to omit onChange while retaining typed callbacks', () => {
+    const single = <Select disabled options={options} value="apple" />;
+    const clearable = <Select disabled clearable options={options} value={null} />;
+    const multiple = <Select disabled multiple options={options} value={['apple']} />;
+
+    const withCallbacks = (
+      <Fragment>
+        <Select
+          disabled
+          options={options}
+          value="apple"
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<(typeof options)[number]>();
+          }}
+        />
+        <Select
+          disabled
+          clearable
+          options={options}
+          value={null}
+          onChange={option => {
+            expectTypeOf(option).toEqualTypeOf<(typeof options)[number] | null>();
+          }}
+        />
+        <Select
+          disabled
+          multiple
+          options={options}
+          value={[]}
+          onChange={selected => {
+            expectTypeOf(selected).toEqualTypeOf<typeof options>();
+          }}
+        />
+      </Fragment>
+    );
+
+    void [single, clearable, multiple, withCallbacks];
+  });
+
+  it('requires onChange unless disabled is always true', () => {
+    type Option = (typeof options)[number];
+    expectTypeOf<{
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: false;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: boolean;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: true;
+      options: typeof options;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+    expectTypeOf<{
+      disabled: true;
+      multiple: true;
+      options: typeof options;
+      value: string;
+    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
+  });
+
   it('infers values and custom option data from options without a selected value', () => {
     const objectOptions = [{value: {id: 1}, label: 'One', searchKey: 'first'}];
     type TOption = (typeof objectOptions)[number];
     const styles: StylesConfig = {option: base => base};
     const select = (
       <Select
+        value={null}
         options={objectOptions}
         styles={styles}
         isValueEqual={(a, b) => {
@@ -231,39 +299,41 @@ describe('selection types', () => {
     void styles;
   });
 
-  it('rejects scalar multiple values and array single values, including defaults', () => {
+  it('rejects scalar multiple values and array single values', () => {
     type Option = (typeof options)[number];
     expectTypeOf<{
       multiple: true;
+      onChange: (options: Option[]) => void;
       options: typeof options;
       value: string;
     }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
       multiple: false;
+      onChange: (option: Option) => void;
       options: typeof options;
       value: string[];
     }>().not.toMatchTypeOf<ControlProps<string, Option>>();
     expectTypeOf<{
-      defaultValue: string;
-      multiple: true;
-      options: typeof options;
-    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
-    expectTypeOf<{
-      defaultValue: string[];
       multiple: false;
-      options: typeof options;
-    }>().not.toMatchTypeOf<ControlProps<string, Option>>();
-    expectTypeOf<{
-      multiple: false;
+      onChange: (option: SelectValue<readonly string[]>) => void;
       options: Array<{value: readonly string[]}>;
       value: readonly string[];
     }>().not.toMatchTypeOf<ControlProps<readonly string[]>>();
   });
 
-  it('requires options and does not expose legacy choices', () => {
+  it('requires controlled selection and options without exposing defaults or choices', () => {
     type Option = (typeof options)[number];
     expectTypeOf<Omit<ControlProps<string, Option>, 'options'>>().not.toMatchTypeOf<
       ControlProps<string, Option>
+    >();
+    expectTypeOf<Omit<ControlProps<string, Option>, 'value'>>().not.toMatchTypeOf<
+      ControlProps<string, Option>
+    >();
+    expectTypeOf<Omit<ControlProps<string, Option>, 'onChange'>>().not.toMatchTypeOf<
+      ControlProps<string, Option>
+    >();
+    expectTypeOf<'defaultValue'>().not.toMatchTypeOf<
+      keyof ControlProps<string, Option>
     >();
     expectTypeOf<'choices'>().not.toMatchTypeOf<keyof ControlProps<string, Option>>();
     expectTypeOf<'indicator'>().not.toMatchTypeOf<keyof ControlProps<string, Option>>();
@@ -349,6 +419,8 @@ it('provides a native input ref and forwards validation attributes', () => {
   const inputRef = createRef<HTMLInputElement>();
   const {unmount} = render(
     <Select
+      value={null}
+      onChange={jest.fn()}
       aria-label="Fruit"
       aria-invalid
       aria-describedby="fruit-error"
@@ -366,9 +438,42 @@ it('provides a native input ref and forwards validation attributes', () => {
   expect(inputRef.current).toBeNull();
 });
 
+it('renders disabled selections without an onChange handler', async () => {
+  render(
+    <Fragment>
+      <Select disabled aria-label="Single fruit" options={options} value="apple" />
+      <Select
+        disabled
+        multiple
+        aria-label="Multiple fruit"
+        options={options}
+        value={['cherry']}
+      />
+    </Fragment>
+  );
+
+  expect(screen.getByRole('textbox', {name: 'Single fruit'})).toBeDisabled();
+  expect(screen.getByRole('textbox', {name: 'Multiple fruit'})).toBeDisabled();
+  expect(screen.getByText('Apple')).toBeInTheDocument();
+  expect(screen.getByText('Cherry')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Apple'));
+  await userEvent.click(screen.getByText('Cherry'));
+  expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+  expect(screen.queryByRole('menuitemcheckbox')).not.toBeInTheDocument();
+});
+
 it('exposes focus and blur without access to the implementation instance', () => {
   const ref = createRef<SelectHandle>();
-  render(<Select ref={ref} aria-label="Fruit" options={options} />);
+  render(
+    <Select
+      value={null}
+      onChange={jest.fn()}
+      ref={ref}
+      aria-label="Fruit"
+      options={options}
+    />
+  );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
   act(() => ref.current?.focus());
@@ -381,6 +486,8 @@ function ControlledSelect({onOpenChange}: {onOpenChange: (open: boolean) => void
   const [isOpen, setIsOpen] = useState(false);
   return (
     <Select
+      value={null}
+      onChange={jest.fn()}
       aria-label="Fruit"
       options={options}
       isOpen={isOpen}
@@ -411,15 +518,21 @@ it('controls the menu and keeps footer actions outside the options', async () =>
   expect(screen.queryByRole('button', {name: 'Manage fruit'})).not.toBeInTheDocument();
 });
 
-it('uses raw values for the initial single and multiple selections', () => {
+it('uses raw values for controlled single and multiple selections', () => {
   render(
     <Fragment>
-      <Select aria-label="Single fruit" options={options} defaultValue="apple" />
       <Select
+        onChange={jest.fn()}
+        aria-label="Single fruit"
+        options={options}
+        value="apple"
+      />
+      <Select
+        onChange={jest.fn()}
         multiple
         aria-label="Multiple fruit"
         options={options}
-        defaultValue={['cherry']}
+        value={['cherry']}
       />
     </Fragment>
   );
@@ -428,9 +541,58 @@ it('uses raw values for the initial single and multiple selections', () => {
   expect(screen.getByText('Cherry')).toBeInTheDocument();
 });
 
+it.each([false, true])(
+  'changes selection only when the value prop changes (multiple: %s)',
+  async multiple => {
+    const onChange = jest.fn();
+    const selection = multiple
+      ? {multiple: true as const, value: ['apple']}
+      : {value: 'apple'};
+    const {rerender} = render(
+      <Select {...selection} aria-label="Fruit" options={options} onChange={onChange} />
+    );
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
+    await userEvent.click(
+      screen.getByRole(multiple ? 'menuitemcheckbox' : 'menuitemradio', {name: 'Cherry'})
+    );
+    await userEvent.keyboard('{Escape}');
+
+    expect(onChange).toHaveBeenCalledWith(
+      multiple ? options : options[1],
+      expect.anything()
+    );
+    expect(screen.getByText('Apple')).toBeInTheDocument();
+    expect(screen.queryByText('Cherry')).not.toBeInTheDocument();
+
+    const updatedSelection = multiple
+      ? {multiple: true as const, value: ['cherry']}
+      : {value: 'cherry'};
+    rerender(
+      <Select
+        {...updatedSelection}
+        aria-label="Fruit"
+        options={options}
+        onChange={onChange}
+      />
+    );
+
+    expect(screen.getByText('Cherry')).toBeInTheDocument();
+    expect(screen.queryByText('Apple')).not.toBeInTheDocument();
+  }
+);
+
 it('blurs single selects after selection and reports edits and resets separately', async () => {
   const onInputChange = jest.fn();
-  render(<Select aria-label="Fruit" options={options} onInputChange={onInputChange} />);
+  render(
+    <Select
+      value={null}
+      onChange={jest.fn()}
+      aria-label="Fruit"
+      options={options}
+      onInputChange={onInputChange}
+    />
+  );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
   await userEvent.type(input, 'App');
@@ -446,7 +608,15 @@ it('blurs single selects after selection and reports edits and resets separately
 });
 
 it('keeps multiple selects focused after selection', async () => {
-  render(<Select multiple aria-label="Fruit" options={options} />);
+  render(
+    <Select
+      value={[]}
+      onChange={jest.fn()}
+      multiple
+      aria-label="Fruit"
+      options={options}
+    />
+  );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
   await userEvent.click(input);
@@ -460,6 +630,8 @@ it('can retain focus in a single select without firing blur', async () => {
   const onBlur = jest.fn();
   render(
     <Select
+      value={null}
+      onChange={jest.fn()}
       aria-label="Fruit"
       options={options}
       blurInputOnSelect={false}
@@ -476,18 +648,31 @@ it('can retain focus in a single select without firing blur', async () => {
 });
 
 it('filters numeric labels as text', async () => {
-  render(<Select aria-label="Number" options={[{value: 'one', label: 123}]} />);
+  render(
+    <Select
+      value={null}
+      onChange={jest.fn()}
+      aria-label="Number"
+      options={[{value: 'one', label: 123}]}
+    />
+  );
 
   await userEvent.type(screen.getByRole('textbox', {name: 'Number'}), '123');
 
   expect(screen.getByRole('menuitemradio', {name: '123'})).toBeInTheDocument();
 });
 
-it('preserves creatable defaults with an empty options list', () => {
+it('preserves creatable values with an empty options list', () => {
   render(
     <Fragment>
-      <Select<string> creatable options={[]} defaultValue="New fruit" />
-      <Select<string> creatable multiple options={[]} defaultValue={['New tag']} />
+      <Select<string> onChange={jest.fn()} creatable options={[]} value="New fruit" />
+      <Select<string>
+        onChange={jest.fn()}
+        creatable
+        multiple
+        options={[]}
+        value={['New tag']}
+      />
     </Fragment>
   );
 
@@ -498,6 +683,8 @@ it('preserves creatable defaults with an empty options list', () => {
 it('passes option data directly to custom filters', async () => {
   render(
     <Select
+      value={null}
+      onChange={jest.fn()}
       aria-label="Fruit"
       options={options}
       filterOption={option => option.value === 'cherry'}
@@ -512,6 +699,7 @@ it('passes option data directly to custom filters', async () => {
 it('owns the disabled row for an empty legacy selection', async () => {
   render(
     <Select
+      onChange={jest.fn()}
       aria-label="Fruit"
       options={options}
       value={null}
