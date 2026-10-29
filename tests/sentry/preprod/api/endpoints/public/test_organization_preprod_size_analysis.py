@@ -167,6 +167,14 @@ class ProjectPreprodPublicSizeAnalysisEndpointTest(APITestCase):
         assert len(data["appComponents"]) == 1
         assert data["appComponents"][0]["name"] == "Watch App"
         assert data["appComponents"][0]["componentType"] == "WATCH_ARTIFACT"
+        assert set(data["appComponents"][0]) == {
+            "componentType",
+            "name",
+            "appId",
+            "path",
+            "downloadSize",
+            "installSize",
+        }
         assert data["baseBuildId"] is None
         assert data["baseAppInfo"] is None
         assert data["comparisons"] is None

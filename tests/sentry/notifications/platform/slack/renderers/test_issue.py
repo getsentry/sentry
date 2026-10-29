@@ -114,6 +114,18 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert "model_config" not in serialized
         assert {"id", "data", "project_id"} <= serialized.keys()
 
+    def test_rule_proxy_is_frozen(self) -> None:
+        proxy = SerializableRuleProxy(
+            id=1,
+            label="Frozen",
+            data={},
+            project_id=self.project.id,
+        )
+
+        assert "model_config" not in proxy.dict()
+        with pytest.raises(TypeError):
+            proxy.label = "changed"  # type: ignore[misc]
+
     def test_source(self) -> None:
         data = IssueNotificationData(
             organization_id=1,

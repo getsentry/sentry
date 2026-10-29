@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import NamedTuple
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 
 class ImageSize(NamedTuple):
@@ -15,7 +15,8 @@ class ImageSize(NamedTuple):
 
 
 class DiffResult(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     diff_mask_png: bytes
     changed_pixels: int
@@ -28,7 +29,8 @@ class DiffResult(BaseModel):
 
 
 class OdiffResponse(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     requestId: int
     match: bool = False
