@@ -70,17 +70,21 @@ def create_subscription_in_snuba(query_subscription_id: int, **kwargs: Any) -> N
                 subscription.snuba_query,
                 subscription.project.organization_id,
                 subscription.project_id,
+                skip_field_validation_for_entity_subscription_deletion=True,
             )
-        except (InvalidSearchQuery, IncompatibleMetricsQuery) as e:
-            raise SubscriptionError(e)
-        try:
-            _delete_from_snuba(
-                query_dataset,
-                subscription.subscription_id,
-                entity_key,
-            )
-        except SnubaError:
-            logger.exception("Failed to delete subscription")
+        except (InvalidSearchQuery, IncompatibleMetricsQuery):
+            # The subscription consumer deletes Snuba subscriptions that no longer
+            # match a QuerySubscription, so the old one is cleaned up from there.
+            metrics.incr("snuba.subscriptions.create.old_entity_key_unresolved")
+        else:
+            try:
+                _delete_from_snuba(
+                    query_dataset,
+                    subscription.subscription_id,
+                    entity_key,
+                )
+            except SnubaError:
+                logger.exception("Failed to delete subscription")
 
     try:
         subscription_id = _create_in_snuba(subscription)
@@ -303,7 +307,11 @@ def _disable_subscription_with_invalid_query(
             "error": str(error),
         },
     )
-    subscription.update(status=QuerySubscription.Status.DISABLED.value, subscription_id=None)
+    # Only disable if no concurrent edit or delete has moved the row out of the
+    # status this task loaded it in; otherwise we'd clobber that change.
+    QuerySubscription.objects.filter(id=subscription.id, status=subscription.status).update(
+        status=QuerySubscription.Status.DISABLED.value, subscription_id=None
+    )
 
 
 # This indirection function only exists such that snql queries can be rewritten
