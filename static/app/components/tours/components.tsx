@@ -126,6 +126,8 @@ export function TourContextProvider<T extends TourEnumType>({
               trackAnalytics('tour-guide.dismiss', {
                 organization,
                 id: `${currentStepId}`,
+                step_count: orderedStepIds.indexOf(currentStepId) + 1,
+                tour_key: tourKey,
               });
               endTour();
             },
@@ -309,7 +311,7 @@ export function TourElementContent<T extends TourEnumType>({
               });
             }}
           >
-            {t('Finish tour')}
+            {t('Done')}
           </TourAction>
         )}
       </Grid>
