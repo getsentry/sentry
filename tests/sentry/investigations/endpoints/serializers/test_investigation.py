@@ -447,6 +447,15 @@ class InvestigationActionRequestSerializationTest(TestCase):
             "retryable": True,
         }
 
+        self.orchestration_run.commands.update(
+            error={
+                "code": "seer_command_dispatch_failed",
+                "dispatchReason": "actor_access_denied",
+                "retryable": True,
+            }
+        )
+        assert self.serialize_requests()[0]["followUp"] == serialized["followUp"]
+
     def test_a_re_check_that_failed_behind_another_command_can_be_tried_again(self) -> None:
         self.add_followed_up_request(
             status=InvestigationOrchestrationCommandStatus.FAILED,

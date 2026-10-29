@@ -8,8 +8,10 @@ from uuid import uuid4
 
 import pytest
 from django.db import router, transaction
+from django.test import override_settings
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.investigations.models import (
     InvestigationBlockExecution,
     InvestigationBlockExecutionStatus,
@@ -25,6 +27,8 @@ from sentry.investigations.services.orchestration import (
 from sentry.investigations.services.orchestration_events import deliver_orchestration_event
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
+from sentry.seer.signed_seer_api import MissingViewerContextError
+from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
     _reconcile_command_version_conflict,
@@ -33,7 +37,19 @@ from sentry.tasks.seer.investigation import (
     dispatch_investigation_orchestration_create,
 )
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import ActorId, ActorType
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.utils import json
+from sentry.viewer_context import (
+    Actor,
+    ActorId,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 
 class InvestigationAutoRunTest(TestCase):
@@ -893,3 +909,264 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
         assert command.resulting_workflow_version == 1
         schedule.assert_called_once()
+
+    @override_settings(SEER_API_SHARED_SECRET="human-dispatch-test-secret")
+    @mock.patch(
+        "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
+    )
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    def test_human_dispatch_preserves_ambient_context(
+        self, urlopen: mock.Mock, connections: mock.Mock
+    ) -> None:
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            actor_id=self.user.id,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            payload={},
+        )
+        urlopen.side_effect = [
+            mock.Mock(
+                status=200,
+                data=json.dumps(
+                    {
+                        "runId": self.seer_run_id,
+                        "created": True,
+                        "projection": self.projection(workflow_version=1),
+                    }
+                ).encode(),
+            ),
+            mock.Mock(
+                status=200,
+                data=json.dumps(
+                    {
+                        "runId": self.seer_run_id,
+                        "requestId": str(command.request_id),
+                        "accepted": True,
+                        "duplicate": False,
+                        "workflowVersion": 2,
+                        "projection": self.projection(workflow_version=2),
+                    }
+                ).encode(),
+            ),
+        ]
+        with viewer_context_scope(None), pytest.raises(MissingViewerContextError):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        urlopen.assert_not_called()
+
+        inherited = ViewerContext(
+            actor=Actor(
+                type=ActorType.AGENT,
+                actor_id=910001,
+                delegated_user_id=self.user.id,
+                superuser=SuperuserAccess(expires_at=int(timezone.now().timestamp()) + 3600),
+            ),
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+        with viewer_context_scope(inherited):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+            assert get_viewer_context() == inherited
+        assert urlopen.call_count == 2
+        for call in urlopen.call_args_list:
+            assert (
+                decode_viewer_context(
+                    call.kwargs["headers"]["X-Viewer-Context"], key="human-dispatch-test-secret"
+                )
+                == inherited
+            )
+
+    @with_feature("organizations:investigations")
+    @override_settings(SEER_API_SHARED_SECRET="saved-actor-test-secret")
+    @mock.patch(
+        "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
+    )
+    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
+    def test_saved_account_identity_reaches_create_command_and_reconciliation(
+        self, urlopen: mock.Mock, connections: mock.Mock
+    ) -> None:
+        with outbox_runner():
+            creator = self.create_service_account(organization=self.organization, id=910001)
+            sender = self.create_service_account(organization=self.organization, name="sender")
+        self.investigation.update(created_by_id=None, created_by_service_account_id=creator.id)
+        urlopen.return_value = mock.Mock(
+            status=200,
+            data=json.dumps(
+                {
+                    "runId": self.seer_run_id,
+                    "created": True,
+                    "projection": self.projection(workflow_version=1),
+                }
+            ).encode(),
+        )
+        with viewer_context_scope(None):
+            dispatch_investigation_orchestration_create(self.orchestration_run.id)
+            assert get_viewer_context() is None
+        created_context = decode_viewer_context(
+            urlopen.call_args.kwargs["headers"]["X-Viewer-Context"], key="saved-actor-test-secret"
+        )
+        assert created_context == ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=creator.id),
+            organization_id=self.organization.id,
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            requested_by_service_account_id=sender.id,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            payload={},
+        )
+        urlopen.reset_mock()
+        urlopen.side_effect = [
+            mock.Mock(status=409, data=b'{"code":"workflow_version_conflict"}'),
+            mock.Mock(
+                status=200,
+                data=json.dumps(
+                    {
+                        "runId": self.seer_run_id,
+                        "created": False,
+                        "projection": self.projection(workflow_version=2),
+                    }
+                ).encode(),
+            ),
+        ]
+        inherited = ViewerContext(
+            actor=Actor(
+                type=ActorType.USER,
+                actor_id=self.user.id,
+                superuser=SuperuserAccess(expires_at=int(timezone.now().timestamp()) + 3600),
+            ),
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+        )
+        with viewer_context_scope(inherited):
+            dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+            assert get_viewer_context() == inherited
+        assert [call.args[0] for call in urlopen.call_args_list] == ["POST", "GET"]
+        for call in urlopen.call_args_list:
+            assert decode_viewer_context(
+                call.kwargs["headers"]["X-Viewer-Context"], key="saved-actor-test-secret"
+            ) == ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=sender.id),
+                organization_id=self.organization.id,
+            )
+        self.investigation.refresh_from_db()
+        assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, creator.id)
+        command.refresh_from_db()
+        assert command.error["reason"] == "workflow_version_conflict"
+        connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
+
+    @with_feature("organizations:investigations")
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
+    def test_account_create_access_failure_and_explicit_recovery(
+        self, create_run: mock.Mock
+    ) -> None:
+        with outbox_runner():
+            account = self.create_service_account(organization=self.organization)
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+        self.create_investigation_project(investigation=self.investigation, project=self.project)
+        replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
+        for changes, enabled in (
+            ({"is_active": False}, True),
+            ({"scope_list": ["event:read"]}, True),
+            ({}, False),
+        ):
+            replica.update(is_active=True, scope_list=["org:read"])
+            replica.update(**changes)
+            with self.feature({"organizations:investigations": enabled}):
+                dispatch_investigation_orchestration_create(self.orchestration_run.id)
+            self.orchestration_run.refresh_from_db()
+            assert self.orchestration_run.status == "failed"
+            assert self.orchestration_run.error["dispatchReason"] == "actor_access_denied"
+            assert self.orchestration_run.error["retryable"] is True
+        self.project.update(status=ObjectStatus.PENDING_DELETION)
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        create_run.assert_not_called()
+
+        self.project.update(status=ObjectStatus.ACTIVE)
+        replica.update(scope_list=["org:read"])
+        with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
+            accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=uuid4(),
+                expected_workflow_version=1,
+                command_type="retry",
+                payload={"target": "run"},
+                actor_id=self.user.id,
+            )
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
+        dispatch_investigation_orchestration_create(self.orchestration_run.id)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
+        assert self.orchestration_run.seer_run_id is not None
+        self.investigation.refresh_from_db()
+        assert self.investigation.creator_actor == ActorId(ActorType.SERVICE_ACCOUNT, account.id)
+
+    @with_feature("organizations:investigations")
+    @mock.patch("sentry.tasks.seer.investigation.get_investigation_orchestration_run")
+    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_orchestration_command")
+    def test_account_revoked_before_reconciliation_and_explicit_recovery(
+        self, dispatch: mock.Mock, get_run: mock.Mock
+    ) -> None:
+        with outbox_runner():
+            account = self.create_service_account(organization=self.organization)
+        replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
+        self.orchestration_run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=self.seer_run_id,
+            )
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=self.orchestration_run,
+            requested_by_service_account_id=account.id,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            payload={},
+        )
+
+        def revoke_and_conflict(*args: Any, **kwargs: Any) -> None:
+            replica.update(is_active=False)
+            raise SeerApiError("conflict", 409)
+
+        dispatch.side_effect = revoke_and_conflict
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        get_run.assert_not_called()
+        command.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.FAILED
+        assert command.error["dispatchReason"] == "actor_access_denied"
+
+        replica.update(is_active=True)
+        with mock.patch("sentry.investigations.services.orchestration.transaction.on_commit"):
+            accept_orchestration_command(
+                investigation=self.investigation,
+                request_id=command.request_id,
+                expected_workflow_version=1,
+                command_type=command.type,
+                payload=command.payload,
+                actor_id=self.user.id,
+            )
+        dispatch.side_effect = None
+        dispatch.return_value = {
+            "runId": self.seer_run_id,
+            "requestId": str(command.request_id),
+            "rerun": None,
+            "projection": self.projection(workflow_version=2),
+        }
+        dispatch_investigation_orchestration_commands(self.orchestration_run.id)
+        command.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert command.status == InvestigationOrchestrationCommandStatus.ACKNOWLEDGED
+        assert command.error is None
+        assert command.requested_by_actor == ActorId(ActorType.SERVICE_ACCOUNT, account.id)
+        assert self.orchestration_run.error is None
+        assert self.orchestration_run.projection["errors"] == []
