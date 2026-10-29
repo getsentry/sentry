@@ -254,8 +254,8 @@ function WidgetBuilderSlideoutInner({
 
   useHotkeys([
     {
-      match: 'Escape',
-      skipPreventDefault: true,
+      hotkey: 'Escape',
+      options: {preventDefault: false},
       callback: (evt: KeyboardEvent) => {
         if (!isModalVisible) {
           evt.preventDefault();

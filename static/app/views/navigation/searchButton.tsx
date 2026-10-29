@@ -29,7 +29,7 @@ export function SearchButton(props: Pick<ButtonProps, 'className'>) {
         title: (
           <Flex align="center" gap="sm">
             {t('Command Palette')}
-            <Hotkey value="command+k" />
+            <Hotkey value="Mod+K" />
           </Flex>
         ),
       }}
