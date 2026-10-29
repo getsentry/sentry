@@ -1,4 +1,5 @@
 from io import BytesIO
+from typing import Any
 
 from django.conf import settings
 
@@ -9,6 +10,7 @@ from sentry.app import env
 from sentry.models.avatars.team_avatar import TeamAvatar
 from sentry.models.files.file import File
 from sentry.models.organizationmember import InviteStatus
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]
@@ -178,6 +180,17 @@ class TeamSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
         assert result["teamRole"] == TEAM_ADMIN["id"]
+
+    def test_service_account(self) -> None:
+        organization = self.create_organization()
+        team = self.create_team(organization=organization)
+        principal: Any = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=organization.id, name="deploy-bot"
+        )
+
+        result = serialize(team, principal)
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
 
     def test_admin(self) -> None:
         user = self.create_user(username="foo")

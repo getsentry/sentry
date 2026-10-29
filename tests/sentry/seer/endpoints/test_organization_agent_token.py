@@ -597,7 +597,6 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
-    VIEWER_LOOKUP = "a serializer looks up the viewer's own state by request.user.id"
     GENERIC_USER = "serialize_generic_user only takes a User or RpcUser"
     CONTROL_SILO = "service account auth is cell-only"
     NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
@@ -605,27 +604,6 @@ class ServiceAccountGap(StrEnum):
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "DiscoverSavedQueryDetail": ServiceAccountGap.VIEWER_LOOKUP,
-    "GroupDetails": ServiceAccountGap.VIEWER_LOOKUP,
-    "GroupDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationMonitorDetails": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationMonitorDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationMonitorIndex_post": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationProjects": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationTeams": ServiceAccountGap.VIEWER_LOOKUP,
-    "OrganizationTeams_post": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectDetails": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectMonitorDetails": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectMonitorDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectTeamDetails_delete": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectTeamDetails_post": ServiceAccountGap.VIEWER_LOOKUP,
-    "ProjectTeams": ServiceAccountGap.VIEWER_LOOKUP,
-    "ShortIdLookup": ServiceAccountGap.VIEWER_LOOKUP,
-    "TeamDetails": ServiceAccountGap.VIEWER_LOOKUP,
-    "TeamDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
-    "TeamProjects": ServiceAccountGap.VIEWER_LOOKUP,
-    "TeamProjects_post": ServiceAccountGap.VIEWER_LOOKUP,
     "OrganizationReleaseDetails_put": ServiceAccountGap.GENERIC_USER,
     "ProjectReplayViewedBy": ServiceAccountGap.GENERIC_USER,
     "OrganizationIntegrationChannelValidate": ServiceAccountGap.CONTROL_SILO,
