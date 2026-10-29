@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 
 from django.db.models import Count, DateTimeField, Func
 from django.db.models.functions import Extract
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +17,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.monitors.endpoints.base_monitor_stats import validate_bucket_count
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 
 TRACKED_STATUSES = [
@@ -26,6 +28,8 @@ TRACKED_STATUSES = [
     CheckInStatus.TIMEOUT,
     CheckInStatus.UNKNOWN,
 ]
+
+MAX_STATS_MONITORS = 20
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int) -> int:
@@ -55,8 +59,13 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
+        validate_bucket_count(start, end, args["rollup"])
 
-        monitor_guids: list[str] = request.GET.getlist("monitor")
+        monitor_guids: list[str] = list(dict.fromkeys(request.GET.getlist("monitor")))
+        if len(monitor_guids) > MAX_STATS_MONITORS:
+            raise ParseError(
+                detail=f"Too many monitors requested. Maximum is {MAX_STATS_MONITORS}."
+            )
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
         project_ids = [project.id for project in projects]
