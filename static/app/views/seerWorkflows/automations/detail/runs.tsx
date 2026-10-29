@@ -1,4 +1,5 @@
 import {NotFound} from 'sentry/components/errors/notFound';
+import {RunsTable} from 'sentry/views/seerWorkflows/automations/runs/runsTable';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 export default function AutomationRuns() {
@@ -8,5 +9,5 @@ export default function AutomationRuns() {
     return <NotFound />;
   }
 
-  return null;
+  return <RunsTable />;
 }

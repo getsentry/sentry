@@ -47,10 +47,6 @@ export type SeerAutomationRunsResponse = {
   runs: SeerAutomationRun[];
 };
 
-export type WorkflowRunCreateRequest = {
-  strategy: WorkflowStrategy;
-};
-
 export type WorkflowDisplayStatus =
   | 'succeeded'
   | 'failed'

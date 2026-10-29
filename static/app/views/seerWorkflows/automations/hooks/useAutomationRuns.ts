@@ -1,6 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   PLACEHOLDER_RUNS,
@@ -17,10 +17,13 @@ function isRunInProgress(status: SeerAutomationRunStatus) {
 }
 
 /**
- * Fetches the organization's automation runs, newest first, polling while any run is
- * in progress. Pass `configId` to only fetch one automation's runs.
+ * Fetches a page of the organization's automation runs, newest first, polling while
+ * any run is in progress. Pass `configId` to only fetch one automation's runs.
  */
-export function useAutomationRuns({configId}: {configId?: string} = {}) {
+export function useAutomationRuns({
+  configId,
+  cursor,
+}: {configId?: string; cursor?: string} = {}) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -29,10 +32,11 @@ export function useAutomationRuns({configId}: {configId?: string} = {}) {
       '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
       {
         path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {config: configId},
+        query: {config: configId, cursor},
         staleTime: 0,
       }
     ),
+    select: selectJsonWithHeaders,
     // TEMPORARY: skip the runs API until it returns the new shape
     enabled: !USE_PLACEHOLDER_RUNS,
     refetchInterval: query =>
@@ -41,8 +45,20 @@ export function useAutomationRuns({configId}: {configId?: string} = {}) {
 
   // TEMPORARY: show placeholder runs until the new runs API ships
   if (USE_PLACEHOLDER_RUNS) {
-    return {runs: PLACEHOLDER_RUNS, isPending: false, isError, refetch};
+    return {
+      runs: PLACEHOLDER_RUNS,
+      pageLinks: undefined,
+      isPending: false,
+      isError,
+      refetch,
+    };
   }
 
-  return {runs: data?.runs ?? [], isPending, isError, refetch};
+  return {
+    runs: data?.json.runs ?? [],
+    pageLinks: data?.headers.Link,
+    isPending,
+    isError,
+    refetch,
+  };
 }
