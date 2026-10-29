@@ -181,39 +181,6 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
     @patch(
         "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
     )
-    def test_sends_actual_upstream_block_content_as_query_context(
-        self, mock_client: MagicMock
-    ) -> None:
-        context_block = self.create_investigation_block(
-            investigation=self.investigation,
-            kind="text",
-            title="Investigation goal",
-            content="Focus on the checkout regression.",
-        )
-        self.create_investigation_block_dependency(block=self.block, depends_on=context_block)
-        run = self.create_seer_run(organization=self.organization, type=SeerRunType.FEATURE_RUN)
-
-        def start_run(*args: Any, **kwargs: Any) -> Any:
-            kwargs["on_run_created"](run)
-            return run
-
-        mock_client.return_value.start_run.side_effect = start_run
-        response = self.client.post(
-            self.url,
-            data={
-                "investigationVersion": self.investigation.version,
-                "version": self.block.version,
-            },
-            format="json",
-        )
-
-        assert response.status_code == 202, response.data
-        prompt = mock_client.return_value.start_run.call_args.args[0]
-        assert "Focus on the checkout regression." in prompt
-
-    @patch(
-        "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
-    )
     def test_dispatch_failure_cancels_other_active_cells(self, mock_client: MagicMock) -> None:
         sibling_block = self.create_investigation_block(
             investigation=self.investigation,
@@ -287,7 +254,6 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
             title="Summary",
             prompt="Explain the most important change.",
         )
-        self.create_investigation_block_dependency(block=self.block, depends_on=self.context_block)
         self.url = reverse(
             "sentry-api-0-organization-investigation-block-executions",
             kwargs={

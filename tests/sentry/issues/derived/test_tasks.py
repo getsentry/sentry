@@ -26,6 +26,7 @@ from sentry.issues.derived.heal_state import (
     save_state,
 )
 from sentry.issues.derived.processing import PIPELINE, GroupLogTimeout, process_group_log
+from sentry.issues.derived.promote import build_and_promote_batch
 from sentry.issues.derived.tasks import (
     BATCH_RETRIGGER_TIMEOUT,
     _discover_stale_pipeline_hashes,
@@ -1697,6 +1698,14 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
     def _stale() -> str:
         return "0" * 16 if PIPELINE.pipeline_hash != "0" * 16 else "z" * 16
 
+    @staticmethod
+    def _rows_found_calls(distribution: MagicMock) -> list[Any]:
+        return [
+            c
+            for c in distribution.call_args_list
+            if c.args[0] == "issues.derived.heal_range_rows_found"
+        ]
+
     def test_rebuilds_stale_rows(self) -> None:
         groups = self.create_unprocessed_groups(2)
         group_ids = sorted(g.id for g in groups)
@@ -1731,6 +1740,62 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
 
         gdd = GroupDerivedData.objects.get(group_id=gid)
         assert gdd.pipeline_hash == PIPELINE.pipeline_hash
+
+    def test_backfills_first_seen_before_rebuild(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id__in=group_ids).update(pipeline_hash=stale)
+
+        first_seen_at_build: list[int] = []
+
+        def record_first_seen(*args: Any, **kwargs: Any) -> Any:
+            first_seen_at_build.extend(
+                GroupActionLogEntry.objects.filter(
+                    group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+                ).values_list("group_id", flat=True)
+            )
+            return build_and_promote_batch(*args, **kwargs)
+
+        with patch(
+            "sentry.issues.derived.promote.build_and_promote_batch",
+            side_effect=record_first_seen,
+        ):
+            regenerate_stale_derived_data_batch(
+                target_hash=stale,
+                group_id_start=group_ids[0],
+                group_id_end=group_ids[-1] + 1,
+            )
+
+        assert sorted(first_seen_at_build) == group_ids
+        for gid in group_ids:
+            assert (
+                GroupDerivedData.objects.get(group_id=gid).pipeline_hash == PIPELINE.pipeline_hash
+            )
+
+    def test_does_not_backfill_first_seen_outside_batch(self) -> None:
+        groups = self.create_unprocessed_groups(2)
+        group_ids = sorted(g.id for g in groups)
+        for gid in group_ids:
+            process_group_log(gid)
+
+        stale = self._stale()
+        GroupDerivedData.objects.filter(group_id=group_ids[1]).update(pipeline_hash=stale)
+
+        regenerate_stale_derived_data_batch(
+            target_hash=stale,
+            group_id_start=group_ids[0],
+            group_id_end=group_ids[-1] + 1,
+        )
+
+        assert list(
+            GroupActionLogEntry.objects.filter(
+                group_id__in=group_ids, type=GroupActionType.FIRST_SEEN.value
+            ).values_list("group_id", flat=True)
+        ) == [group_ids[1]]
 
     def test_targets_only_the_given_hash(self) -> None:
         groups = self.create_unprocessed_groups(2)
@@ -1785,9 +1850,9 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
             patch.object(regenerate_stale_derived_data_batch, "delay") as mock_delay,
         ):
             expired = BATCH_RETRIGGER_TIMEOUT.total_seconds() + 1
-            # Helper start(), iter 1 remaining, iter 1 deadline check
-            # (triggers reschedule after the first group).
-            mock_time.monotonic.side_effect = [0.0, 0.0, expired]
+            # Helper start(), iter 1 start, iter 1 metrics, iter 1 deadline
+            # check (triggers reschedule after the first group).
+            mock_time.monotonic.side_effect = [0.0, 0.0, 0.0, expired]
 
             regenerate_stale_derived_data_batch(
                 target_hash=stale,
@@ -1858,15 +1923,17 @@ class RegenerateStaleDerivedDataBatchTest(DerivedDataTaskTestBase):
                 group_id_end=group_ids[-1] + 1,
             )
 
-            distribution.assert_not_called()
+            assert not self._rows_found_calls(distribution)
             regenerate_stale_derived_data_batch(**mock_delay.call_args.kwargs)
 
-        distribution.assert_called_once_with(
-            "issues.derived.heal_range_rows_found",
-            3,
-            sample_rate=1.0,
-            tags={"hash_kind": "stale", "range_overflowed": "true"},
-        )
+        assert self._rows_found_calls(distribution) == [
+            call(
+                "issues.derived.heal_range_rows_found",
+                3,
+                sample_rate=1.0,
+                tags={"hash_kind": "stale", "range_overflowed": "true"},
+            )
+        ]
 
     def test_reschedules_on_group_log_timeout(self) -> None:
         groups = self.create_unprocessed_groups(2)

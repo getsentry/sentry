@@ -19,15 +19,13 @@ describe('RegistrationForm', () => {
       body: result,
     });
 
-    render(
-      <RegistrationForm
-        hasNewsletter={false}
-        initialEmail="jane@example.com"
-        onSuccess={onSuccess}
-      />
-    );
+    render(<RegistrationForm hasNewsletter={false} onSuccess={onSuccess} />);
 
-    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue('jane@example.com');
+    expect(screen.getByRole('textbox', {name: 'Email'})).not.toHaveAttribute('readonly');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Email'}),
+      'jane@example.com'
+    );
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Jane Doe');
     await userEvent.type(screen.getByLabelText('Password'), 'a-secure-password');
     await userEvent.click(screen.getByRole('button', {name: 'Create account'}));
@@ -44,5 +42,67 @@ describe('RegistrationForm', () => {
       })
     );
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('keeps a locked email read-only and submits it unchanged', async () => {
+    const register = MockApiClient.addMockResponse({
+      url: '/auth/register/',
+      method: 'POST',
+      body: {nextUri: '/organizations/', user: UserFixture({email: 'kate@example.com'})},
+    });
+
+    render(
+      <RegistrationForm
+        hasNewsletter={false}
+        lockedEmail="kate@example.com"
+        onSuccess={jest.fn()}
+      />
+    );
+
+    const email = screen.getByRole('textbox', {name: 'Email'});
+    expect(email).toHaveValue('kate@example.com');
+    expect(email).toHaveAttribute('readonly');
+    expect(screen.getByText('This invitation was sent to this address.')).toBeVisible();
+
+    await userEvent.type(email, 'x');
+    expect(email).toHaveValue('kate@example.com');
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Kate');
+    await userEvent.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await userEvent.click(screen.getByRole('button', {name: 'Create account'}));
+
+    await waitFor(() =>
+      expect(register).toHaveBeenCalledWith(
+        '/auth/register/',
+        expect.objectContaining({
+          data: expect.objectContaining({email: 'kate@example.com'}),
+        })
+      )
+    );
+  });
+
+  it('shows an email error returned by registration', async () => {
+    const message =
+      'Use the email address this invitation was sent to, or sign in to an existing account.';
+    MockApiClient.addMockResponse({
+      url: '/auth/register/',
+      method: 'POST',
+      statusCode: 400,
+      body: {email: [message]},
+    });
+
+    render(
+      <RegistrationForm
+        hasNewsletter={false}
+        lockedEmail="someone@example.com"
+        onSuccess={jest.fn()}
+      />
+    );
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Someone');
+    await userEvent.type(screen.getByLabelText('Password'), 'a-secure-password');
+    await userEvent.click(screen.getByRole('button', {name: 'Create account'}));
+
+    expect(await screen.findByText(message)).toBeInTheDocument();
   });
 });

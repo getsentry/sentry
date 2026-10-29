@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -13,6 +13,9 @@ import type {Group, GroupOpenPeriod} from 'sentry/types/group';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {limitDateTimeParamsToMaxPoints} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
 import {useMetricDetectorChart} from 'sentry/views/detectors/components/details/metric/chart';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
@@ -21,6 +24,7 @@ import {
   useOpenPeriodCount,
   useOpenPeriods,
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
+import {getOpenPeriodIssuePath} from 'sentry/views/detectors/utils/getOpenPeriodIssuePath';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
 
 interface MetricIssueChartProps {
@@ -114,6 +118,9 @@ function MetricIssueChartContent({
   group: Group;
   openPeriods: GroupOpenPeriod[];
 }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {data: openPeriod, isPending: isOpenPeriodPending} = useEventOpenPeriod({
     groupId: group.id,
@@ -127,6 +134,15 @@ function MetricIssueChartContent({
       intervalSeconds,
     });
 
+  const navigateToOpenPeriodIssue = useCallback(
+    (clickedOpenPeriod: GroupOpenPeriod) =>
+      navigate({
+        pathname: getOpenPeriodIssuePath(clickedOpenPeriod, organization.slug),
+        query: location.query,
+      }),
+    [navigate, organization.slug, location.query]
+  );
+
   const {
     chartProps,
     isLoading,
@@ -135,6 +151,7 @@ function MetricIssueChartContent({
     detector,
     openPeriods,
     highlightedOpenPeriodId: openPeriod?.id,
+    onOpenPeriodClick: navigateToOpenPeriodIssue,
     height: CHART_HEIGHT,
     enabled: !isOpenPeriodPending,
     ...cappedDateTimeParams,

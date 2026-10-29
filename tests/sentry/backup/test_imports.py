@@ -976,11 +976,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_user_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
     def test_persist_existing_models_in_config_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
@@ -988,11 +988,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_config_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
     def test_persist_existing_models_in_organization_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
@@ -1000,11 +1000,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_organization_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests

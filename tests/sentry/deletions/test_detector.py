@@ -5,7 +5,7 @@ import pytest
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import reattempt_deletions, run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTrigger
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -273,7 +273,6 @@ class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             organization=self.organization,
             projects=[self.project],
         )
-        trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,
@@ -307,7 +306,6 @@ class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
-        assert not AlertRuleTrigger.objects.filter(id=trigger.id).exists()
         assert not DataSource.objects.filter(id=data_source.id).exists()
         assert not QuerySubscription.objects.filter(id=subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()

@@ -36,6 +36,7 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
@@ -396,9 +397,11 @@ def resolve_check_suite_autofix_run(
     for pr_id in (pr.id for pr in pull_requests):
         for candidate in repos:
             try:
-                state = get_agent_state_from_pr_id(
-                    candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
-                )
+                # SCM stream webhooks carry no viewer, and each candidate is a different org.
+                with webhook_viewer_context(candidate.organization_id):
+                    state = get_agent_state_from_pr_id(
+                        candidate.organization_id, SEER_GITHUB_PROVIDER, pr_id
+                    )
             except SeerUnavailableError:
                 # Seer is down; let the task retry instead of reporting "no run".
                 raise

@@ -106,7 +106,7 @@ function KeyField() {
       placeholder={isLoading ? t('Loading tags\u2026') : t('tag')}
       value={condition.comparison.key}
       options={sortedOptions}
-      onChange={(e: SelectValue<MatchType>) => {
+      onChange={e => {
         onUpdate({comparison: {...condition.comparison, key: e.value}});
         removeError(condition.id);
       }}

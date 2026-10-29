@@ -48,7 +48,7 @@ from sentry.explore.models import (
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
-from sentry.search.eap.utils import parse_formula
+from sentry.search.eap.utils import check_numeric, parse_formula
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
@@ -115,13 +115,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -153,13 +153,13 @@ PREBUILT_FORMULAS: list[PrebuiltFormula] = [
                 "name": "duration",
                 "type": "column",
                 "order": 0,
-                "value": "",
+                "value": "span.duration",
             },
             {
                 "name": "threshold",
                 "type": "number",
                 "order": 1,
-                "value": "",
+                "value": "300",
             },
             {
                 "name": "frustrated",
@@ -325,7 +325,7 @@ class ParamSerializer(ReferenceSerializer):
     order = IntegerField(min_value=0, max_value=MAX_GENERIC_PARAMS)
 
     def validate_value(self, value: str) -> str:
-        return value
+        return value.lower()
 
     def validate_type(self, parameter_type: str) -> int:
         param_type = ParamItemTypes.get_id_for_type_name(parameter_type)
@@ -336,6 +336,15 @@ class ParamSerializer(ReferenceSerializer):
     def validate(self, data: FormulaParamData) -> FormulaParamData:
         if data["param_type"] == ParamItemTypes.CALCULATION and not data["value"]:
             raise ValidationError({"value": "Calculations must have a value"})
+        elif data["param_type"] == ParamItemTypes.NUMBER and data["value"]:
+            try:
+                check_numeric(data["value"], data["name"])
+            except ValueError:
+                raise ValidationError(
+                    {"value": f"'{data['value']}' is an invalid value for a numeric default"}
+                )
+            except InvalidSearchQuery as e:
+                raise ValidationError({"value": str(e)})
         return data
 
 

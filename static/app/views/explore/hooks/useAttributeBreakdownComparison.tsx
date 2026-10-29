@@ -2,6 +2,7 @@ import {useQuery, skipToken} from '@tanstack/react-query';
 
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -49,6 +50,7 @@ export function useAttributeBreakdownComparison({
   const organization = useOrganization();
   const {selection: contextPageFilters} = usePageFilters();
   const pageFilters = pageFiltersProp ?? contextPageFilters;
+  const [caseInsensitive] = useCaseInsensitivity();
 
   const [x1, x2] = range;
 
@@ -86,6 +88,7 @@ export function useAttributeBreakdownComparison({
           query_2: baselineRegionQuery.formatString(),
           sampling: SAMPLING_MODE.NORMAL,
           aggregateExtrapolation: extrapolate,
+          caseInsensitive: caseInsensitive ? '1' : undefined,
         },
         staleTime: 0,
       }
