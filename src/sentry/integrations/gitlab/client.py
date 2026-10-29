@@ -687,6 +687,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             raise_on_page_limit=True,
         )
 
+    def get_project_webhook(self, project_id: int | str, hook_id: int | str) -> dict[str, Any]:
+        """Get a single project webhook."""
+        path = GitLabApiClientPath.project_hook.format(
+            project=safe_quote(project_id), hook_id=hook_id
+        )
+        return self.get(path)
+
     def update_project_webhook(
         self,
         project_id: int | str,

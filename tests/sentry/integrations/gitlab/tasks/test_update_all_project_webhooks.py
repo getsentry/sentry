@@ -9,11 +9,15 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from fixtures.gitlab import GitLabTestCase
 from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.metrics import GitLabWebhookUpdateHaltReason
-from sentry.integrations.gitlab.tasks import update_all_project_webhooks, update_project_webhook
+from sentry.integrations.gitlab.tasks import (
+    delete_redundant_project_webhook,
+    update_all_project_webhooks,
+    update_project_webhook,
+)
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
@@ -716,6 +720,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         def create(request):
             self.repo.refresh_from_db()
             reconciliation_id = self.repo.config["webhook_reconciliation_id"]
+            assert self.repo.config["webhook_reconciliation_pending"] is True
             assert reconciliation_id.encode() in request.body
             return 201, {}, '{"id": 100}'
 
@@ -729,6 +734,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
         self.repo.refresh_from_db()
         assert self.repo.config["webhook_id"] == 100
+        assert "webhook_reconciliation_pending" not in self.repo.config
 
     @responses.activate
     def test_task_recreates_stale_webhook(self):
@@ -793,11 +799,6 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         responses.add_callback(
             responses.POST, "https://example.gitlab.com/api/v4/projects/101/hooks", callback=create
         )
-        responses.add(
-            responses.DELETE,
-            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
-            status=204,
-        )
 
     @responses.activate
     def test_task_preserves_config_written_during_repair(self):
@@ -822,7 +823,10 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
-    def test_task_discards_hook_when_repository_disabled_during_repair(self, record_event):
+    @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
+    def test_task_queues_cleanup_when_repository_disabled_during_repair(
+        self, cleanup_delay, record_event
+    ):
         self._create_hook_while(
             lambda: Repository.objects.filter(id=self.repo.id).update(status=ObjectStatus.DISABLED)
         )
@@ -830,11 +834,20 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         self.repo.refresh_from_db()
         assert self.repo.status == ObjectStatus.DISABLED
         assert "webhook_id" not in self.repo.config
-        assert [call.request.method for call in responses.calls] == ["GET", "POST", "DELETE"]
+        cleanup_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+        assert [call.request.method for call in responses.calls] == ["GET", "POST"]
         assert_slo_metric(record_event, event_outcome=EventLifecycleOutcome.HALTED)
 
     @responses.activate
-    def test_task_discards_hook_when_repository_moved_during_repair(self):
+    @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
+    def test_task_queues_cleanup_when_repository_moved_during_repair(self, cleanup_delay):
         other = self.create_integration(
             organization=self.organization, external_id="other", provider="gitlab"
         )
@@ -845,10 +858,12 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         self.repo.refresh_from_db()
         assert self.repo.integration_id == other.id
         assert "webhook_id" not in self.repo.config
-        assert [call.request.method for call in responses.calls] == ["GET", "POST", "DELETE"]
+        cleanup_delay.assert_called_once()
+        assert [call.request.method for call in responses.calls] == ["GET", "POST"]
 
     @responses.activate
-    def test_task_discards_hook_when_repaired_concurrently(self):
+    @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
+    def test_task_queues_cleanup_when_repaired_concurrently(self, cleanup_delay):
         self._create_hook_while(
             lambda: Repository.objects.filter(id=self.repo.id).update(
                 config={**self.repo.config, "webhook_id": 99}
@@ -857,7 +872,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
         self.repo.refresh_from_db()
         assert self.repo.config["webhook_id"] == 99
-        assert [call.request.method for call in responses.calls] == ["GET", "POST", "DELETE"]
+        cleanup_delay.assert_called_once()
+        assert [call.request.method for call in responses.calls] == ["GET", "POST"]
 
     @responses.activate
     @patch("sentry.integrations.gitlab.tasks.metrics.incr")
@@ -878,7 +894,8 @@ class UpdateProjectWebhookTest(GitLabTestCase):
         incr.assert_any_call("gitlab.project_webhook.reconcile", tags={"outcome": "forbidden"})
 
     @responses.activate
-    def test_task_adopts_marked_hook(self):
+    @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
+    def test_task_adopts_marked_hook_and_queues_duplicate_cleanup(self, cleanup_delay):
         self._set_missing_webhook()
         self._add_hook_list(
             [
@@ -902,6 +919,14 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             "webhook_reconciliation_id": self.reconciliation_id,
             "webhook_id": 100,
         }
+        cleanup_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            101,
+            self.reconciliation_id,
+        )
         assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
 
     @responses.activate
@@ -942,7 +967,7 @@ class UpdateProjectWebhookTest(GitLabTestCase):
             update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
 
         self.repo.refresh_from_db()
-        assert self.repo.config["webhook_reconciliation_id"] == self.reconciliation_id
+        assert self.repo.config["webhook_reconciliation_pending"] is True
         assert "webhook_id" not in self.repo.config
 
         responses.reset()
@@ -957,7 +982,171 @@ class UpdateProjectWebhookTest(GitLabTestCase):
 
         self.repo.refresh_from_db()
         assert self.repo.config["webhook_id"] == 100
+        assert "webhook_reconciliation_pending" not in self.repo.config
         assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
+
+    @responses.activate
+    @patch("sentry.integrations.gitlab.tasks.delete_redundant_project_webhook.delay")
+    def test_task_resumes_duplicate_cleanup_while_pending(self, cleanup_delay):
+        self.repo.update(
+            config={
+                **self.repo.config,
+                "webhook_reconciliation_id": self.reconciliation_id,
+                "webhook_reconciliation_pending": True,
+            }
+        )
+        responses.add(
+            responses.PUT,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/webhook-1",
+            json={"id": "webhook-1"},
+        )
+        self._add_hook_list(
+            [
+                {"id": 100, "url": self._marked_webhook_url()},
+                {"id": 101, "url": self._unmarked_webhook_url()},
+            ]
+        )
+
+        update_project_webhook(self.integration.id, self.organization.id, self.repo.id)
+
+        self.repo.refresh_from_db()
+        assert "webhook_reconciliation_pending" not in self.repo.config
+        cleanup_delay.assert_called_once_with(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+    @responses.activate
+    def test_cleanup_deletes_only_an_exact_unreferenced_hook(self):
+        self._set_missing_webhook()
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
+            json={"id": 100, "url": self._marked_webhook_url()},
+        )
+        responses.add(
+            responses.DELETE,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
+            status=204,
+        )
+
+        delete_redundant_project_webhook(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+        assert [call.request.method for call in responses.calls] == ["GET", "DELETE"]
+
+    @responses.activate
+    def test_cleanup_preserves_a_hook_without_the_exact_marker(self):
+        self._set_missing_webhook()
+        responses.add(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
+            json={"id": 100, "url": self._unmarked_webhook_url()},
+        )
+
+        delete_redundant_project_webhook(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+        assert [call.request.method for call in responses.calls] == ["GET"]
+
+    @responses.activate
+    def test_cleanup_preserves_stored_hook_after_integration_repoint(self):
+        other = self.create_integration(
+            organization=self.organization, external_id="other", provider="gitlab"
+        )
+        Repository.objects.filter(id=self.repo.id).update(
+            integration_id=other.id,
+            config={
+                "project_id": "101",
+                "webhook_id": 100,
+                "webhook_reconciliation_id": self.reconciliation_id,
+            },
+        )
+
+        delete_redundant_project_webhook(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_cleanup_preserves_hook_repointed_during_remote_fetch(self):
+        self._set_missing_webhook()
+        other = self.create_integration(
+            organization=self.organization, external_id="other", provider="gitlab"
+        )
+
+        def get_hook(request):
+            Repository.objects.filter(id=self.repo.id).update(
+                integration_id=other.id,
+                config={
+                    "project_id": "101",
+                    "webhook_id": 100,
+                    "webhook_reconciliation_id": self.reconciliation_id,
+                },
+            )
+            return 200, {}, f'{{"id": 100, "url": "{self._marked_webhook_url()}"}}'
+
+        responses.add_callback(
+            responses.GET,
+            "https://example.gitlab.com/api/v4/projects/101/hooks/100",
+            callback=get_hook,
+        )
+
+        delete_redundant_project_webhook(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+        assert [call.request.method for call in responses.calls] == ["GET"]
+
+    @patch("sentry.integrations.gitlab.tasks.logger.info")
+    @patch(
+        "sentry.integrations.gitlab.integration.GitlabIntegration.get_client",
+        side_effect=IntegrationConfigurationError("Identity not found."),
+    )
+    def test_cleanup_halts_when_identity_is_unavailable(self, get_client, logger_info):
+        self._set_missing_webhook()
+
+        delete_redundant_project_webhook(
+            self.integration.id,
+            self.organization.id,
+            self.repo.id,
+            "101",
+            100,
+            self.reconciliation_id,
+        )
+
+        get_client.assert_called_once()
+        logger_info.assert_called_once_with(
+            "delete-redundant-project-webhook.identity-unavailable",
+            extra={"project_id": "101", "webhook_id": 100},
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
