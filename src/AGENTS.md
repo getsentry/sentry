@@ -76,7 +76,7 @@ The `ViewerContext` contextvar carries the current viewer's identity. When the v
 - `requires_user = True` on an endpoint: the same check for the whole endpoint.
 - `set_request_principal(request, user, auth)`: the only place `request.user` and `request.auth` are set.
 
-A service account is a `ServiceAccountPrincipal`: no user; its access is `request.access`. Personal state (bookmarks, "is this mine?") needs a user; "who did this" fields record None. Never look rows up by a possibly-None user id: `filter(user_id=None)` matches rows with no user.
+A service account is a `ServiceAccountPrincipal`: no user; its access is `request.access`. Personal state (bookmarks, "is this mine?") needs a user; "who did this" fields record None. Never look rows up by a possibly-None user id: `filter(user_id=None)` matches rows with no user (S032).
 
 ### Permissions
 

@@ -2043,3 +2043,57 @@ class S(serializers.Serializer):
     errors = _run_s023(src)
     assert len(errors) == 1
     assert "deprecate='gone'" in errors[0]
+
+
+def test_S032() -> None:
+    src = """\
+def get(self, request):
+    Bookmark.objects.filter(user_id=acting_user_id(request.user))  # bad
+    Bookmark.objects.get_or_create(user_id=acting_user_id(self.request.user))  # bad
+    Bookmark.objects.create(created_by_id=acting_user_id(request.user))  # ok: records no user
+    Bookmark.objects.filter(user_id=request.user.id)  # ok: raises for no user
+    organization_service.get(user_id=acting_user_id(request.user))  # ok: not a queryset
+    Bookmark.objects.filter(project=p).exclude(user_id=acting_user_id(request.user))  # bad
+    user_id = acting_user_id(request.user)  # ok
+"""
+    msg = (
+        "S032 acting_user_id() is None when no user is calling (e.g. a service account), "
+        "and a None lookup matches rows with no user; call require_user(request) or handle "
+        "None first"
+    )
+    assert _run(src, filename="src/sentry/example.py") == [
+        f"t.py:2:28: {msg}",
+        f"t.py:3:35: {msg}",
+        f"t.py:7:47: {msg}",
+    ]
+
+
+def test_S033() -> None:
+    src = """\
+def get(self, request, drf_request):
+    request.user = user  # bad
+    self.request.auth: Any = auth  # bad
+    drf_request.user += 1  # bad
+    request.user, request.auth = user, auth  # bad x2
+    setattr(request, "user", user)  # bad
+    setattr(self.request, "auth", auth)  # bad
+    request.user_from_viewer_context = True  # ok: other attribute
+    setattr(request, "is_sudo", lambda: False)  # ok: other attribute
+    user.auth = auth  # ok: not a request
+    set_request_principal(request, user, auth)  # ok
+"""
+    msg = (
+        "S033 Don't assign request.user or request.auth directly; call "
+        "set_request_principal(request, user, auth)."
+    )
+    assert _run(src, filename="src/sentry/example.py") == [
+        f"t.py:2:4: {msg}",
+        f"t.py:3:4: {msg}",
+        f"t.py:4:4: {msg}",
+        f"t.py:5:4: {msg}",
+        f"t.py:5:18: {msg}",
+        f"t.py:6:4: {msg}",
+        f"t.py:7:4: {msg}",
+    ]
+    assert _run(src, filename="src/sentry/auth/principal.py") == []
+    assert _run(src, filename="tests/sentry/example.py") == []
