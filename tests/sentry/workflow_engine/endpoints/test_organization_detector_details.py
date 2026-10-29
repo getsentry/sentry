@@ -42,6 +42,7 @@ from sentry.workflow_engine.models import (
     DataSource,
     DataSourceDetector,
     Detector,
+    Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
@@ -937,6 +938,49 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 ).count()
                 == 1
             )
+
+    def test_update_workflows_cannot_attach_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **{**self.valid_data, "workflowIds": [hidden_workflow.id]},
+            status_code=400,
+        )
+
+        assert "Some workflows do not exist" in str(response.data)
+
+        assert not DetectorWorkflow.objects.filter(detector=self.detector).exists()
+
+    def test_update_workflows_keeps_hidden_workflow_connection(self) -> None:
+        alert_workflow = self.create_workflow(organization_id=self.organization.id)
+
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.detector, workflow=hidden_workflow)
+
+        with outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.detector.id,
+                workflowIds=[alert_workflow.id],
+                status_code=200,
+            )
+
+        assert response.data["workflowIds"] == [str(alert_workflow.id)]
+
+        connected_workflow_ids = set(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        )
+
+        assert connected_workflow_ids == {alert_workflow.id, hidden_workflow.id}
 
     def test_update_workflows_invalid_workflow_ids(self) -> None:
         """Test validation failure with non-existent workflow IDs"""
