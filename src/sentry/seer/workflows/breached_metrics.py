@@ -10,10 +10,12 @@ from django.utils import timezone
 from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from sentry import features
+from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
@@ -25,6 +27,17 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.workflow import SeerWorkflow, matches_workflow_scope
 from sentry.services.eventstore.models import GroupEvent
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.models.data_condition import Condition
 
 
 @dataclass(frozen=True)
@@ -116,6 +129,94 @@ class BreachedMetricWorkflow(SeerWorkflow):
             filters=SeerWorkflowFilters(all_projects=True, environments=list(environments)).dict(),
         )
         return cls(config_id=config.id, organization_id=organization_id)
+
+    def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
+        """Replace existing monitor connections, creating the backing workflow on first use.
+
+        The caller is responsible for authorization and auditing. This method
+        validates organization/type boundaries and updates the graph atomically
+        under the config lock. An empty selection disconnects all monitors.
+        """
+        with self._lock_config() as config:
+            if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                raise ValueError("Only metric automations support monitor selection.")
+
+            selected = set(monitor_ids)
+            eligible = set(
+                Detector.objects.filter(
+                    id__in=selected,
+                    project__organization_id=self.organization_id,
+                    project__status=ObjectStatus.ACTIVE,
+                    type=MetricIssue.slug,
+                    status=ObjectStatus.ACTIVE,
+                ).values_list("id", flat=True)
+            )
+            if selected != eligible:
+                raise ValueError(
+                    "Selected monitors must be active metric monitors in this organization."
+                )
+
+            workflows = list(
+                Workflow.objects.filter(
+                    organization_id=self.organization_id,
+                    workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__seer_workflow_binding__workflow_config=config,
+                ).distinct()
+            )
+            connections = list(
+                DetectorWorkflow.objects.filter(workflow__in=workflows).values_list(
+                    "workflow_id", "detector_id"
+                )
+            )
+            existing = {detector_id for _, detector_id in connections}
+            connected_workflow_ids = {workflow_id for workflow_id, _ in connections}
+            # Retired routes may still have bindings. Leave disabled, disconnected
+            # workflows alone when there is another backing workflow in use.
+            candidates = [
+                workflow
+                for workflow in workflows
+                if workflow.enabled or workflow.id in connected_workflow_ids
+            ] or workflows
+
+            workflow: Workflow | None
+            if not candidates:
+                workflow = self._create_monitor_workflow(config)
+            elif existing != selected:
+                if len(candidates) != 1:
+                    raise ValueError(
+                        "Changing monitor selection requires a single backing workflow in use."
+                    )
+                workflow = candidates[0]
+                if (
+                    Action.objects.filter(
+                        dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
+                    )
+                    .exclude(seer_workflow_binding__workflow_config=config)
+                    .exists()
+                ):
+                    raise ValueError(
+                        "The backing workflow must contain only this automation's actions."
+                    )
+            else:
+                workflow = None
+
+            if workflow is not None:
+                DetectorWorkflow.objects.filter(workflow=workflow).exclude(
+                    detector_id__in=selected
+                ).delete()
+                DetectorWorkflow.objects.bulk_create(
+                    [
+                        DetectorWorkflow(workflow=workflow, detector_id=monitor_id)
+                        for monitor_id in sorted(selected - existing)
+                    ]
+                )
+
+            scope_changed = not config.filters.get("all_projects")
+            if scope_changed:
+                config.filters = {**config.filters, "all_projects": True}
+                SeerWorkflowConfigProject.objects.filter(config=config).delete()
+            if existing != selected or scope_changed:
+                config.version += 1
+                config.save(update_fields=["filters", "version", "date_updated"])
 
     def accept(
         self,
@@ -225,3 +326,36 @@ class BreachedMetricWorkflow(SeerWorkflow):
             workflow_run.start_execution(execution.id)
             workflow_run.complete_execution(execution.id)
             return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)
+
+    def _create_monitor_workflow(self, config: SeerWorkflowConfig) -> Workflow:
+        triggers = DataConditionGroup.objects.create(
+            organization_id=self.organization_id,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        )
+        DataCondition.objects.create(
+            condition_group=triggers,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow = Workflow.objects.create(
+            organization_id=self.organization_id,
+            name=f"Seer metric automation {config.id}",
+            enabled=True,
+            config={},
+            when_condition_group=triggers,
+        )
+        action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        SeerWorkflowTriggerBinding.objects.create(workflow_config=config, trigger_action=action)
+        action_group = DataConditionGroup.objects.create(
+            organization_id=self.organization_id, logic_type=DataConditionGroup.Type.ALL
+        )
+        DataCondition.objects.create(
+            condition_group=action_group,
+            type=Condition.ISSUE_TYPE,
+            comparison={"value": MetricIssue.slug},
+            condition_result=True,
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
+        return workflow

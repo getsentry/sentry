@@ -11,6 +11,7 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from pydantic import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -18,11 +19,13 @@ from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
+    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.breached_metrics import (
     AcceptedMetricBreach,
@@ -40,7 +43,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
-from sentry.workflow_engine.models import Action, Detector, DetectorWorkflow
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    Detector,
+    DetectorWorkflow,
+    Workflow,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.processors.action import is_action_permitted
 from sentry.workflow_engine.processors.evaluations import ProcessWorkflowsResult
@@ -607,3 +617,295 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         group_event = stored.for_group(group)
         group_event.occurrence = occurrence
         return group_event, detector
+
+
+@with_feature("organizations:seer-automations")
+class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.monitors = [
+            self.create_detector(project=self.create_project(), type=MetricIssue.slug)
+            for _ in range(3)
+        ]
+        self.monitor_ids = [monitor.id for monitor in self.monitors]
+        self.config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            filters={"all_projects": False, "environments": ["production"]},
+        )
+
+    def test_creates_complete_graph_for_existing_monitors(self) -> None:
+        Factories.create_seer_workflow_config_project(self.config, self.monitors[0].project)
+
+        updated = self.select_monitors([*self.monitor_ids, self.monitor_ids[0]])
+
+        workflow = Workflow.objects.get(organization=self.organization)
+        binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
+        assert updated.filters == {"all_projects": True, "environments": ["production"]}
+        assert updated.version == 2
+        assert not SeerWorkflowConfigProject.objects.filter(config=self.config).exists()
+        assert set(workflow.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+        assert workflow.enabled
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        trigger = workflow.when_condition_group.conditions.get()
+        assert (trigger.type, trigger.comparison) == (Condition.FIRST_SEEN_EVENT, True)
+        action = binding.trigger_action
+        assert (action.type, action.config, action.data) == (Action.Type.SEER_WORKFLOW, {}, {})
+        action_group = workflow.workflowdataconditiongroup_set.get().condition_group
+        assert DataConditionGroupAction.objects.get(condition_group=action_group).action == action
+        condition = action_group.conditions.get()
+        assert (condition.type, condition.comparison) == (
+            Condition.ISSUE_TYPE,
+            {"value": MetricIssue.slug},
+        )
+
+    def test_replaces_selection_idempotently_preserving_other_alerts(self) -> None:
+        self.select_monitors(self.monitor_ids[:2])
+        backing = Workflow.objects.get(organization=self.organization)
+        binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
+        unrelated = self.create_detector_workflow(
+            detector=self.monitors[0], workflow=self.create_workflow(organization=self.organization)
+        )
+        selected = self.monitor_ids[1:]
+
+        changed = self.select_monitors(selected)
+        assert changed.version == 3
+        connections = list(backing.detectorworkflow_set.values_list("id", flat=True))
+        repeated = self.select_monitors([*reversed(selected), selected[0]])
+        assert repeated.version == changed.version
+        assert list(backing.detectorworkflow_set.values_list("id", flat=True)) == connections
+
+        assert self.select_monitors([]).version == 4
+        assert not backing.detectorworkflow_set.exists()
+        assert DetectorWorkflow.objects.filter(id=unrelated.id).exists()
+
+        assert self.select_monitors(self.monitor_ids).version == 5
+        assert Workflow.objects.filter(organization=self.organization).count() == 2
+        assert SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config).id == binding.id
+        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+
+    def test_empty_selection_provisions_once_and_reuses_disabled_workflow(self) -> None:
+        created = self.select_monitors([])
+        backing = Workflow.objects.get(organization=self.organization)
+        backing.update(enabled=False)
+
+        assert self.select_monitors([]).version == created.version
+        self.select_monitors(self.monitor_ids)
+
+        backing.refresh_from_db()
+        assert not backing.enabled
+        assert Workflow.objects.filter(organization=self.organization).count() == 1
+        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+
+    def test_retired_disconnected_workflow_does_not_block_updates(self) -> None:
+        created = self.select_monitors(self.monitor_ids)
+        backing = Workflow.objects.get(organization=self.organization)
+        retired = self.create_bound_workflow(enabled=False)
+        binding_ids = list(SeerWorkflowTriggerBinding.objects.values_list("id", flat=True))
+
+        assert self.select_monitors(self.monitor_ids).version == created.version
+        self.select_monitors(self.monitor_ids[1:])
+
+        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids[1:]
+        )
+        retired.refresh_from_db()
+        assert not retired.enabled
+        assert not retired.detectorworkflow_set.exists()
+        assert list(SeerWorkflowTriggerBinding.objects.values_list("id", flat=True)) == binding_ids
+
+    def test_multiple_connected_workflows_allow_only_unchanged_selection(self) -> None:
+        created = self.select_monitors(self.monitor_ids[:1])
+        second = self.create_bound_workflow(enabled=False)
+        self.create_detector_workflow(detector=self.monitors[1], workflow=second)
+        before = list(DetectorWorkflow.objects.values_list("id", "workflow_id", "detector_id"))
+
+        assert self.select_monitors(self.monitor_ids[:2]).version == created.version
+        with pytest.raises(ValueError, match="single backing workflow in use"):
+            self.select_monitors(self.monitor_ids)
+
+        assert (
+            list(DetectorWorkflow.objects.values_list("id", "workflow_id", "detector_id")) == before
+        )
+
+    def test_rejects_changes_to_workflow_shared_with_other_actions(self) -> None:
+        self.select_monitors(self.monitor_ids)
+        backing = Workflow.objects.get(organization=self.organization)
+        self.create_data_condition_group_action(
+            action=self.create_action(),
+            condition_group=backing.workflowdataconditiongroup_set.get().condition_group,
+        )
+
+        with pytest.raises(ValueError, match="only this automation's actions"):
+            self.select_monitors([])
+
+        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+
+    def test_automations_keep_independent_monitor_selections(self) -> None:
+        self.select_monitors(self.monitor_ids)
+        other = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        BreachedMetricWorkflow(
+            config_id=other.id, organization_id=self.organization.id
+        ).set_monitor_selection(self.monitor_ids)
+        self.select_monitors([])
+
+        remaining = Workflow.objects.get(detectorworkflow__detector=self.monitors[0])
+        assert set(remaining.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids
+        )
+        action_group = remaining.workflowdataconditiongroup_set.get().condition_group
+        action = DataConditionGroupAction.objects.get(condition_group=action_group).action
+        assert action.seer_workflow_binding.workflow_config_id == other.id
+
+    def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:
+        invalid_monitors = [
+            self.create_detector(project=self.project),
+            self.create_detector(
+                project=self.create_project(organization=self.create_organization()),
+                type=MetricIssue.slug,
+            ),
+            self.create_detector(
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.PENDING_DELETION
+            ),
+            self.create_detector(
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+            ),
+            self.create_detector(
+                project=self.create_project(status=ObjectStatus.PENDING_DELETION),
+                type=MetricIssue.slug,
+            ),
+        ]
+        for monitor in invalid_monitors:
+            with pytest.raises(ValueError, match="active metric monitors in this organization"):
+                self.select_monitors([self.monitor_ids[0], monitor.id])
+
+        self.config.refresh_from_db()
+        assert self.config.version == 1
+        assert not Workflow.objects.exists()
+        assert not SeerWorkflowTriggerBinding.objects.exists()
+
+    def test_snoozed_monitor_can_be_connected(self) -> None:
+        self.monitors[0].update(enabled=False)
+        self.select_monitors([self.monitor_ids[0]])
+        assert DetectorWorkflow.objects.filter(detector=self.monitors[0]).exists()
+
+    def test_rejects_foreign_config_and_non_metric_strategy(self) -> None:
+        other = Factories.create_seer_workflow_config(
+            self.create_organization(), strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        with pytest.raises(SeerWorkflowConfig.DoesNotExist):
+            BreachedMetricWorkflow(
+                config_id=other.id, organization_id=self.organization.id
+            ).set_monitor_selection(self.monitor_ids)
+
+        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        with pytest.raises(ValueError, match="Only metric automations"):
+            self.select_monitors(self.monitor_ids)
+        assert not Workflow.objects.exists()
+
+    def test_failed_binding_rolls_back_graph_and_config_changes(self) -> None:
+        before_groups = DataConditionGroup.objects.count()
+        with (
+            mock.patch(
+                "sentry.seer.workflows.breached_metrics.SeerWorkflowTriggerBinding.objects.create",
+                side_effect=RuntimeError("binding failed"),
+            ),
+            pytest.raises(RuntimeError, match="binding failed"),
+        ):
+            self.select_monitors(self.monitor_ids)
+
+        assert not Workflow.objects.exists()
+        assert not Action.objects.exists()
+        assert not DetectorWorkflow.objects.exists()
+        assert DataConditionGroup.objects.count() == before_groups
+        self.config.refresh_from_db()
+        assert self.config.version == 1
+        assert self.config.filters == {"all_projects": False, "environments": ["production"]}
+
+    def test_connected_breach_starts_run_and_disconnect_stops_it(self) -> None:
+        self.select_monitors(self.monitor_ids)
+        for monitor in self.monitors:
+            self.process_breach(monitor)
+        assert SeerWorkflowRun.objects.filter(workflow_config=self.config).count() == 3
+        assert set(SeerWorkflowRunExecution.objects.values_list("extras__result", flat=True)) == {
+            "noop"
+        }
+
+        self.select_monitors([])
+        self.process_breach(self.monitors[0])
+        assert SeerWorkflowRun.objects.filter(workflow_config=self.config).count() == 3
+
+    def test_failed_replacement_preserves_connections_and_config_version(self) -> None:
+        original = self.select_monitors(self.monitor_ids[:2])
+        with (
+            mock.patch(
+                "sentry.seer.workflows.breached_metrics.DetectorWorkflow.objects.bulk_create",
+                side_effect=RuntimeError("connection failed"),
+            ),
+            pytest.raises(RuntimeError, match="connection failed"),
+        ):
+            self.select_monitors(self.monitor_ids[1:])
+
+        self.config.refresh_from_db()
+        assert self.config.version == original.version
+        assert set(DetectorWorkflow.objects.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids[:2]
+        )
+
+    def select_monitors(self, monitor_ids: list[int]) -> SeerWorkflowConfig:
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+        workflow.set_monitor_selection(monitor_ids)
+        return workflow.get_config()
+
+    def create_bound_workflow(self, *, enabled: bool) -> Workflow:
+        workflow = self.create_workflow(organization=self.organization, enabled=enabled)
+        group = self.create_data_condition_group(organization=self.organization)
+        self.create_workflow_data_condition_group(workflow=workflow, condition_group=group)
+        action = self.create_action(type=Action.Type.SEER_WORKFLOW)
+        self.create_data_condition_group_action(condition_group=group, action=action)
+        Factories.create_seer_workflow_trigger_binding(self.config, action)
+        return workflow
+
+    def process_breach(self, monitor: Detector) -> None:
+        group = self.create_group(
+            project=monitor.project, type=MetricIssue.type_id, create_open_period=False
+        )
+        self.create_detector_group(detector=monitor, group=group)
+        event_id = uuid4().hex
+        occurrence = self.build_occurrence(
+            event_id=event_id,
+            project_id=group.project_id,
+            type=MetricIssue.type_id,
+            evidence_data={"detector_id": monitor.id, "value": 180},
+        )
+        occurrence.save()
+        event = self.store_event(
+            data={"event_id": event_id, "environment": "production"}, project_id=group.project_id
+        ).for_group(group)
+        event.occurrence = occurrence
+        with self.tasks():
+            process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(
+                    event=event,
+                    group=group,
+                    group_state=GroupState(
+                        id=group.id, is_new=True, is_regression=False, is_new_group_environment=True
+                    ),
+                ),
+                event.datetime,
+            )
