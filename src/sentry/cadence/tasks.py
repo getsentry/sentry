@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import options
-from sentry.cadence.models import ScheduledTrigger
-from sentry.cadence.registry import trigger_action_registry
+from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType
+from sentry.cadence.registry import TriggerContext, trigger_action_registry
 from sentry.cadence.schedule import advance
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -28,11 +31,13 @@ TICK_MAX_BATCHES = 20
 )
 def cadence_tick() -> None:
     """
-    Claim every trigger that is due and dispatch a run for each.
+    Claim every trigger that is due and dispatch its run, in batches. Each batch is
+    claimed and committed before its actions are called, and each trigger type's action
+    is called once with all of that type's runs in the batch.
 
-    Delivery is best-effort, not guaranteed: a claimed run is lost if dispatching it
-    fails, and taskbroker may occasionally deliver a run twice. Runs missed while the
-    tick is behind or disabled are skipped, not caught up.
+    Delivery is best-effort, not guaranteed: claimed runs are lost if their action fails,
+    and a run may occasionally be dispatched twice. Runs missed while the tick is behind
+    or disabled are skipped, not caught up.
     """
     if not options.get("cadence.tick.enabled"):
         return
@@ -40,74 +45,79 @@ def cadence_tick() -> None:
     claimed_count = 0
     try:
         for _ in range(TICK_MAX_BATCHES):
-            due = list(
-                ScheduledTrigger.objects.filter(next_run_at__lte=now).order_by("next_run_at")[
-                    :TICK_BATCH_SIZE
-                ]
-            )
-            claimed_at = timezone.now()
-            for trigger in due:
-                scheduled_for = trigger.next_run_at
-                assert scheduled_for is not None
-                # Only the process that moves next_run_at forward gets to dispatch the run.
-                claimed = ScheduledTrigger.objects.filter(
-                    id=trigger.id, next_run_at=scheduled_for
-                ).update(next_run_at=advance(trigger, scheduled_for, now), last_run_at=now)
-                if not claimed:
-                    continue
-                claimed_count += 1
-                metrics.distribution(
-                    "cadence.trigger.claim_lag",
-                    (claimed_at - scheduled_for).total_seconds(),
-                    tags={"trigger_type": trigger.trigger_type},
-                    unit="second",
-                )
-                execute_scheduled_trigger.delay(trigger.id, scheduled_for.isoformat())
-            if len(due) < TICK_BATCH_SIZE:
+            claimed, selected = _claim_batch(now)
+            claimed_count += len(claimed)
+            _dispatch(claimed)
+            if selected < TICK_BATCH_SIZE:
                 return
         logger.warning("cadence.tick.batch_limit_reached", extra={"max_batches": TICK_MAX_BATCHES})
     finally:
         metrics.distribution("cadence.tick.claimed", claimed_count)
 
 
-@instrumented_task(
-    name="sentry.cadence.tasks.execute_scheduled_trigger",
-    namespace=issues_tasks,
-    processing_deadline_duration=60,
-    silo_mode=SiloMode.CELL,
-)
-def execute_scheduled_trigger(trigger_id: int, scheduled_for: str) -> None:
+def _claim_batch(now: datetime) -> tuple[dict[ScheduledTriggerType, list[TriggerContext]], int]:
     """
-    Run the registered action for a trigger. A run is usually executed exactly once,
-    but may occasionally be lost or executed twice (see cadence_tick).
-
-    Action failures are logged and recorded, not raised or retried: the next run is
-    already scheduled, and a failing action must not affect the task or other triggers.
+    Advance the next run of up to TICK_BATCH_SIZE due triggers, returning the claimed runs
+    grouped by trigger type, and how many triggers were selected. Rows locked by a
+    concurrent tick are skipped, so overlapping ticks split the work.
     """
-    if not options.get("cadence.tick.enabled"):
-        return
-    scheduled_for_dt = datetime.fromisoformat(scheduled_for)
-    trigger = ScheduledTrigger.objects.get_or_none(id=trigger_id)
-    if trigger is None:
-        return
+    claimed: dict[ScheduledTriggerType, list[TriggerContext]] = defaultdict(list)
+    with transaction.atomic(using=router.db_for_write(ScheduledTrigger)):
+        due = list(
+            ScheduledTrigger.objects.select_for_update(skip_locked=True)
+            .filter(next_run_at__lte=now)
+            .order_by("next_run_at")[:TICK_BATCH_SIZE]
+        )
+        for trigger in due:
+            scheduled_for = trigger.next_run_at
+            assert scheduled_for is not None
+            # A bad row must not fail the batch: it would stay due and block every tick.
+            try:
+                trigger.next_run_at = advance(trigger, scheduled_for, now)
+                trigger_type = ScheduledTriggerType(trigger.trigger_type)
+            except Exception:
+                logger.exception(
+                    "cadence.trigger.unschedulable",
+                    extra={"trigger_id": trigger.id, "trigger_type": trigger.trigger_type},
+                )
+                trigger.next_run_at = None
+                continue
+            claimed[trigger_type].append(
+                TriggerContext(
+                    organization_id=trigger.organization_id,
+                    trigger_type=trigger_type,
+                    target_id=trigger.target_id,
+                    scheduled_for=scheduled_for,
+                )
+            )
+        ScheduledTrigger.objects.bulk_update(due, ["next_run_at"])
+    return claimed, len(due)
 
-    tags = {"trigger_type": trigger.trigger_type}
-    metrics.distribution(
-        "cadence.trigger.execute_lag",
-        (timezone.now() - scheduled_for_dt).total_seconds(),
-        tags=tags,
-        unit="second",
-    )
+
+def _dispatch(claimed: dict[ScheduledTriggerType, list[TriggerContext]]) -> None:
+    """Call each trigger type's action with its runs. One type's failure doesn't affect others."""
+    dispatched_at = timezone.now()
+    for trigger_type, contexts in claimed.items():
+        tags = {"trigger_type": trigger_type.value}
+        for ctx in contexts:
+            metrics.distribution(
+                "cadence.trigger.dispatch_lag",
+                (dispatched_at - ctx.scheduled_for).total_seconds(),
+                tags=tags,
+                unit="second",
+            )
+        _dispatch_type(trigger_type, contexts, tags)
+
+
+def _dispatch_type(
+    trigger_type: ScheduledTriggerType, contexts: Sequence[TriggerContext], tags: dict[str, str]
+) -> None:
     try:
-        with metrics.timer("cadence.trigger.execute_duration", tags=tags):
-            action = trigger_action_registry.get(trigger.trigger_type)
-            action(trigger.id, scheduled_for_dt)
+        with metrics.timer("cadence.trigger.dispatch_duration", tags=tags):
+            trigger_action_registry.get(trigger_type)(contexts)
     except Exception:
+        metrics.incr("cadence.trigger.dispatch_failed", amount=len(contexts), tags=tags)
         logger.exception(
-            "cadence.trigger.execute_failed",
-            extra={
-                "trigger_id": trigger.id,
-                "trigger_type": trigger.trigger_type,
-                "scheduled_for": scheduled_for,
-            },
+            "cadence.trigger.dispatch_failed",
+            extra={"trigger_type": trigger_type.value, "run_count": len(contexts)},
         )

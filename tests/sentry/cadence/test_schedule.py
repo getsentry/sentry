@@ -1,12 +1,15 @@
 from datetime import UTC, datetime, timedelta
+from unittest.mock import patch
 
 import pytest
 
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType, ScheduleType
 from sentry.cadence.schedule import (
+    CronSchedule,
     IntervalSchedule,
     InvalidSchedule,
     advance,
+    cron,
     every,
     next_run_after,
     reschedule_for_new_interval,
@@ -43,9 +46,57 @@ def test_interval_schedule_rejects_invalid(interval: timedelta) -> None:
         every(interval)
 
 
+def test_cron_builds_cron_schedule() -> None:
+    schedule = cron("0 10 * * *")
+    assert schedule == CronSchedule("0 10 * * *", "UTC")
+    assert schedule.schedule_type == ScheduleType.CRON
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["*/30 * * * *", "0 10 * * *", "0 9 * * 1-5", "0 0 1 * *", "0 0 1 1 *"],
+)
+def test_cron_schedule_accepts_valid(expression: str) -> None:
+    assert cron(expression).expression == expression
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "",
+        "bad",
+        "61 * * * *",
+        "0 10 * * * *",
+        "0 0 30 2 *",
+        # Too frequent.
+        "* * * * *",
+        "*/15 * * * *",
+        # Mostly hourly, but two runs 10 minutes apart once a day.
+        "0,10 9 * * *",
+    ],
+)
+def test_cron_schedule_rejects_invalid(expression: str) -> None:
+    with pytest.raises(InvalidSchedule):
+        cron(expression)
+
+
+def test_cron_schedule_rejects_unknown_timezone() -> None:
+    with pytest.raises(InvalidSchedule):
+        cron("0 10 * * *", "Mars/Olympus_Mons")
+
+
+def test_cron_schedule_next_after_uses_timezone() -> None:
+    # 09:00 in New York is 14:00 UTC before the March 10 DST change, 13:00 UTC after.
+    schedule = cron("0 9 * * *", "America/New_York")
+    assert schedule.next_after(NOW) == datetime(2024, 3, 9, 14, 0, tzinfo=UTC)
+    assert schedule.next_after(datetime(2024, 3, 10, 15, 0, tzinfo=UTC)) == datetime(
+        2024, 3, 11, 13, 0, tzinfo=UTC
+    )
+
+
 def interval_trigger(interval: timedelta) -> ScheduledTrigger:
     return ScheduledTrigger(
-        trigger_type=ScheduledTriggerType.TRIAGE,
+        trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
         schedule_type=ScheduleType.INTERVAL,
         interval_seconds=int(interval.total_seconds()),
     )
@@ -53,7 +104,7 @@ def interval_trigger(interval: timedelta) -> ScheduledTrigger:
 
 def cron_trigger(expression: str, tz: str = "UTC") -> ScheduledTrigger:
     return ScheduledTrigger(
-        trigger_type=ScheduledTriggerType.TRIAGE,
+        trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
         schedule_type=ScheduleType.CRON,
         cron_expression=expression,
         timezone=tz,
@@ -64,9 +115,23 @@ def test_schedule_of_interval_trigger() -> None:
     assert schedule_of(interval_trigger(timedelta(hours=2))) == every(timedelta(hours=2))
 
 
-def test_schedule_of_cron_trigger_not_supported_yet() -> None:
-    with pytest.raises(NotImplementedError):
-        schedule_of(cron_trigger("0 * * * *"))
+def test_schedule_of_cron_trigger() -> None:
+    assert schedule_of(cron_trigger("0 9 * * *", tz="America/New_York")) == cron(
+        "0 9 * * *", "America/New_York"
+    )
+
+
+def test_stored_schedules_are_not_validated_again() -> None:
+    with patch("sentry.cadence.schedule._cron_error", return_value=None) as cron_error:
+        assert schedule_of(cron_trigger("0 9 * * *")) == CronSchedule("0 9 * * *")
+        advance(cron_trigger("0 * * * *"), NOW, NOW)
+    # Only the CronSchedule built for comparison above was validated.
+    cron_error.assert_called_once_with("0 9 * * *", "UTC")
+
+    # A stored schedule that today's rules would reject still loads.
+    stored = schedule_of(interval_trigger(timedelta(minutes=5)))
+    assert isinstance(stored, IntervalSchedule)
+    assert stored.interval == timedelta(minutes=5)
 
 
 def test_next_run_after_interval() -> None:
