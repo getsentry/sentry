@@ -28,9 +28,13 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'strategy', width: '1fr'},
 ];
 
-export function RunsTable() {
+/**
+ * Pass `configId` to only show one automation's runs
+ */
+export function RunsTable({configId}: {configId?: string}) {
   const location = useLocation();
   const {runs, pageLinks, isPending, isError, refetch} = useAutomationRuns({
+    configId,
     cursor: decodeScalar(location.query.cursor),
   });
 

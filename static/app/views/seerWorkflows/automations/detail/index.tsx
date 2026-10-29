@@ -7,6 +7,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -23,7 +24,7 @@ import {
 } from 'sentry/views/seerWorkflows/automations';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
-  SeerWorkflowConfigsResponse,
+  SeerWorkflowConfigResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
@@ -45,20 +46,23 @@ export default function AutomationDetail() {
   const automationsEnabled = useAutomationsEnabled();
   const {automationId} = useParams<{automationId: string}>();
 
-  // TODO(aliu): Fetch the single config once the API supports it
-  const {data, isPending} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+  // TEMPORARY: placeholder configs are only known to the frontend
+  const placeholderConfig = PLACEHOLDER_CONFIGS.find(c => c.id === automationId);
+  const {data, isPending, isError, error, refetch} = useQuery(
+    apiOptions.as<SeerWorkflowConfigResponse>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
       {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        path:
+          automationsEnabled && !placeholderConfig
+            ? {organizationIdOrSlug: organization.slug, configId: automationId}
+            : skipToken,
         staleTime: 0,
       }
     )
   );
-  const configs: AutomationConfig[] = automationsEnabled
-    ? [...PLACEHOLDER_CONFIGS, ...(data?.configs ?? [])]
-    : [];
-  const config = configs.find(c => c.id === automationId);
+  const config: AutomationConfig | undefined = automationsEnabled
+    ? (placeholderConfig ?? data)
+    : undefined;
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
     ? STRATEGY_META[strategy as WorkflowStrategy]
@@ -69,7 +73,9 @@ export default function AutomationDetail() {
   if (!config) {
     return (
       <Container padding="xl">
-        {automationsEnabled && isPending ? (
+        {automationsEnabled && isError && error.status !== 404 ? (
+          <LoadingError onRetry={refetch} />
+        ) : automationsEnabled && isPending ? (
           <Fragment>
             <TopBar.Slot
               name="breadcrumbs"

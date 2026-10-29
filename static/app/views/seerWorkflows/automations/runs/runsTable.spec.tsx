@@ -93,4 +93,17 @@ describe('RunsTable', () => {
     expect(await screen.findByText('1')).toBeInTheDocument();
     expect(nextPageRequest).toHaveBeenCalled();
   });
+
+  it('filters runs to a config', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: runsUrl,
+      body: {runs: [makeRun({id: '3', configId: '7'})]},
+      match: [MockApiClient.matchQuery({config: '7'})],
+    });
+
+    render(<RunsTable configId="7" />, {organization});
+
+    expect(await screen.findByText('3')).toBeInTheDocument();
+    expect(request).toHaveBeenCalled();
+  });
 });
