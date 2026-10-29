@@ -325,14 +325,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.billing.ondemand_budgets.legacy_upgrade_ondemand_max_spend",
             "getsentry.billing.switch_plan.switch_performance_plan",
         ),
-        # INFRENG-813: platform trial locks in TrialService._create_product_trial and
-        # _create_subscription_trial
-        (
-            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_product_trial",
-        ),
-        (
-            "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
-        ),
         # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
         (
             "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
