@@ -1208,6 +1208,66 @@ describe('Customer Details', () => {
     });
   });
 
+  describe('clear pending pay-as-you-go', () => {
+    const pendingPaygOrg = OrganizationFixture();
+
+    it('renders disabled without billing.admin permissions', async () => {
+      ConfigStore.set('user', mockUser);
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      expect(screen.getByTestId('clearPendingPayg')).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('clears pending pay-as-you-go', async () => {
+      ConfigStore.set('user', UserFixture({permissions: new Set(['billing.admin'])}));
+      setUpMocks(pendingPaygOrg, {pendingChanges: true});
+
+      const updateMock = MockApiClient.addMockResponse({
+        url: `/customers/${pendingPaygOrg.slug}/`,
+        method: 'PUT',
+        body: OrganizationFixture(),
+      });
+
+      render(<CustomerDetails />, {
+        initialRouterConfig: {
+          location: {pathname: `/customers/${pendingPaygOrg.slug}`},
+          route: '/customers/:orgId',
+        },
+        organization: pendingPaygOrg,
+      });
+
+      await openCustomerActions();
+
+      await userEvent.click(screen.getByText('Clear Pending Pay-as-you-go'));
+
+      renderGlobalModal();
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => {
+        expect(updateMock).toHaveBeenCalledWith(
+          `/customers/${pendingPaygOrg.slug}/`,
+          expect.objectContaining({
+            method: 'PUT',
+            data: {clearPendingPayg: true},
+          })
+        );
+      });
+    });
+  });
+
   describe('allow trial', () => {
     const cannotTrialOrg = OrganizationFixture({slug: 'cannot-trial-org'});
 

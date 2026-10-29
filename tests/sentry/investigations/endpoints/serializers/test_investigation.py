@@ -156,13 +156,6 @@ class InvestigationDetailsSerializerTest(TestCase):
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.parameter = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-        )
         self.block = self.create_investigation_block(investigation=self.investigation, position=0)
 
     def serialize_detail(self) -> InvestigationDetailsSerializerResponse:
@@ -194,7 +187,7 @@ class InvestigationDetailsSerializerTest(TestCase):
             "Checkout failures increased.\nRoll back the latest release."
         )
         assert detail["projectIds"] == [self.project.id]
-        assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
+        assert detail["parameters"] == []
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
 
     def test_orders_blocks_by_position(self) -> None:
@@ -252,11 +245,7 @@ class InvestigationDetailsSerializerTest(TestCase):
                 organization=self.organization, title=f"Extra {index}"
             )
             self.create_investigation_project(investigation=investigation, project=self.project)
-            parameter = self.create_investigation_parameter(
-                investigation=investigation, key="env", label="Env", type="string", position=0
-            )
             block = self.create_investigation_block(investigation=investigation, position=0)
-            self.create_investigation_block_parameter(block=block, parameter=parameter)
             execution = self.create_investigation_block_execution(
                 block=block,
                 executor="manual",
