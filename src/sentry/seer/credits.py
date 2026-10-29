@@ -57,12 +57,9 @@ def estimate_credits(operation: SeerOperation) -> int:
     return SEER_OPERATIONS[operation].estimate()
 
 
-def has_seer_credits(organization: Organization, operation: SeerOperation) -> bool:
+def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
     """Whether the organization has enough Seer credits to run the operation."""
-    if not (
-        features.has("organizations:seer-credit-checks", organization)
-        and features.has("organizations:token-billed-seer-enabled", organization)
-    ):
+    if not features.has("organizations:seer-credit-checks", organization):
         return True
 
     return quotas.backend.has_seer_credits(
