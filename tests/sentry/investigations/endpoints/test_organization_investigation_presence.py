@@ -7,7 +7,7 @@ from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.models import InvestigationSeen
+from sentry.notebooks.models import NotebookSeen
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
@@ -20,7 +20,7 @@ FEATURE = "organizations:investigations"
 class OrganizationInvestigationPresenceTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.url = reverse(
@@ -63,11 +63,11 @@ class OrganizationInvestigationPresenceTest(APITestCase):
         earlier = self.member()
         earliest = self.member()
         now = timezone.now()
-        self.create_investigation_seen(
-            investigation=self.investigation, user=earliest, last_seen=now - timedelta(days=1)
+        self.create_notebook_seen(
+            notebook=self.investigation, user=earliest, last_seen=now - timedelta(days=1)
         )
-        self.create_investigation_seen(
-            investigation=self.investigation, user=earlier, last_seen=now - timedelta(hours=1)
+        self.create_notebook_seen(
+            notebook=self.investigation, user=earlier, last_seen=now - timedelta(hours=1)
         )
 
         self.login_as(self.user)
@@ -82,8 +82,8 @@ class OrganizationInvestigationPresenceTest(APITestCase):
     def test_limit_caps_the_list_but_not_the_total(self) -> None:
         now = timezone.now()
         for hours in range(1, 4):
-            self.create_investigation_seen(
-                investigation=self.investigation,
+            self.create_notebook_seen(
+                notebook=self.investigation,
                 user=self.member(),
                 last_seen=now - timedelta(hours=hours),
             )
@@ -106,7 +106,7 @@ class OrganizationInvestigationPresenceTest(APITestCase):
 
         with freeze_time(start):
             self.client.put(self.url)
-        seen = InvestigationSeen.objects.get(investigation=self.investigation, user_id=self.user.id)
+        seen = NotebookSeen.objects.get(notebook=self.investigation, user_id=self.user.id)
         assert seen.last_seen == start
 
         with freeze_time(start + timedelta(seconds=5)):

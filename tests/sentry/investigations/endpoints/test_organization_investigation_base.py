@@ -4,12 +4,8 @@ from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
-)
 from sentry.investigations.services import create_agentic_manual_investigation
+from sentry.notebooks.models import Notebook, NotebookBlockExecutionStatus, NotebookBlockExecutor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -39,10 +35,10 @@ class OrganizationInvestigationBaseTest(APITestCase):
             )
 
         assert response.status_code == 404
-        assert not Investigation.objects.filter(organization=self.organization).exists()
+        assert not Notebook.objects.filter(organization=self.organization).exists()
 
     def test_closed_membership_organizations_cannot_view_investigations(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Existing investigation"
         )
         self.organization.flags.allow_joinleave = False
@@ -69,7 +65,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
         assert response.status_code == 404
 
     def test_feature_is_required_for_orchestration(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Agentic"
         )
         self.create_investigation_orchestration_run(investigation=investigation)
@@ -102,7 +98,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
     def test_orchestration_routes_reject_an_investigation_from_another_organization(self) -> None:
         other_organization = self.create_organization()
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=other_organization, created_by=self.user, title="Other tenant"
         )
         self.create_investigation_orchestration_run(investigation=investigation)
@@ -161,7 +157,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         assert response.status_code == 200
 
     def test_empty_project_scope_does_not_require_every_organization_project(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Unscoped"
         )
         restricted_team = self.create_team(organization=self.organization)
@@ -185,22 +181,22 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         create_response = self.client.post(
             self.collection_url, data={"title": "Output"}, format="json"
         )
-        investigation = Investigation.objects.get(id=create_response.data["id"])
+        investigation = Notebook.objects.get(id=create_response.data["id"])
         investigation.update(
             summary="Errors crossed alert threshold",
             summary_description="Restricted evidence.\nRestricted remediation.",
         )
-        block = self.create_investigation_block(
-            investigation=investigation,
+        block = self.create_notebook_block(
+            notebook=investigation,
             position=0,
             kind="query",
             content="count errors",
             display={"type": "table"},
         )
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=block,
-            executor=InvestigationBlockExecutor.MANUAL,
-            status=InvestigationBlockExecutionStatus.COMPLETED,
+            executor=NotebookBlockExecutor.CODE_MODE,
+            status=NotebookBlockExecutionStatus.COMPLETED,
             block_version=1,
             input_fingerprint="a" * 64,
             result={"columns": ["count"], "rows": [[42]]},
@@ -226,7 +222,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         inaccessible_project = self.create_project(
             organization=self.organization, teams=[restricted_team]
         )
-        self.create_investigation_block_execution_project(
+        self.create_notebook_block_execution_project(
             execution=execution, project=inaccessible_project
         )
         self.login_as(viewer)
@@ -249,4 +245,4 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             self.collection_url, data={"title": "Unauthorized"}, format="json"
         )
         assert response.status_code == 403
-        assert not Investigation.objects.filter(organization=self.organization).exists()
+        assert not Notebook.objects.filter(organization=self.organization).exists()

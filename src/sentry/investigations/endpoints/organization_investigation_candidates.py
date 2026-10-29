@@ -25,16 +25,12 @@ from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCandidatesResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCandidatesValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationSourceType,
-    InvestigationStatus,
-)
 from sentry.investigations.services import (
     agentic_breached_metric_source_key,
     resolve_investigation_sources,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 
 
 @extend_schema(tags=["Investigations"])
@@ -80,9 +76,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         values = validator.validated_data
         sources = values["sources"]
-        if any(
-            source.get("type") != InvestigationSourceType.METRIC_OPEN_PERIOD for source in sources
-        ):
+        if any(source.get("type") != NotebookSourceType.METRIC_OPEN_PERIOD for source in sources):
             return Response(
                 {"detail": "Unsupported source type."},
                 status=status.HTTP_400_BAD_REQUEST,
@@ -105,9 +99,9 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             if source is not None
         }
         existing = list(
-            Investigation.objects.filter(
+            Notebook.objects.filter(
                 organization=organization,
-                status=InvestigationStatus.ACTIVE,
+                status=NotebookStatus.ACTIVE,
                 source_key__in=source_keys,
             )
         )
