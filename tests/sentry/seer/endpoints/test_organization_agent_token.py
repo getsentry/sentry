@@ -2198,6 +2198,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 }
             },
             ("ProjectRepoEndpoint", "POST"): {"repositoryId": self._resource("repository").id},
+            ("ProjectSeerReposEndpoint", "POST"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
+            ("ProjectSeerReposEndpoint", "PUT"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
             ("ProjectSymbolSourcesEndpoint", "POST"): {
                 "name": "Permission matrix new source",
                 "layout": {"type": "native"},
