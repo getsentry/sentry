@@ -447,6 +447,54 @@ class DebugFilesTest(DebugFilesTestCases):
         response = self.client.get(f"{self.url}?id={download_id}")
         self._assert_successful_download(response, PROGUARD_SOURCE)
 
+    def test_dsyms_download_as_sentry_app(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        url = f"{self.url}?id={response.data[0]['id']}"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The member role lets integrations with read access download
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        # Any stricter role requires write access
+        self.organization.update_option("sentry:debug_files_role", "admin")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        self.organization.update_option("sentry:debug_files_role", "manager")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
 
 @requires_objectstore
 class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):

@@ -109,9 +109,9 @@ def has_download_permission(request: Request, project: Project):
 
     if request.user.is_sentry_app:
         if organization_roles.can_manage("member", required_role):
-            return request.access.has_scope("project:write")
-        else:
             return request.access.has_scope("project:read")
+        else:
+            return request.access.has_scope("project:write")
 
     try:
         current_role = (
