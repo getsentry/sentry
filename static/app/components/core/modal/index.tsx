@@ -313,13 +313,11 @@ export function GlobalModal() {
                               <Heading as="h2">{t('Unable to display dialog')}</Heading>
                             </Header>
                             <ModalBody>
-                              <Alert.Container>
-                                <Alert variant="danger" role="alert">
-                                  {t(
-                                    'There was a problem rendering this dialog. Close it and try again.'
-                                  )}
-                                </Alert>
-                              </Alert.Container>
+                              <Alert variant="danger" role="alert">
+                                {t(
+                                  'There was a problem rendering this dialog. Close it and try again.'
+                                )}
+                              </Alert>
                             </ModalBody>
                           </Fragment>
                         )}
