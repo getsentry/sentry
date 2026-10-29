@@ -1632,6 +1632,12 @@ describe('DetectorEdit', () => {
   });
 
   describe('Uptime Detector', () => {
+    // Tests run debounces synchronously, so typing writes the URL draft on every keystroke.
+    async function pasteInto(textbox: HTMLElement, text: string) {
+      await userEvent.click(textbox);
+      await userEvent.paste(text);
+    }
+
     const uptimeRouterConfig = {
       ...initialRouterConfig,
       location: {
@@ -1656,10 +1662,12 @@ describe('DetectorEdit', () => {
       await userEvent.click(title);
       await userEvent.keyboard('Uptime Monitor{enter}');
 
-      const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my uptime monitor description');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'description'}),
+        'This is my uptime monitor description'
+      );
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
@@ -1668,14 +1676,14 @@ describe('DetectorEdit', () => {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
 
       // Add headers
-      const headerNameInput = screen.getByRole('textbox', {
-        name: 'Name of header 1',
-      });
-      await userEvent.type(headerNameInput, 'X-API-Key');
-      const headerValueInput = screen.getByRole('textbox', {
-        name: 'Value of X-API-Key',
-      });
-      await userEvent.type(headerValueInput, 'secret-key-123');
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Name of header 1'}),
+        'X-API-Key'
+      );
+      await pasteInto(
+        screen.getByRole('textbox', {name: 'Value of X-API-Key'}),
+        'secret-key-123'
+      );
 
       // Add body
       const bodyInput = screen.getByRole('textbox', {name: 'Body'});
@@ -1770,21 +1778,20 @@ describe('DetectorEdit', () => {
     });
 
     async function fillUptimeRequest() {
-      await userEvent.type(
+      await pasteInto(
         await screen.findByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'Name of header 1'}),
         'Authorization'
       );
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'Value of Authorization'}),
         'Bearer secret'
       );
-      await userEvent.click(screen.getByRole('textbox', {name: 'Body'}));
-      await userEvent.paste('{"token": "secret"}');
+      await pasteInto(screen.getByRole('textbox', {name: 'Body'}), '{"token": "secret"}');
     }
 
     function getDraftValues(router: {location: {query: Record<string, unknown>}}) {
@@ -1875,7 +1882,7 @@ describe('DetectorEdit', () => {
         initialRouterConfig: uptimeRouterConfig,
       });
 
-      await userEvent.type(
+      await pasteInto(
         screen.getByRole('textbox', {name: 'URL'}),
         'https://uptime-custom.example.com'
       );
