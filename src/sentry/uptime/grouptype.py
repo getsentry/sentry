@@ -280,7 +280,7 @@ class UptimeDomainCheckFailure(GroupType):
     enable_escalation_detection = False
 
 
-@detector_settings_registry.register(DetectorType.UPTIME)
+@detector_settings_registry.register(DetectorType.UPTIME_DOMAIN_CHECK_FAILURE)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator

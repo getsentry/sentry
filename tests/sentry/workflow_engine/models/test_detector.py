@@ -204,13 +204,13 @@ def test_detector_type_registration_supports_string_lookup(detector_type: Detect
 def test_detector_type_enum_preserves_stored_value(
     factories: Factories, default_project: Project
 ) -> None:
-    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC)
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ALERT)
 
     detector.refresh_from_db()
 
     assert type(detector.type) is str
     assert detector.type == "metric_issue"
-    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC)
+    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC_ALERT)
 
 
 @pytest.fixture
