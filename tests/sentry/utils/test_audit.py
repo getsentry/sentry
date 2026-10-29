@@ -11,6 +11,7 @@ from sentry.models.deletedteam import DeletedTeam
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.principal import UserlessPrincipal
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 from sentry.utils.audit import (
@@ -58,6 +59,12 @@ class CreateAuditEntryTest(TestCase):
         assert entry.ip_address == req.META["REMOTE_ADDR"]
 
         self.assert_no_delete_log_created()
+
+    def test_audit_entry_caller_without_human_is_labeled(self) -> None:
+        req = fake_http_request(UserlessPrincipal(name="deploy-bot"))
+        entry = create_audit_entry(req, organization_id=self.org.id, data={"thing": "to True"})
+        assert entry.actor is None
+        assert entry.actor_label == "deploy-bot"
 
     def test_audit_entry_agent_token_attributes_to_delegating_user(self) -> None:
         req = fake_http_request(AnonymousUser())

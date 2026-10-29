@@ -15,6 +15,7 @@ from sentry.features.base import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.principal import UserlessPrincipal
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
@@ -206,6 +207,34 @@ class FeatureManagerTest(TestCase):
         with mock.patch.dict(settings.SENTRY_FEATURES, {"organizations:settings-feature": "test"}):
             assert manager.has("organizations:settings-feature", test_org) == "test"
             assert len(entity_handler.mock_calls) == 2
+
+    def test_caller_without_human_has_no_per_user_flags(self) -> None:
+        test_org = self.create_organization()
+        manager = features.FeatureManager()
+        manager.add("organizations:feature1", OrganizationFeature)
+        entity_handler = mock.Mock()
+        manager.add_entity_handler(entity_handler)
+        principal: Any = UserlessPrincipal()
+
+        manager.has("organizations:feature1", test_org, actor=principal)
+        manager.batch_has(["organizations:feature1"], actor=principal, organization=test_org)
+        manager.get_experiment_assignments(test_org, actor=principal)
+
+        assert entity_handler.has.call_args.args[1] is None
+        assert entity_handler.batch_has.call_args.args[1] is None
+        assert entity_handler.get_experiment_assignments.call_args.args[1] is None
+
+    def test_anonymous_actor_is_kept(self) -> None:
+        test_org = self.create_organization()
+        manager = features.FeatureManager()
+        manager.add("organizations:feature1", OrganizationFeature)
+        entity_handler = mock.Mock()
+        manager.add_entity_handler(entity_handler)
+        anonymous = AnonymousUser()
+
+        manager.has("organizations:feature1", test_org, actor=anonymous)
+
+        assert entity_handler.has.call_args.args[1] is anonymous
 
     def test_entity_handler_has_capture_error(self) -> None:
         test_org = self.create_organization()

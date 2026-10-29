@@ -18,14 +18,14 @@ from sentry.users.services.user import (
 def serialize_generic_user(user: Any) -> RpcUser | None:
     """Serialize a user-representing object of unknown type to an RpcUser.
 
-    Return None if the user is anonymous (not logged in).
+    Return None if there is no human behind it: anonymous, or e.g. a service account.
     """
     if isinstance(user, LazyObject):  # from auth middleware
         lazy: Any = user
         if lazy._wrapped is empty:
             lazy._setup()
         user = lazy._wrapped
-    if user is None or user.id is None:
+    if user is None or user.user_id is None:
         return None
     if isinstance(user, RpcUser):
         return user
