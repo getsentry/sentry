@@ -61,6 +61,11 @@ MAX_BATCH_SIZE = 20
 # The maximum number of times we attempt to drain an organization's outbox before slug provisioning.
 MAX_SHARD_DRAIN_ATTEMPTS = 3
 
+RENAMED_MODELS = {
+    "seer.seerworkflowconfig": "seer_automations.seerworkflowconfig",
+    "seer.seerworkflowconfigproject": "seer_automations.seerworkflowconfigproject",
+}
+
 
 class ImportingError(Exception):
     def __init__(self, context: RpcImportError) -> None:
@@ -94,6 +99,7 @@ def remove_deleted_models_and_fields(json_data: str | bytes) -> str | bytes:
 
     new = []
     for dct in contents:
+        dct["model"] = RENAMED_MODELS.get(dct["model"], dct["model"])
         try:
             model = apps.get_model(dct["model"])
         except LookupError:

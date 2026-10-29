@@ -29,12 +29,12 @@ from sentry.models.options.option import Option
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.seer.models.workflow import (
+from sentry.seer_automations.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer_automations.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write

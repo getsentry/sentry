@@ -1604,7 +1604,7 @@ register(
 # organization id; each value is a partial set of run-option overrides (e.g.
 # {"max_candidates": 20}) that layer on top of the global defaults but below
 # any explicit caller-provided options. See
-# sentry.tasks.seer.agentic_triage.tweaks.get_agentic_triage_org_tweaks.
+# sentry.seer_automations.tasks.agentic_triage.tweaks.get_agentic_triage_org_tweaks.
 register(
     "seer.night_shift.org_tweaks",
     type=Dict,

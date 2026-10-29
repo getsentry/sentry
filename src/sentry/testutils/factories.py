@@ -197,7 +197,7 @@ from sentry.seer.models.run import (
     SeerRunPullRequest,
     SeerRunType,
 )
-from sentry.seer.models.workflow import (
+from sentry.seer_automations.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,

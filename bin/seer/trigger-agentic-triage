@@ -14,8 +14,8 @@ from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.tasks.deliver_from_outbox import drain_outbox_shards
 from sentry.models.organization import Organization
 from sentry.seer.models.run import SeerRunMirrorStatus
-from sentry.seer.models.workflow import SeerWorkflowRun
-from sentry.tasks.seer.agentic_triage.cron import (
+from sentry.seer_automations.models.workflow import SeerWorkflowRun
+from sentry.seer_automations.tasks.agentic_triage.cron import (
     SeerAgenticTriageRunOptionsPartial,
     run_agentic_triage_for_org,
 )

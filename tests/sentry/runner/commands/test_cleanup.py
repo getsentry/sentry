@@ -35,9 +35,9 @@ from sentry.runner.commands.cleanup import (
     run_bulk_query_deletes,
     task_execution,
 )
-from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
-from sentry.seer.models.workflow import (
+from sentry.seer_automations.models.agentic_triage import SeerAgenticTriageRunResult
+from sentry.seer_automations.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
