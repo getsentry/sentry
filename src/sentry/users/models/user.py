@@ -314,6 +314,10 @@ class User(Model, AbstractBaseUser):
             return False
         return super().has_usable_password()
 
+    @property
+    def user_id(self) -> int:
+        return self.id
+
     def get_label(self) -> str:
         return self.email or self.username or str(self.id)
 

@@ -18,7 +18,7 @@ from mypy.plugin import (
     Plugin,
     SemanticAnalyzerPluginInterface,
 )
-from mypy.plugins.common import add_attribute_to_class
+from mypy.plugins.common import add_attribute_to_class, add_method_to_class
 from mypy.subtypes import find_member
 from mypy.subtypes import is_subtype as _is_subtype
 from mypy.typeanal import make_optional_type
@@ -158,6 +158,19 @@ def _adjust_request_members(ctx: ClassDefContext) -> None:
 
         # sentry.auth.middleware / sentry.api.authentication
         add_attribute_to_class(ctx.api, ctx.cls, "auth", _request_auth_tp(ctx.api))
+
+
+def _adjust_anonymous_user_members(ctx: ClassDefContext) -> None:
+    if ctx.cls.name == "AnonymousUser":
+        # added by sentry.auth.principal.patch_request_principal. Typed None, not
+        # Optional, so `request.user.user_id is not None` narrows to User.
+        add_attribute_to_class(ctx.api, ctx.cls, "user_id", NoneType())
+        add_attribute_to_class(
+            ctx.api, ctx.cls, "is_sentry_app", ctx.api.named_type("builtins.bool")
+        )
+        add_method_to_class(
+            ctx.api, ctx.cls, "get_display_name", [], ctx.api.named_type("builtins.str")
+        )
 
 
 def _adjust_http_response_members(ctx: ClassDefContext) -> None:
@@ -525,6 +538,8 @@ class SentryMypyPlugin(Plugin):
             return _adjust_request_members
         elif fullname == "django.http.response.HttpResponseBase":
             return _adjust_http_response_members
+        elif fullname == "django.contrib.auth.models.AnonymousUser":
+            return _adjust_anonymous_user_members
         else:
             return None
 
