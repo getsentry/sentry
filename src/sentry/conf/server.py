@@ -497,6 +497,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
     "sentry.notebooks.apps.NotebooksConfig",
+    "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
