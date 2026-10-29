@@ -106,7 +106,8 @@ def serialize(
     :param kwargs Any
     :returns A list of the serialized versions of `objects`.
     """
-    if user is None:
+    # Callers with no human behind them, e.g. service accounts, see what anonymous viewers do.
+    if user is None or (user.is_authenticated and user.user_id is None):
         user = AnonymousUser()
 
     if not objects:
