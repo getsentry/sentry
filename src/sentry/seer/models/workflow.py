@@ -277,39 +277,3 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
         db_table = "seer_nightshiftrunshard"
 
     __repr__ = sane_repr("run_id", "seer_run_id")
-
-
-@cell_silo_model
-class SeerWorkflowOutput(DefaultFieldsModel):
-    """A many-to-many link between a workflow execution and an output it produced.
-
-    One execution can produce many outputs (e.g. an orchestrator that starts several
-    notebooks), and one output can be linked from executions of different runs
-    when a later run reuses it. Each row links a single output; output columns are
-    nullable so new output types can be added alongside notebooks.
-    """
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    execution = FlexibleForeignKey(
-        "seer.SeerWorkflowRunExecution", on_delete=models.CASCADE, related_name="outputs"
-    )
-    notebook = FlexibleForeignKey(
-        "notebooks.Notebook",
-        on_delete=models.CASCADE,
-        null=True,
-        related_name="workflow_outputs",
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowoutput"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["execution", "notebook"],
-                condition=models.Q(notebook__isnull=False),
-                name="seer_workflowoutput_execution_notebook_uniq",
-            ),
-        ]
-
-    __repr__ = sane_repr("execution_id", "notebook_id")
