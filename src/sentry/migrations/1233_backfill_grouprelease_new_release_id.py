@@ -47,7 +47,7 @@ def backfill_new_release_id(apps: StateApps, schema_editor: BaseDatabaseSchemaEd
         redis_client.set(RESUME_ID_KEY, first_unprocessed_id, ex=RESUME_ID_TTL_SECONDS)
 
         if batch_number % BATCHES_PER_PROGRESS_LINE == 0:
-            click.echo(f"\nBackfilled through id {last_id} of max id {max_id}")
+            click.echo(f"Backfilled through id {last_id} of max id {max_id}")
 
     redis_client.delete(RESUME_ID_KEY)
 
