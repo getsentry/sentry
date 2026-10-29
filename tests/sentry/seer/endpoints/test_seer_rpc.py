@@ -1483,6 +1483,24 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         returned_ids = {p["id"] for p in response.data["projects"]}
         assert returned_ids == {project.id}
 
+    def test_service_account_viewer_context_is_rejected(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        service_account = self.create_service_account(organization=org, scope_list=["org:read"])
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                    organization_id=org.id,
+                )
+            ),
+        )
+        assert response.status_code == 403
+
     def test_user_scoped_viewer_context_authenticates(self) -> None:
         org = self.create_organization(owner=self.user)
         path = self._get_path("get_organization_features")
