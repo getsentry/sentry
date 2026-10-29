@@ -1353,6 +1353,32 @@ describe('ProjectPageFilter', () => {
       expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
     });
 
+    it('includes projects starred while the menu is open', async () => {
+      MockApiClient.addMockResponse({
+        method: 'PUT',
+        url: `/projects/${organization.slug}/project-2/`,
+        body: {},
+      });
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Search…')).toHaveFocus();
+      });
+
+      const projectRow = screen.getByRole('row', {name: 'project-2'});
+      await userEvent.hover(projectRow);
+      await userEvent.click(within(projectRow).getByRole('button', {name: 'Bookmark'}));
+
+      expect(screen.getByRole('row', {name: /Favorite Projects/})).toHaveTextContent(
+        '(3)'
+      );
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+      expect(screen.getByRole('checkbox', {name: 'Select project-2'})).toBeChecked();
+    });
+
     it('is hidden when search is active', async () => {
       render(<ProjectPageFilter />, {organization});
 

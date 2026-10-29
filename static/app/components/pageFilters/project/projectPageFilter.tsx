@@ -76,11 +76,27 @@ export function ProjectPageFilter({
   const matches = useMatches();
   const organization = useOrganization();
   // Project data s
-  const {projects, initiallyLoaded: projectsLoaded} = useProjects();
+  const {projects: storeProjects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
     selection: {projects: urlProjectSelection, environments: urlEnvironmentSelection},
     isReady: pageFilterIsReady,
   } = usePageFilters();
+
+  // Bookmark toggles made from the menu, applied before the API call updates the store
+  // so the stars and the Favorite Projects shortcut always agree.
+  const [bookmarkOverrides, setBookmarkOverrides] = useState<Map<string, boolean>>(
+    () => new Map()
+  );
+  const projects = useMemo(
+    () =>
+      storeProjects.map(project => {
+        const isBookmarked = bookmarkOverrides.get(project.id);
+        return isBookmarked === undefined || isBookmarked === project.isBookmarked
+          ? project
+          : {...project, isBookmarked};
+      }),
+    [storeProjects, bookmarkOverrides]
+  );
 
   const committedSelectionIntent = useMemo(
     () =>
@@ -91,13 +107,7 @@ export function ProjectPageFilter({
     [urlProjectSelection, projects]
   );
 
-  // Track optimistically bookmarked projects to prevent star from disappearing
-  // during API call when user bookmarks and quickly moves focus
-  const [optimisticallyBookmarkedProjects, setOptimisticallyBookmarkedProjects] =
-    useState<Set<string>>(
-      () => new Set(projects.filter(p => p.isBookmarked).map(p => p.id))
-    );
-  const bookmarkedSnapshotRef = useRef(new Set(optimisticallyBookmarkedProjects));
+  const bookmarkedSnapshotRef = useRef(bookmarkedProjectIds(projects));
 
   // Staged select bridge and menu-local state
   // Ref to break the circular dependency: options need toggleOption/dispatch, but those
@@ -186,23 +196,16 @@ export function ProjectPageFilter({
                   />
                 </Fragment>
               ) : null}
-              {props.isFocused || optimisticallyBookmarkedProjects.has(project.id) ? (
+              {props.isFocused || project.isBookmarked ? (
                 <BookmarkStar
                   size="xs"
                   project={project}
                   organization={organization}
                   tooltipProps={{delay: 400}}
                   onToggle={(isBookmarked: boolean) => {
-                    // Update optimistic state immediately
-                    setOptimisticallyBookmarkedProjects(prev => {
-                      const next = new Set(prev);
-                      if (isBookmarked) {
-                        next.add(project.id);
-                      } else {
-                        next.delete(project.id);
-                      }
-                      return next;
-                    });
+                    setBookmarkOverrides(prev =>
+                      new Map(prev).set(project.id, isBookmarked)
+                    );
                     trackAnalytics('projectselector.bookmark_toggle', {
                       bookmarked: isBookmarked,
                       organization,
@@ -385,13 +388,7 @@ export function ProjectPageFilter({
 
     return [...specialItems, ...projectItems];
     // oxlint-disable-next-line react/memo-dependencies
-  }, [
-    projects,
-    stagedValue,
-    urlProjectSelection,
-    optimisticallyBookmarkedProjects,
-    organization,
-  ]);
+  }, [projects, stagedValue, urlProjectSelection, organization]);
 
   const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 
@@ -517,7 +514,7 @@ export function ProjectPageFilter({
   // snapshot logic (freezes the bookmark sort order while the menu is open).
   const handleOpenChange = (open: boolean) => {
     if (open) {
-      bookmarkedSnapshotRef.current = new Set(optimisticallyBookmarkedProjects);
+      bookmarkedSnapshotRef.current = bookmarkedProjectIds(projects);
       stagedSelect.dispatch({type: 'reset anchor'});
     }
   };
@@ -862,6 +859,10 @@ function nonMemberProjectIds(projects: Project[]): number[] {
 
 function favoriteProjects(projects: Project[]): Project[] {
   return projects.filter(project => project.isBookmarked);
+}
+
+function bookmarkedProjectIds(projects: Project[]): Set<string> {
+  return new Set(favoriteProjects(projects).map(project => project.id));
 }
 
 function favoriteProjectIds(projects: Project[]): number[] {
