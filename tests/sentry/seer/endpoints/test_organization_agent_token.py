@@ -607,22 +607,7 @@ class ServiceAccountGap(StrEnum):
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "DiscoverSavedQueries": ServiceAccountGap.USER_ID_FIX,
-    "DiscoverSavedQueries_post": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationAIConversationDetails": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationAIConversations": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationEvents": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationEventsDropped": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationEventsTimeseries": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationProfilingChunks": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationProfilingFlamegraph": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationReplayCount": ServiceAccountGap.USER_ID_FIX,
     "OrganizationReplayDetails": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationTrace": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationTraceItemAttributes": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationTraceItemMetrics": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationTraceItemStats": ServiceAccountGap.USER_ID_FIX,
-    "OrganizationTraceMeta": ServiceAccountGap.USER_ID_FIX,
     "CustomInboundFilterDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
     "CustomInboundFilterDetails_put": ServiceAccountGap.AUDIT_ACTOR,
     "CustomInboundFilters_post": ServiceAccountGap.AUDIT_ACTOR,
