@@ -338,7 +338,9 @@ const config: Config.InitialOptions = {
   // Matches setupStatics, so tests run Zod's jitless parsers like production does.
   globals: {__zod_globalConfig: {jitless: true}},
 
-  reporters: ['default'],
+  // `github-actions` only reports when running in GitHub Actions, where it
+  // annotates each failing test with its file, line, and error
+  reporters: ['default', 'github-actions'],
   /**
    * jest.clearAllMocks() automatically called before each test
    * @link - https://jestjs.io/docs/configuration#clearmocks-boolean
