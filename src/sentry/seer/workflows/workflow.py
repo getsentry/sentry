@@ -268,6 +268,11 @@ class SeerWorkflow:
     def set_project_selection(
         self, selection: ProjectSelection, *, has_access_projects: Collection[int] | None = None
     ) -> None:
+        """Set the selected projects, bumping the version only when the selection changes.
+
+        With ``has_access_projects``, only links to those projects can be removed, so
+        selected projects outside it are kept. Without it, the whole selection is replaced.
+        """
         match selection:
             case AllProjects():
                 all_projects = True

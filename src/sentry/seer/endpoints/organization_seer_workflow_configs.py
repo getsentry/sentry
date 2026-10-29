@@ -90,7 +90,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), default=list, allow_empty=True
     )
-    # [-1] selects all projects. Omitted for monitor-based workflows.
+    # [-1] selects all projects; omitted means no projects.
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -219,9 +219,17 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         """Create a Seer automation workflow.
 
-        ``projectIds`` of ``[-1]`` selects all projects and requires global access.
-        Otherwise every project must be active and accessible to the caller.  Returns
-        the new config in the same shape as an item in ``configs``.
+        Only ``strategy`` is required. ``enabled`` defaults to false, ``schedule`` to
+        daily, and ``environments`` to all. ``name`` is optional. Omitting
+        ``projectIds`` selects no projects.
+
+        - Every explicit project in ``projectIds`` must be active in the organization,
+          and the caller must have read access to it.
+        - Requesting all projects with ``[-1]`` requires global access.
+
+        The number of automations per organization is capped, and creation is rate
+        limited. Failures past request validation, such as reaching the cap, return an
+        empty 400. Returns the new config in the same shape as an item in ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -326,11 +334,16 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         """Update a saved Seer automation workflow.
 
         Only the fields sent are changed. ``projectIds`` replaces the projects the
-        caller can access; selected projects the caller can't access are kept. Every
-        project sent must be active and accessible to the caller. ``[-1]`` selects all
-        projects, and changing a config to or from all projects requires global access.
-        Returns the updated config in the same shape as an item in the list endpoint's
-        ``configs``.
+        caller can access; selected projects the caller can't access are kept.
+
+        - Every explicit project in ``projectIds`` must be active in the organization,
+          and the caller must have read access to it.
+        - Requesting all projects with ``[-1]`` requires global access.
+        - Changing the projects of a config that covers all projects requires global
+          access.
+
+        Failures past request validation return an empty 400. Returns the updated config
+        in the same shape as an item in the list endpoint's ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
