@@ -805,6 +805,14 @@ class StatsMixinParseArgsTest(APITestCase):
         with raises(ParseError, match="since must be a numeric timestamp"):
             mixin._parse_args(self._make_request({"since": "not_a_number"}))
 
+    def test_negative_resolution(self) -> None:
+        mixin = StatsMixin()
+        request = self._make_request({"resolution": "-1s"})
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request)
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request, restrict_rollups=False)
+
     def test_overflow_timestamp_params(self) -> None:
         mixin = StatsMixin()
         huge = "9" * 30

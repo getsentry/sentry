@@ -1,13 +1,16 @@
 from base64 import urlsafe_b64encode
+from io import BytesIO
 
 from django.urls import reverse
 
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class ReleaseFileDetailsTest(APITestCase):
@@ -81,6 +84,104 @@ class ReleaseFileDetailsTest(APITestCase):
         self.login_as(user=user_no_permission)
         response = self.client.get(url + "?download=1")
         assert response.status_code == 403, response.content
+
+    def _create_downloadable_file(self, project: Project, *additional_projects: Project) -> str:
+        release = self.create_release(project, additional_projects=additional_projects)
+        f = self.create_file(name="application.js", type="release.file")
+        f.putfile(BytesIO(b"File contents here"))
+        releasefile = self.create_release_file(
+            release.id, file=f, name="http://example.com/application.js"
+        )
+
+        return reverse(
+            "sentry-api-0-organization-release-file-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+
+    def test_file_download_requires_debug_files_role(self) -> None:
+        url = self._create_downloadable_file(self.create_project(name="foo"))
+
+        member = self.create_user("member@example.com")
+        self.create_member(user=member, organization=self.organization, role="member")
+        admin = self.create_user("org-admin@example.com")
+        self.create_member(user=admin, organization=self.organization, role="admin")
+
+        # The default debug files role is admin
+        self.login_as(user=member)
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 403, response.content
+
+        self.login_as(user=admin)
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+        self.organization.update_option("sentry:debug_files_role", "owner")
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 403, response.content
+
+        self.organization.update_option("sentry:debug_files_role", "member")
+        self.login_as(user=member)
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+    def test_file_download_org_auth_token(self) -> None:
+        url = self._create_downloadable_file(self.create_project(name="foo"))
+
+        member = self.create_user("member@example.com")
+        self.create_member(user=member, organization=self.organization, role="member")
+        token = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            name="CI token",
+            token_hashed=hash_token(token),
+            organization_id=self.organization.id,
+            scope_list=["org:ci"],
+            created_by_id=member.id,
+            date_last_used=None,
+        )
+        auth_header = f"Bearer {token}"
+
+        response = self.client.get(url, HTTP_AUTHORIZATION=auth_header)
+        assert response.status_code == 200, response.content
+
+        # Userless tokens can never download, whatever the debug files role
+        response = self.client.get(url + "?download=1", HTTP_AUTHORIZATION=auth_header)
+        assert response.status_code == 403, response.content
+
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url + "?download=1", HTTP_AUTHORIZATION=auth_header)
+        assert response.status_code == 403, response.content
+
+    def test_file_download_only_considers_accessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        team1 = self.create_team(organization=self.organization)
+        team2 = self.create_team(organization=self.organization)
+        project1 = self.create_project(teams=[team1])
+        project2 = self.create_project(teams=[team2])
+        url = self._create_downloadable_file(project1, project2)
+
+        member = self.create_user("member@example.com")
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[team1]
+        )
+        self.login_as(user=member)
+
+        # A lower role on a project the member cannot access does not apply
+        project2.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 403, response.content
+
+        project1.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
 
     def _get(self, file_id):
         url = reverse(

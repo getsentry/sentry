@@ -21,6 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import ActorId, ActorType
 from tests.sentry.investigations.test_seer_contract import fixture
 
 FEATURE = "organizations:investigations"
@@ -35,7 +36,7 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
     def create_agentic(self) -> tuple[Investigation, InvestigationOrchestrationRun]:
         return create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title="Agentic",
             source={"type": "manual", "prompt": "Investigate checkout latency"},
             project_ids=[self.project.id],
@@ -139,7 +140,7 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
     def test_awaiting_input_run_reports_its_missing_fields(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title="Agentic",
             source={"type": "manual"},
             project_ids=[self.project.id],
@@ -192,7 +193,7 @@ class OrganizationInvestigationOrchestrationCommandsTest(APITestCase):
         self.login_as(self.user)
         self.investigation, self.orchestration_run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title="Agentic",
             source={"type": "manual", "prompt": "Investigate checkout latency"},
             project_ids=[self.project.id],

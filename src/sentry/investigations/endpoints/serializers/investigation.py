@@ -37,6 +37,12 @@ from sentry.investigations.services.investigations import (
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.viewer_context import ActorType
+
+
+class InvestigationCreatorSerializerResponse(TypedDict):
+    type: ActorType
+    id: str
 
 
 class InvestigationTemplateSerializerResponse(TypedDict):
@@ -103,6 +109,7 @@ class InvestigationSerializerResponse(TypedDict):
     status: str
     sourceType: str
     createdBy: str | None
+    creator: InvestigationCreatorSerializerResponse | None
     dateCreated: datetime
     dateUpdated: datetime
     version: int
@@ -173,6 +180,7 @@ class InvestigationSerializer(Serializer):
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
         source = obj.source
+        creator = obj.creator_actor
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -181,6 +189,14 @@ class InvestigationSerializer(Serializer):
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
+            "creator": (
+                {
+                    "type": creator.type,
+                    "id": str(creator.id),
+                }
+                if creator is not None
+                else None
+            ),
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
             "version": obj.version,

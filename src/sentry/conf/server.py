@@ -497,6 +497,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.explore",
     "sentry.investigations.apps.InvestigationsConfig",
     "sentry.notebooks.apps.NotebooksConfig",
+    "sentry.seer_workflow_outputs.apps.SeerWorkflowOutputsConfig",
     "sentry.service_accounts.apps.ServiceAccountsConfig",
     "sentry.insights",
     "sentry.preprod",
@@ -1976,10 +1977,10 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:write": {"dashboard:read", "dashboard:write"},
-    "saved_query:read": {"saved_query:read"},
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
+    "dashboard:write": {"dashboard:write"},
+    "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
@@ -2094,7 +2095,7 @@ SENTRY_SCOPE_SETS = (
         ("alerts:read", "Read alerts"),
     ),
     (
-        ("dashboard:write", "Read and write access to dashboards."),
+        ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
     (

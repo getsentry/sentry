@@ -22,8 +22,7 @@ class ScopesTest(TestCase):
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
             # granular scopes are explicit and imply nothing else
-            # (dashboard:write still implies dashboard:read until it moves over too)
-            if scope in GRANULAR_SCOPES and resource != "dashboard":
+            if scope in GRANULAR_SCOPES:
                 assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {scope}
                 continue
 
