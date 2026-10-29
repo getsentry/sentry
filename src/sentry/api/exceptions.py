@@ -111,6 +111,14 @@ class SuperuserRequired(SentryAPIException):
     message = "You need to re-authenticate for superuser."
 
 
+class UserRequired(SentryAPIException):
+    """The caller has no human behind it, e.g. a service account, but this needs one."""
+
+    status_code = status.HTTP_403_FORBIDDEN
+    code = "user-required"
+    message = "This action requires a user."
+
+
 class StaffRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "staff-required"

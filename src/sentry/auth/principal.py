@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.request import Request
 
+from sentry.api.exceptions import UserRequired
 from sentry.auth.services.auth.model import AuthenticatedToken
 from sentry.types.superuser import to_viewer_context_superuser
 from sentry.viewer_context import Actor, ActorType, get_viewer_context, set_viewer_context_actor
+
+if TYPE_CHECKING:
+    from sentry.users.models.user import User
 
 
 class RequestPrincipal(Protocol):
@@ -60,6 +65,20 @@ def resolve_actor(user: Any, auth: Any) -> Actor | None:
     if user_id is not None:
         return Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
     return None
+
+
+def require_user(request: HttpRequest | Request) -> User:
+    """
+    The human caller, for code that only works for one.
+
+    Raises ``NotAuthenticated`` for anonymous callers and ``UserRequired`` (403) for
+    callers with no human behind them, e.g. service accounts.
+    """
+    user = request.user
+    if user.user_id is None:
+        principal: RequestPrincipal = user
+        raise UserRequired() if principal.is_authenticated else NotAuthenticated()
+    return user
 
 
 def get_current_actor() -> Actor | None:
