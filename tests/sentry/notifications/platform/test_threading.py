@@ -183,6 +183,7 @@ class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
         assert thread.provider_data == {}
         assert thread.object_type is None
         assert thread.object_id is None
+        assert thread.integration_id is None
 
         assert record.id is not None
         assert record.thread_id == thread.id
@@ -211,6 +212,15 @@ class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
             == thread
         )
 
+    def test_store_new_thread_stores_integration_id(self) -> None:
+        thread, _ = ThreadingService.store_new_thread(
+            threading_config={**self.threading_config, "integration_id": 42},
+            external_message_id=self.message_id,
+        )
+
+        assert thread.integration_id == 42
+        assert thread.thread_key == self.thread_key
+
     def test_store_new_thread_uses_existing_thread_on_race(self) -> None:
         """If two workers race, the second get_or_create returns the first's thread."""
         first_thread, _ = ThreadingService.store_new_thread(
@@ -234,6 +244,66 @@ class ThreadingServiceStoreNewThreadTest(ThreadingServiceTestBase):
 
         assert NotificationThread.objects.count() == 1
         assert NotificationRecord.objects.count() == 2
+
+
+class ThreadingServiceGetThreadsForObjectTest(ThreadingServiceTestBase):
+    def store_thread(
+        self,
+        *,
+        target_id: str,
+        object_id: int,
+        provider_key: NotificationProviderKey = NotificationProviderKey.SLACK,
+    ) -> NotificationThread:
+        thread, _ = ThreadingService.store_new_thread(
+            threading_config={
+                **self.threading_config,
+                "provider_key": provider_key,
+                "target_id": target_id,
+                "object_type": NotificationThreadObjectType.GROUP,
+                "object_id": object_id,
+            },
+            external_message_id=self.message_id,
+        )
+        return thread
+
+    def test_returns_all_threads_for_object(self) -> None:
+        first = self.store_thread(target_id="C1111111111", object_id=456)
+        second = self.store_thread(target_id="C2222222222", object_id=456)
+        self.store_thread(target_id="C3333333333", object_id=789)
+        ThreadingService.store_new_thread(
+            threading_config={**self.threading_config, "target_id": "C4444444444"},
+            external_message_id=self.message_id,
+        )
+
+        threads = ThreadingService.get_threads_for_object(
+            object_type=NotificationThreadObjectType.GROUP, object_id=456
+        )
+
+        assert {thread.id for thread in threads} == {first.id, second.id}
+
+    def test_filters_by_provider_key(self) -> None:
+        slack_thread = self.store_thread(target_id="C1111111111", object_id=456)
+        self.store_thread(
+            target_id="C1111111111",
+            object_id=456,
+            provider_key=NotificationProviderKey.SLACK_STAGING,
+        )
+
+        threads = ThreadingService.get_threads_for_object(
+            object_type=NotificationThreadObjectType.GROUP,
+            object_id=456,
+            provider_key=NotificationProviderKey.SLACK,
+        )
+
+        assert [thread.id for thread in threads] == [slack_thread.id]
+
+    def test_returns_empty_when_no_threads(self) -> None:
+        assert (
+            ThreadingService.get_threads_for_object(
+                object_type=NotificationThreadObjectType.GROUP, object_id=456
+            )
+            == []
+        )
 
 
 class ThreadingServiceStoreExistingThreadTest(ThreadingServiceTestBase):
