@@ -195,6 +195,15 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "service_accounts",
+        "Service accounts",
+        ("service_account:read", "service_account:write"),
+        access_descriptions={
+            "read": "View service accounts and their project access.",
+            "write": "Create, update, and delete service accounts.",
+        },
+    ),
+    OAuthPermissionResource(
         "openid",
         "Authentication",
         ("openid",),

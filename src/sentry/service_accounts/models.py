@@ -38,8 +38,12 @@ __all__ = (
 # Matches the `name` serializer in the service account API.
 MAX_NAME_LENGTH = 64
 
-# OIDC scopes describe a human login, so a service account can't hold them.
-GRANTABLE_SCOPES = frozenset(settings.SENTRY_SCOPES - {"openid", "profile", "email"})
+# OIDC scopes describe a human login, so a service account can't hold them. Service
+# account scopes are withheld so an account can't create or widen other accounts.
+GRANTABLE_SCOPES = frozenset(
+    settings.SENTRY_SCOPES
+    - {"openid", "profile", "email", "service_account:read", "service_account:write"}
+)
 
 
 def validate_grantable_scopes(value: Iterable[str]) -> None:

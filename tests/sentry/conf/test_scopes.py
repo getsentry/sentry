@@ -1,5 +1,11 @@
+from django.conf import settings
+
 from sentry.conf.server import SENTRY_READONLY_SCOPES, SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
+from sentry.models.apiscopes import ApiScopes
+from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.testutils.cases import TestCase
+
+SERVICE_ACCOUNT_SCOPES = {"service_account:read", "service_account:write"}
 
 
 class ScopesTest(TestCase):
@@ -29,3 +35,19 @@ class ScopesTest(TestCase):
         for scope in SENTRY_SCOPES:
             if ":read" in scope:
                 assert scope in SENTRY_READONLY_SCOPES
+
+    def test_service_account_write_requires_global_role(self) -> None:
+        # A role that can set allProjects must already see every project.
+        for role in (*settings.SENTRY_ROLES, *settings.SENTRY_GRANULAR_ROLES):
+            if "service_account:write" in role["scopes"]:
+                assert role.get("is_global"), role["id"]
+
+    def test_service_account_scopes_granted_to_manager_and_owner(self) -> None:
+        for roles in (settings.SENTRY_ROLES, settings.SENTRY_GRANULAR_ROLES):
+            granted = {role["id"] for role in roles if SERVICE_ACCOUNT_SCOPES <= role["scopes"]}
+            assert granted == {"manager", "owner"}
+
+    def test_service_account_scopes_not_grantable_to_non_humans(self) -> None:
+        assert SERVICE_ACCOUNT_SCOPES <= SENTRY_SCOPES
+        assert SERVICE_ACCOUNT_SCOPES.isdisjoint(GRANTABLE_SCOPES)
+        assert SERVICE_ACCOUNT_SCOPES.isdisjoint(ApiScopes())
