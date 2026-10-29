@@ -31,7 +31,6 @@ class Deploy(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_deploy"
-        indexes = (models.Index(fields=("release", "environment_id", "notified")),)
 
     @staticmethod
     def get_lock_key(release_id, environment_id):
