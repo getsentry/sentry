@@ -194,7 +194,7 @@ const DEFINED_ENV_VARS = {
   'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
 };
 
-const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
+const swcReactLoaderConfig: SwcLoaderOptions = {
   env: {
     mode: 'usage',
     // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
@@ -256,7 +256,6 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -266,7 +265,12 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
     },
   },
   isModule: 'unknown',
-});
+};
+
+const oxcReactCompilerLoaderPath = path.resolve(
+  import.meta.dirname,
+  './build-utils/oxc-react-compiler-loader.ts'
+);
 
 /**
  * Main Webpack config for Sentry React SPA.
@@ -355,13 +359,16 @@ const appConfig: Configuration = {
             // "illegal escape sequence" warnings in dev mode.
             exclude: /node_modules[\\/](core-js|react-select)/,
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: false}),
+            options: swcReactLoaderConfig,
           },
           {
-            // Application code only.
+            // Application code only. Oxc runs the React Compiler first
+            // because SWC's drops source locations from the code it rewrites.
             exclude: /node_modules/,
-            loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: true}),
+            use: [
+              {loader: 'builtin:swc-loader', options: swcReactLoaderConfig},
+              {loader: oxcReactCompilerLoaderPath},
+            ],
           },
         ],
       },
@@ -370,7 +377,7 @@ const appConfig: Configuration = {
         use: [
           {
             loader: 'builtin:swc-loader',
-            options: swcReactLoaderConfig({reactCompiler: false}),
+            options: swcReactLoaderConfig,
           },
           {
             loader: '@mdx-js/loader',
