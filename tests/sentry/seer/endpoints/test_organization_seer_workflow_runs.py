@@ -23,6 +23,7 @@ from sentry.seer.endpoints.organization_seer_workflow_runs import (
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -778,6 +779,148 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
 
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
+
+    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
+        )
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+@with_feature("organizations:seer-automations")
+class OrganizationSeerWorkflowConfigAddProjectsTest(APITestCase):
+    endpoint = "sentry-api-0-organization-seer-workflow-configs"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_feature_disabled_returns_404(self) -> None:
+        config = self.create_config()
+        with self.feature({"organizations:seer-automations": False}):
+            self.get_error_response(
+                self.organization.slug, id=config.id, projectIds=[self.project.id], status_code=404
+            )
+
+    def test_adds_projects_without_duplicates(self) -> None:
+        existing = self.create_project()
+        added = self.create_project()
+        config = self.create_config(version=3)
+        Factories.create_seer_workflow_config_project(config, existing)
+
+        response = self.get_success_response(
+            self.organization.slug, id=config.id, projectIds=[existing.id, added.id, added.id]
+        )
+
+        assert sorted(response.data["projects"]) == sorted([existing.id, added.id])
+        assert response.data["id"] == str(config.id)
+        assert response.data["version"] == 4
+        assert self.selected_project_ids(config) == sorted([existing.id, added.id])
+
+    def test_already_selected_projects_do_not_change_version(self) -> None:
+        config = self.create_config(version=3)
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug, id=config.id, projectIds=[self.project.id]
+        )
+
+        assert response.data["version"] == 3
+        assert self.selected_project_ids(config) == [self.project.id]
+
+    def test_invalid_body_returns_400(self) -> None:
+        config = self.create_config()
+        for body in (
+            {"projectIds": [self.project.id]},
+            {"id": config.id},
+            {"id": config.id, "projectIds": []},
+            {"id": config.id, "projectIds": [-1]},
+            {"id": "invalid", "projectIds": [self.project.id]},
+        ):
+            self.get_error_response(self.organization.slug, **body, status_code=400)
+        assert self.selected_project_ids(config) == []
+
+    def test_unavailable_config_returns_404(self) -> None:
+        legacy = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
+        )
+        foreign = Factories.create_seer_workflow_config(
+            self.create_organization(owner=self.user),
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+        )
+        for config_id in (legacy.id, foreign.id, I64_MAX):
+            self.get_error_response(
+                self.organization.slug, id=config_id, projectIds=[self.project.id], status_code=404
+            )
+
+    def test_unavailable_projects_return_403(self) -> None:
+        config = self.create_config()
+        inactive = self.create_project(status=ObjectStatus.PENDING_DELETION)
+        foreign = self.create_project(organization=self.create_organization())
+        for project in (inactive, foreign):
+            self.get_error_response(
+                self.organization.slug,
+                id=config.id,
+                projectIds=[self.project.id, project.id],
+                status_code=403,
+            )
+        assert self.selected_project_ids(config) == []
+
+    def test_all_projects_config_returns_400(self) -> None:
+        config = self.create_config(filters={"all_projects": True})
+
+        response = self.get_error_response(
+            self.organization.slug, id=config.id, projectIds=[self.project.id], status_code=400
+        )
+
+        assert response.data["detail"] == "Workflow already includes all projects"
+        assert self.selected_project_ids(config) == []
+
+    def test_breached_metric_config_returns_400(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+
+        response = self.get_error_response(
+            self.organization.slug, id=config.id, projectIds=[self.project.id], status_code=400
+        )
+
+        assert response.data["detail"] == (
+            "Breached metric projects are selected by connecting monitors"
+        )
+        assert self.selected_project_ids(config) == []
+
+    def test_member_can_only_add_accessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config()
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            id=config.id,
+            projectIds=[accessible.id, hidden.id],
+            status_code=403,
+        )
+        assert self.selected_project_ids(config) == []
+
+        response = self.get_success_response(
+            self.organization.slug, id=config.id, projectIds=[accessible.id]
+        )
+        assert response.data["projects"] == [accessible.id]
+
+    def selected_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
+        return sorted(
+            SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                "project_id", flat=True
+            )
+        )
 
     def create_config(self, **kwargs) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
