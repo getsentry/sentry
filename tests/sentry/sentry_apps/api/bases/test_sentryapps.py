@@ -2,6 +2,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
+from django.db import router
 from django.test.utils import override_settings
 from rest_framework.views import APIView
 
@@ -10,16 +11,21 @@ from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.sentry_apps.api.bases.sentryapps import (
     IntegrationPlatformEndpoint,
     SentryAppAndStaffPermission,
+    SentryAppAuthorizationsPermission,
     SentryAppBaseEndpoint,
     SentryAppInstallationBaseEndpoint,
     SentryAppInstallationPermission,
     SentryAppPermission,
+    SentryInternalAppTokenPermission,
 )
+from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
     SentryAppIntegratorError,
     SentryAppSentryError,
 )
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
@@ -91,6 +97,13 @@ class SentryAppPermissionTest(TestCase):
 
         with pytest.raises(SentryAppError):
             self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+
+    def test_owner_organization_not_found(self) -> None:
+        # The owner org is gone but the app's cross-silo cascade has not run yet.
+        SentryApp.objects.filter(id=self.sentry_app.id).update(owner_id=0)
+        self.sentry_app.refresh_from_db()
+
+        assert not self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
 
     def test_has_permission(self) -> None:
         from sentry.models.apitoken import ApiToken
@@ -174,6 +187,48 @@ class SentryAppAndStaffPermissionTest(TestCase):
 
         request.method = "POST"
         assert self.permission.has_object_permission(request, APIView(), self.sentry_app)
+
+
+@control_silo_test
+class SentryInternalAppTokenPermissionTest(TestCase):
+    def setUp(self) -> None:
+        self.permission = SentryInternalAppTokenPermission()
+        self.sentry_app = self.create_internal_integration(
+            name="foo", organization=self.organization
+        )
+        self.request = drf_request_from_request(self.make_request(user=self.user, method="GET"))
+
+    def test_request_user_in_owner_organization(self) -> None:
+        assert self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+
+    def test_owner_organization_not_found(self) -> None:
+        SentryApp.objects.filter(id=self.sentry_app.id).update(owner_id=0)
+        self.sentry_app.refresh_from_db()
+
+        assert not self.permission.has_object_permission(self.request, APIView(), self.sentry_app)
+
+
+@control_silo_test
+class SentryAppAuthorizationsPermissionTest(TestCase):
+    def setUp(self) -> None:
+        self.permission = SentryAppAuthorizationsPermission()
+        self.sentry_app = self.create_sentry_app(name="foo", organization=self.organization)
+        self.installation = self.create_sentry_app_installation(
+            slug=self.sentry_app.slug, organization=self.organization, user=self.user
+        )
+        self.request = drf_request_from_request(
+            self.make_request(user=self.sentry_app.proxy_user, method="POST")
+        )
+
+    def test_request_user_is_app_proxy_user(self) -> None:
+        assert self.permission.has_object_permission(self.request, APIView(), self.installation)
+
+    def test_installation_organization_not_found(self) -> None:
+        with unguarded_write(using=router.db_for_write(SentryAppInstallation)):
+            SentryAppInstallation.objects.filter(id=self.installation.id).update(organization_id=0)
+        self.installation.refresh_from_db()
+
+        assert not self.permission.has_object_permission(self.request, APIView(), self.installation)
 
 
 @control_silo_test

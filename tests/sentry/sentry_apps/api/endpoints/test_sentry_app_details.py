@@ -120,6 +120,13 @@ class GetSentryAppDetailsTest(SentryAppDetailsTest):
             "user_organizations": [self.organization.slug],
         }
 
+    @override_options({"staff.ga-rollout": True})
+    def test_owner_organization_deleted_before_app(self) -> None:
+        # The owner org is gone but the app's cross-silo cascade has not run yet.
+        SentryApp.objects.filter(id=self.published_app.id).update(owner_id=0)
+
+        self.get_error_response(self.published_app.slug, status_code=403)
+
 
 @control_silo_test
 class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
