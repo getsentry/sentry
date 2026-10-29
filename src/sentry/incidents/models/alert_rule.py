@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from enum import Enum, IntEnum, StrEnum
+from enum import Enum, IntEnum
 from typing import Any, ClassVar, Self
 
 from django.conf import settings
@@ -10,11 +10,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     cell_silo_model,
     sane_repr,
@@ -22,14 +19,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.notifications.models.notificationaction import (
-    AbstractNotificationAction,
-    ActionService,
-    ActionTarget,
-)
 from sentry.types.actor import Actor
 
 logger = logging.getLogger(__name__)
@@ -187,125 +177,3 @@ class AlertRuleThresholdType(Enum):
     ABOVE = 0
     BELOW = 1
     ABOVE_AND_BELOW = 2
-
-
-@cell_silo_model
-class AlertRuleTrigger(Model):
-    """
-    This model represents the *threshold* trigger for an AlertRule
-
-    threshold_type is AlertRuleThresholdType (Above/Below)
-    alert_threshold is the trigger value
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule", db_constraint=False)
-    label = models.TextField()
-    threshold_type = models.SmallIntegerField(null=True)
-    alert_threshold = models.FloatField()
-    resolve_threshold = models.FloatField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletrigger"
-        unique_together = (("alert_rule", "label"),)
-
-
-class AlertRuleTriggerActionMethod(StrEnum):
-    FIRE = "fire"
-    RESOLVE = "resolve"
-
-
-class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
-    """
-    A manager that excludes trigger actions that are pending to be deleted
-    """
-
-    def get_queryset(self) -> BaseQuerySet[AlertRuleTriggerAction]:
-        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
-
-
-@cell_silo_model
-class AlertRuleTriggerAction(AbstractNotificationAction):
-    """
-    This model represents an action that occurs when a trigger (over/under) is fired. This is
-    typically some sort of notification.
-
-    NOTE: AlertRuleTrigger is the 'threshold' for the AlertRule
-    """
-
-    __relocation_scope__ = RelocationScope.Global
-
-    Type = ActionService
-    TargetType = ActionTarget
-
-    INTEGRATION_TYPES = frozenset(
-        (
-            Type.PAGERDUTY.value,
-            Type.SLACK.value,
-            Type.MSTEAMS.value,
-            Type.OPSGENIE.value,
-            Type.DISCORD.value,
-        )
-    )
-
-    # ActionService items which are not supported for AlertRuleTriggerActions
-    EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
-
-    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
-    objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger", db_constraint=False)
-
-    date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config: models.Field[
-        # list of dicts if this is a sentry app, otherwise can be singular dict
-        dict[str, Any] | list[dict[str, Any]] | None,
-        dict[str, Any] | list[dict[str, Any]] | None,
-    ] = JSONField(null=True)
-    status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE,
-        db_default=ObjectStatus.ACTIVE,
-        choices=ObjectStatus.as_choices(),
-    )
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggeraction"
-
-    @property
-    def target(self) -> OrganizationMember | Team | str | None:
-        if self.target_identifier is None:
-            return None
-
-        if self.target_type == self.TargetType.USER.value:
-            try:
-                return OrganizationMember.objects.get(
-                    user_id=int(self.target_identifier),
-                    organization=self.alert_rule_trigger.alert_rule.organization_id,
-                )
-            except OrganizationMember.DoesNotExist:
-                pass
-
-        elif self.target_type == self.TargetType.TEAM.value:
-            try:
-                return Team.objects.get(
-                    id=int(self.target_identifier),
-                    organization_id=self.alert_rule_trigger.alert_rule.organization_id,
-                )
-            except Team.DoesNotExist:
-                pass
-
-        elif self.target_type == self.TargetType.SPECIFIC.value:
-            # TODO: This is only for email. We should have a way of validating that it's
-            # ok to contact this email.
-            return self.target_identifier
-        return None
-
-    def get_single_sentry_app_config(self) -> dict[str, Any] | None:
-        value = self.sentry_app_config
-        if isinstance(value, list):
-            raise ValueError("Sentry app actions have a list of configs")
-        return value

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Mapping, Sequence
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from time import time
 from typing import TYPE_CHECKING, Any
@@ -49,17 +49,22 @@ REFRESH_LOCK_DURATION_S = 90
 REFRESH_LOCK_WAIT_S = 10
 
 
-def _refresh_margin_s(identity_data: Mapping[str, Any]) -> int:
+# Leave enough room for the proxy's retry envelope to fail before the task's 60-second deadline.
+GITLAB_WEBHOOK_REQUEST_TIMEOUT = 5
+
+
+def _refresh_margin_s(identity_data: Mapping[str, Any], requested_margin_s: float) -> float:
     # An instance can shorten the token lifetime. Capping the margin at half of it still leaves
     # a usable token, where a fixed margin as long as the lifetime would refresh on every call.
     lifetime = int(identity_data.get("expires_in", ACCESS_TOKEN_LIFETIME_S))
-    return min(TOKEN_MINIMUM_VALIDITY_S, lifetime // 2)
+    return min(requested_margin_s, lifetime // 2)
 
 
-def _expires_soon(identity_data: Mapping[str, Any]) -> bool:
+def _expires_soon(identity_data: Mapping[str, Any], requested_margin_s: float) -> bool:
     # A token stored before Sentry recorded GitLab's expiry has none; refreshing records one.
     expires = identity_data.get("expires")
-    return expires is None or int(expires) < time() + _refresh_margin_s(identity_data)
+    margin_s = _refresh_margin_s(identity_data, requested_margin_s)
+    return expires is None or int(expires) < time() + margin_s
 
 
 class GitLabApiRequestType(StrEnum):
@@ -139,20 +144,33 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return prepared_request
 
     @control_silo_function
-    def get_access_token(self) -> dict[str, str | None] | None:
-        """Return the stored token, refreshed if it's about to expire, and until when to use it.
+    def get_access_token(
+        self, token_minimum_validity_time: timedelta | None = None
+    ) -> dict[str, str | None] | None:
+        """Return the stored token, refreshed if it has less than token_minimum_validity_time
+        left (TOKEN_MINIMUM_VALIDITY_S by default, at most half the token's lifetime), and until
+        when to use it.
 
         API requests refresh after GitLab answers 401, but a caller that hands the token on
         can't retry, so it needs one that's still valid.
         """
+        requested_margin_s = (
+            TOKEN_MINIMUM_VALIDITY_S
+            if token_minimum_validity_time is None
+            else token_minimum_validity_time.total_seconds()
+        )
+
+        def needs_refresh(identity_data: Mapping[str, Any]) -> bool:
+            return _expires_soon(identity_data, requested_margin_s)
+
         # Without a refresh token, the stored token is the only one there is.
-        if self.identity.data.get("refresh_token") and _expires_soon(self.identity.data):
+        if self.identity.data.get("refresh_token") and needs_refresh(self.identity.data):
             try:
-                self._refresh_auth_once(_expires_soon)
+                self._refresh_auth_once(needs_refresh)
             except UnableToAcquireLock:
                 # Another request's refresh is taking long; use its token if it has stored one.
                 self._reload_identity()
-                if _expires_soon(self.identity.data):
+                if needs_refresh(self.identity.data):
                     raise
 
         access_token = self.identity.data["access_token"]
@@ -165,7 +183,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             # holding it should get a new one by then.
             "expires_at": (
                 datetime.fromtimestamp(
-                    int(expires) - _refresh_margin_s(self.identity.data), UTC
+                    int(expires) - _refresh_margin_s(self.identity.data, requested_margin_s), UTC
                 ).isoformat()
                 if expires is not None
                 else None
@@ -636,6 +654,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         resp = self.post(
             path,
             data=self._project_webhook_data(),
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
         )
 
@@ -660,10 +679,15 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return self.put(
             path,
             data=self._project_webhook_data(),
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
         )
 
-    def ensure_project_webhook(self, project_id: int | str, hook_id: int | str | None) -> int | str:
+    def ensure_project_webhook(
+        self,
+        project_id: int | str,
+        hook_id: int | str | None,
+    ) -> int | str:
         """Refresh a stored hook, creating a replacement only when necessary."""
         outcome = "failure"
         try:
@@ -707,7 +731,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
+        return self.delete(
+            path,
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+            api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK,
+        )
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""

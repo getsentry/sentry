@@ -1,9 +1,13 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
+import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
 import {
   getFieldsForConstructedQuery,
   getSamplesTargetAtIndex,
+  encodeCompareCaseInsensitive,
   normalizeCompareQueryParts,
+  useReadQueriesFromLocation,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -100,5 +104,50 @@ describe('normalizeCompareQueryParts', () => {
       query: '(span.status:ok OR span.status:unset) span.op:db',
       yAxes: ['count(span.duration)'],
     });
+  });
+});
+
+describe('useReadQueriesFromLocation', () => {
+  function readCaseInsensitive(queries: Array<Record<string, unknown>>) {
+    const {result} = renderHookWithProviders(useReadQueriesFromLocation, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/compare/',
+          query: {queries: queries.map(query => JSON.stringify(query))},
+        },
+      },
+    });
+    return result.current.map(query => query.caseInsensitive);
+  }
+
+  it('keeps an explicit compare query setting', () => {
+    expect(
+      readCaseInsensitive([
+        {yAxes: ['count(span.duration)'], query: '', caseInsensitive: '0'},
+        {yAxes: ['count(span.duration)'], query: 'span.op:DB', caseInsensitive: '1'},
+      ])
+    ).toEqual(['0', '1']);
+  });
+
+  it('matches case when an existing compare query stores false', () => {
+    expect(
+      readCaseInsensitive([
+        {yAxes: ['count(span.duration)'], query: '', caseInsensitive: false},
+      ])
+    ).toEqual(['0']);
+  });
+});
+
+describe('encodeCompareCaseInsensitive', () => {
+  it('writes false when matching case', () => {
+    expect(encodeCompareCaseInsensitive('0')).toBe(false);
+  });
+
+  it('writes 1 when ignoring case', () => {
+    expect(encodeCompareCaseInsensitive('1')).toBe('1');
+  });
+
+  it('writes nothing when the setting is unset', () => {
+    expect(encodeCompareCaseInsensitive(null)).toBeUndefined();
   });
 });

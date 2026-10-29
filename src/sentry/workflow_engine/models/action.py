@@ -97,8 +97,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
 
-    # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
-    # This allows us to map the way we're saving the notification channels to the action.
+    # The integration that owns this action's notification channel.
     integration_id = HybridCloudForeignKey(
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )

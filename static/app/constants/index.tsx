@@ -182,13 +182,7 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     resource: 'dashboard',
     label: t('Dashboards'),
     help: t('Dashboards and their widgets'),
-    levels: [
-      GranularPermissionLevel.READ,
-      GranularPermissionLevel.CREATE,
-      GranularPermissionLevel.WRITE,
-      GranularPermissionLevel.DELETE,
-      GranularPermissionLevel.ADMIN,
-    ],
+    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
   },
   {
     resource: 'event',

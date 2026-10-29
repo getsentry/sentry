@@ -13,6 +13,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
@@ -48,7 +49,6 @@ import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
-  isVisualizeFunction,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -188,7 +188,7 @@ function getChartInfo({
   const series = getTimeSeriesForQuery(
     timeseriesResult.data,
     visualize.yAxis,
-    isVisualizeFunction(visualize) ? visualize.transformations : []
+    visualize.transformations
   );
 
   let confidenceSeries = series;
@@ -294,7 +294,6 @@ function Chart({
   const organization = useOrganization();
   const showTransformationControls =
     visualize.visible &&
-    isVisualizeFunction(visualize) &&
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
@@ -527,13 +526,21 @@ function Chart({
                 rawSpanCounts={rawSpanCounts}
                 userQuery={query.trim()}
               />
-              {showTransformationControls ? (
-                <AddTransformationButton
-                  traceItemDataset={TraceItemDataset.SPANS}
-                  transformations={visualize.transformations}
-                  onChange={onTransformationsChange}
-                />
-              ) : null}
+              <Flex align="center" gap="md">
+                {showDroppedDataBand ? (
+                  <DroppedDataFilterNote
+                    dataset={dataset}
+                    hasUserQuery={!!query.trim()}
+                  />
+                ) : null}
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.SPANS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
             </Flex>
           )
         }

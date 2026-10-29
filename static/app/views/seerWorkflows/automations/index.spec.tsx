@@ -1,31 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
+import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import AutomationsList, {getNextUpdate} from 'sentry/views/seerWorkflows/automations';
-import type {SeerWorkflowConfigsResponse} from 'sentry/views/seerWorkflows/types';
-
-type Config = SeerWorkflowConfigsResponse['configs'][number];
-
-function makeConfig(overrides: Partial<Config>): Config {
-  return {
-    id: '1',
-    strategy: 'custom_strategy',
-    enabled: true,
-    schedule: 'weekly',
-    version: 1,
-    projects: [],
-    environments: [],
-    filters: {},
-    outputPolicy: {},
-    seededDefault: null,
-    dateAdded: '2026-10-01T00:00:00Z',
-    dateUpdated: '2026-10-01T00:00:00Z',
-    ...overrides,
-  };
-}
+import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
 function getCard(title: string) {
   return within(screen.getByRole('heading', {name: title}).closest('li')!);
@@ -47,44 +28,48 @@ describe('AutomationsList', () => {
     ]);
   });
 
-  function mockConfigs(configs: Config[]) {
+  function mockConfigs(configs: SeerWorkflowConfigResponse[]) {
     return MockApiClient.addMockResponse({url: configsUrl, body: {configs}});
   }
 
-  it('only renders placeholders without seer-automations', async () => {
-    const request = mockConfigs([makeConfig({id: '1'})]);
+  it('renders not found without seer-automations', async () => {
+    const request = mockConfigs([SeerWorkflowConfigFixture({id: '1'})]);
 
     render(<AutomationsList />, {organization: OrganizationFixture()});
 
-    expect(await screen.findAllByRole('listitem')).toHaveLength(2);
+    expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
 
   it('renders a card per config after the placeholders', async () => {
     mockConfigs([
-      makeConfig({id: '1', strategy: 'agentic_triage'}),
-      makeConfig({id: '2', strategy: 'custom_strategy'}),
+      SeerWorkflowConfigFixture({id: '1', strategy: 'agentic_triage'}),
+      SeerWorkflowConfigFixture({id: '2', strategy: 'custom_strategy'}),
     ]);
 
     render(<AutomationsList />, {organization});
 
     expect(
-      await screen.findByRole('heading', {name: 'Agentic triage'})
+      await screen.findByRole('heading', {name: 'custom_strategy'})
     ).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(4);
+    // The agentic_triage placeholder and the agentic_triage config
+    expect(screen.getAllByRole('heading', {name: 'Agentic triage'})).toHaveLength(2);
     expect(
-      getCard('Agentic triage').getByText(
-        'Automatically triage and fix the most fixable Issues'
-      )
-    ).toBeInTheDocument();
+      screen.getAllByText('Automatically triage and fix the most fixable Issues.')
+    ).toHaveLength(2);
     expect(getCard('custom_strategy').getByText('No description')).toBeInTheDocument();
   });
 
   it('shows which projects each config covers', async () => {
     mockConfigs([
-      makeConfig({id: '1', strategy: 'all_strategy', projects: [-1]}),
-      makeConfig({id: '2', strategy: 'none_strategy', projects: []}),
-      makeConfig({id: '3', strategy: 'some_strategy', projects: [2, 99, 1]}),
+      SeerWorkflowConfigFixture({id: '1', strategy: 'all_strategy', projects: [-1]}),
+      SeerWorkflowConfigFixture({id: '2', strategy: 'none_strategy', projects: []}),
+      SeerWorkflowConfigFixture({
+        id: '3',
+        strategy: 'some_strategy',
+        projects: [2, 99, 1],
+      }),
     ]);
 
     render(<AutomationsList />, {organization});
@@ -97,8 +82,12 @@ describe('AutomationsList', () => {
 
   it('shows a next run tag only for daily configs', async () => {
     mockConfigs([
-      makeConfig({id: '1', strategy: 'daily_strategy', schedule: 'daily'}),
-      makeConfig({id: '2', strategy: 'weekly_strategy', schedule: 'weekly'}),
+      SeerWorkflowConfigFixture({id: '1', strategy: 'daily_strategy', schedule: 'daily'}),
+      SeerWorkflowConfigFixture({
+        id: '2',
+        strategy: 'weekly_strategy',
+        schedule: 'weekly',
+      }),
     ]);
 
     render(<AutomationsList />, {organization});
@@ -110,7 +99,7 @@ describe('AutomationsList', () => {
 
   it('shows a paused tag in place of the schedule for disabled configs', async () => {
     mockConfigs([
-      makeConfig({
+      SeerWorkflowConfigFixture({
         id: '1',
         strategy: 'paused_strategy',
         schedule: 'daily',

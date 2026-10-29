@@ -56,6 +56,7 @@ IPADMINI4 = "iPad mini 4"
 IPADMINIGEN5 = "iPad mini (5th generation)"
 IPADMINIGEN6 = "iPad mini (6th generation)"
 IPADMINIA17PRO = "iPad mini (A17 Pro)"
+IPADMINIA20PRO = "iPad mini (A20 Pro)"
 
 APPLEWATCHGEN1 = "Apple Watch (1st generation)"
 APPLEWATCHSERIES1 = "Apple Watch Series 1"
@@ -69,6 +70,7 @@ APPLEWATCHSERIES8 = "Apple Watch Series 8"
 APPLEWATCHSERIES9 = "Apple Watch Series 9"
 APPLEWATCHSERIES10 = "Apple Watch Series 10"
 APPLEWATCHSERIES11 = "Apple Watch Series 11"
+APPLEWATCHSERIES12 = "Apple Watch Series 12"
 
 APPLEWATCHSE1 = "Apple Watch SE"
 APPLEWATCHSE2 = "Apple Watch SE 2"
@@ -263,6 +265,8 @@ IOS_MODELS: dict[str, str] = {
     "iPad14,2": IPADMINIGEN6,
     "iPad16,1": IPADMINIA17PRO,
     "iPad16,2": IPADMINIA17PRO,
+    "iPad19,1": IPADMINIA20PRO,
+    "iPad19,2": IPADMINIA20PRO,
     # Apple Watch
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,
@@ -306,6 +310,10 @@ IOS_MODELS: dict[str, str] = {
     "Watch7,18": APPLEWATCHSERIES11,
     "Watch7,19": APPLEWATCHSERIES11,
     "Watch7,20": APPLEWATCHSERIES11,
+    "Watch8,2": APPLEWATCHSERIES12,
+    "Watch8,3": APPLEWATCHSERIES12,
+    "Watch8,4": APPLEWATCHSERIES12,
+    "Watch8,5": APPLEWATCHSERIES12,
     # Apple Watch SE
     "Watch5,9": APPLEWATCHSE1,
     "Watch5,10": APPLEWATCHSE1,
@@ -323,6 +331,7 @@ IOS_MODELS: dict[str, str] = {
     "Watch6,18": "Apple Watch Ultra",
     "Watch7,5": "Apple Watch Ultra 2",
     "Watch7,12": "Apple Watch Ultra 3",
+    "Watch8,1": "Apple Watch Ultra 4",
     # Apple TV
     "AppleTV1,1": "Apple TV (1st generation)",
     "AppleTV2,1": "Apple TV (2nd generation)",
@@ -332,6 +341,7 @@ IOS_MODELS: dict[str, str] = {
     "AppleTV6,2": "Apple TV 4K",
     "AppleTV11,1": "Apple TV 4K (2nd generation)",
     "AppleTV14,1": "Apple TV 4K (3rd generation)",
+    "AppleTV18,1": "Apple TV 4K (4th generation)",
     "i386": "iOS Simulator (i386)",
     "x86_64": "iOS Simulator (x86_64)",
     # Vision Pro
