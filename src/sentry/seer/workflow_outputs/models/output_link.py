@@ -29,8 +29,8 @@ class SeerWorkflowOutputLink(DefaultFieldsModel):
     )
 
     class Meta:
-        app_label = "notebooks"
-        db_table = "notebooks_seerworkflowoutputlink"
+        app_label = "seer_workflow_outputs"
+        db_table = "seer_workflow_outputs_outputlink"
         constraints = [
             models.UniqueConstraint(
                 fields=["execution", "notebook"],

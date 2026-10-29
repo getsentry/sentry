@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0003_add_seer_workflow_output_link
+notebooks: 0002_copy_from_investigations
 
 notifications: 0016_add_inboxitem_and_inboxitemevent
 
@@ -36,6 +36,8 @@ releases: 0004_cleanup_failed_safe_deletes
 replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0045_workflow_run_lifecycle
+
+seer_workflow_outputs: 0001_initial
 
 sentry: 1245_add_login_hint_to_apidevicecode
 
