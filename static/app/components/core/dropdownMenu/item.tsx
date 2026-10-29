@@ -69,6 +69,11 @@ export interface MenuItemProps extends ListItemProps {
    */
   onAction?: () => void;
   /**
+   * Ref to the item's root element. For a section, this is the element that
+   * wraps its label and items.
+   */
+  ref?: React.Ref<HTMLLIElement>;
+  /**
    * Renders this item as a trigger for a nested sub-menu (only works when
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
@@ -162,6 +167,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     trailingAction,
     externalHref,
     closeOnSelect: itemCloseOnSelect,
+    ref: itemRef,
     ...itemProps
   } = node.value ?? {};
   const isSubmenu = !!submenu;
@@ -292,7 +298,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   return (
     <ListItem
-      ref={ref}
+      ref={mergeRefs(ref, itemRef)}
       as={renderAs}
       label={itemLabel}
       leadingItems={
