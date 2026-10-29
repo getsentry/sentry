@@ -22,7 +22,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1245_add_login_hint_to_apidevicecode"),
+        ("sentry", "1247_drop_metric_trigger"),
     ]
 
     operations = [
