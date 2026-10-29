@@ -14,6 +14,7 @@ import {AnimatePresence} from 'framer-motion';
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useOverlayContext, type DrawerLocation} from '@sentry/scraps/overlayContext';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {DrawerPanel} from './components';
@@ -197,33 +198,15 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
     }
   }, [currentDrawerConfig, handleClose]);
   const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
-  useLayoutEffect(() => {
-    const handleOutside = (event: MouseEvent | TouchEvent) => {
-      const element = event.target;
-      if (
-        !(element instanceof Element) ||
-        !panelRef.current ||
-        panelRef.current.contains(element)
-      ) {
-        return;
-      }
-      if (
-        (shouldCloseOnInteractOutside ?? shouldCloseOnInteractOutsideDefault)(element)
-      ) {
-        handleClickOutside();
-      }
-    };
-    document.addEventListener('mousedown', handleOutside);
-    document.addEventListener('touchstart', handleOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleOutside);
-      document.removeEventListener('touchstart', handleOutside);
-    };
-  }, [
-    handleClickOutside,
-    shouldCloseOnInteractOutside,
-    shouldCloseOnInteractOutsideDefault,
-  ]);
+  useOnClickOutside(panelRef, event => {
+    const element = event.target;
+    if (!(element instanceof Element)) {
+      return;
+    }
+    if ((shouldCloseOnInteractOutside ?? shouldCloseOnInteractOutsideDefault)(element)) {
+      handleClickOutside();
+    }
+  });
 
   // Close the drawer when escape is pressed.
   useHotkeys([
