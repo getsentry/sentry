@@ -76,7 +76,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsV3 = useSettingsV3();
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const isProjectTourActive = settingsTour?.step === 'projects';
+  const isProjectTourActive = settingsTour?.currentStepId === 'projects';
   const {organizations} = useLegacyStore(OrganizationsStore);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -130,8 +130,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const trigger: DropdownMenuProps['trigger'] = triggerProps => (
     <SettingsNavigationTourElement
       id="entry"
+      position="bottom-start"
       title={t('Access Settings here')}
-      description={t('Yep. We “moved the cheese,” but it’s for the better...')}
+      description={t('Yep. We "moved the cheese", but it\'s for the better...')}
     >
       {tourProps => (
         <AvatarButton
@@ -151,176 +152,165 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
     const otherProjects = sortProjects(projects.filter(project => !project.isMember));
 
     return (
-      <DropdownMenu
-        isOpen={isProjectTourActive || isMenuOpen}
-        onOpenChange={open => {
-          setMenuOpen(open);
-          if (!open && isProjectTourActive) {
-            settingsTour?.dismiss();
-          }
-        }}
-        shouldCloseOnBlur={isProjectTourActive ? false : undefined}
-        shouldCloseOnInteractOutside={element =>
-          !element.closest('[data-settings-navigation-tour]')
+      <SettingsNavigationTourElement
+        id="projects"
+        position="right"
+        title={
+          hasNoProjects
+            ? t('Project Settings')
+            : t('Quick settings-access for your important Projects')
         }
-        usePortal
-        portalContainerRef={portalContainerRef}
-        zIndex={theme.zIndex.modal}
-        trigger={trigger}
-        maxWidth={258}
-        menuTitle={
-          <NavigationMenuHeader
-            organization={organization}
-            projectCount={projects.length}
+        description={
+          hasNoProjects
+            ? canCreateProject
+              ? t(
+                  'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
+                )
+              : t(
+                  'Project settings shortcuts will appear here when projects are available to you. Star projects to pin them to this list.'
+                )
+            : t(
+                'Pin your important Projects to this list, by starring them in the Project page filter.'
+              )
+        }
+      >
+        {projectsTourProps => (
+          <DropdownMenu
+            isOpen={isProjectTourActive || isMenuOpen}
+            onOpenChange={open => {
+              setMenuOpen(open);
+              if (!open && isProjectTourActive) {
+                settingsTour?.endTour();
+              }
+            }}
+            shouldCloseOnBlur={isProjectTourActive ? false : undefined}
+            shouldCloseOnInteractOutside={element =>
+              !element.closest('[data-settings-navigation-tour]')
+            }
+            usePortal
+            portalContainerRef={portalContainerRef}
+            zIndex={theme.zIndex.modal}
+            trigger={trigger}
+            maxWidth={258}
+            menuTitle={
+              <NavigationMenuHeader
+                organization={organization}
+                projectCount={projects.length}
+              />
+            }
+            items={[
+              {
+                key: 'organization',
+                textValue: organization.name,
+                children: [
+                  {
+                    key: 'settings',
+                    label: t('Settings'),
+                    leadingItems: <IconSettings />,
+                    to: `/settings/${organization.slug}/`,
+                    hidden:
+                      props.hideCurrentOrganizationLinks ||
+                      !organization.access?.includes('org:read'),
+                  },
+                  {
+                    key: 'switch-organization',
+                    label: t('Switch'),
+                    leadingItems: <IconBuilding />,
+                    submenu: true,
+                    hidden:
+                      config.singleOrganization ||
+                      isDemoModeActive() ||
+                      (activeOrgs.length === 0 && inactiveOrgs.length === 0),
+                    children: [
+                      {
+                        key: 'active-orgs',
+                        children: orderBy(activeOrgs, ['name']).map(
+                          makeOrganizationMenuItem
+                        ),
+                        hidden: activeOrgs.length === 0,
+                      },
+                      {
+                        key: 'inactive-orgs',
+                        children: orderBy(inactiveOrgs, ['name']).map(
+                          makeInactiveOrganizationMenuItem
+                        ),
+                        hidden: inactiveOrgs.length === 0,
+                      },
+                    ],
+                  },
+                  createOrganizationItem,
+                ],
+              },
+              {
+                key: 'project-settings',
+                label: t('Project Settings'),
+                ref: projectsTourProps.ref,
+                hidden: props.hideCurrentOrganizationLinks,
+                children: [
+                  ...sortProjects(projects.filter(project => project.isBookmarked))
+                    .slice(0, 5)
+                    .map(project =>
+                      makeProjectMenuItem(
+                        project,
+                        organization,
+                        makeBookmarkAction(project),
+                        'starred-project'
+                      )
+                    ),
+                  {
+                    key: 'view-all-projects',
+                    label: t('View All Projects'),
+                    leadingItems: <span aria-hidden="true" />,
+                    submenu: {
+                      title: t('All Projects'),
+                      emptyMessage: t('No projects found'),
+                      search: {placeholder: t('Search')},
+                      maxHeight: 240,
+                      maxWidth: 258,
+                    },
+                    hidden: projects.length === 0,
+                    children: [
+                      {
+                        key: 'my-projects',
+                        label: t('My Projects'),
+                        hidden: memberProjects.length === 0,
+                        children: memberProjects.map(project =>
+                          makeProjectMenuItem(
+                            project,
+                            organization,
+                            makeBookmarkAction(project)
+                          )
+                        ),
+                      },
+                      {
+                        key: 'other-projects',
+                        label: t('Other Projects'),
+                        hidden: otherProjects.length === 0,
+                        children: otherProjects.map(project =>
+                          makeProjectMenuItem(
+                            project,
+                            organization,
+                            makeBookmarkAction(project)
+                          )
+                        ),
+                      },
+                    ],
+                  },
+                  {
+                    key: 'create-project',
+                    label: t('Create Project'),
+                    leadingItems: <IconAdd />,
+                    to: canCreateProject
+                      ? makeProjectsPathname({path: '/new/', organization})
+                      : undefined,
+                    disabled: !canCreateProject,
+                  },
+                ],
+              },
+            ]}
           />
-        }
-        items={[
-          {
-            key: 'organization',
-            textValue: organization.name,
-            children: [
-              {
-                key: 'settings',
-                label: t('Settings'),
-                leadingItems: <IconSettings />,
-                to: `/settings/${organization.slug}/`,
-                hidden:
-                  props.hideCurrentOrganizationLinks ||
-                  !organization.access?.includes('org:read'),
-              },
-              {
-                key: 'switch-organization',
-                label: t('Switch'),
-                leadingItems: <IconBuilding />,
-                submenu: true,
-                hidden:
-                  config.singleOrganization ||
-                  isDemoModeActive() ||
-                  (activeOrgs.length === 0 && inactiveOrgs.length === 0),
-                children: [
-                  {
-                    key: 'active-orgs',
-                    children: orderBy(activeOrgs, ['name']).map(makeOrganizationMenuItem),
-                    hidden: activeOrgs.length === 0,
-                  },
-                  {
-                    key: 'inactive-orgs',
-                    children: orderBy(inactiveOrgs, ['name']).map(
-                      makeInactiveOrganizationMenuItem
-                    ),
-                    hidden: inactiveOrgs.length === 0,
-                  },
-                ],
-              },
-              createOrganizationItem,
-            ],
-          },
-          {
-            key: 'project-settings',
-            label: (
-              <SettingsNavigationTourElement
-                id="projects"
-                title={
-                  hasNoProjects
-                    ? t('Project Settings')
-                    : t('Quick settings-access for your important Projects')
-                }
-                description={
-                  hasNoProjects
-                    ? canCreateProject
-                      ? t(
-                          'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
-                        )
-                      : t(
-                          'Project settings shortcuts will appear here when projects are available to you. Star projects to pin them to this list.'
-                        )
-                    : t(
-                        'Pin your important Projects to this list, by starring them in the Project page filter.'
-                      )
-                }
-              >
-                {tourProps => (
-                  <Text
-                    ref={node => {
-                      const anchor = node?.closest('li') ?? node;
-                      if (typeof tourProps.ref === 'function') {
-                        return tourProps.ref(anchor);
-                      }
-                      if (tourProps.ref) {
-                        tourProps.ref.current = anchor;
-                      }
-                    }}
-                  >
-                    {t('Project Settings')}
-                  </Text>
-                )}
-              </SettingsNavigationTourElement>
-            ),
-            textValue: t('Project Settings'),
-            hidden: props.hideCurrentOrganizationLinks,
-            children: [
-              ...sortProjects(projects.filter(project => project.isBookmarked))
-                .slice(0, 5)
-                .map(project =>
-                  makeProjectMenuItem(
-                    project,
-                    organization,
-                    makeBookmarkAction(project),
-                    'starred-project'
-                  )
-                ),
-              {
-                key: 'view-all-projects',
-                label: t('View All Projects'),
-                leadingItems: <span aria-hidden="true" />,
-                submenu: {
-                  title: t('All Projects'),
-                  emptyMessage: t('No projects found'),
-                  search: {placeholder: t('Search')},
-                  maxHeight: 240,
-                  maxWidth: 258,
-                },
-                hidden: projects.length === 0,
-                children: [
-                  {
-                    key: 'my-projects',
-                    label: t('My Projects'),
-                    hidden: memberProjects.length === 0,
-                    children: memberProjects.map(project =>
-                      makeProjectMenuItem(
-                        project,
-                        organization,
-                        makeBookmarkAction(project)
-                      )
-                    ),
-                  },
-                  {
-                    key: 'other-projects',
-                    label: t('Other Projects'),
-                    hidden: otherProjects.length === 0,
-                    children: otherProjects.map(project =>
-                      makeProjectMenuItem(
-                        project,
-                        organization,
-                        makeBookmarkAction(project)
-                      )
-                    ),
-                  },
-                ],
-              },
-              {
-                key: 'create-project',
-                label: t('Create Project'),
-                leadingItems: <IconAdd />,
-                to: canCreateProject
-                  ? makeProjectsPathname({path: '/new/', organization})
-                  : undefined,
-                disabled: !canCreateProject,
-              },
-            ],
-          },
-        ]}
-      />
+        )}
+      </SettingsNavigationTourElement>
     );
   }
 

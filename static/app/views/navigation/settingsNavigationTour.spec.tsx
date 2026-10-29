@@ -1,12 +1,11 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {NavigationTourProvider} from 'sentry/views/navigation/navigationTour';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {
@@ -38,10 +37,20 @@ function Tour() {
 const organization = OrganizationFixture({features: ['settings-v3']});
 
 describe('Settings navigation tour', () => {
+  let dismissRequest: jest.Mock;
+
   beforeEach(() => {
-    localStorageWrapper.clear();
+    MockApiClient.clearMockResponses();
     ConfigStore.set('user', UserFixture());
-    MockApiClient.addMockResponse({url: '/assistant/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: false}],
+    });
+    dismissRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      method: 'PUT',
+      body: {},
+    });
   });
 
   it('does not show for the old navigation', () => {
@@ -70,10 +79,29 @@ describe('Settings navigation tour', () => {
   });
 
   it.each(['Skip tour', 'Close'])('remembers dismissal with %s', async name => {
-    const {unmount} = render(<Tour />, {organization});
+    render(<Tour />, {organization});
     await userEvent.click(await screen.findByRole('button', {name}));
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
-    unmount();
+    expect(dismissRequest).toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
+      })
+    );
+  });
+
+  it('does not show once the user has seen it', async () => {
+    const assistantRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: true}],
+    });
+    render(<Tour />, {organization});
+    await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+
+  it('does not show to users who joined after the settings navigation GA', () => {
+    ConfigStore.set('user', UserFixture({dateJoined: new Date().toISOString()}));
     render(<Tour />, {organization});
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });

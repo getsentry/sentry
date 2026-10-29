@@ -105,8 +105,6 @@ function setupMocks() {
   MockApiClient.clearMockResponses();
 
   ConfigStore.set('user', UserFixture());
-  // Navigation interactions are tested after the settings tour has been dismissed.
-  localStorage.setItem(`settings-navigation-tour:${UserFixture().id}`, 'true');
   ConfigStore.set('customerDomain', null);
 
   const project = ProjectFixture({hasAccess: false});
@@ -242,7 +240,11 @@ describe('desktop navigation', () => {
     });
 
     it('opens the organization menu for the second tour step and closes it on Done', async () => {
-      localStorage.removeItem(`settings-navigation-tour:${UserFixture().id}`);
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
       const {router} = render(
         <PrimaryNavigationContextProvider>
           <Navigation />
@@ -270,7 +272,11 @@ describe('desktop navigation', () => {
     });
 
     it('explains project creation in the tour when no projects are available', async () => {
-      localStorage.removeItem(`settings-navigation-tour:${UserFixture().id}`);
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
       ProjectsStore.loadInitialData([]);
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',

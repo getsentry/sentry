@@ -7,8 +7,9 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
+import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
@@ -153,10 +154,10 @@ interface TourRenderProps {
   className?: string;
 }
 
-export interface TourElementProps<T extends TourEnumType> extends Omit<
-  HTMLAttributes<HTMLElement>,
-  'id' | 'children' | 'title'
-> {
+export interface TourElementProps<T extends TourEnumType>
+  extends
+    Omit<HTMLAttributes<HTMLElement>, 'id' | 'children' | 'title'>,
+    Pick<TourGuideProps, 'density' | 'highlight' | 'width'> {
   /**
    * Render function that receives tour props to apply to the element.
    * This allows the tour to work with any element without wrapping it in a div.
@@ -241,6 +242,9 @@ export function TourElementContent<T extends TourEnumType>({
   className,
   actions,
   margin,
+  density,
+  highlight,
+  width,
 }: TourElementContentProps<T>) {
   const organization = useOrganization({allowNull: true});
   const {
@@ -338,6 +342,9 @@ export function TourElementContent<T extends TourEnumType>({
       stepTotal={stepTotal}
       id={`${id}`}
       margin={margin}
+      density={density}
+      highlight={highlight}
+      width={width}
     >
       {children}
     </TourGuide>
@@ -467,10 +474,24 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody density={density}>
+                      <TourBody
+                        background="primary"
+                        radius="md"
+                        width="100%"
+                        padding={density === 'comfortable' ? 'lg xl xl' : 'lg xl'}
+                        gap={density === 'comfortable' ? 'md' : '0'}
+                      >
                         {isTopRowVisible && (
-                          <TopRow density={density}>
-                            <div>{countText}</div>
+                          <Flex
+                            justify="between"
+                            align="center"
+                            minHeight={
+                              density === 'comfortable' ? theme.form.sm.height : undefined
+                            }
+                          >
+                            <Text size="sm" variant="muted" bold>
+                              {countText}
+                            </Text>
                             {isDismissVisible && (
                               <Button
                                 variant="transparent"
@@ -484,17 +505,22 @@ export function TourGuide({
                                 size={density === 'comfortable' ? 'xs' : 'zero'}
                               />
                             )}
-                          </TopRow>
+                          </Flex>
                         )}
-                        {title && <TitleRow density={density}>{title}</TitleRow>}
+                        {title && (
+                          <Text as="div" size="xl" bold density="comfortable">
+                            {title}
+                          </Text>
+                        )}
                         {description && (
-                          <DescriptionRow density={density}>{description}</DescriptionRow>
+                          <Text as="div" size="md" density="comfortable">
+                            {description}
+                          </Text>
                         )}
                         {actions && (
                           <Flex
                             justify="end"
-                            marginTop={density === 'comfortable' ? undefined : 'md'}
-                            padding={density === 'comfortable' ? 'md 0' : undefined}
+                            paddingTop={density === 'comfortable' ? 'xs' : 'md'}
                           >
                             {actions}
                           </Flex>
@@ -512,18 +538,10 @@ export function TourGuide({
   );
 }
 
-/* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
 type TourDensityProps = {density: 'compact' | 'comfortable'};
 
-const TourBody = styled('div')<TourDensityProps>`
-  display: flex;
-  flex-direction: column;
-  background: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space[p.density === 'comfortable' ? 'md' : 'lg']}
-    ${p => p.theme.space.xl};
-  color: ${p => p.theme.tokens.content.primary};
-  border-radius: ${p => p.theme.radius.md};
-  width: 100%;
+/* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
+const TourBody = styled(Stack)`
   a {
     color: ${p => p.theme.tokens.content.primary};
     text-decoration: underline;
@@ -534,36 +552,6 @@ const TourOverlay = styled(Overlay)<TourDensityProps & {width: number}>`
   width: ${p => p.width}px;
   max-width: calc(100vw - 32px);
   box-shadow: ${p => (p.density === 'comfortable' ? p.theme.shadow.high : 'none')};
-`;
-
-const TopRow = styled('div')<TourDensityProps>`
-  min-height: ${p => (p.density === 'comfortable' ? p.theme.form.sm.height : undefined)};
-  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const TitleRow = styled('div')<TourDensityProps>`
-  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1.4;
-  white-space: wrap;
-`;
-
-const DescriptionRow = styled('div')<TourDensityProps>`
-  padding-block: ${p => (p.density === 'comfortable' ? p.theme.space.xs : undefined)};
-  color: ${p => p.theme.tokens.content.primary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  line-height: 1.4;
-  white-space: wrap;
-  opacity: ${p => (p.density === 'comfortable' ? 1 : 0.9)};
 `;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
