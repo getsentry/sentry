@@ -37,7 +37,7 @@ function shouldCloseOnInteractOutside(element: Element) {
 
 const drawerWidthStorage: DrawerWidthStorage = {
   get(key) {
-    const value = localStorageWrapper.getItem(`drawer-width:${key}`);
+    const value = localStorageWrapper.getItem(key);
     try {
       const width: unknown = value === null ? undefined : JSON.parse(value);
       return typeof width === 'number' ? width : undefined;
@@ -46,32 +46,23 @@ const drawerWidthStorage: DrawerWidthStorage = {
     }
   },
   set(key, widthPercent) {
-    const storageKey = `drawer-width:${key}`;
-    localStorageWrapper.setItem(storageKey, JSON.stringify(widthPercent));
+    localStorageWrapper.setItem(key, JSON.stringify(widthPercent));
     window.dispatchEvent(
       new CustomEvent('synced-local-storage', {
-        detail: {key: storageKey, value: widthPercent},
+        detail: {key, value: widthPercent},
       })
     );
   },
   subscribe(key, listener) {
-    const storageKey = `drawer-width:${key}`;
     const handleSyncedStorage = (event: Event) => {
-      if (event instanceof CustomEvent && event.detail.key === storageKey) {
+      if (event instanceof CustomEvent && event.detail.key === key) {
         // The existing synced-storage hook writes in a microtask.
         queueMicrotask(listener);
       }
     };
-    const handleStorage = (event: StorageEvent) => {
-      if (event.key === storageKey || event.key === null) {
-        listener();
-      }
-    };
     window.addEventListener('synced-local-storage', handleSyncedStorage);
-    window.addEventListener('storage', handleStorage);
     return () => {
       window.removeEventListener('synced-local-storage', handleSyncedStorage);
-      window.removeEventListener('storage', handleStorage);
     };
   },
 };

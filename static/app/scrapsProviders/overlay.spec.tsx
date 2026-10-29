@@ -496,35 +496,6 @@ describe('GlobalDrawer', () => {
       portal.remove();
     }
   });
-
-  it('saves keyboard resizing and restores the width when reopened', async () => {
-    const key = 'drawer-width:keyboard-persistence';
-    localStorage.setItem(key, '50');
-    render(
-      <GlobalDrawerTestComponent
-        config={{
-          renderer: () => <DrawerBody>Drawer content</DrawerBody>,
-          options: {ariaLabel, drawerKey: 'keyboard-persistence'},
-        }}
-      />
-    );
-    await userEvent.click(screen.getByTestId('drawer-test-open'));
-    const separator = await screen.findByRole('separator', {name: 'Resize drawer'});
-    separator.focus();
-    await userEvent.keyboard('{ArrowLeft}');
-    const savedWidth = Number(localStorage.getItem(key));
-    expect(savedWidth).toBeGreaterThan(50);
-    await userEvent.click(screen.getByTestId('drawer-test-close'));
-    await waitForDrawerToHide(ariaLabel);
-    await userEvent.click(screen.getByTestId('drawer-test-open'));
-    expect(await screen.findByText('Drawer content')).toBeInTheDocument();
-    expect(
-      screen
-        .getByRole('complementary', {name: ariaLabel})
-        .style.getPropertyValue('--drawer-width')
-    ).toBe(`${savedWidth}%`);
-    localStorage.removeItem(key);
-  });
   it('supplies the app header height to the scraps header', () => {
     const headerRef = createRef<HTMLHeadingElement>();
     render(<DrawerHeader ref={headerRef} />);

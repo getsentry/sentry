@@ -1,141 +1,192 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import type * as React from 'react';
+import {useCallback, useLayoutEffect, useRef} from 'react';
 
-export const MIN_WIDTH_PERCENT = 20;
-export const MAX_WIDTH_PERCENT = 85;
-export const DEFAULT_WIDTH_PERCENT = 50;
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 
-export function clampDrawerWidth(width: number) {
-  return Math.min(Math.max(width, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
-}
+import {useDrawerWidth} from './useDrawerWidth';
 
-export function getDrawerWidthPercent(drawerWidth?: string) {
-  if (!drawerWidth) {
-    return DEFAULT_WIDTH_PERCENT;
-  }
-  const value = parseFloat(drawerWidth);
-  return clampDrawerWidth(
-    drawerWidth.endsWith('%') ? value : (value / window.innerWidth) * 100
-  );
+const MIN_WIDTH_PERCENT = 20;
+const MAX_WIDTH_PERCENT = 85;
+const DEFAULT_WIDTH_PERCENT = 50;
+
+function getDrawerWidthKey(drawerKey: string) {
+  return `drawer-width:${drawerKey}`;
 }
 
 interface UseDrawerResizingOptions {
-  isSmallScreen: boolean;
-  widthPercent: number;
+  drawerKey?: string;
   drawerMaxWidth?: string;
   drawerWidth?: string;
   enabled?: boolean;
-  onWidthChange?: (widthPercent: number) => void;
+}
+
+interface UseDrawerResizingResult {
+  enabled: boolean;
+  handleResizeStart: (e: React.MouseEvent) => void;
+  panelRef: React.RefObject<HTMLDivElement>;
+  persistedWidthPercent: number;
+  resizeHandleRef: React.RefObject<HTMLDivElement>;
 }
 
 export function useDrawerResizing({
-  widthPercent,
-  isSmallScreen,
+  drawerKey,
   drawerWidth,
   drawerMaxWidth,
-  onWidthChange,
   enabled = true,
-}: UseDrawerResizingOptions) {
-  const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLDivElement>(null);
+}: UseDrawerResizingOptions): UseDrawerResizingResult {
+  const {isSmallScreen = false} = useOverlayContext();
+  const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
+  const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const rafIdRef = useRef<number | null>(null);
-  const dragWidthRef = useRef<number | null>(null);
-  const [resizeState, setResizeState] = useState({
-    input: widthPercent,
-    width: clampDrawerWidth(widthPercent),
-  });
-  const width = Object.is(resizeState.input, widthPercent)
-    ? resizeState.width
-    : clampDrawerWidth(widthPercent);
-  if (!Object.is(resizeState.input, widthPercent)) {
-    setResizeState({input: widthPercent, width});
-  }
+  const initialMousePositionRef = useRef<number | null>(null);
+
+  // Calculate initial width from props or use default
+  const calculateInitialWidth = (savedWidth?: number) => {
+    // If we have a saved width, use it but ensure it's within bounds
+    if (savedWidth !== undefined) {
+      return Math.min(Math.max(savedWidth, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
+    }
+
+    if (drawerWidth) {
+      // If width is already in percentage, parse and clamp it
+      if (drawerWidth.endsWith('%')) {
+        const parsedPercent = parseFloat(drawerWidth);
+        return Math.min(Math.max(parsedPercent, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
+      }
+      // If width is in pixels, convert to percentage and clamp
+      const viewportWidth = window.innerWidth;
+      const parsedPixels = parseFloat(drawerWidth);
+      const percentValue = (parsedPixels / viewportWidth) * 100;
+      return Math.min(Math.max(percentValue, MIN_WIDTH_PERCENT), MAX_WIDTH_PERCENT);
+    }
+
+    return DEFAULT_WIDTH_PERCENT;
+  };
+
+  // Store persisted width in localStorage, but don't use it for rendering state
+  const [persistedWidthPercent, setPersistedWidthPercent] = useDrawerWidth(
+    drawerKey ? getDrawerWidthKey(drawerKey) : 'drawer-width:default',
+    (value?: unknown) => {
+      const savedWidth = typeof value === 'number' ? value : undefined;
+      return calculateInitialWidth(savedWidth);
+    }
+  );
 
   useLayoutEffect(() => {
-    const panel = panelRef.current;
-    const nextWidth = width;
     if (isSmallScreen) {
-      panel?.style.setProperty('--drawer-width', '100%');
-      panel?.style.setProperty('--drawer-min-width', '100%');
-      panel?.style.setProperty('--drawer-max-width', '100%');
+      panelRef.current?.style.setProperty('--drawer-width', '100%');
+      panelRef.current?.style.setProperty('--drawer-min-width', '100%');
+      panelRef.current?.style.setProperty('--drawer-max-width', '100%');
     } else if (!enabled && drawerWidth) {
-      panel?.style.setProperty('--drawer-width', drawerWidth);
-      panel?.style.setProperty('--drawer-min-width', drawerWidth);
-      panel?.style.setProperty('--drawer-max-width', drawerWidth);
+      panelRef.current?.style.setProperty('--drawer-width', drawerWidth);
+      panelRef.current?.style.setProperty('--drawer-min-width', drawerWidth);
+      panelRef.current?.style.setProperty('--drawer-max-width', drawerWidth);
     } else {
-      panel?.style.setProperty('--drawer-width', `${nextWidth}%`);
-      panel?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
-      panel?.style.setProperty(
+      panelRef.current?.style.setProperty('--drawer-width', `${persistedWidthPercent}%`);
+      panelRef.current?.style.setProperty('--drawer-min-width', `${MIN_WIDTH_PERCENT}%`);
+      panelRef.current?.style.setProperty(
         '--drawer-max-width',
         drawerMaxWidth
           ? `min(${MAX_WIDTH_PERCENT}%, ${drawerMaxWidth})`
           : `${MAX_WIDTH_PERCENT}%`
       );
     }
-  }, [width, isSmallScreen, drawerWidth, drawerMaxWidth, enabled]);
+  }, [persistedWidthPercent, isSmallScreen, drawerWidth, drawerMaxWidth, enabled]);
 
-  const applyWidth = () => {
-    const panel = panelRef.current;
-    if (!panel || dragWidthRef.current === null) {
-      return;
-    }
-    panel.style.setProperty('--drawer-width', `${dragWidthRef.current}%`);
-    // Use the rendered width so custom CSS bounds also apply to the next step.
-    const computedWidth = parseFloat(window.getComputedStyle(panel).width);
-    if (Number.isFinite(computedWidth)) {
-      dragWidthRef.current = (computedWidth / window.innerWidth) * 100;
-    }
-  };
+  const handleResizeStart = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't allow resizing on small screens
+      if (isSmallScreen || !enabled) {
+        return;
+      }
 
-  const handleMoveStart = () => {
-    if (isSmallScreen || !enabled) {
-      return;
-    }
-    dragWidthRef.current = width;
-    panelRef.current?.setAttribute('data-resizing', '');
-    applyWidth();
-  };
+      e.preventDefault();
 
-  const handleMove = (delta: number) => {
-    if (dragWidthRef.current === null) {
-      return;
-    }
-    dragWidthRef.current = clampDrawerWidth(
-      dragWidthRef.current - (delta / window.innerWidth) * 100
-    );
-    if (rafIdRef.current !== null) {
-      window.cancelAnimationFrame(rafIdRef.current);
-    }
-    rafIdRef.current = window.requestAnimationFrame(() => {
-      rafIdRef.current = null;
-      applyWidth();
-    });
-  };
+      const handle = resizeHandleRef.current;
+      const panel = panelRef.current;
+      if (!handle || !panel) {
+        return;
+      }
 
-  const handleMoveEnd = () => {
-    if (rafIdRef.current !== null) {
-      window.cancelAnimationFrame(rafIdRef.current);
-      rafIdRef.current = null;
-    }
-    // Flush the last move even if pointerup precedes the animation frame.
-    applyWidth();
-    panelRef.current?.removeAttribute('data-resizing');
-    if (dragWidthRef.current !== null) {
-      const nextWidth = clampDrawerWidth(dragWidthRef.current);
-      dragWidthRef.current = null;
-      setResizeState({input: widthPercent, width: nextWidth});
-      onWidthChange?.(nextWidth);
-    }
-  };
+      // Mark as resizing
+      handle.setAttribute('data-resizing', '');
+      panel.setAttribute('data-resizing', '');
+      initialMousePositionRef.current = e.clientX;
+
+      const viewportWidth = typeof window === 'undefined' ? 1000 : window.innerWidth;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        moveEvent.preventDefault();
+
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+        }
+
+        rafIdRef.current = window.requestAnimationFrame(() => {
+          if (!panel || !handle || initialMousePositionRef.current === null) {
+            return;
+          }
+
+          const newWidthPercent =
+            ((viewportWidth - moveEvent.clientX) / viewportWidth) * 100;
+
+          panel.style.setProperty('--drawer-width', `${newWidthPercent}%`);
+
+          // Update handle attributes for cursor styles
+          handle.setAttribute(
+            'data-at-min-width',
+            (newWidthPercent <= MIN_WIDTH_PERCENT).toString()
+          );
+          handle.setAttribute(
+            'data-at-max-width',
+            (Math.abs(newWidthPercent - MAX_WIDTH_PERCENT) < 1).toString()
+          );
+        });
+      };
+
+      const handleMouseUp = () => {
+        if (rafIdRef.current !== null) {
+          window.cancelAnimationFrame(rafIdRef.current);
+          rafIdRef.current = null;
+        }
+
+        if (handle) {
+          handle.removeAttribute('data-resizing');
+        }
+
+        if (panel) {
+          panel.removeAttribute('data-resizing');
+          // Get the computed width considering min/max constraints and save to localStorage
+          const computedStyle = window.getComputedStyle(panel);
+          const widthValue = (parseFloat(computedStyle.width) / viewportWidth) * 100;
+          setPersistedWidthPercent(widthValue);
+        }
+
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    },
+    [isSmallScreen, enabled, setPersistedWidthPercent]
+  );
 
   useLayoutEffect(() => {
-    const panel = panelRef.current;
     return () => {
       if (rafIdRef.current !== null) {
         window.cancelAnimationFrame(rafIdRef.current);
       }
-      panel?.removeAttribute('data-resizing');
     };
   }, []);
 
-  return {panelRef, resizeHandleRef, width, handleMove, handleMoveStart, handleMoveEnd};
+  return {
+    panelRef,
+    resizeHandleRef,
+    handleResizeStart,
+    persistedWidthPercent,
+    enabled: !isSmallScreen && !!drawerKey && enabled,
+  };
 }
+
+export {MIN_WIDTH_PERCENT, MAX_WIDTH_PERCENT, DEFAULT_WIDTH_PERCENT};

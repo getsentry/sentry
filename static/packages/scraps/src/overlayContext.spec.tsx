@@ -31,7 +31,6 @@ it('shares layout defaults across drawers, headers, and slide-over panels', asyn
   expect(screen.getByRole('complementary', {name: 'Drawer'})).toHaveStyle({
     '--drawer-width': '100%',
   });
-  expect(screen.queryByRole('separator')).not.toBeInTheDocument();
 });
 
 it('updates header and panel layout without replacing their DOM nodes', async () => {

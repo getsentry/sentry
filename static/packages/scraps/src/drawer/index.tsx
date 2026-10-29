@@ -7,11 +7,6 @@ export {
   type DrawerPanelProps,
 } from './components';
 export {
-  clampDrawerWidth,
-  DEFAULT_WIDTH_PERCENT,
-  getDrawerWidthPercent,
-} from './useDrawerResizing';
-export {
   GlobalDrawer,
   useDrawer,
   useDrawerPlacement,

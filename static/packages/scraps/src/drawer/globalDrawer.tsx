@@ -17,7 +17,7 @@ import {useOverlayContext, type DrawerLocation} from '@sentry/scraps/overlayCont
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
-import {DrawerPanel} from './components';
+import {DrawerComponents} from './components';
 
 export interface DrawerOptions {
   /**
@@ -52,8 +52,8 @@ export interface DrawerOptions {
    */
   onOpen?: () => void;
   /**
-   * If true (default), allows the drawer to be resized. A consumer can use
-   * `drawerKey` to persist the resulting width.
+   * If true (default), allows the drawer to be resized - requires `drawerKey`
+   * to be defined
    */
   resizable?: boolean;
   /**
@@ -127,10 +127,10 @@ function DrawerBoundary({children}: React.PropsWithChildren) {
 export function GlobalDrawer({children}: GlobalDrawerProps) {
   const {drawer} = useOverlayContext();
   const {
-    boundaryComponent: Boundary = DrawerBoundary,
     location,
+    boundaryComponent: Boundary = DrawerBoundary,
     shouldCloseOnInteractOutside:
-      shouldCloseOnInteractOutsideDefault = shouldCloseOnInteractOutsideByDefault,
+      defaultShouldCloseOnInteractOutside = shouldCloseOnInteractOutsideByDefault,
   } = drawer ?? {};
   const [currentDrawerConfig, overwriteDrawerConfig] = useState<
     StoredDrawerConfig | undefined
@@ -198,14 +198,20 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
     }
   }, [currentDrawerConfig, handleClose]);
   const {shouldCloseOnInteractOutside} = currentDrawerConfig?.options ?? {};
-  useOnClickOutside(panelRef, event => {
-    const element = event.target;
-    if (!(element instanceof Element)) {
+  useOnClickOutside(panelRef, e => {
+    if (e.target === null) {
+      handleClickOutside();
       return;
     }
-    if ((shouldCloseOnInteractOutside ?? shouldCloseOnInteractOutsideDefault)(element)) {
-      handleClickOutside();
+
+    const shouldClose = shouldCloseOnInteractOutside
+      ? shouldCloseOnInteractOutside(e.target as Element)
+      : defaultShouldCloseOnInteractOutside(e.target as Element);
+
+    if (!shouldClose) {
+      return;
     }
+    handleClickOutside();
   });
 
   // Close the drawer when escape is pressed.
@@ -235,7 +241,7 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
             <Backdrop zIndex="drawer" key="backdrop" data-drawer-backdrop="" />
           ) : null}
           {isDrawerOpen && (
-            <DrawerPanel
+            <DrawerComponents.DrawerPanel
               key="panel"
               ariaLabel={currentDrawerConfig.options.ariaLabel}
               onClose={handleClose}
@@ -249,7 +255,7 @@ export function GlobalDrawer({children}: GlobalDrawerProps) {
               resizable={currentDrawerConfig?.options?.resizable}
             >
               {renderedChild}
-            </DrawerPanel>
+            </DrawerComponents.DrawerPanel>
           )}
         </AnimatePresence>
       </Boundary>

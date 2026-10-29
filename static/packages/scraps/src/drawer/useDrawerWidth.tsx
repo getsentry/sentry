@@ -1,34 +1,32 @@
-import {useCallback, useSyncExternalStore} from 'react';
+import {useCallback, useState, useSyncExternalStore} from 'react';
 
 import {useOverlayContext} from '@sentry/scraps/overlayContext';
 
-import {clampDrawerWidth, getDrawerWidthPercent} from './useDrawerResizing';
-
-export function useDrawerWidth({
-  drawerKey = 'default',
-  drawerWidth,
-}: {
-  drawerKey?: string;
-  drawerWidth?: string;
-}) {
+export function useDrawerWidth(key: string, initialize: (value?: unknown) => number) {
   const {drawer} = useOverlayContext();
   const storage = drawer?.widthStorage;
   const subscribe = useCallback(
-    (listener: () => void) => storage?.subscribe(drawerKey, listener) ?? (() => {}),
-    [storage, drawerKey]
+    (listener: () => void) => storage?.subscribe(key, listener) ?? (() => {}),
+    [storage, key]
   );
-  const getSnapshot = useCallback(() => storage?.get(drawerKey), [storage, drawerKey]);
+  const getSnapshot = useCallback(() => storage?.get(key), [storage, key]);
   const savedWidth = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-  const onWidthChange = useCallback(
-    (widthPercent: number) => storage?.set(drawerKey, widthPercent),
-    [storage, drawerKey]
+  const [state, setState] = useState(() => ({
+    key,
+    savedWidth,
+    value: initialize(savedWidth),
+  }));
+  const changed = state.key !== key || !Object.is(state.savedWidth, savedWidth);
+  const value = changed ? initialize(savedWidth) : state.value;
+  if (changed) {
+    setState({key, savedWidth, value});
+  }
+  const setWidth = useCallback(
+    (nextWidth: number) => {
+      setState(previous => ({...previous, value: nextWidth}));
+      storage?.set(key, nextWidth);
+    },
+    [storage, key]
   );
-
-  return {
-    widthPercent:
-      savedWidth === undefined
-        ? getDrawerWidthPercent(drawerWidth)
-        : clampDrawerWidth(savedWidth),
-    onWidthChange,
-  };
+  return [value, setWidth] as const;
 }
