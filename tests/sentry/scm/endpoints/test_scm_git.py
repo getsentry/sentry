@@ -3,12 +3,19 @@ from __future__ import annotations
 import base64
 import time
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import Any, NamedTuple
 from unittest import mock
 
 import pytest
 import responses
 import sentry_sdk
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+)
 from django.conf import settings
 from django.core.signals import request_finished
 from django.db import close_old_connections
@@ -33,7 +40,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils.sdk import traces_sampler
 
-SECRET = "a-long-value-that-is-hard-to-guess"
 TOKEN = "ghs_installation_token"
 GITLAB_TOKEN = "gitlab_oauth_token"
 FEATURE = "organizations:scm-git-endpoint"
@@ -42,13 +48,31 @@ REFERRER = "seer.coding_job"
 TOKEN_EXPIRES_AT = "3000-01-01T00:00:00"
 
 
+class KeyPair(NamedTuple):
+    private: Secret
+    """The private key in PEM, as Seer signs grants with it."""
+    public: str
+    """The public key in PEM, as SCM_GIT_GRANT_PUBLIC_KEYS lists it."""
+
+
+def make_key_pair() -> KeyPair:
+    # Generated, so no private key is committed.
+    key = Ed25519PrivateKey.generate()
+    private_pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
+    public_pem = key.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
+    return KeyPair(private=Secret(private_pem.decode()), public=public_pem.decode())
+
+
+KEY = make_key_pair()
+
+
 def sign(
     organization_id: int,
     operation: GitOperation,
     repositories: Sequence[RepositoryId],
     *,
     expires_in: int = 300,
-    secret: str = SECRET,
+    key: KeyPair = KEY,
 ) -> str:
     grant = Grant(
         organization_id=organization_id,
@@ -57,11 +81,11 @@ def sign(
         expires_at=int(time.time()) + expires_in,
         referrer=REFERRER,
     )
-    return sign_grant(Secret(secret), grant)
+    return sign_grant(key.private, grant)
 
 
 @cell_silo_test
-@override_settings(SCM_GIT_GRANT_SECRETS=[SECRET])
+@override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[KEY.public])
 @with_feature(FEATURE)
 class ScmGitEndpointTest(TestCase):
     def setUp(self) -> None:
@@ -275,28 +299,74 @@ class ScmGitEndpointTest(TestCase):
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
     @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
-    def test_refuses_a_grant_signed_with_an_unknown_secret_without_its_referrer(
+    def test_refuses_a_grant_signed_with_an_unknown_key_without_its_referrer(
         self, mock_record_count: mock.MagicMock, mock_sdk: mock.MagicMock
     ) -> None:
         # Anyone can write a referrer into a grant they sign themselves, so only a verified one
         # may tag metrics and issues.
-        grant = sign(self.organization.id, "fetch", [self.repo.id], secret="some-other-secret")
+        grant = sign(self.organization.id, "fetch", [self.repo.id], key=make_key_pair())
 
         response = self.fetch_refs(grant)
 
-        self.assert_refused(response, 403, b"not signed with a known secret")
+        self.assert_refused(response, 403, b"not signed with a known key")
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "git_invalid_grant"}
         )
-        self.assert_reported_message(mock_sdk, "The git grant was not signed with a known secret.")
+        self.assert_reported_message(mock_sdk, "The git grant was not signed with a known key.")
         self.assert_reported(mock_sdk, "git_invalid_grant", {"repository_id": str(self.repo.id)})
 
     @responses.activate
-    @override_settings(SCM_GIT_GRANT_SECRETS=None)
-    def test_refuses_every_grant_when_no_secret_is_configured(self) -> None:
+    def test_accepts_a_grant_signed_with_any_listed_key(self) -> None:
+        # During a rotation Sentry lists the old and the new public key, and Seer may sign with
+        # either.
+        new_key = make_key_pair()
+        responses.add(
+            responses.GET,
+            "https://github.com/getsentry/sentry.git/info/refs",
+            body=b"0000",
+            content_type="application/x-git-upload-pack-advertisement",
+        )
+
+        with override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[KEY.public, new_key.public]):
+            response = self.fetch_refs(
+                sign(self.organization.id, "fetch", [self.repo.id], key=new_key)
+            )
+
+        assert response.status_code == 200
+
+    @responses.activate
+    @override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[])
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    @mock.patch("sentry.scm.endpoints.scm_git.record_count_metric")
+    def test_refuses_every_grant_when_no_public_key_is_configured(
+        self, mock_record_count: mock.MagicMock, mock_sdk: mock.MagicMock
+    ) -> None:
         response = self.fetch_refs(self.fetch_grant())
 
-        self.assert_refused(response, 403, b"not signed with a known secret")
+        self.assert_refused(response, 503, b"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured")
+        mock_record_count.assert_called_once_with(
+            "sentry.scm.git.request.failed", 1, {"code": "grant_public_keys_invalid"}
+        )
+        self.assert_reported(
+            mock_sdk, "grant_public_keys_invalid", {"repository_id": str(self.repo.id)}
+        )
+
+    @responses.activate
+    @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
+    def test_refuses_every_grant_without_quoting_a_misplaced_private_key(
+        self, mock_sdk: mock.MagicMock
+    ) -> None:
+        private_pem = KEY.private.reveal()
+
+        with override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[private_pem]):
+            response = self.fetch_refs(self.fetch_grant())
+
+        self.assert_refused(response, 503, b"public_keys[0] is a private key")
+        body = b"".join(response).decode()
+        (detail,), _ = mock_sdk.capture_message.call_args
+        key_body = private_pem.splitlines()[1]
+        assert key_body not in body
+        assert key_body not in detail
 
     @responses.activate
     def test_refuses_an_expired_grant(self) -> None:
