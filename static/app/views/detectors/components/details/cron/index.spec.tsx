@@ -25,6 +25,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 import DetectorDetails from 'sentry/views/detectors/detail';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 describe('CronDetectorDetails - check-ins', () => {
   const project = ProjectFixture({environments: ['production']});
@@ -228,6 +229,7 @@ describe('CronDetectorDetails - check-ins', () => {
             ...cronDataSource.queryObj,
             config: {
               ...cronDataSource.queryObj.config,
+              schedule_type: ScheduleType.CRONTAB,
               schedule: '0 9 * * 6-7',
               timezone: null,
             },
