@@ -265,7 +265,7 @@ class SeerWorkflow:
         return replica
 
     def set_project_selection(
-        self, selection: ProjectSelection, *, no_access_projects: Collection[int] = ()
+        self, selection: ProjectSelection, *, has_access_projects: Collection[int] | None = None
     ) -> None:
         match selection:
             case AllProjects():
@@ -294,10 +294,11 @@ class SeerWorkflow:
             if project_ids != valid_project_ids:
                 raise ValueError("Selected projects must exist in the workflow's organization")
 
-            # Prevent closed membership members from overwriting no access projects
-            SeerWorkflowConfigProject.objects.filter(
-                config=config, project__not_in=no_access_projects
-            ).delete()
+            links = SeerWorkflowConfigProject.objects.filter(config=config)
+            if has_access_projects is not None:
+                # Keep selected projects the caller can't access.
+                links = links.filter(project_id__in=has_access_projects)
+            links.delete()
             SeerWorkflowConfigProject.objects.bulk_create(
                 [
                     SeerWorkflowConfigProject(config=config, project_id=project_id)

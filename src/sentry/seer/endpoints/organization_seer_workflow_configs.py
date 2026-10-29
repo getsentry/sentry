@@ -340,8 +340,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
 
-        updated = False
-
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
@@ -356,11 +354,11 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 ):
                     raise PermissionDenied
 
-            no_access_projects = {
+            has_access_projects = [
                 project.id
                 for project in self.get_projects(request, organization, include_all_accessible=True)
-                if not request.access.has_project_scope(project, "project:read")
-            }
+                if request.access.has_project_scope(project, "project:read")
+            ]
             workflow = SeerWorkflow(config)
             try:
                 if all_projects:
@@ -368,16 +366,13 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 else:
                     workflow.set_project_selection(
                         SelectedProjects(project_ids=tuple(project_ids)),
-                        no_access_projects=no_access_projects,
+                        has_access_projects=has_access_projects,
                     )
             except ValueError as e:
                 return Response({"detail": str(e)}, status=400)
             config = workflow.config
-            updated = True
 
-        return Response(
-            self.serialize(request, organization, config), status=201 if updated else 200
-        )
+        return Response(self.serialize(request, organization, config))
 
 
 def serialize_workflow_configs(
