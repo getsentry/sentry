@@ -1,7 +1,6 @@
 import {useCallback, useImperativeHandle, useMemo, useRef} from 'react';
 import Creatable from 'react-select/creatable';
 import {useTheme} from '@emotion/react';
-import type {CSSObject} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useObjectRef} from '@react-aria/utils';
 import {IconChevron} from '@sentry/icons/chevron';
@@ -493,13 +492,10 @@ export interface BaseSelectProps<
   disabled?: boolean;
   /** Set to null to hide the dropdown indicator. */
   dropdownIndicator?: React.ReactNode;
-  /** Disabled row that describes an empty selection, for legacy form fields. */
-  emptyOptionLabel?: React.ReactNode;
   filterOption?: ((option: TOption, input: string) => boolean) | null;
   formatCreateLabel?: (input: string) => React.ReactNode;
   /** ID of the native input, for association with a label. */
   id?: string;
-  inFieldLabel?: string;
   /** Ref to the native search input. */
   inputRef?: React.Ref<HTMLInputElement>;
   inputValue?: string;
@@ -527,7 +523,6 @@ export interface BaseSelectProps<
   onOpenChange?: (isOpen: boolean) => void;
   openMenuOnClick?: boolean;
   openMenuOnFocus?: boolean;
-  optionHeight?: number;
   placeholder?: React.ReactNode;
   ref?: React.Ref<SelectHandle>;
   searchable?: boolean;
@@ -573,32 +568,19 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     });
   }, [theme, size, maxMenuWidth, isInsideModal, isSearchable, isDisabled]);
 
-  const getFieldLabelStyle = (label?: string): CSSObject => ({
-    ':before': {
-      content: `"${label}"`,
-      color: theme.colors.gray800,
-      fontWeight: 600,
-      marginRight: selectSpacing[props.size ?? 'md'],
-    },
-  });
-
   const {
     creatable,
     options,
     clearable,
     styles,
-    value,
-    emptyOptionLabel,
     onInputChange,
     filterOption,
-    inFieldLabel,
     ref,
     inputRef,
     id,
     isOpen,
     onOpenChange,
     components,
-    optionHeight,
     controlLeadingItems,
     dropdownIndicator,
     menuFooter,
@@ -627,32 +609,11 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   const mappedValue = props.multiple
     ? props.value.map(toOption).filter(defined)
     : (toOption(props.value) ?? null);
-  const showEmptyOption =
-    !props.multiple && !defined(value) && emptyOptionLabel !== undefined;
-  const emptyOption = {value: null, label: emptyOptionLabel, disabled: true};
-  const displayOptions = showEmptyOption ? [emptyOption, ...options] : options;
-
-  // Override the default style with in-field labels if they are provided
-  const inFieldLabelStyles: InternalStylesConfig = {
-    singleValue: (base: CSSObject) => ({
-      ...base,
-      ...getFieldLabelStyle(inFieldLabel),
-    }),
-    placeholder: (base: CSSObject) => ({
-      ...base,
-      ...getFieldLabelStyle(inFieldLabel),
-    }),
-  };
-  const labelOrDefaultStyles = inFieldLabel
-    ? mergeStyles(defaultStyles, inFieldLabelStyles)
-    : defaultStyles;
 
   // Allow the provided `styles` prop to override default styles using the same
   // function interface provided by react-styled. This ensures the `provided`
   // styles include our overridden default styles
-  const mappedStyles = styles
-    ? mergeStyles(labelOrDefaultStyles, styles)
-    : labelOrDefaultStyles;
+  const mappedStyles = styles ? mergeStyles(defaultStyles, styles) : defaultStyles;
 
   const selectRef = useRef<{blur: () => void; focus: () => void}>(null);
   useImperativeHandle(
@@ -697,20 +658,18 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       creatable={creatable}
       isClearable={clearable}
       backspaceRemovesValue={clearable}
-      value={mappedValue}
       isMulti={props.multiple}
       isDisabled={isDisabled}
       isSearchable={isSearchable ?? true}
       isOptionDisabled={(option: TOption) => !!option.disabled}
-      isOptionSelected={showEmptyOption ? option => option === emptyOption : undefined}
-      controlShouldRenderValue={!showEmptyOption}
       showDividers={props.showDividers}
-      options={displayOptions as OptionsType<TOption>}
+      options={options as OptionsType<TOption>}
       blurInputOnSelect={!props.multiple}
       closeMenuOnSelect={!props.multiple}
       hideSelectedOptions={false}
       tabSelectsValue={false}
       {...rest}
+      value={mappedValue}
       ref={selectRef}
       inputRef={inputRef}
       inputId={id}
@@ -721,7 +680,6 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       onMenuOpen={() => onOpenChange?.(true)}
       onMenuClose={() => onOpenChange?.(false)}
       contentComponents={components}
-      optionHeight={optionHeight}
       controlLeadingItems={controlLeadingItems}
       dropdownIndicator={dropdownIndicator}
       menuFooter={menuFooter}
@@ -740,13 +698,11 @@ type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
     | 'backspaceRemovesValue'
     | 'blurInputOnSelect'
     | 'closeMenuOnSelect'
-    | 'controlShouldRenderValue'
     | 'inputId'
     | 'isDisabled'
     | 'isClearable'
     | 'isSearchable'
     | 'isOptionDisabled'
-    | 'isOptionSelected'
     | 'onInputChange'
     | 'components'
     | 'isMulti'

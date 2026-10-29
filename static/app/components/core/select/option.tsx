@@ -20,7 +20,7 @@ type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
   data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
   selectProps: Pick<
     BaseSelectProps<TValue, TOption>,
-    'optionHeight' | 'showCreateOptionIcon' | 'showDividers'
+    'showCreateOptionIcon' | 'showDividers'
   > & {
     contentComponents?: BaseSelectProps<TValue, TOption>['components'];
     size?: BaseSelectProps<TValue, TOption>['size'];
@@ -90,16 +90,7 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
               </Fragment>
             ) : (
               <Fragment>
-                <CheckWrap
-                  style={
-                    selectProps.optionHeight
-                      ? {height: selectProps.optionHeight}
-                      : undefined
-                  }
-                  isMultiple={isMultiple}
-                  isSelected={isSelected}
-                  size={size}
-                >
+                <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
                     <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}

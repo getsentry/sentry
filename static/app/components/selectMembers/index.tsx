@@ -187,7 +187,6 @@ function SelectMembers({
       aria-label={ariaLabel}
       options={currentOptions}
       components={{Value: MemberValue}}
-      optionHeight={32}
       filterOption={filterMemberOption}
       isLoading={searchLoading}
       onInputChange={setSearch}
