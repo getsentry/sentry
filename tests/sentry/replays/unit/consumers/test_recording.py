@@ -23,6 +23,7 @@ from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
 
 
+@django_db_all
 def test_decompress_segment_success() -> None:
     """Test successful decompression of segment"""
     data = b"[hello, world!]"
@@ -37,6 +38,7 @@ def test_decompress_segment_success() -> None:
     assert decompressed == data
 
 
+@django_db_all
 def test_decompress_segment_already_decompressed() -> None:
     """Test handling of already decompressed JSON data"""
     data = b"[hello, world!]"
@@ -47,12 +49,14 @@ def test_decompress_segment_already_decompressed() -> None:
     assert decompressed == data
 
 
+@django_db_all
 def test_decompress_segment_unexpected_start_character() -> None:
     """Test handling of invalid data that can't be decompressed"""
     with pytest.raises(DropSilently):
         decompress_segment(b"hello, world!")
 
 
+@django_db_all
 def test_decompress_segment_empty_data() -> None:
     """Test handling of empty data"""
     with pytest.raises(DropSilently):
@@ -184,6 +188,7 @@ def test_parse_request_message_validation_error() -> None:
         parse_request_message(msgpack.packb(b"invalid"))
 
 
+@django_db_all
 def test_parse_recording_event_success() -> None:
     """Test successful parsing of recording event end-to-end"""
     # Create real compressed data
@@ -231,6 +236,7 @@ def test_parse_recording_event_success() -> None:
     assert result == expected
 
 
+@django_db_all
 def test_parse_recording_event_with_replay_event() -> None:
     """Test parsing recording event with replay_event JSON"""
     # Create real compressed data
@@ -295,6 +301,7 @@ def test_parse_recording_event_missing_payload() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
+@django_db_all
 def test_parse_recording_event_invalid_compression() -> None:
     """Test that invalid compression in payload causes DropSilently"""
     message = {
