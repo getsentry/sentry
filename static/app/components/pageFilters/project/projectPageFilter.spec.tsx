@@ -1327,7 +1327,10 @@ describe('ProjectPageFilter', () => {
             isMember: true,
             isBookmarked: true,
           })
-        ).concat(ProjectFixture({id: '100', slug: 'other', isMember: false}))
+        ).concat(
+          ProjectFixture({id: '100', slug: 'other', isMember: false}),
+          ProjectFixture({id: '101', slug: 'unstarred', isMember: true})
+        )
       );
       render(<ProjectPageFilter />, {organization});
 
@@ -1401,6 +1404,39 @@ describe('ProjectPageFilter', () => {
           '(2)'
         );
       });
+    });
+
+    it('is hidden when favorites are the same as My Projects', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'project-1', isMember: true, isBookmarked: true}),
+        ProjectFixture({id: '2', slug: 'project-2', isMember: true, isBookmarked: true}),
+        ProjectFixture({id: '3', slug: 'project-3', isMember: false}),
+      ]);
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(
+        screen.getByRole('checkbox', {name: 'Select My Projects'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('is hidden when every project is a favorite', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'project-1', isMember: true, isBookmarked: true}),
+        ProjectFixture({id: '2', slug: 'project-2', isMember: false, isBookmarked: true}),
+      ]);
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(
+        screen.getByRole('checkbox', {name: 'Select All Projects'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeInTheDocument();
     });
 
     it('is hidden when search is active', async () => {

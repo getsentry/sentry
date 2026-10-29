@@ -232,12 +232,18 @@ export function ProjectPageFilter({
     const showMyProjects =
       memberProjectList.length > 0 && memberProjectList.length < projects.length;
     const favoriteProjectList = favoriteProjects(projects);
+    // Two shortcuts that select the same projects would be confusing, so hide
+    // Favorite Projects when it matches My Projects or All Projects.
+    const favoritesMatchOtherShortcut =
+      favoriteProjectList.length === projects.length ||
+      hasSameValues(favoriteProjectIds(projects), memberProjectIds(projects));
     // Favorites are committed as explicit project IDs, so hide the shortcut when it
     // could never be applied. A row click commits without checking the limit.
     const showFavoriteProjects =
       projects.length > 1 &&
       favoriteProjectList.length > 0 &&
-      favoriteProjectList.length <= SELECTION_COUNT_LIMIT;
+      favoriteProjectList.length <= SELECTION_COUNT_LIMIT &&
+      !favoritesMatchOtherShortcut;
     const favoritesSelected = hasSameValues(
       optionSelectionIntent.ids,
       favoriteProjectIds(projects)
