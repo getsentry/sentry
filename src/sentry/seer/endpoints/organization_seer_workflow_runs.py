@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Literal, TypedDict
 
-from django.db.models import Prefetch, prefetch_related_objects
+from django.db.models import F, Prefetch, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound
@@ -93,6 +93,7 @@ SeerWorkflowExecutionResponse = (
 class SeerWorkflowRunResponseBase(TypedDict):
     id: str
     configId: str
+    strategy: str
     dateAdded: datetime
     dateUpdated: datetime
     dateCompleted: datetime | None
@@ -185,7 +186,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             organization=organization,
             workflow_config__organization=organization,
             workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-        )
+        ).annotate(strategy=F("workflow_config__strategy"))
         config_id = serializer.validated_data.get("config")
         if config_id is not None:
             runs = runs.filter(workflow_config_id=config_id)
@@ -221,6 +222,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
 
 def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRunsResponse:
+    """Serialize runs loaded with ``.annotate(strategy=F("workflow_config__strategy"))``.
+
+    Runs loaded without that annotation raise ``AttributeError``.
+    """
     prefetch_related_objects(
         runs,
         Prefetch(
@@ -232,9 +237,14 @@ def serialize_workflow_runs(runs: Sequence[SeerWorkflowRun]) -> SeerWorkflowRuns
 
 
 def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
+    """Serialize a run loaded with ``.annotate(strategy=F("workflow_config__strategy"))``.
+
+    Runs loaded without that annotation raise ``AttributeError``.
+    """
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
+        "strategy": getattr(run, "strategy"),
         "dateAdded": run.date_added,
         "dateUpdated": run.date_updated,
         "dateCompleted": run.date_completed,
