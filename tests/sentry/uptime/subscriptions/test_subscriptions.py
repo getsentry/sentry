@@ -208,6 +208,30 @@ class UpdateUptimeSubscriptionTest(UptimeTestCase):
         assert uptime_sub.timeout_ms == 1000
         mock_update_remote.delay.assert_not_called()
 
+    @mock.patch("sentry.uptime.subscriptions.subscriptions.update_remote_uptime_subscription")
+    def test_stale_disabled_instance_still_publishes(
+        self, mock_update_remote: mock.MagicMock
+    ) -> None:
+        with self.tasks():
+            detector = create_uptime_detector(
+                self.project,
+                self.environment,
+                url="https://sentry.io",
+                interval_seconds=300,
+                timeout_ms=500,
+                mode=UptimeMonitorMode.MANUAL,
+            )
+        uptime_sub = get_uptime_subscription(detector)
+        # Simulates the cached instance left behind by a rolled-back disable.
+        uptime_sub.status = UptimeSubscription.Status.DISABLED.value
+
+        with self.tasks():
+            update_uptime_subscription(detector=detector, subscription=uptime_sub, timeout_ms=1000)
+
+        uptime_sub.refresh_from_db()
+        assert uptime_sub.status == UptimeSubscription.Status.UPDATING.value
+        mock_update_remote.delay.assert_called_once_with(uptime_sub.id)
+
     def test_interval_change_sets_redis_timestamp(self) -> None:
         """Verify that updating the interval sets the interval change timestamp in Redis."""
         with self.tasks():

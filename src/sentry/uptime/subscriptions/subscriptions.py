@@ -211,6 +211,8 @@ def update_uptime_subscription(
 
     # Editing a disabled monitor must not publish it, or the checker runs it while its detector
     # stays disabled. enable_uptime_detector publishes the latest config on re-enable.
+    # Callers pass a cached instance, and a rolled-back disable can leave DISABLED in the cache.
+    subscription.refresh_from_db(fields=["status"])
     is_disabled = subscription.status == UptimeSubscription.Status.DISABLED.value
 
     subscription.update(
