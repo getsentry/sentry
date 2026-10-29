@@ -82,8 +82,8 @@ export function ProjectPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
-  // Bookmark toggles made from the menu, applied before the API call updates the store
-  // so the stars and the Favorite Projects shortcut always agree.
+  // Bookmark toggles made from the menu whose requests are still in flight, applied
+  // before the store updates so the stars and the Favorite Projects shortcut agree.
   const [bookmarkOverrides, setBookmarkOverrides] = useState<Map<string, boolean>>(
     () => new Map()
   );
@@ -211,6 +211,13 @@ export function ProjectPageFilter({
                       organization,
                     });
                   }}
+                  onToggleSettled={() =>
+                    setBookmarkOverrides(prev => {
+                      const next = new Map(prev);
+                      next.delete(project.id);
+                      return next;
+                    })
+                  }
                 />
               ) : null}
             </Flex>
