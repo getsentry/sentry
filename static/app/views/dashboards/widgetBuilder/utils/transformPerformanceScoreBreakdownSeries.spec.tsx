@@ -13,20 +13,20 @@ function makeTimeSeries(yAxis: string, value: number) {
 }
 
 describe('transformPerformanceScoreBreakdownTimeSeries', () => {
-  it.each(['', 'equation|'])('weights each web vital score (prefix: "%s")', prefix => {
+  it('weights each web vital score', () => {
     const result = transformPerformanceScoreBreakdownTimeSeries({
       timeSeries: WEB_VITALS.map(webVital =>
-        makeTimeSeries(`${prefix}performance_score(measurements.score.${webVital})`, 0.5)
+        makeTimeSeries(`performance_score(measurements.score.${webVital})`, 0.5)
       ),
     });
 
     expect(result.timeSeries.map(({yAxis, values}) => [yAxis, values[0]!.value])).toEqual(
       [
-        [`${prefix}performance_score(measurements.score.lcp)`, 15],
-        [`${prefix}performance_score(measurements.score.fcp)`, 7.5],
-        [`${prefix}performance_score(measurements.score.inp)`, 15],
-        [`${prefix}performance_score(measurements.score.cls)`, 7.5],
-        [`${prefix}performance_score(measurements.score.ttfb)`, 5],
+        ['performance_score(measurements.score.lcp)', 15],
+        ['performance_score(measurements.score.fcp)', 7.5],
+        ['performance_score(measurements.score.inp)', 15],
+        ['performance_score(measurements.score.cls)', 7.5],
+        ['performance_score(measurements.score.ttfb)', 5],
       ]
     );
   });

@@ -12,16 +12,11 @@ export function transformPerformanceScoreBreakdownTimeSeries(
     return data;
   }
 
-  const isEquationFormat = data.timeSeries.some(timeSeries =>
-    timeSeries.yAxis.startsWith('equation|')
-  );
-
-  const getTimeSeries = (webVital: WebVitals): TimeSeries | undefined => {
-    const yAxis = isEquationFormat
-      ? `equation|performance_score(measurements.score.${webVital})`
-      : `performance_score(measurements.score.${webVital})`;
-    return data.timeSeries.find(timeSeries => timeSeries.yAxis === yAxis);
-  };
+  const getTimeSeries = (webVital: WebVitals): TimeSeries | undefined =>
+    data.timeSeries.find(
+      timeSeries =>
+        timeSeries.yAxis === `performance_score(measurements.score.${webVital})`
+    );
 
   const webVitalsThatHaveData: WebVitals[] = ORDER.filter(webVital =>
     getTimeSeries(webVital)?.values.some(item => (item.value ?? 0) > 0)
