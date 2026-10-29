@@ -6,9 +6,8 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
-from scm import Secret
 from scm.errors import SCMCodedError
-from scm.git.grant import verify_grant
+from scm.git.grant import require_public_keys, verify_grant
 from scm.git.relay import GitRelay
 from scm.git.server import GitServer
 from scm.git.types import GRANT_HEADER, Readable
@@ -43,7 +42,7 @@ def report_git_error(error: Exception, context: dict[str, str]) -> None:
 def make_git_server() -> GitServer:
     fetchers = make_fetchers()
     return GitServer(
-        secrets=_grant_secrets(),
+        public_keys=_grant_public_keys(),
         fetch_repository=fetchers.fetch_repository,
         fetch_provider=fetchers.fetch_provider,
         get_token=fetch_access_token,
@@ -88,12 +87,24 @@ class ScmGitEndpoint(Endpoint):
     def _relay(self, request: Request, repository_id: int, route: str) -> HttpResponseBase:
         # The grant names the organization whose flag gates the endpoint, and it's verified before
         # the organization is looked up, so a request without a valid grant never reaches the
-        # database. GitServer verifies the JWT again, which costs one HMAC-SHA256. With no secret
-        # configured, every grant is refused here as unknown, before GitServer, which can't be built
-        # without one.
+        # database. GitServer verifies the JWT again, which costs one Ed25519 signature check.
         context = {"repository_id": str(repository_id)}
+        public_keys = _grant_public_keys()
         try:
-            grant = verify_grant(_grant_secrets(), request.headers.get(GRANT_HEADER, ""))
+            # verify_grant and GitServer raise on a key list no grant could verify against, which
+            # is Sentry's misconfiguration rather than the grant's fault, so it isn't a 403.
+            require_public_keys(public_keys)
+        except (ValueError, TypeError) as e:
+            # scm-platform's messages name a key by its place in the list, never its contents.
+            return _refuse(
+                "grant_public_keys_invalid",
+                503,
+                f"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured: {e}",
+                context,
+                tags={},
+            )
+        try:
+            grant = verify_grant(public_keys, request.headers.get(GRANT_HEADER, ""))
         except SCMCodedError as e:
             return _refuse(e.code, 403, e.detail, context, tags={})
 
@@ -143,8 +154,8 @@ class ScmGitEndpoint(Endpoint):
         )
 
 
-def _grant_secrets() -> list[Secret]:
-    return [Secret(secret) for secret in settings.SCM_GIT_GRANT_SECRETS or []]
+def _grant_public_keys() -> list[str]:
+    return settings.SCM_GIT_GRANT_PUBLIC_KEYS
 
 
 def _request_body(request: HttpRequest) -> Readable | None:
