@@ -396,7 +396,7 @@ class SlackEventRequestTest(TestCase):
         assert SlackEventRequest(self.request).is_seer_agent_request is False
 
     def test_is_seer_agent_request_dm_checks_assistant_scope(self) -> None:
-        self.request.data["event"] = {"type": "message"}
+        self.request.data["event"] = {"type": "message", "user": "U1234567890"}
 
         with assume_test_silo_mode_of(Integration):
             self.integration.metadata["scopes"] = [SlackScope.ASSISTANT_WRITE.value]
@@ -415,6 +415,23 @@ class SlackEventRequestTest(TestCase):
         req = SlackEventRequest(self.request)
         req._integration = rpc_integration
         assert req.is_seer_agent_request is False
+
+    def test_is_seer_agent_request_dm_ignores_userless_and_bot_messages(self) -> None:
+        with assume_test_silo_mode_of(Integration):
+            self.integration.metadata["scopes"] = [SlackScope.ASSISTANT_WRITE.value]
+            self.integration.save()
+        rpc_integration = integration_service.get_integration(integration_id=self.integration.id)
+
+        for event in (
+            {"type": "message", "subtype": "message_changed", "channel": "D1"},
+            {"type": "message", "subtype": "message_deleted", "channel": "D1"},
+            {"type": "message", "user": "U1234567890", "bot_id": "B1"},
+            {"type": "message", "subtype": "bot_message", "bot_id": "B1"},
+        ):
+            self.request.data["event"] = event
+            req = SlackEventRequest(self.request)
+            req._integration = rpc_integration
+            assert req.is_seer_agent_request is False
 
     def test_is_assistant_thread_event(self) -> None:
         self.request.data["event"] = {"type": "assistant_thread_started"}
