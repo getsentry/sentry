@@ -3,10 +3,11 @@ from __future__ import annotations
 import datetime
 import logging
 from typing import Any
-from urllib.parse import parse_qs, urlparse, urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from requests import PreparedRequest
 
+from sentry.integrations.bitbucket.utils import get_bitbucket_key
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -15,10 +16,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
 from sentry.utils import jwt
-from sentry.utils.http import absolute_uri
 from sentry.utils.patch_set import patch_to_file_changes
-
-BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +78,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         url_params = dict(parse_qs(urlsplit(path).query))
         path = path.split("?")[0]
         jwt_payload = {
-            "iss": BITBUCKET_KEY,
+            "iss": get_bitbucket_key(),
             "iat": datetime.datetime.now(datetime.timezone.utc),
             "exp": datetime.datetime.now(datetime.timezone.utc)
             + datetime.timedelta(seconds=5 * 60),

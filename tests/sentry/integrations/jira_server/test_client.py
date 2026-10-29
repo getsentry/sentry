@@ -1,3 +1,5 @@
+from unittest import mock
+
 import responses
 from django.test import override_settings
 from requests import Request
@@ -5,6 +7,7 @@ from responses.matchers import query_param_matcher
 
 from sentry.integrations.jira_server.client import JiraServerClient
 from sentry.testutils.cases import BaseTestCase, TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
@@ -43,6 +46,17 @@ class JiraServerClientTest(TestCase, BaseTestCase):
         )
         install = self.integration.get_installation(self.organization.id)
         self.jira_server_client: JiraServerClient = install.get_client()
+
+    @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
+    def test_set_issue_property(self) -> None:
+        with mock.patch.object(self.jira_server_client, "put") as put:
+            self.jira_server_client.set_issue_property("ABC-123", 2)
+
+        put.assert_called_once_with(
+            "/rest/api/3/issue/ABC-123/properties/"
+            "com.atlassian.jira.issue:sentry.example.com.jira:sentry-issues-glance:status",
+            data={"type": "badge", "value": {"label": 2}},
+        )
 
     def test_authorize_request(self) -> None:
         method = "GET"

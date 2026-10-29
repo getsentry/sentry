@@ -9,6 +9,7 @@ from sentry.integrations.jira.client import STATUS_SEARCH_MAX_PAGES, STATUS_SEAR
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -39,6 +40,17 @@ class JiraClientTest(TestCase):
         )
         install = self.integration.get_installation(self.organization.id)
         self.jira_client = install.get_client()
+
+    @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
+    def test_set_issue_property(self) -> None:
+        with mock.patch.object(self.jira_client, "put") as put:
+            self.jira_client.set_issue_property("ABC-123", 2)
+
+        put.assert_called_once_with(
+            "/rest/api/3/issue/ABC-123/properties/"
+            "com.atlassian.jira.issue:sentry.example.com.jira:sentry-issues-glance:status",
+            data={"type": "badge", "value": {"label": 2}},
+        )
 
     @responses.activate
     @mock.patch(
@@ -85,6 +97,7 @@ class JiraClientTest(TestCase):
         assert res == body
 
     @freeze_time("2023-01-01 01:01:01")
+    @override_options({"system.url-prefix": "https://sentry.example.com:9000/sentry/"})
     def test_finalize_request(self) -> None:
         method = "GET"
         params = {"query": "1", "user": "me"}
@@ -104,10 +117,13 @@ class JiraClientTest(TestCase):
             key=self.integration.metadata["shared_secret"],
             algorithms=["HS256"],
         )
+        descriptor = self.client.get("/extensions/jira/descriptor/")
+        assert descriptor.status_code == 200
+        assert descriptor.json()["key"] == decoded_jwt["iss"]
         assert decoded_jwt == {
             "exp": 1672535161,
             "iat": 1672534861,
-            "iss": "testserver.jira",
+            "iss": "sentry.example.com.jira",
             "qsh": get_query_hash(
                 uri=self.jira_client.SERVER_INFO_URL, method=method, query_params=params
             ),

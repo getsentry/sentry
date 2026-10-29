@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from urllib.parse import parse_qsl, urlparse
+from urllib.parse import parse_qsl
 
 from django.urls import reverse
 from oauthlib.oauth1 import SIGNATURE_RSA
@@ -15,7 +15,7 @@ from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.integrations.utils.jira import parse_jira_issue_key
+from sentry.integrations.utils.jira import get_jira_key, parse_jira_issue_key
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
@@ -27,7 +27,6 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
-JIRA_KEY = f"{urlparse(absolute_uri()).hostname}.jira"
 CUSTOMFIELD_PREFIX = "customfield_"
 
 
@@ -208,7 +207,7 @@ class JiraServerClient(ApiClient):
 
     def set_issue_property(self, issue_key, badge_num):
         module_key = "sentry-issues-glance"
-        properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
+        properties_key = f"com.atlassian.jira.issue:{get_jira_key()}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
