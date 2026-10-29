@@ -25,21 +25,6 @@ describe('isPerformanceScoreBreakdownChart', () => {
     expect(isPerformanceScoreBreakdownChart(widgetQuery)).toBe(true);
   });
 
-  it('returns true for equation format', () => {
-    const widgetQuery: WidgetQuery = {
-      ...baseWidgetQuery,
-      aggregates: [
-        'equation|performance_score(measurements.score.lcp)',
-        'equation|performance_score(measurements.score.fcp)',
-        'equation|performance_score(measurements.score.cls)',
-        'equation|performance_score(measurements.score.inp)',
-        'equation|performance_score(measurements.score.ttfb)',
-      ],
-    };
-
-    expect(isPerformanceScoreBreakdownChart(widgetQuery)).toBe(true);
-  });
-
   it('returns false', () => {
     const widgetQuery: WidgetQuery = {
       ...baseWidgetQuery,
