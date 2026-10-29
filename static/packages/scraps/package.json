@@ -260,8 +260,8 @@
       "import": "./dist/drawer/index.js"
     },
     "./slideOverPanel": {
-      "types": "./dist/slideOverPanel/index.d.ts",
-      "import": "./dist/slideOverPanel/index.js"
+      "types": "./dist/slideOverPanel/slideOverPanel.d.ts",
+      "import": "./dist/slideOverPanel/slideOverPanel.js"
     },
     "./overlayContext": {
       "types": "./dist/overlayContext.d.ts",
