@@ -2549,6 +2549,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.claude_code.integration.ClaudeCodeAgentIntegrationProvider",
     "sentry.integrations.datadog.integration.DatadogIntegrationProvider",
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
+    "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -3379,7 +3380,7 @@ SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
 }
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint

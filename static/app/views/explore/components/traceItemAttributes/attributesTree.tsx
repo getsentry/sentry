@@ -220,7 +220,7 @@ function AttributesTreeRow<RendererExtra extends RenderFunctionBaggage>({
               {attributeKey}
             </AttributeDetailsTooltip>
           ) : (
-            <Text>{attributeKey}</Text>
+            <Text monospace>{attributeKey}</Text>
           )}
           {pinnedAttribute === originalAttribute.original_attribute_key && (
             <IconPin size="xs" isSolid aria-label={t('Pinned attribute')} />

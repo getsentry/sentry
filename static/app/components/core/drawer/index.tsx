@@ -14,12 +14,12 @@ import type {Location} from 'history';
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {defined} from 'sentry/utils/defined';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 import {DrawerComponents} from './components';
 
