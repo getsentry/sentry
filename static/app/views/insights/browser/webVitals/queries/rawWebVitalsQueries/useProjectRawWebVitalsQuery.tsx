@@ -20,11 +20,11 @@ export const useProjectRawWebVitalsQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction);
   }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
 
   return useSpans(

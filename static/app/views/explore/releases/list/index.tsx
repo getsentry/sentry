@@ -7,6 +7,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -19,7 +20,6 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
@@ -32,6 +32,7 @@ import type {Release} from 'sentry/types/release';
 import {ReleaseStatus} from 'sentry/types/release';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey} from 'sentry/utils/fields';
@@ -417,7 +418,7 @@ function ReleasesListInnerPage() {
   const getTagValues = useCallback<GetTagValues>(
     async ({tag, searchQuery}) => {
       const values = await tagValueLoader(tag.key, searchQuery);
-      return values.map(({value}) => value);
+      return values.map(({value}) => value).filter(defined);
     },
     [tagValueLoader]
   );
@@ -651,21 +652,22 @@ function ReleasesListInnerPage() {
 }
 
 function ReleasesHeader() {
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/releases/"
-      title={t(
-        'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-      )}
-    />
-  );
-
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {t('Releases')}
-        {titleTooltip}
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Releases'),
+          labelTooltip: (
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/releases/">
+              {t(
+                'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
+              )}
+            </DocumentationHint>
+          ),
+        }}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={releasesFeedbackOptions}

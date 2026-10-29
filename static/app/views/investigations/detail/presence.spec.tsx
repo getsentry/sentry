@@ -56,7 +56,8 @@ describe('InvestigationViewers', () => {
 
     render(<InvestigationViewers investigationId="investigation-1" />);
 
-    expect(await screen.findByText('+8')).toBeInTheDocument();
+    await userEvent.hover(await screen.findByText('+8'));
+    expect(await screen.findByText('8 other viewers')).toBeInTheDocument();
   });
 
   it('renders nothing, not even the separator, when nobody else has viewed it', async () => {

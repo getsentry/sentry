@@ -21,14 +21,16 @@ export type AuthOrganization = {
   warnings: string[];
 };
 
-export function useAuthOrganization(organizationSlug?: string) {
-  return useQuery(
-    apiOptions.as<AuthOrganization>()(
-      '/auth/organizations/$organizationIdOrSlug/config/',
-      {
-        path: organizationSlug ? {organizationIdOrSlug: organizationSlug} : skipToken,
-        staleTime: 0,
-      }
-    )
+export function authOrganizationQueryOptions(organizationSlug?: string) {
+  return apiOptions.as<AuthOrganization>()(
+    '/auth/organizations/$organizationIdOrSlug/config/',
+    {
+      path: organizationSlug ? {organizationIdOrSlug: organizationSlug} : skipToken,
+      staleTime: 0,
+    }
   );
+}
+
+export function useAuthOrganization(organizationSlug?: string) {
+  return useQuery(authOrganizationQueryOptions(organizationSlug));
 }

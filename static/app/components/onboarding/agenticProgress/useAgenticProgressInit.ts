@@ -6,9 +6,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {InitializedAgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
 
-import type {AgenticRunSession} from './types';
+import type {AgenticRunSession, InitializedAgenticProgressRun} from './types';
 
 export type UseAgenticProgressInitOptions = {
   enabled: boolean;
@@ -19,7 +18,7 @@ export type UseAgenticProgressInitOptions = {
 
 const createOnboardingCode = () => uuid4().slice(0, 10);
 
-export const createAgenticRunSession = (): AgenticRunSession => ({
+const createAgenticRunSession = (): AgenticRunSession => ({
   clientRunId: uuid4(),
   onboardingCode: createOnboardingCode(),
 });

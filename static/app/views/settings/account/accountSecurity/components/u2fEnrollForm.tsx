@@ -159,24 +159,29 @@ export function U2fEnrollForm({
               required
             >
               <Flex align="center" justify="end" gap="sm">
-                <Stack gap="sm" align="end">
-                  <Button
-                    onClick={() => triggerEnroll(field.handleChange)}
-                    disabled={
-                      !isWebAuthnSupported || Boolean(field.state.value.challenge)
-                    }
-                  >
-                    {field.state.value.challenge ? t('Enrolled!') : t('Start Enrollment')}
-                  </Button>
-                  {!isWebAuthnSupported && (
-                    <Text variant="danger" size="sm">
-                      {t(
-                        'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge)'
+                <field.Base<HTMLButtonElement>
+                  disabled={!isWebAuthnSupported || Boolean(field.state.value.challenge)}
+                >
+                  {baseProps => (
+                    <Stack gap="sm" align="end">
+                      <Button
+                        {...baseProps}
+                        onClick={() => triggerEnroll(field.handleChange)}
+                      >
+                        {field.state.value.challenge
+                          ? t('Enrolled!')
+                          : t('Start Enrollment')}
+                      </Button>
+                      {!isWebAuthnSupported && (
+                        <Text variant="danger" size="sm">
+                          {t(
+                            'Your browser does not support WebAuthn (passkey). You need to use a different two-factor method or switch to a browser that supports it (Google Chrome or Microsoft Edge)'
+                          )}
+                        </Text>
                       )}
-                    </Text>
+                    </Stack>
                   )}
-                </Stack>
-                <field.Meta.Status />
+                </field.Base>
               </Flex>
             </field.Layout.Row>
           )}

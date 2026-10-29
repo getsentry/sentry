@@ -528,6 +528,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             "nuget",
             "unity",
             "nvidia",
+            "intel",
             "ubuntu",
         ]
 
@@ -550,7 +551,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=unreal_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["ios", "microsoft", "android", "nvidia", "ubuntu"]
+        assert symbol_sources == ["ios", "microsoft", "android", "nvidia", "intel", "ubuntu"]
 
     def test_builtin_symbol_sources_godot(self) -> None:
         """
@@ -571,7 +572,15 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         symbol_sources = ProjectOption.objects.get_value(
             project=godot_project, key="sentry:builtin_symbol_sources"
         )
-        assert symbol_sources == ["ios", "microsoft", "android", "nuget", "nvidia", "ubuntu"]
+        assert symbol_sources == [
+            "ios",
+            "microsoft",
+            "android",
+            "nuget",
+            "nvidia",
+            "intel",
+            "ubuntu",
+        ]
 
     @patch("sentry.core.endpoints.team_projects.TeamProjectsEndpoint.create_audit_entry")
     def test_create_project_with_origin(self, create_audit_entry: MagicMock) -> None:

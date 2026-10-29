@@ -15,6 +15,7 @@ from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
+from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.seer.anomaly_detection.types import AnomalyDetectionThresholdType
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
 from sentry.snuba.models import SnubaQuery
@@ -138,6 +139,10 @@ def build_title_link(
         ),
         query=parse.urlencode(params),
     )
+
+
+def build_workflow_link(organization: Organization, workflow_id: int) -> str:
+    return organization.absolute_url(create_link_to_workflow(organization.slug, str(workflow_id)))
 
 
 def incident_attachment_info(

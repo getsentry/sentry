@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import nullcontext
 from datetime import timedelta
 from multiprocessing import JoinableQueue as Queue
 from multiprocessing import Process
@@ -12,19 +13,19 @@ from typing import TYPE_CHECKING, Any, Final, Literal, TypeAlias, TypeVar
 from uuid import uuid4
 
 import click
+import sentry_sdk
 from django.conf import settings
 from django.db import router as db_router
 from django.db.models import Exists, OuterRef, QuerySet
 from django.utils import timezone
-from sentry_sdk import capture_exception
+from sentry_sdk import capture_exception, traces
+from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.utils.tracing import set_span_tag, start_span
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
-progress_logger = logging.getLogger("sentry.cleanup.progress")
-progress_logger.setLevel(logging.INFO)
 
 TRANSACTION_PREFIX = "cleanup"
 DELETES_BY_PROJECT_CHUNK_SIZE = 100
@@ -77,6 +78,7 @@ _WorkItem: TypeAlias = (
     "tuple[str, tuple[int, ...]]"
     " | tuple[str, tuple[int, ...], int | None]"
     " | tuple[str, tuple[int, ...], int | None, dict[str, Any]]"
+    " | tuple[str, tuple[int, ...], int | None, dict[str, Any], int]"
 )
 _WorkQueue: TypeAlias = "Queue[Literal['91650ec271ae4b3e8a67cdc909d80f8c'] | _WorkItem]"
 
@@ -119,16 +121,23 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             task_queue.task_done()
             return
 
-        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id) and (model_name, chunk, project_id, deferred_filter)
+        # Handle all formats: (model_name, chunk), (model_name, chunk, project_id),
+        # (model_name, chunk, project_id, deferred_filter), and the project-scoped
+        # form with organization_id appended.
         if len(j) == 2:
             model_name, chunk = j
             project_id = None
             deferred_filter: dict[str, Any] = {}
+            organization_id = None
         elif len(j) == 3:
             model_name, chunk, project_id = j
             deferred_filter = {}
-        else:
+            organization_id = None
+        elif len(j) == 4:
             model_name, chunk, project_id, deferred_filter = j
+            organization_id = None
+        else:
+            model_name, chunk, project_id, deferred_filter, organization_id = j
 
         if options.get("cleanup.abort_execution"):
             logger.warning("Cleanup worker aborting due to cleanup.abort_execution flag")
@@ -136,15 +145,28 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
             return
 
         try:
-            with start_span(
-                op="cleanup",
-                name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
-                transaction=True,
-                custom_sampling_context={
-                    "sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING
-                },
-            ):
-                task_execution(model_name, chunk, project_id, deferred_filter)
+            traces.new_trace()
+            propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+            prev_sampling_context = propagation_context.custom_sampling_context
+            Scope.set_custom_sampling_context(
+                {"sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING}
+            )
+            try:
+                span = traces.start_span(
+                    name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
+                    attributes={"sentry.op": "cleanup"},
+                    parent_span=None,
+                )
+            finally:
+                propagation_context = (
+                    sentry_sdk.get_current_scope().get_active_propagation_context()
+                )
+                propagation_context.custom_sampling_context = prev_sampling_context
+
+            with span:
+                task_execution(
+                    model_name, chunk, project_id, deferred_filter, organization_id=organization_id
+                )
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -178,6 +200,7 @@ def task_execution(
     chunk: tuple[int, ...],
     project_id: int | None,
     deferred_filter: Mapping[str, Any] | None = None,
+    organization_id: int | None = None,
 ) -> None:
     """
     Execute deletion for a chunk of objects.
@@ -214,25 +237,38 @@ def task_execution(
     if deferred_filter:
         query.update(deferred_filter)
 
-    task = deletions.get(
-        model=model,
-        query=query,
-        skip_models=skip_child_relations_models,
-        transaction_id=uuid4().hex,
+    context = (
+        viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor=Actor(type=ActorType.SYSTEM),
+            )
+        )
+        if organization_id is not None and project_id is not None
+        else nullcontext()
     )
 
-    # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
-    iteration = 0
-    while True:
-        iteration += 1
-        has_more = task.chunk(apply_filter=True)
-
-        debug_output(
-            f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+    with context:
+        task = deletions.get(
+            model=model,
+            query=query,
+            skip_models=skip_child_relations_models,
+            transaction_id=uuid4().hex,
         )
 
-        if not has_more:
-            break
+        # Track deletion iterations (task.chunk() may need multiple calls to fully delete)
+        iteration = 0
+        while True:
+            iteration += 1
+            has_more = task.chunk(apply_filter=True)
+
+            debug_output(
+                f"[ITERATION {iteration}] {model_name} chunk (project_id={project_id} has_more={has_more})"
+            )
+
+            if not has_more:
+                break
 
     # Increment metric once per chunk, after all iterations complete
     metrics.incr("cleanup.chunk_processed", tags={"model": model_name}, amount=chunk_size)
@@ -369,7 +405,10 @@ def _cleanup(
     # Start transaction AFTER creating the multiprocessing pool to avoid
     # transaction context issues in child processes. This ensures only the
     # main process tracks the overall cleanup operation performance.
-    with start_span(op="cleanup", name=f"{TRANSACTION_PREFIX}.main", transaction=True) as span:
+    traces.new_trace()
+    with traces.start_span(
+        name=f"{TRANSACTION_PREFIX}.main", attributes={"sentry.op": "cleanup"}, parent_span=None
+    ) as span:
         try:
             # Check if cleanup should be aborted before starting
             if options.get("cleanup.abort_execution"):
@@ -406,9 +445,9 @@ def _cleanup(
                 project, organization, days, deletes, bulk_query_deletes
             )
             if organization_id is not None:
-                set_span_tag(span, "organization_id", organization_id)
+                span.set_attribute("organization_id", organization_id)
             if project_id is not None:
-                set_span_tag(span, "project_id", project_id)
+                span.set_attribute("project_id", project_id)
 
             run_bulk_query_deletes(
                 bulk_query_deletes,
@@ -548,6 +587,7 @@ def _run_specialized_cleanups(
     delete_api_models(is_filtered, models_attempted)
     exported_data(is_filtered, models_attempted)
     remove_old_notification_messages(is_filtered, models_attempted)
+    remove_inactive_notification_threads(is_filtered, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -755,12 +795,14 @@ def remove_cross_project_models(
 ) -> list[tuple[type[BaseModel], str, str]]:
     from sentry.models.artifactbundle import ArtifactBundle
     from sentry.models.files.file import File
+    from sentry.monitors.models import MonitorCheckIn
     from sentry.seer.models.run import SeerRun
     from sentry.uptime.models import UptimeResponseCapture
 
     # These models span across projects, so let's skip them
     deletes.remove((ArtifactBundle, "date_added", "date_added"))
     deletes.remove((File, "timestamp", "id"))
+    deletes.remove((MonitorCheckIn, "date_added", "date_added"))
     deletes.remove((UptimeResponseCapture, "date_added", "date_added"))
     deletes.remove((SeerRun, "last_triggered_at", "last_triggered_at"))
     return deletes
@@ -888,6 +930,7 @@ def _schedule_bulk_delete_chunks(
     q: BulkDeleteQuery,  # Imported locally in functions that use it
     model_tp: type[BaseModel],
     project_id: int | None,
+    organization_id: int | None = None,
     context_str: str = "",
 ) -> tuple[int, int]:
     """
@@ -896,6 +939,9 @@ def _schedule_bulk_delete_chunks(
     Returns:
         Tuple of (chunk_count, total_objects)
     """
+    progress_logger = logging.getLogger("sentry.cleanup.progress")
+    progress_logger.setLevel(logging.INFO)
+
     imp = ".".join((model_tp.__module__, model_tp.__name__))
     chunk_count = 0
     total_objects = 0
@@ -921,7 +967,10 @@ def _schedule_bulk_delete_chunks(
                 },
             )
             _last_progress_log[imp] = time.monotonic()
-        task_queue.put((imp, chunk, project_id, q.deferred_filter))
+        if organization_id is None:
+            task_queue.put((imp, chunk, project_id, q.deferred_filter))
+        else:
+            task_queue.put((imp, chunk, project_id, q.deferred_filter, organization_id))
         chunk_count += 1
         total_objects += len(chunk)
 
@@ -1009,9 +1058,9 @@ def run_bulk_deletes_by_project(
     if project_deletion_query is not None and len(to_delete_by_project):
         debug_output("Running bulk deletes in DELETES_BY_PROJECT")
 
-        for project_id_for_deletion in RangeQuerySetWrapper(
-            project_deletion_query.values_list("id", flat=True),
-            result_value_getter=lambda item: item,
+        for project_id_for_deletion, organization_id_for_deletion in RangeQuerySetWrapper(
+            project_deletion_query.values_list("id", "organization_id"),
+            result_value_getter=lambda item: item[0],
         ):
             for model_tp, dtfield, order_by in to_delete_by_project:
                 models_attempted.add(model_tp.__name__.lower())
@@ -1028,7 +1077,13 @@ def run_bulk_deletes_by_project(
                         order_by=order_by,
                     )
 
-                    _schedule_bulk_delete_chunks(task_queue, q, model_tp, project_id_for_deletion)
+                    _schedule_bulk_delete_chunks(
+                        task_queue,
+                        q,
+                        model_tp,
+                        project_id_for_deletion,
+                        organization_id_for_deletion,
+                    )
                 except Exception:
                     capture_exception(
                         tags={"model": model_tp.__name__, "project_id": project_id_for_deletion}
@@ -1259,3 +1314,112 @@ def remove_old_notification_messages(
             break
 
         NotificationMessage.objects.filter(id__in=ids).delete()
+
+
+@continue_on_error("specialized_cleanup_notification_threads")
+def remove_inactive_notification_threads(
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
+) -> None:
+    """
+    Delete NotificationThreads with no successful send within the retention window.
+
+    A thread is kept with all of its records while it is active, and expires as a
+    whole once it goes quiet. Deleting a thread cascades to its NotificationRecords,
+    and the next notification for that thread key starts a new provider thread.
+    """
+    from sentry import options
+    from sentry.notifications.models.notificationrecord import NotificationRecord
+    from sentry.notifications.models.notificationthread import NotificationThread
+    from sentry.utils import metrics
+
+    if is_filtered(NotificationThread):
+        debug_output(">> Skipping NotificationThread")
+        return
+
+    debug_output("Removing inactive NotificationThread and NotificationRecord rows")
+    models_attempted.add(NotificationThread.__name__.lower())
+    models_attempted.add(NotificationRecord.__name__.lower())
+
+    retention_days = options.get("cleanup.notification-thread.retention-days")
+    batch_size = options.get("cleanup.notification-thread.batch-size")
+    dry_run = options.get("cleanup.notification-thread.dry-run")
+    cutoff = timezone.now() - timedelta(days=retention_days)
+
+    # Failed sends are stored with error_details; they must not keep a thread alive.
+    recent_successful_send = NotificationRecord.objects.filter(
+        thread_id=OuterRef("id"),
+        date_added__gte=cutoff,
+        error_details__isnull=True,
+    )
+
+    threads_deleted = 0
+    records_deleted = 0
+    last_id = 0
+    # Reported in finally so aborted and failed runs are visible too; the deleted
+    # counts below are only sent for runs that complete.
+    outcome = "failed"
+    try:
+        while True:
+            if options.get("cleanup.abort_execution"):
+                raise CleanupExecutionAborted()
+
+            # Walking the primary key keeps each query bounded without an index on date_added.
+            candidate_ids = list(
+                NotificationThread.objects.filter(id__gt=last_id, date_added__lt=cutoff)
+                .order_by("id")
+                .values_list("id", flat=True)[:batch_size]
+            )
+            if not candidate_ids:
+                break
+            last_id = candidate_ids[-1]
+
+            eligible = NotificationThread.objects.filter(id__in=candidate_ids).filter(
+                ~Exists(recent_successful_send)
+            )
+
+            if dry_run:
+                eligible_ids = list(eligible.values_list("id", flat=True))
+                threads_deleted += len(eligible_ids)
+                records_deleted += NotificationRecord.objects.filter(
+                    thread_id__in=eligible_ids
+                ).count()
+                continue
+
+            # Eligibility is re-evaluated in the delete itself so a reply recorded after
+            # candidates were selected keeps its thread.
+            _, deleted_by_model = eligible.delete()
+            threads_deleted += deleted_by_model.get(NotificationThread._meta.label, 0)
+            records_deleted += deleted_by_model.get(NotificationRecord._meta.label, 0)
+        outcome = "completed"
+    except CleanupExecutionAborted:
+        outcome = "aborted"
+        raise
+    finally:
+        metrics.incr(
+            "cleanup.notification_thread.run",
+            tags={"outcome": outcome, "dry_run": str(dry_run).lower()},
+            sample_rate=1.0,
+        )
+
+    tags = {"dry_run": str(dry_run).lower()}
+    metrics.incr(
+        "cleanup.notification_thread.threads_deleted",
+        amount=threads_deleted,
+        tags=tags,
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "cleanup.notification_thread.records_deleted",
+        amount=records_deleted,
+        tags=tags,
+        sample_rate=1.0,
+    )
+    logger.info(
+        "cleanup.notification_thread.complete",
+        extra={
+            "dry_run": dry_run,
+            "retention_days": retention_days,
+            "threads_deleted": threads_deleted,
+            "records_deleted": records_deleted,
+        },
+    )

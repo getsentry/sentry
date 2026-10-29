@@ -19,26 +19,19 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
     InvestigationBlockKind,
-    InvestigationParameterType,
     InvestigationStatus,
 )
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationValidationError,
     investigation_filters,
-    investigation_source,
     lock_investigation,
-)
-from sentry.investigations.services.parameters import (
-    ParameterValidationError,
-    validate_parameter_value,
 )
 from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
-MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
 MAX_CONTEXT_BYTES = 512 * 1024
 DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
@@ -123,82 +116,6 @@ def _query_refinement_context_execution(
         if _has_usable_query_data(execution.result):
             return execution
     return current
-
-
-def _materialize_dependency_context(
-    block: InvestigationBlock, *, accessible_project_ids: set[int]
-) -> tuple[dict[str, str | None], list[dict[str, Any]], list[int]]:
-    links = list(
-        block.dependency_links.select_related(
-            "depends_on__content_execution",
-            "depends_on__result_execution",
-        )
-        .prefetch_related(
-            "depends_on__content_execution__data_projects",
-            "depends_on__result_execution__data_projects",
-        )
-        .order_by("depends_on__position", "depends_on__id")
-    )
-    if len(links) > MAX_CONTEXT_BLOCKS:
-        raise InvestigationValidationError(
-            {"context": f"A block can use at most {MAX_CONTEXT_BLOCKS} context blocks."}
-        )
-
-    dependencies: dict[str, str | None] = {}
-    context: list[dict[str, Any]] = []
-    context_project_ids: set[int] = set()
-    for link in links:
-        dependency = link.depends_on
-        if dependency.deleted_at is not None:
-            raise InvestigationValidationError(
-                {"context": "A selected context block has been deleted."}
-            )
-        dependency_execution = (
-            dependency.result_execution
-            if dependency.kind == InvestigationBlockKind.QUERY
-            else dependency.content_execution
-        )
-        dependencies[str(dependency.id)] = (
-            str(dependency_execution.id) if dependency_execution is not None else None
-        )
-        item: dict[str, Any] = {
-            "block_id": str(dependency.id),
-            "kind": dependency.kind,
-            "title": dependency.title,
-            "prompt": dependency.prompt,
-        }
-
-        if dependency.kind == InvestigationBlockKind.QUERY:
-            if (
-                dependency_execution is None
-                or dependency_execution.status != InvestigationBlockExecutionStatus.COMPLETED
-                or dependency.stale_at is not None
-            ):
-                raise InvestigationValidationError(
-                    {
-                        "context": f'Run the context block "{dependency.title or "Untitled query"}" first.'
-                    }
-                )
-            item["result"] = _compact_query_context(dependency_execution.result)
-        else:
-            item["content"] = dependency.content[:MAX_CONTEXT_TEXT_CHARS]
-
-        if dependency_execution is not None:
-            represented_project_ids = set(
-                project.id for project in dependency_execution.data_projects.all()
-            )
-            if not represented_project_ids.issubset(accessible_project_ids):
-                raise InvestigationValidationError(
-                    {"context": "One or more context blocks use inaccessible project data."}
-                )
-            context_project_ids.update(represented_project_ids)
-        context.append(item)
-
-    if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
-        raise InvestigationValidationError(
-            {"context": "The selected block context is too large to send to the agent."}
-        )
-    return dependencies, context, sorted(context_project_ids)
 
 
 def _materialize_notebook_context(
@@ -302,36 +219,15 @@ def build_block_execution_snapshot(
             raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
 
     prompt = (block.prompt or block.content).strip()
-    source = investigation_source(block.investigation)
+    source = block.investigation.source
     filters = investigation_filters(block.investigation)
-    parameters: dict[str, Any] = {}
-    for link in block.parameter_links.select_related("parameter").order_by("parameter__key"):
-        parameter = link.parameter
-        value = parameter.saved_value
-        if value is not None and parameter.type in {
-            InvestigationParameterType.PROJECT,
-            InvestigationParameterType.PROJECT_LIST,
-        }:
-            try:
-                value = validate_parameter_value(
-                    parameter_type=parameter.type,
-                    value=value,
-                    constraints=parameter.validation_constraints,
-                    accessible_project_ids=accessible_project_ids,
-                )
-            except ParameterValidationError as error:
-                raise InvestigationValidationError({"parameters": {parameter.key: str(error)}})
-        parameters[parameter.key] = value
-    query_context = {"source": source, "filters": filters, "parameters": parameters}
-    parameter_changes: dict[str, Any] = {}
+    query_context = {"source": source, "filters": filters, "parameters": {}}
     if block.kind == InvestigationBlockKind.TEXT:
         dependencies, context, context_project_ids = _materialize_notebook_context(
             block, accessible_project_ids=accessible_project_ids
         )
     else:
-        dependencies, context, context_project_ids = _materialize_dependency_context(
-            block, accessible_project_ids=accessible_project_ids
-        )
+        dependencies, context, context_project_ids = {}, [], []
         previous_execution = _query_refinement_context_execution(block)
         if (
             previous_execution is not None
@@ -350,14 +246,6 @@ def build_block_execution_snapshot(
                 "source": previous_input.get("source", {}),
                 "filters": previous_input.get("filters", {}),
                 "parameters": previous_input.get("parameters", {}),
-            }
-            previous_parameters = previous_input.get(
-                "parameters", query_context.get("parameters", {})
-            )
-            parameter_changes = {
-                key: value
-                for key, value in parameters.items()
-                if key not in previous_parameters or value != previous_parameters[key]
             }
             query_context = {
                 **query_context,
@@ -391,7 +279,7 @@ def build_block_execution_snapshot(
         "organizationSlug": block.investigation.organization.slug,
         "source": source,
         "filters": filters,
-        "parameters": parameters,
+        "parameters": {},
         "dependencies": dependencies,
         "context": context,
         "contextDataProjectIds": context_project_ids,
@@ -403,10 +291,10 @@ def build_block_execution_snapshot(
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
     if block.kind == InvestigationBlockKind.QUERY:
-        snapshot["parameterChanges"] = parameter_changes
+        snapshot["parameterChanges"] = {}
         snapshot["queryContext"] = {
             **query_context,
-            "parameters": {**query_context.get("parameters", {}), **parameter_changes},
+            "parameters": query_context.get("parameters", {}),
         }
     return snapshot, _fingerprint(snapshot)
 

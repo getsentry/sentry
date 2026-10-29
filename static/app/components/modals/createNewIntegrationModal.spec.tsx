@@ -1,32 +1,11 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
-
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import CreateNewIntegrationModal from 'sentry/components/modals/createNewIntegrationModal';
 
 describe('CreateNewIntegrationModal', () => {
-  it('chooses the integration type with radios by default', () => {
-    renderGlobalModal();
-
-    act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));
-
-    expect(screen.getByText('Internal Integration')).toBeInTheDocument();
-    expect(screen.getByText('Public Integration')).toBeInTheDocument();
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
-
-    expect(screen.getByRole('button', {name: 'Next'})).toHaveAttribute(
-      'href',
-      '/settings/org-slug/developer-settings/new-internal/'
-    );
-  });
-
   it('offers starting from scratch', () => {
-    renderGlobalModal({
-      organization: OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      }),
-    });
+    renderGlobalModal();
 
     act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));
 
@@ -45,11 +24,7 @@ describe('CreateNewIntegrationModal', () => {
   });
 
   it('offers visible creation templates', () => {
-    renderGlobalModal({
-      organization: OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      }),
-    });
+    renderGlobalModal();
 
     act(() => openModal(modalProps => <CreateNewIntegrationModal {...modalProps} />));
 

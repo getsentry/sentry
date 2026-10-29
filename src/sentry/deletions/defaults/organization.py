@@ -32,7 +32,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.deletions.defaults.discoversavedquery import DiscoverSavedQueryDeletionTask
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.incidents.models.incident import Incident
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.investigations.models import Investigation
         from sentry.models.artifactbundle import ArtifactBundle
@@ -45,6 +44,7 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.models.repository import Repository
         from sentry.models.team import Team
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
+        from sentry.notebooks.models import Notebook
         from sentry.workflow_engine.models import Detector, Workflow
 
         # Team must come first
@@ -54,10 +54,10 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             OrganizationMember,
             Repository,
             CommitAuthor,
-            Incident,
             AlertRule,
             Release,
             Investigation,
+            Notebook,
             Project,
             Workflow,
         )

@@ -3,6 +3,8 @@ from __future__ import annotations
 import mimetypes
 import os
 import posixpath
+import random
+import time
 from collections.abc import Callable
 from tempfile import SpooledTemporaryFile
 
@@ -12,7 +14,12 @@ from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str, smart_str
-from google.api_core.exceptions import GatewayTimeout, ServiceUnavailable
+from google.api_core.exceptions import (
+    BadGateway,
+    GatewayTimeout,
+    InternalServerError,
+    ServiceUnavailable,
+)
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -23,11 +30,15 @@ from requests.exceptions import RequestException
 
 from sentry.net.http import TimeoutAdapter
 from sentry.utils import metrics
-from sentry.utils.retries import ConditionalRetryPolicy, sigmoid_delay
+from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay, sigmoid_delay
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
 REPLAY_GCS_RETRIES = 125
+
+# Backoff between try_repeated retries: exponential from 1s, capped at 16s.
+_gcs_retry_delay = exponential_delay(1.0)
+GCS_RETRY_MAX_DELAY = 16.0
 
 
 # Which errors are eligible for retry.
@@ -78,6 +89,9 @@ def try_repeated(func):
                 metrics_tags.update({"success": "0", "exception_class": e.__class__.__name__})
                 metrics.distribution(metrics_key, idx, tags=metrics_tags)
                 raise
+            # Exponential backoff with full jitter before retrying.
+            backoff = min(_gcs_retry_delay(idx + 1), GCS_RETRY_MAX_DELAY)
+            time.sleep(random.uniform(0, backoff))
         idx += 1
 
 
@@ -392,6 +406,11 @@ class GoogleCloudStorage(Storage):
         try_repeated(callable)
 
 
+# Replay uploads also retry 500s and 502s. GCS documents them as transient, and replay keys
+# and payloads are deterministic, so re-uploading the same object is safe.
+REPLAY_GCS_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, InternalServerError, BadGateway)
+
+
 class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
     """Google cloud storage class with replay upload policy."""
 
@@ -406,8 +425,8 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
         """Retry an action with sigmoid delay for a maximum of five attempts."""
 
         def should_retry(attempt: int, e: Exception) -> bool:
-            """Retry gateway timeout exceptions up to the limit."""
-            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
+            """Retry transient GCS exceptions up to the limit."""
+            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, REPLAY_GCS_RETRYABLE_ERRORS)
 
         # Retry cadence: After a brief period of fast retries the function will retry once
         # per second for two minutes.

@@ -3,7 +3,6 @@ from collections.abc import Generator
 from typing import Any
 
 from sentry.mail import mail_adapter
-from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import (
     ACTION_CHOICES,
     FALLTHROUGH_CHOICES,
@@ -85,6 +84,3 @@ class NotifyEmailAction(EventAction):
                 notification_uuid,
             )
         )
-
-    def get_form_instance(self) -> NotifyEmailForm:
-        return NotifyEmailForm(self.project, self.data)

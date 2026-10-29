@@ -1,11 +1,8 @@
-from typing import Any, Mapping
-
 import pytest
 from jsonschema import ValidationError
 
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
-from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.workflow_engine.handlers.condition.assigned_to_handler import AssignedToConditionHandler
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import Condition
@@ -16,11 +13,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestAssignedToCondition(ConditionTestCase):
     condition = Condition.ASSIGNED_TO
-    payload: Mapping[str, Any] = {
-        "id": AssignedToFilter.id,
-        "targetType": "Member",
-        "targetIdentifier": 0,
-    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -33,31 +25,6 @@ class TestAssignedToCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "target_type": "Member",
-            "target_identifier": 0,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-        payload = {
-            "id": AssignedToFilter.id,
-            "targetType": "Unassigned",
-        }
-        dc = self.translate_to_data_condition(payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "target_type": "Unassigned",
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"target_type": "Team"})

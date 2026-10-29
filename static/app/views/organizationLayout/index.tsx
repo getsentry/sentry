@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {Outlet, ScrollRestoration} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
@@ -33,8 +33,8 @@ import {OrganizationContainer} from 'sentry/views/organizationContainer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {useSeerExplorerDocumentTitle} from 'sentry/views/seerExplorer/components/useSeerExplorerDocumentTitle';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {OrganizationDetailsBody} from './body';
 
@@ -112,7 +112,7 @@ function AppLayout({organization}: LayoutProps) {
           position="relative"
         >
           <Navigation pageBannerHeight={pageBannerHeight} />
-          <SeerExplorerSidebarLayout>
+          <SeerExplorerSidebarLayout pageBannerHeight={pageBannerHeight}>
             {/* The `#main` selector is used to make the app content `inert` when an overlay is active */}
             <ContentStack
               id="main"

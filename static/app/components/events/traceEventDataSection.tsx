@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
+import {IconSort} from '@sentry/icons/sort';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -10,13 +12,13 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,6 +52,7 @@ type Props = {
   title: React.ReactNode;
   type: string;
   activeThreadId?: number;
+  initialCollapse?: boolean;
   isNestedSection?: boolean;
 };
 
@@ -69,6 +72,7 @@ export function TraceEventDataSection({
   hasAbsoluteAddresses,
   isNestedSection = false,
   activeThreadId,
+  initialCollapse,
 }: Props) {
   const api = useApi();
   const organization = useOrganization();
@@ -235,7 +239,44 @@ export function TraceEventDataSection({
 
     const useMinified = displayOptions.includes('minified');
 
-    const stacktraceEntries = event.entries.filter(
+    let entries: Entry[] = event.entries;
+    const threadEntry = entries.find(entry => entry.type === EntryType.THREADS);
+    const selectedThread = threadEntry?.data.values?.find(
+      thread => thread.id === activeThreadId
+    );
+    if (selectedThread && threadEntry) {
+      const exceptionEntry = entries.find(entry => entry.type === EntryType.EXCEPTION);
+      const exceptions =
+        exceptionEntry?.data.values?.filter(
+          exception =>
+            !defined(exception.threadId) || exception.threadId === selectedThread.id
+        ) ?? [];
+      const threadException = exceptions.findLast(
+        exception => exception.threadId === selectedThread.id
+      );
+
+      entries = [threadEntry];
+      if (
+        exceptionEntry &&
+        exceptions.length &&
+        (threadException || selectedThread.crashed)
+      ) {
+        // Pair only the copied values; the rendered exceptions retain their metadata indexes.
+        const exceptionWithThreadFrames = threadException ?? exceptions.at(-1);
+        const values = exceptions.map(exception =>
+          exception === exceptionWithThreadFrames && !exception.stacktrace
+            ? {
+                ...exception,
+                stacktrace: selectedThread.stacktrace,
+                rawStacktrace: exception.rawStacktrace ?? selectedThread.rawStacktrace,
+              }
+            : exception
+        );
+        entries = [{...exceptionEntry, data: {...exceptionEntry.data, values}}];
+      }
+    }
+
+    const stacktraceEntries = entries.filter(
       entry =>
         entry.type === EntryType.EXCEPTION ||
         entry.type === EntryType.STACKTRACE ||
@@ -525,6 +566,7 @@ export function TraceEventDataSection({
 
   return (
     <FoldSection
+      initialCollapse={initialCollapse}
       sectionKey={type}
       title={title}
       disableCollapsePersistence

@@ -1,28 +1,38 @@
 import {
   type ComponentProps,
+  Fragment,
   useCallback,
   useEffectEvent,
   useLayoutEffect,
   useRef,
   useState,
 } from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  Container,
+  Flex,
+  Grid,
+  Stack,
+  useResponsivePropValue,
+} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -30,14 +40,12 @@ import {
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import type {Actor} from 'sentry/types/core';
 import {ProgressState, type Group} from 'sentry/types/group';
@@ -51,13 +59,13 @@ import {parseActorString} from 'sentry/utils/parseActorString';
 import {useReplayForCriticalFlow} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssueListContainer} from 'sentry/views/issueList';
+import {InboxLayout} from 'sentry/views/issueList/pages/inbox/inboxLayout';
 import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
@@ -68,7 +76,7 @@ import {
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
@@ -297,10 +305,8 @@ function InboxContent() {
   // Remove this once we roll out to more users
   useReplayForCriticalFlow({flowName: 'issue_inbox', sampleRate: 1});
 
-  const theme = useTheme();
-  const isDesktop = useMedia(`(min-width: ${theme.breakpoints.md})`);
-  const {layout} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
+  const isDesktop = useResponsivePropValue({zero: false, '4xl': true});
+  const canShowEmptyState = useResponsivePropValue({zero: false, '2xl': true});
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
   const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
@@ -323,6 +329,7 @@ function InboxContent() {
   );
   const assignmentCounts = useAssignmentCounts();
   const isInboxEmpty = assignmentCounts?.[assignmentFilter] === 0;
+  const showEmptyState = !selectedIssueId && isInboxEmpty && canShowEmptyState;
   const alternateInbox = getAlternateInbox(assignmentFilter, assignmentCounts);
   const [storedSize, setStoredSize] = useSyncedLocalStorageState(
     INBOX_SPLIT_SIZE_STORAGE_KEY,
@@ -361,115 +368,81 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>
-        {TITLE}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/issues/inbox/"
-          title={t(
-            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
-          )}
-        />
-      </Layout.Title>
-      <Grid
-        flex={1}
-        minHeight={0}
-        columns={isMobile ? 'minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'}
-      >
-        <Stack
-          ref={isMobile ? undefined : resizableContainerRef}
-          as="section"
-          aria-label={t('Issue inbox')}
-          position="relative"
-          width={isMobile ? '100%' : `${size}px`}
-          minWidth={0}
-          minHeight={0}
-          display={selectedIssueId ? {'screen:xs': 'none', 'screen:md': 'flex'} : 'flex'}
-          background="primary"
-          borderRight="muted"
-        >
-          <Flex
-            as="header"
-            align="center"
-            justify="between"
-            padding="md lg"
-            background="secondary"
-            borderBottom="muted"
-            flexShrink={0}
-          >
-            <Heading as="h2" size="md">
-              {t('Issues')}
-            </Heading>
-            <AssignmentTabs
-              assignmentFilter={assignmentFilter}
-              onChange={handleAssignmentFilterChange}
-            />
-          </Flex>
-          <Stack flex={1} minHeight={0} overflowY="auto" overscrollBehavior="contain">
-            {SECTIONS.map(section => (
-              <InboxSection
-                key={`${assignmentFilter}:${section.key}`}
-                section={section}
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: TITLE,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          labelTooltip: (
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/issues/inbox/">
+              {t(
+                'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+              )}
+            </DocumentationHint>
+          ),
+        }}
+      />
+      <InboxLayout
+        isDesktop={isDesktop}
+        hasSelectedIssue={Boolean(selectedIssueId)}
+        showEmptyState={showEmptyState}
+        inboxWidth={size}
+        inboxRef={resizableContainerRef}
+        assignmentTabs={
+          <AssignmentTabs
+            assignmentFilter={assignmentFilter}
+            onChange={handleAssignmentFilterChange}
+          />
+        }
+        resizeHandle={props => (
+          <ResizeHandle
+            {...props}
+            onMouseDown={handleStartResize}
+            onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
+            atMinWidth={size === INBOX_MIN_SIZE}
+            atMaxWidth={size === INBOX_MAX_SIZE}
+          />
+        )}
+        preview={
+          <Fragment>
+            {selectedIssueId && (
+              <Container
+                display={isDesktop ? 'none' : 'block'}
+                padding="md"
+                borderBottom="muted"
+              >
+                <Button
+                  size="xs"
+                  variant="link"
+                  icon={<IconArrow direction="left" size="xs" />}
+                  onClick={() => void setInboxQueryState({preview: null})}
+                >
+                  {t('Back to inbox')}
+                </Button>
+              </Container>
+            )}
+            {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
+            {showEmptyState && (
+              <InboxEmptyState
                 assignmentFilter={assignmentFilter}
-                selectedIssueId={selectedIssueId}
-                onInitialResult={handleInitialSectionResult}
-                restoreSelectedIssueScroll={restoreSelectedIssueScroll}
-              />
-            ))}
-          </Stack>
-          <Container
-            top="0"
-            right="0"
-            bottom="0"
-            width="8px"
-            radius="lg"
-            position="absolute"
-            display={isMobile ? 'none' : undefined}
-          >
-            {props => (
-              <ResizeHandle
-                {...props}
-                onMouseDown={handleStartResize}
-                onDoubleClick={() => setStoredSize(INBOX_DEFAULT_SIZE)}
-                atMinWidth={size === INBOX_MIN_SIZE}
-                atMaxWidth={size === INBOX_MAX_SIZE}
+                alternateInbox={alternateInboxAction}
               />
             )}
-          </Container>
-        </Stack>
-        <Stack
-          as="aside"
-          aria-label={t('Issue preview')}
-          flex={1}
-          minWidth={0}
-          minHeight={0}
-          overflow="hidden"
-          display={selectedIssueId ? 'flex' : {'screen:xs': 'none', 'screen:md': 'flex'}}
-        >
-          {selectedIssueId && (
-            <Container
-              display={{'screen:xs': 'block', 'screen:md': 'none'}}
-              padding="md"
-              borderBottom="muted"
-            >
-              <Button
-                size="xs"
-                variant="link"
-                icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setInboxQueryState({preview: null})}
-              >
-                {t('Back to inbox')}
-              </Button>
-            </Container>
-          )}
-          {selectedIssueId && <IssuePreview groupId={selectedIssueId} />}
-          {!selectedIssueId && isInboxEmpty && (
-            <InboxEmptyState
-              assignmentFilter={assignmentFilter}
-              alternateInbox={alternateInboxAction}
-            />
-          )}
-        </Stack>
-      </Grid>
+          </Fragment>
+        }
+      >
+        {SECTIONS.map(section => (
+          <InboxSection
+            key={`${assignmentFilter}:${section.key}`}
+            section={section}
+            assignmentFilter={assignmentFilter}
+            selectedIssueId={selectedIssueId}
+            onInitialResult={handleInitialSectionResult}
+            restoreSelectedIssueScroll={restoreSelectedIssueScroll}
+          />
+        ))}
+      </InboxLayout>
     </Stack>
   );
 }
@@ -705,7 +678,7 @@ function InboxIssueCard({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {title} = getTitle(group);
+  const {title = ''} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
@@ -740,7 +713,7 @@ function InboxIssueCard({
       >
         <InteractionStateLayer />
         <Grid columns="8px minmax(0, 1fr) max-content" gap="md" align="stretch">
-          <Flex align="center">
+          <Flex align="center" height="16px">
             {!group.hasSeen && (
               <StatusIndicator
                 variant="accent"
@@ -751,7 +724,7 @@ function InboxIssueCard({
           </Flex>
           <Stack minWidth={0} gap="xs">
             <Heading as="h4" size="md" ellipsis>
-              {title}
+              <AnsiText>{title}</AnsiText>
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
             {showPullRequests ? (
@@ -839,6 +812,12 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
       <Grid columns="8px minmax(0, 1fr) max-content" gap="md">
         <span />
         <Flex align="center" gap="xs">
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
           {pullRequests.slice(0, 2).map(pullRequest => (
             <PullRequestBadgeLink
               key={`${pullRequest.repository.id}:${pullRequest.id}`}
@@ -856,12 +835,6 @@ function InboxPullRequestMetadata({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
-          <Flex minWidth={0} align="center" gap="2xs">
-            <ProjectAvatar project={group.project} size={12} />
-            <Text size="xs" variant="muted" ellipsis>
-              {group.shortId}
-            </Text>
-          </Flex>
         </Flex>
         <span />
       </Grid>

@@ -1,10 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {getPrismLanguage} from '@sentry/scraps/code';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -13,10 +13,11 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
+import {OpenFileButton} from 'sentry/views/seerExplorer/components/openFileButton';
 
 interface FileDiffViewerProps {
   patch: FilePatch;
@@ -30,6 +31,11 @@ interface FileDiffViewerProps {
    * Default: false (collapsed by default)
    */
   defaultExpanded?: boolean;
+  /**
+   * Web URL for the file in its source repository. When set, the header shows a
+   * button that opens it.
+   */
+  fileUrl?: string | null;
   /**
    * Hides the built-in header (path + added/removed) for consumers that render
    * their own. Default: false
@@ -112,6 +118,7 @@ function HunkHeader({
 
 export function FileDiffViewer({
   patch,
+  fileUrl,
   repoName,
   showBorder = false,
   useFlexForDeleted = false,
@@ -135,7 +142,10 @@ export function FileDiffViewer({
             <FileAdded>+{patch.added}</FileAdded>
             <FileRemoved>-{patch.removed}</FileRemoved>
           </Flex>
-          <FilePathName title={filePath}>{filePath}</FilePathName>
+          <Flex align="center" gap="xs" minWidth="0">
+            <FilePathName title={filePath}>{filePath}</FilePathName>
+            <OpenFileButton fileUrl={fileUrl} />
+          </Flex>
           {collapsible && (
             <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />
           )}
@@ -155,7 +165,7 @@ export function FileDiffViewer({
             <DiffContainer>
               {patch.hunks.map((hunk, hunkIndex) => (
                 <Fragment key={hunkIndex}>
-                  <HunkHeaderEmptySpace />
+                  <Container background="secondary" column="1 / 3" />
                   <HunkHeader
                     sourceStart={hunk.source_start}
                     sourceLength={hunk.source_length}
@@ -259,11 +269,6 @@ const DiffContainer = styled('div')`
   display: grid;
   grid-template-columns: auto auto 1fr;
   overflow-x: auto;
-`;
-
-const HunkHeaderEmptySpace = styled('div')`
-  grid-column: 1 / 3;
-  background-color: ${p => p.theme.tokens.background.secondary};
 `;
 
 const HunkHeaderContent = styled('div')`

@@ -3,12 +3,18 @@ import zipfile
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from io import BytesIO
+from typing import Any
+from unittest import mock
 from uuid import uuid4
 
 import orjson
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
+from sentry.api.endpoints.artifact_lookup import (
+    get_legacy_release_bundles,
+    get_legacy_releasefile_by_file_url,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -22,6 +28,7 @@ from sentry.models.releasefile import ReleaseFile, read_artifact_index, update_a
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 
 
 def make_file(artifact_name, content, type="artifact.bundle", headers=None):
@@ -95,6 +102,30 @@ class ArtifactLookupTest(APITestCase):
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
         return (update_artifact_index(self.release, dist, file_), buffer.getvalue())
+
+    def lookup_with_legacy_calls(self, query: str) -> tuple[list[dict[str, Any]], int]:
+        """
+        Runs a lookup and counts the calls of the two legacy `ReleaseFile` queries.
+        """
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
+        )
+        with (
+            mock.patch(
+                "sentry.api.endpoints.artifact_lookup.get_legacy_release_bundles",
+                wraps=get_legacy_release_bundles,
+            ) as release_bundles,
+            mock.patch(
+                "sentry.api.endpoints.artifact_lookup.get_legacy_releasefile_by_file_url",
+                wraps=get_legacy_releasefile_by_file_url,
+            ) as release_files,
+        ):
+            response = self.client.get(f"{url}?{query}").json()
+        return response, release_bundles.call_count + release_files.call_count
 
     def test_query_by_debug_ids(self) -> None:
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
@@ -639,6 +670,67 @@ class ArtifactLookupTest(APITestCase):
         assert response[1]["type"] == "bundle"
         assert ReleaseFile.objects.get(id=releasefile.id).date_accessed > old_timestamp
         assert ReleaseFile.objects.get(id=archive1.id).date_accessed > old_timestamp
+
+    def test_legacy_lookup_runs_by_default_for_release_without_release_files(self) -> None:
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 2
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_skipped_for_release_without_release_files(self) -> None:
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 0
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_not_skipped_for_release_with_release_files(self) -> None:
+        file = make_file("application.js", b"wat", "release.file", {})
+        releasefile = self.create_release_file(file=file, name="http://example.com/application.js")
+        archive, _ = self.create_archive(fields={}, files={"foo": "foo1"})
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert legacy_calls == 2
+        assert [(artifact["id"], artifact["type"]) for artifact in response] == [
+            (f"release_file/{releasefile.id}", "file"),
+            (f"release_file/{archive.id}", "bundle"),
+        ]
+
+    @override_options({"sourcemaps.artifact-lookup.skip-legacy-without-release-files": True})
+    def test_legacy_lookup_skip_checks_requested_dist(self) -> None:
+        dist = self.release.add_dist("foo")
+        file = make_file("application.js", b"wat", "release.file", {})
+        releasefile = self.create_release_file(
+            file=file, name="http://example.com/application.js", dist_id=dist.id
+        )
+        self.login_as(user=self.user)
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&url=application.js"
+        )
+
+        assert response == []
+        assert legacy_calls == 0
+
+        response, legacy_calls = self.lookup_with_legacy_calls(
+            f"release={self.release.version}&dist={dist.name}&url=application.js"
+        )
+
+        assert legacy_calls == 2
+        assert [artifact["id"] for artifact in response] == [f"release_file/{releasefile.id}"]
 
     def test_access_control(self) -> None:
         # release file

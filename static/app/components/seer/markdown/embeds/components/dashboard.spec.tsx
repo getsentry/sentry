@@ -1,5 +1,5 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
-import {EventsStatsFixture} from 'sentry-fixture/events';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -53,7 +53,7 @@ describe('dashboard embed', () => {
     );
   });
 
-  it('renders a live preview of the first four dashboard widgets', async () => {
+  it('renders a live preview of the first two dashboard widgets', async () => {
     const widgets = ['Errors', 'Latency', 'Users', 'Throughput', 'Slow spans'].map(
       (title, index) =>
         WidgetFixture({
@@ -76,8 +76,8 @@ describe('dashboard embed', () => {
       }),
     });
     const widgetDataRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -99,18 +99,18 @@ describe('dashboard embed', () => {
     );
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Latency')).toBeInTheDocument();
-    expect(screen.getByText('Users')).toBeInTheDocument();
-    expect(screen.getByText('Throughput')).toBeInTheDocument();
+    expect(screen.queryByText('Users')).not.toBeInTheDocument();
+    expect(screen.queryByText('Throughput')).not.toBeInTheDocument();
     expect(screen.queryByText('Slow spans')).not.toBeInTheDocument();
     expect(screen.getByText('5 widgets')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View 1 more widget'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: '+ 3 additional widgets'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/123/'
     );
     expect(dashboardRequest).toHaveBeenCalled();
     await waitFor(() =>
       expect(widgetDataRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events-stats/',
+        '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
           query: expect.objectContaining({
             environment: ['production'],
@@ -153,8 +153,8 @@ describe('dashboard embed', () => {
       body: DashboardFixture([widget], {id: '123', title: 'Application health'}),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: EventsStatsFixture(),
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',

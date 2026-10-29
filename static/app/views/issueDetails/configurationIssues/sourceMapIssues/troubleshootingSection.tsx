@@ -1,4 +1,6 @@
 import {useRef} from 'react';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconSettings} from '@sentry/icons/settings';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
@@ -9,7 +11,6 @@ import {Heading, Prose, Text} from '@sentry/scraps/text';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {IconDocs, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';

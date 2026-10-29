@@ -1,8 +1,9 @@
-import {Button} from '@sentry/scraps/button';
+import {IconDownload} from '@sentry/icons/download';
+
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
-import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -24,7 +25,7 @@ export function TagExportDropdown({tagKey, group, organization, project}: Props)
     <DropdownMenu
       size="xs"
       trigger={triggerProps => (
-        <Button
+        <OverlayTrigger.IconButton
           {...triggerProps}
           variant="transparent"
           size="xs"

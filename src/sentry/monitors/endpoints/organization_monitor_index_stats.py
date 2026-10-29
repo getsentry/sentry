@@ -126,20 +126,14 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
                 environments = list(Environment.objects.filter(id__in=eids))
                 environment_map = {env.id: env.name for env in environments}
 
+        # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
+        # aggregate and let the monitor_environment/date/status index cover the query.
         check_ins = MonitorCheckIn.objects.filter(
+            monitor_environment_id__in=monitor_environment_map.keys(),
             date_added__gte=args["start"],
             date_added__lt=args["end"],
         )
-
-        group_by: tuple[str, ...]
-        if monitor_environment_map:
-            check_ins = check_ins.filter(monitor_environment_id__in=monitor_environment_map.keys())
-            # MonitorEnvironment already carries monitor_id, so keep monitor_id out of the
-            # aggregate and let the monitor_environment/date/status index cover the query.
-            group_by = ("bucket", "monitor_environment_id", "status")
-        else:
-            check_ins = check_ins.filter(monitor_id__in=monitor_map.keys())
-            group_by = ("monitor_id", "bucket", "monitor_environment_id", "status")
+        group_by = ("bucket", "monitor_environment_id", "status")
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(
@@ -155,8 +149,7 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # retrieve the list of checkins in the time range and count each by
         # status. Bucketing is done at the postgres level for performance
         history = (
-            check_ins.all()
-            .annotate(bucket=bucket)
+            check_ins.annotate(bucket=bucket)
             .values(*group_by)
             .annotate(count=Count("*"))
             .values_list(*group_by, "count")
@@ -188,21 +181,14 @@ class OrganizationMonitorIndexStatsEndpoint(OrganizationEndpoint, StatsMixin):
         # We manually sort the response output by guid and bucket. This is fine because the set
         # of keys is known (they're provided as a query parameter) and there is no pagination.
         def sort_history_key(row):
-            if monitor_environment_map:
-                ts, meid, _status, _count = row
-                return monitor_map[monitor_environment_to_monitor_id[meid]], ts
+            ts, meid, _status, _count = row
+            return monitor_map[monitor_environment_to_monitor_id[meid]], ts
 
-            mid, ts, _meid, _status, _count = row
-            return monitor_map[mid], ts
-
-        for row in sorted(list(history), key=sort_history_key):
-            if monitor_environment_map:
-                ts, meid, status, count = row
-                mid = monitor_environment_to_monitor_id[meid]
-            else:
-                mid, ts, meid, status, count = row
-
-            guid = monitor_map[mid]
+        # Every check-in has a monitor environment, so there is nothing to
+        # count without one.
+        rows = sorted(history, key=sort_history_key) if monitor_environment_map else []
+        for ts, meid, status, count in rows:
+            guid = monitor_map[monitor_environment_to_monitor_id[meid]]
 
             # Monitor environments can be null.  If we find a null monitor environment we
             # default to "production" by convention.

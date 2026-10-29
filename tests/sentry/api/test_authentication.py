@@ -35,16 +35,23 @@ from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.token import AuthTokenType
 from sentry.utils import jwt
 from sentry.utils.security.orgauthtoken_token import hash_token
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+)
 
 
 def _drf_request(data: dict[str, str] | None = None, path: str = "/example") -> Request:
@@ -138,7 +145,7 @@ class TestJWTClientSecretAuthentication(TestCase):
     def _create_jwt(self, client_id: str, exp: datetime | None = None) -> str:
         """Helper to create a JWT token"""
         if exp is None:
-            exp = datetime.now() + timedelta(hours=1)
+            exp = datetime.now() + timedelta(minutes=1)
 
         payload = {
             "iss": client_id,  # Issuer
@@ -186,6 +193,53 @@ class TestJWTClientSecretAuthentication(TestCase):
 
         with pytest.raises(AuthenticationFailed, match="Could not validate JWT"):
             self.auth.authenticate(request)
+
+    def test_missing_expiration(self) -> None:
+        token = jwt.encode(
+            {
+                "iss": self.api_app.client_id,
+                "sub": self.api_app.client_id,
+                "iat": int(datetime.now(UTC).timestamp()),
+                "jti": str(uuid.uuid4()),
+            },
+            self.api_app.client_secret,
+            algorithm="HS256",
+        )
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="Could not validate JWT"),
+        ):
+            self.auth.authenticate(request)
+
+        mock_logger.warning.assert_called_once()
+        assert (
+            mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.missing_required_claim"
+        )
+        assert mock_logger.warning.call_args.kwargs["extra"]["claim"] == "exp"
+
+    def test_expiration_too_far_in_future(self) -> None:
+        token = self._create_jwt(self.api_app.client_id, exp=datetime.now() + timedelta(minutes=10))
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="JWT expiration is too far in the future"),
+        ):
+            self.auth.authenticate(request)
+
+        mock_logger.warning.assert_called_once()
+        assert (
+            mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.exp_too_far_in_future"
+        )
+        assert (
+            mock_logger.warning.call_args.kwargs["extra"]["installation_id"] == self.installation.id
+        )
 
     def test_missing_authorization_header(self) -> None:
         path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
@@ -235,8 +289,49 @@ class TestJWTClientSecretAuthentication(TestCase):
         request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
         request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
 
+        with (
+            mock.patch("sentry.api.authentication.logger") as mock_logger,
+            pytest.raises(AuthenticationFailed, match="JWT has already been used"),
+        ):
+            self.auth.authenticate(request2)
+
+        mock_logger.warning.assert_called_once()
+        assert mock_logger.warning.call_args.args[0] == "client_secret_jwt_auth.jti_reused"
+
+    def test_jwt_cannot_be_used_for_another_installation(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        other_installation = self.create_sentry_app_installation(
+            organization=other_org, slug=self.sentry_app.slug, user=self.user
+        )
+        token = self._create_jwt(self.api_app.client_id)
+
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+        user, _ = self.auth.authenticate(request)
+        assert user.id == self.sentry_app.proxy_user.id
+
+        other_path = f"/api/0/sentry-app-installations/{other_installation.uuid}/authorizations/"
+        request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=other_path)
+        request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
         with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
             self.auth.authenticate(request2)
+
+    def test_jwt_cannot_be_used_twice_before_expiration(self) -> None:
+        now = datetime.now(UTC)
+        path = f"/api/0/sentry-app-installations/{self.installation.uuid}/authorizations/"
+        with freeze_time(now):
+            token = self._create_jwt(self.api_app.client_id, exp=now + timedelta(minutes=4))
+            request = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+            request.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+            user, _ = self.auth.authenticate(request)
+            assert user.id == self.sentry_app.proxy_user.id
+
+        with freeze_time(now + timedelta(minutes=2)):
+            request2 = _drf_request({"grant_type": GrantTypes.CLIENT_SECRET_JWT}, path=path)
+            request2.META["HTTP_AUTHORIZATION"] = f"Bearer {token}"
+            with pytest.raises(AuthenticationFailed, match="JWT has already been used"):
+                self.auth.authenticate(request2)
 
 
 class TestDSNAuthentication(TestCase):
@@ -489,7 +584,7 @@ def test_registered_relay(internal) -> None:
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(settings, internal) -> None:
+def test_statically_configured_relay(internal) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -504,9 +599,9 @@ def test_statically_configured_relay(settings, internal) -> None:
 
     relay_options = {relay_id: {"internal": internal, "public_key": str(pk)}}
 
-    settings.SENTRY_RELAY_STATIC_AUTH = relay_options
     authenticator = RelayAuthentication()
-    authenticator.authenticate(request)
+    with override_settings(SENTRY_RELAY_STATIC_AUTH=relay_options):
+        authenticator.authenticate(request)
 
     # now the request should contain a relay
     relay = request.relay
@@ -688,6 +783,9 @@ class TestHmacSignatureAuthentication(TestCase):
 
         # Signature without URL should fail
 
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
         signature_without_url = generate_service_request_signature(
             request.path_info,
             request.body,
@@ -1030,7 +1128,7 @@ class TestViewerContextAuthentication(TestCase):
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_valid_viewer_context_authenticates(self) -> None:
         context = encode_viewer_context(
-            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id)),
             key=self.SHARED_SECRET,
         )
 
@@ -1060,7 +1158,7 @@ class TestViewerContextAuthentication(TestCase):
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_unknown_user_id_returns_none(self) -> None:
         context = encode_viewer_context(
-            ViewerContext(user_id=999999999, actor_type=ActorType.USER),
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=999999999)),
             key=self.SHARED_SECRET,
         )
 
@@ -1072,7 +1170,7 @@ class TestViewerContextAuthentication(TestCase):
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_missing_user_id_returns_none(self) -> None:
         context = encode_viewer_context(
-            ViewerContext(actor_type=ActorType.SYSTEM),
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM)),
             key=self.SHARED_SECRET,
         )
 
@@ -1084,7 +1182,7 @@ class TestViewerContextAuthentication(TestCase):
     @override_settings(SEER_API_SHARED_SECRET="")
     def test_empty_secret_returns_none(self) -> None:
         context = encode_viewer_context(
-            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id)),
             key=self.SHARED_SECRET,
         )
 
@@ -1095,7 +1193,7 @@ class TestViewerContextAuthentication(TestCase):
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_jwt_wrong_key_returns_none(self) -> None:
-        vc = ViewerContext(user_id=self.user.id, actor_type=ActorType.USER)
+        vc = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id))
         token = encode_viewer_context(vc, key="wrong-key")
 
         request = self._make_request(viewer_context=token)
@@ -1108,7 +1206,7 @@ class TestViewerContextAuthentication(TestCase):
         self.user.update(is_suspended=True)
 
         context = encode_viewer_context(
-            ViewerContext(user_id=self.user.id, actor_type=ActorType.USER),
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id)),
             key=self.SHARED_SECRET,
         )
 
@@ -1116,3 +1214,80 @@ class TestViewerContextAuthentication(TestCase):
         result = ViewerContextAuthentication().authenticate(request)
 
         assert result is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_id_is_not_a_user(self) -> None:
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=self.user.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+        assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_authenticates_without_a_user(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["project:read", "event:read"]
+        )
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is not None
+        user, auth = result
+        assert not user.is_authenticated
+        assert is_service_account_auth(auth)
+        assert auth.entity_id == service_account.id
+        assert auth.organization_id == self.organization.id
+        assert auth.scopes == ["event:read", "project:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_other_org_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.create_organization())
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_control_silo_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_agent_authenticates_delegate_not_agent_id(self) -> None:
+        agent_user = self.create_user()
+        context = ViewerContext(
+            actor=Actor(
+                type=ActorType.AGENT, actor_id=agent_user.id, delegated_user_id=self.user.id
+            ),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+        result = ViewerContextAuthentication().authenticate(request)
+        assert result is not None
+        assert result[0].id == self.user.id

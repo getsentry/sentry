@@ -1,6 +1,8 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -9,13 +11,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Timeline} from 'sentry/components/timeline';
-import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {HypothesisEvidencePlaceholder} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
 import {
   getHypothesisCardBorder,
   HypothesisStatus,
 } from 'sentry/views/investigations/hypotheses/hypothesisStatus';
+import {HypothesisLLMContext} from 'sentry/views/investigations/investigationLLMContext';
 import type {InvestigationHypothesis} from 'sentry/views/investigations/types';
 
 /** States where missing checks mean "not yet"; anything else finished without them. */
@@ -28,8 +30,8 @@ type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
   /**
    * Menu items for the card's overflow menu. The card does not own commands —
-   * the surface rendering it decides which of accept, reject, steer, and retry
-   * apply, and supplies them here. No menu renders when this is empty.
+   * the surface rendering it decides which of accept, reject, retry, and Ask
+   * Seer apply, and supplies them here. No menu renders when this is empty.
    */
   actions?: MenuItemProps[];
   /**
@@ -94,6 +96,7 @@ export function HypothesisCard({
       data-primary={isPrimary}
       data-test-id="investigation-hypothesis"
     >
+      <HypothesisLLMContext hypothesis={hypothesis} isConclusion={isPrimary} />
       <Flex justify="between" align="center" gap="sm">
         <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
           <HypothesisNumber size="xs" variant="muted" tabular>
@@ -198,7 +201,9 @@ export function HypothesisCard({
                     variant={isRunning ? 'primary' : 'muted'}
                     wordBreak="break-word"
                   >
-                    {step.title}
+                    {step.status === 'skipped'
+                      ? t('%s (skipped)', step.title)
+                      : step.title}
                   </StepTitle>
                 }
               />

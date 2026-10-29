@@ -10,6 +10,7 @@ from typing import Any
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
+    get_span_description,
     get_span_evidence_value,
     total_span_time,
 )
@@ -22,6 +23,29 @@ from sentry.issues.grouptype import (
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.utils import metrics
 from sentry.utils.sdk import sdk_logger
+
+# Connection lifecycle spans that SDKs report with a plain `db` op. They are kept in MN+1 patterns as
+# context, but never count as queries.
+_DB_CONNECTION_SPAN_DESCRIPTIONS = frozenset(
+    {
+        "connect",  # Python SDK, Django
+        "pg.connect",  # JavaScript SDK, pg
+        "pg-pool.connect",  # JavaScript SDK, pg-pool
+        "prisma:engine:connection",  # JavaScript SDK, Prisma
+    }
+)
+
+
+def _is_db_connection_span(span: Span) -> bool:
+    op = span.get("op") or ""
+    if not op.startswith("db"):
+        return False
+    description = (span.get("description") or "").strip()
+    return op.startswith("db.connection") or description in _DB_CONNECTION_SPAN_DESCRIPTIONS
+
+
+def _is_db_query_span(span: Span) -> bool:
+    return span["op"].startswith("db") and not _is_db_connection_span(span)
 
 
 class MNPlusOneState(ABC):
@@ -117,7 +141,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
         return (self, None)
 
     def _is_valid_pattern(self, pattern: Sequence[Span]) -> bool:
-        """A valid pattern contains at least one db operation and is not all equivalent."""
+        """A valid pattern contains at least one db query and is not all equivalent."""
         found_db_op = False
         found_different_span = False
 
@@ -131,10 +155,11 @@ class SearchingForMNPlusOne(MNPlusOneState):
 
         for span in pattern:
             op = span.get("op") or ""
-            description = span.get("description") or ""
+            description = get_span_description(span)
             found_db_op = found_db_op or bool(
                 op.startswith("db")
                 and not op.startswith("db.redis")
+                and not _is_db_connection_span(span)
                 and description
                 and not description.endswith("...")
             )
@@ -227,14 +252,14 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
-        # Consider all spans when evaluating the duration threshold, however at least 10 percent
-        # of the total duration of offenders should be from db spans.
+        # Consider all spans when evaluating the duration threshold, however at least some percentage
+        # of the total duration of offenders should be from db query spans.
         total_spans_duration = total_span_time(offender_spans)
         if total_spans_duration < self.settings["total_duration_threshold"]:
             metrics.incr("mn_plus_one_db_span_detector.below_duration_threshold")
             return None
 
-        offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
+        offender_db_spans = [span for span in offender_spans if _is_db_query_span(span)]
         total_db_spans_duration = total_span_time(offender_db_spans)
         pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
         if pct_db_spans < self.settings["min_percentage_of_db_spans"]:
@@ -251,7 +276,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
             metrics.incr("mn_plus_one_db_span_detector.no_db_span")
             return None
 
-        db_span_description = db_span.get("description") or ""
+        db_span_description = get_span_description(db_span)
 
         db_span_ids = [span["span_id"] for span in offender_db_spans]
         offender_span_ids = [span["span_id"] for span in offender_spans]
@@ -315,10 +340,7 @@ class ContinuingMNPlusOne(MNPlusOneState):
 
     def _first_relevant_db_span(self) -> Span | None:
         for span in self.spans:
-            if (
-                span["op"].startswith("db")
-                and get_span_evidence_value(span, include_op=False) != "prisma:engine:connection"
-            ):
+            if _is_db_query_span(span):
                 return span
         return None
 
@@ -401,10 +423,11 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
     (hence, MN+1).
 
     To create a problem from a set a spans, this detector looks for the following:
-    - A pattern of at least one db span and one non-db span (set by `max_sequence_length`)
+    - A pattern of at least one db query span and one non-db span (set by `max_sequence_length`).
+      Connection lifecycle spans are part of the pattern but do not count as queries.
     - The pattern is repeated sequentially with no intervening spans (set by `min_occurrences_of_pattern`)
     - The total duration of the repeated pattern is above the threshold (set by `total_duration_threshold`)
-    - The total duration of the db spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
+    - The total duration of the db query spans is above the percentage threshold for the whole sequence (set by `min_percentage_of_db_spans`)
     - The pattern has at least one common parent span within the event, and within the configured depth (set by `max_allowable_depth`)
 
     Uses a small state machine internally.

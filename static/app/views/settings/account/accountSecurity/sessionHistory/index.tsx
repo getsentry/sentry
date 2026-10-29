@@ -1,13 +1,10 @@
 import styled from '@emotion/styled';
 
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {InternetProtocol} from 'sentry/types/user';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -17,9 +14,14 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {SessionRow} from './sessionRow';
-import {tableLayout} from './utils';
 
 type IpListType = InternetProtocol[] | null;
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'session', width: 'minmax(150px, 1fr)'},
+  {key: 'firstSeen', width: 160},
+  {key: 'lastSeen', width: 160},
+];
 
 export default function SessionHistory() {
   const location = useLocation();
@@ -27,6 +29,7 @@ export default function SessionHistory() {
     data: ipList = [],
     isLoading,
     isError,
+    refetch,
   } = useApiQuery<IpListType>(
     [getApiUrl('/users/$userId/ips/', {path: {userId: 'me'}})],
     {
@@ -34,18 +37,6 @@ export default function SessionHistory() {
       enabled: !isDemoModeActive(),
     }
   );
-
-  if (isError) {
-    return <LoadingError />;
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (!ipList) {
-    return null;
-  }
 
   const maybeTab = location.pathname.split('/').at(-2);
   const activeTab =
@@ -72,28 +63,33 @@ export default function SessionHistory() {
         </Tabs>
       </TabsContainer>
 
-      <Panel>
-        <SessionPanelHeader>
-          <div>{t('Sessions')}</div>
-          <div>{t('First Seen')}</div>
-          <div>{t('Last Seen')}</div>
-        </SessionPanelHeader>
-
-        <PanelBody>
-          {ipList.map(({id, ...ipObj}) => (
-            <SessionRow key={id} {...ipObj} />
-          ))}
-        </PanelBody>
-      </Panel>
+      <SimpleTable
+        aria-label={t('Session History')}
+        columns={COLUMNS}
+        flexibleLastColumn={false}
+        scrollable
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Sessions')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('First Seen')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Last Seen')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      >
+        {isError ? (
+          <SimpleTable.Error onRetry={refetch} />
+        ) : isLoading ? (
+          <SimpleTable.Loading />
+        ) : ipList?.length ? (
+          ipList.map(({id, ...ipObj}) => <SessionRow key={id} {...ipObj} />)
+        ) : (
+          <SimpleTable.Empty>{t('No sessions found')}</SimpleTable.Empty>
+        )}
+      </SimpleTable>
     </SentryDocumentTitle>
   );
 }
 
 const TabsContainer = styled('div')`
   margin-bottom: ${p => p.theme.space.xl};
-`;
-
-const SessionPanelHeader = styled(PanelHeader)`
-  ${tableLayout}
-  justify-content: initial;
 `;

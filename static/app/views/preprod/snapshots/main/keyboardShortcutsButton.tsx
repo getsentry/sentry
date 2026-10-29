@@ -1,5 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import {css} from '@emotion/react';
+import {IconCommand} from '@sentry/icons/command';
 
 import {Button} from '@sentry/scraps/button';
 import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
@@ -8,10 +9,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {IconCommand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {TOGGLE_VIEWED_HOTKEY} from './viewedCheckbox';
 
 interface Shortcut {
   description: string;
@@ -58,6 +60,10 @@ function getShortcutGroups(): ShortcutGroup[] {
         {
           keys: <Hotkey value="space" />,
           description: t('Scroll selected snapshot into view'),
+        },
+        {
+          keys: <Hotkey value={TOGGLE_VIEWED_HOTKEY} />,
+          description: t('Mark selected snapshot as viewed / not viewed'),
         },
       ],
     },

@@ -1,33 +1,48 @@
 from __future__ import annotations
 
-import contextlib
-import contextvars
 import dataclasses
-import enum
-import hashlib
 import logging
-import time
-from collections.abc import Generator, Mapping
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping
+from random import random
+from typing import Any
 
-import jwt as pyjwt
 import sentry_sdk
 from django.conf import settings
+from sentry_viewercontext import (
+    Actor,
+    ActorId,
+    ActorType,
+    SuperuserAccess,
+    ViewerContext,
+    decode_jwt,
+    encode_jwt,
+    get_viewer_context,
+    is_jwt,
+    key_id,
+    viewer_context_scope,
+    viewer_context_var,
+)
 
 from sentry.silo.base import SiloMode
 
-logger = logging.getLogger(__name__)
+__all__ = [
+    "Actor",
+    "ActorId",
+    "ActorType",
+    "SuperuserAccess",
+    "ViewerContext",
+    "actor_id_from_references",
+    "get_viewer_context",
+    "viewer_context_scope",
+]
 
-if TYPE_CHECKING:
-    from sentry.auth.services.auth import AuthenticatedToken
+logger = logging.getLogger(__name__)
 
 # Sentinel for `observe_viewer_context_propagation(ctx=...)`: distinguishes
 # "caller passed None" from "caller didn't pass ctx".
 _OBSERVE_USE_CONTEXTVAR: Any = object()
 
-_viewer_context_var: contextvars.ContextVar[ViewerContext | None] = contextvars.ContextVar(
-    "viewer_context", default=None
-)
+_viewer_context_var = viewer_context_var
 
 """
 ViewerContext is an object propagated across codebase (and crossing service boundary) to deliver
@@ -40,77 +55,27 @@ https://www.notion.so/sentry/RFC-Unified-ViewerContext-via-ContextVar-32f8b10e4b
 """
 
 
-class ActorType(enum.StrEnum):
-    USER = "user"
-    SYSTEM = "system"
-    INTEGRATION = "integration"
-    AGENT = "agent"
-    UNKNOWN = "unknown"
+def actor_id_from_references(
+    *, user_id: int | None, service_account_id: int | None
+) -> ActorId | None:
+    """Interpret mutually exclusive references without resolving or authorizing the actor."""
+    if user_id is not None:
+        if service_account_id is not None:
+            raise ValueError("User and service-account references are mutually exclusive")
+        kind, actor_id = ActorType.USER, user_id
+    elif service_account_id is not None:
+        kind, actor_id = ActorType.SERVICE_ACCOUNT, service_account_id
+    else:
+        return None
+
+    if type(actor_id) is not int or actor_id <= 0:
+        raise ValueError("Actor ID must be a positive integer")
+    return ActorId(kind, actor_id)
 
 
-@dataclasses.dataclass(frozen=True)
-class ViewerContext:
-    """Identity of the caller for the current unit of work.
-
-    Set once at each entrypoint (API request, task, consumer, RPC) via
-    ``viewer_context_scope`` and readable anywhere via ``get_viewer_context``.
-
-    Frozen so that ``copy_context()`` produces a safe shallow copy when
-    propagating across threads.
-    """
-
-    organization_id: int | None = None
-    project_id: int | None = None
-    user_id: int | None = None
-    actor_type: ActorType = ActorType.UNKNOWN
-
-    # Carries scopes/kind for in-process permission checks.
-    # NOT propagated across process/service boundaries.
-    token: AuthenticatedToken | None = None
-
-    def serialize(self) -> dict[str, Any]:
-        """Serialize to a dict for cross-service headers (e.g. X-Viewer-Context)."""
-        result: dict[str, Any] = {"actor_type": self.actor_type.value}
-        if self.organization_id is not None:
-            result["organization_id"] = self.organization_id
-        if self.project_id is not None:
-            result["project_id"] = self.project_id
-        if self.user_id is not None:
-            result["user_id"] = self.user_id
-        return result
-
-    @classmethod
-    def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
-        """Reconstruct from a serialized dict. Token is not deserialized."""
-        try:
-            actor_type = ActorType(data.get("actor_type", "unknown"))
-        except ValueError:
-            actor_type = ActorType.UNKNOWN
-        return cls(
-            organization_id=data.get("organization_id"),
-            project_id=data.get("project_id"),
-            user_id=data.get("user_id"),
-            actor_type=actor_type,
-        )
-
-
-@contextlib.contextmanager
-def viewer_context_scope(ctx: ViewerContext) -> Generator[None]:
-    """Enter a viewer context for the duration of a unit of work.
-
-    Always use this instead of raw ``_viewer_context_var.set()`` —
-    it guarantees cleanup via ``reset(token)`` even on exceptions.
-    """
-    tok = _viewer_context_var.set(ctx)
-    try:
-        yield
-    finally:
-        _viewer_context_var.reset(tok)
-
-
-def get_viewer_context() -> ViewerContext | None:
-    """Return the current ``ViewerContext``, or ``None`` if not set."""
-    return _viewer_context_var.get()
+def get_acting_user_id(ctx: ViewerContext | None) -> int | None:
+    """Return the human user *ctx* acts as, or ``None``."""
+    return ctx.actor.user_id if ctx is not None else None
 
 
 def observe_viewer_context_propagation(
@@ -146,8 +111,8 @@ def observe_viewer_context_propagation(
         has_user = False
         has_org = False
     else:
-        actor_type = ctx.actor_type.value
-        has_user = ctx.user_id is not None
+        actor_type = ctx.actor.type.value
+        has_user = get_acting_user_id(ctx) is not None
         has_org = ctx.organization_id is not None
 
     # Fixed tags layered on top of extras so callers can't accidentally swap
@@ -164,16 +129,36 @@ def observe_viewer_context_propagation(
     )
 
     # testing internal sampling on high volume metrics, not yet public api
-    attributes_with_sampling: dict[str, str | float] = {
-        **attributes,
-        "sentry.client_sample_rate": 0.001,
-    }
-    sentry_sdk.metrics.count("viewer_context.observation", 1, attributes=attributes_with_sampling)
+    if random() < 0.001:
+        attributes_with_sampling: dict[str, str | float] = {
+            **attributes,
+            "sentry.client_sample_rate": 0.001,
+        }
+        sentry_sdk.metrics.count(
+            "viewer_context.observation", 1, attributes=attributes_with_sampling
+        )
 
     if expected and ctx is None:
         log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}
         log_extra["point"] = point
         logger.warning("viewer_context.missing", extra=log_extra)
+
+
+def set_viewer_context_superuser(
+    *, user_id: int, organization_id: int, superuser: SuperuserAccess
+) -> None:
+    """Attach elevation produced by the normal organization access checks."""
+    ctx = get_viewer_context()
+    if ctx is None:
+        return
+    if get_acting_user_id(ctx) == user_id:
+        _viewer_context_var.set(
+            dataclasses.replace(
+                ctx,
+                organization_id=organization_id,
+                actor=dataclasses.replace(ctx.actor, superuser=superuser),
+            )
+        )
 
 
 def set_viewer_context_organization(organization_id: int) -> None:
@@ -182,7 +167,13 @@ def set_viewer_context_organization(organization_id: int) -> None:
     if ctx is None or ctx.organization_id == organization_id:
         return
 
-    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+    _viewer_context_var.set(
+        dataclasses.replace(
+            ctx,
+            organization_id=organization_id,
+            actor=dataclasses.replace(ctx.actor, superuser=None),
+        )
+    )
 
 
 def set_viewer_context_project(project_id: int) -> None:
@@ -201,19 +192,6 @@ def set_viewer_context_project(project_id: int) -> None:
 # ---------------------------------------------------------------------------
 # JWT encoding / decoding for cross-service propagation
 # ---------------------------------------------------------------------------
-
-_JWT_STANDARD_CLAIMS = frozenset({"iat", "exp", "iss", "aud", "nbf", "jti", "sub"})
-# JWT header field identifying which key was used for signing (RFC 7515 §4.1.4).
-_JWT_KEY_ID_HEADER = "kid"
-
-
-def _key_id(key: str) -> str:
-    """Short stable identifier for a key (first 8 hex chars of SHA-256).
-
-    Embedded as ``kid`` in the JWT header so the receiver can look up the
-    correct verification key without trying every key it knows about.
-    """
-    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:8]
 
 
 def _get_signing_key(key: str | None = None) -> str:
@@ -243,7 +221,7 @@ def _get_verification_keys() -> dict[str, str]:
 
     seer_secret = getattr(settings, "SEER_API_SHARED_SECRET", "")
     if seer_secret:
-        keys[_key_id(seer_secret)] = seer_secret
+        keys[key_id(seer_secret)] = seer_secret
 
     return keys
 
@@ -255,26 +233,13 @@ def encode_viewer_context(
     ttl: int | None = None,
 ) -> str:
     """Encode a :class:`ViewerContext` as a signed HS256 JWT."""
-    secret = _get_signing_key(key)
-
     if ttl is None:
         ttl = getattr(settings, "VIEWER_CONTEXT_JWT_TTL", 900)
-
-    now = time.time()
-    payload: dict[str, Any] = {
-        **viewer_context.serialize(),
-        "iat": now,
-        "exp": now + ttl,
-        "iss": "sentry",
-    }
     if viewer_context.organization_id is not None and _organization_is_early_adopter(
         viewer_context.organization_id
     ):
-        payload["organization_is_early_adopter"] = True
-
-    return pyjwt.encode(
-        payload, secret, algorithm="HS256", headers={_JWT_KEY_ID_HEADER: _key_id(secret)}
-    )
+        viewer_context = dataclasses.replace(viewer_context, organization_is_early_adopter=True)
+    return encode_jwt(viewer_context, key=_get_signing_key(key), ttl=ttl)
 
 
 def _organization_is_early_adopter(organization_id: int) -> bool:
@@ -304,31 +269,13 @@ def decode_viewer_context(
 ) -> ViewerContext:
     """Decode and verify an HS256 JWT into a :class:`ViewerContext`.
 
-    When *key* is provided it is used directly.  Otherwise all keys
-    from ``_get_verification_keys()`` are tried, kid-matched key first.
+    When *key* is provided it is used directly.  Otherwise the key matching the
+    token's ``kid`` among ``_get_verification_keys()`` is used.
     """
-    if key is not None:
-        secret = key
-    else:
-        keys_by_kid = _get_verification_keys()
-        if not keys_by_kid:
-            raise ValueError("No verification keys available.")
-
-        kid = pyjwt.get_unverified_header(token).get(_JWT_KEY_ID_HEADER)
-        secret = keys_by_kid.get(kid, "") if kid else ""
-        if not secret:
-            raise pyjwt.exceptions.InvalidKeyError(f"No verification key matches kid={kid!r}")
-
-    claims = pyjwt.decode(
-        token,
-        secret,
-        algorithms=["HS256"],
-        options={"require": ["iat", "exp", "iss"]},
-        issuer="sentry",
-        leeway=leeway,
-    )
-    vc_data = {ck: cv for ck, cv in claims.items() if ck not in _JWT_STANDARD_CLAIMS}
-    return ViewerContext.deserialize(vc_data)
+    keys = [key] if key is not None else list(_get_verification_keys().values())
+    if not keys:
+        raise ValueError("No verification keys available.")
+    return decode_jwt(token, keys=keys, leeway=leeway)
 
 
 def viewer_context_from_header(
@@ -346,13 +293,4 @@ def viewer_context_from_header(
 
 
 def is_jwt_viewer_context(header_value: str) -> bool:
-    """Check whether the header value is a JWT by attempting to read its header.
-
-    Uses PyJWT's own parser — raises ``DecodeError`` on anything that
-    isn't a valid JWT structure (raw JSON, empty string, etc.).
-    """
-    try:
-        pyjwt.get_unverified_header(header_value)
-        return True
-    except pyjwt.exceptions.DecodeError:
-        return False
+    return is_jwt(header_value)

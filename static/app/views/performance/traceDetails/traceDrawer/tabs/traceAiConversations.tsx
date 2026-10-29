@@ -31,6 +31,7 @@ import {
   EXPLORE_AGENTS_SUB_PATH,
   CONVERSATIONS_DETAIL_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
+import {getConversationDisplayId} from 'sentry/views/explore/conversations/utils/conversationDisplayId';
 import {getTimeBoundsFromNodes} from 'sentry/views/explore/conversations/utils/timeBounds';
 import {getStringAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -47,7 +48,11 @@ interface TraceAiConversationsProps {
 
 type SubTab = 'timeline' | 'transcript';
 
-export function TraceAiConversations({
+export function TraceAiConversations(props: TraceAiConversationsProps) {
+  return <TraceAiConversationsContent key={props.traceSlug} {...props} />;
+}
+
+function TraceAiConversationsContent({
   conversationIds,
   allAiNodes,
   traceSlug,
@@ -57,6 +62,7 @@ export function TraceAiConversations({
   const [selectedConversationId, setSelectedConversationId] = useState<string>(
     () => conversationIds[0] ?? ''
   );
+  const [showAllAiSpans, setShowAllAiSpans] = useState(true);
   const [selectedSpanId, setSelectedSpanId] = useState<string | null>(null);
 
   // Fall back to the first conversation if the selection is stale (e.g. the
@@ -64,6 +70,14 @@ export function TraceAiConversations({
   const activeConversationId = conversationIds.includes(selectedConversationId)
     ? selectedConversationId
     : (conversationIds[0] ?? '');
+  const activeTimelineConversationId =
+    !showAllAiSpans && conversationIds.includes(selectedConversationId)
+      ? activeConversationId
+      : null;
+  const isConversationScoped =
+    activeSubTab === 'transcript'
+      ? Boolean(activeConversationId)
+      : Boolean(activeTimelineConversationId);
 
   const handleTabChange = useCallback((key: Key) => {
     setActiveSubTab(String(key) as SubTab);
@@ -81,14 +95,16 @@ export function TraceAiConversations({
 
   const traceTimeBounds = useMemo(() => getTimeBoundsFromNodes(allAiNodes), [allAiNodes]);
 
-  // The trace's AI spans scoped to the selected conversation, for the timeline.
   const selectedTraceAiNodes = useMemo(
     () =>
-      allAiNodes.filter(
-        node =>
-          getStringAttr(node, SpanFields.GEN_AI_CONVERSATION_ID) === activeConversationId
-      ),
-    [allAiNodes, activeConversationId]
+      activeTimelineConversationId
+        ? allAiNodes.filter(
+            node =>
+              getStringAttr(node, SpanFields.GEN_AI_CONVERSATION_ID) ===
+              activeTimelineConversationId
+          )
+        : allAiNodes,
+    [allAiNodes, activeTimelineConversationId]
   );
 
   const {
@@ -127,13 +143,15 @@ export function TraceAiConversations({
   const isLoading = hasActiveConversation && isConversationLoading;
 
   const conversationOptions = useMemo(
-    () => conversationIds.map(id => ({value: id, label: id.slice(0, 8)})),
+    () => conversationIds.map(id => ({value: id, label: getConversationDisplayId(id)})),
     [conversationIds]
   );
+  // A numeric select key represents the scope, not a synthetic conversation ID.
+  const timelineOptions = [{value: 0, label: t('All AI spans')}, ...conversationOptions];
 
-  const conversationUrl = activeConversationId
+  const conversationUrl = isConversationScoped
     ? normalizeUrl(
-        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${activeConversationId}/?${qs.stringify(
+        `/organizations/${organization.slug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(activeConversationId)}/?${qs.stringify(
           {
             referrer: 'trace-view',
             ...(selectedSpanId && activeSubTab === 'transcript'
@@ -157,17 +175,37 @@ export function TraceAiConversations({
             borderBottom="primary"
           >
             <Flex align="center" gap="md" minWidth="0" flex="1">
-              {conversationIds.length > 1 && (
-                <CompactSelect
+              {(activeSubTab === 'timeline'
+                ? conversationIds.length > 0
+                : conversationIds.length > 1) && (
+                <CompactSelect<string | number>
                   size="xs"
-                  value={activeConversationId}
-                  options={conversationOptions}
-                  onChange={option => handleConversationChange(option.value)}
+                  value={
+                    activeSubTab === 'timeline'
+                      ? (activeTimelineConversationId ?? 0)
+                      : activeConversationId
+                  }
+                  options={
+                    activeSubTab === 'timeline' ? timelineOptions : conversationOptions
+                  }
+                  onChange={option => {
+                    if (typeof option.value === 'string') {
+                      if (activeSubTab === 'timeline') {
+                        setShowAllAiSpans(false);
+                      }
+                      handleConversationChange(option.value);
+                    } else {
+                      setShowAllAiSpans(true);
+                      setSelectedSpanId(null);
+                    }
+                  }}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
                       {...triggerProps}
                       size="xs"
-                      prefix={t('Conversation')}
+                      prefix={
+                        activeSubTab === 'timeline' ? t('Scope') : t('Conversation')
+                      }
                     />
                   )}
                 />
@@ -183,7 +221,7 @@ export function TraceAiConversations({
               </LinkButton>
             )}
           </Flex>
-          {hasActiveConversation && (
+          {isConversationScoped && (
             <TraceConversationHeader
               conversationId={activeConversationId}
               nodes={traceNodes}

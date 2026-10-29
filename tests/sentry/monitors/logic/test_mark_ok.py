@@ -52,9 +52,7 @@ class MarkOkTestCase(TestCase):
 
         # OK checkin comes in
         success_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )
@@ -95,9 +93,7 @@ class MarkOkTestCase(TestCase):
 
         # OK checkin comes in
         success_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )
@@ -135,9 +131,7 @@ class MarkOkTestCase(TestCase):
             status=MonitorStatus.ERROR,
         )
         first_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=now,
         )
@@ -152,9 +146,7 @@ class MarkOkTestCase(TestCase):
         for i in range(0, recovery_threshold - 1):
             now = now + timedelta(minutes=1)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.OK,
                 date_added=now,
             )
@@ -163,9 +155,7 @@ class MarkOkTestCase(TestCase):
         # create an in-progress check-in to make sure that we don't resolve anything
         now = now + timedelta(minutes=1)
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=now,
         )
@@ -187,9 +177,7 @@ class MarkOkTestCase(TestCase):
         # create another failed check-in to break the chain
         now = now + timedelta(minutes=1)
         last_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=now,
         )
@@ -203,9 +191,7 @@ class MarkOkTestCase(TestCase):
         for i in range(0, recovery_threshold):
             now = now + timedelta(minutes=1)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor,
                 monitor_environment=monitor_environment,
-                project_id=self.project.id,
                 status=CheckInStatus.OK,
                 date_added=now,
             )
@@ -269,9 +255,7 @@ class MarkOkTestCase(TestCase):
             next_checkin=now,
         )
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.ERROR,
             date_added=timezone.now() - timedelta(days=14),
         )
@@ -287,9 +271,7 @@ class MarkOkTestCase(TestCase):
 
         # OK checkin comes in
         success_checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.OK,
             date_added=now,
         )

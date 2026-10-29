@@ -1,201 +1,122 @@
 ---
 name: migrate-breadcrumb-list
-description: Migrates page-navigation breadcrumbs from the legacy `sentry/components/breadcrumbs` component to `@sentry/scraps/breadcrumbList`, splitting one flat crumb array across the TopBar `breadcrumbs` and `title` slots. Use when a page still renders `<Breadcrumbs crumbs={...}/>`, when parent crumbs and the page title need separating into two TopBar slots, when `Layout.Title` double-renders the page name, when a migrated crumb needs to keep the project or date selection, or when working through the BreadcrumbList migration backlog. Trigger on "migrate breadcrumbs", "migrate to BreadcrumbList", "replace sentry/components/breadcrumbs", "split breadcrumbs into TopBar slots", "BreadcrumbList.Title", "the page title renders twice", "preservePageFilters". Not for event breadcrumbs (`sentry/types/breadcrumbs`, the issue-detail timeline), and not for the route-driven SettingsBreadcrumb system.
+description: Migrates legacy page-navigation breadcrumbs to @sentry/scraps/breadcrumbList and the required typed title on TopBar.Slot name="breadcrumbs". Use for "migrate breadcrumbs", "replace sentry/components/breadcrumbs", "BreadcrumbList.Title", duplicate page titles, or preserving page filters during breadcrumb migration. Not for event breadcrumbs, issue-detail timeline entries, or a redesign of Settings route assembly.
 ---
 
 # Migrate page breadcrumbs to BreadcrumbList
 
-Migrate `$0` (a file, a view directory, or the next unmigrated call site when omitted) off `sentry/components/breadcrumbs`.
+Migrate the requested file or view directory. If no target is supplied, inspect the remaining legacy importers and select a page-navigation call site.
 
 ## The transformation
 
-Legacy passes one flat array in which the **last** crumb is the current page (the component strips its `to` automatically). The new API splits that across two TopBar slots.
+Separate parent links from the current page title. Pass both through one public slot:
 
 ```tsx
-// Old — one array, leaf included
+// Legacy: one array, including the current page.
 <Breadcrumbs crumbs={[{label: t('Monitors'), to: basePath}, {label: monitor.name}]} />
 
-// New — parents in one slot, the current page in the other
-<Fragment>
-  <TopBar.Slot name="breadcrumbs">
-    <BreadcrumbList items={[{type: 'link', label: t('Monitors'), to: basePath}]} />
-  </TopBar.Slot>
-  <TopBar.Slot name="title">
-    <BreadcrumbList.Title item={{type: 'page-title', label: monitor.name}} />
-  </TopBar.Slot>
-</Fragment>
+// Current: required typed title, optional parent breadcrumbs.
+<TopBar.Slot
+  name="breadcrumbs"
+  title={{type: 'page-title', label: monitor.name}}
+  items={[{type: 'link', label: t('Monitors'), to: basePath}]}
+/>
 ```
 
-`BreadcrumbList.Title` renders **no heading**. The `title` outlet already wraps its children in `<Heading as="h1">` — verify with `grep -n 'Heading as="h1"' static/app/views/navigation/topBar.tsx`. Never wrap `BreadcrumbList.Title` in a `Heading`, and never nest the `breadcrumbs` slot inside the `title` slot. Both mistakes are invisible: the outlet and the title item both use `variant="inherit"`, so a nested heading looks identical and only fails an a11y audit.
+For a page without parents, omit `items`. The `title` prop is still required.
 
-## ⚠️ `preservePageFilters` survives a spread
+`TopBar.Slot name="breadcrumbs"` rejects children. It renders `items` through `BreadcrumbList` and internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For both title types, only the displayed label is inside the heading; graphics and controls render outside it. An editable title replaces the heading with a labelled input during editing. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
 
-The prop does not exist on `BreadcrumbItemLinkProps`. As a **direct literal** it is caught:
+Read `static/app/views/navigation/topBar.tsx` and `static/app/components/core/breadcrumbList/` before editing. Prefer the current implementation over old migration examples.
 
-```tsx
-// error TS2353: 'preservePageFilters' does not exist in type 'LinkBreadcrumbItem'
-items={[{type: 'link', label: 'Issues', to: '/issues/', preservePageFilters: true}]}
-```
+## Preserve page filters explicitly
 
-Through a **spread it compiles clean** — and spreading legacy crumbs is the migration idiom:
+`preservePageFilters` is not a breadcrumb item prop. A fresh object literal rejects it, but spreading a legacy crumb can compile while silently dropping filters:
 
 ```tsx
-// Compiles. Ships a page that silently drops project/environment/date filters on click.
+// Do not carry legacy fields through a spread.
 .map(crumb => ({type: 'link' as const, ...crumb}))
 ```
 
-Excess-property checking only applies to fresh object literals, so a `Crumb` carrying `preservePageFilters` passes straight through to `<Link>`, which ignores it. No type error, no failing test. **Destructure explicitly instead of spreading**, then rebuild the query.
-
-Note the stakes. A crumb that loses the flag does not merely fail to carry filters — it **clears** them. `PageFiltersContainer` reconciles its store against the URL on navigation, and an absent `project` reads as an empty selection rather than "unchanged". Replicating the flag is not polish; skipping it changes what the destination shows.
+Destructure the fields and rebuild the destination. Missing URL filters can clear the destination's project selection; they do not mean "unchanged".
 
 ```tsx
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 
-// Preserve all six — project, environment, statsPeriod, start, end, utc.
-// A legacy `to` is often a bare pathname string; restructure it into an
-// object, as there is nowhere to hang a query otherwise.
-const preserveAll = {
-  pathname: makeReleasesPathname({organization, path: '/'}),
+const to = {
+  pathname: basePath,
+  // project, environment, statsPeriod, start, end, utc
   query: extractSelectionParameters(location.query),
 };
+```
 
-// Preserve some — spread, then override. Clearing `start`/`end` is required
-// whenever you set `statsPeriod`, or an absolute range and a relative period
-// both travel and the destination picks one.
-const preserveSome = {
-  pathname: makeReleasesPathname({organization, path: '/'}),
-  query: {
-    ...extractSelectionParameters(location.query),
-    statsPeriod: '24h',
-    start: undefined,
-    end: undefined,
-  },
+When overriding `statsPeriod`, also clear `start` and `end`. When the old destination already has a query, preserve its explicit values:
+
+```tsx
+const destination = {
+  ...oldTo,
+  query: {...extractSelectionParameters(location.query), ...oldTo.query},
 };
 ```
 
-Preserve nothing by leaving the bare pathname alone — that is what a crumb _without_ the flag did, and migrating one is not an occasion to start preserving. When the crumb already has a `to` object, merge rather than replace: `{...to, query: {...extractSelectionParameters(location.query), ...to.query}}`.
+Keep a bare pathname when the old crumb did not preserve filters. Do not change filter policy as part of migration.
 
-Find the call sites that still pass it: `grep -rln "preservePageFilters: true" static/app --include='*.tsx'`.
+## API map
 
-## Which API takes what
+| Surface                                      | Accepted items                   |
+| -------------------------------------------- | -------------------------------- |
+| `TopBar.Slot.items` / `BreadcrumbList.items` | `link`, `select`                 |
+| `TopBar.Slot` breadcrumbs `title`            | `page-title`, `editable-title`   |
+| `BreadcrumbList.Title` `item`                | Same `BreadcrumbTitleItem` union |
 
-|                                      | Accepts                                                                                                                     | Shape             |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- | ----------------- |
-| `<BreadcrumbList items={...}/>`      | `'link'` (`label: string`, `to`, `leadingGraphic?`), `'select-projects'`                                                    | array             |
-| `<BreadcrumbList.Title item={...}/>` | `'page-title'` (`label: string`, `labelTooltip?`, `leadingGraphic?`, `pagination?`, `trailingActions?`), `'editable-title'` | **single object** |
+- `page-title` requires a string `label`. Use `labelTooltip`, `leadingGraphic`, `pagination`, and `trailingActions` for supporting content.
+- `editable-title` requires `value`, `onChange`, and `'aria-label'`.
+- `link` requires `label` and either `to` for internal navigation or `externalHref` for an external link that opens in a new tab.
+- `select` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. A separate icon button opens the menu on click. Supply `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. Supply `to` to render the label as a navigation link; without it the label is plain text. The current page title cannot be a selector.
+- Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select` parent item, not a trailing action.
+- There are no title-level `help`, `badge`, `href`, `status`, or `titleGuide` props. Use `labelTooltip` for help and documentation links, and a trailing `badge` action for feature badges. Keep the title label plain text.
 
-Title actions are a third union — one object, or an array whose absent entries are `null`:
-
-| `trailingActions`  | Required fields                                                 |
-| ------------------ | --------------------------------------------------------------- |
-| `{type: 'copy'}`   | `text`, `label`                                                 |
-| `{type: 'menu'}`   | `items`, `triggerLabel`                                         |
-| `{type: 'button'}` | `element`, typed `ReactElement<ButtonProps \| LinkButtonProps>` |
-
-Import is always `import {BreadcrumbList} from '@sentry/scraps/breadcrumbList'` — an alias onto `static/app/components/core/`. The barrel exports only `BreadcrumbList` and the type `BreadcrumbTitleItem`. `type: 'link'` requires `label: string` and a non-null `to`; `leadingGraphic` is optional.
-
-## Pick the call-site shape
-
-Classify before editing — the shapes need different amounts of work, and three of them touch more than one file.
-
-| Shape  | Pattern                                                                                                                                              | Extra work                                                                                                                                                                                                                                                                                                                                  |
-| ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **A1** | `<Breadcrumbs>` inside `TopBar.Slot name="title"`                                                                                                    | Pure split _of the slots_. A JSX leaf label may still need full decomposition — see `references/title-item.md`. Note the element is sometimes assigned to a variable first (`automations/detail.tsx`) or aliased through `styled(Breadcrumbs)` (`preprod/install/buildInstallHeader.tsx`), so `<Breadcrumbs` may not appear inside the slot |
-| **A2** | A **wrapper component** rendered inside the caller's `title` slot                                                                                    | **Two-site edit.** The wrapper returns the two-slot `Fragment`; the caller's wrapping `title` slot must be deleted, or `breadcrumbs` nests inside `title` and parent links render into the `<h1>`                                                                                                                                           |
-| **B**  | `<Breadcrumbs>` in `Layout.HeaderContent` beside `Layout.Title`                                                                                      | Fixes a live double-render. `Layout.Title` wins the title; the displaced leaf is usually a category descriptor (e.g. "Cron Monitor") that wants a real `to` not yet in the file. **Exception below**                                                                                                                                        |
-| **C**  | Exported wrapper consumed by other pages — **only** when a consumer wraps it in a `title` slot; an exported header that owns its own slots is B or E | Every consumer changes in the same PR. Per consumer: hoist any surrounding ternary above the slot, delete the wrapping slot, and place or drop every sibling node in that slot                                                                                                                                                              |
-| **E**  | `<Breadcrumbs>` beside a raw `<Heading as="h1">`                                                                                                     | Delete the local heading, or the page ships two `<h1>`s                                                                                                                                                                                                                                                                                     |
-
-**If no row fits, do not force one.** The table describes the headers present when this skill was written. Classify by what the file _has_ — a `Layout.Title`, a raw heading, a wrapping title slot, an exported wrapper — and follow the closest row. If a header is structured unlike any of them, ask before restructuring it rather than guessing, and add a row here once the shape is settled.
-
-`views/performance/breadcrumb.tsx` is type-only (`import type {Crumb}`, no JSX). Its work is deleting a legacy adapter, and it is blocked — see `references/call-site-inventory.md`.
-
-**Shape B has one exception with no leaf crumb at all**, where applying "`Layout.Title` wins" mechanically renders the same text twice — see `references/call-site-inventory.md`.
-
-`Layout.Title` is already a shim for `TopBar.Slot name="title"` (`grep -n 'export function Title' static/app/components/layouts/thirds.tsx`), which is why Shape B pages double-render today.
-
-## Build `items`
-
-Parents only — the leaf became the title.
-
-```tsx
-// Drop crumbs with no destination: `to` is required and non-nullable.
-const items = parents.flatMap(c =>
-  c.to ? [{type: 'link' as const, label: c.label, to: c.to}] : []
-);
-```
-
-An empty `items` renders nothing, and that is correct — the title slot still renders. **Do not invent a parent link to avoid it.** If the legacy code gated the trail on a length check, port the condition.
-
-That does not conflict with Shape B's "give the displaced leaf a `to`" — they are different crumbs. A leaf that is the **page name** becomes the title and leaves `items`. A leaf that is a **category descriptor** ("Cron Monitor") is a real parent that was merely unlinked: look for a `make*Pathname` for that category beside the one you already import, and prefer the two-link trail. Drop it only when there is nowhere to point.
+Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scraps/badge`. The breadcrumb barrel exports `BreadcrumbList`, `BreadcrumbListProps`, and `BreadcrumbTitleItem`. Import `BreadcrumbListProps` directly for parent item types (`BreadcrumbListProps['items']`); do not infer them with `React.ComponentProps<typeof BreadcrumbList>`.
 
 ## Per-page workflow
 
-1. Read the file. Find the crumb array; note whether its last element has a `to`.
-2. Classify the shape. For **A2/C**, `grep -rn '<WrapperName'` now and list every sibling node in each consumer's title slot — consumers are part of this change, not a follow-up. Read `references/call-site-inventory.md` **only** if the file is a wrapper or appears on its hard-rows list; for a plain A1/B/E file the shape table above is enough.
-3. **Decide the title before writing anything.** In priority order: (1) `Layout.Title`'s content, (2) a raw `<Heading as="h1">` sibling, (3) the last crumb. If the header renders no heading and the last crumb has no `to`, the last crumb is the title. If the choice is gated on a boolean, hoist that boolean above both slots and give each branch its own `BreadcrumbList.Title` — never migrate one branch. Use `editable-title` if the name is user-editable, else `page-title`.
-4. Build the title item. → `references/title-item.md`
-5. Build `items` from what remains. Drop the leaf. Drop or re-point crumbs with no `to`. Replace `preservePageFilters`. Port any length guard.
-6. Render both slots, `breadcrumbs` then `title`. Wrap them in a `Fragment` when the component returns them directly. Then check what the old wrapper has left: **if a `Layout.Header` or `Layout.HeaderContent` is now left holding only `TopBar.Slot` children, delete it.** Slots render nothing in place, and `Layout.Header` is a real `<Grid as="header">` with padding and a bottom border — leaving it ships an empty bordered strip above the page body. Keep it only if it still has non-slot children, such as `Layout.HeaderTabs`.
-7. Delete only what the move orphaned — see the checklist guard below.
-8. Fix the specs. → `references/tests.md`
-9. Verify: `pnpm run typecheck` (whole project, takes no paths), `.venv/bin/prek run -q --files <files>`, `pnpm test-ci <spec>`, and re-run the count — it must have decreased and still be at or above 3.
+1. Inspect the crumb builder, current title, conditions, and wrapper consumers. Use native search tools when available; otherwise use `rg`. Read `references/call-site-inventory.md` for shared builders and remaining migration shapes.
+2. Identify the current page name before building parent items. An existing typed title takes precedence. On older branches, inspect the removed `Layout.Title` or raw heading before assuming the last crumb is the title.
+3. Build the typed title using `references/title-item.md`. Preserve editing, parent selection, navigation, and analytics behavior. Keep the secondary sidebar's feature badge type in the title too.
+4. Build parent items with real destinations. Remove the current page from the trail. A category descriptor may need a real parent URL instead of removal. An empty parent list is valid; do not invent links.
+5. Pass `title` and `items` to one `TopBar.Slot name="breadcrumbs"`. Preserve conditions on parent rendering. For branch-dependent titles, let each branch produce a complete slot or title object.
+6. If a shared header owns the slot, remove its callers' wrapping slots in the same change. Do not nest slot-producing components inside another breadcrumbs slot.
+7. Remove empty `Layout.Header` or `Layout.HeaderContent` wrappers left holding only slots. Retain wrappers that still hold tabs or other visible content.
+8. Delete only code made unused by the migration. Do not expand the shared title API to accommodate each legacy decoration. If requested UI is removed, remove tests dedicated only to that UI; retain tests of useful remaining behavior.
+9. Verify changed behavior with the existing relevant tests, `pnpm run typecheck`, and `.venv/bin/prek run -q --files <files>`. Read `references/tests.md` before changing the test harness. Inspect remaining legacy references to verify progress without treating a fixed importer count as a target.
 
-Step 3 precedes step 5 because it determines which crumbs are left. Building `items` first ships the leaf twice and forces a redo of both slots.
+For Settings callers, `SettingsPageHeader.title` accepts a string or `BreadcrumbTitleItem`, and its `breadcrumbs` prop accepts additional parent items. Each route can contribute one parent item through `handle.settingsBreadcrumb`. The shared route layout collects entries from all matched routes in order; children add to their ancestors' entries. Use pathless routes to share a parent among related pages. Use full destination templates, including `:orgId`, and explicit `switchTo` destinations for selectors. `SettingsBreadcrumbsProvider` resolves these declarations and passes items downward through `SettingsBreadcrumbsContext`. `BreadcrumbTitle` combines those items with the page's additional items and required title, then renders one TopBar slot. Do not infer destinations from matched paths, register titles upward, or add a fallback title. Keep one explicit title owner per page.
 
 ## References
 
-| Open when you need to                                                                                           | Read                                |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
-| Know what shape a file is, who consumes a wrapper, or what blocks a file                                        | `references/call-site-inventory.md` |
-| Build a title whose name is more than a plain string — a badge, tooltip, editable field, pagination, or actions | `references/title-item.md`          |
-| Write or fix a spec for a migrated page                                                                         | `references/tests.md`               |
+| Open when you need to...                                       | Read                                |
+| -------------------------------------------------------------- | ----------------------------------- |
+| Locate remaining callers or trace a shared builder             | `references/call-site-inventory.md` |
+| Build titles, selectors, badges, tooltips, editing, or actions | `references/title-item.md`          |
+| Check the test harness, queries, or responsive behavior        | `references/tests.md`               |
 
-## Reference implementations
+Use `views/detectors/components/details/common/header.tsx` for slot composition, `views/dashboards/dashboardBreadcrumbTitle.tsx` for state-dependent titles, `views/issueDetails/header/issueIdBreadcrumb.tsx` for a typed builder, and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSelector.tsx` for parent selectors. Paths are under `static/app/`.
 
-Already migrated, simplest first. Each answers one question.
+## Migration checks
 
-| File                                                                   | Answers                                                                                  |
-| ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `views/detectors/components/details/common/header.tsx`                 | The minimal two-slot split                                                               |
-| `views/explore/conversations/components/conversationsBreadcrumbs.tsx`  | Replacing `preservePageFilters`; a standalone `copy` action                              |
-| `views/performance/transactionSummary/transactionBreadcrumbs.tsx`      | Mapping a shared crumb builder into typed items; `leadingGraphic`; a menu with a submenu |
-| `views/performance/traceDetails/traceHeader/traceBreadcrumbs.tsx`      | `pagination`; dropping unlinked crumbs with `.flatMap`                                   |
-| `views/dashboards/dashboardBreadcrumbTitle.tsx`                        | `editable-title`; one early return per page state                                        |
-| `views/explore/replays/detail/header/replayDetailsPageBreadcrumbs.tsx` | The richest title — pagination, `leadingGraphic`, and a nulled action array together     |
-| `views/issueDetails/header/issueIdBreadcrumb.tsx`                      | Building a title item outside JSX with `as const satisfies`                              |
+- Every public breadcrumbs slot has a typed `title` and optional `items`, with no JSX children; no public `title` slot or `Layout.Title` remains in the changed code.
+- The page has one heading (replaced by a labelled input while editing), and the current page is not repeated in the parent trail.
+- Legacy crumbs are not spread into typed items; page-filter destinations preserve the old behavior.
+- Decorative leading graphics fit the 16×16 slot. Disable links and interactive tooltips inside that `aria-hidden` slot.
+- Feature badges use `trailingActions`, match the sidebar type, and remain outside `leadingGraphic`.
+- Rich tooltip content uses `labelTooltip`. Selectors use the `select` parent item.
+- Conditional entries in trailing-action arrays use `null`. A lone action is a bare object.
+- Check the actual JSX components in `badge` and `button` actions. Their `ReactElement<Props>` annotations do not enforce component identity.
+- No empty padded header wrapper or duplicate slot owner remains.
+- Tests cover the changed behavior without depending on removed decorations or generated CSS.
 
-## Intentionally not migrated
+## Rollout boundary
 
-Three importers keep the legacy component — its own spec, plus two call sites that render outside the page `<h1>` and need a `<nav>` landmark `BreadcrumbList` has no mode for. **The count floors at 3; driving it to 0 destroys a landmark.** The route-driven `SettingsBreadcrumb` system is out of scope too. Both lists are in `references/call-site-inventory.md`.
+Keep changes within the requested view area and its shared consumers. Do not add the removed `ui-migration-breadcrumbs` flag or `useHasNewBreadcrumbs` hook.
 
-## Rollout
-
-The count is the progress state — no scratch file to keep in sync.
-
-```bash
-grep -rl "from 'sentry/components/breadcrumbs'" static/app | wc -l
-```
-
-Migrate one view area per PR. Split at roughly 50 changed files along ownership boundaries in `@.github/CODEOWNERS`. Title as `ref(<area>): Migrate breadcrumbs to BreadcrumbList`, or `feat(<area>): ...` if page actions moved into the title menu. There is **no feature flag** — `ui-migration-breadcrumbs` and `useHasNewBreadcrumbs()` were deleted, so every page flips for all users on merge. Some older reference PRs still show a flag fork; that pattern is dead code now.
-
-## Migration checklist
-
-Each item is a grep or a compile, because every judgment-shaped check here was one an earlier draft got wrong.
-
-- [ ] No `preservePageFilters:` in the diff, **and** no spread of legacy crumbs into typed items — `grep` for `preservePageFilters:` (with the colon: a bare grep also matches the comment explaining the replacement, so it flags a correct migration) and for `...crumb` inside a `.map` that produces `type: 'link'`. A spread compiles and silently drops page filters.
-- [ ] No wrapper is left holding only `TopBar.Slot` children — slots render nothing in place, so a surviving padded/bordered `Layout.Header` becomes an empty strip above the page body.
-- [ ] The file has exactly one `TopBar.Slot name="title"`, zero `as="h1"`, zero `Layout.Title` — a survivor of any of these double-renders the page name or ships two `<h1>`s.
-- [ ] No `TopBar.Slot name="breadcrumbs"` inside a `name="title"` subtree — nesting renders parent links into the page heading, and looks correct because both use `variant="inherit"`.
-- [ ] Every `type: 'link'` has a real `to`. An empty `items` is fine and renders nothing; an invented parent link is not.
-- [ ] No `useHasNewBreadcrumbs` or `ui-migration-breadcrumbs` — both are dead repo-wide, so a flag fork can never render.
-- [ ] `label` is a plain string. Stringifying a JSX label deletes the badge, tooltip, or copy affordance instead of moving it.
-- [ ] Every `IdBadge`/`ProjectBadge` in `leadingGraphic` passes `disableLink` — the slot is `aria-hidden`, and `IdBadge`/`ProjectBadge` render a focusable `<a href>` without it, putting a tabbable link inside a hidden subtree. Typechecks, passes tests, fails an axe audit.
-- [ ] `leadingGraphic` avatars pass `avatarSize={16}` with a `<Placeholder width="16px" height="16px"/>` fallback — the slot is a fixed 16×16, so 28px clips and a missing graphic shifts the title as data arrives.
-- [ ] A title item built outside JSX ends `as const satisfies BreadcrumbTitleItem` — otherwise `type` widens to `string` and the union stops narrowing.
-- [ ] Array `trailingActions` use `null` for absent entries; a lone action is a bare object, not a one-element array.
-- [ ] Every touched spec mounts `<TopBar />` inside `<TopBar.Slot.Provider>`, or declares a `breadcrumbs` outlet — a spec stubbing only `title`/`actions`/`feedback` renders no parent crumbs and fails as if the component were broken.
-- [ ] The leaf is asserted **absent** from the trail, not just present as the heading.
-- [ ] The count decreased and is still at or above 3.
-
-Overflow collapse is deliberately absent from this list — jsdom never evaluates container queries. See `references/tests.md`.
+The legacy component's tests and navigation outside the page TopBar can remain. Preserve required navigation landmarks. Retire this skill when no page-navigation migration remains, after inspecting the remaining usages rather than using a fixed file count.

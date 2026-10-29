@@ -8,14 +8,13 @@ import brotli
 import urllib3
 from django.conf import settings
 from django.http import HttpResponse as SentryResponse
+from sentry_sdk import traces
 from urllib3.connectionpool import ConnectionPool
 from urllib3.response import HTTPResponse as VroomResponse
 
 from sentry.grouping.enhancer import EnhancementsConfig, keep_profiling_rules
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
-from sentry.utils.sdk import set_span_attribute
-from sentry.utils.tracing import start_span
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, list[Any]]
@@ -113,9 +112,11 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        with start_span(op="json.dumps", name="json.dumps"):
+        with traces.start_span(name="json.dumps", attributes={"sentry.op": "json.dumps"}):
             data = json.dumps(json_data).encode("utf-8")
-        set_span_attribute("payload.size", len(data))
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("payload.size", len(data))
         if metric:
             metric_name, metric_tags = metric
             metrics.distribution(metric_name, len(data), tags=metric_tags)

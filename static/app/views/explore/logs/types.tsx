@@ -120,7 +120,8 @@ export type OurLogsAggregate =
   | AggregationKey.P95
   | AggregationKey.P99
   | AggregationKey.MIN
-  | AggregationKey.MAX;
+  | AggregationKey.MAX
+  | AggregationKey.ANY;
 
 type OurLogsAggregateKeys = `${OurLogsAggregate}(${OurLogFieldKey})`;
 export type OurLogsAggregateResponseItem = Record<

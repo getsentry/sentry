@@ -154,8 +154,11 @@ examples:
         return {tracking, ...render(ui, {additionalWrapper: TrackingWrapper})};
       }
 
-include:
-  - 'static/**/*.spec.tsx'
-  - 'static/**/*.spec.ts'
-
-prefilter: "grep -rlE '^[[:space:]]*(export )?(async )?function render[A-Z]|^[[:space:]]*(const|let) render[A-Z][A-Za-z0-9]*[[:space:]]*=' --include='*.spec.tsx' --include='*.spec.ts' {repo_path}/static/"
+search:
+  match: '^\s*(export )?(async )?function render[A-Z]|^\s*(const|let) render[A-Z][A-Za-z0-9]*\s*='
+  include:
+    - 'static/**/*.spec.tsx'
+    - 'static/**/*.spec.ts'
+  # Wider than the other conventions: whether a helper only renders, or also
+  # sets up mocks, can sit further down its body than ten lines.
+  excerpt: 20

@@ -1,5 +1,7 @@
 import {useEffect, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconClock} from '@sentry/icons/clock';
+import {IconTimer} from '@sentry/icons/timer';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
@@ -18,7 +20,6 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -29,17 +30,19 @@ import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {AddFilter} from 'sentry/views/dashboards/globalFilter/addFilter';
 import {GenericFilterSelector} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
 import {
+  getTagKeysInMultipleDatasets,
   globalFilterKeysAreEqual,
   globalFiltersAreEqual,
   mergeGlobalFilters,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
 import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
 import {
-  PREBUILT_DASHBOARDS,
+  getPrebuiltDashboardConfig,
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
@@ -101,7 +104,8 @@ export function FiltersBar({
   const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
-    ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
+    ? (getPrebuiltDashboardConfig(prebuiltDashboardId, organization).filters
+        .globalFilter ?? [])
     : [];
 
   const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
@@ -210,8 +214,21 @@ export function FiltersBar({
     organization,
     isNavigationTypeExperimentEnabled
   );
+  const visibleGlobalFilters = activeGlobalFilters.filter(
+    filter =>
+      !hidesNavigationTypeChip(filter, organization, isNavigationTypeSwitcherShown)
+  );
+  const tagKeysInMultipleDatasets = getTagKeysInMultipleDatasets(visibleGlobalFilters);
 
   const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
+  const {
+    enabled: showQueryPriority,
+    options: queryPriorityOptions,
+    priority,
+    setPriority,
+  } = useDashboardQueryPriority();
+  const queryPriorityLabel =
+    queryPriorityOptions.find(option => option.value === priority)?.label ?? t('Normal');
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -284,47 +301,39 @@ export function FiltersBar({
             onChange={updateGlobalFilters}
           />
         )}
-        {activeGlobalFilters
-          .filter(
-            filter =>
-              !hidesNavigationTypeChip(
-                filter,
-                organization,
-                isNavigationTypeSwitcherShown
+        {visibleGlobalFilters.map(filter => (
+          <GenericFilterSelector
+            disableRemoveFilter={
+              isPrebuiltDashboard &&
+              prebuiltDashboardFilters.some(
+                prebuiltFilter =>
+                  prebuiltFilter.tag.key === filter.tag.key &&
+                  prebuiltFilter.dataset === filter.dataset
               )
-          )
-          .map(filter => (
-            <GenericFilterSelector
-              disableRemoveFilter={
-                isPrebuiltDashboard &&
-                prebuiltDashboardFilters.some(
-                  prebuiltFilter =>
-                    prebuiltFilter.tag.key === filter.tag.key &&
-                    prebuiltFilter.dataset === filter.dataset
+            }
+            key={`${filter.tag.key}:${filter.dataset}:${filter.value}`}
+            globalFilter={filter}
+            showDatasetLabel={tagKeysInMultipleDatasets.has(filter.tag.key)}
+            searchBarData={getSearchBarData(filter.dataset)}
+            onUpdateFilter={updatedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.map(f =>
+                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
                 )
-              }
-              key={filter.tag.key + filter.value}
-              globalFilter={filter}
-              searchBarData={getSearchBarData(filter.dataset)}
-              onUpdateFilter={updatedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.map(f =>
-                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                  )
-                );
-              }}
-              onRemoveFilter={removedFilter => {
-                updateGlobalFilters(
-                  activeGlobalFilters.filter(
-                    f => !globalFilterKeysAreEqual(f, removedFilter)
-                  )
-                );
-                trackAnalytics('dashboards2.global_filter.remove', {
-                  organization,
-                });
-              }}
-            />
-          ))}
+              );
+            }}
+            onRemoveFilter={removedFilter => {
+              updateGlobalFilters(
+                activeGlobalFilters.filter(
+                  f => !globalFilterKeysAreEqual(f, removedFilter)
+                )
+              );
+              trackAnalytics('dashboards2.global_filter.remove', {
+                organization,
+              });
+            }}
+          />
+        ))}
         <AddFilter
           globalFilters={activeGlobalFilters}
           getSearchBarData={getSearchBarData}
@@ -378,6 +387,24 @@ export function FiltersBar({
           )}
       </Flex>
       <Grid flow="column" align="center" gap="md">
+        {showQueryPriority && (
+          <CompactSelect
+            value={priority}
+            onChange={option => setPriority(option.value)}
+            trigger={triggerProps => (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                icon={<IconTimer />}
+                aria-label={t('Query priority: %s', queryPriorityLabel)}
+              >
+                {queryPriorityLabel}
+              </OverlayTrigger.Button>
+            )}
+            menuTitle={t('Query priority')}
+            menuWidth={240}
+            options={queryPriorityOptions}
+          />
+        )}
         <CompactSelect
           value={interval}
           onChange={option => setInterval(option.value)}

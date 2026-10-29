@@ -187,7 +187,11 @@ type Props = {
  *
  * Recorded frames carry over by reference; only the few frames the reader
  * synthesizes around them are rebuilt, and those compare cheaply because they
- * share their payloads with the frames they were derived from.
+ * are tiny or share their payloads with the frames they were derived from.
+ *
+ * The comparison skips `delay`: rrweb's `Replayer` writes it onto every frame
+ * it holds once playback starts, so a freshly synthesized frame never matches
+ * the copy the running `Replayer` holds.
  */
 function hasSameFrames(
   events: undefined | RecordingFrame[],
@@ -199,9 +203,15 @@ function hasSameFrames(
   if (!events || !oldEvents || events.length !== oldEvents.length) {
     return false;
   }
-  return events.every(
-    (frame, i) => frame === oldEvents[i] || isEqual(frame, oldEvents[i])
-  );
+  return events.every((frame, i) => {
+    const oldFrame = oldEvents[i]!;
+    return (
+      frame === oldFrame ||
+      (frame.type === oldFrame.type &&
+        frame.timestamp === oldFrame.timestamp &&
+        isEqual(frame.data, oldFrame.data))
+    );
+  });
 }
 
 function useCurrentTime(callback: () => number) {
@@ -359,6 +369,19 @@ export function Provider({
   const initRoot = useCallback(
     (root: RootElem) => {
       if (events === undefined || root === null || isFetching) {
+        return;
+      }
+
+      // rrweb's Replayer throws with fewer than 2 events. On the replay details
+      // page this happens when navigating to a replay whose segments failed to
+      // load or are empty: ReplayLoadingState handles that case, but it renders
+      // below this context, so it can't stop a Replayer that's already mounted
+      // from being rebuilt. Restructuring the contexts a replay needs, so that
+      // ReplayLoadingState sits above ReplayContext and its error handling
+      // gates player initialization, would make this guard unnecessary.
+      if (events.length < 2) {
+        replayerRef.current?.destroy();
+        replayerRef.current = null;
         return;
       }
 

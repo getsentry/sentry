@@ -200,6 +200,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
         sentry_app_id: str | None = None,
         target_type: ActionTarget | None = None,
         notes: str | None = None,
+        workflow_id: int | None = None,
+        workflow_name: str | None = None,
     ):
         assert asdict(notification_context) == {
             "id": notification_context.id,
@@ -210,6 +212,8 @@ class MetricAlertHandlerBase(BaseWorkflowTest):
             "sentry_app_id": sentry_app_id,
             "target_type": target_type,
             "notes": notes,
+            "workflow_id": workflow_id,
+            "workflow_name": workflow_name,
         }
 
     def assert_alert_context(
@@ -434,6 +438,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,
@@ -520,6 +526,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,
@@ -595,6 +603,8 @@ class TestBaseMetricAlertHandler(MetricAlertHandlerBase):
             target_display=None,
             sentry_app_config=None,
             sentry_app_id=None,
+            workflow_id=self.workflow.id,
+            workflow_name=self.workflow.name,
         )
         self.assert_alert_context(
             alert_context,

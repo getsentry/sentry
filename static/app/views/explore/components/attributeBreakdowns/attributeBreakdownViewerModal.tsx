@@ -7,6 +7,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {closeModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t} from 'sentry/locale';
 import {transformTableToCategoricalSeries} from 'sentry/utils/categoricalTimeSeries/transformTableToCategoricalSeries';
@@ -21,7 +22,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-import {Actions, ActionTriggerType} from 'sentry/views/discover/table/cellAction';
+import {Actions} from 'sentry/views/discover/table/cellAction';
 import type {AttributeBreakdownsComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 
@@ -38,6 +39,7 @@ type SingleModeOptions = {
   cohortCount: number;
   mode: 'single';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 type ComparisonModeOptions = {
@@ -46,6 +48,7 @@ type ComparisonModeOptions = {
   cohort2Total: number;
   mode: 'comparison';
   query: string;
+  caseInsensitive?: CaseInsensitive;
 };
 
 export type AttributeBreakdownViewerModalOptions =
@@ -248,7 +251,7 @@ function PopulationIndicatorComponent({
 }
 
 export default function AttributeBreakdownViewerModal(props: Props) {
-  const {Header, Body, mode, query} = props;
+  const {Header, Body, mode, query, caseInsensitive} = props;
   const {selection} = usePageFilters();
 
   const theme = useTheme();
@@ -356,7 +359,6 @@ export default function AttributeBreakdownViewerModal(props: Props) {
           </Container>
 
           <TableWidgetVisualization
-            cellActionTrigger={ActionTriggerType.ELLIPSIS}
             scrollable
             tableData={computedData.tableData}
             columns={computedData.tableColumns}
@@ -370,6 +372,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       organization,
                       selection,
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -382,6 +385,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();
@@ -394,6 +398,7 @@ export default function AttributeBreakdownViewerModal(props: Props) {
                       selection,
                       table: 'attribute_breakdowns',
                       query: search.formatString(),
+                      caseInsensitive,
                     })
                   );
                   closeModal();

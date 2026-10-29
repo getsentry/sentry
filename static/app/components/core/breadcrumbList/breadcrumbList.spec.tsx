@@ -1,60 +1,69 @@
 import {Fragment} from 'react';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
-
-/**
- * True when `element` carries the "hide below sm" container-query toggle:
- * a base `display: none` plus an `@container (min-width: 512px) { display: flex }`
- * that reveals it only in wide containers.
- */
-function hidesBelowSm(element: HTMLElement): boolean {
-  const own = getEmotionRules(element);
-  const hasBaseNone = own.some(
-    r => !r.includes('@container') && /display:\s*none/.test(r)
-  );
-  const revealsAtSm = own.some(
-    r => /@container[^{]*min-width:\s*512px/.test(r) && /display:\s*flex/.test(r)
-  );
-  return hasBaseNone && revealsAtSm;
-}
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 describe('BreadcrumbList container-query collapse', () => {
-  it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
+  it('keeps a parent link reachable in the overflow menu', async () => {
     render(
       <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
     );
 
-    // The list renders as an ordered list (as inline content, not a landmark).
-    expect(screen.getByRole('list')).toBeInTheDocument();
-
-    const list = screen.getByRole('list');
-    const rules = [
-      ...getEmotionRules(list.parentElement!),
-      ...getEmotionRules(screen.getByRole('link').closest('li')!),
-    ];
-
-    // The list establishes an inline-size query container.
-    // (jsdom's getComputedStyle can't read `container-type`, so assert the rule.)
-    expect(rules.some(r => /container-type:\s*inline-size/.test(r))).toBe(true);
-
-    // The collapse must be driven by a container query at the sm (512px) breakpoint.
-    expect(rules.some(r => /@container[^{]*min-width:\s*512px/.test(r))).toBe(true);
-
-    // Regression guard: the buggy path routed the show/hide toggle through `Flex`,
-    // whose display resolver defaulted every unspecified slot to `flex`. That
-    // emitted an always-matching `@media (min-width: 0px) { display: flex }` that
-    // shadowed the container query and pinned link crumbs visible. It must not exist.
-    const alwaysOnMediaFlex = rules.some(
-      r => /@media[^{]*min-width:\s*0px/.test(r) && /display:\s*flex/.test(r)
+    expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/'
     );
-    expect(alwaysOnMediaFlex).toBe(false);
+    await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toHaveAttribute(
+      'href',
+      '/settings/'
+    );
   });
 
-  it('renders title content without a heading and hides dividers from AT', () => {
+  it('shows a label tooltip and a feature badge', async () => {
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Security',
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">Manage authentication.</Text>
+              <ExternalLink href="https://example.com/docs/">Read the Docs</ExternalLink>
+            </Stack>
+          ),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Security')).toBeInTheDocument();
+    expect(screen.getByLabelText('new')).toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Security'));
+    expect(await screen.findByText('Manage authentication.')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read the Docs'})).toHaveAttribute(
+      'href',
+      'https://example.com/docs/'
+    );
+  });
+
+  it('renders the parent breadcrumbs as an ordered list', () => {
+    render(
+      <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
+    );
+
+    expect(screen.getByRole('list').tagName).toBe('OL');
+  });
+
+  it('renders the page-title label as a heading and hides dividers from AT', () => {
     render(
       <Fragment>
         <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
@@ -62,17 +71,9 @@ describe('BreadcrumbList container-query collapse', () => {
       </Fragment>
     );
 
-    // TopBar owns the page heading. BreadcrumbList.Title only renders the title
-    // content so it can be placed inside that heading without nesting one.
-    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'General', level: 1})).toBeInTheDocument();
     const title = screen.getByText('General');
     expect(title).toBeInTheDocument();
-    expect(
-      getEmotionRules(title).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(
@@ -88,13 +89,13 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(dividers).toHaveLength(0);
   });
 
-  it('gives the select-projects trigger a descriptive accessible name', async () => {
+  it('gives the select trigger a descriptive accessible name', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},
@@ -110,18 +111,20 @@ describe('BreadcrumbList container-query collapse', () => {
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
       await screen.findByRole('button', {
-        name: 'Selected Project: javascript',
+        name: 'Switch javascript',
       })
     ).toBeInTheDocument();
   });
 
-  it('collapses non-link parents (select-projects) below the sm breakpoint', async () => {
+  it('links to the current selection in the narrow breadcrumb menu', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
+            label: 'javascript',
+            to: '/settings/org-slug/projects/javascript/',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},
@@ -133,38 +136,12 @@ describe('BreadcrumbList container-query collapse', () => {
       />
     );
 
-    // The <li> wrapping the project picker hides below 512px, same as link crumbs.
-    const trigger = await screen.findByRole('button', {
-      name: 'Selected Project: javascript',
-    });
-    const selectItem = trigger.closest('li');
-    expect(selectItem).not.toBeNull();
-    expect(hidesBelowSm(selectItem!)).toBe(true);
-  });
-
-  it('gives crumbs a visible-width floor and never collapses them to 0', () => {
-    render(
-      <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
+    await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/javascript/'
     );
-
-    const link = screen.getByRole('link', {name: 'Settings'});
-    const parentLi = link.closest('li')!;
-
-    // The fixed max-width caps are gone, so labels size to content when there's
-    // room. (jsdom can't compute layout — this guards the CSS intent, not pixels.)
-    expect(getEmotionRules(link).some(r => /max-width:\s*132px/.test(r))).toBe(false);
-
-    // Regression guard: the parent <li> must not carry min-width:0 — that let it
-    // collapse to 0 width when the current page's label was very long.
-    expect(getEmotionRules(parentLi).join(' ')).not.toContain('min-width: 0');
-
-    // A positive-px min-width floor is emitted so a crumb never shrinks to nothing.
-    expect(
-      getEmotionRules(link.parentElement!).some(r => /min-width:\s*[1-9]\d*px/.test(r))
-    ).toBe(true);
-
-    // Parents give up width first (high flex-shrink) so the current page truncates last.
-    expect(getEmotionRules(parentLi).some(r => /flex-shrink:\s*999/.test(r))).toBe(true);
+    expect(screen.queryByRole('menuitemradio', {name: 'python'})).not.toBeInTheDocument();
   });
 });
 
@@ -220,6 +197,7 @@ describe('BreadcrumbList rich page-title items', () => {
           label: 'JAVASCRIPT-2X9',
           trailingActions: {
             type: 'menu',
+            triggerIcon: <IconEllipsis />,
             triggerLabel: 'More actions',
             items: [],
           },
@@ -246,6 +224,7 @@ describe('BreadcrumbList rich page-title items', () => {
             isPublic
               ? {
                   type: 'menu',
+                  triggerIcon: <IconEllipsis />,
                   triggerLabel: 'More actions',
                   items: [],
                 }
@@ -272,6 +251,7 @@ describe('BreadcrumbList rich page-title items', () => {
                 : null,
               {
                 type: 'menu',
+                triggerIcon: <IconEllipsis />,
                 triggerLabel: 'More actions',
                 items: [{key: 'delete', label: 'Delete'}],
               },
@@ -293,22 +273,35 @@ describe('BreadcrumbList rich page-title items', () => {
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {
+    const onChange = jest.fn();
     render(
       <BreadcrumbList.Title
         item={{
           type: 'editable-title',
           value: 'My Dashboard',
-          onChange: () => {},
+          onChange,
           'aria-label': 'Edit dashboard name',
+          leadingGraphic: <span data-test-id="title-graphic">D</span>,
+          error: 'Invalid name',
         }}
       />
     );
 
-    // Shows the current title, and clicking it swaps in a labelled textbox.
-    const label = screen.getByText('My Dashboard');
-    await userEvent.click(label);
+    const heading = screen.getByRole('heading', {name: 'My Dashboard', level: 1});
+    expect([...heading.querySelectorAll('*')].every(el => el.tagName === 'SPAN')).toBe(
+      true
+    );
+    expect(heading).not.toContainElement(screen.getByTestId('title-graphic'));
+    expect(heading).not.toContainElement(screen.getByText('Invalid name'));
+
+    await userEvent.click(heading);
+    const input = screen.getByRole('textbox', {name: 'Edit dashboard name'});
+    expect(input.closest('h1')).toBeNull();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New Dashboard{Enter}');
+    expect(onChange).toHaveBeenCalledWith('New Dashboard');
     expect(
-      screen.getByRole('textbox', {name: 'Edit dashboard name'})
+      screen.getByRole('heading', {name: 'New Dashboard', level: 1})
     ).toBeInTheDocument();
   });
 });

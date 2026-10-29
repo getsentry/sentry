@@ -24,6 +24,7 @@ GCP_CONNECTION_STATUSES: tuple[str, ...] = (
 )
 
 GCP_STATUS_UNVERIFIED = "unverified"
+GCP_STATUS_CONNECTED = "connected"
 
 MAX_CUSTOMER_SA_EMAIL_LENGTH = 255
 

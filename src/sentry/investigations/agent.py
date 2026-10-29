@@ -31,9 +31,7 @@ from sentry.investigations.services.executions import (
     mark_block_execution_dispatched,
 )
 from sentry.investigations.services.investigations import (
-    DEFAULT_INVESTIGATION_TITLE,
-    investigation_source,
-    mark_downstream_blocks_stale,
+    has_default_investigation_title,
 )
 from sentry.investigations.telemetry import (
     record_execution_cancelled,
@@ -980,9 +978,6 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             block.stale_at = None
             block.version += 1
             block.save()
-        mark_downstream_blocks_stale(
-            investigation_id=block.investigation_id, upstream_block_ids={block.id}
-        )
         transaction.on_commit(
             lambda: _maybe_start_title_generation(block.investigation, execution.triggered_by_id),
             using=database,
@@ -1007,7 +1002,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         .order_by("position")
     )
     auto_run_blocks = [block for block in blocks if block.config.get("autoRun")]
-    if not auto_run_blocks and investigation.title != DEFAULT_INVESTIGATION_TITLE:
+    if not auto_run_blocks and not has_default_investigation_title(investigation):
         return
     if auto_run_blocks and not all(_block_has_current_result(block) for block in auto_run_blocks):
         return
@@ -1038,7 +1033,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         "and do not invent a cause. Put title "
         "first in the JSON object. Do not call any function to write or save the result.\n"
         "<source_context>\n"
-        f"{json.dumps(investigation_source(investigation))}\n</source_context>\n"
+        f"{json.dumps(investigation.source)}\n</source_context>\n"
         f"<block_context>\n{block_context}\n</block_context>"
     )
 
@@ -1112,7 +1107,7 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
         )
     }
     if metadata:
-        if investigation.title == DEFAULT_INVESTIGATION_TITLE:
+        if has_default_investigation_title(investigation):
             updates["title"] = metadata["title"]
         updates["summary"] = metadata["summary"]
         updates["summary_description"] = metadata["summary_description"]

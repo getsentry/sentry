@@ -6,6 +6,7 @@ from logging import Logger, getLogger
 from typing import Any
 
 import orjson
+from sentry_sdk import traces
 from slack_sdk.errors import SlackApiError
 
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
@@ -36,6 +37,10 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
+)
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
@@ -57,12 +62,13 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.notifications.platform.rollout import NotificationRolloutService
+from sentry.notifications.platform.types import SLACK_PROVIDERS, NotificationSource
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.silo.base import SiloMode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
-from sentry.utils.tracing import start_span
 
 _default_logger = getLogger(__name__)
 
@@ -249,6 +255,25 @@ class SlackService:
                     group_ids=[group.id],
                 )
 
+        # Also query platform threads for issue alerts sent via notification platform. Only orgs in
+        # a platform rollout tier have them, so skip the query for everyone else. This checks the
+        # tier, not the per-send random rollout rate, so replies reach every existing thread.
+        platform_threads = NotificationThread.objects.none()
+        if NotificationRolloutService(organization=group.organization).has_feature_flag_access():
+            platform_threads = NotificationThread.objects.filter(
+                object_type=NotificationThreadObjectType.GROUP,
+                object_id=group.id,
+                key_type=NotificationSource.ISSUE.value,
+                provider_key__in=SLACK_PROVIDERS,
+            )
+        if use_open_period_start:
+            # The platform thread key stores the open period start as an ISO string
+            platform_threads = platform_threads.filter(
+                key_data__open_period_start=(
+                    open_period_start.isoformat() if open_period_start else None
+                )
+            )
+
         # We don't wrap this in a lifecycle because _handle_parent_notification is already wrapped in a lifecycle
         parent_notification_count = 0
         for parent_notification in parent_notifications:
@@ -306,6 +331,34 @@ class SlackService:
                     "parent_notification_count": parent_notification_count,
                 },
             )
+
+        # Send to platform threads
+        for platform_thread in platform_threads:
+            with MessagingInteractionEvent(
+                interaction_type=MessagingInteractionType.SEND_ACTIVITY_NOTIFICATION,
+                spec=SlackMessagingSpec(),
+            ).capture() as lifecycle:
+                lifecycle.add_extras(
+                    {
+                        "activity_id": activity.id,
+                        "platform_thread_id": platform_thread.id,
+                        "integration_id": client.integration_id,
+                        "group_id": group.id,
+                        "project_id": activity.project.id,
+                    }
+                )
+                try:
+                    self._send_notification_to_slack_channel(
+                        channel_id=platform_thread.target_id,
+                        message_identifier=platform_thread.thread_identifier,
+                        notification_to_send=notification_to_send,
+                        client=client,
+                    )
+                except Exception as err:
+                    if isinstance(err, SlackApiError):
+                        record_lifecycle_termination_level(lifecycle, err)
+                    else:
+                        lifecycle.record_failure(err)
 
     def _get_channel_id_from_parent_notification_notification_action(
         self,
@@ -412,7 +465,9 @@ class SlackService:
 
         """Send an "activity" or "alert rule" notification to a Slack user or team, but NOT to a channel directly.
         This is used in the send_notification_as_slack function."""
-        with start_span(op="notification.send_slack", name="notify_recipient"):
+        with traces.start_span(
+            name="notify_recipient", attributes={"sentry.op": "notification.send_slack"}
+        ):
             # Make a local copy to which we can append.
             local_attachments = copy(attachments)
 
@@ -439,7 +494,9 @@ class SlackService:
             if (
                 not text
             ):  # if there isn't a notification title, try using message description as fallback
-                text = notification.get_message_description(recipient, ExternalProviders.SLACK)
+                text = (
+                    notification.get_message_description(recipient, ExternalProviders.SLACK) or ""
+                )
             payload = {
                 "channel": channel,
                 "unfurl_links": False,

@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict
 
 from django.db.models import Q
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as rest_serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -16,25 +17,43 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.flag_examples import FlagExamples
+from sentry.apidocs.parameters import CursorQueryParam, FlagParams, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.flags.models import (
     PROVIDER_MAP,
     ActionEnum,
     CreatedByTypeEnum,
     FlagAuditLogModel,
     ProviderEnum,
+    ProviderName,
 )
 from sentry.models.organization import Organization
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
-    action: str
+    action: Literal["created", "deleted", "updated"]
     createdAt: datetime
     createdBy: str | None
-    createdByType: str | None
+    createdByType: Literal["email", "id", "name"] | None
     flag: str
-    provider: str | None
+    provider: ProviderName | None
     tags: dict[str, Any]
+
+
+class FlagLogIndexResponse(TypedDict):
+    data: list[FlagAuditLogModelSerializerResponse]
+
+
+class FlagLogDetailsResponse(TypedDict):
+    data: FlagAuditLogModelSerializerResponse
 
 
 @register(FlagAuditLogModel)
@@ -88,11 +107,38 @@ class FlagLogIndexRequestSerializer(rest_serializers.Serializer):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Flags"])
 class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationFlagLogs",
+        summary="List an Organization's Flag Logs",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            FlagParams.FLAG,
+            FlagParams.PROVIDER,
+            FlagParams.SORT,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("ListFlagLogsResponse", FlagLogIndexResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+        },
+        examples=FlagExamples.LIST_FLAG_LOGS,
+    )
+    def get(self, request: Request, organization: Organization) -> Response[FlagLogIndexResponse]:
+        """
+        Return a paginated list of feature flag changes (creations, updates and deletions)
+        recorded for an organization within the requested time range.
+        """
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
@@ -137,11 +183,29 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Flags"])
 class OrganizationFlagLogDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.FLAG
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request: Request, organization: Organization, flag_log_id: int) -> Response:
+    @extend_schema(
+        operation_id="retrieveOrganizationFlagLog",
+        summary="Retrieve an Organization's Flag Log",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, FlagParams.FLAG_LOG_ID],
+        responses={
+            200: inline_sentry_response_serializer("GetFlagLogResponse", FlagLogDetailsResponse),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=FlagExamples.GET_FLAG_LOG,
+    )
+    def get(
+        self, request: Request, organization: Organization, flag_log_id: int
+    ) -> Response[FlagLogDetailsResponse]:
+        """
+        Return a single feature flag change recorded for an organization.
+        """
         try:
             model = FlagAuditLogModel.objects.filter(
                 id=flag_log_id,

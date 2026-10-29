@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -7,6 +7,8 @@ import {
 } from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -18,6 +20,8 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 
 export interface UseConversationsOptions {
   conversationId: string;
+  /** Fetch every page for callers that do not provide pagination controls. */
+  autoFetchAll?: boolean;
   endTimestamp?: number;
   /**
    * Projects to scope the span query to, overriding the page filters. A caller
@@ -32,7 +36,7 @@ export interface UseConversationsOptions {
 /**
  * Raw span data returned from the AI conversation details endpoint
  */
-interface ConversationApiSpan {
+export interface ConversationApiSpan {
   'gen_ai.conversation.id': string;
   parent_span: string;
   'precise.finish_ts': number;
@@ -48,19 +52,21 @@ interface ConversationApiSpan {
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
+  'gen_ai.memory.query.text'?: string;
+  'gen_ai.memory.record.count'?: number;
+  'gen_ai.memory.record.id'?: string;
+  'gen_ai.memory.records'?: string;
+  'gen_ai.memory.store.id'?: string;
   'gen_ai.operation.name'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
-  'gen_ai.request.messages'?: string;
   'gen_ai.request.model'?: string;
   'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
-  'gen_ai.response.text'?: string;
   'gen_ai.tool.call.arguments'?: string;
   'gen_ai.tool.call.result'?: string;
-  'gen_ai.tool.input'?: string;
+  'gen_ai.tool.call.result.size'?: number | null;
   'gen_ai.tool.name'?: string;
-  'gen_ai.tool.output'?: string;
   'gen_ai.usage.cache_creation.input_tokens'?: number;
   'gen_ai.usage.cache_read.input_tokens'?: number;
   'gen_ai.usage.input_tokens'?: number;
@@ -94,11 +100,16 @@ export interface ConversationModelUsage {
 }
 
 export interface ConversationStats {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
   endTimestamp: number;
+  errorToolNames: string[];
+  errors: number;
   generationDuration: number;
   inputTokens: number;
   llmCalls: number;
   outputTokens: number;
+  reasoningTokens: number;
   startTimestamp: number;
   toolCalls: number;
   toolErrors: number;
@@ -108,7 +119,7 @@ export interface ConversationStats {
   usageByModel: ConversationModelUsage[];
 }
 
-interface ConversationApiResponse {
+export interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
   stats: ConversationStats;
@@ -126,8 +137,13 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 }
 
 interface UseConversationResult {
+  canAutoFetchNextPage: boolean;
   error: boolean;
+  hasNextPage: boolean;
+  isFetchingNextPage: boolean;
   isLoading: boolean;
+  isNextPageError: boolean;
+  loadNextPage: () => void;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
@@ -170,27 +186,30 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
-      // Preserve the raw span op so the transcript can recognize embeddings
-      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
-      // op-type path so the timeline still renders them as before.
-      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
-      // Recognizes evaluation spans, which report the ai_client operation type.
+      // Recognizes evaluation, extraction and embeddings spans, which report the
+      // ai_client operation type.
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
+      [SpanFields.GEN_AI_MEMORY_STORE_ID]: apiSpan['gen_ai.memory.store.id'] ?? '',
+      [SpanFields.GEN_AI_MEMORY_QUERY_TEXT]: apiSpan['gen_ai.memory.query.text'] ?? '',
+      [SpanFields.GEN_AI_MEMORY_RECORD_ID]: apiSpan['gen_ai.memory.record.id'] ?? '',
+      [SpanFields.GEN_AI_MEMORY_RECORDS]: apiSpan['gen_ai.memory.records'] ?? '',
+      ...(apiSpan['gen_ai.memory.record.count'] !== undefined && {
+        [SpanFields.GEN_AI_MEMORY_RECORD_COUNT]: apiSpan['gen_ai.memory.record.count'],
+      }),
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
-      [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
-      [SpanFields.GEN_AI_RESPONSE_TEXT]: apiSpan['gen_ai.response.text'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
-      'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
-      'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      ...(typeof apiSpan['gen_ai.tool.call.result.size'] === 'number' && {
+        'gen_ai.tool.call.result.size': apiSpan['gen_ai.tool.call.result.size'],
+      }),
       ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
         [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
       }),
@@ -355,16 +374,12 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 10;
+const ONE_HOUR_MS = 60 * 60 * 1000;
 
-export function useConversation(
-  conversation: UseConversationsOptions
-): UseConversationResult {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const ONE_HOUR_MS = 60 * 60 * 1000;
-
+function buildConversationQueryParams(
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
@@ -383,11 +398,58 @@ export function useConversation(
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
-  const queryParams = {
-    project,
-    per_page: 1000,
-    ...datetimeParams,
-  };
+  return {project, ...datetimeParams};
+}
+
+export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+  nodeTraceMap: Map<string, string>;
+  nodes: AITraceSpanNode[];
+} {
+  if (allSpans.length === 0) {
+    return {nodes: [], nodeTraceMap: new Map<string, string>()};
+  }
+
+  const traceMap = new Map<string, string>();
+  const genAiSpans = allSpans.filter(isGenAiSpan);
+  const nodeMap = new Map<string, AITraceSpanNode>();
+
+  const transformedNodes = genAiSpans.map(apiSpan => {
+    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    nodeMap.set(node.id, node);
+    traceMap.set(node.id, apiSpan.trace);
+    return node;
+  });
+
+  return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
+}
+
+const MAX_PAGES = 100;
+
+export function getConversationQueryOptions(
+  organization: Organization,
+  conversation: UseConversationsOptions,
+  selection: PageFilters
+) {
+  return apiOptions.asInfinite<ConversationApiResponse>()(
+    '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
+    {
+      path: conversation.conversationId
+        ? {
+            organizationIdOrSlug: organization.slug,
+            conversationId: conversation.conversationId,
+          }
+        : skipToken,
+      query: buildConversationQueryParams(conversation, selection),
+      staleTime: Infinity,
+    }
+  );
+}
+
+export function useConversation(
+  conversation: UseConversationsOptions
+): UseConversationResult {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
 
   const {
     data,
@@ -395,33 +457,31 @@ export function useConversation(
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    isFetchNextPageError,
     isLoading,
-    isError,
+    isLoadingError,
   } = useInfiniteQuery(
-    apiOptions.asInfinite<ConversationApiResponse>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
-      {
-        path: conversation.conversationId
-          ? {
-              organizationIdOrSlug: organization.slug,
-              conversationId: conversation.conversationId,
-            }
-          : skipToken,
-        query: queryParams,
-        staleTime: Infinity,
-      }
-    )
+    getConversationQueryOptions(organization, conversation, selection)
   );
 
-  const currentNumberPages = data?.pages.length ?? 0;
-  const canFetchNextPage = Boolean(hasNextPage && currentNumberPages < MAX_PAGES);
+  const pageCount = data?.pages.length ?? 0;
+  const loadNextPage = useCallback(() => {
+    if (hasNextPage && !isFetching) {
+      void fetchNextPage({cancelRefetch: false});
+    }
+  }, [fetchNextPage, hasNextPage, isFetching]);
+
+  const autoFetchAll = conversation.autoFetchAll ?? true;
+  const canAutoFetchNextPage = Boolean(
+    hasNextPage && !isFetchNextPageError && pageCount < MAX_PAGES
+  );
+  const nextAutoFetchPage = autoFetchAll && canAutoFetchNextPage ? pageCount : null;
 
   useEffect(() => {
-    if (!isFetching && canFetchNextPage) {
-      fetchNextPage();
+    if (nextAutoFetchPage !== null) {
+      loadNextPage();
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [data, isFetching, canFetchNextPage, fetchNextPage]);
+  }, [loadNextPage, nextAutoFetchPage]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -433,31 +493,22 @@ export function useConversation(
   const title = firstPage?.title ?? null;
   const stats = firstPage?.stats ?? null;
 
-  const {nodes, nodeTraceMap} = useMemo(() => {
-    if (allSpans.length === 0) {
-      return {nodes: [], nodeTraceMap: new Map<string, string>()};
-    }
-
-    const traceMap = new Map<string, string>();
-    const genAiSpans = allSpans.filter(isGenAiSpan);
-    const nodeMap = new Map<string, AITraceSpanNode>();
-
-    const transformedNodes = genAiSpans.map(apiSpan => {
-      const node = createNodeFromApiSpan(apiSpan, nodeMap);
-      nodeMap.set(node.id, node);
-      traceMap.set(node.id, apiSpan.trace);
-      return node;
-    });
-
-    return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
-  }, [allSpans]);
+  const {nodes, nodeTraceMap} = useMemo(
+    () => buildConversationNodes(allSpans),
+    [allSpans]
+  );
 
   if (!conversation.conversationId) {
     return {
       stats: null,
       nodes: [],
+      canAutoFetchNextPage: false,
       nodeTraceMap: new Map(),
+      hasNextPage: false,
+      isFetchingNextPage: false,
       isLoading: false,
+      loadNextPage,
+      isNextPageError: false,
       error: false,
       title: null,
     };
@@ -467,8 +518,13 @@ export function useConversation(
     stats,
     nodes,
     nodeTraceMap,
-    isLoading: isLoading || isFetchingNextPage || canFetchNextPage,
-    error: isError,
+    canAutoFetchNextPage,
+    hasNextPage: Boolean(hasNextPage),
+    isFetchingNextPage,
+    isLoading: isLoading || nextAutoFetchPage !== null,
+    loadNextPage,
+    isNextPageError: isFetchNextPageError,
+    error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
   };
 }

@@ -32,6 +32,27 @@ export function getOrderedExceptions(
   return isNewestFirst && view !== 'raw' ? indexed.reverse() : indexed;
 }
 
+export function getFirstVisibleStacktraceIndex(
+  exceptions: ExceptionValue[],
+  isMinified: boolean,
+  hiddenExceptions: Record<number, boolean>
+): number {
+  return exceptions.findIndex(exc => {
+    if (
+      !exc.stacktrace ||
+      (exc.mechanism?.parent_id !== undefined &&
+        hiddenExceptions[exc.mechanism.parent_id])
+    ) {
+      return false;
+    }
+
+    const stacktrace = isMinified
+      ? (exc.rawStacktrace ?? exc.stacktrace)
+      : exc.stacktrace;
+    return (stacktrace.frames?.length ?? 0) > 0;
+  });
+}
+
 /**
  * Looks up the _meta entry for the exception or stacktrace.
  */

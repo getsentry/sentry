@@ -4,6 +4,7 @@ import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -11,7 +12,32 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
+
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
+
 describe('SentryNuqsTestingAdapter', () => {
+  it('supports automatic mocks alongside real query state', async () => {
+    expect(jest.isMockFunction(useTraceItemDatasetAttributes)).toBe(true);
+
+    function QueryStateButton() {
+      const [query, setQuery] = useQueryState('query', parseAsString);
+      return <Button onClick={() => setQuery('updated')}>{query}</Button>;
+    }
+
+    const {router} = render(<QueryStateButton />, {
+      initialRouterConfig: {
+        location: {pathname: '/test', query: {query: 'initial'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'initial'}));
+    expect(await screen.findByRole('button', {name: 'updated'})).toBeInTheDocument();
+    expect(router.location.query.query).toBe('updated');
+  });
+
   it('reads search params from router location', async () => {
     function TestComponent() {
       const [search] = useQueryState('query', parseAsString);
@@ -151,10 +177,14 @@ describe('SentryNuqsTestingAdapter', () => {
     });
 
     afterEach(() => {
-      act(() => {
-        jest.runOnlyPendingTimers();
-      });
-      jest.useRealTimers();
+      try {
+        cleanup();
+        act(() => {
+          jest.runOnlyPendingTimers();
+        });
+      } finally {
+        jest.useRealTimers();
+      }
     });
 
     it('keeps setters stable when the router query changes', () => {

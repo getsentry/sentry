@@ -72,6 +72,7 @@ class SetDefaultSymbolSourcesTest(TestCase):
         assert "nuget" in sources
         assert "unity" in sources
         assert "nvidia" in sources
+        assert "intel" in sources
         assert "ubuntu" in sources
 
     def test_organization_auto_fetch_from_project(self) -> None:

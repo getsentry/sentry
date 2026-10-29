@@ -9,6 +9,11 @@ type ConfigParams = {
   debugFilesNeedsReview?: boolean;
   organization?: Organization;
   project?: DetailedProject | Project;
+  /**
+   * Whether the `settings-v3` navigation is enabled. The index item is titled
+   * "General" instead of "General Settings".
+   */
+  settingsV3?: boolean;
 };
 
 const pathPrefix = '/settings/:orgId/projects/:projectId';
@@ -16,6 +21,7 @@ const pathPrefix = '/settings/:orgId/projects/:projectId';
 export function getNavigationConfiguration({
   organization,
   debugFilesNeedsReview,
+  settingsV3,
 }: ConfigParams): NavigationSection[] {
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   const isSelfHosted = ConfigStore.get('isSelfHosted');
@@ -27,7 +33,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/`,
           index: true,
-          title: t('General Settings'),
+          title: settingsV3 ? t('General') : t('General Settings'),
           description: t('Configure general settings for a project'),
         },
         {
@@ -45,6 +51,14 @@ export function getNavigationConfiguration({
           path: `${pathPrefix}/tags/`,
           title: t('Tags & Context'),
           description: t("View and manage a project's tags and context"),
+        },
+        {
+          path: `${pathPrefix}/attributes/`,
+          title: t('Attributes'),
+          badge: () => 'alpha',
+          description: t("Browse a project's log, metric, and span attributes"),
+          keywords: [t('attribute'), t('attributes')],
+          show: () => !!organization?.features?.includes('attribute-management'),
         },
         {
           path: `${pathPrefix}/environments/`,
@@ -67,6 +81,7 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/seer/`,
           title: t('Seer'),
+          show: () => !isSelfHosted,
         },
         {
           path: `${pathPrefix}/user-feedback/`,

@@ -41,11 +41,14 @@ from sentry.ingest.consumer.simple_event import (
 from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
-from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
+from sentry.models.eventattachment import V2_PREFIX, EventAttachment, PendingEventAttachment
 from sentry.models.userreport import UserReport
 from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
-from sentry.services.eventstore.processing import event_processing_store
+from sentry.services.eventstore.processing import (
+    event_processing_store,
+    transaction_processing_store,
+)
 from sentry.tasks.store import save_event_attachments
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
@@ -98,6 +101,75 @@ def preprocess_event():
 
     with patch("sentry.ingest.consumer.processors.preprocess_event", inner):
         yield calls
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "rate,disable_store,expected_writes", [(0.0, True, 1), (1.0, False, 1), (1.0, True, 0)]
+)
+def test_ingest_conditions_working_payload_write(
+    default_project,
+    preprocess_event,
+    rate,
+    disable_store,
+    expected_writes,
+):
+    data = get_normalized_event({"message": "inline event"}, default_project)
+    data["type"] = "error"
+    with (
+        override_options(
+            {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
+        ),
+        patch.object(event_processing_store, "store", wraps=event_processing_store.store) as store,
+        patch("sentry.ingest.consumer.processors.record") as record,
+    ):
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": orjson.dumps(data),
+                "start_time": time.time(),
+                "event_id": data["event_id"],
+                "project_id": default_project.id,
+            },
+            project=default_project,
+        )
+
+    assert store.call_count == expected_writes
+    assert record.call_count == expected_writes
+    (kwargs,) = preprocess_event
+    assert kwargs["data"] == data
+    assert bool(kwargs["cache_key"]) is bool(expected_writes)
+
+
+@django_db_all
+def test_ingest_inline_only_event_saves_without_working_payload(default_project, task_runner):
+    payload = get_normalized_event({"message": "inline event"}, default_project)
+    event_id = payload["event_id"]
+    with (
+        override_options(
+            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
+        ),
+        patch.object(event_processing_store, "store", wraps=event_processing_store.store) as store,
+        patch.object(event_processing_store, "get", wraps=event_processing_store.get) as get,
+        task_runner(),
+    ):
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": orjson.dumps(payload),
+                "start_time": time.time(),
+                "event_id": event_id,
+                "project_id": default_project.id,
+            },
+            project=default_project,
+        )
+
+    store.assert_not_called()
+    assert get.call_count == 1
+    assert get.call_args.kwargs == {"unprocessed": True}
+    event = eventstore.backend.get_event_by_id(default_project.id, event_id)
+    assert event is not None
+    assert event.data["logentry"]["formatted"] == "inline event"
 
 
 @django_db_all
@@ -300,6 +372,56 @@ def test_process_event_from_kafka_transaction_saves_inline_with_option(
         project_id=project_id,
     )
     assert save_event_transaction.delay.call_count == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("disable_store,expected_writes", [(False, 1), (True, 0)])
+@pytest.mark.parametrize("save_synchronously", (False, True))
+def test_inline_transaction(
+    default_project,
+    save_event_transaction,
+    disable_store,
+    expected_writes,
+    save_synchronously,
+):
+    data = get_normalized_event(
+        {
+            "type": "transaction",
+            "transaction": "inline transaction",
+            "start_timestamp": time.time() - 1,
+            "timestamp": time.time(),
+            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16, "op": "http.server"}},
+        },
+        default_project,
+    )
+    with (
+        override_options(
+            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": disable_store}
+        ),
+        patch.object(
+            transaction_processing_store, "store", wraps=transaction_processing_store.store
+        ) as store,
+        patch("sentry.ingest.consumer.processors.track_sampled_event") as track,
+    ):
+        process_event(
+            ConsumerType.Transactions,
+            {
+                "payload": orjson.dumps(data),
+                "start_time": time.time(),
+                "event_id": data["event_id"],
+                "project_id": default_project.id,
+            },
+            project=default_project,
+            inline_save_event_transaction=save_synchronously,
+        )
+
+    assert store.call_count == expected_writes
+    assert track.call_count == expected_writes
+    kwargs = {False: save_event_transaction.delay, True: save_event_transaction}[
+        save_synchronously
+    ].call_args.kwargs
+    assert kwargs["data"] == data
+    assert bool(kwargs["cache_key"]) is bool(expected_writes)
 
 
 @django_db_all
@@ -611,6 +733,114 @@ class TestDeobfuscateViewHierarchy:
             do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
 
 
+@debug_files_test_both_backends
+class TestSymbolicateFlamegraph:
+    @django_db_all
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_symbolicate_flamegraph_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        do_process_flamegraph(default_project, task_runner, live_server)
+
+    @django_db_all
+    @requires_objectstore
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_symbolicate_stored_flamegraph_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=True)
+
+
+def do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=False):
+    default_project.update_option("sentry:builtin_symbol_sources", [])
+    event = get_normalized_event(
+        {"platform": "other", "message": "Flamegraph symbolication"}, default_project
+    )
+    with zipfile.ZipFile(BytesIO(), "w") as archive:
+        archive.write(get_fixture_path("native", "hello.dsym"), "dSYM/hello")
+        create_files_from_dif_zip(archive, project=default_project)
+    diagnostic = {
+        "version": "1",
+        "platform": "cocoa",
+        "frames": [{"instruction_addr": "0x100000fa0"}],
+        "debug_meta": {
+            "images": [
+                {
+                    "type": "macho",
+                    "debug_id": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+                    "image_addr": "0x100000000",
+                    "image_size": 4096,
+                    "arch": "x86_64",
+                }
+            ]
+        },
+        "nodes": [{"frame_id": 0, "sample_count": 10}],
+        "trees": [{"roots": [0]}],
+    }
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    raw = orjson.dumps(diagnostic)
+    attachment_metadata = {
+        "id": attachment_id,
+        "name": "flamegraph.json",
+        "content_type": "application/json",
+        "attachment_type": "event.flamegraph",
+        "size": len(raw),
+    }
+    if use_objectstore:
+        session = get_session(UsecaseId.ATTACHMENTS, default_project)
+        stored_id = session.put(raw)
+        attachment_metadata["stored_id"] = stored_id
+    else:
+        process_attachment_chunk(
+            {
+                "payload": raw,
+                "event_id": event["event_id"],
+                "project_id": default_project.id,
+                "id": attachment_id,
+                "chunk_index": 0,
+            }
+        )
+        attachment_metadata["chunks"] = 1
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        override_options({"system.url-prefix": live_server.url}),
+        patch("sentry.auth.system.is_internal_ip", return_value=True),
+        task_runner(),
+    ):
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": orjson.dumps(event).decode(),
+                "start_time": time.time(),
+                "event_id": event["event_id"],
+                "project_id": default_project.id,
+                "remote_addr": "127.0.0.1",
+                "attachments": [attachment_metadata],
+            },
+            project=default_project,
+        )
+    attachment = EventAttachment.objects.get(
+        project_id=default_project.id, event_id=event["event_id"]
+    )
+    assert attachment.type == "event.flamegraph"
+    assert attachment.content_type == "application/json"
+    with attachment.getfile() as file:
+        processed = orjson.loads(file.read())
+    assert processed["frames"][0]["function"] == "main"
+    assert processed["frames"][0]["instruction_addr"] == "0x100000fa0"
+    assert processed["trees"] == diagnostic["trees"]
+    assert processed["nodes"] == diagnostic["nodes"]
+    assert processed["_symbolication"]["status"] == "completed"
+    assert attachment.size == len(orjson.dumps(processed))
+    if use_objectstore:
+        assert attachment.blob_path == V2_PREFIX + stored_id
+        stored = session.get(stored_id)
+        assert stored is not None
+        assert orjson.loads(stored.payload.read()) == processed
+
+
 def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
     payload = get_normalized_event(
         {
@@ -793,16 +1023,7 @@ def test_individual_attachments(
 ):
     retention_days = 66
 
-    # This patches `features.has` wholesale, which also switches on
-    # `projects:defer-attachment-storage` and would route the `without_group` cases into
-    # `PendingEventAttachment`. Force just that flag off so this test keeps covering the
-    # non-deferred path; `test_individual_attachment_before_event` covers the other one.
-    with patch(
-        "sentry.features.has",
-        side_effect=lambda name, *a, **kw: (
-            False if name == "projects:defer-attachment-storage" else feature_enabled
-        ),
-    ):
+    with patch("sentry.features.has", return_value=feature_enabled):
         event_id = uuid.uuid4().hex
         attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
         project_id = default_project.id
@@ -853,20 +1074,23 @@ def test_individual_attachments(
             project=default_project,
         )
 
-    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
+    model = EventAttachment if with_group else PendingEventAttachment
+
+    attachments = list(model.objects.filter(project_id=project_id, event_id=event_id))
 
     if not feature_enabled:
         assert not attachments
     else:
         (attachment,) = attachments
         assert attachment.name == "foo.txt"
-        assert attachment.group_id == group_id
+        if with_group:
+            assert attachment.group_id == group_id
         assert attachment.content_type == content_type
 
         with attachment.getfile() as file_contents:
             assert file_contents.read() == expected_content
 
-        delta = attachment.date_expires - (now + datetime.timedelta(days=retention_days))
+        delta = attachment.final_expiry_date() - (now + datetime.timedelta(days=retention_days))
         assert abs(delta.total_seconds()) < 3600
 
 
@@ -909,16 +1133,10 @@ def test_userreport(django_cache, default_project) -> None:
 
 
 @django_db_all
-@pytest.mark.parametrize("deferred", [True, False], ids=["deferred", "not_deferred"])
-def test_individual_attachment_before_event(
-    django_cache, default_project, factories, deferred
-) -> None:
+def test_individual_attachment_before_event(django_cache, default_project, factories) -> None:
     """
     An attachment that is ingested before its event is parked in
     `PendingEventAttachment` and promoted once the event arrives.
-
-    Without `projects:defer-attachment-storage` the attachment is stored as an
-    `EventAttachment` right away and only has its `group_id` backfilled later.
     """
     from sentry.utils.outcomes import Outcome, track_outcome
 
@@ -932,7 +1150,6 @@ def test_individual_attachment_before_event(
         Feature(
             {
                 "organizations:event-attachments": True,
-                "projects:defer-attachment-storage": deferred,
             }
         ),
         mock_track_outcome as track,
@@ -959,23 +1176,18 @@ def test_individual_attachment_before_event(
         pending = list(PendingEventAttachment.objects.filter(project_id=default_project.id))
         stored = list(EventAttachment.objects.filter(project_id=default_project.id))
 
-        if deferred:
-            # Parked, not stored, and not billed yet.
-            (pending_attachment,) = pending
-            assert not stored
-            assert pending_attachment.event_id == event_id
-            assert pending_attachment.name == "foo.txt"
-            # Short TTL so it gets reaped if the event never shows up, but the real
-            # retention date is kept around for the promoted row.
-            assert pending_attachment.date_expires < timezone.now() + datetime.timedelta(hours=2)
-            assert pending_attachment.date_expires_retention > timezone.now() + datetime.timedelta(
-                days=retention_days - 1
-            )
-            assert track.call_count == 0
-        else:
-            (attachment,) = stored
-            assert not pending
-            assert attachment.group_id is None
+        # Parked, not stored, and not billed yet.
+        (pending_attachment,) = pending
+        assert not stored
+        assert pending_attachment.event_id == event_id
+        assert pending_attachment.name == "foo.txt"
+        # Short TTL so it gets reaped if the event never shows up, but the real
+        # retention date is kept around for the promoted row.
+        assert pending_attachment.date_expires < timezone.now() + datetime.timedelta(hours=2)
+        assert pending_attachment.date_expires_retention > timezone.now() + datetime.timedelta(
+            days=retention_days - 1
+        )
+        assert track.call_count == 0
 
         # Now the event arrives.
         manager = EventManager({"event_id": event_id, "message": "existence is pain"})
@@ -995,22 +1207,17 @@ def test_individual_attachment_before_event(
     delta = attachment.date_expires - (timezone.now() + datetime.timedelta(days=retention_days))
     assert abs(delta.total_seconds()) < 3600
 
-    if deferred:
-        # The promoted attachment is linked to the group and billed on promotion.
-        assert attachment.group_id == event.group_id
-        attachment_outcomes = [
-            call.kwargs
-            for call in track.mock_calls
-            if call.kwargs.get("category") == DataCategory.ATTACHMENT
-        ]
-        assert len(attachment_outcomes) == 1
-        assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
-        assert attachment_outcomes[0]["quantity"] == len(payload)
-        assert attachment_outcomes[0]["event_id"] == event_id
-    else:
-        # `group_id` is backfilled by `update_existing_attachments` in post-processing,
-        # which does not run here.
-        assert attachment.group_id is None
+    # The promoted attachment is linked to the group and billed on promotion.
+    assert attachment.group_id == event.group_id
+    attachment_outcomes = [
+        call.kwargs
+        for call in track.mock_calls
+        if call.kwargs.get("category") == DataCategory.ATTACHMENT
+    ]
+    assert len(attachment_outcomes) == 1
+    assert attachment_outcomes[0]["outcome"] == Outcome.ACCEPTED
+    assert attachment_outcomes[0]["quantity"] == len(payload)
+    assert attachment_outcomes[0]["event_id"] == event_id
 
 
 @django_db_all
@@ -1033,7 +1240,6 @@ def test_individual_attachment_before_transaction(django_cache, default_project)
         Feature(
             {
                 "organizations:event-attachments": True,
-                "projects:defer-attachment-storage": True,
             }
         ),
         patch("sentry.event_manager.track_outcome", wraps=track_outcome) as track,

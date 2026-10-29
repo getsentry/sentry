@@ -5,11 +5,11 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 
 import orjson
+from sentry_sdk import traces
 
 from sentry.preprod.api.models.public.snapshots import SnapshotImageResponseDict
 from sentry.preprod.snapshots.image_serialization import build_head_image_list
 from sentry.preprod.snapshots.storage import SnapshotStorage
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -54,9 +54,9 @@ def load_precomputed_head_images(
         response = session.get(key)
         if response is None:
             return None
-        with start_span(
-            op="preprod.snapshot.read_precomputed_head_images",
+        with traces.start_span(
             name="read_precomputed_head_images",
+            attributes={"sentry.op": "preprod.snapshot.read_precomputed_head_images"},
         ) as span:
             raw = response.payload.read()
             payload = orjson.loads(raw)
@@ -66,7 +66,7 @@ def load_precomputed_head_images(
             ):
                 return None
             images = payload["images"]
-            set_span_data(span, "image_count", len(images))
+            span.set_attribute("image_count", len(images))
             return images, payload.get("diff_threshold")
     except Exception:
         logger.exception("Failed to read precomputed head images", extra={"key": key})

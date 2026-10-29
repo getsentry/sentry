@@ -3,32 +3,37 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, override
+from typing import Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.access import Access
+from sentry.investigations.endpoints.serializers.action_request import (
+    InvestigationActionRequestSerializer,
+    InvestigationActionRequestSerializerResponse,
+)
 from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
 )
 from sentry.investigations.endpoints.serializers.parameter import (
-    InvestigationParameterSerializer,
     InvestigationParameterSerializerResponse,
 )
 from sentry.investigations.models import (
     Investigation,
+    InvestigationActionRequest,
+    InvestigationActionRequestState,
     InvestigationBlock,
     InvestigationFavoriteUser,
     InvestigationOrchestrationRun,
-    InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
 )
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     investigation_filters,
-    investigation_source,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -39,11 +44,14 @@ class InvestigationTemplateSerializerResponse(TypedDict):
     version: int | None
 
 
-class InvestigationSourceSerializerResponse(TypedDict):
+class InvestigationSourceSerializerResponseOptional(TypedDict, total=False):
+    snapshot: dict[str, Any]
+
+
+class InvestigationSourceSerializerResponse(InvestigationSourceSerializerResponseOptional):
     type: str
     ref: dict[str, Any]
     revision: int | None
-    snapshot: NotRequired[dict[str, Any]]
 
 
 class InvestigationTitleGenerationSerializerResponse(TypedDict):
@@ -82,6 +90,12 @@ def orchestration_summaries_by_investigation(
 
 
 class InvestigationSerializerResponse(TypedDict):
+    """
+    Investigation summary. version is the notebook concurrency token;
+    orchestration.notebookRevision tracks agent report updates independently. IDs are strings
+    and dates are ISO-8601 timestamps.
+    """
+
     id: str
     title: str
     summary: str | None
@@ -99,12 +113,20 @@ class InvestigationSerializerResponse(TypedDict):
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
+    """
+    Full notebook with ordered active blocks, parameter definitions and saved values, project
+    IDs, and source context. source.snapshot is present only for source-backed investigations.
+    actionRequests has Seer's action requests that aren't superseded, plus stale ones while Seer
+    re-checks them, newest report first, with that report's primary at the top.
+    """
+
     template: InvestigationTemplateSerializerResponse | None
     source: InvestigationSourceSerializerResponse
     filters: dict[str, Any]
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
+    actionRequests: list[InvestigationActionRequestSerializerResponse]
 
 
 @register(Investigation)
@@ -150,7 +172,7 @@ class InvestigationSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
-        source = investigation_source(obj)
+        source = obj.source
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -173,8 +195,13 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     """
     Serializes an investigation along with its project selection, parameters,
     and blocks. Use this for single-investigation reads; the base serializer
-    omits the nested collections so list reads stay cheap.
+    omits the nested collections so list reads stay cheap. access decides which
+    action requests the viewer can apply; without it none can.
     """
+
+    def __init__(self, access: Access | None = None, **kwargs: Any) -> None:
+        self.access = access
+        super().__init__(**kwargs)
 
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
@@ -197,21 +224,25 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             by_investigation[block.investigation_id].append(block_response)
         return by_investigation
 
-    def _parameters_by_investigation(
+    def _action_requests_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
-    ) -> MutableMapping[int, list[InvestigationParameterSerializerResponse]]:
-        parameters = list(
-            InvestigationParameter.objects.filter(investigation__in=item_list).order_by(
-                "position", "id"
-            )
+    ) -> MutableMapping[int, list[InvestigationActionRequestSerializerResponse]]:
+        action_requests = list(
+            InvestigationActionRequest.objects.filter(investigation__in=item_list)
+            .filter(~Q(state=InvestigationActionRequestState.SUPERSEDED) | STALE)
+            .order_by("-report_revision", "-primary", "id")
         )
-        serialized = serialize(parameters, user, InvestigationParameterSerializer())
+        serialized = serialize(
+            action_requests,
+            user,
+            InvestigationActionRequestSerializer(access=self.access, investigations=item_list),
+        )
 
-        by_investigation: MutableMapping[int, list[InvestigationParameterSerializerResponse]] = (
-            defaultdict(list)
-        )
-        for parameter, parameter_response in zip(parameters, serialized):
-            by_investigation[parameter.investigation_id].append(parameter_response)
+        by_investigation: MutableMapping[
+            int, list[InvestigationActionRequestSerializerResponse]
+        ] = defaultdict(list)
+        for action_request, response in zip(action_requests, serialized):
+            by_investigation[action_request.investigation_id].append(response)
         return by_investigation
 
     @override
@@ -224,7 +255,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         attrs = super().get_attrs(item_list, user, **kwargs)
 
         blocks_by_investigation = self._blocks_by_investigation(item_list, user)
-        parameters_by_investigation = self._parameters_by_investigation(item_list, user)
+        action_requests_by_investigation = self._action_requests_by_investigation(item_list, user)
 
         project_ids_by_investigation: MutableMapping[int, list[int]] = defaultdict(list)
         for investigation_id, project_id in (
@@ -236,8 +267,10 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
 
         for investigation in item_list:
             attrs[investigation]["blocks"] = blocks_by_investigation[investigation.id]
-            attrs[investigation]["parameters"] = parameters_by_investigation[investigation.id]
             attrs[investigation]["project_ids"] = project_ids_by_investigation[investigation.id]
+            attrs[investigation]["action_requests"] = action_requests_by_investigation[
+                investigation.id
+            ]
 
         return attrs
 
@@ -249,7 +282,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationDetailsSerializerResponse:
-        resolved_source = investigation_source(obj)
+        resolved_source = obj.source
         source: InvestigationSourceSerializerResponse = {
             "type": resolved_source.get("type", InvestigationSourceType.MANUAL),
             "ref": resolved_source.get("ref", {}),
@@ -268,7 +301,8 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             "source": source,
             "filters": investigation_filters(obj),
             "projectIds": attrs["project_ids"],
-            "parameters": attrs["parameters"],
+            "parameters": [],
             "blocks": attrs["blocks"],
+            "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
         }

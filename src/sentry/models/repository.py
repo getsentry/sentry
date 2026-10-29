@@ -44,16 +44,19 @@ RepoLookup = Literal["external_id", "name"]
 
 class RepositoryManager(BaseManager["Repository"]):
     def provider_match(self, provider: str) -> models.Q:
-        """Match a bare provider against both stored shapes.
+        """Match a provider against both stored shapes.
 
         Sentry stores the ``integrations:``-prefixed provider (e.g. ``integrations:github``)
-        while many callers carry the bare form (``github``). This is the single place that
-        owns the dual shape, so provider lookups stay consistent across SCM-reporting paths.
+        while many callers carry the bare form (``github``). Normalize either input shape
+        here so provider lookups stay consistent across SCM-reporting paths.
         """
-        return models.Q(provider=provider) | models.Q(provider=f"integrations:{provider}")
+        normalized_provider = provider.removeprefix("integrations:").lower()
+        return models.Q(provider=normalized_provider) | models.Q(
+            provider=f"integrations:{normalized_provider}"
+        )
 
     def _resolve_active_unique(
-        self, *, organization_id: int, normalized_provider: str | None, **identity: str
+        self, *, organization_id: int, normalized_provider: str | None, **identity: str | int
     ) -> tuple[Repository | None, RepoResolution]:
         """Resolve to the single active org repo matching ``identity``, or say why not.
 
@@ -108,6 +111,44 @@ class RepositoryManager(BaseManager["Repository"]):
             external_id=external_id,
         )
 
+    def resolve_active_by_reference(
+        self,
+        *,
+        organization_id: int,
+        repository_id: int | None = None,
+        provider: str | None = None,
+        external_id: str | None = None,
+        name: str | None = None,
+    ) -> tuple[Repository | None, RepoResolution]:
+        """Resolve one active repository using the strongest supplied identity.
+
+        Repository IDs take precedence over provider-side external IDs, which take
+        precedence over names. A failed lookup never falls back to a weaker identity:
+        doing so could silently resolve a different repository than the caller specified.
+        """
+        normalized_provider = (
+            provider.removeprefix("integrations:").lower() if provider is not None else None
+        )
+        if repository_id is not None:
+            return self._resolve_active_unique(
+                organization_id=organization_id,
+                normalized_provider=None,
+                id=repository_id,
+            )
+        if external_id is not None:
+            return self.resolve_active_by_external_id(
+                organization_id=organization_id,
+                external_id=external_id,
+                normalized_provider=normalized_provider,
+            )
+        if name is not None:
+            return self.resolve_active(
+                organization_id=organization_id,
+                name=name,
+                normalized_provider=normalized_provider,
+            )
+        return None, "not_found"
+
 
 @cell_silo_model
 class Repository(Model):
@@ -133,6 +174,7 @@ class Repository(Model):
         app_label = "sentry"
         db_table = "sentry_repository"
         unique_together = (("organization_id", "provider", "external_id"),)
+        indexes = (models.Index(fields=("organization_id", "status", "name")),)
 
     __repr__ = sane_repr("organization_id", "name", "provider")
 
@@ -173,6 +215,7 @@ class Repository(Model):
         )
 
         data = UnableToDeleteRepository(
+            organization_id=self.organization_id,
             repository_name=self.name,
             provider_name=provider.name if (provider := self.get_provider()) else self.provider,
             error_message=error_message,

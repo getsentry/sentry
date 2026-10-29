@@ -591,6 +591,7 @@ COMPARE_RESPONSE = r"""
     "id": "12d65c8dd2b2676fa3ac47d955accc085a37a9c1",
     "short_id": "12d65c8dd2b",
     "title": "JS fix",
+    "message": "JS fix\n\nFixes PROJ-1",
     "author_name": "Dmitriy",
     "author_email": "dmitriy@example.com",
     "created_at": "2014-02-27T10:27:00+02:00"

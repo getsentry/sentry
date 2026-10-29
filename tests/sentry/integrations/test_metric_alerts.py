@@ -14,16 +14,6 @@ from sentry.testutils.cases import BaseIncidentsTest, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-def incident_attachment_info_with_metric_value(incident, new_status, metric_value):
-    return incident_attachment_info(
-        organization=incident.organization,
-        alert_context=AlertContext.from_alert_rule_incident(incident.alert_rule),
-        metric_issue_context=MetricIssueContext.from_legacy_models(
-            incident, new_status, metric_value
-        ),
-    )
-
-
 class GetIncidentStatusTextTest(TestCase, BaseIncidentsTest):
     def test_formats_failure_rate_as_percentage_with_two_decimal_places(self) -> None:
         alert_rule = self.create_alert_rule(aggregate="failure_rate()")
@@ -62,17 +52,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         This tests that we look up the correct incident and alert rule during dual write ACI migration.
         """
         alert_rule = self.create_alert_rule()
-        date_started = self.now
-        incident = self.create_incident(
-            self.organization,
-            title="Incident #1",
-            projects=[self.project],
-            alert_rule=alert_rule,
-            status=IncidentStatus.CLOSED.value,
-            date_started=date_started,
-        )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
@@ -84,18 +63,23 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             GroupOpenPeriod.objects.filter(group=self.group).order_by("-date_started").first()
         )
         assert open_period is not None
-        self.create_incident_group_open_period(incident, open_period)
-
-        metric_issue_context = MetricIssueContext.from_legacy_models(
-            incident, IncidentStatus.CLOSED, metric_value
+        mapping = self.create_incident_group_open_period(
+            group_open_period=open_period, incident_id=123, incident_identifier=42
         )
-        # Setting the open period identifier to the open period id, since we are testing the lookup
-        metric_issue_context.open_period_identifier = open_period.id
-        metric_issue_context.group = self.group
-        assert metric_issue_context.group is not None
+
+        metric_issue_context = MetricIssueContext(
+            id=self.group.id,
+            open_period_identifier=open_period.id,
+            snuba_query=alert_rule.snuba_query,
+            subscription=None,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=metric_value,
+            group=self.group,
+            title=self.group.title,
+        )
 
         data = incident_attachment_info(
-            organization=incident.organization,
+            organization=self.organization,
             alert_context=AlertContext(
                 name=alert_rule.name,
                 # Setting the action identifier id to the detector id since that's what the NOA does
@@ -118,7 +102,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         # We still build the link using the alert_rule_id and the incident identifier
         assert (
             data["title_link"]
-            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={incident.identifier}&referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}"
+            == f"http://testserver/organizations/baz/alerts/rules/details/{alert_rule.id}/?alert={mapping.incident_identifier}&referrer={referrer}&detection_type=static&notification_uuid={notification_uuid}"
         )
         assert (
             data["logo_url"]
@@ -130,17 +114,6 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         Test that we use the fake incident ID to build the title link if no IGOP entry exists (if the detector was not dual written).
         """
         alert_rule = self.create_alert_rule()
-        date_started = self.now
-        incident = self.create_incident(
-            self.organization,
-            title="Incident #1",
-            projects=[self.project],
-            alert_rule=alert_rule,
-            status=IncidentStatus.CLOSED.value,
-            date_started=date_started,
-        )
-        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
-        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         metric_value = 123
         referrer = "metric_alert_custom"
         notification_uuid = str(uuid.uuid4())
@@ -152,18 +125,21 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         )
         assert open_period is not None
 
-        metric_issue_context = MetricIssueContext.from_legacy_models(
-            incident, IncidentStatus.CLOSED, metric_value
+        metric_issue_context = MetricIssueContext(
+            id=self.group.id,
+            open_period_identifier=open_period.id,
+            snuba_query=alert_rule.snuba_query,
+            subscription=None,
+            new_status=IncidentStatus.CLOSED,
+            metric_value=metric_value,
+            group=self.group,
+            title=self.group.title,
         )
-        # Setting the open period identifier to the open period id, since we are testing the lookup
-        metric_issue_context.open_period_identifier = open_period.id
-        metric_issue_context.group = self.group
-        assert metric_issue_context.group is not None
 
         # XXX: for convenience, we populate the AlertContext with alert rule/incident information. In this test,
         # we're just interested in how the method handles missing AlertRuleDetectors/IGOPs.
         data = incident_attachment_info(
-            organization=incident.organization,
+            organization=self.organization,
             alert_context=AlertContext(
                 name=alert_rule.name,
                 # Setting the action identifier id to the detector id since that's what the NOA does

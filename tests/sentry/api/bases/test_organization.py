@@ -30,14 +30,16 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
-from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -47,6 +49,7 @@ from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.security.orgauthtoken_token import hash_token
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     encode_viewer_context,
@@ -341,7 +344,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             AuthIdentity.objects.create(auth_provider=auth_provider, user=user)
 
         context = encode_viewer_context(
-            ViewerContext(user_id=user.id, actor_type=ActorType.USER),
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id)),
             key=self.VIEWER_CONTEXT_SHARED_SECRET,
         )
 
@@ -371,8 +374,18 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request = self._make_superuser_request(user)
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        with pytest.raises(SuperuserRequired):
-            perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id))),
+            mock.patch(
+                "sentry.auth.access.get_superuser_access_expiry", return_value=123
+            ) as expiry,
+        ):
+            with pytest.raises(SuperuserRequired):
+                perm.has_object_permission(drf_request, APIView(), self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.actor.superuser is None
+            expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_superuser_member_does_not_require_org_auth(self) -> None:
@@ -381,7 +394,17 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request = self._make_superuser_request(user)
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        assert perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id))),
+            mock.patch(
+                "sentry.auth.access.get_superuser_access_expiry", return_value=123
+            ) as expiry,
+        ):
+            assert perm.has_object_permission(drf_request, APIView(), self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.actor.superuser is None
+            expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_superuser_authorized_org_allowed(self) -> None:
@@ -390,7 +413,17 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         request.superuser.authorize_org(self.org.slug, "for_unit_test", "testing")
         drf_request = drf_request_from_request(request)
         perm = self.permission_cls()
-        assert perm.has_object_permission(drf_request, APIView(), self.org)
+        with (
+            viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.USER, actor_id=user.id))),
+            mock.patch("sentry.auth.access.get_superuser_access_expiry", return_value=123),
+        ):
+            perm.determine_access(drf_request, self.org)
+            ctx = get_viewer_context()
+            assert ctx is not None
+            assert ctx.organization_id == self.org.id
+            assert ctx.actor.superuser is not None
+            assert ctx.actor.superuser.expires_at == 123
+            assert perm.has_object_permission(drf_request, APIView(), self.org)
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
     def test_staff_endpoint_skips_per_org_auth(self) -> None:
@@ -547,12 +580,14 @@ class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):
         request = drf_request_from_request(self.build_request(user=self.owner))
         request._request.organization = None
 
-        with viewer_context_scope(ViewerContext(user_id=self.owner.id)):
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.owner.id))
+        ):
             self.endpoint.convert_args(request, self.org.slug)
             ctx = get_viewer_context()
 
         assert ctx is not None
-        assert ctx.user_id == self.owner.id
+        assert ctx.actor.actor_id == self.owner.id
         assert ctx.organization_id == self.org.id
 
 
@@ -877,6 +912,70 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         second_cache_key = mock_cache.get.call_args.args[0]
 
         assert first_cache_key != second_cache_key
+
+    def build_service_account_request(
+        self, organization: Organization | None = None, params: dict[str, str] | None = None
+    ):
+        service_account = self.create_service_account(
+            organization=organization or self.org,
+            scope_list=["project:releases"],
+            project_ids=[self.project_1.id] if organization is None else [],
+        )
+        request = RequestFactory().get("/", params or {})
+        request.session = SessionBase()
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=service_account.id,
+            organization_id=service_account.organization_id,
+            scopes=["project:releases"],
+        )
+        request.access = from_request(drf_request_from_request(request), self.org)
+        return request
+
+    def test_service_account_gets_linked_projects(self) -> None:
+        request = self.build_service_account_request()
+
+        assert {p.id for p in self.endpoint.get_projects(request, self.org)} == {self.project_1.id}
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org, project_ids={self.project_2.id})
+
+    def test_service_account_from_other_org_gets_no_projects(self) -> None:
+        request = self.build_service_account_request(organization=self.create_organization())
+
+        assert self.endpoint.get_projects(request, self.org) == []
+
+    def test_service_account_release_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_all_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request(params={"project": str(ALL_ACCESS_PROJECT_ID)})
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_projects_with_open_membership(self) -> None:
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {
+            self.project_1.id,
+            self.project_2.id,
+        }
+
+    def test_service_account_release_permission_follows_linked_projects(self) -> None:
+        linked_release = self.create_release(project=self.project_1)
+        unlinked_release = self.create_release(project=self.project_2)
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert endpoint.has_release_permission(request, self.org, linked_release)
+        assert not endpoint.has_release_permission(request, self.org, unlinked_release)
 
     def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
         request = self.build_request(project=["1", "my-slug", "42"])

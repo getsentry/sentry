@@ -54,11 +54,11 @@ export const useTransactionWebVitalsScoresQuery = ({
     'avg(measurements.score.total):>=0',
     ...(query ? [query] : []),
   ]);
-  if (browserTypes) {
-    search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);
+  if (browserTypes?.length) {
+    search.addFilterValueList(SpanFields.BROWSER_NAME, browserTypes);
   }
-  if (subregions) {
-    search.addDisjunctionFilterValues(SpanFields.USER_GEO_SUBREGION, subregions);
+  if (subregions?.length) {
+    search.addFilterValueList(SpanFields.USER_GEO_SUBREGION, subregions);
   }
 
   const {data, isPending, ...rest} = useSpans(

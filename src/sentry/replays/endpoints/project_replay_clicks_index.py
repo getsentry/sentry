@@ -28,6 +28,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter, parse_search_query
 from sentry.api.paginator import GenericOffsetPaginator
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
@@ -38,7 +39,7 @@ from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoi
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
 from sentry.replays.lib.new_query.fields import FieldProtocol
 from sentry.replays.lib.query import attempt_compressed_condition
-from sentry.replays.usecases.query import search_filter_to_condition
+from sentry.replays.usecases.query import search_filter_to_condition, validate_boolean_operators
 from sentry.replays.usecases.query.configs.scalar import click_search_config
 from sentry.utils.snuba import raw_snql_query
 
@@ -89,10 +90,7 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         def data_fn(offset, limit):
             try:
@@ -111,11 +109,12 @@ class ProjectReplayClicksIndexEndpoint(ProjectReplayEndpoint):
                 organization_id=project.organization.id,
             )
 
-        return self.paginate(
-            request=request,
-            paginator=GenericOffsetPaginator(data_fn=data_fn),
-            on_results=lambda results: {"data": results["data"]},
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=GenericOffsetPaginator(data_fn=data_fn),
+                on_results=lambda results: {"data": results["data"]},
+            )
 
 
 def query_replay_clicks(
@@ -196,6 +195,8 @@ def handle_search_filters(
     search_filters: Sequence[QueryToken],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
+    validate_boolean_operators(search_filters)
+
     result: list[Condition] = []
     look_back = None
     for search_filter in search_filters:

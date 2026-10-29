@@ -54,7 +54,7 @@ const renderComponent = ({
         pathname: '/performance/summary/replays/',
         ...location,
         query: {
-          project: '1',
+          project: projects[0]!.id,
           transaction: 'Settings Page',
           ...location?.query,
         },
@@ -75,13 +75,17 @@ describe('TransactionReplays', () => {
   let eventsMockApi: jest.Mock;
   beforeEach(() => {
     MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/sdk-updates/',
+      url: '/organizations/org-slug/project-transaction-threshold-override/',
+      body: {threshold: '800', metric: 'duration'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/key-transactions-list/',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-has-measurements/',
-      body: {measurements: false},
+      method: 'GET',
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
@@ -114,7 +118,7 @@ describe('TransactionReplays', () => {
           query: expect.objectContaining({
             cursor: undefined,
             statsPeriod: '14d',
-            project: ['1'],
+            project: ['2'],
             environment: [],
             field: expect.arrayContaining([
               'replayId',
