@@ -39,8 +39,7 @@ import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 /**
  * Maximum number of projects that can be selected at a time (due to server limits). This
- * does not apply to special values like "My Projects" and "All Projects". It does apply
- * to "Favorite Projects", which is committed to the URL as explicit project IDs.
+ * does not apply to special values like "My Projects" and "All Projects".
  */
 const SELECTION_COUNT_LIMIT = 50;
 
@@ -123,8 +122,7 @@ export function ProjectPageFilter({
           <MenuComponents.Checkbox
             checked={
               optionSelectionIntent.kind === 'all' ||
-              (optionSelectionIntent.kind === 'my' && project.isMember) ||
-              (optionSelectionIntent.kind === 'favorites' && project.isBookmarked)
+              (optionSelectionIntent.kind === 'my' && project.isMember)
                 ? true
                 : isSelected
             }
@@ -143,14 +141,6 @@ export function ProjectPageFilter({
                 dispatchRef.current?.({
                   type: 'set staged',
                   value: memberProjectIds(projects).filter(id => id !== projectId),
-                });
-              } else if (
-                optionSelectionIntent.kind === 'favorites' &&
-                project.isBookmarked
-              ) {
-                dispatchRef.current?.({
-                  type: 'set staged',
-                  value: favoriteProjectIds(projects).filter(id => id !== projectId),
                 });
               } else {
                 toggleOptionRef.current?.(projectId);
@@ -232,7 +222,16 @@ export function ProjectPageFilter({
     const showMyProjects =
       memberProjectList.length > 0 && memberProjectList.length < projects.length;
     const favoriteProjectList = favoriteProjects(projects);
-    const showFavoriteProjects = projects.length > 1 && favoriteProjectList.length > 0;
+    // Favorites are committed as explicit project IDs, so hide the shortcut when it
+    // could never be applied. A row click commits without checking the limit.
+    const showFavoriteProjects =
+      projects.length > 1 &&
+      favoriteProjectList.length > 0 &&
+      favoriteProjectList.length <= SELECTION_COUNT_LIMIT;
+    const favoritesSelected = hasSameValues(
+      optionSelectionIntent.ids,
+      favoriteProjectIds(projects)
+    );
 
     const specialItems = [
       ...(showAllProjects
@@ -331,10 +330,7 @@ export function ProjectPageFilter({
               textValue: t('Favorite Projects'),
               leadingItems: () => (
                 <MenuComponents.Checkbox
-                  checked={
-                    optionSelectionIntent.kind === 'all' ||
-                    optionSelectionIntent.kind === 'favorites'
-                  }
+                  checked={optionSelectionIntent.kind === 'all' || favoritesSelected}
                   onChange={() => {
                     if (optionSelectionIntent.kind === 'all') {
                       // Remove favorite projects from the "all" selection
@@ -344,16 +340,11 @@ export function ProjectPageFilter({
                       });
                       return;
                     }
-                    if (optionSelectionIntent.kind === 'favorites') {
-                      dispatchRef.current?.({
-                        type: 'set staged',
-                        value: [],
-                      });
-                      return;
-                    }
+                    // Stage explicit IDs rather than the sentinel so that toggling
+                    // individual projects afterwards adds to or removes from favorites.
                     dispatchRef.current?.({
                       type: 'set staged',
-                      value: [FAVORITE_PROJECTS_VALUE],
+                      value: favoritesSelected ? [] : favoriteProjectIds(projects),
                     });
                   }}
                   aria-label={t('Select Favorite Projects')}
@@ -405,12 +396,12 @@ export function ProjectPageFilter({
   const routePath = useMemo(() => getRouteStringFromRoutes({matches}), [matches]);
 
   // Selection staging and commit behavior
-  const stagedSelectionIntent = useMemo(
-    () => selectionToIntent({projects, selection: stagedValue}),
-    [projects, stagedValue]
-  );
-
   const selectionLimitExceeded = useMemo(() => {
+    const stagedSelectionIntent = selectionToIntent({
+      projects,
+      selection: stagedValue,
+    });
+
     if (stagedSelectionIntent.kind === 'my') {
       return false;
     }
@@ -425,8 +416,14 @@ export function ProjectPageFilter({
       return false;
     }
 
-    return stagedSelectionIntent.ids.length > SELECTION_COUNT_LIMIT;
-  }, [stagedSelectionIntent, stagedValue, urlProjectSelection]);
+    const realStagedValue = stagedValue.filter(
+      v =>
+        v !== ALL_ACCESS_PROJECTS &&
+        v !== MY_PROJECTS_VALUE &&
+        v !== FAVORITE_PROJECTS_VALUE
+    );
+    return realStagedValue.length > SELECTION_COUNT_LIMIT;
+  }, [stagedValue, urlProjectSelection, projects]);
 
   const onToggle = (newValue: number[]) => {
     trackAnalytics('projectselector.toggle', {
@@ -576,7 +573,7 @@ export function ProjectPageFilter({
             "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
             {
               limit: SELECTION_COUNT_LIMIT,
-              count: stagedSelectionIntent.ids.length,
+              count: stagedSelect.value.length,
             }
           )}
         </MenuComponents.Alert>
@@ -721,7 +718,7 @@ const MY_PROJECTS_VALUE = -2;
  * Sentinel value for the "Favorite Projects" quick-select option (bookmarked projects).
  */
 const FAVORITE_PROJECTS_VALUE = -3;
-type SelectionIntentKind = 'all' | 'my' | 'favorites' | 'custom' | 'none';
+type SelectionIntentKind = 'all' | 'my' | 'custom' | 'none';
 interface SelectionIntent {
   ids: number[];
   kind: SelectionIntentKind;
@@ -781,7 +778,7 @@ function selectionToIntent({
     return {kind: 'my', ids: memberProjectIds(projects)};
   }
   if (selection.includes(FAVORITE_PROJECTS_VALUE)) {
-    return {kind: 'favorites', ids: favoriteProjectIds(projects)};
+    return selectionToIntent({projects, selection: favoriteProjectIds(projects)});
   }
 
   // If the user manually selected all projects
@@ -793,10 +790,6 @@ function selectionToIntent({
   // so closed-org users see the "My Projects" checkbox checked when appropriate.
   if (hasSameValues(selection, memberProjectIds(projects))) {
     return {kind: 'my', ids: memberProjectIds(projects)};
-  }
-
-  if (hasSameValues(selection, favoriteProjectIds(projects))) {
-    return {kind: 'favorites', ids: favoriteProjectIds(projects)};
   }
 
   return {kind: 'custom', ids: selection};

@@ -1209,6 +1209,7 @@ describe('ProjectPageFilter', () => {
       ProjectFixture({id: '1', slug: 'project-1', isMember: true, isBookmarked: true}),
       ProjectFixture({id: '2', slug: 'project-2', isMember: true}),
       ProjectFixture({id: '3', slug: 'project-3', isMember: false, isBookmarked: true}),
+      ProjectFixture({id: '4', slug: 'project-4', isMember: false}),
     ];
 
     beforeEach(() => {
@@ -1289,6 +1290,51 @@ describe('ProjectPageFilter', () => {
       ).not.toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Select project-1'})).toBeChecked();
       expect(screen.getByRole('checkbox', {name: 'Select project-3'})).not.toBeChecked();
+    });
+
+    it('keeps projects added after selecting favorites', async () => {
+      const {router} = render(<ProjectPageFilter />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
+        },
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      );
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select project-2'}));
+
+      expect(
+        screen.getByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'Select project-2'})).toBeChecked();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+      await waitFor(() => {
+        expect([router.location.query.project].flat().sort()).toEqual(['1', '2', '3']);
+      });
+    });
+
+    it('is hidden when there are more favorites than the selection limit', async () => {
+      ProjectsStore.loadInitialData(
+        Array.from({length: 51}, (_, index) =>
+          ProjectFixture({
+            id: String(index + 1),
+            slug: `project-${index + 1}`,
+            isMember: true,
+            isBookmarked: true,
+          })
+        ).concat(ProjectFixture({id: '100', slug: 'other', isMember: false}))
+      );
+      render(<ProjectPageFilter />, {organization});
+
+      await userEvent.click(screen.getByRole('button', {name: 'My Projects'}));
+      expect(
+        screen.queryByRole('checkbox', {name: 'Select Favorite Projects'})
+      ).not.toBeInTheDocument();
     });
 
     it('clicking Favorite Projects again deselects everything', async () => {
