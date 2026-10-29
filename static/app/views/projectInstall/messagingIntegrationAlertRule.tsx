@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {Select, SelectOption, type SelectValue} from '@sentry/scraps/select';
+import {Select, type SelectValue} from '@sentry/scraps/select';
 
 import {FormField} from 'sentry/components/forms/formField';
 import {t} from 'sentry/locale';
@@ -166,12 +166,12 @@ export function ChannelSelect({
   return (
     <Select
       className={className}
-      inputId={inputId}
+      id={inputId}
       autoFocus={autoFocus}
       aria-label={t('channel')}
       placeholder={providerDetails[provider as keyof typeof providerDetails]?.placeholder}
-      isSearchable
-      options={optionsWithSelectedValue}
+      searchable
+      options={optionsWithSelectedValue ?? []}
       isLoading={isLoading}
       disabled={disabled}
       value={value?.value ?? null}
@@ -180,19 +180,7 @@ export function ChannelSelect({
       clearable
       creatable
       formatCreateLabel={(inputValue: string) => inputValue}
-      components={{
-        Option: optionProps => (
-          <SelectOption
-            {...(optionProps as any)}
-            data={{
-              ...optionProps.data,
-              // Hide IconAdd for new channel options by setting __isNew__ to false.
-              // We do that to not give the impression that the user can create a new channel.
-              __isNew__: false,
-            }}
-          />
-        ),
-      }}
+      showCreateOptionIcon={false}
     />
   );
 }

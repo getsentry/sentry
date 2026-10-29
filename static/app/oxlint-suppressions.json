@@ -1698,7 +1698,7 @@
   },
   "components/selectMembers/index.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 3
+      "count": 2
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1

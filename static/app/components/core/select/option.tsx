@@ -9,9 +9,22 @@ import {ListItem} from '@sentry/scraps/menu';
 import {defined} from 'sentry/utils/defined';
 
 import type {components as selectComponents} from './reactSelectWrapper';
+import type {BaseSelectProps, GeneralSelectValue} from './select';
 import {CheckWrap} from './styles';
 
-type Props = React.ComponentProps<typeof selectComponents.Option>;
+type Props = Omit<
+  React.ComponentProps<typeof selectComponents.Option>,
+  'selectProps' | 'data'
+> & {
+  data: GeneralSelectValue & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
+  selectProps: Pick<
+    BaseSelectProps,
+    'optionHeight' | 'showCreateOptionIcon' | 'showDividers'
+  > & {
+    contentComponents?: BaseSelectProps['components'];
+    size?: BaseSelectProps['size'];
+  };
+};
 
 export function SelectOption(props: Props) {
   const {
@@ -25,7 +38,13 @@ export function SelectOption(props: Props) {
     innerProps,
     innerRef,
   } = props;
-  const {showDividers, size} = selectProps;
+  const {showDividers, size = 'md'} = selectProps;
+  const leadingItems =
+    typeof data.leadingItems === 'function'
+      ? data.leadingItems({disabled: isDisabled, isFocused, isSelected})
+      : data.leadingItems;
+  const OptionLabel = selectProps.contentComponents?.OptionLabel;
+  const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
   const {value, selectionMode, priority, ...itemProps} = data;
 
   const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
@@ -38,37 +57,46 @@ export function SelectOption(props: Props) {
       {({cx}) => (
         <ListItem
           {...itemProps}
-          {...innerProps}
-          role={isMultiple ? 'menuitemcheckbox' : 'menuitemradio'}
-          aria-checked={isSelected}
+          {...{
+            ...innerProps,
+            role: isMultiple ? 'menuitemcheckbox' : 'menuitemradio',
+            'aria-checked': isSelected,
+            className: cx({
+              option: true,
+              'option--is-disabled': isDisabled,
+              'option--is-focused': isFocused,
+              'option--is-selected': isSelected,
+            }),
+            value,
+            showDivider: showDividers,
+          }}
           ref={innerRef}
-          className={cx({
-            option: true,
-            'option--is-disabled': isDisabled,
-            'option--is-focused': isFocused,
-            'option--is-selected': isSelected,
-          })}
           as="div"
-          value={value}
-          label={label}
+          label={renderedLabel}
           disabled={isDisabled}
           isFocused={isFocused}
-          showDivider={showDividers}
           priority={itemPriority}
           size={size}
           innerWrapProps={{'data-test-id': value}}
-          labelProps={{as: typeof label === 'string' ? 'p' : 'div'}}
+          labelProps={{as: typeof renderedLabel === 'string' ? 'p' : 'div'}}
           leadingItems={
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            itemProps.__isNew__ ? (
+            itemProps.__isNew__ && selectProps.showCreateOptionIcon !== false ? (
               <Fragment>
                 <IconAdd size="sm" />
-                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
-                {data.leadingItems}
+                {leadingItems}
               </Fragment>
             ) : (
               <Fragment>
-                <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
+                <CheckWrap
+                  style={
+                    selectProps.optionHeight
+                      ? {height: selectProps.optionHeight}
+                      : undefined
+                  }
+                  isMultiple={isMultiple}
+                  isSelected={isSelected}
+                  size={size}
+                >
                   {isSelected && (
                     <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}
@@ -76,8 +104,8 @@ export function SelectOption(props: Props) {
                     />
                   )}
                 </CheckWrap>
-                {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access */}
-                {data.leadingItems}
+
+                {leadingItems}
               </Fragment>
             )
           }

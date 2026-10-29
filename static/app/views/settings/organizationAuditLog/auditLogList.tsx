@@ -343,11 +343,11 @@ export function AuditLogList({
       />
       <EventSelector
         clearable
-        isDisabled={isLoading}
+        disabled={isLoading}
         name="eventFilter"
         value={eventType}
         placeholder={t('Select Action: ')}
-        options={getEventOptions(eventTypes)}
+        options={getEventOptions(eventTypes) ?? []}
         onChange={(options: any) => {
           onEventSelect(options?.value);
         }}
