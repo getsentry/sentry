@@ -16,7 +16,10 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
-from sentry.integrations.gitlab.client import GitLabApiRequestType
+from sentry.integrations.gitlab.client import (
+    GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+    GitLabApiRequestType,
+)
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -1060,9 +1063,20 @@ class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
         responses.add(responses.PUT, f"{hooks_url}/7", status=200, json={"id": 7})
         responses.add(responses.DELETE, f"{hooks_url}/7", status=204)
 
-        self.gitlab_client.create_project_webhook(self.gitlab_id)
-        self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
-        self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+        with (
+            mock.patch.object(self.gitlab_client, "post", wraps=self.gitlab_client.post) as post,
+            mock.patch.object(self.gitlab_client, "put", wraps=self.gitlab_client.put) as put,
+            mock.patch.object(
+                self.gitlab_client, "delete", wraps=self.gitlab_client.delete
+            ) as delete,
+        ):
+            self.gitlab_client.create_project_webhook(self.gitlab_id)
+            self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
+            self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+
+        assert post.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert put.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert delete.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
 
         for status, request_type in (
             (201, GitLabApiRequestType.CREATE_PROJECT_WEBHOOK),

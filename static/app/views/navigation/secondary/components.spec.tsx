@@ -2,7 +2,7 @@ import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {Navigation} from 'sentry/views/navigation';
@@ -62,6 +62,33 @@ function setupMocks() {
 
 describe('SecondarySidebar', () => {
   beforeEach(setupMocks);
+
+  it.each([false, true])(
+    'gates link layouts behind settings-v3 (%s)',
+    async settingsV3 => {
+      render(
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+        </SecondaryNavigationContextProvider>,
+        {
+          organization: OrganizationFixture({
+            features: [...ALL_AVAILABLE_FEATURES, ...(settingsV3 ? ['settings-v3'] : [])],
+          }),
+          initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+        }
+      );
+
+      const navigation = within(
+        screen.getByRole('navigation', {name: 'Secondary Navigation'})
+      );
+      const feed = navigation.getByRole('link', {name: 'Feed'});
+      const starredView = await navigation.findByRole('link', {name: 'Starred View 1'});
+      // The new layout reserves an icon slot even for links without an icon.
+      expect(feed.children).toHaveLength(settingsV3 ? 2 : 1);
+      // Reorderable links wrap the label and trailing actions only in settings v3.
+      expect(starredView.children).toHaveLength(settingsV3 ? 2 : 3);
+    }
+  );
 
   it('uses the default width when no persisted value is in localStorage', () => {
     render(

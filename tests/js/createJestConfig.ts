@@ -131,12 +131,10 @@ function getTestsForGroup(
     );
   }
 
+  // Reports also contain standalone package tests. Balance only the selected
+  // global list, including the default duration for tests without history.
   const speculatedSuiteDuration = Array.from(tests.values()).reduce((a, b) => a + b, 0);
   const targetDuration = speculatedSuiteDuration / nodeTotal;
-
-  if (speculatedSuiteDuration <= 0) {
-    throw new Error('Speculated suite duration is <= 0');
-  }
 
   const groups: string[][] = [];
 
@@ -195,7 +193,7 @@ function getTestsForGroup(
   if (!groups[nodeIndex]?.length) {
     return ['<rootDir>/__no_tests_for_this_shard__'];
   }
-  return groups[nodeIndex].map(test => `<rootDir>/${test}`);
+  return groups[nodeIndex].map(test => `<rootDir>${test}`);
 }
 
 if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
@@ -236,6 +234,11 @@ if (JEST_TESTS && CI_NODE_TOTAL !== undefined && CI_NODE_INDEX !== undefined) {
     testMatch = tests.slice(offset, offset + chunk).map(test => '<rootDir>' + test);
     optionalTags['ci.balancer_strategy'] = 'by_name';
   }
+}
+
+// An empty selection must not fall back to the workspace's full test suite.
+if (testMatch?.length === 0) {
+  testMatch = ['<rootDir>/__no_tests_for_this_shard__'];
 }
 
 /**
@@ -304,9 +307,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/tests/js/setup.ts',
     '<rootDir>/tests/js/setupFramework.ts',
   ],
-  testMatch: testMatch?.length
-    ? testMatch
-    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+  testMatch: testMatch ?? ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',

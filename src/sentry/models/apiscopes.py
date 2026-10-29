@@ -38,12 +38,7 @@ class ApiScopes(Sequence[str]):
 
     alerts = (("alerts:read"), ("alerts:write"))
 
-    dashboard = (
-        ("dashboard:read"),
-        ("dashboard:create"),
-        ("dashboard:update"),
-        ("dashboard:delete"),
-    )
+    dashboard = (("dashboard:read"), ("dashboard:write"))
 
     seer = (("seer:read"), ("seer:write"))
 

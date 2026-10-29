@@ -74,7 +74,7 @@ export function AwsLambdaArnSelector({
         <Select
           placeholder={t('Select Region')}
           options={options}
-          value={regionOption?.value}
+          value={regionOption?.value ?? null}
           onChange={option => {
             setRegion(option);
           }}

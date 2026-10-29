@@ -279,7 +279,7 @@ describe('ExploreCharts', () => {
       const addButtons = await screen.findAllByRole('button', {
         name: 'Add Transformation',
       });
-      expect(addButtons).toHaveLength(2);
+      expect(addButtons).toHaveLength(3);
       await userEvent.click(addButtons[0]!);
       await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
 
@@ -306,11 +306,40 @@ describe('ExploreCharts', () => {
       ]);
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[0]!);
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(1);
       await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(3);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(2);
+    });
+
+    it('adds a transformation to an equation chart', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)']},
+            {yAxes: ['equation|$a + $b']},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      const addButtons = await screen.findAllByRole('button', {
+        name: 'Add Transformation',
+      });
+      await userEvent.click(addButtons[1]!);
+      await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {yAxes: ['p50(span.duration)']},
+        {yAxes: ['equation|$a + $b'], transformations: ['smooth(sma,3)']},
+      ]);
     });
 
     it('plots aggregates selected together on a single chart', async () => {

@@ -303,6 +303,48 @@ class SummaryUniquenessTest(TestCase):
         custom_postprocessing_hook(result, None)
 
 
+class MapRequestBodyTest(TestCase):
+    """A body keyed by arbitrary strings documents the fields of its values."""
+
+    def _result(self, value_properties: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/assemble/": {
+                    "post": {
+                        "tags": ["Events"],
+                        "description": "An endpoint",
+                        "operationId": "assemble",
+                        "parameters": [],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": value_properties,
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+
+    def test_undescribed_value_field_raises(self) -> None:
+        with pytest.raises(SentryApiBuildError, match="'name' is missing a description"):
+            custom_postprocessing_hook(self._result({"name": {"type": "string"}}), None)
+
+    def test_described_value_fields_pass(self) -> None:
+        # Should not raise.
+        custom_postprocessing_hook(
+            self._result({"name": {"type": "string", "description": "The file name."}}), None
+        )
+
+
 class FixIssueRoutesTest(TestCase):
     def test_issue_route_fixes(self) -> None:
         BEFORE = {

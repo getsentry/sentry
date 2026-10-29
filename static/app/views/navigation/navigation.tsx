@@ -6,6 +6,7 @@ import {IconCompass} from '@sentry/icons/compass';
 import {IconDashboard} from '@sentry/icons/dashboard';
 import {IconGraph} from '@sentry/icons/graph';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconMail} from '@sentry/icons/mail';
 import {IconProject} from '@sentry/icons/project';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
@@ -287,6 +288,18 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
 
   return (
     <Fragment>
+      {organization.features.includes('universal-inbox') && (
+        <PrimaryNavigation.ListItem>
+          <PrimaryNavigation.Link
+            to={`/${prefix}/inbox/`}
+            analyticsKey="inbox"
+            label={t('Inbox')}
+            {...makeNavigationItemProps('inbox', `/${prefix}/inbox/`)}
+          >
+            <IconMail />
+          </PrimaryNavigation.Link>
+        </PrimaryNavigation.ListItem>
+      )}
       <NavigationTourElement id={NavigationTour.ISSUES} title={null} description={null}>
         {tourProps => (
           <PrimaryNavigation.ListItem>
