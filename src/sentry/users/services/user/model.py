@@ -58,6 +58,10 @@ class RpcUserProfile(RpcModel):
     is_suspended: bool = False
     session_nonce: str | None = Field(repr=False, default=None)
 
+    @property
+    def user_id(self) -> int:
+        return self.id
+
 
 class RpcUser(RpcUserProfile):
     permissions: frozenset[str] = frozenset()
