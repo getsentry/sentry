@@ -2583,6 +2583,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     # connectivity issues. We are specifically enabling this to help ensure
     # cron monitor check-ins make it through.
     "keep_alive": True,
+    "attach_stacktrace": False,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")
