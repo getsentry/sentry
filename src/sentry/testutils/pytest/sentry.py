@@ -268,7 +268,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_TSDB = "sentry.tsdb.snuba.SnubaTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"

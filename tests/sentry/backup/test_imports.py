@@ -976,11 +976,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_user_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
     def test_persist_existing_models_in_config_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
@@ -988,11 +988,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_config_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
     def test_persist_existing_models_in_organization_scope(self) -> None:
         owner = self.create_exhaustive_user("owner", email="owner@example.com")
@@ -1000,11 +1000,11 @@ class DatabaseResetTests(ImportTestCase):
         self.create_exhaustive_organization("neworg", owner, user, None)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
         self.import_empty_backup_file(import_in_organization_scope)
         assert Organization.objects.count() == 1
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert User.objects.count() == 3
+            assert set(User.objects.values_list("id", flat=True)) == {owner.id, user.id}
 
 
 # Filters should work identically in both silo and monolith modes, so no need to repeat the tests
@@ -2575,7 +2575,7 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
         assert config.version == original.version
         assert SeerWorkflowConfig.objects.filter(service_account_id=None).count() == 1
         inactive_config = SeerWorkflowConfig.objects.get(service_account_id=inactive.id)
-        workflow = SeerWorkflow(config)
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
         assert workflow.get_project_ids() == [project.id]
         # Shared databases may replicate during import; explicitly simulate delayed delivery.
         ServiceAccountReplica.objects.filter(
@@ -2600,7 +2600,9 @@ class SeerWorkflowServiceAccountTests(ImportTestCase):
             )
         ) == [project.id]
         with pytest.raises(ValueError, match="inactive"):
-            SeerWorkflow(inactive_config).resolve_service_account()
+            SeerWorkflow(
+                config_id=inactive_config.id, organization_id=inactive_config.organization_id
+            ).resolve_service_account()
         config.refresh_from_db()
         assert config.version == original.version
 

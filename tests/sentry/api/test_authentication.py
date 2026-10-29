@@ -35,6 +35,7 @@ from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -782,6 +783,9 @@ class TestHmacSignatureAuthentication(TestCase):
 
         # Signature without URL should fail
 
+        request = drf_request_from_request(
+            RequestFactory().post(url_path, data=data, content_type="application/json")
+        )
         signature_without_url = generate_service_request_signature(
             request.path_info,
             request.body,
@@ -1221,6 +1225,56 @@ class TestViewerContextAuthentication(TestCase):
             viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
         )
         assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_authenticates_without_a_user(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["project:read", "event:read"]
+        )
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        result = ViewerContextAuthentication().authenticate(request)
+
+        assert result is not None
+        user, auth = result
+        assert not user.is_authenticated
+        assert is_service_account_auth(auth)
+        assert auth.entity_id == service_account.id
+        assert auth.organization_id == self.organization.id
+        assert auth.scopes == ["event:read", "project:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_other_org_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.create_organization())
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        assert ViewerContextAuthentication().authenticate(request) is None
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_in_control_silo_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL, can_be_monolith=False):
+            assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_agent_authenticates_delegate_not_agent_id(self) -> None:

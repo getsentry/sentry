@@ -497,6 +497,38 @@ def test_projection_accepts_visible_broad_scan_steps() -> None:
     assert result["broadScan"]["toolActivity"][0]["id"] == "step-1"
 
 
+def thought(text: str, before_activity_id: str | None = "call-1") -> dict[str, Any]:
+    return {"id": "thought-1", "text": text, "beforeActivityId": before_activity_id}
+
+
+def test_projection_accepts_the_agent_reasoning_beside_its_calls() -> None:
+    result = validated(
+        OrchestrationProjectionSerializer,
+        projection(
+            broadScan={
+                "status": "running",
+                "toolActivity": [
+                    {"id": "call-1", "title": "Query spans", "kind": "api", "status": "running"}
+                ],
+                "thoughts": [
+                    thought("Compare the incident window with the baseline."),
+                    thought("That settles it.", before_activity_id=None),
+                ],
+            }
+        ),
+    )
+
+    thoughts = result["broadScan"]["thoughts"]
+    assert [entry["beforeActivityId"] for entry in thoughts] == ["call-1", None]
+
+
+def test_projection_rejects_reasoning_past_its_length_cap() -> None:
+    rejects(
+        OrchestrationProjectionSerializer,
+        projection(broadScan={"status": "running", "thoughts": [thought("x" * 1_501)]}),
+    )
+
+
 def test_report_cancellation_may_fence_on_the_first_revision() -> None:
     result = validated(
         OrchestrationProjectionSerializer,
@@ -658,12 +690,16 @@ class RecordingKind(ActionKind):
         self.upserted: list[InvestigationActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
         self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
-        # Which of check and apply ran, in order.
+        # Which of check_remote, check and apply ran, in order.
         self.calls: list[str] = []
         # What check and apply raise, if anything.
         self.raises: Exception | None = None
         # A title for check to write on the request.
         self.check_title: str | None = None
+        # What check_remote raises, if anything.
+        self.remote_raises: Exception | None = None
+        # Why cannot_apply_reasons says the viewer can't apply, if they can't.
+        self.reason: CannotApplyReason | None = None
 
     def after_upsert(self, action_request: InvestigationActionRequest) -> None:
         self.upserted.append(action_request)
@@ -679,7 +715,14 @@ class RecordingKind(ActionKind):
         self.checked.append(
             ([item.id for item in action_requests], sorted(investigations), access, user)
         )
-        return {item.id: None for item in action_requests}
+        return {item.id: self.reason for item in action_requests}
+
+    def check_remote(
+        self, investigation: Investigation, action_request: InvestigationActionRequest
+    ) -> None:
+        self.calls.append("check_remote")
+        if self.remote_raises is not None:
+            raise self.remote_raises
 
     def check(self, context: ApplyContext) -> None:
         self.calls.append("check")

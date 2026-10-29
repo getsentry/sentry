@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import timedelta
 from typing import Any
-from unittest import mock
 
 from django.urls import reverse
 from django.utils import timezone
@@ -15,7 +14,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationSourceType,
 )
-from sentry.investigations.services import investigation_legacy_source_key
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
@@ -122,23 +120,20 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         candidate = self.client.post(
             self.candidates_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "sources": [source]},
+            {"sources": [source]},
             format="json",
         )
         assert candidate.status_code == 404
 
         launched = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
         assert launched.status_code == 404
         assert not Investigation.objects.filter(organization=self.organization).exists()
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_candidate_launches_the_exact_open_period(self, schedule_auto_run: mock.Mock) -> None:
+    def test_candidate_launches_the_exact_open_period(self) -> None:
         group, open_period = self.create_metric_open_period()
         ended_at = timezone.now() - timedelta(hours=1)
         open_period.update(
@@ -152,21 +147,13 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
         }
-        candidate_payload = {
-            "templateKey": "breached_metric",
-            "templateVersion": 1,
-            "sources": [source],
-        }
+        candidate_payload = {"sources": [source]}
 
         response = self.client.post(self.candidates_url, candidate_payload, format="json")
         assert response.status_code == 200
         assert response.data == {"items": [{"status": "investigate"}]}
 
-        launch_payload = {
-            "templateKey": "breached_metric",
-            "templateVersion": 1,
-            "source": source,
-        }
+        launch_payload = {"source": source}
         launched = self.client.post(self.collection_url, launch_payload, format="json")
         assert launched.status_code == 201, launched.data
         assert launched.data["source"]["ref"] == source["ref"]
@@ -174,28 +161,27 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.data["source"]["snapshot"]["monitor"]["detectionType"] == "static"
         assert launched.data["filters"] == {}
         investigation = Investigation.objects.get(id=launched.data["id"])
-        assert investigation.source_type == InvestigationSourceType.BREACHED_METRIC
-        assert investigation.source_ref == source["ref"]
+        assert investigation.source_type == InvestigationSourceType.METRIC_OPEN_PERIOD
         assert investigation.source_key is not None
-        assert investigation.filters["breachedMetric"] == launched.data["source"]["snapshot"]
+        assert investigation.filters == {}
 
         duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 200
         assert duplicate.data["id"] == launched.data["id"]
         assert Investigation.objects.count() == 1
-        assert schedule_auto_run.call_count == 2
 
         response = self.client.post(self.candidates_url, candidate_payload, format="json")
         assert response.data == {
-            "items": [{"status": "view", "investigationId": launched.data["id"]}]
+            "items": [
+                {
+                    "status": "view",
+                    "investigationId": launched.data["id"],
+                    "orchestration": launched.data["orchestration"],
+                }
+            ]
         }
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_metric_open_period_launches_agentic_and_candidates_report_its_run(
-        self, schedule_auto_run: mock.Mock
-    ) -> None:
+    def test_metric_open_period_launches_agentic_and_candidates_report_its_run(self) -> None:
         group, open_period = self.create_metric_open_period()
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member", teams=[])
@@ -204,17 +190,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
         }
-        template_investigation = self.client.post(
-            self.collection_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "source": source,
-            },
-            format="json",
-        )
-        assert template_investigation.status_code == 201, template_investigation.data
-
         launched = self.client.post(
             self.collection_url,
             {"source": source},
@@ -222,7 +197,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         )
 
         assert launched.status_code == 201, launched.data
-        assert launched.data["id"] != template_investigation.data["id"]
         assert launched.data["template"] is None
         assert launched.data["source"]["ref"] == source["ref"]
         assert launched.data["orchestration"] == {
@@ -243,11 +217,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         candidate = self.client.post(
             self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
+            {"sources": [source]},
             format="json",
         )
 
@@ -265,12 +235,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         duplicate = self.client.post(self.collection_url, {"source": source}, format="json")
         assert duplicate.status_code == 200, duplicate.data
         assert duplicate.data["id"] == launched.data["id"]
-        schedule_auto_run.assert_called_once()
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_percent_detector_is_available(self, schedule_auto_run: mock.Mock) -> None:
+    def test_percent_detector_is_available(self) -> None:
         group, open_period = self.create_metric_open_period(
             detection_type=AlertRuleDetectionType.PERCENT,
             condition_comparison=150,
@@ -283,11 +249,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         candidate = self.client.post(
             self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
+            {"sources": [source]},
             format="json",
         )
         assert candidate.status_code == 200
@@ -295,7 +257,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         launched = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
         assert launched.status_code == 201
@@ -317,12 +279,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 "thresholdChangePercent": 50.0,
             },
         ]
-        schedule_auto_run.assert_called_once()
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_below_percent_detector_snapshot(self, schedule_auto_run: mock.Mock) -> None:
+    def test_below_percent_detector_snapshot(self) -> None:
         group, open_period = self.create_metric_open_period(
             detection_type=AlertRuleDetectionType.PERCENT,
             condition_type=Condition.LESS,
@@ -336,7 +294,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         launched = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
 
@@ -358,12 +316,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 "thresholdChangePercent": 40.0,
             },
         ]
-        schedule_auto_run.assert_called_once()
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_migrated_percent_detector_snapshot(self, schedule_auto_run: mock.Mock) -> None:
+    def test_migrated_percent_detector_snapshot(self) -> None:
         group, open_period = self.create_metric_open_period(
             detection_type=AlertRuleDetectionType.STATIC,
             condition_comparison=150,
@@ -376,7 +330,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         launched = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
 
@@ -387,12 +341,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert all(
             condition["thresholdChangePercent"] == 50.0 for condition in monitor["conditions"]
         )
-        schedule_auto_run.assert_called_once()
 
-    @mock.patch(
-        "sentry.investigations.endpoints.organization_investigation_index.schedule_eligible_auto_run_blocks"
-    )
-    def test_dynamic_detector_is_available(self, schedule_auto_run: mock.Mock) -> None:
+    def test_dynamic_detector_is_available(self) -> None:
         comparison = {
             "sensitivity": AnomalyDetectionSensitivity.HIGH,
             "seasonality": AnomalyDetectionSeasonality.AUTO,
@@ -410,11 +360,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         candidate = self.client.post(
             self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
+            {"sources": [source]},
             format="json",
         )
         assert candidate.status_code == 200
@@ -422,7 +368,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         launched = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
         assert launched.status_code == 201
@@ -437,7 +383,6 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 "result": DetectorPriorityLevel.HIGH,
             }
         ]
-        schedule_auto_run.assert_called_once()
 
     def test_inaccessible_source_is_unavailable(self) -> None:
         other_organization = self.create_organization()
@@ -451,11 +396,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         response = self.client.post(
             self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
+            {"sources": [source]},
             format="json",
         )
         assert response.status_code == 200
@@ -463,78 +404,10 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
 
         response = self.client.post(
             self.collection_url,
-            {"templateKey": "breached_metric", "templateVersion": 1, "source": source},
+            {"source": source},
             format="json",
         )
         assert response.status_code == 404
-
-    def test_legacy_only_investigation_is_viewable_and_reused(self) -> None:
-        group, open_period = self.create_metric_open_period()
-        source = {
-            "type": "metric_open_period",
-            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
-        }
-        snapshot = {"monitor": {"name": "Checkout errors"}}
-        investigation = self.create_investigation(
-            organization=self.organization,
-            created_by=self.user,
-            template_key="breached_metric",
-            template_version=1,
-            source_type=InvestigationSourceType.BREACHED_METRIC,
-            source_ref=source["ref"],
-            source_key=investigation_legacy_source_key(source),
-            source_revision=1,
-            filters={"breachedMetric": snapshot},
-        )
-
-        candidate = self.client.post(
-            self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
-            format="json",
-        )
-        assert candidate.status_code == 200
-        assert candidate.data == {
-            "items": [{"status": "view", "investigationId": str(investigation.id)}]
-        }
-
-        details = self.client.get(
-            reverse(
-                "sentry-api-0-organization-investigation-details",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "investigation_id": investigation.id,
-                },
-            )
-        )
-        assert details.status_code == 200
-        assert details.data["source"] == {
-            "type": "metric_open_period",
-            "ref": source["ref"],
-            "revision": 1,
-            "snapshot": snapshot,
-        }
-        assert details.data["filters"] == {}
-
-        with mock.patch(
-            "sentry.investigations.endpoints.organization_investigation_index."
-            "schedule_eligible_auto_run_blocks"
-        ):
-            launched = self.client.post(
-                self.collection_url,
-                {
-                    "templateKey": "breached_metric",
-                    "templateVersion": 1,
-                    "source": source,
-                },
-                format="json",
-            )
-        assert launched.status_code == 200
-        assert launched.data["id"] == str(investigation.id)
-        assert Investigation.objects.count() == 1
 
     def test_members_without_project_membership_can_reuse_existing_investigations(self) -> None:
         group, open_period = self.create_metric_open_period()
@@ -542,16 +415,8 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             "type": "metric_open_period",
             "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
         }
-        launch_payload = {
-            "templateKey": "breached_metric",
-            "templateVersion": 1,
-            "source": source,
-        }
-        with mock.patch(
-            "sentry.investigations.endpoints.organization_investigation_index."
-            "schedule_eligible_auto_run_blocks"
-        ):
-            launched = self.client.post(self.collection_url, launch_payload, format="json")
+        launch_payload = {"source": source}
+        launched = self.client.post(self.collection_url, launch_payload, format="json")
         assert launched.status_code == 201
         investigation = Investigation.objects.get(id=launched.data["id"])
         restricted_team = self.create_team(organization=self.organization)
@@ -563,47 +428,17 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
         self.login_as(viewer)
 
-        with mock.patch(
-            "sentry.investigations.endpoints.organization_investigation_index."
-            "schedule_eligible_auto_run_blocks"
-        ):
-            duplicate = self.client.post(self.collection_url, launch_payload, format="json")
+        duplicate = self.client.post(self.collection_url, launch_payload, format="json")
         assert duplicate.status_code == 200
         assert duplicate.data["id"] == str(investigation.id)
         assert Investigation.objects.count() == 1
 
         candidate = self.client.post(
             self.candidates_url,
-            {
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
-                "sources": [source],
-            },
+            {"sources": [source]},
             format="json",
         )
         assert candidate.status_code == 200
-        assert candidate.data == {
-            "items": [{"status": "view", "investigationId": str(investigation.id)}]
-        }
-
-    def test_launch_rolls_back_when_auto_run_scheduling_fails(self) -> None:
-        group, open_period = self.create_metric_open_period()
-        before = Investigation.objects.count()
-        payload = {
-            "templateKey": "breached_metric",
-            "templateVersion": 1,
-            "source": {
-                "type": "metric_open_period",
-                "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
-            },
-        }
-
-        with mock.patch(
-            "sentry.investigations.endpoints.organization_investigation_index."
-            "schedule_eligible_auto_run_blocks",
-            side_effect=RuntimeError("scheduling failed"),
-        ):
-            response = self.client.post(self.collection_url, payload, format="json")
-
-        assert response.status_code == 500
-        assert Investigation.objects.count() == before
+        [item] = candidate.data["items"]
+        assert item["status"] == "view"
+        assert item["investigationId"] == str(investigation.id)

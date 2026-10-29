@@ -3,14 +3,7 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery} from '@tanstack/react-query';
 
-import {
-  Select,
-  CheckWrap,
-  components,
-  type SingleValueProps,
-  type StylesConfig,
-  type SelectValue,
-} from '@sentry/scraps/select';
+import {Select, type StylesConfig, type SelectValue} from '@sentry/scraps/select';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
@@ -50,22 +43,12 @@ interface Props {
 }
 
 interface FilterOption {
-  data: MentionableUser;
+  searchKey: string;
 }
 
 function filterMemberOption(option: FilterOption, filterText: string) {
-  return option.data.searchKey.includes(filterText.toLowerCase());
+  return option.searchKey.includes(filterText.toLowerCase());
 }
-
-function SelectedMember(props: SingleValueProps<MentionableUser>) {
-  return (
-    <components.SingleValue {...props}>
-      <UserBadge avatarSize={20} user={props.data.user} hideEmail />
-    </components.SingleValue>
-  );
-}
-
-const memberSelectComponents = {SingleValue: SelectedMember};
 
 function createMentionableUser(user: User): MentionableUser {
   return {
@@ -106,6 +89,10 @@ function createUnmentionableUser(user: User): MentionableUser {
       </DisabledLabel>
     ),
   };
+}
+
+function MemberValue({option}: {option: MentionableUser}) {
+  return <UserBadge avatarSize={20} user={option.user} hideEmail />;
 }
 
 /**
@@ -163,9 +150,6 @@ function SelectMembers({
         '.option > div': {
           paddingBlock: 4,
         },
-        [String(CheckWrap)]: {
-          height: 32,
-        },
       }),
       input: (provided, state) => ({
         ...provided,
@@ -189,7 +173,9 @@ function SelectMembers({
     return (
       <Select
         aria-label={ariaLabel}
-        isDisabled
+        disabled
+        options={[]}
+        value={null}
         placeholder={t('Loading')}
         styles={selectStyles}
       />
@@ -197,15 +183,15 @@ function SelectMembers({
   }
 
   return (
-    <Select<MentionableUser>
+    <Select<string, MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
-      components={memberSelectComponents}
+      components={{Value: MemberValue}}
       filterOption={filterMemberOption}
       isLoading={searchLoading}
       onInputChange={setSearch}
       onChange={option => onChange(option)}
-      value={selectedValue}
+      value={selectedValue ?? null}
       styles={selectStyles}
     />
   );

@@ -3,26 +3,28 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import BaseModel, PositiveInt, ValidationError
+from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
 from sentry import features
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
-    SeerWorkflowRunExecution,
+    SeerWorkflowRunExtras,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
+    WorkflowRunError,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.workflow import SeerWorkflow, matches_workflow_scope
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import json
 
 
 @dataclass(frozen=True)
@@ -68,21 +70,29 @@ class MetricBreachTrigger(BaseModel):
     action_id: int
 
 
-class MetricBreachAdmission(BaseModel):
-    status: Literal["accepted", "rejected"]
-    reason: MetricBreachRejectionReason | None
+class AcceptedMetricBreachAdmission(BaseModel):
+    status: Literal["accepted"] = "accepted"
+    reason: None = None
     decided_at: datetime
 
 
-class MetricBreachRunExtras(BaseModel):
-    status: Literal["complete", "rejected"]
-    config_version: int
+class RejectedMetricBreachAdmission(BaseModel):
+    status: Literal["rejected"] = "rejected"
+    reason: MetricBreachRejectionReason
+    decided_at: datetime
+
+
+MetricBreachAdmission = Annotated[
+    AcceptedMetricBreachAdmission | RejectedMetricBreachAdmission,
+    Field(discriminator="status"),
+]
+
+
+class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
-    trigger: MetricBreachTrigger
 
 
-class MetricBreachExecutionExtras(BaseModel):
-    status: Literal["complete"] = "complete"
+class MetricBreachExecutionExtras(SeerWorkflowExecutionExtras):
     result: Literal["noop"] = "noop"
 
 
@@ -105,7 +115,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             enabled=enabled,
             filters=SeerWorkflowFilters(all_projects=True, environments=list(environments)).dict(),
         )
-        return cls(config)
+        return cls(config_id=config.id, organization_id=organization_id)
 
     def accept(
         self,
@@ -118,8 +128,10 @@ class BreachedMetricWorkflow(SeerWorkflow):
         """Check eligibility, then record one admission decision per issue and config."""
         if not features.has("organizations:seer-automations", group.organization):
             return IgnoredMetricBreach("feature_disabled")
-        if binding.workflow_config_id != self.config.id:
+        if binding.workflow_config_id != self.config_id:
             return IgnoredMetricBreach("workflow_unavailable")
+        if group.organization.id != self.organization_id:
+            return IgnoredMetricBreach("configuration_unavailable")
         if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
             return IgnoredMetricBreach("unsupported_trigger")
         occurrence = event.occurrence
@@ -149,12 +161,21 @@ class BreachedMetricWorkflow(SeerWorkflow):
         except ValidationError:
             return IgnoredMetricBreach("invalid_source")
 
-        with transaction.atomic(using=router.db_for_write(SeerWorkflowRun)):
+        return self._record_run(group, trigger)
+
+    def _record_run(
+        self,
+        group: Group,
+        trigger: MetricBreachTrigger,
+    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
             config = (
-                SeerWorkflowConfig.objects.select_for_update()
+                SeerWorkflowConfig.objects.using(database)
+                .select_for_update()
                 .filter(
-                    id=self.config.id,
-                    organization_id=group.organization.id,
+                    id=self.config_id,
+                    organization_id=self.organization_id,
                     strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                     enabled=True,
                 )
@@ -162,56 +183,45 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
             if config is None:
                 return IgnoredMetricBreach("configuration_unavailable")
-            self.config = config
-            if not self.matches_scope(group.project_id, trigger.environment):
+            if not matches_workflow_scope(config, group.project_id, trigger.environment):
                 return IgnoredMetricBreach("out_of_scope")
-            return self._record_run(group, trigger)
 
-    def _record_run(
-        self,
-        group: Group,
-        trigger: MetricBreachTrigger,
-    ) -> AcceptedMetricBreach | RejectedMetricBreach:
-        config = self.config
-        trigger_key = f"issue_created:{group.id}"
-        run = SeerWorkflowRun.objects.filter(
-            organization_id=group.organization.id,
-            workflow_config=config,
-            trigger_key=trigger_key,
-        ).first()
-        if run is not None and run.extras.get("status") == "rejected":
-            return RejectedMetricBreach(
-                run=run,
-                reason=run.extras["admission"]["reason"],
-                created=False,
-            )
-        created = run is None
-        if run is None:
-            reason: MetricBreachRejectionReason | None = (
-                None if self.has_quota_available() else "quota_exceeded"
-            )
+            trigger_key = f"issue_created:{group.id}"
+            existing = self.get_runs().filter(trigger_key=trigger_key).first()
+            if existing is not None:
+                lifecycle = SeerWorkflowRunLifecycle(
+                    run_id=existing.id, organization_id=existing.organization_id
+                )
+                admission = lifecycle.parse_extras(MetricBreachRunExtras).admission
+                if admission.status == "rejected":
+                    return RejectedMetricBreach(
+                        run=existing, reason=admission.reason, created=False
+                    )
+                return AcceptedMetricBreach(run=existing, created=False)
+
             decided_at = timezone.now()
-            extras = MetricBreachRunExtras(
-                status="rejected" if reason is not None else "complete",
-                config_version=config.version,
-                admission=MetricBreachAdmission(
-                    status="rejected" if reason is not None else "accepted",
-                    reason=reason,
-                    decided_at=decided_at,
-                ),
-                trigger=trigger,
+            admission = (
+                AcceptedMetricBreachAdmission(decided_at=decided_at)
+                if self.has_quota_available()
+                else RejectedMetricBreachAdmission(reason="quota_exceeded", decided_at=decided_at)
             )
-            run = SeerWorkflowRun.objects.create(
-                organization_id=group.organization.id,
-                workflow_config=config,
-                trigger_key=trigger_key,
-                date_completed=decided_at,
-                extras=json.loads(extras.json()),
+            result = self.get_or_create_run(
+                trigger_key=trigger_key, inputs=trigger, extras={"admission": admission.dict()}
             )
-            if reason is not None:
-                return RejectedMetricBreach(run=run, reason=reason, created=True)
+            workflow_run = result.lifecycle
+            if admission.status == "rejected":
+                run = workflow_run.reject(
+                    error=WorkflowRunError(
+                        code=admission.reason, message="Automation quota exceeded."
+                    )
+                )
+                return RejectedMetricBreach(
+                    run=run, reason=admission.reason, created=result.created
+                )
+
+            workflow_run.start()
             # TODO(telkins): Replace this no-op execution with investigation dispatch.
-            SeerWorkflowRunExecution.objects.create(
-                run=run, extras=MetricBreachExecutionExtras().dict()
-            )
-        return AcceptedMetricBreach(run=run, created=created)
+            (execution,) = workflow_run.create_executions([MetricBreachExecutionExtras()])
+            workflow_run.start_execution(execution.id)
+            workflow_run.complete_execution(execution.id)
+            return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)

@@ -2,8 +2,6 @@ import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
-import {ErrorNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/error';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isTraceError} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceErrorRow} from 'sentry/views/performance/traceDetails/traceRow/traceErrorRow';
@@ -76,12 +74,6 @@ export class ErrorNode extends BaseNode<TraceTree.TraceErrorIssue> {
     props: TraceRowProps<NodeType>
   ): React.ReactNode {
     return <TraceErrorRow {...props} node={this} />;
-  }
-
-  renderDetails<T extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<T>
-  ): React.ReactNode {
-    return <ErrorNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

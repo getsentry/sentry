@@ -34,6 +34,8 @@ export type KnownGetsentryApiUrls =
   | '/broadcasts/$broadcastId/'
   | '/customers/'
   | '/_admin/customers/$organizationIdOrSlug/contract/'
+  | '/_admin/customers/$organizationIdOrSlug/contract/package/'
+  | '/_admin/customers/$organizationIdOrSlug/contracts/'
   | '/customers/$organizationIdOrSlug/'
   | '/customers/$organizationIdOrSlug/billing-config/'
   | '/customers/$organizationIdOrSlug/billing-details/'

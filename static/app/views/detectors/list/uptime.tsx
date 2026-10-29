@@ -23,6 +23,7 @@ import {
 } from 'sentry/views/detectors/monitorViewContext';
 import {
   checkStatusPrecedent,
+  MAX_BUCKET_INTERVAL,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
@@ -34,7 +35,10 @@ function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
+  const timeWindowConfig = useTimeWindowConfig({
+    timelineWidth,
+    maxBucketInterval: MAX_BUCKET_INTERVAL,
+  });
 
   const {data: uptimeStats, isPending} = useUptimeMonitorStats({
     detectorIds: [uptimeDetectorId],
@@ -73,6 +77,7 @@ export default function UptimeDetectorsList() {
 
   const contextValue = useMemo<MonitorViewContextValue>(
     () => ({
+      maxBucketInterval: MAX_BUCKET_INTERVAL,
       renderVisualization: ({detector}) => {
         if (!detector) {
           return (

@@ -30,6 +30,7 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.tasks.seer.investigation import mark_investigation_telemetry_connected
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ def _record_verification_result(
     organization: Organization,
     verified: dict[str, Any],
     result: Mapping[str, Any],
-) -> None:
+) -> bool:
     ctx = integration_service.organization_context(
         organization_id=organization.id,
         provider=IntegrationProviderSlug.GCP.value,
@@ -91,15 +92,15 @@ def _record_verification_result(
         or integration.status != ObjectStatus.ACTIVE
         or org_integration.status != ObjectStatus.ACTIVE
     ):
-        return
+        return False
 
     # Only record a result that describes what is currently stored, so a stale caller
     # cannot overwrite the status with results for settings that have since changed.
     config = org_integration.config or {}
     if config.get("customer_sa_email") != verified["customer_sa_email"]:
-        return
+        return False
     if set(config.get("projects", [])) != set(verified["gcp_project_ids"]):
-        return
+        return False
 
     integration_service.update_organization_integration(
         org_integration_id=org_integration.id,
@@ -118,6 +119,7 @@ def _record_verification_result(
             "last_verified_at": timezone.now().isoformat(),
         },
     )
+    return True
 
 
 @cell_silo_endpoint
@@ -165,11 +167,21 @@ class OrganizationMonitoringProviderVerifyConnectionEndpoint(OrganizationEndpoin
 
         verified_result = response_serializer.validated_data
         try:
-            _record_verification_result(organization, data, verified_result)
+            recorded = _record_verification_result(organization, data, verified_result)
         except Exception:
+            recorded = False
             logger.exception(
                 "gcp.verify_connection_record_failed",
                 extra={"organization_id": organization.id},
+            )
+        if recorded:
+            # Apply investigations' open GCP connect requests. The result is already saved, so
+            # the task has nothing to wait for.
+            mark_investigation_telemetry_connected.delay(
+                organization_id=organization.id,
+                provider="gcp",
+                user_id=request.user.id,
+                retry=False,
             )
 
         return Response(convert_dict_key_case(verified_result, snake_to_camel_case))

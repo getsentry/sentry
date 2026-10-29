@@ -30,6 +30,7 @@ from sentry.investigations.models import (
     InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     archive_investigation,
@@ -52,6 +53,8 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorId, ActorType
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
@@ -67,11 +70,12 @@ class SeerRunMirrorMixin:
         )
 
 
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase):
     def test_event_persists_timing_for_the_api(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -114,7 +118,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
     def test_replays_the_stored_application_status(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -170,7 +174,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
     def test_rejects_an_oversized_event_before_persisting(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -2573,6 +2577,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 state=state,
                 error=error,
                 reason="Wrong." if state == InvestigationActionRequestState.WITHDRAWN else None,
+                followup_request_id=uuid4() if error == {"code": "stale"} else None,
                 action_kind="test_kind",
                 action_payload=action,
             )
@@ -2609,7 +2614,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert reloaded["failed"].error == {"code": "validation_failed"}
         assert reloaded["failed"].title == "Retitled"
         assert reloaded["refreshed"].error is None
+        assert reloaded["refreshed"].followup_request_id is None
         assert reloaded["refreshed"].action_payload == changed
+        assert reloaded["stale"].followup_request_id == rows["stale"].followup_request_id
         assert reloaded["withdrawn"].reason == "Wrong."
         assert reloaded["reconsidered"].reason is None
 
@@ -3102,12 +3109,113 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "applied": InvestigationActionRequestState.APPLIED,
         }
 
+    def stale(self, key: str, **values: Any) -> InvestigationActionRequest:
+        return self.create_investigation_action_request(
+            investigation=self.investigation,
+            key=key,
+            report_revision=1,
+            state=InvestigationActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"window": 600}},
+            followup_request_id=uuid4(),
+            action_kind="test_kind",
+            action_payload=fake_action(),
+            **values,
+        )
 
+    def stale_keys(self) -> set[str]:
+        return set(
+            InvestigationActionRequest.objects.filter(
+                STALE, investigation=self.investigation
+            ).values_list("key", flat=True)
+        )
+
+    def test_seer_can_withdraw_a_stale_request(self) -> None:
+        self.stale("widen-window")
+
+        self.deliver_withdrawn(1, "widen-window", "The window is fine now.")
+
+        assert self.request_states() == {"widen-window": InvestigationActionRequestState.WITHDRAWN}
+
+    def test_a_newer_request_under_the_same_anchor_replaces_a_stale_one(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("elsewhere", anchor_type="hypothesis", anchor_id="h-2")
+
+        self.deliver_request(2, self.action_request("new", anchor=anchor))
+
+        assert self.stale_keys() == {"elsewhere"}
+
+    def test_a_newer_primary_replaces_a_stale_primary(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+
+    def test_a_newer_primary_replaces_a_stale_primary_seer_demoted_first(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("old", primary=False, anchor=anchor))
+        self.deliver_request(3, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+        assert self.request_states()["old"] == InvestigationActionRequestState.SUPERSEDED
+
+    def test_seer_sending_a_dropped_stale_request_again_keeps_it_superseded(self) -> None:
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            2,
+            self.action_request(
+                "old", reportRevision=2, anchor={"type": "hypothesis", "id": "h-1"}
+            ),
+        )
+
+        assert self.request_states() == {"old": InvestigationActionRequestState.SUPERSEDED}
+        assert self.stale_keys() == set()
+
+    def test_seer_sending_a_stale_request_again_keeps_it_stale(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(
+            2,
+            self.action_request("old", primary=True, anchor={"type": "hypothesis", "id": "h-1"}),
+        )
+
+        assert self.stale_keys() == {"old"}
+
+    def test_a_snapshot_that_leaves_out_a_stale_request_stops_listing_it(self) -> None:
+        self.stale("omitted")
+        self.stale("kept")
+
+        self.deliver(
+            self.completed_snapshot(5, blocks=[], actionRequests=[self.action_request("kept")])
+        )
+
+        assert self.stale_keys() == {"kept"}
+
+    def test_a_new_report_stops_listing_every_stale_request(self) -> None:
+        self.stale("hypothesis", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("unanchored")
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        assert self.stale_keys() == set()
+        assert set(self.request_states().values()) == {InvestigationActionRequestState.SUPERSEDED}
+
+
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase):
     def orchestration_run(self) -> InvestigationOrchestrationRun:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],

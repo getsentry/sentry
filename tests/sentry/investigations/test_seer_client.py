@@ -7,6 +7,7 @@ import orjson
 import pytest
 from django.test import override_settings
 
+from sentry.hybridcloud.rpc.service import RpcException
 from sentry.investigations.seer_client import (
     create_investigation_orchestration_run,
     dispatch_investigation_orchestration_command,
@@ -17,9 +18,11 @@ from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, viewer_context_scope
 
 
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationSeerClientTest(TestCase):
     def setUp(self) -> None:
         self.enterContext(
@@ -52,7 +55,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         self.create_project(organization=self.organization)
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[self.project.id],
@@ -76,7 +79,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         command = self.create_investigation_orchestration_command(
             orchestration_run=run,
             request_id=uuid4(),
-            actor_id=self.user.id,
+            actor_id=self.create_user().id,
             expected_workflow_version=1,
             type="retry",
             payload={"target": "run"},
@@ -120,9 +123,12 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             run,
             viewer_context=viewer_context,
         )
+        command_viewer_context = SeerViewerContext(
+            organization_id=self.organization.id, user_id=command.actor_id
+        )
         accepted = dispatch_investigation_orchestration_command(
             command,
-            viewer_context=viewer_context,
+            viewer_context=command_viewer_context,
         )
 
         assert created == {"runId": 8128, "created": True, "projection": {}}
@@ -164,6 +170,11 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
             "command": {"type": "retry", "target": "run"},
             "monitoringProviders": [provider.dict.return_value],
         }
+        assert get_connections.call_args_list == [
+            mock.call(self.organization, self.user.id, skip_rpc_errors=False),
+            mock.call(self.organization, self.user.id, skip_rpc_errors=False),
+            mock.call(self.organization, command.actor_id, skip_rpc_errors=False),
+        ]
         assert "Authorization" in command_request.kwargs["headers"]
         assert "X-Viewer-Context" in command_request.kwargs["headers"]
 
@@ -180,16 +191,68 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
                 }
             ),
         )
+        get_connections.return_value = []
         with pytest.raises(SeerApiError):
             dispatch_investigation_orchestration_command(
                 command,
-                viewer_context=viewer_context,
+                viewer_context=command_viewer_context,
             )
+        assert orjson.loads(pool.urlopen.call_args.kwargs["body"])["monitoringProviders"] == []
+
+        get_connections.side_effect = RpcException("integration", "organization_context", "boom")
+        pool.urlopen.reset_mock()
+        with pytest.raises(SeerApiError):
+            dispatch_investigation_orchestration_command(
+                command,
+                viewer_context=command_viewer_context,
+            )
+        pool.urlopen.assert_not_called()
+        with pytest.raises(SeerApiError):
+            create_investigation_orchestration_run(run, viewer_context=viewer_context)
+        pool.urlopen.assert_not_called()
+
+    @mock.patch("sentry.investigations.seer_client._post")
+    @mock.patch(
+        "sentry.investigations.seer_client.get_monitoring_provider_connections", return_value=[]
+    )
+    def test_nonhuman_commands_replace_personal_connections(
+        self, get_connections: mock.Mock, post: mock.Mock
+    ) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user
+        )
+        run = self.create_investigation_orchestration_run(
+            investigation=investigation,
+            seer_run=self.create_seer_run(organization=self.organization, seer_run_state_id=8128),
+        )
+        command = self.create_investigation_orchestration_command(
+            orchestration_run=run,
+            request_id=uuid4(),
+            type="retry",
+            payload={"target": "run"},
+            expected_workflow_version=1,
+        )
+        post.return_value = {
+            "runId": 8128,
+            "requestId": str(command.request_id),
+            "accepted": True,
+            "duplicate": False,
+            "workflowVersion": 2,
+            "projection": {},
+        }
+        account = self.create_service_account(organization=self.organization)
+        for account_id in (None, account.id):
+            command.update(requested_by_service_account_id=account_id)
+            dispatch_investigation_orchestration_command(
+                command, viewer_context=SeerViewerContext(organization_id=self.organization.id)
+            )
+            get_connections.assert_called_with(self.organization, None, skip_rpc_errors=False)
+            assert post.call_args.args[1]["monitoringProviders"] == []
 
     def test_create_rejects_a_mismatched_viewer_organization(self) -> None:
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -220,7 +283,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         )
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -256,7 +319,7 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
     def test_get_rejects_a_mismatched_viewer_organization(self, make_request: mock.Mock) -> None:
         _, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
