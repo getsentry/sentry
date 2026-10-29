@@ -1,6 +1,8 @@
 import importlib
 from unittest import mock
 
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 # A leading digit is legal in a module name but not in the dotted path mock.patch parses,
@@ -8,6 +10,7 @@ from sentry.testutils.cases import TestMigrations
 migration = importlib.import_module("sentry.migrations.1233_backfill_grouprelease_new_release_id")
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class BackfillGroupReleaseNewReleaseIdTest(TestMigrations):
     app = "sentry"
     migrate_from = "1232_backfill_commit_new_repository_id"
