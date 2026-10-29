@@ -5,6 +5,9 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 
 
+GROUP_EMAIL_THREAD_EMAIL_MAX_LENGTH = 75
+
+
 @cell_silo_model
 class GroupEmailThread(Model):
     """
@@ -16,7 +19,7 @@ class GroupEmailThread(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    email = models.EmailField(max_length=75)
+    email = models.EmailField(max_length=GROUP_EMAIL_THREAD_EMAIL_MAX_LENGTH)
     project = FlexibleForeignKey("sentry.Project", related_name="groupemail_set")
     group = FlexibleForeignKey("sentry.Group", related_name="groupemail_set")
     msgid = models.CharField(max_length=100)
@@ -39,5 +42,4 @@ class GroupEmailThread(Model):
         Whether ``email`` fits in the ``email`` column. User emails may be up to
         200 characters, so longer addresses cannot be tracked for threading.
         """
-        max_length = cls._meta.get_field("email").max_length
-        return max_length is None or len(email) <= max_length
+        return len(email) <= GROUP_EMAIL_THREAD_EMAIL_MAX_LENGTH
