@@ -26,20 +26,12 @@ interface ExploreQueryParamsProviderProps<Parsers extends ParserMap> {
   ) => QueryParamsUpdates<Parsers>;
   getReadableQueryParams: (values: QueryParamsValues<Parsers>) => ReadableQueryParams;
   isDefaultFields: (values: QueryParamsValues<Parsers>) => boolean;
-  /**
-   * Must be a stable reference.
-   */
   parsers: Parsers;
   frozenParams?: Partial<ReadableQueryParamsOptions>;
   // Runs before navigation, e.g. to persist params to local storage.
   onSetWritableQueryParams?: (writableQueryParams: WritableQueryParams) => void;
 }
 
-/**
- * Reads and writes the router location rather than nuqs state. nuqs updates
- * its state a render before the router, and much of Explore (e.g. request
- * payloads) reads the router location, so the two would briefly disagree.
- */
 export function ExploreQueryParamsProvider<Parsers extends ParserMap>({
   children,
   getQueryParamsUpdates,
