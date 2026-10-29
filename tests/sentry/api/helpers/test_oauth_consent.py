@@ -220,7 +220,7 @@ def test_unknown_permission_group() -> None:
     "scope, expected",
     [
         ("dashboard:read", ["read"]),
-        ("dashboard:write", ["read", "write"]),
+        ("dashboard:write", ["write"]),
     ],
 )
 def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
