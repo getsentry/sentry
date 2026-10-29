@@ -174,10 +174,10 @@ def get_release_project_first_last_seen(
     fetch_first_last_seen: Callable[[int, list[int], int | None, list[str]], list[Any]],
 ) -> tuple[dict[int, datetime | None], dict[int, datetime | None]]:
     """
-    Returns a tuple of first_seen and last_seen dictionaries where the key is the release version
+    Returns a tuple of first_seen and last_seen dictionaries where the key is the release id
     and the value is a datetime representing the first or last seen timestamp.
 
-    Example: ({package@2.0.0: 2025-01-01T00:00:00}, {package@2.0.0: 2025-12-17T11:00:51})
+    Example: ({42: 2025-01-01T00:00:00}, {42: 2025-12-17T11:00:51})
     """
     first_seen: dict[int, datetime | None] = {
         rid: None for rid in release_version_and_id_map.values()
@@ -197,14 +197,11 @@ def get_release_project_first_last_seen(
         )
 
     for tv in tag_values:
-        first_val = first_seen.get(tv.value)
-        last_val = last_seen.get(tv.value)
-        first_seen[release_version_and_id_map[tv.value]] = (
-            min(tv.first_seen, first_val) if first_val else tv.first_seen
-        )
-        last_seen[release_version_and_id_map[tv.value]] = (
-            max(tv.last_seen, last_val) if last_val else tv.last_seen
-        )
+        rid = release_version_and_id_map[tv.value]
+        first_val = first_seen[rid]
+        last_val = last_seen[rid]
+        first_seen[rid] = min(tv.first_seen, first_val) if first_val else tv.first_seen
+        last_seen[rid] = max(tv.last_seen, last_val) if last_val else tv.last_seen
 
     return first_seen, last_seen
 
