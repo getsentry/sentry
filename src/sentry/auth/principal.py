@@ -4,8 +4,10 @@ from typing import Any, Protocol, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.request import Request
 
+from sentry.api.exceptions import UserRequired
 from sentry.auth.services.auth.model import AuthenticatedToken
 from sentry.types.superuser import to_viewer_context_superuser
 from sentry.users.models.user import User
@@ -74,6 +76,21 @@ def resolve_actor(user: Any, auth: Any) -> Actor | None:
     if user_id is not None:
         return Actor(type=ActorType.USER, actor_id=user_id, superuser=superuser)
     return None
+
+
+def require_user(request: HttpRequest | Request) -> User:
+    """
+    The user behind the caller, for code that only works for one.
+
+    Raises ``NotAuthenticated`` for anonymous callers and ``UserRequired`` (403) for
+    callers with no user behind them, e.g. service accounts. For a whole endpoint, set
+    ``requires_user`` instead.
+    """
+    user = request.user
+    if not has_user(user):
+        principal: RequestPrincipal = user
+        raise UserRequired() if principal.is_authenticated else NotAuthenticated()
+    return user
 
 
 def set_request_principal(request: HttpRequest | Request, user: Any, auth: Any) -> None:

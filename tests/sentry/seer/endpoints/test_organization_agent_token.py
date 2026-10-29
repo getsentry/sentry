@@ -597,7 +597,6 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
-    REQUIRES_USER = "should answer user-required, which needs requires_user / require_user"
     USER_ID_FIX = "reads request.user.id; fixed by the per-team acting_user_id(request.user) PRs"
     AUDIT_ACTOR = "the audit entry records request.user as its actor"
     VIEWER_LOOKUP = "a serializer looks up the viewer's own state by request.user.id"
@@ -608,7 +607,6 @@ class ServiceAccountGap(StrEnum):
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
-    "OrganizationProjects_post": ServiceAccountGap.REQUIRES_USER,
     "DiscoverSavedQueries": ServiceAccountGap.USER_ID_FIX,
     "DiscoverSavedQueries_post": ServiceAccountGap.USER_ID_FIX,
     "GroupExternalIssueDetails_delete": ServiceAccountGap.USER_ID_FIX,

@@ -40,9 +40,11 @@ from sentry.api.exceptions import (
     InsufficientScope,
     StaffRequired,
     SuperuserRequired,
+    UserRequired,
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -54,6 +56,7 @@ from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -274,6 +277,11 @@ class Endpoint(APIView):
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+    # For endpoints people may call with any credential, API tokens included, but a caller
+    # with no user (e.g. a service account) may not: it gets a 403 user-required, counted
+    # in api.user_required. Browser-only endpoints use SessionNoAuthTokenAuthentication,
+    # which refuses every token; for one user-only path, call require_user(request).
+    requires_user: bool = False
 
     @classmethod
     def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
@@ -308,6 +316,12 @@ class Endpoint(APIView):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        principal: RequestPrincipal = request.user
+        if self.requires_user and principal.is_authenticated and not has_user(principal):
+            raise UserRequired()
 
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
@@ -400,6 +414,9 @@ class Endpoint(APIView):
 
         :returns: A 500 response including the event id of the captured Sentry event.
         """
+        if isinstance(exc, UserRequired):
+            # Shows which endpoints callers with no user behind them still can't use.
+            metrics.incr("api.user_required", tags={"endpoint": type(self).__name__})
         try:
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
