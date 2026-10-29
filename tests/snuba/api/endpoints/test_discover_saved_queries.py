@@ -1191,7 +1191,6 @@ class DiscoverSavedQueryScopeTest(APITestCase):
         assert DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
 
     def test_write_scope_can_create_update_and_delete(self) -> None:
-        # `saved_query:write` implies `saved_query:read`, so the saved token holds both.
         self._use_token(["saved_query:write"])
         response = self.client.post(self.url, {"name": "Created", **self.query_data}, format="json")
         assert response.status_code == 201, response.content
@@ -1205,3 +1204,14 @@ class DiscoverSavedQueryScopeTest(APITestCase):
 
         assert self.client.delete(self.details_url).status_code == 204
         assert not DiscoverSavedQuery.objects.filter(id=self.saved_query.id).exists()
+
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["saved_query:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["saved_query:read", "saved_query:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        assert self.client.delete(self.details_url).status_code == 204

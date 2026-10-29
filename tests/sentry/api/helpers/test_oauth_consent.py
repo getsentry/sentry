@@ -229,6 +229,19 @@ def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
     assert group["accessDescriptions"]["write"] == "Create, update, and delete dashboards."
 
 
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["saved_query:read"], ["read"]),
+        (["saved_query:write"], ["write"]),
+        (["saved_query:read", "saved_query:write"], ["read", "write"]),
+    ],
+)
+def test_saved_query_write_does_not_imply_read(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+
+
 def test_resource_access_descriptions() -> None:
     groups = get_permission_groups(sorted(settings.SENTRY_SCOPES))
     for group in groups:

@@ -228,6 +228,8 @@ _PERMISSION_ACTIONS = {
     "create": ("read", "create"),
     "delete": ("read", "create", "write", "delete"),
     "invite": ("invite",),
+    # Granular write scopes do not imply read.
+    "saved_query:write": ("write",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }

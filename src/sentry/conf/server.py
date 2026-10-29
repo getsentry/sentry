@@ -1978,7 +1978,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "dashboard:read": {"dashboard:read"},
     "dashboard:write": {"dashboard:read", "dashboard:write"},
     "saved_query:read": {"saved_query:read"},
-    "saved_query:write": {"saved_query:read", "saved_query:write"},
+    # Granular scopes are explicit: write does not imply read, so a token that reads
+    # and writes needs both scopes.
+    "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
     "openid": {"openid"},
@@ -2096,7 +2098,7 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:read", "Read access to dashboards."),
     ),
     (
-        ("saved_query:write", "Read and write access to saved queries."),
+        ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),
     ),
     (
