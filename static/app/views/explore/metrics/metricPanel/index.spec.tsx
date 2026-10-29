@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -275,7 +275,7 @@ describe('MetricPanel', () => {
         ],
         body: {
           meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });

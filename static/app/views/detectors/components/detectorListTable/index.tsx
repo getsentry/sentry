@@ -162,13 +162,13 @@ export function DetectorListTable({
   const elementRef = useRef<HTMLTableCellElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
-  const timeWindowConfig = useTimeWindowConfig({timelineWidth});
-
   const {
     additionalColumns = [],
+    maxBucketInterval,
     renderVisualization,
     renderTimelineOverlay,
   } = useMonitorViewContext();
+  const timeWindowConfig = useTimeWindowConfig({timelineWidth, maxBucketInterval});
   const hasVisualization = defined(renderVisualization);
 
   return (

@@ -74,7 +74,7 @@ describe('SharedGroupDetails', () => {
     expect(await screen.findByTestId('sgh-timestamp')).toBeInTheDocument();
   });
 
-  it('renders native crash threads without requesting suspect commits', async () => {
+  it('renders native crash threads without authenticated requests', async () => {
     const thread: Thread = {
       id: 1,
       name: 'main',
@@ -122,6 +122,10 @@ describe('SharedGroupDetails', () => {
       url: `/projects/${organization.slug}/${project.slug}/events/1/committers/`,
       body: {committers: []},
     });
+    const sentryAppComponents = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
+    });
 
     render(<SharedGroupDetails />, {
       initialRouterConfig: {
@@ -134,5 +138,6 @@ describe('SharedGroupDetails', () => {
 
     expect(await screen.findByText('Thread Stack Trace')).toBeInTheDocument();
     expect(committers).not.toHaveBeenCalled();
+    expect(sentryAppComponents).not.toHaveBeenCalled();
   });
 });

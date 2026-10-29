@@ -120,10 +120,6 @@ describe('NewWidgetBuilder navigation layout integration', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      body: {data: [], start: 0, end: 0},
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},
     });

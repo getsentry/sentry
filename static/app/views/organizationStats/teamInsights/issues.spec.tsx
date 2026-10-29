@@ -193,7 +193,8 @@ describe('TeamStatsIssues', () => {
   it('can filter by environment', async () => {
     const {router} = createWrapper();
 
-    // For some reason the "Environment:" is rendered via css :before
+    expect(screen.getByText('Team:')).toBeInTheDocument();
+    expect(screen.getByText('Environment:')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
     await userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();
