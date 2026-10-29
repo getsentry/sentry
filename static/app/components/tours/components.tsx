@@ -461,7 +461,8 @@ export function TourGuide({
                       <TourBody
                         background="primary"
                         radius="md"
-                        width="100%"
+                        width="395px"
+                        maxWidth={TOUR_GUIDE_MAX_WIDTH}
                         padding="lg xl xl"
                         gap="md"
                       >
@@ -478,7 +479,7 @@ export function TourGuide({
                               <Button
                                 variant="transparent"
                                 onClick={handleDismiss}
-                                icon={<IconClose size="xs" />}
+                                icon={<IconClose />}
                                 aria-label={t('Close')}
                                 size="xs"
                               />
@@ -521,9 +522,11 @@ const TourBody = styled(Stack)`
   }
 `;
 
+// useOverlay keeps 16px between the guide and each edge of the viewport.
+const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
+
+// Replaces the Overlay's own shadow, which no layout primitive can override.
 const TourOverlay = styled(Overlay)`
-  width: 395px;
-  max-width: calc(100vw - 32px);
   box-shadow: ${p => p.theme.shadow.high};
 `;
 
