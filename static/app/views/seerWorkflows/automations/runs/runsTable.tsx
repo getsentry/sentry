@@ -11,11 +11,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
 import {
   getRunDisplayStatus,
   StatusIcon,
-} from 'sentry/views/seerWorkflows/runs/statusIcon';
-import {useAutomationRuns} from 'sentry/views/seerWorkflows/runs/useAutomationRuns';
+} from 'sentry/views/seerWorkflows/automations/runs/statusIcon';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
 const COLUMNS: TableColumnConfig[] = [

@@ -29,11 +29,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
+import {useAutomationRuns} from 'sentry/views/seerWorkflows/automations/hooks/useAutomationRuns';
 import {
   getRunDisplayStatus,
   StatusIcon,
-} from 'sentry/views/seerWorkflows/runs/statusIcon';
-import {useAutomationRuns} from 'sentry/views/seerWorkflows/runs/useAutomationRuns';
+} from 'sentry/views/seerWorkflows/automations/runs/statusIcon';
 import {
   getStrategyLabel,
   getWorkflowRunActions,

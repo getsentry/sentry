@@ -2753,7 +2753,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },

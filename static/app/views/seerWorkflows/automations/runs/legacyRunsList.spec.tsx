@@ -3,7 +3,7 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {LegacyAutomationRunsList} from 'sentry/views/seerWorkflows/runs/legacyRunsList';
+import {LegacyAutomationRunsList} from 'sentry/views/seerWorkflows/automations/runs/legacyRunsList';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
 
 function makeRun(overrides: Partial<SeerAutomationRun>): SeerAutomationRun {
