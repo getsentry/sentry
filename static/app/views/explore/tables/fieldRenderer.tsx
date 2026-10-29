@@ -161,6 +161,7 @@ function BaseExploreFieldRenderer({
       unit={unit}
       column={column}
       disableTraceLinks={disableTraceLinks}
+      queryCaseInsensitive={queryCaseInsensitive}
     />
   );
 
@@ -200,8 +201,10 @@ function ExploreFieldValue({
   unit,
   column,
   disableTraceLinks,
+  queryCaseInsensitive,
 }: Pick<FieldProps, 'data' | 'meta' | 'unit' | 'disableTraceLinks'> & {
   column: TableColumn<keyof TableDataRow>;
+  queryCaseInsensitive?: CaseInsensitive;
 }) {
   const location = useLocation();
   const navigate = useNavigate();

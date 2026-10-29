@@ -3380,7 +3380,7 @@ SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
 }
 
 SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS: ServiceOptions = {
-    "path": "sentry.utils.locking.backends.redis.RedisLockBackend",
+    "path": "sentry.utils.locking.backends.redis.RedisClusterLockBackend",
     "options": {"cluster": "default"},
 }
 # maximum number of projects allowed to query snuba with for the organization_vitals_overview endpoint
