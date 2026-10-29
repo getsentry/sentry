@@ -168,6 +168,7 @@ class UserEndpoint(Endpoint):
     """
 
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
@@ -199,6 +200,7 @@ class RegionSiloUserEndpoint(Endpoint):
     """
 
     permission_classes = (UserPermission,)
+    requires_user = True
 
     def convert_args(
         self, request: Request, user_id: int | str | None = None, *args: Any, **kwargs: Any
