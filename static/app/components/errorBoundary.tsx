@@ -33,8 +33,8 @@ type Props = DefaultProps & {
   customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
 
   message?: React.ReactNode;
-  /** Overrides dismissal. By default, dismissing retries the children. */
-  onDismiss?: () => void;
+  /** Called before resetting. Return a promise to wait for dismissal to finish. */
+  onDismiss?: () => void | Promise<void>;
 };
 
 type State = {
@@ -101,12 +101,9 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({error: null});
   };
 
-  handleDismiss = () => {
-    if (this.props.onDismiss) {
-      this.props.onDismiss();
-    } else {
-      this.handleClose();
-    }
+  handleDismiss = async () => {
+    await this.props.onDismiss?.();
+    this.handleClose();
   };
 
   render() {
