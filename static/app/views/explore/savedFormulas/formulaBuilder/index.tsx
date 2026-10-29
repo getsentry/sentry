@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import * as Sentry from '@sentry/react';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -34,6 +35,8 @@ import {
 import {useSaveFormula} from 'sentry/views/explore/hooks/useSaveFormula';
 import {FIELD_MAX_WIDTH} from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  exceedsApiLimits,
+  isInvalidSuggestedNumber,
   stripNamePrefix,
   toDraft,
   toRequest,
@@ -126,6 +129,14 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
   const listPathname = makeSavedFormulasPathname({organization, path: '/'});
 
   async function handleSave() {
+    if (exceedsApiLimits(draft)) {
+      Sentry.captureException(new Error('Formula builder exceeded API limits'), {
+        extra: {
+          params: draft.params.map(param => param.type),
+          references: draft.references.length,
+        },
+      });
+    }
     try {
       await saveFormula(toRequest(draft));
     } catch (error) {
@@ -220,6 +231,7 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
             <FormSection title={t('Inputs')}>
               <Stack gap="2xl">
                 <ParametersSection
+                  dataset={draft.dataset}
                   params={draft.params}
                   onChange={params => setDraft({...draft, params})}
                 />
@@ -259,7 +271,9 @@ function FormulaBuilder({formula}: {formula?: SavedFormula}) {
         <Button
           size="sm"
           variant="primary"
-          disabled={!draft.name || !draft.formula}
+          disabled={
+            !draft.name || !draft.formula || draft.params.some(isInvalidSuggestedNumber)
+          }
           busy={isSaving}
           onClick={handleSave}
         >

@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
@@ -62,6 +63,7 @@ import {triggerProvisionSubscription} from 'admin/components/provisionSubscripti
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
 import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
+import {SetContractPackageAction} from 'admin/components/setContractPackageAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -233,6 +235,34 @@ export function CustomerDetails() {
     },
     onError: (error: RequestError) => {
       const detail = error.responseJSON?.detail;
+      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+    },
+  });
+
+  // CustomerContracts fetches through ResultGrid, outside react-query, so remount
+  // it to show the new package.
+  const [contractsKey, setContractsKey] = useState(0);
+
+  const onSetContractPackageMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/contract/package/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onSuccess: (_data, variables) => {
+      addSuccessMessage(`Set the contract package to ${variables.packageUid}.`);
+      reloadData();
+      setContractsKey(key => key + 1);
+    },
+    onError: (error: RequestError) => {
+      const packageUidErrors = error.responseJSON?.packageUid;
+      const detail =
+        error.responseJSON?.detail ??
+        (Array.isArray(packageUidErrors) ? packageUidErrors[0] : undefined);
       addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     },
   });
@@ -484,6 +514,15 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
+            key: 'clearPendingPayg',
+            name: 'Clear Pending Pay-as-you-go',
+            help: 'Remove pending pay-as-you-go budget changes, keeping other pending changes.',
+            visible: !!subscription.pendingChanges,
+            onAction: params =>
+              onUpdateMutation.mutate({...params, clearPendingPayg: true}),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',
@@ -549,6 +588,18 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
+          },
+          {
+            key: 'setContractPackage',
+            name: 'Set Contract Package',
+            help: 'Move the current billing platform contract to another package immediately.',
+            visible: subscription.hasMigratedToBillingPlatform,
+            confirmModalOpts: {
+              showTicketURL: false,
+              renderModalSpecificContent: deps => <SetContractPackageAction {...deps} />,
+            },
+            onAction: params => onSetContractPackageMutation.mutate(params),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',
@@ -999,7 +1050,7 @@ export function CustomerDetails() {
           {
             noPanel: true,
             visible: subscription.hasMigratedToBillingPlatform,
-            content: <CustomerContracts orgId={orgId} />,
+            content: <CustomerContracts key={contractsKey} orgId={orgId} />,
           },
           {
             name: 'Admin Audit Log',

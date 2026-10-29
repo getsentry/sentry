@@ -363,14 +363,10 @@ function handleFixtureRequest(
         `investigation-story-${state.list.length + 1}`,
         state.allocatedInvestigationIds
       );
-      const templateKey = getDataString(data, 'templateKey');
       const detail = InvestigationDetailFixture({
         id,
         title: getDataString(data, 'title') ?? 'Untitled investigation',
-        sourceType: templateKey ? 'metric_open_period' : 'manual',
-        template: templateKey
-          ? {key: templateKey, version: getDataNumber(data, 'templateVersion') ?? 1}
-          : null,
+        sourceType: data.source ? 'metric_open_period' : 'manual',
         blocks: [],
       });
       state.details.set(id, detail);
@@ -881,11 +877,6 @@ function normalizeMethod(method: RequestOptions['method']) {
 function getDataString(data: Record<string, unknown>, key: string) {
   const value = data[key];
   return typeof value === 'string' ? value : undefined;
-}
-
-function getDataNumber(data: Record<string, unknown>, key: string) {
-  const value = data[key];
-  return typeof value === 'number' ? value : undefined;
 }
 
 function reserveFixtureId(preferredId: string, allocatedIds: Set<string>) {

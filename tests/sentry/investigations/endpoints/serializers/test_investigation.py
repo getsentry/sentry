@@ -49,6 +49,7 @@ class InvestigationSerializerTest(TestCase):
             "status": self.investigation.status,
             "sourceType": "manual",
             "createdBy": str(self.user.id),
+            "creator": {"type": "user", "id": str(self.user.id)},
             "dateCreated": self.investigation.date_added,
             "dateUpdated": self.investigation.date_updated,
             "version": 1,
@@ -57,6 +58,20 @@ class InvestigationSerializerTest(TestCase):
             "titleGeneration": {"status": None},
             "orchestration": None,
         }
+
+    def test_serializes_account_and_missing_creators(self) -> None:
+        account = self.create_service_account(organization=self.organization, id=910001)
+        self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
+
+        result = serialize(self.investigation, self.user, InvestigationSerializer())
+
+        assert result["createdBy"] is None
+        assert result["creator"] == {"type": "service_account", "id": str(account.id)}
+
+        self.investigation.update(created_by_service_account_id=None)
+        assert (
+            serialize(self.investigation, self.user, InvestigationSerializer())["creator"] is None
+        )
 
     def test_serializes_compact_orchestration_state_without_a_mode(self) -> None:
         heartbeat = timezone.now()
@@ -156,13 +171,6 @@ class InvestigationDetailsSerializerTest(TestCase):
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.parameter = self.create_investigation_parameter(
-            investigation=self.investigation,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-        )
         self.block = self.create_investigation_block(investigation=self.investigation, position=0)
 
     def serialize_detail(self) -> InvestigationDetailsSerializerResponse:
@@ -194,7 +202,7 @@ class InvestigationDetailsSerializerTest(TestCase):
             "Checkout failures increased.\nRoll back the latest release."
         )
         assert detail["projectIds"] == [self.project.id]
-        assert [parameter["key"] for parameter in detail["parameters"]] == ["environment"]
+        assert detail["parameters"] == []
         assert [block["id"] for block in detail["blocks"]] == [str(self.block.id)]
 
     def test_orders_blocks_by_position(self) -> None:
@@ -252,11 +260,7 @@ class InvestigationDetailsSerializerTest(TestCase):
                 organization=self.organization, title=f"Extra {index}"
             )
             self.create_investigation_project(investigation=investigation, project=self.project)
-            parameter = self.create_investigation_parameter(
-                investigation=investigation, key="env", label="Env", type="string", position=0
-            )
             block = self.create_investigation_block(investigation=investigation, position=0)
-            self.create_investigation_block_parameter(block=block, parameter=parameter)
             execution = self.create_investigation_block_execution(
                 block=block,
                 executor="manual",

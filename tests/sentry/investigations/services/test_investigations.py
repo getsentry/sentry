@@ -5,13 +5,12 @@ from unittest import mock
 from uuid import UUID, uuid4
 
 import pytest
-from django.db import IntegrityError, close_old_connections
+from django.db import close_old_connections
 from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
-    InvestigationBlockDependency,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationRun,
     InvestigationProject,
@@ -22,13 +21,9 @@ from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
-    create_block,
     create_manual_investigation,
-    create_template_investigation,
     default_investigation_title,
-    delete_block,
     duplicate_investigation,
-    investigation_legacy_source_key,
     lock_investigation,
     resolve_investigation_source,
     update_investigation,
@@ -40,52 +35,9 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-
-TEMPLATE_KWARGS = {
-    "organization": mock.sentinel.organization,
-    "user_id": 1,
-    "template_key": "breached_metric",
-    "template_version": 1,
-    "source": {},
-    "supplied_parameters": {},
-    "accessible_project_ids": set(),
-}
-
-
-def test_template_creation_retries_revision_uniqueness_collisions() -> None:
-    created = (mock.sentinel.investigation, True)
-    with mock.patch(
-        "sentry.investigations.services.investigations._create_template_investigation",
-        side_effect=[IntegrityError(), created],
-    ) as create:
-        result = create_template_investigation(**TEMPLATE_KWARGS)
-
-    assert result == created
-    assert create.call_count == 2
-
-
-def test_template_creation_succeeds_without_a_collision() -> None:
-    created = (mock.sentinel.investigation, True)
-    with mock.patch(
-        "sentry.investigations.services.investigations._create_template_investigation",
-        return_value=created,
-    ) as create:
-        result = create_template_investigation(**TEMPLATE_KWARGS)
-
-    assert result == created
-    assert create.call_count == 1
-
-
-def test_template_creation_reraises_after_exhausting_retries() -> None:
-    with mock.patch(
-        "sentry.investigations.services.investigations._create_template_investigation",
-        side_effect=IntegrityError(),
-    ) as create:
-        with pytest.raises(IntegrityError):
-            create_template_investigation(**TEMPLATE_KWARGS)
-
-    assert create.call_count == 3
+from sentry.viewer_context import ActorId, ActorType
 
 
 class ProjectLinkScopingTest(TestCase):
@@ -140,42 +92,6 @@ class ProjectLinkScopingTest(TestCase):
             )
 
         assert not InvestigationProject.objects.filter(project_id=foreign_project.id).exists()
-
-
-class DeleteBlockStalenessTest(TestCase):
-    def test_deleting_an_upstream_block_marks_its_dependents_stale(self) -> None:
-        investigation = create_manual_investigation(
-            organization=self.organization,
-            user_id=self.user.id,
-            title="Investigation",
-            project_ids=[],
-            filters={},
-        )
-        upstream = create_block(
-            investigation=investigation,
-            expected_investigation_version=investigation.version,
-            user_id=self.user.id,
-            values={"kind": "query"},
-        )
-        investigation.refresh_from_db()
-        dependent = create_block(
-            investigation=investigation,
-            expected_investigation_version=investigation.version,
-            user_id=self.user.id,
-            values={"kind": "text"},
-        )
-        investigation.refresh_from_db()
-        InvestigationBlockDependency.objects.create(block=dependent, depends_on=upstream)
-        assert dependent.stale_at is None
-
-        delete_block(
-            block=upstream,
-            expected_investigation_version=investigation.version,
-            expected_block_version=upstream.version,
-        )
-
-        dependent.refresh_from_db()
-        assert dependent.stale_at is not None
 
 
 class BreachedMetricSourceRefTest(TestCase):
@@ -243,11 +159,12 @@ def test_default_title_names_the_investigation_type() -> None:
     assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
 
 
+@with_feature("organizations:investigations")
 class DefaultTitleTest(TestCase):
     def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -256,81 +173,8 @@ class DefaultTitleTest(TestCase):
 
         assert investigation.title == "New manual investigation"
 
-    def test_untitled_template_investigation_gets_a_default_title(self) -> None:
-        source = {
-            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
-            "ref": {"groupId": "1", "openPeriodId": "2"},
-            "snapshot": {"monitor": {"name": "Checkout errors"}},
-        }
-        resolved = BreachedMetricSource(project_id=self.project.id, dataset="errors", source=source)
 
-        with mock.patch(
-            "sentry.investigations.services.investigations.resolve_investigation_source",
-            return_value=resolved,
-        ):
-            investigation, created = create_template_investigation(
-                organization=self.organization,
-                user_id=self.user.id,
-                template_key="breached_metric",
-                template_version=1,
-                source={"type": "metric_open_period", "ref": source["ref"]},
-                supplied_parameters={},
-                accessible_project_ids={self.project.id},
-            )
-
-        assert created
-        investigation.refresh_from_db()
-        assert investigation.title == "New breached metrics investigation"
-
-
-class SourceTransitionCompatibilityTest(TestCase):
-    def test_template_creation_reuses_and_backfills_a_legacy_active_investigation(self) -> None:
-        source_ref = {"groupId": "1", "openPeriodId": "2"}
-        snapshot = {"monitor": {"name": "Checkout errors"}}
-        resolved_source = {
-            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
-            "ref": source_ref,
-            "snapshot": snapshot,
-        }
-        legacy = self.create_investigation(
-            organization=self.organization,
-            created_by=self.user,
-            title="Legacy",
-            template_key="breached_metric",
-            template_version=1,
-            source_type=InvestigationSourceType.BREACHED_METRIC,
-            source_ref=source_ref,
-            source_key=investigation_legacy_source_key(resolved_source),
-            source_revision=1,
-            filters={"breachedMetric": snapshot},
-        )
-        resolved = BreachedMetricSource(
-            project_id=self.project.id,
-            dataset="errors",
-            source=resolved_source,
-        )
-
-        with mock.patch(
-            "sentry.investigations.services.investigations.resolve_investigation_source",
-            return_value=resolved,
-        ):
-            investigation, created = create_template_investigation(
-                organization=self.organization,
-                user_id=self.user.id,
-                template_key="breached_metric",
-                template_version=1,
-                source={"type": "metric_open_period", "ref": source_ref},
-                supplied_parameters={},
-                accessible_project_ids={self.project.id},
-            )
-
-        assert not created
-        assert investigation.id == legacy.id
-        investigation.refresh_from_db()
-        assert investigation.source == resolved.source
-        assert investigation.lineage_key is not None
-        assert Investigation.objects.count() == 1
-
+class LegacySnapshotTest(TestCase):
     def test_filter_updates_and_manual_duplicates_do_not_expose_the_legacy_snapshot(self) -> None:
         snapshot = {"monitor": {"name": "Checkout errors"}}
         source = {
@@ -342,10 +186,8 @@ class SourceTransitionCompatibilityTest(TestCase):
             organization=self.organization,
             created_by=self.user,
             source=source,
-            lineage_key="lineage-key",
-            source_type=InvestigationSourceType.BREACHED_METRIC,
-            source_ref=source["ref"],
-            source_key=investigation_legacy_source_key(source),
+            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
+            source_key="source-key",
             source_revision=1,
             filters={"breachedMetric": snapshot},
         )
@@ -358,10 +200,7 @@ class SourceTransitionCompatibilityTest(TestCase):
         )
         duplicate = duplicate_investigation(investigation=updated, user_id=self.user.id)
 
-        assert updated.filters == {
-            "environment": ["production"],
-            "breachedMetric": snapshot,
-        }
+        assert updated.filters == {"environment": ["production"]}
         assert duplicate.source == {}
         assert duplicate.filters == {"environment": ["production"]}
 
@@ -425,6 +264,7 @@ class UpdateFieldAllowlistTest(TestCase):
         assert updated.filters == {"environment": ["prod"]}
 
 
+@with_feature("organizations:investigations")
 class OrchestrationControlServiceTest(TestCase):
     def test_agentic_creation_rolls_back_the_entire_aggregate(self) -> None:
         investigation_count = Investigation.objects.count()
@@ -438,7 +278,7 @@ class OrchestrationControlServiceTest(TestCase):
         ):
             create_agentic_manual_investigation(
                 organization=self.organization,
-                user_id=self.user.id,
+                creator=ActorId(ActorType.USER, self.user.id),
                 title=None,
                 source={"type": "manual", "prompt": "Investigate latency"},
                 project_ids=[self.project.id],
@@ -452,7 +292,7 @@ class OrchestrationControlServiceTest(TestCase):
     def test_command_acceptance_rolls_back_command_and_version_together(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -479,7 +319,7 @@ class OrchestrationControlServiceTest(TestCase):
     def test_projection_serialization_overlays_authoritative_run_fields(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -524,11 +364,12 @@ class OrchestrationControlServiceTest(TestCase):
         assert result["report"]["notebookRevision"] == 4
 
 
+@with_feature("organizations:investigations")
 class OrchestrationCommandConcurrencyTest(TransactionTestCase):
     def test_only_one_command_is_accepted_for_a_workflow_version(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],

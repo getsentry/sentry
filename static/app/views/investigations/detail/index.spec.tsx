@@ -5,6 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   fireEvent,
   render,
   renderGlobalModal,
@@ -34,6 +35,7 @@ import InvestigationDetailView from 'sentry/views/investigations/detail';
 import {
   InvestigationActionRequestFixture,
   InvestigationAgenticDetailFixture,
+  InvestigationBlockFixture,
   InvestigationCommentFixture,
   InvestigationDetailFixture,
   InvestigationMetricSourceFixture,
@@ -159,6 +161,31 @@ function investigationWithQueryResult() {
   return investigation;
 }
 
+function investigationWithReportHeadings() {
+  return InvestigationDetailFixture({
+    summary: 'Errors rose across releases',
+    summaryDescription: 'All active releases increased together.',
+    blocks: [
+      InvestigationBlockFixture({
+        id: 'what-happened',
+        title: 'What happened',
+        outputStatus: 'completed',
+        output: {schemaVersion: 1, markdown: '## What happened\n\nErrors rose.'},
+      }),
+      InvestigationBlockFixture({
+        id: 'deploy-timing',
+        position: 1,
+        title: 'Deploy timing',
+        outputStatus: 'completed',
+        output: {
+          schemaVersion: 1,
+          markdown: '## When it happened\n\nRight after the deploy.',
+        },
+      }),
+    ],
+  });
+}
+
 async function chooseBlockAction(
   blockTitle: string,
   action: 'Ask Seer' | 'Delete' | 'Show Seer activity'
@@ -239,7 +266,6 @@ describe('Investigation detail', () => {
       url: detailUrl,
       body: InvestigationDetailFixture({
         sourceType: 'metric_open_period',
-        template: {key: 'breached_metric', version: 1},
       }),
     });
 
@@ -257,7 +283,6 @@ describe('Investigation detail', () => {
             'feedback.owner': 'ml-ai',
             'investigation.id': 'investigation-1',
             'investigation.source_type': 'metric_open_period',
-            'investigation.template': 'breached_metric',
           },
         })
       );
@@ -382,6 +407,9 @@ describe('Investigation detail', () => {
 
     afterEach(async () => {
       try {
+        // Unmount first: a running run's status block keeps a live clock, and
+        // flushing the query cache's timers with it mounted ticks it for minutes.
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -1461,6 +1489,127 @@ describe('Investigation detail', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('outlines the report by its headings and scrolls to the one picked', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    expect(
+      within(outline)
+        .getAllByRole('link')
+        .map(link => link.textContent)
+    ).toEqual(['Summary', 'What happened', 'When it happened', 'Activity']);
+
+    const heading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    heading.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'When it happened'}));
+
+    expect(heading.scrollIntoView).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'start',
+    });
+    expect(within(outline).getByRole('link', {name: 'When it happened'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+  });
+
+  it('follows the reader down the report, holding a picked section until they scroll', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: investigationWithReportHeadings(),
+    });
+
+    renderView();
+
+    const outline = await screen.findByRole('navigation', {
+      name: 'Investigation outline',
+    });
+    // Nothing is laid out, so everything sits at the top of the viewport unless
+    // placed: the reader is at the start of the page.
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'Summary'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    // Scroll the summary away, and put the second section and the activity
+    // feed below the fold.
+    jest
+      .spyOn(screen.getByTestId('investigation-summary'), 'getBoundingClientRect')
+      .mockReturnValue({top: -300} as DOMRect);
+    const nextHeading = screen.getByRole('heading', {level: 2, name: 'When it happened'});
+    const nextHeadingRect = jest
+      .spyOn(nextHeading, 'getBoundingClientRect')
+      .mockReturnValue({top: 600} as DOMRect);
+    const activity = screen
+      .getByRole('heading', {level: 2, name: 'Activity'})
+      .closest('section')!;
+    jest.spyOn(activity, 'getBoundingClientRect').mockReturnValue({top: 900} as DOMRect);
+
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(within(outline).getByRole('link', {name: 'What happened'})).toHaveAttribute(
+        'aria-current',
+        'location'
+      )
+    );
+
+    nextHeadingRect.mockReturnValue({top: 100} as DOMRect);
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+
+    // The activity feed is too close to the end to scroll up past the fold.
+    activity.scrollIntoView = jest.fn();
+    await userEvent.click(within(outline).getByRole('link', {name: 'Activity'}));
+    expect(activity.scrollIntoView).toHaveBeenCalled();
+    fireEvent.scroll(document);
+    // Let the frame the scroll scheduled run before checking it changed nothing.
+    await act(() => new Promise(resolve => window.requestAnimationFrame(resolve)));
+    expect(within(outline).getByRole('link', {name: 'Activity'})).toHaveAttribute(
+      'aria-current',
+      'location'
+    );
+
+    // Once the jump has finished, the next scroll is the reader's own.
+    await act(() => new Promise(resolve => window.setTimeout(resolve, 300)));
+    fireEvent.scroll(document);
+    await waitFor(() =>
+      expect(
+        within(outline).getByRole('link', {name: 'When it happened'})
+      ).toHaveAttribute('aria-current', 'location')
+    );
+  });
+
+  it('leaves the outline out of a report with a single heading', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        blocks: [investigationWithReportHeadings().blocks[0]!],
+      }),
+    });
+
+    renderView();
+
+    expect(
+      await screen.findByRole('heading', {level: 2, name: 'What happened'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('navigation', {name: 'Investigation outline'})
+    ).not.toBeInTheDocument();
+  });
+
   it('renders partial text while an agent-written text block is running', async () => {
     const investigation = investigationWithQueryResult();
     investigation.blocks[0] = {
@@ -2091,11 +2240,6 @@ describe('Investigation detail', () => {
         error: null,
       },
     };
-    investigation.blocks[1] = {
-      ...investigation.blocks[1]!,
-      config: {autoRun: true},
-      dependencies: ['block-1'],
-    };
     MockApiClient.addMockResponse({url: detailUrl, body: investigation});
     MockApiClient.addMockResponse({
       url: `${detailUrl}blocks/block-1/executions/execution-1/`,
@@ -2112,7 +2256,7 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     await screen.findByText('Investigate database latency');
-    // The block waiting behind the running one is not shown at all.
+    // The block that hasn't started is not shown at all.
     expect(screen.getByLabelText('Block actions for Summary')).toBeInTheDocument();
     expect(screen.getByTestId('investigation-block-placeholder')).toBeInTheDocument();
     expect(
@@ -2146,55 +2290,6 @@ describe('Investigation detail', () => {
       'aria-expanded',
       'true'
     );
-  });
-
-  describe('keeps polling while an auto-run block is waiting to start with fake timers', () => {
-    beforeEach(() => {
-      jest.useFakeTimers();
-    });
-
-    afterEach(async () => {
-      try {
-        await act(() => jest.runOnlyPendingTimersAsync());
-      } finally {
-        jest.useRealTimers();
-      }
-    });
-
-    it('keeps polling while an auto-run block is waiting to start', async () => {
-      const investigation = InvestigationDetailFixture({
-        template: {key: 'breached_metric', version: 1},
-      });
-      investigation.blocks = [
-        {
-          ...investigation.blocks[0]!,
-          outputStatus: 'completed',
-          currentExecution: {
-            id: 'execution-completed',
-            status: 'completed',
-            startedAt: '2026-08-17T10:00:00Z',
-            completedAt: '2026-08-17T10:00:10Z',
-            error: null,
-          },
-        },
-        {
-          ...investigation.blocks[1]!,
-          config: {autoRun: true},
-          dependencies: ['block-1'],
-        },
-      ];
-      const request = MockApiClient.addMockResponse({
-        url: detailUrl,
-        body: investigation,
-      });
-
-      renderView();
-
-      await screen.findByText('Initial notes');
-      expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
-      await act(() => jest.advanceTimersByTimeAsync(2000));
-      expect(request).toHaveBeenCalledTimes(2);
-    });
   });
 
   describe('refetches while Seer Agent works with fake timers', () => {
@@ -2350,64 +2445,6 @@ describe('Investigation detail', () => {
     await screen.findByText('Initial notes');
     expect(
       screen.queryByLabelText('Block actions for Latency query')
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows available results and hides blocks blocked by a failed branch', async () => {
-    const investigation = InvestigationDetailFixture();
-    const textBlock = investigation.blocks[0]!;
-    const queryBlock = investigation.blocks[1]!;
-    investigation.blocks = [
-      {
-        ...textBlock,
-        outputStatus: 'failed',
-        currentExecution: {
-          id: 'execution-failed',
-          status: 'failed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: {message: 'Summary failed'},
-        },
-      },
-      {
-        ...queryBlock,
-        config: {autoRun: true},
-        dependencies: ['block-1'],
-      },
-      {
-        ...textBlock,
-        id: 'block-3',
-        position: 2,
-        title: 'Independent analysis',
-        outputStatus: 'completed',
-        currentExecution: {
-          id: 'execution-completed',
-          status: 'completed',
-          startedAt: '2026-08-17T10:00:00Z',
-          completedAt: '2026-08-17T10:00:10Z',
-          error: null,
-        },
-      },
-      {
-        ...queryBlock,
-        id: 'block-4',
-        position: 3,
-        title: 'Independent follow-up',
-        config: {autoRun: true},
-        dependencies: ['block-3'],
-      },
-    ];
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    expect(
-      await screen.findByLabelText('Block actions for Independent analysis')
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-2')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('investigation-block-block-4')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
   });
 

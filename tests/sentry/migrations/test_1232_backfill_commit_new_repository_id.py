@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class BackfillCommitNewRepositoryIdTest(TestMigrations):
     app = "sentry"
     migrate_from = "1231_drop_group_logger_indexes"

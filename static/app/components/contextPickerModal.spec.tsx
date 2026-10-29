@@ -714,6 +714,8 @@ describe('ContextPickerModal', () => {
     // Select project first — should NOT navigate yet (team not selected)
     await selectEvent.select(screen.getByText(/Select a Project/), project.slug);
     expect(onFinish).not.toHaveBeenCalled();
+    expect(screen.queryByText('Select a Project to continue')).not.toBeInTheDocument();
+    expect(screen.getAllByText(project.slug)).toHaveLength(2);
 
     // Select team — should navigate with both project and team
     await selectEvent.select(screen.getByText(/Select a Team/), `#${team1.slug}`);
@@ -754,6 +756,8 @@ describe('ContextPickerModal', () => {
     // Select team first — should NOT navigate yet (project not selected)
     await selectEvent.select(screen.getByText(/Select a Team/), `#${team2.slug}`);
     expect(onFinish).not.toHaveBeenCalled();
+    expect(screen.queryByText('Select a Team to continue')).not.toBeInTheDocument();
+    expect(screen.getAllByText(`#${team2.slug}`)).toHaveLength(2);
 
     // Select project — should navigate with both project and team
     await selectEvent.select(screen.getByText(/Select a Project/), project2.slug);

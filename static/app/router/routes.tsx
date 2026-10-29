@@ -533,8 +533,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/'},
       },
       index: true,
       name: t('General'),
@@ -549,8 +549,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/teams/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/teams/'},
       },
       path: 'teams/',
       name: t('Teams'),
@@ -561,8 +561,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/alerts/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/alerts/'},
       },
       path: 'alerts/',
       name: t('Alerts'),
@@ -603,6 +603,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/attributes/',
         },
       },
@@ -615,8 +617,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/tags/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/tags/'},
       },
       path: 'tags/',
       name: t('Tags & Context'),
@@ -627,6 +629,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/environments/',
         },
       },
@@ -647,6 +651,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/ownership/',
         },
       },
@@ -663,6 +669,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/user-feedback/',
         },
       },
@@ -675,6 +683,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/toolbar/',
         },
       },
@@ -687,6 +697,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/filters/',
         },
       },
@@ -708,6 +720,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/security-and-privacy/',
         },
       },
@@ -733,6 +747,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/issue-grouping/',
         },
       },
@@ -745,6 +761,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/debug-symbols/',
         },
       },
@@ -757,6 +775,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/proguard/',
         },
       },
@@ -769,6 +789,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/source-maps/',
         },
       },
@@ -806,6 +828,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/performance/',
         },
       },
@@ -822,6 +846,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/replays/',
         },
       },
@@ -834,8 +860,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/logs/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/logs/'},
       },
       path: 'logs/',
       name: t('Logs'),
@@ -846,6 +872,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/playstation/',
         },
       },
@@ -858,6 +886,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/mobile-builds/',
         },
       },
@@ -870,6 +900,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/snapshots/',
         },
       },
@@ -882,8 +914,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
-          switchTo: '/settings/:orgId/projects/:projectId/keys/',
         },
+        settingsProjectSwitch: {switchTo: '/settings/:orgId/projects/:projectId/keys/'},
       },
       path: 'keys/',
       name: t('Client Keys'),
@@ -913,6 +945,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/loader-script/',
         },
       },
@@ -925,6 +959,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/release-tracking/',
         },
       },
@@ -939,6 +975,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/security-headers/',
         },
       },
@@ -974,6 +1012,8 @@ function buildRoutes(): RouteObject[] {
         settingsBreadcrumb: {
           type: 'project',
           to: '/settings/:orgId/projects/:projectId/',
+        },
+        settingsProjectSwitch: {
           switchTo: '/settings/:orgId/projects/:projectId/legacy-webhooks/',
         },
       },
@@ -3041,6 +3081,15 @@ function buildRoutes(): RouteObject[] {
     },
     traceView,
   ];
+  const inboxRoutes: SentryRouteObject = {
+    // TODO: Items are temporarily addressed by inbox item ID. These URLs will
+    // change to reference the item's subject (e.g. the issue or notebook)
+    // so they stay stable and shareable.
+    path: '/inbox/:id?/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/inbox')),
+  };
+
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
     withOrgPath: true,
@@ -3258,6 +3307,7 @@ function buildRoutes(): RouteObject[] {
       projectsRoutes,
       dashboardRoutes,
       feedbackv2Routes,
+      inboxRoutes,
       issueRoutes,
       alertRoutes,
       monitorRoutes,
