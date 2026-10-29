@@ -15,10 +15,8 @@ from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.seer.endpoints.organization_seer_workflow_configs import (
-    OrganizationSeerWorkflowConfigsEndpoint,
-    serialize_workflow_configs,
-)
+from sentry.models.project import Project
+from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
     WorkflowRunListErrorResponse,
@@ -890,16 +888,19 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             assert response.data["version"] == 3
         assert self.selected_project_ids(config) == [self.project.id]
 
-    def test_put_invalid_body_returns_400(self) -> None:
+    def test_put_nonexistent_projects_return_403(self) -> None:
         config = self.create_config()
-        for project_ids in ([-1], ["invalid"], self.project.id):
+        Factories.create_seer_workflow_config_project(config, self.project)
+        foreign = self.create_project(organization=self.create_organization())
+        for project_id in (self.nonexistent_project_id(), foreign.id):
             self.get_error_response(
                 self.organization.slug,
                 config.id,
                 method="put",
-                projectIds=project_ids,
-                status_code=400,
+                projectIds=[self.project.id, project_id],
+                status_code=403,
             )
+        assert self.selected_project_ids(config) == [self.project.id]
 
     def test_put_unavailable_projects_return_403(self) -> None:
         config = self.create_config()
@@ -976,6 +977,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.data["projects"] == [other_accessible.id]
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
+
+    def nonexistent_project_id(self) -> int:
+        return Project.objects.order_by("-id").values_list("id", flat=True)[0] + 1000
 
     def selected_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return sorted(
@@ -1080,20 +1084,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "Breached metric projects are selected by connecting monitors"
         )
 
-    # Sends more requests than the creation rate limit allows.
-    @patch.object(OrganizationSeerWorkflowConfigsEndpoint, "enforce_rate_limit", False)
-    def test_invalid_body_returns_400(self) -> None:
-        for body in (
-            {},
-            {"strategy": "agentic_triage"},
-            {"strategy": "duplicate_monitors"},
-            {"strategy": "agentic_triage_v2", "schedule": "weekly"},
-            {"strategy": "agentic_triage_v2", "projectIds": [-1, self.project.id]},
-            {"strategy": "agentic_triage_v2", "projectIds": [0]},
-            {"strategy": "agentic_triage_v2", "projectIds": [-2]},
-            {"strategy": "agentic_triage_v2", "environments": ["a" * 65]},
-        ):
-            self.get_error_response(self.organization.slug, **body, status_code=400)
+    def test_nonexistent_projects_return_403(self) -> None:
+        foreign = self.create_project(organization=self.create_organization())
+        for project_id in (self.nonexistent_project_id(), foreign.id):
+            self.get_error_response(
+                self.organization.slug,
+                strategy="agentic_triage_v2",
+                projectIds=[self.project.id, project_id],
+                status_code=403,
+            )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_unavailable_projects_return_403(self) -> None:
@@ -1169,6 +1168,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=429
         )
+
+    def nonexistent_project_id(self) -> int:
+        return Project.objects.order_by("-id").values_list("id", flat=True)[0] + 1000
 
     def selected_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return sorted(

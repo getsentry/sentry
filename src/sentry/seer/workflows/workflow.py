@@ -100,10 +100,11 @@ class SeerWorkflow:
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise ValueError(f"{strategy} automations cannot be configured")
 
-        all_projects = set(project_ids) == ALL_ACCESS_PROJECTS
+        requested = set(project_ids)
+        all_projects = requested == ALL_ACCESS_PROJECTS
         if all_projects:
             # [-1] is not stored as project links, only in config.filters
-            project_ids = []
+            requested = set()
 
         with transaction.atomic(router.db_for_write(SeerWorkflowConfig)):
             existing = SeerWorkflowConfig.objects.filter(
@@ -115,13 +116,13 @@ class SeerWorkflow:
                     f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
                 )
 
-            if project_ids:
+            if requested:
                 valid_project_ids = set(
                     Project.objects.filter(
-                        organization_id=organization_id, id__in=project_ids
+                        organization_id=organization_id, id__in=requested
                     ).values_list("id", flat=True)
                 )
-                if project_ids != valid_project_ids:
+                if requested != valid_project_ids:
                     raise ValueError("Selected projects must exist in the workflow's organization")
 
             config = SeerWorkflowConfig.objects.create(
@@ -135,11 +136,11 @@ class SeerWorkflow:
                 ).dict(),
                 extras=SeerWorkflowConfigExtras(name=name).dict(),
             )
-            if project_ids:
+            if requested:
                 SeerWorkflowConfigProject.objects.bulk_create(
                     [
                         SeerWorkflowConfigProject(config=config, project_id=project_id)
-                        for project_id in sorted(project_ids)
+                        for project_id in sorted(requested)
                     ]
                 )
         return cls(config)
@@ -294,18 +295,29 @@ class SeerWorkflow:
             if project_ids != valid_project_ids:
                 raise ValueError("Selected projects must exist in the workflow's organization")
 
-            links = SeerWorkflowConfigProject.objects.filter(config=config)
+            existing = set(
+                SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                    "project_id", flat=True
+                )
+            )
+            removable = existing
             if has_access_projects is not None:
                 # Keep selected projects the caller can't access.
-                links = links.filter(project_id__in=has_access_projects)
-            links.delete()
+                removable = existing & set(has_access_projects)
+            removed = removable - project_ids
+            added = project_ids - existing
+            filters = SeerWorkflowFilters.parse_obj(config.filters)
+            if not removed and not added and filters.all_projects == all_projects:
+                self.config = config
+                return
+
+            SeerWorkflowConfigProject.objects.filter(config=config, project_id__in=removed).delete()
             SeerWorkflowConfigProject.objects.bulk_create(
                 [
                     SeerWorkflowConfigProject(config=config, project_id=project_id)
-                    for project_id in sorted(project_ids)
+                    for project_id in sorted(added)
                 ]
             )
-            filters = SeerWorkflowFilters.parse_obj(config.filters)
             filters.all_projects = all_projects
             config.filters = config.filters | filters.dict()
             config.version += 1
