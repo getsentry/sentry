@@ -3,7 +3,7 @@ import operator
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
-from django.db import models
+from django.db import models, router, transaction
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
@@ -216,28 +216,46 @@ class DataCondition(DefaultFieldsModel):
             "condition_group_id": condition_group_id,
         }
 
-        has_siblings = (
-            DataCondition.objects.filter(condition_group_id=condition_group_id)
-            .exclude(id=condition_id)
-            .exists()
-        )
-        if not has_siblings:
-            logger.error(
-                "Invalid comparison for data condition; operator condition on workflow cannot be evaluated",
-                extra=log_extra,
-            )
-            return ConditionError(msg="Invalid comparison for data condition")
-
         try:
-            self.delete()
+            with transaction.atomic(router.db_for_write(DataCondition)):
+                # Lock every condition row in the group so concurrent evaluations serialize their
+                # check-then-delete and cannot each delete a different row and empty the group.
+                group_conditions = list(
+                    DataCondition.objects.select_for_update()
+                    .filter(condition_group_id=condition_group_id)
+                    .values_list("id", "type")
+                )
+                # Only count siblings that are not themselves operator conditions: those are the
+                # ones that will remain after lazy cleanup, so the group can never become empty.
+                has_valid_sibling = any(
+                    cid != condition_id and ctype not in CONDITION_OPS
+                    for cid, ctype in group_conditions
+                )
+                self_exists = any(cid == condition_id for cid, _ in group_conditions)
+
+                if not has_valid_sibling:
+                    deleted = False
+                elif not self_exists:
+                    # Already removed by a concurrent evaluation.
+                    return ConditionError(msg="Invalid comparison for data condition")
+                else:
+                    self.delete()
+                    deleted = True
         except Exception:
             logger.exception(
                 "Invalid comparison for data condition; failed to delete bad condition",
                 extra=log_extra,
             )
-        else:
+            return ConditionError(msg="Invalid comparison for data condition")
+
+        if deleted:
             logger.warning(
                 "Invalid comparison for data condition; deleted bad workflow condition",
+                extra=log_extra,
+            )
+        else:
+            logger.error(
+                "Invalid comparison for data condition; operator condition on workflow cannot be evaluated",
                 extra=log_extra,
             )
         return ConditionError(msg="Invalid comparison for data condition")
