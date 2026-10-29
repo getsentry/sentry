@@ -9,6 +9,7 @@ from django.db import router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
+from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
     Investigation,
@@ -90,20 +91,22 @@ def investigation_filters(investigation: Investigation) -> dict[str, Any]:
     return filters
 
 
-def _create_project_links(investigation: Investigation, project_ids: Iterable[int]) -> None:
+def _validate_project_ids(organization_id: int, project_ids: Iterable[int]) -> list[int]:
     requested = sorted(set(project_ids))
     if not requested:
-        return
+        return requested
     known = set(
         Project.objects.filter(
-            id__in=requested, organization_id=investigation.organization_id
+            id__in=requested, organization_id=organization_id, status=ObjectStatus.ACTIVE
         ).values_list("id", flat=True)
     )
-    unknown = [project_id for project_id in requested if project_id not in known]
-    if unknown:
-        raise InvestigationValidationError(
-            {"projectIds": "One or more projects are not in this organization."}
-        )
+    if not set(requested).issubset(known):
+        raise InvestigationValidationError({"projectIds": "One or more projects are inaccessible."})
+    return requested
+
+
+def _create_project_links(investigation: Investigation, project_ids: Iterable[int]) -> None:
+    requested = _validate_project_ids(investigation.organization_id, project_ids)
     InvestigationProject.objects.bulk_create(
         [
             InvestigationProject(investigation=investigation, project_id=project_id)

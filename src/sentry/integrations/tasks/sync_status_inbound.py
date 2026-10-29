@@ -310,7 +310,7 @@ def sync_status_inbound(
                 activity_type,
                 activity_data,
             ) = get_resolutions_and_activity_data_for_groups(
-                affected_groups, config.get("resolution_strategy"), activity_data, organization_id
+                resolvable_groups, config.get("resolution_strategy"), activity_data, organization_id
             )
             with action_context_scope(source=provider.key, actor=SYSTEM_ACTOR):
                 Group.objects.update_group_status(

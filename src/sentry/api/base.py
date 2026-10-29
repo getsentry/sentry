@@ -708,6 +708,8 @@ class StatsMixin:
             resolution_s = request.GET.get("resolution")
             if resolution_s:
                 resolution = self._parse_resolution(resolution_s)
+                if resolution < 0:
+                    raise ValueError
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
             else:

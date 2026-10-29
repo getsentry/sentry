@@ -57,7 +57,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -1210,11 +1210,12 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    @with_feature("organizations:investigations")
     def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
         organization = self.create_organization(owner=self.user)
         investigation, run = create_agentic_manual_investigation(
             organization=organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -1482,6 +1483,24 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         returned_ids = {p["id"] for p in response.data["projects"]}
         assert returned_ids == {project.id}
+
+    def test_service_account_viewer_context_is_rejected(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        service_account = self.create_service_account(organization=org, scope_list=["org:read"])
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                    organization_id=org.id,
+                )
+            ),
+        )
+        assert response.status_code == 403
 
     def test_user_scoped_viewer_context_authenticates(self) -> None:
         org = self.create_organization(owner=self.user)

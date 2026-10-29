@@ -706,16 +706,17 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 <field.Select
                   value={field.state.value ?? null}
                   onChange={field.handleChange}
-                  options={platformOptions}
+                  options={platformOptions.map(option => ({
+                    ...option,
+                    disabled:
+                      option.value === project.platform &&
+                      !isPlatformAllowed({
+                        isSelfHosted,
+                        organization,
+                        platform: option.value,
+                      }),
+                  }))}
                   filterOption={platformFilter}
-                  isOptionDisabled={option =>
-                    option.value === project.platform &&
-                    !isPlatformAllowed({
-                      isSelfHosted,
-                      organization,
-                      platform: option.value,
-                    })
-                  }
                   disabled={disabled}
                 />
               </field.Layout.Row>
