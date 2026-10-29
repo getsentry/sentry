@@ -7,6 +7,8 @@ will then be regenerated, and you should be able to merge without conflicts.
 
 ai_monitoring: 0002_add_date_updated_index
 
+cadence: 0001_initial
+
 discover: 0004_discover_starred_and_last_visited
 
 explore: 0019_move_saved_query_range_to_stats_period

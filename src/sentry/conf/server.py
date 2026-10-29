@@ -500,6 +500,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.releases",
     "sentry.seer",
     "sentry.scm",
+    "sentry.cadence.apps.CadenceConfig",
 )
 
 # Silence internal hints from Django's system checks
@@ -876,6 +877,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.issues.llm_cache_detection.tasks",
     "sentry.ai_monitoring.tasks",
+    "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
@@ -1037,6 +1039,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "send-ping": {
         "task": "selfhosted:sentry.tasks.send_ping",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
+    },
+    "cadence-tick": {
+        "task": "issues:sentry.cadence.tasks.cadence_tick",
+        "schedule": timedelta(seconds=10),
     },
     "flush-buffers": {
         "task": "buffer:sentry.tasks.process_buffer.process_pending",
