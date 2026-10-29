@@ -107,6 +107,10 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useOnClickOutside": {
+      "types": "./dist/useOnClickOutside.d.ts",
+      "import": "./dist/useOnClickOutside.js"
+    },
     "./link": {
       "types": "./dist/link/index.d.ts",
       "import": "./dist/link/index.js"

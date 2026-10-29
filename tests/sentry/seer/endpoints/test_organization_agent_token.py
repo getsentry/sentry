@@ -2006,6 +2006,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("OrganizationDashboardDetailsEndpoint", "PUT"): {
                 "title": "Updated permission matrix dashboard"
             },
+            # No chunks makes this a status poll, so no assemble task is started.
+            ("OrganizationArtifactBundleAssembleEndpoint", "POST"): {
+                "checksum": "a" * 40,
+                "chunks": [],
+                "projects": [self.project.slug],
+            },
             ("OrganizationDashboardsEndpoint", "POST"): {
                 "title": "Permission matrix dashboard mutation"
             },

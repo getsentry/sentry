@@ -26,10 +26,19 @@ describe('buildKeyValueTree', () => {
     expect(Array.from(tree.get('device')!.subtree.keys())).toEqual(['model', 'family']);
   });
 
-  it('keeps a key flat when it nests deeper than the maximum depth', () => {
-    const tree = buildKeyValueTree([item('a.b.c.d.e.f', 'deep')]);
+  it('nests a key alongside its siblings when it is deeply nested', () => {
+    const tree = buildKeyValueTree([
+      item('a.b', 'shallow'),
+      item('a.b.c.d.e.f.g', 'deep'),
+    ]);
 
-    expect(Array.from(tree.keys())).toEqual(['a.b.c.d.e.f']);
+    let node = tree.get('a');
+    for (const segment of ['b', 'c', 'd', 'e', 'f', 'g']) {
+      node = node?.subtree.get(segment);
+    }
+
+    expect(Array.from(tree.keys())).toEqual(['a']);
+    expect(node?.value).toBe('deep');
   });
 
   it('keeps a key flat when it contains sequential dots', () => {

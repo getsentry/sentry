@@ -25,6 +25,8 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
+notebooks: 0002_copy_from_investigations
+
 notifications: 0016_add_inboxitem_and_inboxitemevent
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
@@ -35,7 +37,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0045_workflow_run_lifecycle
 
-sentry: 1244_drop_incident
+sentry: 1245_add_login_hint_to_apidevicecode
 
 service_accounts: 0002_add_cell_replicas
 

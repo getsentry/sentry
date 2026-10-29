@@ -225,6 +225,33 @@ describe('desktop navigation', () => {
     );
   });
 
+  it('collapses a settings v3 section', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {
+          location: {pathname: '/settings/org-slug/projects/project-slug/'},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      })
+    );
+
+    const processing = screen.getByRole('button', {name: 'Processing'});
+    expect(processing).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', {name: 'Inbound Filters'})).toBeInTheDocument();
+
+    await userEvent.click(processing);
+    expect(processing).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', {name: 'Inbound Filters'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
   describe('settings v3', () => {
     const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
 

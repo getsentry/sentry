@@ -175,7 +175,6 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
-  template?: {key: string; version: number} | null;
 };
 
 export type InvestigationTitleGeneration = {

@@ -1,7 +1,5 @@
 import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 
-const MAX_TREE_DEPTH = 4;
-const BRANCH_MATCHES_REGEX = /\./g;
 const INVALID_BRANCH_REGEX = /\.{2,}/;
 
 export type KeyValueTreeValue = number | string | null;
@@ -53,13 +51,7 @@ function addToKeyValueTree<Value extends KeyValueTreeValue, Original>(
     return tree;
   }
 
-  const branchMatches = key.match(BRANCH_MATCHES_REGEX) ?? [];
-  const hasInvalidBranchCount =
-    branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = INVALID_BRANCH_REGEX.test(key);
-
-  // Keys with 0, or >4 branches, as well as sequential dots (e.g. 'some..key'), stay flat
-  if (hasInvalidBranchCount || hasInvalidBranchSequence) {
+  if (!key.includes('.') || INVALID_BRANCH_REGEX.test(key)) {
     tree.set(key, {
       value: item.value,
       subtree: tree.get(key)?.subtree ?? new Map(),

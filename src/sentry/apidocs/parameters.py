@@ -1084,6 +1084,20 @@ class EventParams:
         enum=["latest", "oldest", "recommended"],
     )
 
+    EVENT_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location=OpenApiParameter.QUERY,
+        required=False,
+        type=OpenApiTypes.STR,
+        many=True,
+        enum=["adjacentEvents"],
+        description=(
+            "Parts of the response to skip computing. Specify `adjacentEvents` to skip looking up "
+            "the neighboring events in the issue; `nextEventID` and `previousEventID` are then "
+            "always `null`. Unknown values are ignored."
+        ),
+    )
+
     FULL_PAYLOAD = OpenApiParameter(
         name="full",
         type=OpenApiTypes.BOOL,

@@ -19,7 +19,6 @@ from sentry.investigations.endpoints.serializers.block import (
     InvestigationBlockSerializerResponse,
 )
 from sentry.investigations.endpoints.serializers.parameter import (
-    InvestigationParameterSerializer,
     InvestigationParameterSerializerResponse,
 )
 from sentry.investigations.models import (
@@ -29,14 +28,12 @@ from sentry.investigations.models import (
     InvestigationBlock,
     InvestigationFavoriteUser,
     InvestigationOrchestrationRun,
-    InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
 )
 from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     investigation_filters,
-    investigation_source,
 )
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -175,7 +172,7 @@ class InvestigationSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationSerializerResponse:
-        source = investigation_source(obj)
+        source = obj.source
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -227,23 +224,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             by_investigation[block.investigation_id].append(block_response)
         return by_investigation
 
-    def _parameters_by_investigation(
-        self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
-    ) -> MutableMapping[int, list[InvestigationParameterSerializerResponse]]:
-        parameters = list(
-            InvestigationParameter.objects.filter(investigation__in=item_list).order_by(
-                "position", "id"
-            )
-        )
-        serialized = serialize(parameters, user, InvestigationParameterSerializer())
-
-        by_investigation: MutableMapping[int, list[InvestigationParameterSerializerResponse]] = (
-            defaultdict(list)
-        )
-        for parameter, parameter_response in zip(parameters, serialized):
-            by_investigation[parameter.investigation_id].append(parameter_response)
-        return by_investigation
-
     def _action_requests_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
     ) -> MutableMapping[int, list[InvestigationActionRequestSerializerResponse]]:
@@ -275,7 +255,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         attrs = super().get_attrs(item_list, user, **kwargs)
 
         blocks_by_investigation = self._blocks_by_investigation(item_list, user)
-        parameters_by_investigation = self._parameters_by_investigation(item_list, user)
         action_requests_by_investigation = self._action_requests_by_investigation(item_list, user)
 
         project_ids_by_investigation: MutableMapping[int, list[int]] = defaultdict(list)
@@ -288,7 +267,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
 
         for investigation in item_list:
             attrs[investigation]["blocks"] = blocks_by_investigation[investigation.id]
-            attrs[investigation]["parameters"] = parameters_by_investigation[investigation.id]
             attrs[investigation]["project_ids"] = project_ids_by_investigation[investigation.id]
             attrs[investigation]["action_requests"] = action_requests_by_investigation[
                 investigation.id
@@ -304,7 +282,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> InvestigationDetailsSerializerResponse:
-        resolved_source = investigation_source(obj)
+        resolved_source = obj.source
         source: InvestigationSourceSerializerResponse = {
             "type": resolved_source.get("type", InvestigationSourceType.MANUAL),
             "ref": resolved_source.get("ref", {}),
@@ -323,7 +301,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
             "source": source,
             "filters": investigation_filters(obj),
             "projectIds": attrs["project_ids"],
-            "parameters": attrs["parameters"],
+            "parameters": [],
             "blocks": attrs["blocks"],
             "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
