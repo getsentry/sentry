@@ -544,13 +544,31 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.when_condition_group is not None
         assert workflow.when_condition_group.conditions.count() == 0
 
-    def test_create__validate_triggers_with_conditions(self) -> None:
+    def test_create__rejects_operator_trigger_condition(self) -> None:
+        # Detector-style operator conditions are evaluated against WorkflowEventData when used as
+        # workflow triggers and can never succeed, so they must be rejected.
         self.valid_data["triggers"] = {
-            "logicType": "any",
+            "logicType": "any-short",
             "conditions": [
                 {
-                    "type": Condition.EQUAL,
-                    "comparison": 1,
+                    "type": Condition.GREATER,
+                    "comparison": 0,
+                    "conditionResult": 75,
+                }
+            ],
+        }
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is False
+        assert "triggers" in validator.errors
+
+    def test_create__validate_triggers_with_conditions(self) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "type": Condition.FIRST_SEEN_EVENT,
+                    "comparison": True,
                     "conditionResult": True,
                 }
             ],
@@ -566,7 +584,7 @@ class TestWorkflowValidatorCreate(TestCase):
 
         trigger_condition = trigger.conditions.first()
         assert trigger_condition is not None
-        assert trigger_condition.type == Condition.EQUAL
+        assert trigger_condition.type == Condition.FIRST_SEEN_EVENT
 
     @mock.patch(
         "sentry.workflow_engine.registry.action_handler_registry.get",
@@ -788,11 +806,11 @@ class TestWorkflowValidatorUpdate(TestCase):
                 "frequency": 30,
             },
             "triggers": {
-                "logicType": "any",
+                "logicType": "any-short",
                 "conditions": [
                     {
-                        "type": Condition.EQUAL,
-                        "comparison": 1,
+                        "type": Condition.FIRST_SEEN_EVENT,
+                        "comparison": True,
                         "condition_result": True,
                     },
                 ],
@@ -981,11 +999,11 @@ class TestWorkflowValidatorUpdate(TestCase):
 
     def test_update__data_condition(self, mock_action_validator: mock.MagicMock) -> None:
         first_condition = self._get_first_trigger_condition(self.workflow)
-        assert first_condition.comparison == 1
+        assert first_condition.comparison is True
 
         assert self.valid_saved_data["triggers"] is not None
         updated_condition = self.valid_saved_data["triggers"]["conditions"][0]
-        updated_condition["comparison"] = 2
+        updated_condition["comparison"] = False
         self.valid_saved_data["triggers"]["conditions"][0] = updated_condition
 
         validator = WorkflowValidator(data=self.valid_saved_data, context=self.context)
@@ -1001,9 +1019,9 @@ class TestWorkflowValidatorUpdate(TestCase):
         assert self.workflow.when_condition_group
         assert self.workflow.when_condition_group.conditions.count() == 1
         dc = self.workflow.when_condition_group.conditions.create(
-            type=Condition.EQUAL,
-            comparison=2,
-            condition_result=False,
+            type=Condition.REGRESSION_EVENT,
+            comparison=True,
+            condition_result=True,
         )
         assert self.workflow.when_condition_group.conditions.count() == 2
         serializer = WorkflowSerializer()

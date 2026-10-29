@@ -3,7 +3,7 @@ import operator
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar, cast
 
-from django.db import models
+from django.db import models, router, transaction
 from jsonschema import ValidationError, validate
 
 from sentry.backup.scopes import RelocationScope
@@ -19,6 +19,7 @@ from sentry.workflow_engine.types import (
     DataConditionHandler,
     DataConditionResult,
     DetectorPriorityLevel,
+    WorkflowEventData,
 )
 from sentry.workflow_engine.utils import scopedstats
 
@@ -175,6 +176,13 @@ class DataCondition(DefaultFieldsModel):
         # If the condition is a base type, handle it directly
         op = CONDITION_OPS[condition_type]
 
+        if isinstance(value, WorkflowEventData):
+            # Operator conditions are only valid for detectors. One attached to a workflow
+            # (trigger or action filter) is evaluated against WorkflowEventData and can never
+            # produce a meaningful result: ordering ops raise TypeError, while eq/ne silently
+            # return False/True (so `ne` would always trigger). Never run the operator here.
+            return self._handle_invalid_workflow_operator_condition()
+
         try:
             return op(cast(Any, value), self.comparison)
         except TypeError:
@@ -188,6 +196,69 @@ class DataCondition(DefaultFieldsModel):
                 },
             )
             return ConditionError(msg="Invalid comparison for data condition")
+
+    def _handle_invalid_workflow_operator_condition(self) -> ConditionError:
+        """
+        Lazily delete an operator condition attached to a workflow so the workflow can evaluate
+        its remaining conditions.
+
+        An empty condition group always evaluates as triggered, so deleting the last condition
+        in a group would make the workflow fire on every event. In that case keep the condition
+        and keep reporting the bad configuration as an error.
+        """
+        condition_id = self.id
+        condition_group_id = self.condition_group_id
+        log_extra = {
+            "comparison": self.comparison,
+            "condition_result": self.condition_result,
+            "type": self.type,
+            "condition_id": condition_id,
+            "condition_group_id": condition_group_id,
+        }
+
+        try:
+            with transaction.atomic(router.db_for_write(DataCondition)):
+                # Lock every condition row in the group so concurrent evaluations serialize their
+                # check-then-delete and cannot each delete a different row and empty the group.
+                group_conditions = list(
+                    DataCondition.objects.select_for_update()
+                    .filter(condition_group_id=condition_group_id)
+                    .values_list("id", "type")
+                )
+                # Only count siblings that are not themselves operator conditions: those are the
+                # ones that will remain after lazy cleanup, so the group can never become empty.
+                has_valid_sibling = any(
+                    cid != condition_id and ctype not in CONDITION_OPS
+                    for cid, ctype in group_conditions
+                )
+                self_exists = any(cid == condition_id for cid, _ in group_conditions)
+
+                if not has_valid_sibling:
+                    deleted = False
+                elif not self_exists:
+                    # Already removed by a concurrent evaluation.
+                    return ConditionError(msg="Invalid comparison for data condition")
+                else:
+                    self.delete()
+                    deleted = True
+        except Exception:
+            logger.exception(
+                "Invalid comparison for data condition; failed to delete bad condition",
+                extra=log_extra,
+            )
+            return ConditionError(msg="Invalid comparison for data condition")
+
+        if deleted:
+            logger.warning(
+                "Invalid comparison for data condition; deleted bad workflow condition",
+                extra=log_extra,
+            )
+        else:
+            logger.error(
+                "Invalid comparison for data condition; operator condition on workflow cannot be evaluated",
+                extra=log_extra,
+            )
+        return ConditionError(msg="Invalid comparison for data condition")
 
     @scopedstats.timer()
     def _evaluate_condition(

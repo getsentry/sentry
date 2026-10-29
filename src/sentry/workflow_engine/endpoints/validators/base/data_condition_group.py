@@ -11,6 +11,7 @@ from sentry.workflow_engine.endpoints.validators.base.data_condition import (
 from sentry.workflow_engine.endpoints.validators.utils import remove_items_by_api_input
 from sentry.workflow_engine.models import DataConditionGroup
 from sentry.workflow_engine.models.data_condition import (
+    CONDITION_OPS,
     Condition,
     DataCondition,
     get_condition_handler,
@@ -37,6 +38,40 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             conditions.append(condition_validator.validated_data)
 
         return conditions
+
+    @staticmethod
+    def validate_condition_handler_groups(
+        conditions: list[dict[str, Any]],
+        allowed_groups: set[DataConditionHandler.Group],
+    ) -> None:
+        """
+        Ensure every condition is backed by a registered handler whose group is in `allowed_groups`.
+
+        Bare operator conditions (e.g. `gt`, `eq`) are only meaningful for detectors, which compare
+        numeric values. Workflow triggers and action filters are evaluated against
+        `WorkflowEventData`, so operator conditions there can never evaluate successfully.
+        """
+        allowed = ", ".join(sorted(str(group) for group in allowed_groups))
+        for condition in conditions:
+            raw_type = condition.get("type")
+            try:
+                condition_type = Condition(str(raw_type))
+            except ValueError:
+                raise serializers.ValidationError(f"Invalid condition type, '{raw_type}'")
+
+            if condition_type in CONDITION_OPS:
+                raise serializers.ValidationError(
+                    f"Condition type '{condition_type}' is not supported here. Expected a condition of group: {allowed}"
+                )
+
+            handler = get_condition_handler(condition_type)
+            if handler is None:
+                raise serializers.ValidationError(f"Invalid condition type, '{condition_type}'")
+
+            if handler.group not in allowed_groups:
+                raise serializers.ValidationError(
+                    f"Condition type '{condition_type}' is not supported here. Expected a condition of group: {allowed}"
+                )
 
     def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
         """
