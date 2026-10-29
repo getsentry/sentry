@@ -9,6 +9,7 @@ from rest_framework import serializers
 from sentry import audit_log
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues import grouptype
@@ -201,7 +202,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
             log_alerting_quota_hit(
                 object_type=f"detector:{validated_data['type'].slug}",
                 organization=self.context["organization"],
-                actor=request.user if request.user.is_authenticated else None,
+                actor=request.user if has_user(request.user) else None,
             )
             raise serializers.ValidationError(
                 f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
@@ -331,7 +332,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
-                created_by_id=request.user.id,
+                created_by_id=acting_user_id(request.user),
             )
 
             try:
