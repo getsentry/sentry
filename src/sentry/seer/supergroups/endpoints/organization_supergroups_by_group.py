@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from typing import Any
 
 from rest_framework import status as status_codes
@@ -15,9 +16,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index import get_group_list
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SupergroupDetailData
@@ -90,6 +92,7 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
 
         # Seer returns every group_id in each supergroup regardless of request. We apply any
         # filters from the request after we get the data from Seer.
+        data["data"] = _filter_to_projects(data["data"], projects)
         all_response_group_ids = {gid for sg in data["data"] for gid in sg["group_ids"]}
         if len(all_response_group_ids) > _MAX_GROUPS_FOR_FETCH:
             return Response({"data": data["data"], "meta": {"estimated": True}})
@@ -111,6 +114,34 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
                 "meta": {"estimated": False},
             }
         )
+
+
+def _filter_to_projects(
+    supergroups: list[SupergroupDetailData], projects: Sequence[Project]
+) -> list[SupergroupDetailData]:
+    # A supergroup can span projects the caller has no access to, so strip those
+    # groups before anything else reads them.
+    project_ids = {p.id for p in projects}
+    accessible_group_ids = set(
+        Group.objects.filter(
+            id__in={gid for sg in supergroups for gid in sg["group_ids"]},
+            project_id__in=project_ids,
+        ).values_list("id", flat=True)
+    )
+
+    result: list[SupergroupDetailData] = []
+    for sg in supergroups:
+        group_ids = [gid for gid in sg["group_ids"] if gid in accessible_group_ids]
+        if not group_ids:
+            continue
+        result.append(
+            {
+                **sg,
+                "group_ids": group_ids,
+                "project_ids": [pid for pid in sg.get("project_ids", []) if pid in project_ids],
+            }
+        )
+    return result
 
 
 def _add_assignees(
