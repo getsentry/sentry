@@ -33,7 +33,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow, SeerWorkflowConfigError
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
@@ -243,7 +243,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 environments=data["environments"],
                 project_ids=None if all_projects else project_ids,
             )
-        except SeerWorkflowConfigError as e:
+        except ValueError as e:
             return Response({"detail": str(e)}, status=400)
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
@@ -329,7 +329,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         if request.access.has_project_scope(project, "project:read")
                     ],
                 )
-            except SeerWorkflowConfigError as e:
+            except ValueError as e:
                 return Response({"detail": str(e)}, status=400)
             config = workflow.config
 
