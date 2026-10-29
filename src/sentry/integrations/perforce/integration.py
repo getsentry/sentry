@@ -33,7 +33,6 @@ from sentry.integrations.perforce.client import (
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
@@ -430,8 +429,6 @@ class PerforceIntegration(RepositoryIntegration[PerforceClient], CommitContextIn
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         """
         Get list of depots/streams from Perforce server.

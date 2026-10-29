@@ -1,6 +1,5 @@
 from unittest.mock import MagicMock, patch
 
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.testutils.cases import APITestCase
 
 
@@ -264,11 +263,7 @@ class OrganizationIntegrationReposTest(APITestCase):
 
         assert response.status_code == 200, response.content
         get_repositories.assert_called_once_with(
-            "rad",
-            accessible_only=True,
-            use_cache=True,
-            parallel=True,
-            parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
+            "rad", accessible_only=True, use_cache=True, parallel=True
         )
         assert response.data == {
             "repos": [
@@ -301,11 +296,7 @@ class OrganizationIntegrationReposTest(APITestCase):
 
         assert response.status_code == 200, response.content
         get_repositories.assert_called_once_with(
-            None,
-            accessible_only=True,
-            use_cache=False,
-            parallel=True,
-            parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
+            None, accessible_only=True, use_cache=False, parallel=True
         )
 
     @patch(
@@ -317,11 +308,7 @@ class OrganizationIntegrationReposTest(APITestCase):
 
         assert response.status_code == 200, response.content
         get_repositories.assert_called_once_with(
-            None,
-            accessible_only=False,
-            use_cache=False,
-            parallel=True,
-            parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
+            None, accessible_only=False, use_cache=False, parallel=True
         )
 
     @patch(
@@ -359,11 +346,7 @@ class OrganizationIntegrationReposTest(APITestCase):
 
         assert response.status_code == 200, response.content
         get_repositories.assert_called_once_with(
-            "Example",
-            accessible_only=True,
-            use_cache=True,
-            parallel=True,
-            parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
+            "Example", accessible_only=True, use_cache=True, parallel=True
         )
         assert response.data == {
             "repos": [

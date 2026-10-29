@@ -37,10 +37,7 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         page_number_limit: int | None = None,
     ) -> tuple[str, list[tuple[str, str]]]:
         try:
-            repos = self.get_repositories(
-                page_number_limit=page_number_limit,
-                parent_interaction_type=SCMIntegrationInteractionType.GET_REPOSITORY_CHOICES,
-            )
+            repos = self.get_repositories(page_number_limit=page_number_limit)
         except ApiError as exc:
             if any(pattern in str(exc) for pattern in SOURCE_CODE_ISSUE_HALT_PATTERNS):
                 lifecycle.record_halt(exc)

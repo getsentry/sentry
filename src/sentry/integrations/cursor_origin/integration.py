@@ -31,7 +31,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository.model import RpcRepository
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repo_trees import RepoTreesIntegration
 from sentry.integrations.source_code_management.repository import (
     HaltReason,
@@ -80,8 +79,6 @@ class CursorOriginIntegration(RepositoryIntegration[CursorOriginApiClient], Repo
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         """Repositories this installation can see, narrowed by `query` where given.
 

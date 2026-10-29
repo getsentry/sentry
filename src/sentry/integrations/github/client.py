@@ -39,6 +39,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    get_current_scm_interaction_type,
     normalize_scm_provider_key,
 )
 from sentry.integrations.source_code_management.repo_trees import RepoTreesClient
@@ -747,8 +748,6 @@ class GitHubBaseClient(
         page_number_limit: int | None = None,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[dict[str, Any]]:
         """
         This fetches all repositories accessible to the Github App
@@ -765,6 +764,7 @@ class GitHubBaseClient(
         (see ``_get_with_pagination``). Only interactive callers opt in; the
         background ``link_all_repos`` task keeps the serial default.
         """
+        parent_interaction_type = get_current_scm_interaction_type()
         metric_tags = {
             "integration_name": normalize_scm_provider_key(self.integration_name),
             "parent_interaction_type": (
@@ -780,6 +780,9 @@ class GitHubBaseClient(
                 raise_on_page_limit=raise_on_page_limit,
                 parallel=parallel,
             )
+        except ApiPaginationTruncated:
+            metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "halted"})
+            raise
         except Exception:
             metrics.incr(GET_REPOSITORIES_METRIC, tags={**metric_tags, "result": "error"})
             raise
@@ -791,8 +794,6 @@ class GitHubBaseClient(
         self,
         ttl: int = 300,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[CachedRepo]:
         """
         Return all repos accessible to this installation, cached in
@@ -808,10 +809,7 @@ class GitHubBaseClient(
         if cached is not None:
             return cached
 
-        all_repos = self.get_repos(
-            parallel=parallel,
-            parent_interaction_type=parent_interaction_type,
-        )
+        all_repos = self.get_repos(parallel=parallel)
         repos: list[CachedRepo] = [
             {
                 "id": r["id"],

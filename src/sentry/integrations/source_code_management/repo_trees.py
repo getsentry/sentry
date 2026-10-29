@@ -6,7 +6,6 @@ from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple
 
 from sentry.integrations.services.integration import RpcOrganizationIntegration
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import RepositoryInfo
 from sentry.issues.auto_source_code_config.utils.platform import get_supported_extensions
 from sentry.shared_integrations.exceptions import ApiConflictError, ApiError, IntegrationError
@@ -142,8 +141,6 @@ class RepoTreesIntegration(ABC):
     def get_repositories(
         self,
         query: str | None = None,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         raise NotImplementedError
 
@@ -186,9 +183,7 @@ class RepoTreesIntegration(ABC):
                     "default_branch": repo_info.get("default_branch") or "",
                     "external_id": repo_info["external_id"],
                 }
-                for repo_info in self.get_repositories(
-                    parent_interaction_type=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
-                )
+                for repo_info in self.get_repositories()
                 if not repo_info.get("archived")
             ]
 

@@ -36,7 +36,6 @@ from sentry.integrations.source_code_management.commit_context import (
     CommitContextIntegration,
     PRCommentWorkflow,
 )
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     HaltReason,
     RepositoryInfo,
@@ -217,8 +216,6 @@ class GitlabIntegration(
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         try:
             # Note: gitlab projects are the same things as repos everywhere else

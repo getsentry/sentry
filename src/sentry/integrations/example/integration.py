@@ -21,7 +21,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
-from sentry.integrations.source_code_management.metrics import SCMIntegrationInteractionType
 from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
@@ -170,8 +169,6 @@ class ExampleIntegration(RepositoryIntegration, SourceCodeIssueIntegration, Issu
         use_cache: bool = False,
         raise_on_page_limit: bool = False,
         parallel: bool = False,
-        *,
-        parent_interaction_type: SCMIntegrationInteractionType | None = None,
     ) -> list[RepositoryInfo]:
         return [{"name": "repo", "identifier": "user/repo", "external_id": "1"}]
 

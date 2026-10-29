@@ -1,11 +1,16 @@
 from collections.abc import Mapping
+from contextvars import ContextVar, Token
 from enum import StrEnum
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from attr import dataclass
 
 from sentry.integrations.base import IntegrationDomain
-from sentry.integrations.utils.metrics import IntegrationEventLifecycleMetric
+from sentry.integrations.utils.metrics import (
+    IntegrationEventLifecycle,
+    IntegrationEventLifecycleMetric,
+)
 from sentry.models.commit import Commit
 from sentry.models.project import Project
 from sentry.models.repository import Repository
@@ -69,6 +74,50 @@ class SCMIntegrationInteractionType(StrEnum):
     GET_REPO_TREE = "get_repo_tree"
 
 
+_current_scm_interaction_type: ContextVar[SCMIntegrationInteractionType | None] = ContextVar(
+    "current_scm_interaction_type", default=None
+)
+
+
+def get_current_scm_interaction_type() -> SCMIntegrationInteractionType | None:
+    return _current_scm_interaction_type.get()
+
+
+class SCMIntegrationEventLifecycle(IntegrationEventLifecycle):
+    def __init__(
+        self,
+        payload: IntegrationEventLifecycleMetric,
+        interaction_type: SCMIntegrationInteractionType,
+        assume_success: bool,
+        sample_log_rate: float,
+    ) -> None:
+        super().__init__(payload, assume_success, sample_log_rate)
+        self.interaction_type = interaction_type
+        self._interaction_token: Token[SCMIntegrationInteractionType | None] | None = None
+
+    def __enter__(self) -> Self:
+        self._interaction_token = _current_scm_interaction_type.set(self.interaction_type)
+        try:
+            return super().__enter__()
+        except BaseException:
+            _current_scm_interaction_type.reset(self._interaction_token)
+            self._interaction_token = None
+            raise
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType,
+    ) -> None:
+        try:
+            super().__exit__(exc_type, exc_value, traceback)
+        finally:
+            if self._interaction_token is not None:
+                _current_scm_interaction_type.reset(self._interaction_token)
+                self._interaction_token = None
+
+
 class SCMResolutionHaltReason(StrEnum):
     GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
     ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
@@ -96,6 +145,16 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
 
     def get_integration_id(self) -> int | None:
         return self.integration_id
+
+    def capture(
+        self, assume_success: bool = True, sample_log_rate: float = 1.0
+    ) -> SCMIntegrationEventLifecycle:
+        return SCMIntegrationEventLifecycle(
+            self,
+            self.interaction_type,
+            assume_success,
+            sample_log_rate,
+        )
 
     def get_extras(self) -> Mapping[str, Any]:
         return {

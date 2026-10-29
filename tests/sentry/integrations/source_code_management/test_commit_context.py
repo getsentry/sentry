@@ -14,6 +14,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    get_current_scm_interaction_type,
 )
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.repository import Repository
@@ -45,6 +46,43 @@ def test_scm_interaction_event_normalizes_provider(
         "integration_name": expected_provider,
         "interaction_type": "get_stacktrace_link",
     }
+
+
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_tracks_nested_lifecycles(_mock_record: MagicMock) -> None:
+    outer = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS,
+        provider_key="github",
+    )
+    inner = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.GET_REPO_TREE,
+        provider_key="github",
+    )
+
+    assert get_current_scm_interaction_type() is None
+    with outer.capture():
+        assert (
+            get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+        )
+        with inner.capture():
+            assert get_current_scm_interaction_type() == SCMIntegrationInteractionType.GET_REPO_TREE
+        assert (
+            get_current_scm_interaction_type() == SCMIntegrationInteractionType.DERIVE_CODEMAPPINGS
+        )
+    assert get_current_scm_interaction_type() is None
+
+
+@patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+def test_scm_interaction_context_resets_after_exception(_mock_record: MagicMock) -> None:
+    event = SCMIntegrationInteractionEvent(
+        interaction_type=SCMIntegrationInteractionType.SYNC_REPOS,
+        provider_key="github",
+    )
+
+    with pytest.raises(RuntimeError), event.capture():
+        raise RuntimeError
+
+    assert get_current_scm_interaction_type() is None
 
 
 class MockCommitContextIntegration(CommitContextIntegration):
