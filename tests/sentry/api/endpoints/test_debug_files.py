@@ -495,6 +495,31 @@ class DebugFilesTest(DebugFilesTestCases):
         response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
         self._assert_successful_download(response, PROGUARD_SOURCE)
 
+    def test_dsyms_download_as_published_sentry_app(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        url = f"{self.url}?id={response.data[0]['id']}"
+
+        app = self.create_sentry_app(
+            name="Third Party",
+            organization=self.create_organization(),
+            scopes=("project:read",),
+            published=True,
+        )
+        install = self.create_sentry_app_installation(
+            organization=self.organization, slug=app.slug, user=self.user
+        )
+        token = self.create_internal_integration_token(user=self.user, install=install)
+        auth = f"Bearer {token.token}"
+
+        # A read-only integration from another organization can't download by default
+        response = self.client.get(url, HTTP_AUTHORIZATION=auth)
+        assert response.status_code == 403, response.content
+
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=auth)
+        self._assert_successful_download(response, PROGUARD_SOURCE)
+
 
 @requires_objectstore
 class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
