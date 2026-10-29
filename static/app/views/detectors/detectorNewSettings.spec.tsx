@@ -1558,7 +1558,7 @@ describe('DetectorEdit', () => {
       });
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Schedule Type'}),
+        await screen.findByRole('textbox', {name: /^Schedule/}),
         'Interval'
       );
 
