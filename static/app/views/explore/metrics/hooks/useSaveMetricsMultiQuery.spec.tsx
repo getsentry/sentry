@@ -134,6 +134,77 @@ describe('useSaveMetricsMultiQuery', () => {
   });
 
   it.each(['save', 'update'])(
+    'preserves each transformation pipeline on %s',
+    async action => {
+      const request = MockApiClient.addMockResponse({
+        url:
+          action === 'save'
+            ? `/organizations/${organization.slug}/explore/saved/`
+            : `/organizations/${organization.slug}/explore/saved/1/`,
+        method: action === 'save' ? 'POST' : 'PUT',
+        body: {id: '1'},
+      });
+      const {result} = renderHookWithProviders(useSaveMetricsMultiQuery, {
+        organization,
+        additionalWrapper: Wrapper,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/explore/metrics/`,
+            query: {
+              id: '1',
+              metric: JSON.stringify({
+                metric: {name: 'request.duration', type: 'distribution'},
+                aggregateFields: [
+                  {groupBy: 'project'},
+                  {
+                    yAxes: ['p50(value,request.duration,distribution,none)'],
+                    transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  },
+                  {
+                    yAxes: ['p90(value,request.duration,distribution,none)'],
+                    transformations: ['fill(zero)'],
+                  },
+                ],
+              }),
+            },
+          },
+        },
+      });
+
+      await act(async () => {
+        if (action === 'save') {
+          await result.current.saveQuery({name: 'Transformed metrics'});
+        } else {
+          await result.current.updateQuery();
+        }
+      });
+
+      expect(request).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query: [
+              expect.objectContaining({
+                aggregateField: expect.arrayContaining([
+                  {groupBy: 'project'},
+                  {
+                    yAxes: ['p50(value,request.duration,distribution,none)'],
+                    transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  },
+                  {
+                    yAxes: ['p90(value,request.duration,distribution,none)'],
+                    transformations: ['fill(zero)'],
+                  },
+                ]),
+              }),
+            ],
+          }),
+        })
+      );
+    }
+  );
+
+  it.each(['save', 'update'])(
     'rejects a failed %s without refetching queries',
     async action => {
       const listRequest = MockApiClient.addMockResponse({
