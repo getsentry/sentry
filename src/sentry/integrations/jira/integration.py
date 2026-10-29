@@ -1408,6 +1408,8 @@ class JiraIntegration(IssueSyncIntegration):
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
+                if jira_user is not None:
+                    break
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
