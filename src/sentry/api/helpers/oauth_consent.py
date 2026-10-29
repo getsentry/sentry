@@ -230,6 +230,7 @@ _PERMISSION_ACTIONS = {
     "invite": ("invite",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
+    "service_account:write": ("write",),
 }
 
 

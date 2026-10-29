@@ -1979,7 +1979,8 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
     "service_account:read": {"service_account:read"},
-    "service_account:write": {"service_account:read", "service_account:write"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2098,7 +2099,7 @@ SENTRY_SCOPE_SETS = (
         ("seer:read", "Read access to Seer-generated work."),
     ),
     (
-        ("service_account:write", "Read and write access to service accounts."),
+        ("service_account:write", "Write access to service accounts."),
         ("service_account:read", "Read access to service accounts."),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),

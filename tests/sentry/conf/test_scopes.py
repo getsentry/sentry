@@ -6,6 +6,8 @@ from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.testutils.cases import TestCase
 
 SERVICE_ACCOUNT_SCOPES = {"service_account:read", "service_account:write"}
+# Resources whose scopes are explicit, so write does not imply read.
+EXPLICIT_SCOPE_RESOURCES = {"service_account"}
 
 
 class ScopesTest(TestCase):
@@ -21,6 +23,10 @@ class ScopesTest(TestCase):
 
             # check that scope is in its own mapping
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
+
+            if resource in EXPLICIT_SCOPE_RESOURCES:
+                assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {scope}
+                continue
 
             # check that write grants read
             if access_level == "write":
