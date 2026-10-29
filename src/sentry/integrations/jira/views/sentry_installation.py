@@ -1,9 +1,9 @@
-from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
@@ -27,10 +27,10 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
     def get(self, request: Request, *args, **kwargs) -> Response:
         try:
             integration = get_integration_from_request(request, IntegrationProviderSlug.JIRA.value)
+        except AtlassianConnectTokenExpiredError:
+            return self.get_response({"refresh_required": True})
         except AtlassianConnectValidationError:
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
-        except ExpiredSignatureError:
-            return self.get_response({"refresh_required": True})
 
         # The pipeline loads everything else from the integration record, so the
         # link only needs to identify the installation.

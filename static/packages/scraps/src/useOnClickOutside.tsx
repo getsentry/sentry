@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useLayoutEffect} from 'react';
 
 // hook from https://usehooks.com/useOnClickOutside/

@@ -480,6 +480,86 @@ describe('BackendJsonSubmitForm', () => {
   });
 
   describe('select variants', () => {
+    describe.each(['static', 'async'] as const)('%s multi-select values', variant => {
+      it.each([
+        {name: 'empty string default', defaultValue: '', selectedValues: []},
+        {name: 'null default', defaultValue: null, selectedValues: []},
+        {name: 'missing default', defaultValue: undefined, selectedValues: []},
+        {name: 'scalar string default', defaultValue: 'bug', selectedValues: ['bug']},
+        {name: 'scalar numeric default', defaultValue: 0, selectedValues: [0]},
+        {name: 'array default', defaultValue: ['bug', 0], selectedValues: ['bug', 0]},
+        {
+          name: 'empty string initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: ''},
+          selectedValues: [],
+        },
+        {
+          name: 'null initial value',
+          defaultValue: ['bug'],
+          initialValues: {labels: null},
+          selectedValues: [],
+        },
+        {
+          name: 'scalar string initial value',
+          defaultValue: [],
+          initialValues: {labels: 'bug'},
+          selectedValues: ['bug'],
+        },
+        {
+          name: 'scalar numeric initial value',
+          defaultValue: [],
+          initialValues: {labels: 0},
+          selectedValues: [0],
+        },
+      ])('handles $name', async ({defaultValue, initialValues, selectedValues}) => {
+        render(
+          <BackendJsonSubmitForm
+            fields={[
+              {
+                name: 'labels',
+                type: 'select',
+                label: 'Labels',
+                multiple: true,
+                default: defaultValue,
+                choices: [
+                  ['bug', 'Bug'],
+                  [0, 'Zero'],
+                  ['feature', 'Feature'],
+                ],
+                url: variant === 'async' ? '/search' : undefined,
+              },
+            ]}
+            initialValues={initialValues}
+            onSubmit={onSubmit}
+            submitLabel="Create"
+          />,
+          {organization: org}
+        );
+
+        for (const [value, label] of [
+          ['bug', 'Bug'],
+          [0, 'Zero'],
+        ] as const) {
+          if (selectedValues.some(selectedValue => selectedValue === value)) {
+            expect(await screen.findByText(label)).toBeInTheDocument();
+          } else {
+            expect(screen.queryByText(label)).not.toBeInTheDocument();
+          }
+        }
+
+        await selectEvent.select(
+          screen.getByRole('textbox', {name: 'Labels'}),
+          'Feature'
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Create'}));
+
+        await waitFor(() => {
+          expect(onSubmit).toHaveBeenCalledWith({labels: [...selectedValues, 'feature']});
+        });
+      });
+    });
+
     it('preserves numeric choice values', async () => {
       render(
         <BackendJsonSubmitForm
