@@ -4,6 +4,7 @@ import {Heading} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
+import {InboxIssuePreview} from 'sentry/views/inbox/inboxIssuePreview';
 import type {InboxItem} from 'sentry/views/inbox/types';
 
 interface InboxItemPreviewProps {
@@ -23,7 +24,7 @@ export function InboxItemPreview({item}: InboxItemPreviewProps) {
 
   switch (item.subjectType) {
     case 'issue':
-      return <InboxIssuePreview item={item} />;
+      return <InboxIssuePreview key={item.subjectId} groupId={item.subjectId} />;
     case 'notebook':
       return <InboxNotebookPreview item={item} />;
     default:
@@ -34,15 +35,6 @@ export function InboxItemPreview({item}: InboxItemPreviewProps) {
 
 interface InboxSubjectPreviewProps {
   item: InboxItem;
-}
-
-// TODO: Render the issue details
-function InboxIssuePreview({item}: InboxSubjectPreviewProps) {
-  return (
-    <Container padding="xl">
-      <Heading as="h2">{item.subject?.title ?? t('Unavailable')}</Heading>
-    </Container>
-  );
 }
 
 // TODO: Render the investigation notebook

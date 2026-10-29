@@ -205,7 +205,6 @@ export function IssuePreviewActions({
       <GroupActions
         group={group}
         project={project}
-        disabled={disabled}
         event={null}
         onUpdateSuccess={invalidateInboxQueries}
         resolveVariant="secondary"
