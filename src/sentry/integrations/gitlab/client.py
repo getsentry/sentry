@@ -49,7 +49,7 @@ REFRESH_LOCK_DURATION_S = 90
 REFRESH_LOCK_WAIT_S = 10
 
 
-# Leave enough room for the proxy's retry envelope to fail before the task's 60-second deadline.
+# Bound each request so a full paginated reconciliation fits within the task deadline.
 GITLAB_WEBHOOK_REQUEST_TIMEOUT = 5
 
 
@@ -631,12 +631,20 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.issue.format(project=safe_quote(project_id), issue=issue_iid)
         return self.put(path, data={"state_event": state})
 
-    def _project_webhook_data(self) -> dict[str, Any]:
+    def project_webhook_url(self, reconciliation_id: str | None = None) -> str:
         hook_uri = reverse("sentry-extensions-gitlab-webhook")
+        hook_url = absolute_uri(hook_uri)
+        if reconciliation_id is not None:
+            hook_url = (
+                f"{hook_url}?sentry_webhook_reconciliation_id={quote(reconciliation_id, safe='')}"
+            )
+        return hook_url
+
+    def _project_webhook_data(self, reconciliation_id: str | None = None) -> dict[str, Any]:
         model = self.installation.model
         # GitLab clears the token when the URL changes, so always send both together.
         return {
-            "url": absolute_uri(hook_uri),
+            "url": self.project_webhook_url(reconciliation_id),
             "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
             "merge_requests_events": True,
             "push_events": True,
@@ -645,7 +653,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
 
-    def create_project_webhook(self, project_id):
+    def create_project_webhook(
+        self, project_id: int | str, reconciliation_id: str | None = None
+    ) -> int | str:
         """Create a webhook on a project.
 
         See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
@@ -653,22 +663,36 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
         resp = self.post(
             path,
-            data=self._project_webhook_data(),
+            data=self._project_webhook_data(reconciliation_id),
             timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
         )
 
         return resp["id"]
 
-    def get_project_webhooks(self, project_id):
+    def get_project_webhooks(self, project_id: int | str) -> list[dict[str, Any]]:
         """List webhooks for a project
 
         See https://docs.gitlab.com/ee/api/projects.html#list-project-hooks
         """
         path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
-        return self.get(path)
+        return self.get_with_pagination(
+            path,
+            lambda page_number, page_size: {
+                "page": page_number + 1,
+                "per_page": page_size,
+            },
+            lambda response: response,
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+            raise_on_page_limit=True,
+        )
 
-    def update_project_webhook(self, project_id, hook_id):
+    def update_project_webhook(
+        self,
+        project_id: int | str,
+        hook_id: int | str,
+        reconciliation_id: str | None = None,
+    ) -> dict[str, Any]:
         """Update a webhook on a project to include all required events
 
         See https://docs.gitlab.com/ee/api/projects.html#edit-project-hook
@@ -678,7 +702,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return self.put(
             path,
-            data=self._project_webhook_data(),
+            data=self._project_webhook_data(reconciliation_id),
             timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
         )
