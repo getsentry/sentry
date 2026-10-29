@@ -24,14 +24,7 @@ function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
 // Base props shared by all select variants
 type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   BaseSelectProps<TValue, TOption>,
-  | 'onBlur'
-  | 'disabled'
-  | 'ref'
-  | 'inputRef'
-  | 'renderIndicators'
-  | 'emptyOptionLabel'
-  | 'id'
-  | 'options'
+  'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'renderIndicators' | 'id' | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<TOption & SelectValue<TValue>>;

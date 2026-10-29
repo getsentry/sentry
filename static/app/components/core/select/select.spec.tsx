@@ -270,6 +270,12 @@ describe('selection types', () => {
       keyof ControlProps<string, Option>
     >();
     expectTypeOf<'choices'>().not.toMatchTypeOf<keyof ControlProps<string, Option>>();
+    expectTypeOf<
+      Extract<
+        keyof ControlProps<string, Option>,
+        'emptyOptionLabel' | 'inFieldLabel' | 'optionHeight'
+      >
+    >().toBeNever();
   });
 });
 
@@ -598,21 +604,20 @@ it('passes option data directly to custom filters', async () => {
   expect(screen.queryByRole('menuitemradio', {name: 'Apple'})).not.toBeInTheDocument();
 });
 
-it('owns the disabled row for an empty legacy selection', async () => {
+it('shows the placeholder for an empty selection without adding menu options', async () => {
   render(
     <Select
       onChange={jest.fn()}
       aria-label="Fruit"
       options={options}
       value={null}
-      emptyOptionLabel="None selected"
       placeholder="Choose fruit"
     />
   );
 
   expect(screen.getByText('Choose fruit')).toBeInTheDocument();
   await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-  const emptyOption = screen.getByRole('menuitemradio', {name: 'None selected'});
-  expect(emptyOption).toHaveAttribute('aria-disabled', 'true');
-  expect(emptyOption).toBeChecked();
+  expect(screen.getAllByRole('menuitemradio')).toHaveLength(options.length);
+  expect(screen.getByRole('menuitemradio', {name: 'Apple'})).not.toBeChecked();
+  expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).not.toBeChecked();
 });

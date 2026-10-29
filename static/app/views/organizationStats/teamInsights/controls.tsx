@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
@@ -6,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {
@@ -68,7 +68,6 @@ export function TeamStatsControls({
   });
   const organization = useOrganization();
   const isSuperuser = isActiveSuperuser();
-  const theme = useTheme();
 
   const query = location?.query ?? {};
   const localStorageKey = `teamInsightsSelectedTeamId:${organization.slug}`;
@@ -152,44 +151,18 @@ export function TeamStatsControls({
     >
       <TeamSelector
         name="select-team"
-        inFieldLabel={t('Team: ')}
+        controlLeadingItems={
+          <Container paddingLeft="lg" flexShrink={0}>
+            <Text bold wrap="nowrap">
+              {t('Team:')}
+            </Text>
+          </Container>
+        }
         value={currentTeam?.slug ?? null}
         onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
         teamFilter={
           isSuperuser || isOrgOwner ? undefined : (filterTeam: any) => filterTeam.isMember
         }
-        styles={{
-          singleValue(provided: any) {
-            const custom = {
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              fontSize: theme.font.size.md,
-              ':before': {
-                ...provided[':before'],
-                color: theme.tokens.content.primary,
-                marginRight: theme.space.lg,
-                marginLeft: theme.space.xs,
-              },
-            };
-            return {...provided, ...custom};
-          },
-          input: (provided: any) => ({
-            ...provided,
-            display: 'grid',
-            gridTemplateColumns: 'max-content 1fr',
-            alignItems: 'center',
-            gridGap: theme.space.md,
-            ':before': {
-              backgroundColor: theme.tokens.background.secondary,
-              height: 24,
-              width: 38,
-              borderRadius: 3,
-              content: '""',
-              display: 'block',
-            },
-          }),
-        }}
       />
       {showEnvironment && (
         <Select
@@ -202,7 +175,13 @@ export function TeamStatsControls({
           ]}
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
-          inFieldLabel={t('Environment:')}
+          controlLeadingItems={
+            <Container paddingLeft="lg" flexShrink={0}>
+              <Text bold wrap="nowrap">
+                {t('Environment:')}
+              </Text>
+            </Container>
+          }
         />
       )}
       <Container width={{zero: '100%', xl: 'max-content'}}>

@@ -21,7 +21,7 @@ type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
   data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
   selectProps: Pick<
     BaseSelectProps<TValue, TOption>,
-    'optionHeight' | 'renderOptionLabel' | 'showCreateOptionIcon' | 'showDividers'
+    'renderOptionLabel' | 'showCreateOptionIcon' | 'showDividers'
   > & {size?: FormSize};
 };
 
@@ -89,16 +89,7 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
               </Fragment>
             ) : (
               <Fragment>
-                <CheckWrap
-                  style={
-                    selectProps.optionHeight
-                      ? {height: selectProps.optionHeight}
-                      : undefined
-                  }
-                  isMultiple={isMultiple}
-                  isSelected={isSelected}
-                  size={size}
-                >
+                <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
                   {isSelected && (
                     <StyledIconCheckmark
                       size={isMultiple ? 'xs' : 'sm'}

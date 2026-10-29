@@ -14,8 +14,6 @@ import {convertFromSelect2Choices} from 'sentry/utils/convertFromSelect2Choices'
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';
 
-const NONE_SELECTED_LABEL = t('None selected');
-
 export interface SelectFieldProps<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
@@ -57,10 +55,6 @@ export interface SelectFieldProps<
    * not correctly reflect this so be careful!
    */
   confirm?: Record<string, React.ReactNode>;
-  /**
-   * A label that is shown inside the select control.
-   */
-  inFieldLabel?: string;
   options?: ControlProps<TValue, TOption>['options'];
   value?: ControlProps<TValue, TOption>['value'];
 }
@@ -174,7 +168,6 @@ export class SelectField<
                 id={id}
                 clearable={allowClear}
                 multiple={multiple}
-                emptyOptionLabel={NONE_SELECTED_LABEL}
                 indicator={
                   !hideControlState && <FormFieldControlState model={model} name={name} />
                 }

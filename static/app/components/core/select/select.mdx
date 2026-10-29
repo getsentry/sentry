@@ -16,7 +16,9 @@ resources:
 
 import {useState} from 'react';
 
+import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
+import {Text} from '@sentry/scraps/text';
 
 import {IconGraphBar} from '@sentry/icons/graphBar';
 import * as Storybook from 'sentry/stories';
@@ -152,14 +154,18 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 />
 ```
 
-## In-Field Label
+## Leading Content
 
-Use the `inFieldLabel` prop to add a persistent label inside the select field. This is useful for compact layouts where external labels aren't feasible.
+Use `controlLeadingItems` to add content before the selected value and search input.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <SingleSelectDemo
-      inFieldLabel="Environment"
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
       size="md"
       placeholder="medium"
       options={[
@@ -170,7 +176,11 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
     <SingleSelectDemo
       size="sm"
       placeholder="small"
-      inFieldLabel="Environment"
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
       initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
@@ -180,7 +190,11 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
     <SingleSelectDemo
       size="xs"
       placeholder="x-small"
-      inFieldLabel="Environment"
+      controlLeadingItems={
+        <Container paddingLeft="lg">
+          <Text bold>Environment</Text>
+        </Container>
+      }
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
@@ -193,14 +207,18 @@ Use the `inFieldLabel` prop to add a persistent label inside the select field. T
 <Select
   value={value}
   onChange={option => setValue(option?.value ?? null)}
-  inFieldLabel="Environment"
+  controlLeadingItems={
+    <Container paddingLeft="lg">
+      <Text bold>Environment</Text>
+    </Container>
+  }
   placeholder="Choose environment"
   options={options}
 />
 ```
 
 > [!NOTE]
-> While in-field labels save space, they can reduce clarity. Prefer external labels when possible, especially for form fields requiring [WCAG 3.3.2](https://www.w3.org/TR/WCAG22/#labels-or-instructions) compliance.
+> Leading content does not replace an accessible label. Use an external label or an ARIA label for the select.
 
 ## Clearable
 
@@ -629,7 +647,7 @@ The component follows the [WAI-ARIA Combobox](https://www.w3.org/WAI/ARIA/apg/pa
 
 - Every select must have an associated label
 - Use a `<label>` element with `htmlFor`, wrap the select in a `<label>`, or provide `aria-label`
-- In-field labels (`inFieldLabel`) supplement but don't replace proper labeling
+- Leading content (`controlLeadingItems`) does not replace an accessible label
 
 ```jsx
 // Good: Visible label with htmlFor

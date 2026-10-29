@@ -183,7 +183,6 @@ function SelectMembers({
       aria-label={ariaLabel}
       options={currentOptions}
       renderValue={option => <UserBadge avatarSize={20} user={option.user} hideEmail />}
-      optionHeight={32}
       filterOption={filterMemberOption}
       isLoading={searchLoading}
       onInputChange={setSearch}
