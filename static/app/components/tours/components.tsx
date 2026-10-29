@@ -458,7 +458,7 @@ export function TourGuide({
                         `,
                       }}
                     >
-                      <TourBody
+                      <Stack
                         background="primary"
                         radius="md"
                         width="395px"
@@ -501,7 +501,7 @@ export function TourGuide({
                             {actions}
                           </Flex>
                         )}
-                      </TourBody>
+                      </Stack>
                     </TourOverlay>
                   )}
                 </ClassNames>
@@ -513,14 +513,6 @@ export function TourGuide({
     </Fragment>
   );
 }
-
-/* XXX: For compatibility with Guides, we need to style 'a' tags which are often docs links */
-const TourBody = styled(Stack)`
-  a {
-    color: ${p => p.theme.tokens.content.primary};
-    text-decoration: underline;
-  }
-`;
 
 // useOverlay keeps 16px between the guide and each edge of the viewport.
 const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
