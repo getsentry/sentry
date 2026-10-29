@@ -69,17 +69,20 @@ describe('GlobalModal', () => {
 
         const dialog = screen.getByRole('dialog');
         expect(within(dialog).getByRole('alert')).toHaveTextContent(
-          'There was a problem rendering this dialog. Close it and try again.'
+          'There was a problem rendering the dialog.'
         );
         expect(draft).toBeInTheDocument();
         expect(draft).toHaveValue('Unsaved changes');
         expect(Sentry.captureException).toHaveBeenCalledTimes(1);
         expect(Sentry.captureException).toHaveBeenCalledWith(error);
 
-        await userEvent.click(within(dialog).getByRole('button', {name: 'Close Modal'}));
+        await userEvent.click(
+          within(dialog).getByRole('button', {name: 'Dismiss error'})
+        );
         await waitFor(() => expect(dialog).not.toBeInTheDocument());
 
         expect(onClose).toHaveBeenCalledWith('close-button');
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1);
         expect(screen.getByRole('textbox', {name: 'Page draft'})).toBe(draft);
         expect(draft).toHaveFocus();
         await userEvent.type(draft, ' kept');

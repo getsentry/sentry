@@ -1,14 +1,12 @@
-import {Fragment, useCallback, useEffect, useRef, type ComponentProps} from 'react';
+import {useCallback, useEffect, useRef, type ComponentProps} from 'react';
 import {createPortal} from 'react-dom';
 import {css, type Interpolation, type Theme, useTheme} from '@emotion/react';
 import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -233,7 +231,6 @@ export function GlobalModal() {
     modalContainerRef: containerRef,
     closeModal,
   };
-  const {Header} = renderProps;
 
   return createPortal(
     <ContainerQueryProvider elementRef={portalRef}>
@@ -307,20 +304,10 @@ export function GlobalModal() {
                     >
                       <ErrorBoundary
                         key={modalId}
-                        customComponent={() => (
-                          <Fragment>
-                            <Header closeButton>
-                              <Heading as="h2">{t('Unable to display dialog')}</Heading>
-                            </Header>
-                            <ModalBody>
-                              <Alert variant="danger" role="alert">
-                                {t(
-                                  'There was a problem rendering this dialog. Close it and try again.'
-                                )}
-                              </Alert>
-                            </ModalBody>
-                          </Fragment>
-                        )}
+                        mini
+                        allowDismiss
+                        onDismiss={onCloseButtonClick}
+                        message={t('There was a problem rendering the dialog.')}
                       >
                         <ModalContent renderer={renderer} renderProps={renderProps} />
                       </ErrorBoundary>

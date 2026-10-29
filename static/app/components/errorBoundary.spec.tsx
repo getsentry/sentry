@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ErrorBoundary} from './errorBoundary';
 
@@ -78,6 +78,50 @@ describe('ErrorBoundary', () => {
     expect(screen.queryByText('hello')).not.toBeInTheDocument();
     expect(screen.getByText(/there was a problem/i)).toBeInTheDocument();
 
+    errorSpy.mockRestore();
+  });
+
+  it('retries children when dismissed without an onDismiss callback', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const {rerender} = render(
+      <ErrorBoundary mini allowDismiss>
+        <ErrorComponent />
+      </ErrorBoundary>
+    );
+
+    rerender(
+      <ErrorBoundary mini allowDismiss>
+        <HelloComponent />
+      </ErrorBoundary>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss error'}));
+
+    expect(screen.getByText('hello')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    errorSpy.mockRestore();
+  });
+
+  it('lets onDismiss handle dismissal without retrying the children', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const onDismiss = jest.fn();
+    const {rerender} = render(
+      <ErrorBoundary mini allowDismiss onDismiss={onDismiss}>
+        <ErrorComponent />
+      </ErrorBoundary>
+    );
+
+    rerender(
+      <ErrorBoundary mini allowDismiss onDismiss={onDismiss}>
+        <HelloComponent />
+      </ErrorBoundary>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss error'}));
+
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('hello')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
     errorSpy.mockRestore();
   });
 
