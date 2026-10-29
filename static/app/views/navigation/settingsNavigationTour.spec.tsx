@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -70,11 +70,10 @@ describe('Settings navigation tour', () => {
     });
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     expect(screen.getByText('1/2')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Skip tour'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
     expect(screen.getByText('2/2')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Skip tour'})).not.toBeInTheDocument();
     expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
     await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
@@ -83,9 +82,9 @@ describe('Settings navigation tour', () => {
     expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
   });
 
-  it.each(['Skip tour', 'Close'])('remembers dismissal with %s', async name => {
+  it('remembers dismissal with the close button', async () => {
     render(<Tour />, {organization});
-    await userEvent.click(await screen.findByRole('button', {name}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Close'}));
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     const dismissals = dismissRequest.mock.calls.filter(
       ([, options]) => options.data.status === 'dismissed'
@@ -100,12 +99,19 @@ describe('Settings navigation tour', () => {
     });
     render(<Tour />, {organization});
     await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve)));
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
-  it('does not show to users who joined after the settings navigation GA', () => {
-    ConfigStore.set('user', UserFixture({dateJoined: new Date().toISOString()}));
+  it('does not show to users who joined after the settings navigation GA', async () => {
+    const assistantRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: false}],
+    });
+    ConfigStore.set('user', UserFixture({dateJoined: '2099-01-01T00:00:00.000Z'}));
     render(<Tour />, {organization});
+    await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve)));
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
   });
 
@@ -114,6 +120,14 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.dismiss',
+      expect.objectContaining({
+        id: 'entry',
+        step_count: 1,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
   });
 
   it('blurs the page and navigates steps with the arrow keys', async () => {
@@ -141,7 +155,7 @@ describe('Settings navigation tour', () => {
 
   it('tracks dismissing the guide', async () => {
     render(<Tour />, {organization});
-    await userEvent.click(await screen.findByRole('button', {name: 'Skip tour'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Close'}));
     expect(trackAnalytics).toHaveBeenCalledWith(
       'tour-guide.dismiss',
       expect.objectContaining({

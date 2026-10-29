@@ -183,10 +183,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 settingsTour?.endTour();
               }
             }}
-            shouldCloseOnBlur={isProjectTourActive ? false : undefined}
-            shouldCloseOnInteractOutside={element =>
-              !element.closest('[data-settings-navigation-tour]')
-            }
+            // Keep the menu open while the tour points into it.
+            isDismissable={!isProjectTourActive}
+            shouldCloseOnBlur={!isProjectTourActive}
             usePortal
             portalContainerRef={portalContainerRef}
             zIndex={theme.zIndex.modal}
