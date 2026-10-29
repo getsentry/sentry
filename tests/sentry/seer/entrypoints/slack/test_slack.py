@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import ANY, Mock, patch
 
 import pytest
+from django.db.models import QuerySet
 from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
@@ -14,6 +15,10 @@ from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
+)
+from sentry.notifications.models.notificationthread import (
+    NotificationThread,
+    NotificationThreadObjectType,
 )
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
@@ -52,7 +57,9 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackAutofixEntrypoint,
     SlackInvestigationCachePayload,
     SlackInvestigationEntrypoint,
+    SlackInvestigationThreadState,
     SlackThreadDetails,
+    _get_investigation_thread,
     prepare_slack_thread_for_autofix_updates,
 )
 from sentry.seer.entrypoints.slack.messaging import (
@@ -1326,17 +1333,33 @@ class SlackInvestigationEntrypointTest(TestCase):
             channel_id=self.channel_id,
             thread_ts=self.message_ts,
             alert_message_ts=self.message_ts,
-            status_message_ts=status_message_ts,
             slack_user_id=self.slack_user_id,
-            last_sent_state=None,
-            final_sent=False,
         )
         SeerOperatorInvestigationCache.set(
             entrypoint_key="slack",
             investigation_id=self.investigation.id,
             cache_payload=cache_payload,
         )
+        _get_investigation_thread(
+            investigation_id=self.investigation.id,
+            integration_id=self.integration.id,
+            channel_id=self.channel_id,
+            thread_ts=self.message_ts,
+        ).update(
+            provider_data={"status_message_ts": status_message_ts} if status_message_ts else {}
+        )
         return cache_payload
+
+    def _investigation_threads(self) -> QuerySet[NotificationThread]:
+        return NotificationThread.objects.filter(
+            object_type=NotificationThreadObjectType.INVESTIGATION,
+            object_id=self.investigation.id,
+        )
+
+    def _get_state(self, channel_id: str | None = None) -> SlackInvestigationThreadState:
+        return (
+            self._investigation_threads().get(target_id=channel_id or self.channel_id).provider_data
+        )
 
     def _get_cache(self) -> SlackInvestigationCachePayload | None:
         return SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
@@ -1403,9 +1426,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         (started_call,) = self.mock_post_message.call_args_list
         assert started_call.kwargs["text"] != "Investigating FCP on organization login pages"
-        cache_payload = entrypoint.create_investigation_cache_payload()
-        assert cache_payload["status_message_ts"] is None
-        assert cache_payload["last_sent_state"] is None
+        assert not self._investigation_threads().exists()
 
     def test_update_with_hypotheses_updates_status_message(self) -> None:
         self._set_cache()
@@ -1429,10 +1450,9 @@ class SlackInvestigationEntrypointTest(TestCase):
             "status": "in_progress",
             "detail": "Checking the remaining explanations against related telemetry.",
         }
-        cache_payload = self._get_cache()
-        assert cache_payload is not None
-        assert cache_payload["status_message_ts"] == self.status_ts
-        assert cache_payload["last_sent_state"] is not None
+        state = self._get_state()
+        assert state["status_message_ts"] == self.status_ts
+        assert state["last_sent_state"] is not None
 
     @override_options(
         {"notifications.tracking.sources": [NotificationSource.SEER_INVESTIGATION_STATUS]}
@@ -1572,23 +1592,22 @@ class SlackInvestigationEntrypointTest(TestCase):
         post_kwargs = self.mock_post_message.call_args.kwargs
         assert post_kwargs["channel"] == self.channel_id
         assert post_kwargs["thread_ts"] == self.message_ts
-        cache_payload = self._get_cache()
-        assert cache_payload is not None
-        assert cache_payload["status_message_ts"] == self.status_ts
+        state = self._get_state()
+        assert state["status_message_ts"] == self.status_ts
 
     @patch("sentry.seer.entrypoints.slack.entrypoint.record_sent")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_integration_error_on_update_is_swallowed(
         self, mock_record: Mock, mock_record_sent: Mock
     ) -> None:
-        cache_payload = self._set_cache()
+        self._set_cache()
         self.mock_update.side_effect = SlackApiError(
             "error", _slack_response({"ok": False, "error": "message_not_found"})
         )
 
         self._update([_hypothesis()])
 
-        assert self._get_cache() == cache_payload
+        assert self._get_state() == {"status_message_ts": self.status_ts}
         assert_halt_metric(mock_record, IntegrationError())
         mock_record_sent.assert_not_called()
 
@@ -1649,9 +1668,8 @@ class SlackInvestigationEntrypointTest(TestCase):
             "## Summary\n\nA release added a slow font.",
             "## Next steps\n\nPreload the font.",
         ]
-        cache_payload = self._get_cache()
-        assert cache_payload is not None
-        assert cache_payload["final_sent"] is True
+        state = self._get_state()
+        assert state["final_sent"] is True
 
     def test_conclusion_posts_when_status_is_unchanged(self) -> None:
         self._set_cache()
@@ -1717,9 +1735,8 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_post_message.assert_not_called()
-        cache_payload = self._get_cache()
-        assert cache_payload is not None
-        assert cache_payload["final_sent"] is True
+        state = self._get_state()
+        assert state["final_sent"] is True
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_failed_conclusion_post_leaves_final_sent_unset(self, mock_record: Mock) -> None:
@@ -1734,10 +1751,9 @@ class SlackInvestigationEntrypointTest(TestCase):
 
             self._update([_hypothesis()])
 
-            cache_payload = self._get_cache()
-            assert cache_payload is not None
-            assert cache_payload["final_sent"] is False, error
-            assert cache_payload["last_sent_state"] is not None, error
+            state = self._get_state()
+            assert not state.get("final_sent"), error
+            assert state["last_sent_state"] is not None, error
             halts = [
                 call
                 for call in mock_record.mock_calls
