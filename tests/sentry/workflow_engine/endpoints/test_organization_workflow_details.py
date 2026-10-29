@@ -66,6 +66,13 @@ class OrganizationWorkflowIndexGetTest(OrganizationWorkflowDetailsBaseTest):
         workflow.save()
         self.get_error_response(self.organization.slug, workflow.id, status_code=404)
 
+    def test_hidden_workflow_is_not_found(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
+
     def test_all_projects_workflow(self) -> None:
         workflow = self.create_workflow(organization_id=self.organization.id)
         detector = ensure_default_all_projects_detector(self.organization.id)
@@ -1658,6 +1665,17 @@ class OrganizationDeleteWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
     def setUp(self) -> None:
         super().setUp()
         self.workflow = self.create_workflow(organization_id=self.organization.id)
+
+    def test_hidden_workflow_not_found(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, type=Workflow.Type.INBOX
+        )
+
+        self.get_error_response(self.organization.slug, hidden_workflow.id, status_code=404)
+
+        hidden_workflow.refresh_from_db()
+
+        assert hidden_workflow.status == ObjectStatus.ACTIVE
 
     def test_team_admin_can_delete_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)

@@ -650,6 +650,29 @@ class TestWorkflowValidatorCreate(TestCase):
         assert action_group.action.type == Action.Type.SLACK
         assert action_group.condition_group.logic_type == "any"
 
+    def test_create_workflow_ignores_type_field(self) -> None:
+        validator = WorkflowValidator(
+            data={**self.valid_data, "type": Workflow.Type.INBOX}, context=self.context
+        )
+
+        assert validator.is_valid() is True
+
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.type == Workflow.Type.ALERT
+
+    def test_create_workflow_limit_ignores_hidden_workflows(self) -> None:
+        self.create_workflow(organization=self.organization, type=Workflow.Type.INBOX)
+
+        with self.options({"workflow_engine.max_workflows_per_org": 1}):
+            validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+            assert validator.is_valid() is True
+
+            workflow = validator.create(validator.validated_data)
+
+        assert workflow.id is not None
+
     def test_create__exceeds_workflow_limit(self) -> None:
         REGULAR_LIMIT = 2
         with self.options({"workflow_engine.max_workflows_per_org": REGULAR_LIMIT}):
@@ -828,6 +851,19 @@ class TestWorkflowValidatorUpdate(TestCase):
 
         assert workflow.id == self.workflow.id
         assert workflow.name == "Update Test"
+
+    def test_update_workflow_ignores_type_field(
+        self, mock_action_validator: mock.MagicMock
+    ) -> None:
+        self.valid_data["type"] = Workflow.Type.INBOX
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+        workflow = validator.update(self.workflow, validator.validated_data)
+
+        assert workflow.type == Workflow.Type.ALERT
 
     def test_update__remove_trigger_conditions(self, mock_action_validator: mock.MagicMock) -> None:
         assert self.workflow.when_condition_group

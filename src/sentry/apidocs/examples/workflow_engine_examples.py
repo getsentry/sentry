@@ -8,6 +8,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "6789123",
                 "name": "My Alert",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "1234567",
                 "dateCreated": "2026-01-14T20:08:32.273220Z",
@@ -90,6 +91,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "1234567",
                 "name": "My Updated Alert",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "23456",
                 "dateCreated": "2026-01-14T20:08:32.273220Z",
@@ -528,6 +530,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "123",
                     "name": "Send a notification for high priority issues",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": None,
                     "dateCreated": "2025-03-18T20:48:55.495059Z",
@@ -584,6 +587,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "456",
                     "name": "Notify team #example-team",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": "34567",
                     "dateCreated": "2026-01-15T23:46:39.594915Z",
@@ -634,6 +638,7 @@ class WorkflowEngineExamples:
                 {
                     "id": "789",
                     "name": "Notify Jane Doe",
+                    "type": "alert",
                     "organizationId": "1",
                     "createdBy": "2345",
                     "dateCreated": "2026-01-15T23:46:39.594915Z",
@@ -696,6 +701,7 @@ class WorkflowEngineExamples:
             value={
                 "id": "1234567",
                 "name": "Notify Jane Doe",
+                "type": "alert",
                 "organizationId": "1",
                 "createdBy": "2345",
                 "dateCreated": "2026-01-13T21:21:15.975384Z",
