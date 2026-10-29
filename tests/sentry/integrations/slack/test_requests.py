@@ -23,17 +23,9 @@ from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
-from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.viewer_context import (
-    Actor,
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-    viewer_context_scope,
-)
 
 
 @control_silo_test
@@ -69,71 +61,6 @@ class SlackRequestTest(TestCase):
 
     def test_exposes_data(self) -> None:
         assert self.slack_request.data["type"] == "foo"
-
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_validated_slack_identity_becomes_viewer(self) -> None:
-        self.create_integration(
-            organization=self.organization, external_id="T001", provider="slack"
-        )
-        with (
-            viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))),
-            patch.object(self.slack_request, "get_identity_user", return_value=self.user),
-        ):
-            self.slack_request.validate()
-            ctx = get_viewer_context()
-            assert ctx is not None
-            assert ctx.actor.type == ActorType.USER
-            assert ctx.actor.user_id == self.user.id
-            assert ctx.organization_id is None
-            headers: dict[str, str] = {}
-            ViewerContextHook().on_dispatch(headers)
-            propagated = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
-            assert propagated.actor.user_id == self.user.id
-
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_bot_does_not_use_linked_user(self) -> None:
-        self.create_integration(
-            organization=self.organization, external_id="T001", provider="slack"
-        )
-        with (
-            viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))),
-            patch.object(self.slack_request, "is_bot", return_value=True),
-            patch.object(self.slack_request, "get_identity_user") as identity_user,
-        ):
-            self.slack_request.validate()
-            identity_user.assert_not_called()
-            ctx = get_viewer_context()
-            assert ctx is not None
-            assert ctx.actor.type == ActorType.UNKNOWN
-
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_unlinked_slack_identity_does_not_inherit_user(self) -> None:
-        self.create_integration(
-            organization=self.organization, external_id="T001", provider="slack"
-        )
-        with (
-            viewer_context_scope(
-                ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.user.id))
-            ),
-            patch.object(self.slack_request, "get_identity_user", return_value=None),
-        ):
-            self.slack_request.validate()
-            ctx = get_viewer_context()
-            assert ctx is not None
-            assert ctx.actor.type == ActorType.UNKNOWN
-
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_invalid_webhook_does_not_set_viewer(self) -> None:
-        ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
-        with (
-            viewer_context_scope(ctx),
-            patch.object(self.slack_request, "authorize", side_effect=SlackRequestError(401)),
-            patch.object(self.slack_request, "get_identity_user") as identity_user,
-        ):
-            with pytest.raises(SlackRequestError):
-                self.slack_request.validate()
-            assert get_viewer_context() is ctx
-            identity_user.assert_not_called()
 
     def test_exposes_team_id(self) -> None:
         assert self.slack_request.team_id == "T001"

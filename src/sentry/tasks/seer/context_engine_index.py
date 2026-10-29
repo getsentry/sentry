@@ -65,14 +65,7 @@ logger = logging.getLogger(__name__)
 def _organization_viewer_context_scope(
     organization_id: int,
 ) -> contextlib.AbstractContextManager[None]:
-    current = get_viewer_context()
-    if (
-        current is not None
-        and current.organization_id == organization_id
-        and current.actor.type == ActorType.USER
-        and current.actor.user_id is not None
-        and current.actor.user_id > 0
-    ):
+    if get_viewer_context() is not None:
         return contextlib.nullcontext()
 
     return viewer_context_scope(
