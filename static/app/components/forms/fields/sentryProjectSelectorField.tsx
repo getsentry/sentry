@@ -1,5 +1,5 @@
 import {Flex} from '@sentry/scraps/layout';
-import {components} from '@sentry/scraps/select';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
@@ -9,14 +9,33 @@ import type {Project} from 'sentry/types/project';
 import type {InputFieldProps} from './inputField';
 import {SelectField} from './selectField';
 
-const OVERRIDE_COMPONENTS = {
-  MultiValueLabel: SelectedProjectMultiValueLabel,
-};
-
 /**
  * Function used to group projects by returning the key of the group
  */
 type GroupProjects = (project: Project) => string;
+
+function ProjectMultiValueLabel({
+  option,
+  children,
+}: {
+  children: React.ReactNode;
+  option: SelectValue<string> & {project?: Project};
+}) {
+  return (
+    <Flex align="center" gap="xs">
+      {option.project && (
+        <IdBadge
+          project={option.project}
+          avatarSize={14}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+          hideName
+        />
+      )}
+      {children}
+    </Flex>
+  );
+}
 
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends InputFieldProps {
@@ -37,30 +56,6 @@ export interface RenderFieldProps extends InputFieldProps {
    * of the project will be used.
    */
   valueIsSlug?: boolean;
-}
-
-// When in multi-select mode, this adds the project badget to the selected badges
-function SelectedProjectMultiValueLabel({
-  data,
-  children,
-  ...props
-}: React.ComponentProps<typeof components.MultiValueLabel>) {
-  return (
-    <components.MultiValueLabel data={data} {...props}>
-      <Flex align="center" gap="xs">
-        {data.project ? (
-          <IdBadge
-            project={data.project}
-            avatarSize={14}
-            avatarProps={{consistentWidth: true}}
-            disableLink
-            hideName
-          />
-        ) : null}
-        {children}
-      </Flex>
-    </components.MultiValueLabel>
-  );
 }
 
 export function SentryProjectSelectorField({
@@ -105,7 +100,7 @@ export function SentryProjectSelectorField({
     <SelectField
       placeholder={placeholder}
       options={projectOptions}
-      components={OVERRIDE_COMPONENTS}
+      components={{MultiValueLabel: ProjectMultiValueLabel}}
       {...props}
     />
   );

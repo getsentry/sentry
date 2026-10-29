@@ -9,16 +9,16 @@ import {Select} from '@sentry/scraps/select';
 import type {BaseRole} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type OptionType = {
+type RoleOption = {
   details: React.ReactNode;
   disabled: boolean;
   label: string;
   value: string;
 };
 
-type SingleSelectProps = Exclude<ControlProps<OptionType>, {multiple: true}>;
+type SingleSelectProps = Exclude<ControlProps<string, RoleOption>, {multiple: true}>;
 
-type Props = DistributedOmit<SingleSelectProps, 'isMulti' | 'value'> & {
+type Props = DistributedOmit<SingleSelectProps, 'multiple' | 'value' | 'options'> & {
   disableUnallowed: boolean;
   roles: BaseRole[];
   /**

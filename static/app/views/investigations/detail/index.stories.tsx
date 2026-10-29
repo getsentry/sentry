@@ -38,7 +38,6 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   summary: 'Connection acquisition is delaying checkout requests',
   summaryDescription:
     'The p95 increase begins four minutes after the deploy and appears in every production region.\nThe strongest signal is exhausted database connections in payments-api.',
-  template: {key: 'breached_metric', version: 1},
   source: {
     ...InvestigationMetricSourceFixture({
       id: '42',
@@ -299,7 +298,6 @@ const runningInvestigation = InvestigationRunningDetailFixture({
   dateCreated: '2026-08-27T15:31:00Z',
   dateUpdated: '2026-08-27T15:31:22Z',
   titleGeneration: {status: 'running'},
-  template: {key: 'breached_metric', version: 1},
   blocks: [
     InvestigationBlockFixture({
       id: 'running-summary',
@@ -322,22 +320,12 @@ const runningInvestigation = InvestigationRunningDetailFixture({
       generationPrompt: 'Compare event volume and users across active releases.',
       outputStatus: 'pending',
       config: {autoRun: true},
-      dependencies: ['running-summary'],
       currentExecution: InvestigationBlockExecutionFixture({
         id: runningQueryExecutionId,
         status: 'pending',
         startedAt: null,
         completedAt: null,
       }),
-    }),
-    InvestigationBlockFixture({
-      id: 'waiting-synthesis',
-      position: 2,
-      title: 'Synthesize findings',
-      content: '',
-      generationPrompt: 'Summarize the likely cause and recommended next steps.',
-      config: {autoRun: true},
-      dependencies: ['running-summary', 'running-query'],
     }),
   ],
 });
@@ -349,7 +337,6 @@ const skeletonInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   blocks: [
     InvestigationBlockFixture({
       id: 'skeleton-summary',
@@ -372,7 +359,6 @@ const skeletonInvestigation = InvestigationDetailFixture({
       generationPrompt: 'Compare event volume and users across active releases.',
       outputStatus: 'running',
       config: {autoRun: true},
-      dependencies: ['skeleton-summary'],
       currentExecution: InvestigationBlockExecutionFixture({
         id: skeletonQueryExecutionId,
         status: 'running',
@@ -387,7 +373,6 @@ const reportingInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'reporting',
     status: 'processing',
@@ -418,7 +403,6 @@ const awaitingInputRunInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'intake',
     status: 'awaiting_input',
@@ -468,7 +452,7 @@ const failedBlock = InvestigationBlockFixture({
 });
 const cancelledBlock = InvestigationBlockFixture({
   id: 'cancelled-query',
-  position: 2,
+  position: 1,
   kind: 'query',
   title: 'Regional error breakdown',
   content: '',
@@ -485,26 +469,7 @@ const failureInvestigation = InvestigationFailedDetailFixture({
   title: 'Release health regression after 8.42.0',
   status: 'active',
   sourceType: 'metric_open_period',
-  blocks: [
-    failedBlock,
-    InvestigationBlockFixture({
-      id: 'blocked-by-failure',
-      position: 1,
-      title: 'Summarize the release regression',
-      content: '',
-      config: {autoRun: true},
-      dependencies: [failedBlock.id],
-    }),
-    cancelledBlock,
-    InvestigationBlockFixture({
-      id: 'blocked-by-cancellation',
-      position: 3,
-      title: 'Recommend next steps',
-      content: '',
-      config: {autoRun: true},
-      dependencies: [cancelledBlock.id],
-    }),
-  ],
+  blocks: [failedBlock, cancelledBlock],
 });
 
 const archivedInvestigation = InvestigationDetailFixture({
@@ -515,7 +480,6 @@ const archivedInvestigation = InvestigationDetailFixture({
   dateCreated: '2026-08-27T15:44:00Z',
   dateUpdated: '2026-08-27T15:44:00Z',
   blocks: [],
-  template: {key: 'breached_metric', version: 1},
 });
 
 // An agentic run that has only just started: Seer is still scanning, so there
@@ -526,7 +490,6 @@ const gatheringContextInvestigation = InvestigationDetailFixture({
   title: 'New breached metrics investigation',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'broad_scan',
     status: 'processing',
@@ -802,7 +765,7 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Failures, cancellations, and blocked dependencies', () => (
+  story('Failures and cancellations', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-failures"
       details={[failureInvestigation]}

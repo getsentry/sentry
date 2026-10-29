@@ -826,6 +826,87 @@ describe('Sentry Application Details', () => {
     });
   });
 
+  describe('Deleting an existing Sentry App', () => {
+    const initialRouterConfig: RouterConfig = {
+      location: {
+        pathname: '/sentry-apps/sample-app/',
+      },
+      route: '/sentry-apps/:appSlug/',
+    };
+
+    beforeEach(() => {
+      sentryApp = SentryAppFixture();
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/api-tokens/`,
+        body: [],
+      });
+    });
+
+    it('deletes the app after confirmation and returns to the list', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+      const deleteRequest = MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        method: 'DELETE',
+      });
+
+      const organization = OrganizationFixture();
+      const {router} = render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization,
+      });
+      renderGlobalModal();
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Delete Integration'})
+      );
+      await userEvent.click(
+        await screen.findByRole('textbox', {name: /to confirm the deletion/})
+      );
+      await userEvent.paste(sentryApp.slug);
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+
+      await waitFor(() => expect(deleteRequest).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(router.location.pathname).toBe(
+          `/settings/${organization.slug}/developer-settings/`
+        )
+      );
+      expect(router.location.query).toEqual({type: 'public'});
+    });
+
+    it('disables delete for published apps', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: {...sentryApp, status: 'published'},
+      });
+
+      render(<SentryApplicationDetails />, {initialRouterConfig});
+
+      expect(
+        await screen.findByRole('button', {name: 'Delete Integration'})
+      ).toHaveAttribute('aria-disabled', 'true');
+    });
+
+    it('disables delete without org:admin', async () => {
+      MockApiClient.addMockResponse({
+        url: `/sentry-apps/${sentryApp.slug}/`,
+        body: sentryApp,
+      });
+
+      render(<SentryApplicationDetails />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({access: ['org:write']}),
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Delete Integration'})
+      ).toHaveAttribute('aria-disabled', 'true');
+    });
+  });
+
   describe('Editing granular event subscriptions', () => {
     const initialRouterConfig: RouterConfig = {
       location: {

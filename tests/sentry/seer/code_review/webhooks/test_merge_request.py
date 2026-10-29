@@ -76,10 +76,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
     provider and issue (swallowed) HTTP requests to the integration's base URL.
     """
 
-    CODE_REVIEW_FEATURES = {
-        "organizations:code-review-beta",
-        "organizations:seer-gitlab-support",
-    }
+    CODE_REVIEW_FEATURES = {"organizations:code-review-beta"}
 
     @pytest.fixture(autouse=True)
     def mock_seer_request(self) -> Generator[None]:
@@ -160,12 +157,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
 
 
 class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_open_uses_review_request_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -177,12 +169,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/review-request"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_validation_failure_is_captured_and_review_dropped(self) -> None:
         # A payload that fails SeerCodeReviewTaskRequest validation means the
         # review is dropped entirely and never reaches Seer, so it must be
@@ -214,24 +201,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         )
         self.mock_seer.assert_not_called()
 
-    @with_feature({"organizations:code-review-beta"})
-    def test_skips_when_gitlab_flag_disabled(self) -> None:
-        # The GitLab MR handler is gated on organizations:seer-gitlab-support,
-        # independent of the other code-review flags.
-        self._setup_code_review()
-        event = _make_event("open")
-
-        with self.tasks():
-            self._call_handler(event)
-
-        self.mock_seer.assert_not_called()
-
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_close_uses_pr_closed_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event("close")
@@ -243,12 +213,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_merge_uses_pr_closed_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event("merge")
@@ -260,12 +225,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/pr-closed"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_update_uses_review_request_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event("update", oldrev="0" * 40)
@@ -277,12 +237,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/review-request"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_update_without_oldrev_is_skipped(self) -> None:
         self._setup_code_review()
         event = _make_event("update")
@@ -293,12 +248,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_update_with_unrelated_changes_is_skipped(self) -> None:
         # An "update" that only edits metadata (no new commit, no un-draft) must not
         # trigger a review.
@@ -310,12 +260,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_undraft_update_uses_review_request_endpoint(self) -> None:
         # GitLab has no "ready_for_review" action; un-drafting arrives as an "update"
         # whose changes flip draft -> false, and must be treated as ready-for-review.
@@ -331,12 +276,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         self.mock_seer.assert_called_once()
         assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_undraft_update_via_work_in_progress_uses_review_request_endpoint(self) -> None:
         self._setup_code_review()
         event = _make_event(
@@ -349,12 +289,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         self.mock_seer.assert_called_once()
         assert self.mock_seer.call_args[1]["path"] == "/v1/code_review/review-request"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_undraft_update_trigger_is_ready_for_review(self) -> None:
         self._setup_code_review()
         event = _make_event("update", changes={"draft": {"previous": True, "current": False}})
@@ -366,12 +301,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = self.mock_seer.call_args[1]["payload"]
         assert payload["data"]["config"]["trigger"] == "on_ready_for_review"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_undraft_update_filtered_when_ready_trigger_disabled(self) -> None:
         # An un-draft maps to ON_READY_FOR_REVIEW, so a repo that only enabled
         # ON_NEW_COMMIT must not get a review for it.
@@ -383,12 +313,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_draft_mr(self) -> None:
         self._setup_code_review()
         event = _make_event("open", draft=True)
@@ -398,12 +323,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_work_in_progress_mr(self) -> None:
         self._setup_code_review()
         event = _make_event("open", work_in_progress=True)
@@ -413,12 +333,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_close_still_sends_for_draft_mr(self) -> None:
         self._setup_code_review()
         event = _make_event("close", draft=True)
@@ -428,12 +343,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_unsupported_action(self) -> None:
         self._setup_code_review()
         event = _make_event("approved")
@@ -443,12 +353,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_unknown_action(self) -> None:
         self._setup_code_review()
         event = _make_event("future_action_not_in_enum")
@@ -458,12 +363,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_missing_action(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -474,12 +374,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_when_integration_is_none(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -503,12 +398,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_missing_last_commit(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -519,12 +409,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_open_filtered_when_trigger_disabled(self) -> None:
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_NEW_COMMIT])
         event = _make_event("open")
@@ -534,12 +419,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_update_filtered_when_trigger_disabled(self) -> None:
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW])
         event = _make_event("update", oldrev="0" * 40)
@@ -549,12 +429,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_close_filtered_when_no_triggers_configured(self) -> None:
         self._setup_code_review(triggers=[])
         event = _make_event("close")
@@ -564,12 +439,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_close_sends_when_triggers_configured(self) -> None:
         self._setup_code_review(triggers=[CodeReviewTrigger.ON_READY_FOR_REVIEW])
         event = _make_event("close")
@@ -579,12 +449,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_contains_correct_pr_id(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -597,12 +462,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = call_kwargs["payload"]
         assert payload["data"]["pr_id"] == 1
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_contains_gitlab_provider(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -615,12 +475,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = call_kwargs["payload"]
         assert payload["data"]["repo"]["provider"] == "gitlab"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_owner_and_name_use_path_not_display_name(self) -> None:
         # Repository.name is the display "Cool Group / Sentry"; Seer must receive
         # the URL slugs derived from config["path"] ("cool-group/sentry").
@@ -635,12 +490,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         assert repo["owner"] == "cool-group"
         assert repo["name"] == "sentry"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_owner_and_name_handle_subgroups(self) -> None:
         self._setup_code_review(name="Group / Subgroup / Project", path="group/subgroup/project")
         event = _make_event("open")
@@ -653,12 +503,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         assert repo["owner"] == "group"
         assert repo["name"] == "subgroup/project"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_is_private_true_for_private_project(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -671,12 +516,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
         assert repo["is_private"] is True
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_is_private_true_for_internal_project(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -689,12 +529,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
         assert repo["is_private"] is True
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_is_private_false_for_public_project(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -707,12 +542,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
         assert repo["is_private"] is False
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_is_private_none_when_visibility_absent(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -725,12 +555,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         repo = self.mock_seer.call_args[1]["payload"]["data"]["repo"]
         assert repo["is_private"] is None
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_trigger_on_ready_for_review_for_open(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -743,12 +568,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = call_kwargs["payload"]
         assert payload["data"]["config"]["trigger"] == "on_ready_for_review"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_trigger_on_new_commit_for_update(self) -> None:
         self._setup_code_review()
         event = _make_event("update", oldrev="0" * 40)
@@ -761,12 +581,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = call_kwargs["payload"]
         assert payload["data"]["config"]["trigger"] == "on_new_commit"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_contains_trigger_user_from_event(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -779,12 +594,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = call_kwargs["payload"]
         assert payload["data"]["config"]["trigger_user"] == "root"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_open_with_gitlab_space_utc_timestamp_enqueues(self) -> None:
         # GitLab serializes merge_request object_attributes timestamps as the
         # Rails "Time#to_s" default -- e.g. "2026-01-16 05:56:22 UTC" (space
@@ -809,12 +619,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         # updated_at wins over created_at and is normalized to ISO 8601 (UTC).
         assert payload["data"]["config"]["trigger_at"] == "2026-01-16T05:56:25+00:00"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_open_with_iso8601_timestamp_still_enqueues(self) -> None:
         # Some GitLab versions/editions emit ISO 8601 for MR events. dateutil
         # normalization must remain a strict superset and not regress that path.
@@ -832,12 +637,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         payload = self.mock_seer.call_args[1]["payload"]
         assert payload["data"]["config"]["trigger_at"] == "2017-09-28T12:23:42.365000+00:00"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_open_with_unparseable_timestamp_captures_and_falls_back(self) -> None:
         # An unparseable trigger_at is not fatal -- the review proceeds with a
         # "now" fallback -- but the unhandled format must be escalated to Sentry
@@ -859,12 +659,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
         trigger_at = self.mock_seer.call_args[1]["payload"]["data"]["config"]["trigger_at"]
         assert trigger_at.endswith("+00:00")
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_duplicate_delivery_within_window_skipped(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -875,12 +670,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_duplicate_delivery_after_ttl_processes_again(self) -> None:
         self._setup_code_review()
         event = _make_event("open")
@@ -902,12 +692,7 @@ class MergeRequestEventWebhookTest(_MergeRequestHandlerTestBase):
             self._call_handler(event)
         assert self.mock_seer.call_count == 2
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_distinct_commits_are_not_deduped(self) -> None:
         # Two new-commit pushes have different last_commit ids, so they are distinct
         # operations and both must reach Seer despite sharing the same MR and action.
@@ -996,12 +781,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
             integration=self.integration,
         )
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_sentry_review_comment_schedules_seer_task(self) -> None:
         """@sentry review note must enqueue a Seer review-request task."""
         self._setup_code_review()
@@ -1014,12 +794,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         call_kwargs = self.mock_seer.call_args[1]
         assert call_kwargs["path"] == "/v1/code_review/review-request"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_trigger_is_on_command_phrase(self) -> None:
         """The Seer payload must carry trigger=on_command_phrase."""
         self._setup_code_review()
@@ -1031,12 +806,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         payload = self.mock_seer.call_args[1]["payload"]
         assert payload["data"]["config"]["trigger"] == "on_command_phrase"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_contains_trigger_comment_id_and_type(self) -> None:
         """trigger_comment_id must be the note id; trigger_comment_type must be pull_request_review_comment."""
         self._setup_code_review()
@@ -1049,12 +819,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         assert config["trigger_comment_id"] == 1243
         assert config["trigger_comment_type"] == "pull_request_review_comment"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_payload_trigger_user_is_commenter(self) -> None:
         """trigger_user must be the note author, not the MR author."""
         self._setup_code_review()
@@ -1066,12 +831,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
         config = self.mock_seer.call_args[1]["payload"]["data"]["config"]
         assert config["trigger_user"] == "root"
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_eyes_reaction_added_to_note(self) -> None:
         """:eyes: must be added to the note (not to the MR description)."""
         self._setup_code_review()
@@ -1086,12 +846,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
             "eyes",
         )
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_non_review_command_is_ignored(self) -> None:
         """Notes without @sentry review must be silently dropped."""
         self._setup_code_review()
@@ -1102,12 +857,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_issue_note_is_ignored(self) -> None:
         """Notes on issues (not MRs) must be silently dropped."""
         self._setup_code_review()
@@ -1118,12 +868,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_non_create_action_is_ignored(self) -> None:
         """Edited notes must not re-trigger a review."""
         self._setup_code_review()
@@ -1134,12 +879,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_sentry_review_case_insensitive(self) -> None:
         """@Sentry Review (any case) must also trigger a review."""
         self._setup_code_review()
@@ -1150,12 +890,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_duplicate_note_skipped(self) -> None:
         """A redelivered note (same note_id) within the TTL window must be skipped."""
         self._setup_code_review()
@@ -1167,22 +902,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
 
-    def test_skips_when_feature_flag_disabled(self) -> None:
-        """Handler must no-op when organizations:seer-gitlab-support is off."""
-        self._setup_code_review()
-        event = _make_note_event()
-
-        with self.tasks():
-            self._call_handler(event)
-
-        self.mock_seer.assert_not_called()
-
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_skips_when_integration_is_none(self) -> None:
         self._setup_code_review()
         event = _make_note_event()
@@ -1201,12 +921,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_reaction_failure_does_not_block_seer_task(self) -> None:
         """A failing note reaction must not prevent the Seer task from being scheduled."""
         self._setup_code_review()
@@ -1218,12 +933,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
 
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_duplicate_note_after_ttl_processes_again(self) -> None:
         """After Redis TTL expires the same note may be processed again."""
         self._setup_code_review()
@@ -1264,12 +974,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
     are called via the SCM library's provider-agnostic actions module.
     """
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_eyes_reaction_added_for_open_action(self) -> None:
         """:eyes: reaction must be added to the MR when action=open."""
         self._setup_code_review()
@@ -1281,12 +986,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
 
         self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_stale_hooray_reaction_deleted_before_eyes_added(self) -> None:
         """A stale :tada: ("hooray") reaction by our bot must be deleted before :eyes: is added."""
         self._setup_code_review()
@@ -1307,12 +1007,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         self.mock_scm.delete_pull_request_reaction.assert_called_once_with(mr_iid, "7")
         self.mock_scm.create_pull_request_reaction.assert_called_once_with(mr_iid, "eyes")
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_other_users_hooray_reaction_not_deleted(self) -> None:
         """Reactions from other users must not be touched."""
         self._setup_code_review()
@@ -1332,12 +1027,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         self.mock_scm.delete_pull_request_reaction.assert_not_called()
         self.mock_scm.create_pull_request_reaction.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_no_reaction_for_close_action(self) -> None:
         """Close actions must not trigger any reaction changes."""
         self._setup_code_review()
@@ -1350,12 +1040,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         self.mock_scm.create_pull_request_reaction.assert_not_called()
         self.mock_scm.delete_pull_request_reaction.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_no_reaction_for_merge_action(self) -> None:
         """Merge actions must not trigger any reaction changes."""
         self._setup_code_review()
@@ -1368,12 +1053,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         self.mock_scm.create_pull_request_reaction.assert_not_called()
         self.mock_scm.delete_pull_request_reaction.assert_not_called()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_reaction_failure_does_not_block_seer_task(self) -> None:
         """A failing reaction API call must not prevent the Seer task from being scheduled."""
         self._setup_code_review()
@@ -1387,12 +1067,7 @@ class MergeRequestReactionTest(_MergeRequestHandlerTestBase):
         # Seer task must still be scheduled even though the reaction failed.
         self.mock_seer.assert_called_once()
 
-    @with_feature(
-        {
-            "organizations:code-review-beta",
-            "organizations:seer-gitlab-support",
-        }
-    )
+    @with_feature("organizations:code-review-beta")
     def test_eyes_reaction_added_for_update_with_new_commit(self) -> None:
         """:eyes: must also be added for update+commit (ON_NEW_COMMIT trigger)."""
         self._setup_code_review()

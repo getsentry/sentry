@@ -343,11 +343,11 @@ export function AuditLogList({
       />
       <EventSelector
         clearable
-        isDisabled={isLoading}
+        disabled={isLoading}
         name="eventFilter"
         value={eventType}
         placeholder={t('Select Action: ')}
-        options={getEventOptions(eventTypes)}
+        options={getEventOptions(eventTypes) ?? []}
         onChange={(options: any) => {
           onEventSelect(options?.value);
         }}
@@ -429,7 +429,7 @@ const Name = styled('strong')`
 
 const EventSelector = styled(Select)`
   width: 250px;
-`;
+` as typeof Select;
 
 const UserInfo = styled(SimpleTable.RowCell)`
   display: flex;

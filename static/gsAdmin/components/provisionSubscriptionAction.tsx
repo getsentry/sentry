@@ -13,7 +13,6 @@ import {openModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import type {Choices} from 'sentry/types/core';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {withApi} from 'sentry/utils/withApi';
@@ -165,9 +164,9 @@ function SelectFieldWrapper({
   );
 }
 
-const SOFT_CAP_TYPE_CHOICES: Choices = [
-  ['ON_DEMAND', 'On Demand'],
-  ['TRUE_FORWARD', 'True Forward'],
+const SOFT_CAP_TYPE_OPTIONS = [
+  {value: 'ON_DEMAND', label: 'On Demand'},
+  {value: 'TRUE_FORWARD', label: 'True Forward'},
 ];
 
 /**
@@ -194,10 +193,10 @@ const SoftCapTypeField = memo(function SoftCapTypeField({
     >
       <Select
         name={`softCapType${capitalizedApiName}`}
-        inputId={`id-softCapType${capitalizedApiName}`}
+        id={`id-softCapType${capitalizedApiName}`}
         aria-label={`Soft Cap Type ${titleName}`}
         clearable
-        choices={SOFT_CAP_TYPE_CHOICES}
+        options={SOFT_CAP_TYPE_OPTIONS}
         disabled={disabled}
         value={value}
         onChange={(option: any) => onChange(capitalizedApiName, option?.value)}
@@ -670,15 +669,15 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Plan" name="plan">
                   <Select
                     name="plan"
-                    inputId="id-plan"
+                    id="id-plan"
                     aria-label="Plan"
                     clearable={false}
-                    choices={Object.entries(this.state.provisionablePlans)
+                    options={Object.entries(this.state.provisionablePlans)
                       .reverse()
-                      .map(
-                        ([id, plan]) =>
-                          [id, `${plan.name} (${plan.id})`] as [string, string]
-                      )}
+                      .map(([id, plan]) => ({
+                        value: id,
+                        label: `${plan.name} (${plan.id})`,
+                      }))}
                     onChange={(option: any) => {
                       const v = option?.value;
                       // Reset reserved CPEs when changing plans
@@ -760,11 +759,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Billing Interval" name="billingInterval">
                   <Select
                     name="billingInterval"
-                    inputId="id-billingInterval"
+                    id="id-billingInterval"
                     aria-label="Billing Interval"
-                    choices={[
-                      ['annual', 'Annual'],
-                      ['monthly', 'Monthly'],
+                    options={[
+                      {value: 'annual', label: 'Annual'},
+                      {value: 'monthly', label: 'Monthly'},
                     ]}
                     disabled={!this.state.data.plan}
                     value={this.state.data.billingInterval}
@@ -801,11 +800,11 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                 <SelectFieldWrapper label="Billing Type" name="type">
                   <Select
                     name="type"
-                    inputId="id-type"
+                    id="id-type"
                     aria-label="Billing Type"
-                    choices={[
-                      ['invoiced', 'Invoiced'],
-                      ['credit_card', 'Credit Card'],
+                    options={[
+                      {value: 'invoiced', label: 'Invoiced'},
+                      {value: 'credit_card', label: 'Credit Card'},
                     ]}
                     onChange={(option: any) => {
                       const v = option?.value;
@@ -831,20 +830,20 @@ class ProvisionSubscriptionModal extends Component<ModalProps, ModalState> {
                   >
                     <Select
                       name="onDemandInvoicedManual"
-                      inputId="id-onDemandInvoicedManual"
+                      id="id-onDemandInvoicedManual"
                       aria-label={`${selectedPlan ? displayBudgetName(selectedPlan, {title: true}) : 'Pay-as-you-go'} Max Spend Setting`}
-                      choices={
+                      options={
                         // per-category max spend is only available on plans
                         // with on-demand budget modes
                         selectedPlan && !selectedPlan.hasOnDemandModes
                           ? [
-                              ['SHARED', 'Shared'],
-                              ['DISABLE', 'Disable'],
+                              {value: 'SHARED', label: 'Shared'},
+                              {value: 'DISABLE', label: 'Disable'},
                             ]
                           : [
-                              ['SHARED', 'Shared'],
-                              ['PER_CATEGORY', 'Per Category'],
-                              ['DISABLE', 'Disable'],
+                              {value: 'SHARED', label: 'Shared'},
+                              {value: 'PER_CATEGORY', label: 'Per Category'},
+                              {value: 'DISABLE', label: 'Disable'},
                             ]
                       }
                       clearable

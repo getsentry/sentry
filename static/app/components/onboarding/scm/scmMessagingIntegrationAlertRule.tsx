@@ -109,7 +109,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
 
 const FullWidthSelect = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;
 
 const FullWidthChannelSelect = styled(ChannelSelect)`
   width: 100%;

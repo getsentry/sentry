@@ -164,6 +164,8 @@ export function ProjectOwnershipModal({
     ? urlTagData.topValues
         .sort((a, b) => a.count - b.count)
         .map(i => i.value)
+        // Events without a URL come back as an empty value
+        .filter((url): url is string => !!url)
         .slice(0, 5)
     : [];
   const paths = getFrameSuggestions(eventData);

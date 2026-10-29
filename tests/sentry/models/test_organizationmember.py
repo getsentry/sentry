@@ -417,9 +417,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             )
             assert member.get_scopes() == role.scopes | {
                 "dashboard:read",
-                "dashboard:create",
-                "dashboard:update",
-                "dashboard:delete",
+                "dashboard:write",
             }
 
     @with_feature("organizations:granular-permission-scopes")

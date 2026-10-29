@@ -22,10 +22,6 @@ from sentry.investigations.models import (
     InvestigationSourceType,
     InvestigationStatus,
 )
-from sentry.investigations.templates.types import (
-    InvestigationTemplateSpec,
-    TemplateBlockSpec,
-)
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_create
@@ -295,7 +291,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
         assert response.status_code == 400
         assert not Investigation.objects.filter(title="No access").exists()
 
-    def test_template_validation_is_strict_and_atomic(self) -> None:
+    def test_template_creation_is_rejected(self) -> None:
         before = Investigation.objects.count()
         response = self.client.post(
             self.collection_url,
@@ -306,73 +302,21 @@ class OrganizationInvestigationIndexTest(APITestCase):
                     "type": "metric_open_period",
                     "ref": {"groupId": "1", "openPeriodId": "1"},
                 },
-                "parameters": {"unexpected": True},
-            },
-            format="json",
-        )
-        assert response.status_code == 400
-        assert "parameters" in response.data
-        assert Investigation.objects.count() == before
-
-    def test_unknown_template_version_is_atomic(self) -> None:
-        before = Investigation.objects.count()
-        response = self.client.post(
-            self.collection_url,
-            data={
-                "templateKey": "breached_metric",
-                "templateVersion": 999,
-                "source": {
-                    "type": "metric_open_period",
-                    "ref": {"groupId": "1", "openPeriodId": "1"},
-                },
-                "parameters": {},
             },
             format="json",
         )
         assert response.status_code == 400
         assert Investigation.objects.count() == before
 
-    def test_cyclic_template_rolls_back_before_source_resolution(self) -> None:
-        template = InvestigationTemplateSpec(
-            key="cyclic",
-            version=1,
-            source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
-            parameters=(),
-            blocks=(
-                TemplateBlockSpec(key="one", kind="text", title="One", dependencies=("two",)),
-                TemplateBlockSpec(key="two", kind="text", title="Two", dependencies=("one",)),
-            ),
-        )
-        before = Investigation.objects.count()
-        with mock.patch(
-            "sentry.investigations.services.investigations.get_investigation_template",
-            return_value=template,
-        ):
-            response = self.client.post(
-                self.collection_url,
-                data={
-                    "templateKey": "cyclic",
-                    "templateVersion": 1,
-                    "source": {"type": "metric_open_period", "ref": {"groupId": "1"}},
-                    "parameters": {},
-                },
-                format="json",
-            )
-        assert response.status_code == 400
-        assert Investigation.objects.count() == before
-
-    def test_template_rejects_wrong_issue_category(self) -> None:
+    def test_metric_source_rejects_wrong_issue_category(self) -> None:
         group = self.create_group(project=self.project)
         response = self.client.post(
             self.collection_url,
             data={
-                "templateKey": "breached_metric",
-                "templateVersion": 1,
                 "source": {
                     "type": "metric_open_period",
                     "ref": {"groupId": str(group.id), "openPeriodId": "1"},
                 },
-                "parameters": {},
             },
             format="json",
         )
