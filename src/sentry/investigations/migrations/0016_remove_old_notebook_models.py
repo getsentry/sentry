@@ -27,6 +27,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("investigations", "0015_point_orchestration_run_at_notebook"),
+        ("notebooks", "0002_copy_from_investigations"),
         ("seer", "0045_workflow_run_lifecycle"),
         ("sentry", "1245_add_login_hint_to_apidevicecode"),
     ]
