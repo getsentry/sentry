@@ -1,6 +1,12 @@
-import {useEffect, useRef} from 'react';
+import {useState} from 'react';
+import {
+  matchesKeyboardEvent,
+  parseHotkey,
+  useHotkeys as useTanStackHotkeys,
+  type ParsedHotkeyChord,
+} from '@tanstack/react-hotkeys';
 
-import {canonicalize, matchesKey, MODIFIER_KEYS} from './keyMappings';
+import {canonicalize} from './keyMappings';
 
 type Hotkey = {
   /**
@@ -12,7 +18,7 @@ type Hotkey = {
    *
    * Multiple shortcuts may be passed as a list.
    *
-   * The format for shorcuts is `<modifiers>+<key>` For example `shift+t` or
+   * The format for shortcuts is `<modifiers>+<key>` For example `shift+t` or
    * `command+shift+t`.
    */
   match: string[] | string;
@@ -24,7 +30,7 @@ type Hotkey = {
    */
   enabled?: boolean;
   /**
-   * Allow shortcuts to be triggered while a text input is foccused
+   * Allow shortcuts to be triggered while a text input is focused
    */
   includeInputs?: boolean;
   /**
@@ -33,8 +39,36 @@ type Hotkey = {
   skipPreventDefault?: boolean;
 };
 
-function shouldIgnoreHotkeyEvent(event: KeyboardEvent): boolean {
-  return event.isComposing;
+function parseMatch(match: string): ParsedHotkeyChord {
+  return parseHotkey(
+    match
+      .split('+')
+      .map(key => {
+        const canonical = canonicalize(key);
+        return canonical === 'command' ? 'Meta' : canonical;
+      })
+      .join('+')
+  );
+}
+
+function matchesChord(chord: ParsedHotkeyChord, event: KeyboardEvent): boolean {
+  if (event.isComposing) {
+    return false;
+  }
+
+  // Keep layout-produced ASCII characters authoritative when Shift is not held.
+  // For example, Cmd++ on AZERTY has code=Slash and must not trigger Cmd+/.
+  if (
+    chord.key?.length === 1 &&
+    event.key?.length === 1 &&
+    event.key.charCodeAt(0) <= 0x7f &&
+    !event.shiftKey &&
+    event.key.toLowerCase() !== chord.key.toLowerCase()
+  ) {
+    return false;
+  }
+
+  return matchesKeyboardEvent(event, chord);
 }
 
 /**
@@ -43,22 +77,9 @@ function shouldIgnoreHotkeyEvent(event: KeyboardEvent): boolean {
  * useHotkeys, and never matches while an IME is composing text.
  */
 export function matchesHotkey(match: string[] | string, event: KeyboardEvent): boolean {
-  if (shouldIgnoreHotkeyEvent(event)) {
-    return false;
-  }
-
-  return (Array.isArray(match) ? match : [match]).some(keyset => {
-    const keys = keyset
-      .toLowerCase()
-      .split('+')
-      .map(key => canonicalize(key));
-    const unusedModifiers = MODIFIER_KEYS.filter(modifier => !keys.includes(modifier));
-
-    return (
-      keys.every(key => matchesKey(key, event)) &&
-      unusedModifiers.every(modifier => !matchesKey(modifier, event))
-    );
-  });
+  return (Array.isArray(match) ? match : [match]).some(keyset =>
+    matchesChord(parseMatch(keyset), event)
+  );
 }
 
 /**
@@ -71,44 +92,34 @@ export function matchesHotkey(match: string[] | string, event: KeyboardEvent): b
  * Note: you can only use one non-modifier (keys other than shift, ctrl, alt, command) key at a time.
  */
 export function useHotkeys(hotkeys: Hotkey[]): void {
-  const hotkeysRef = useRef(hotkeys);
+  const [handledEvents] = useState(() => new WeakSet<KeyboardEvent>());
 
-  useEffect(() => {
-    hotkeysRef.current = hotkeys;
-  });
-
-  useEffect(() => {
-    const onKeyDown = (evt: KeyboardEvent) => {
-      // Skip IME composition events — event.key may be undefined or 'Process'
-      // and hotkeys should never fire while the user is composing a character.
-      if (shouldIgnoreHotkeyEvent(evt)) {
-        return;
-      }
-      for (const hotkey of hotkeysRef.current) {
-        if (hotkey.enabled === false) {
-          continue;
-        }
-        const preventDefault = !hotkey.skipPreventDefault;
-        const inputHasFocus =
-          !hotkey.includeInputs && evt.target instanceof HTMLElement
-            ? evt.target.isContentEditable ||
-              ['textarea', 'input'].includes(evt.target.tagName.toLowerCase())
-            : false;
-
-        if (matchesHotkey(hotkey.match, evt) && !inputHasFocus) {
-          if (preventDefault) {
-            evt.preventDefault();
-          }
-          hotkey.callback(evt);
-          return;
-        }
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, []);
+  useTanStackHotkeys(
+    hotkeys.flatMap(
+      ({match, callback, enabled = true, includeInputs, skipPreventDefault}) =>
+        (Array.isArray(match) ? match : [match]).map(keyset => {
+          const chord = parseMatch(keyset);
+          return {
+            hotkey: chord,
+            callback: (event: KeyboardEvent) => {
+              if (handledEvents.has(event) || !matchesChord(chord, event)) {
+                return;
+              }
+              handledEvents.add(event);
+              if (!skipPreventDefault) {
+                event.preventDefault();
+              }
+              callback(event);
+            },
+            options: {enabled, ignoreInputs: !includeInputs},
+          };
+        })
+    ),
+    {
+      conflictBehavior: 'allow',
+      // Apply preventDefault after the layout and first-match checks above.
+      preventDefault: false,
+      stopPropagation: false,
+    }
+  );
 }

@@ -1,4 +1,5 @@
-import {renderHook} from '@testing-library/react';
+import {act, renderHook} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 import {matchesHotkey, useHotkeys} from '@sentry/scraps/hotkey';
 
@@ -23,27 +24,32 @@ function keyToCode(k: string): string {
 }
 
 describe('useHotkeys', () => {
-  let events: Record<string, (evt: any) => void> = {};
-
-  function makeKeyEventFixture(key: string, options: any = {}) {
-    return {
+  function makeKeyEventFixture(key: string, options: KeyboardEventInit = {}) {
+    return new KeyboardEvent('keydown', {
       key,
       code: keyToCode(key),
-      preventDefault: jest.fn(),
+      bubbles: true,
+      cancelable: true,
       ...options,
-    };
+    });
+  }
+
+  function dispatchKeyEvent(
+    event: KeyboardEvent | KeyboardEventInit,
+    target = document.body
+  ) {
+    const keyboardEvent =
+      event instanceof KeyboardEvent
+        ? event
+        : makeKeyEventFixture(event.key ?? '', event);
+    act(() => {
+      target.dispatchEvent(keyboardEvent);
+    });
+    return keyboardEvent;
   }
 
   beforeEach(() => {
-    events = {};
-
-    document.addEventListener = jest.fn((event: string, callback: () => any) => {
-      events[event] = callback;
-    });
-
-    document.removeEventListener = jest.fn(event => {
-      delete events[event];
-    });
+    isMac.mockReturnValue(false);
   });
 
   it('handles a simple match', () => {
@@ -53,13 +59,12 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'ctrl+s', callback}],
     });
 
-    expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
     const evt = makeKeyEventFixture('s', {ctrlKey: true});
-    events.keydown!(evt);
+    dispatchKeyEvent(evt);
 
-    expect(evt.preventDefault).toHaveBeenCalled();
+    expect(evt.defaultPrevented).toBe(true);
     expect(callback).toHaveBeenCalled();
   });
 
@@ -76,15 +81,14 @@ describe('useHotkeys', () => {
       initialProps: [{match: ['ctrl+s', 'command+m'], callback}],
     });
 
-    expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown!(makeKeyEventFixture('s', {ctrlKey: true}));
+    dispatchKeyEvent(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
-    events.keydown!(makeKeyEventFixture('m', {metaKey: true}));
+    dispatchKeyEvent(makeKeyEventFixture('m', {metaKey: true}));
 
     expect(callback).toHaveBeenCalled();
   });
@@ -96,10 +100,9 @@ describe('useHotkeys', () => {
       initialProps: [{match: ['command+ctrl+alt+shift+x'], callback}],
     });
 
-    expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown!(
+    dispatchKeyEvent(
       makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
@@ -118,10 +121,9 @@ describe('useHotkeys', () => {
       initialProps: [{match: ['command+shift+x'], callback}],
     });
 
-    expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown!(
+    dispatchKeyEvent(
       makeKeyEventFixture('x', {
         altKey: true,
         metaKey: true,
@@ -140,43 +142,48 @@ describe('useHotkeys', () => {
       initialProps: {match: 'ctrl+s'},
     });
 
-    expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown!(makeKeyEventFixture('s', {ctrlKey: true}));
+    dispatchKeyEvent(makeKeyEventFixture('s', {ctrlKey: true}));
 
     expect(callback).toHaveBeenCalled();
     callback.mockClear();
 
     rerender({match: 'command+m'});
 
-    events.keydown!(makeKeyEventFixture('s', {ctrlKey: true}));
+    dispatchKeyEvent(makeKeyEventFixture('s', {ctrlKey: true}));
     expect(callback).not.toHaveBeenCalled();
 
-    events.keydown!(makeKeyEventFixture('m', {metaKey: true}));
+    dispatchKeyEvent(makeKeyEventFixture('m', {metaKey: true}));
     expect(callback).toHaveBeenCalled();
   });
 
-  it('skips input and textarea', () => {
+  it.each(['input', 'textarea'])('skips %s', tagName => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['/'], callback}],
     });
 
-    events.keydown!(makeKeyEventFixture('/', {target: document.createElement('input')}));
+    const input = document.createElement(tagName);
+    document.body.append(input);
+    dispatchKeyEvent(makeKeyEventFixture('/'), input);
+    input.remove();
 
     expect(callback).not.toHaveBeenCalled();
   });
 
-  it('does not skips input and textarea with includesInputs', () => {
+  it.each(['input', 'textarea'])('handles %s with includeInputs', tagName => {
     const callback = jest.fn();
 
     renderHook(p => useHotkeys(p), {
       initialProps: [{match: ['/'], callback, includeInputs: true}],
     });
 
-    events.keydown!(makeKeyEventFixture('/', {target: document.createElement('input')}));
+    const input = document.createElement(tagName);
+    document.body.append(input);
+    dispatchKeyEvent(makeKeyEventFixture('/'), input);
+    input.remove();
 
     expect(callback).toHaveBeenCalled();
   });
@@ -192,12 +199,14 @@ describe('useHotkeys', () => {
       renderHook(p => useHotkeys(p), {
         initialProps: [{match: '/', callback, includeInputs}],
       });
-      const evt = makeKeyEventFixture('/', {target});
+      document.body.append(target);
+      const evt = makeKeyEventFixture('/');
 
-      events.keydown!(evt);
+      dispatchKeyEvent(evt, target);
+      target.remove();
 
       expect(callback).toHaveBeenCalledTimes(includeInputs ? 1 : 0);
-      expect(evt.preventDefault).toHaveBeenCalledTimes(includeInputs ? 1 : 0);
+      expect(evt.defaultPrevented).toBe(includeInputs);
     }
   );
 
@@ -209,9 +218,9 @@ describe('useHotkeys', () => {
     });
 
     const evt = makeKeyEventFixture('s', {ctrlKey: true});
-    events.keydown!(evt);
+    dispatchKeyEvent(evt);
 
-    expect(evt.preventDefault).not.toHaveBeenCalled();
+    expect(evt.defaultPrevented).toBe(false);
     expect(callback).toHaveBeenCalled();
   });
 
@@ -225,12 +234,11 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'command+shift+1', callback}],
     });
 
-    events.keydown!({
+    dispatchKeyEvent({
       key: '!',
       code: 'Digit1',
       metaKey: true,
       shiftKey: true,
-      preventDefault: jest.fn(),
     });
 
     expect(callback).toHaveBeenCalled();
@@ -245,11 +253,10 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'command+k', callback}],
     });
 
-    events.keydown!({
+    dispatchKeyEvent({
       key: 'k',
       code: 'KeyK',
       metaKey: true,
-      preventDefault: jest.fn(),
     });
 
     expect(callback).toHaveBeenCalled();
@@ -264,14 +271,31 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'command+k', callback}],
     });
 
-    events.keydown!({
+    dispatchKeyEvent({
       key: 'к',
       code: 'KeyK',
       metaKey: true,
-      preventDefault: jest.fn(),
     });
 
     expect(callback).toHaveBeenCalled();
+  });
+
+  it.each([
+    {key: '/', code: 'Slash', shiftKey: false},
+    {key: '.', code: 'Period', shiftKey: false},
+    {key: '/', code: 'Digit7', shiftKey: true},
+    {key: '/', code: 'Period', shiftKey: true},
+    {key: '/', code: 'Minus', shiftKey: true},
+  ])('handles the slash alternatives once for $code (Shift: $shiftKey)', options => {
+    const callback = jest.fn();
+    const match = ['mod+/', 'mod+.', 'mod+shift+7', 'mod+shift+.', 'mod+shift+-'];
+    renderHook(() => useHotkeys([{match, callback}]));
+
+    const event = dispatchKeyEvent({...options, ctrlKey: true});
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(true);
+    expect(matchesHotkey(match, event)).toBe(true);
   });
 
   it('matches Escape via event.key', () => {
@@ -281,7 +305,7 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'Escape', callback}],
     });
 
-    events.keydown!({key: 'Escape', code: 'Escape', preventDefault: jest.fn()});
+    dispatchKeyEvent({key: 'Escape', code: 'Escape'});
 
     expect(callback).toHaveBeenCalled();
   });
@@ -293,7 +317,7 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'left', callback}],
     });
 
-    events.keydown!({key: 'ArrowLeft', code: 'ArrowLeft', preventDefault: jest.fn()});
+    dispatchKeyEvent({key: 'ArrowLeft', code: 'ArrowLeft'});
 
     expect(callback).toHaveBeenCalled();
   });
@@ -305,10 +329,10 @@ describe('useHotkeys', () => {
       initialProps: [{match: ['left', 'h'], callback}],
     });
 
-    events.keydown!({key: 'ArrowLeft', code: 'ArrowLeft', preventDefault: jest.fn()});
+    dispatchKeyEvent({key: 'ArrowLeft', code: 'ArrowLeft'});
     expect(callback).toHaveBeenCalledTimes(1);
 
-    events.keydown!({key: 'h', code: 'KeyH', preventDefault: jest.fn()});
+    dispatchKeyEvent({key: 'h', code: 'KeyH'});
     expect(callback).toHaveBeenCalledTimes(2);
   });
 
@@ -320,10 +344,10 @@ describe('useHotkeys', () => {
     });
 
     const evt = makeKeyEventFixture('Escape');
-    events.keydown!(evt);
+    dispatchKeyEvent(evt);
 
     expect(callback).not.toHaveBeenCalled();
-    expect(evt.preventDefault).not.toHaveBeenCalled();
+    expect(evt.defaultPrevented).toBe(false);
   });
 
   it('respects toggling enabled between renders', () => {
@@ -333,12 +357,12 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'Escape', enabled: false, callback}],
     });
 
-    events.keydown!(makeKeyEventFixture('Escape'));
+    dispatchKeyEvent(makeKeyEventFixture('Escape'));
     expect(callback).not.toHaveBeenCalled();
 
     rerender([{match: 'Escape', enabled: true, callback}]);
 
-    events.keydown!(makeKeyEventFixture('Escape'));
+    dispatchKeyEvent(makeKeyEventFixture('Escape'));
     expect(callback).toHaveBeenCalledTimes(1);
   });
 
@@ -351,12 +375,11 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'command+shift+k', callback}],
     });
 
-    events.keydown!({
+    dispatchKeyEvent({
       key: 'K',
       code: 'KeyK',
       metaKey: true,
       shiftKey: true,
-      preventDefault: jest.fn(),
     });
 
     expect(callback).toHaveBeenCalled();
@@ -374,18 +397,131 @@ describe('useHotkeys', () => {
       initialProps: [{match: 'mod+/', callback, includeInputs: true}],
     });
 
-    const evt = {
-      key: '+',
-      code: 'Slash',
-      metaKey: true,
-      preventDefault: jest.fn(),
-    };
-    events.keydown!(evt);
+    const evt = makeKeyEventFixture('+', {code: 'Slash', metaKey: true});
+    dispatchKeyEvent(evt);
 
     expect(callback).not.toHaveBeenCalled();
-    expect(evt.preventDefault).not.toHaveBeenCalled();
+    expect(evt.defaultPrevented).toBe(false);
 
     isMac.mockReturnValue(false);
+  });
+
+  it.each(['k', 'Escape'])('ignores %s during IME composition', key => {
+    const callback = jest.fn();
+    renderHook(() => useHotkeys([{match: key, callback}]));
+
+    const event = dispatchKeyEvent(makeKeyEventFixture(key, {isComposing: true}));
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('uses the latest callback', async () => {
+    const firstCallback = jest.fn();
+    const nextCallback = jest.fn();
+    const {rerender} = renderHook(callback => useHotkeys([{match: 'k', callback}]), {
+      initialProps: firstCallback,
+    });
+
+    await userEvent.keyboard('k');
+    rerender(nextCallback);
+    await userEvent.keyboard('k');
+
+    expect(firstCallback).toHaveBeenCalledTimes(1);
+    expect(nextCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('only calls the first enabled match once per key press', async () => {
+    const disabledCallback = jest.fn();
+    const firstCallback = jest.fn();
+    const lastCallback = jest.fn();
+    renderHook(() =>
+      useHotkeys([
+        {match: 'k', callback: disabledCallback, enabled: false},
+        {match: ['k', 'k'], callback: firstCallback},
+        {match: 'k', callback: lastCallback},
+      ])
+    );
+
+    await userEvent.keyboard('kk');
+
+    expect(disabledCallback).not.toHaveBeenCalled();
+    expect(firstCallback).toHaveBeenCalledTimes(2);
+    expect(lastCallback).not.toHaveBeenCalled();
+  });
+
+  it('allows separate hook instances to handle the same key', async () => {
+    const firstCallback = jest.fn();
+    const secondCallback = jest.fn();
+    renderHook(() => {
+      useHotkeys([{match: 'k', callback: firstCallback}]);
+      useHotkeys([{match: 'k', callback: secondCallback}]);
+    });
+
+    await userEvent.keyboard('k');
+
+    expect(firstCallback).toHaveBeenCalledTimes(1);
+    expect(secondCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('removes shortcuts when the list becomes empty', async () => {
+    const callback = jest.fn();
+    const {rerender} = renderHook(hotkeys => useHotkeys(hotkeys), {
+      initialProps: [{match: 'k', callback}],
+    });
+
+    await userEvent.keyboard('k');
+    rerender([]);
+    const event = dispatchKeyEvent(makeKeyEventFixture('k'));
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('removes shortcuts on unmount', () => {
+    const callback = jest.fn();
+    const {unmount} = renderHook(() => useHotkeys([{match: 'k', callback}]));
+
+    unmount();
+    const event = dispatchKeyEvent(makeKeyEventFixture('k'));
+
+    expect(callback).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('updates input and preventDefault options', () => {
+    const callback = jest.fn();
+    const {rerender} = renderHook(
+      options => useHotkeys([{match: 'k', callback, ...options}]),
+      {
+        initialProps: {includeInputs: false, skipPreventDefault: false},
+      }
+    );
+    const input = document.createElement('input');
+    document.body.append(input);
+
+    const ignoredEvent = dispatchKeyEvent(makeKeyEventFixture('k'), input);
+    expect(callback).not.toHaveBeenCalled();
+    expect(ignoredEvent.defaultPrevented).toBe(false);
+
+    rerender({includeInputs: true, skipPreventDefault: true});
+    const handledEvent = dispatchKeyEvent(makeKeyEventFixture('k'), input);
+    input.remove();
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(handledEvent.defaultPrevented).toBe(false);
+  });
+
+  it('does not stop event propagation', () => {
+    const callback = jest.fn();
+    renderHook(() => useHotkeys([{match: 'k', callback}]));
+
+    const event = makeKeyEventFixture('k');
+    const stopPropagation = jest.spyOn(event, 'stopPropagation');
+    dispatchKeyEvent(event);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(stopPropagation).not.toHaveBeenCalled();
   });
 
   describe('mod modifier', () => {
@@ -401,10 +537,10 @@ describe('useHotkeys', () => {
         initialProps: [{match: 'mod+k', callback}],
       });
 
-      events.keydown!(makeKeyEventFixture('k', {metaKey: true}));
+      dispatchKeyEvent(makeKeyEventFixture('k', {metaKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
 
-      events.keydown!(makeKeyEventFixture('k', {ctrlKey: true}));
+      dispatchKeyEvent(makeKeyEventFixture('k', {ctrlKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
@@ -416,10 +552,10 @@ describe('useHotkeys', () => {
         initialProps: [{match: 'mod+k', callback}],
       });
 
-      events.keydown!(makeKeyEventFixture('k', {ctrlKey: true}));
+      dispatchKeyEvent(makeKeyEventFixture('k', {ctrlKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
 
-      events.keydown!(makeKeyEventFixture('k', {metaKey: true}));
+      dispatchKeyEvent(makeKeyEventFixture('k', {metaKey: true}));
       expect(callback).toHaveBeenCalledTimes(1);
     });
 
@@ -433,7 +569,7 @@ describe('useHotkeys', () => {
         initialProps: [{match: 'mod+k', callback}],
       });
 
-      events.keydown!(makeKeyEventFixture('k', {metaKey: true, ctrlKey: true}));
+      dispatchKeyEvent(makeKeyEventFixture('k', {metaKey: true, ctrlKey: true}));
       expect(callback).not.toHaveBeenCalled();
     });
   });
