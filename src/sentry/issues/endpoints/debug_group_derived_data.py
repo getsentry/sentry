@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.issues.derived.framework import DerivedDataError, Pipeline, State
+from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -20,16 +20,6 @@ MAX_LIMIT = 10000
 
 def _state_to_dict(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
     return {f.name: f.to_json(state[f]) for f in pipeline.features}
-
-
-def _error_to_dict(error: DerivedDataError) -> dict[str, Any]:
-    return {
-        "detail": str(error),
-        "stage": error.stage,
-        "feature": error.feature_name,
-        "aggregator": error.aggregator_name,
-        "entryId": str(error.entry_id) if error.entry_id is not None else None,
-    }
 
 
 @cell_silo_endpoint
@@ -50,27 +40,18 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
         if limit > MAX_LIMIT:
             return Response({"detail": f"limit must be at most {MAX_LIMIT}"}, status=400)
 
-        errors: dict[str, Any] = {}
-
         # --- Stored state ---
         try:
             derived = GroupDerivedData.objects.get(group_id=group.id)
-        except GroupDerivedData.DoesNotExist:
-            stored = None
-        else:
             stored = {
-                "state": None,
+                "state": _state_to_dict(PIPELINE, GroupDerivedDataStore.load(PIPELINE, derived)),
                 "cursorDate": str(derived.cursor_date),
                 "cursorId": derived.cursor_id,
                 "generatedAt": str(derived.generated_at),
                 "pipelineHash": derived.pipeline_hash,
             }
-            try:
-                stored["state"] = _state_to_dict(
-                    PIPELINE, GroupDerivedDataStore.load(PIPELINE, derived)
-                )
-            except DerivedDataError as error:
-                errors["stored"] = _error_to_dict(error)
+        except GroupDerivedData.DoesNotExist:
+            stored = None
 
         # --- Computed state ---
         entries = list(
@@ -84,12 +65,8 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
             entry_count = None
             truncated = True
         else:
-            try:
-                state = PIPELINE.run(entries)
-                computed = _state_to_dict(PIPELINE, state)
-            except DerivedDataError as error:
-                computed = None
-                errors["computed"] = _error_to_dict(error)
+            state = PIPELINE.run(entries)
+            computed = _state_to_dict(PIPELINE, state)
             entry_count = len(entries)
             truncated = False
 
@@ -102,6 +79,5 @@ class DebugGroupDerivedDataEndpoint(GroupEndpoint):
                 "entryCount": entry_count,
                 "truncated": truncated,
                 "limit": limit,
-                "errors": errors,
             }
         )

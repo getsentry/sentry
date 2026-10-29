@@ -11,7 +11,7 @@ from django.utils import timezone
 from sentry.issues.derived.features import NO_CHANGE_RECONCILE_IDS, STATUS, IssueStatus
 from sentry.issues.derived.framework import DerivedDataError, Feature, State
 from sentry.issues.derived.gate import derived_should_be_correct
-from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE, PIPELINE
+from sentry.issues.derived.processing import DEFAULT_BATCH_SIZE
 from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore, PipelineFeatures
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -54,14 +54,13 @@ def check_status_consistency(group: Group, derived: GroupDerivedData) -> StatusI
     if actual_status is None:
         return None
 
-    if not isinstance(derived.data, dict):
+    data: object = derived.data
+    if not isinstance(data, dict):
         raise DerivedDataError("decode", feature_name=STATUS.name) from TypeError(
             "Expected derived data to be an object"
         )
     derived_status = (
-        STATUS.from_json(derived.data[STATUS.name])
-        if STATUS.name in derived.data
-        else STATUS.initial_value()
+        STATUS.from_json(data[STATUS.name]) if STATUS.name in data else STATUS.initial_value()
     )
     if derived_status == actual_status:
         return None
@@ -79,9 +78,7 @@ def record_status_consistency(
     try:
         inconsistency = check_status_consistency(group, derived)
     except DerivedDataError as error:
-        report_derived_data_error(
-            error, derived=derived, operation="status_check", pipeline_hash=PIPELINE.pipeline_hash
-        )
+        report_derived_data_error(error, derived=derived, operation="status_check")
         metrics.incr("issues.status_reconciliation.error", sample_rate=1.0, tags={"source": source})
         return None
     if inconsistency is None:

@@ -80,11 +80,19 @@ class CheckStatusConsistencyTest(TestCase):
 
     def _assert_corrupt_status(self, data: Any) -> None:
         group = self.create_group()
-        derived = self.create_group_derived_data(group, data=data)
+        derived = self.create_group_derived_data(group, data=data, pipeline_hash="stored-hash")
         with pytest.raises(DerivedDataError):
             check_status_consistency(group, derived)
-        with patch("sentry.issues.derived.check.metrics.incr") as incr:
+        with (
+            patch("sentry.issues.derived.check.metrics.incr") as incr,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+        ):
             assert record_status_consistency(group, derived, source="read_path") is None
+        logger.exception.assert_called_once()
+        context = logger.exception.call_args.kwargs["extra"]
+        assert context["feature_name"] == "status"
+        assert context["stored_pipeline_hash"] == "stored-hash"
+        assert context["pipeline_hash"] is None
         status_calls = [
             metric_call
             for metric_call in incr.call_args_list
