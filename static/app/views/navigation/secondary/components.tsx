@@ -1130,6 +1130,17 @@ const StyledReorderableLink = styled(Link, {
   border: 0;
   user-select: none;
 
+  /* Draw the border on an overlay so it doesn't shift the leading slot out of
+   * line with section titles and the grab handle. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
   &:focus-visible {
     ${p => p.theme.focusRing()}
   }
@@ -1138,18 +1149,30 @@ const StyledReorderableLink = styled(Link, {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.neutral.background.hover};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    }
   }
 
   &:active {
     color: ${p => p.theme.tokens.content.primary};
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.background.active};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.interactive.transparent.accent.border};
+    }
   }
 
   &[aria-current='page'] {
     background-color: ${p =>
       p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     color: ${p => p.theme.tokens.content.primary};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    }
 
     &:hover {
       background-color: ${p =>
@@ -1213,19 +1236,42 @@ const SidebarNavigationLink = styled(Link)`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
 
+  /* Draw the border on an overlay so it doesn't shift the leading slot out of
+   * line with section titles and the grab handle. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.neutral.hover};
     background-color: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    }
   }
 
   &:active {
     color: ${p => p.theme.tokens.content.primary};
     background-color: ${p => p.theme.tokens.interactive.transparent.accent.background.active};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.interactive.transparent.accent.border};
+    }
   }
 
   &[aria-current='page'] {
     background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
     color: ${p => p.theme.tokens.content.primary};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    }
 
     &:hover {
       background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.hover};
