@@ -25,6 +25,7 @@ import type {
   InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
   InvestigationViewer,
+  ManualInvestigationSource,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -384,11 +385,7 @@ export function investigationCandidatesQueryOptions({
     {
       path: {organizationIdOrSlug: organizationSlug},
       method: 'POST',
-      data: {
-        templateKey: 'breached_metric',
-        templateVersion: 1,
-        sources,
-      },
+      data: {sources},
       staleTime: 30_000,
     }
   );
@@ -466,15 +463,35 @@ export function useLaunchInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        // No `templateKey`: the metric snapshot is enough for the server to
-        // build an agentic run, which is what gives this investigation
-        // hypotheses instead of a fixed sequence of notebook blocks. The
-        // candidates endpoint matches agentic and template lineage keys alike,
-        // so an already-investigated breach still resolves to "View".
         data: {source},
       }),
     options,
     {invalidateCandidates: true}
+  );
+}
+
+type StartManualInvestigationVariables = {
+  projectIds: number[];
+  source: ManualInvestigationSource;
+};
+
+export function useStartManualInvestigationMutation(
+  organizationSlug: string,
+  options?: MutationOptions<InvestigationDetail, StartManualInvestigationVariables>
+) {
+  return useInvestigationMutation(
+    organizationSlug,
+    ({source, projectIds}) =>
+      fetchMutation<InvestigationDetail>({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
+          path: {organizationIdOrSlug: organizationSlug},
+        }),
+        method: 'POST',
+        // A manual run can only read the investigation's own projects, so
+        // without any it has nothing to query.
+        data: {source, projectIds},
+      }),
+    options
   );
 }
 

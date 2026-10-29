@@ -596,6 +596,14 @@ class Fixtures:
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
 
+    def create_inbox_item(self, organization=None, user=None, **kwargs):
+        return Factories.create_inbox_item(
+            organization=organization or self.organization, user=user or self.user, **kwargs
+        )
+
+    def create_inbox_item_event(self, *args, **kwargs):
+        return Factories.create_inbox_item_event(*args, **kwargs)
+
     def create_weekly_report_project_exclusion(self, **kwargs):
         return Factories.create_weekly_report_project_exclusion(**kwargs)
 

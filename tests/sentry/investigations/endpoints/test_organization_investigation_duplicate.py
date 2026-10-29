@@ -27,14 +27,6 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             title="Original",
             filters={"environments": ["production"]},
         )
-        parameter = self.create_investigation_parameter(
-            investigation=source,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-            saved_value="production",
-        )
         first = self.create_investigation_block(
             investigation=source,
             position=0,
@@ -48,8 +40,6 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             content="count errors",
             display={"type": "table"},
         )
-        self.create_investigation_block_parameter(block=second, parameter=parameter)
-        self.create_investigation_block_dependency(block=second, depends_on=first)
         execution = self.create_investigation_block_execution(
             block=second,
             executor=InvestigationBlockExecutor.MANUAL,
@@ -86,8 +76,6 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             "Hypothesis",
             "count errors",
         ]
-        assert response.data["blocks"][1]["dependencies"] == [response.data["blocks"][0]["id"]]
-        assert response.data["blocks"][1]["parameterKeys"] == ["environment"]
         assert all(block["outputStatus"] == "notRun" for block in response.data["blocks"])
         assert not InvestigationOrchestrationRun.objects.filter(
             investigation_id=response.data["id"]

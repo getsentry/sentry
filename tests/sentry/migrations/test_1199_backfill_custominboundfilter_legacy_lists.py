@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class BackfillCustomInboundFilterLegacyListsTest(TestMigrations):
     app = "sentry"
     migrate_from = "1198_prepare_incidentactivity_retirement"

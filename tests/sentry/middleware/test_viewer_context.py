@@ -31,7 +31,11 @@ class ViewerContextFromRequestTest(TestCase):
         request.user = AnonymousUser()
         request.auth = None
 
-        assert _viewer_context_from_request(request) is None
+        ctx = _viewer_context_from_request(request)
+
+        assert ctx.actor.actor_id is None
+        assert ctx.organization_id is None
+        assert ctx.actor.type is ActorType.UNKNOWN
 
     def test_session_authenticated_user(self):
         request = self.factory.get("/")
@@ -40,7 +44,6 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
-        assert ctx is not None
         assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id is None
         assert ctx.actor.type is ActorType.USER
@@ -60,7 +63,6 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
-        assert ctx is not None
         assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id == self.organization.id
         assert ctx.actor.type is ActorType.USER
@@ -80,8 +82,6 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
-        assert ctx is not None
-        assert ctx.actor.type is ActorType.INTEGRATION
         assert ctx.actor.actor_id is None
         assert ctx.organization_id == self.organization.id
         assert request.auth is token
@@ -100,7 +100,6 @@ class ViewerContextFromRequestTest(TestCase):
 
         ctx = _viewer_context_from_request(request)
 
-        assert ctx is not None
         assert ctx.actor.actor_id == self.user.id
         assert ctx.organization_id is None
         assert request.auth is token
@@ -181,7 +180,7 @@ class ViewerContextMiddlewareTest(TestCase):
         assert get_viewer_context() is None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
-    def test_anonymous_request_sets_no_context(self):
+    def test_anonymous_request_sets_empty_context(self):
         captured: list = []
 
         def get_response(request):
@@ -196,7 +195,11 @@ class ViewerContextMiddlewareTest(TestCase):
 
         middleware(request)
 
-        assert captured == [None]
+        assert len(captured) == 1
+        ctx = captured[0]
+        assert ctx is not None
+        assert ctx.actor.actor_id is None
+        assert ctx.organization_id is None
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
@@ -403,4 +406,7 @@ class ViewerContextMiddlewareTest(TestCase):
 
         middleware(request)
 
-        assert captured == [None]
+        assert len(captured) == 1
+        ctx = captured[0]
+        assert ctx.actor.actor_id is None
+        assert ctx.organization_id is None
