@@ -29,13 +29,26 @@ class SeerOperationConfig:
     estimate: Callable[[Organization], int]
 
 
-# TODO(CW-2314): Placeholder estimates. Replace with real estimates.
+# TODO(CW-2314): Fake value until we have real estimates.
+PLACEHOLDER_CREDIT_ESTIMATE = 100
+
+
 SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
-    SeerOperation.AGENT_CHAT_MESSAGE: SeerOperationConfig(SeerFeature.EXPLORER, lambda org: 10),
-    SeerOperation.AUTOFIX_ROOT_CAUSE: SeerOperationConfig(SeerFeature.AUTOFIX, lambda org: 50),
-    SeerOperation.AUTOFIX_SOLUTION: SeerOperationConfig(SeerFeature.AUTOFIX, lambda org: 20),
-    SeerOperation.AUTOFIX_CODE_CHANGES: SeerOperationConfig(SeerFeature.AUTOFIX, lambda org: 50),
-    SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(SeerFeature.AUTOFIX, lambda org: 30),
+    SeerOperation.AGENT_CHAT_MESSAGE: SeerOperationConfig(
+        SeerFeature.EXPLORER, lambda org: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
+    SeerOperation.AUTOFIX_ROOT_CAUSE: SeerOperationConfig(
+        SeerFeature.AUTOFIX, lambda org: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
+    SeerOperation.AUTOFIX_SOLUTION: SeerOperationConfig(
+        SeerFeature.AUTOFIX, lambda org: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
+    SeerOperation.AUTOFIX_CODE_CHANGES: SeerOperationConfig(
+        SeerFeature.AUTOFIX, lambda org: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
+    SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(
+        SeerFeature.AUTOFIX, lambda org: PLACEHOLDER_CREDIT_ESTIMATE
+    ),
 }
 
 
