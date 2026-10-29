@@ -49,6 +49,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -598,9 +599,7 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 class ServiceAccountGap(StrEnum):
     CONTROL_SILO = "service account auth is cell-only"
-    REQUIRES_USER = "rejects, or stores state for, an anonymous request.user"
-    USER_ACTOR_ERROR = "500s using an anonymous request.user as an actor"
-    NO_ORG_ROLE = "checks the caller's org role"
+    NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
@@ -617,31 +616,24 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "SentryAppDetails_put": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalIssueActions_post": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalRequests": ServiceAccountGap.CONTROL_SILO,
-    "GroupIntegrationDetails": ServiceAccountGap.REQUIRES_USER,
-    "GroupIntegrationDetails_post": ServiceAccountGap.REQUIRES_USER,
-    "GroupIntegrationDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDashboards": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDashboards_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationGroupSearchViews": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationGroupSearchViews_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationProjects_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationStarredServiceSpans_delete": ServiceAccountGap.REQUIRES_USER,
-    "ProjectDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationStarredServiceSpans_post": ServiceAccountGap.USER_ACTOR_ERROR,
-    "ProjectDetails_delete": ServiceAccountGap.USER_ACTOR_ERROR,
-    "TeamDetails_delete": ServiceAccountGap.USER_ACTOR_ERROR,
-    "EventAttachmentDetails": ServiceAccountGap.NO_ORG_ROLE,
-    "OrganizationMemberIndex_post": ServiceAccountGap.NO_ORG_ROLE,
+    "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberDetails_put": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberIndex_post": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
 }
+
+# Rows that act on the caller as a person (saved views, stars, a personal team), so a
+# service account is denied with user-required instead of matching the oracle.
+SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
+    {
+        "OrganizationGroupSearchViews",
+        "OrganizationGroupSearchViews_post",
+        "OrganizationProjects_post",
+        "OrganizationStarredServiceSpans_delete",
+        "OrganizationStarredServiceSpans_post",
+    }
+)
 
 
 def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...]:
@@ -1137,6 +1129,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         )
         rate_limit_patcher.start()
         self.addCleanup(rate_limit_patcher.stop)
+        self.enterContext(override_options({"auth.service-account-principal": True}))
         self.owner = self.create_user()
         self.org = self.create_organization(owner=self.owner)
         self.team = self.create_team(organization=self.org)
@@ -2230,6 +2223,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         authorization_oracle: Response,
         response: Response,
     ) -> None:
+        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED:
+            assert response.status_code == 403, (endpoint.path_template, response.content)
+            assert json.loads(response.content)["detail"]["code"] == "user-required"
+            return
         matches_oracle = response.status_code == authorization_oracle.status_code and (
             authorization_oracle.status_code < 400
             or response.content == authorization_oracle.content
@@ -2379,6 +2376,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         finally:
             with assume_test_silo_mode(SiloMode.MONOLITH):
                 for database, savepoint in reversed(savepoints.items()):
+                    # A save that raised (e.g. UserRequired) marks the test transaction
+                    # broken; returning to the pre-request savepoint recovers it.
+                    transaction.set_rollback(False, using=database)
                     transaction.savepoint_rollback(savepoint, using=database)
             # Model/option cache writes are not transactional. Remove the control
             # request's cached deletion/update so the replay observes the restored DB.

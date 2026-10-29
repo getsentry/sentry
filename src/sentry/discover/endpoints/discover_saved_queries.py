@@ -125,7 +125,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                     queryset = queryset.none()
 
         last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
-        if request.user.is_authenticated:
+        if request.user.user_id is not None:
             last_visited_query = Subquery(
                 DiscoverSavedQueryLastVisited.objects.filter(
                     organization=organization,
@@ -255,7 +255,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=request.user.user_id,
         )
 
         model.set_projects(data["project_ids"])

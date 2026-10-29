@@ -36,6 +36,7 @@ from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import is_service_account_auth
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
@@ -1227,7 +1228,7 @@ class TestViewerContextAuthentication(TestCase):
         assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_service_account_authenticates_without_a_user(self) -> None:
+    def test_service_account_authenticates_as_its_principal(self) -> None:
         service_account = self.create_service_account(
             organization=self.organization, scope_list=["project:read", "event:read"]
         )
@@ -1243,7 +1244,12 @@ class TestViewerContextAuthentication(TestCase):
 
         assert result is not None
         user, auth = result
-        assert not user.is_authenticated
+        assert user == ServiceAccountPrincipal(
+            service_account_id=service_account.id,
+            organization_id=self.organization.id,
+            name=service_account.name,
+        )
+        assert user.user_id is None
         assert is_service_account_auth(auth)
         assert auth.entity_id == service_account.id
         assert auth.organization_id == self.organization.id

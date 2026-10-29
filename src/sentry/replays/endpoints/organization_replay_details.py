@@ -283,7 +283,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     start=filter_params["start"],
                     end=filter_params["end"],
                     organization_id=organization.id,
-                    request_user_id=request.user.id,
+                    request_user_id=request.user.user_id,
                 )["data"]
 
                 if snuba_response:
@@ -302,7 +302,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     start=filter_params["start"],
                     end=filter_params["end"],
                     organization=organization,
-                    request_user_id=request.user.id,
+                    request_user_id=request.user.user_id,
                 )
 
         replay_data = process_raw_response(

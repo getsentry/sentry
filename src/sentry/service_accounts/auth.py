@@ -4,6 +4,7 @@ from typing import TypeGuard
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.viewer_context import ActorType, ViewerContext
 
@@ -14,9 +15,12 @@ def is_service_account_auth(auth: object) -> TypeGuard[AuthenticatedToken]:
     return isinstance(auth, AuthenticatedToken) and auth.kind == SERVICE_ACCOUNT_TOKEN_KIND
 
 
-def authenticate_service_account(vc: ViewerContext) -> AuthenticatedToken | None:
+def authenticate_service_account(
+    vc: ViewerContext,
+) -> tuple[ServiceAccountPrincipal, AuthenticatedToken] | None:
     """
-    Resolve a service-account ViewerContext to a credential for its organization.
+    Resolve a service-account ViewerContext to its principal and a credential for its
+    organization.
 
     The token carries no scopes, so they're read from the cell replica on every
     request. Narrowing, disabling or deleting the account applies once its outbox
@@ -40,9 +44,15 @@ def authenticate_service_account(vc: ViewerContext) -> AuthenticatedToken | None
     if service_account is None:
         return None
 
-    return AuthenticatedToken(
+    principal = ServiceAccountPrincipal(
+        service_account_id=service_account.service_account_id,
+        organization_id=service_account.organization_id,
+        name=service_account.name,
+    )
+    token = AuthenticatedToken(
         kind=SERVICE_ACCOUNT_TOKEN_KIND,
         entity_id=service_account.service_account_id,
         organization_id=service_account.organization_id,
         scopes=sorted(service_account.scope_list),
     )
+    return principal, token

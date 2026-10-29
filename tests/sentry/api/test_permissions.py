@@ -18,6 +18,7 @@ from sentry.api.permissions import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -99,6 +100,15 @@ class IsAuthenticatedPermissionsTest(DRFPermissionTestCase):
             assert not self.user_permission.has_permission(
                 self.make_request(self.readonly_user), APIView()
             )
+
+    def test_rejects_callers_without_a_person(self) -> None:
+        principal = ServiceAccountPrincipal(
+            service_account_id=self.normal_user.id,
+            organization_id=self.organization.id,
+            name="autofix",
+        )
+        request = self.make_request(principal)
+        assert not self.user_permission.has_permission(request, APIView())
 
     def test_has_object_permission(self) -> None:
         with override_options(

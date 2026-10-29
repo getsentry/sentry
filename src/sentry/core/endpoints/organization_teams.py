@@ -177,7 +177,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
         )
 
     def should_add_creator_to_team(self, request: Request):
-        return request.user.is_authenticated
+        return request.user.user_id is not None
 
     @extend_schema(
         operation_id="createOrganizationTeam",

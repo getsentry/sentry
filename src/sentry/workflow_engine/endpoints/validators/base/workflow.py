@@ -399,7 +399,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             log_alerting_quota_hit(
                 object_type="workflow",
                 organization=org,
-                actor=request.user if request.user.is_authenticated else None,
+                actor=request.user if request.user.user_id is not None else None,
             )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
@@ -438,7 +438,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=request.user.id,
+                created_by_id=request.user.user_id,
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )

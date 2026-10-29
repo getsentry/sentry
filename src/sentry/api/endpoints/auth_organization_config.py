@@ -51,7 +51,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
         organization_context = organization_service.get_organization_by_slug(
             slug=organization_id_or_slug,
             only_visible=True,
-            user_id=request.user.id if request.user.is_authenticated else None,
+            user_id=request.user.user_id,
             include_projects=False,
             include_teams=False,
         )

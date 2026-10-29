@@ -89,7 +89,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
                 start=filter_params["start"],
                 end=filter_params["end"],
                 organization=project.organization,
-                request_user_id=request.user.id,
+                request_user_id=request.user.user_id,
             )
 
         replay_data = process_raw_response(

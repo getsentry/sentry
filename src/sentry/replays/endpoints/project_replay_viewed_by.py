@@ -75,7 +75,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                 replay_id=replay_id,
                 start=filter_params["start"],
                 end=filter_params["end"],
-                request_user_id=request.user.id,
+                request_user_id=request.user.user_id,
                 organization=project.organization,
             )
         if not viewed_by_ids_response:
@@ -141,7 +141,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                     project_ids=[project.id],
                     period_start=filter_params["start"],
                     period_end=filter_params["end"],
-                    request_user_id=request.user.id,
+                    request_user_id=request.user.user_id,
                 ),
                 tenant_id={"organization_id": project.organization.id}
                 if project.organization

@@ -7,6 +7,7 @@ from typing import Any
 
 import pydantic
 from django.utils.functional import LazyObject
+from rest_framework.exceptions import APIException
 
 from sentry.hybridcloud.rpc import ArgumentDict
 
@@ -125,6 +126,9 @@ class SerializableFunctionSignature:
 
         try:
             model_instance = self._parameter_model(**raw_arguments)
+        except APIException:
+            # e.g. UserRequired from a service account's id: already an API response.
+            raise
         except Exception as e:
             raise SerializableFunctionValueException(self, "Could not serialize arguments") from e
         return model_instance.dict()

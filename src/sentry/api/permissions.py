@@ -471,6 +471,9 @@ class SentryIsAuthenticated(IsAuthenticated):
     def has_permission(self, request: Request, view: APIView) -> bool:
         if is_demo_user(request.user):
             return False
+        # Open to any logged-in person, not to callers with no human behind them.
+        if request.user.user_id is None:
+            return False
 
         return super().has_permission(request, view)
 

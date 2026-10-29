@@ -564,7 +564,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=request.user.user_id,
         )
 
         model.set_projects(data["project_ids"])

@@ -547,7 +547,7 @@ class DashboardRevision(DefaultFieldsModel):
         """
         revision = cls.objects.create(
             dashboard=dashboard,
-            created_by_id=user.id if user.is_authenticated else None,
+            created_by_id=user.user_id,
             title=dashboard.title,
             source=source,
             snapshot=snapshot,

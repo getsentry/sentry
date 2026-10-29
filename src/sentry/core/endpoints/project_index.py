@@ -67,7 +67,7 @@ class ProjectIndexEndpoint(Endpoint):
                     queryset = queryset.filter(organization_id=request.auth.organization_id)
                     if not agent_access.has_global_access:
                         queryset = queryset.filter(id__in=agent_access.accessible_project_ids)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and request.user.user_id is None:
             if request.auth.project_id:
                 queryset = queryset.filter(id=request.auth.project_id)
             elif request.auth.organization_id is not None:

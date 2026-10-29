@@ -101,8 +101,8 @@ def record_new_project(project, user=None, user_id=None, origin=None, **kwargs):
 
     if user_id is not None:
         default_user_id = user_id
-    elif user.is_authenticated:
-        user_id = default_user_id = user.id
+    elif user.user_id is not None:
+        user_id = default_user_id = user.user_id
     else:
         user_id = default_user_id = get_owner_id(project, user)
         if user_id is None:

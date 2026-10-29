@@ -45,7 +45,7 @@ class TeamManager(BaseManager["Team"]):
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
-        if not user.is_authenticated:
+        if user.user_id is None:
             return []
 
         base_team_qs = self.filter(organization=organization, status=TeamStatus.ACTIVE)

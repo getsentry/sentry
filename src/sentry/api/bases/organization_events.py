@@ -208,7 +208,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 environments=filter_params.get("environment_objects", []),
                 projects=filter_params["project_objects"],
                 user=serialize_generic_user(
-                    request.user if request.user.is_authenticated else None
+                    request.user if request.user.user_id is not None else None
                 ),
                 teams=self.get_teams(request, organization),
                 organization=organization,

@@ -203,7 +203,7 @@ def update_groups(
     # If `user` and `data` are passed as parameters then they should override
     # the values in `request`.
     user = user or request.user
-    acting_user = user if user and user.is_authenticated else None
+    acting_user = user if user and user.user_id is not None else None
     data = data or request.data
 
     # so we won't have to requery for each group
@@ -531,7 +531,7 @@ def process_group_resolution(
             "release": release,
             "type": res_type,
             "status": res_status,
-            "actor_id": acting_user.id if acting_user and acting_user.is_authenticated else None,
+            "actor_id": acting_user.id if acting_user else None,
         }
 
         # We only set `current_release_version` if GroupResolution type is

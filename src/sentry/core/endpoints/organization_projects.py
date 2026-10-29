@@ -46,6 +46,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -181,7 +182,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             queryset = Project.objects.filter(organization=organization)
             if not request.access.has_global_access:
                 queryset = queryset.filter(id__in=request.access.accessible_project_ids)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and request.user.user_id is None:
             # TODO: remove this, no longer supported probably
             if hasattr(request.auth, "project"):
                 queryset = Project.objects.filter(id=request.auth.project.id)
@@ -198,7 +199,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         order_by = ["slug"]
 
-        if request.user.is_authenticated:
+        if request.user.user_id is not None:
             queryset = queryset.extra(
                 select={
                     "is_bookmarked": """exists (
@@ -295,7 +296,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             )
 
     def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
-        return user.is_authenticated
+        return user.user_id is not None
 
     @extend_schema(
         tags=["Projects"],
@@ -335,6 +336,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
 
         if not serializer.is_valid():
             raise ValidationError(serializer.errors)
+        # The new project's default team is the creator's own, which needs a person.
+        require_user(request)
         if not self.should_add_creator_to_team(request.user):
             raise NotAuthenticated("User is not authenticated")
 

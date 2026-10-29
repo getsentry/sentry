@@ -845,7 +845,7 @@ def post_org_pending_deletion(
                 OrganizationRemoved(
                     organization_id=updated_organization.id,
                     slug=updated_organization.slug,
-                    user_id=request.user.id if request.user.is_authenticated else None,
+                    user_id=request.user.user_id,
                     deletion_request_datetime=entry.datetime.isoformat(),
                     deletion_datetime=(entry.datetime + timedelta(seconds=ONE_DAY)).isoformat(),
                 )

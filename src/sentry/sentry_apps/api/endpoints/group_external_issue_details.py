@@ -102,8 +102,8 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
                 group_id=group.id,
                 project=group.project,
                 actor=(
-                    GroupActionActor.user(request.user.id)
-                    if request.user.is_authenticated
+                    GroupActionActor.user(request.user.user_id)
+                    if request.user.user_id is not None
                     else SYSTEM_ACTOR
                 ),
             )

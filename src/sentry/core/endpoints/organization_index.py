@@ -197,7 +197,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and request.user.user_id is None:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:
@@ -311,7 +311,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and request.user.user_id is None:
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(organization_id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:

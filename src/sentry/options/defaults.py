@@ -317,6 +317,14 @@ register(
 # grants tokens holding a deprecated scope (e.g. org:read) the granular scopes replacing it.
 # Turning this off is safe while endpoints still accept the deprecated scopes. Before any
 # endpoint stops accepting them regardless of this option, enable it everywhere and remove it.
+# Off, service accounts are anonymous on request.user, as they were before having a
+# principal. On, request.user is their ServiceAccountPrincipal.
+register(
+    "auth.service-account-principal",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "auth.deprecated-scope-translation.enabled",
     default=False,

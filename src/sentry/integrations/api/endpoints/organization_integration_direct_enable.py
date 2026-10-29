@@ -87,7 +87,7 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 data = provider.build_integration({})
                 integration = ensure_integration(provider.key, data)
 
-                user = request.user if request.user.is_authenticated else None
+                user = request.user if request.user.user_id is not None else None
                 org_integration = integration.add_organization(organization, user)
                 if org_integration is None:
                     raise IntegrityError

@@ -1224,7 +1224,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
-            created_by_id=self.context["request"].user.id,
+            created_by_id=self.context["request"].user.user_id,
         )
 
         assert self.instance is not None

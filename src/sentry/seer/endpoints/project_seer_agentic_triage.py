@@ -33,7 +33,7 @@ class ProjectSeerAgenticTriageEndpoint(ProjectEndpoint):
             raise NotFound
 
         dry_run = bool(request.data.get("dryRun", False))
-        triggering_user_id = request.user.id if request.user.is_authenticated else None
+        triggering_user_id = request.user.user_id
 
         logger.info(
             "night_shift.manual_trigger.dispatched",

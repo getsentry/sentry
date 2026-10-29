@@ -687,7 +687,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         with write_formula_to_db():
             formula = ExploreSavedFormula.objects.create(
                 organization=organization,
-                created_by_id=request.user.id,
+                created_by_id=request.user.user_id,
                 formula=data["formula"],
                 description=data["description"],
                 name=data["name"],

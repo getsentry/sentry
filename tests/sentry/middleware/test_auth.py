@@ -9,14 +9,16 @@ from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.seer import agent_token
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, cell_silo_test
 from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
 from sentry.utils import jwt
 from sentry.utils.auth import login
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @all_silo_test
@@ -239,3 +241,25 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert userip.ip_address == "8.8.8.8"
         assert userip.country_code == "US"
         assert userip.region_code == "CA"
+
+
+@cell_silo_test
+class ServiceAccountAuthenticationMiddlewareTest(TestCase):
+    SHARED_SECRET = "a-long-secret-key"
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_stays_off_the_django_request(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = Request(self.make_request(method="GET"))
+        request.META["HTTP_X_VIEWER_CONTEXT"] = encode_viewer_context(
+            context, key=self.SHARED_SECRET
+        )
+
+        AuthenticationMiddleware(lambda r: r).process_request(request)
+
+        assert request.user.is_anonymous
+        assert is_service_account_auth(request.auth)

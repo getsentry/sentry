@@ -86,12 +86,19 @@ def get_rate_limit_key(
     from sentry.auth.system import is_system_auth
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
     from sentry.models.apikey import ApiKey
+    from sentry.service_accounts.auth import is_service_account_auth
 
     # Don't Rate Limit System Token Requests
     if is_system_auth(request_auth):
         return None
 
-    if is_api_token_auth(request_auth) and request_user:
+    id: int | str | None
+    if is_service_account_auth(request_auth):
+        # User limits, in a bucket of the account's own rather than its caller's IP.
+        category = "user"
+        id = f"service_account:{request_auth.entity_id}"
+
+    elif is_api_token_auth(request_auth) and request_user:
         token_id: int | None = None
         token_org_id = None
         if isinstance(request_auth, ApiToken):

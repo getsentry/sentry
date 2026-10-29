@@ -456,7 +456,7 @@ class Organization(ReplicatedCellModel):
         return OrganizationOption.objects
 
     def _handle_requirement_change(self, request, task):
-        actor_id = request.user.id if request.user.is_authenticated else None
+        actor_id = request.user.user_id
         api_key_id = (
             request.auth.entity_id
             if request.auth is not None and request.auth.kind == "api_key"

@@ -11,11 +11,15 @@ from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 
 
 def is_considered_sudo(request: Request) -> bool:
     if is_agent_auth(request.auth):
         return False
+    # Like an org auth token: a scoped credential with no password to re-enter.
+    if is_service_account_auth(request.auth):
+        return True
 
     # Right now, only password reauthentication (django-sudo) is supported,
     # so if a user doesn't have a password (for example, only has github auth)

@@ -20,6 +20,7 @@ from sentry.api.authentication import (
     ViewerContextAuthentication,
 )
 from sentry.auth.principal import set_request_principal
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
@@ -98,7 +99,12 @@ class AuthenticationMiddleware(MiddlewareMixin):
         except AuthenticationFailed:
             result = None
         if result:
-            set_request_principal(request, *result)
+            user, auth = result
+            # Service accounts only call the API: session auth and web views must not
+            # treat them as a logged-in user.
+            if is_service_account_auth(auth):
+                user = AnonymousUser()
+            set_request_principal(request, user, auth)
             return
 
         # default to anonymous user and use IP ratelimit

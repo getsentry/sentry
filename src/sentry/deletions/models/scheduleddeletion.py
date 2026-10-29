@@ -78,7 +78,7 @@ class BaseScheduledDeletion(Model):
             defaults={
                 "date_scheduled": timezone.now() + timedelta(days=days, hours=hours),
                 "data": data or {},
-                "actor_id": actor.id if actor else None,
+                "actor_id": actor.user_id if actor else None,
             },
         )
 
