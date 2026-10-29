@@ -279,9 +279,14 @@ describe('SelectField', () => {
                     field.handleChange(val);
                   }}
                   options={[{value: 1, label: 'Apple'}]}
-                  renderOptionLabel={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<{label: string; value: number}>();
-                    return opt.label;
+                  components={{
+                    OptionLabel: ({option}) => {
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: number;
+                      }>();
+                      return option.label;
+                    },
                   }}
                 />
               )}
@@ -310,12 +315,14 @@ describe('SelectField', () => {
                     field.handleChange(val);
                   }}
                   options={[{value: {id: 1}, label: 'Apple'}]}
-                  renderOptionLabel={opt => {
-                    expectTypeOf(opt).toEqualTypeOf<{
-                      label: string;
-                      value: {id: number};
-                    }>();
-                    return opt.label;
+                  components={{
+                    OptionLabel: ({option}) => {
+                      expectTypeOf(option).toEqualTypeOf<{
+                        label: string;
+                        value: {id: number};
+                      }>();
+                      return option.label;
+                    },
                   }}
                 />
               )}

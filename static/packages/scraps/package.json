@@ -242,6 +242,10 @@
     "./useResizableDrawer": {
       "types": "./dist/useResizableDrawer.d.ts",
       "import": "./dist/useResizableDrawer.js"
+    },
+    "./toast": {
+      "types": "./dist/toast/index.d.ts",
+      "import": "./dist/toast/index.js"
     }
   },
   "publishConfig": {
@@ -286,6 +290,7 @@
     "input-otp": "^1.5.0",
     "query-string": "7.0.1",
     "react-textarea-autosize": "8.5.7",
+    "sonner": "2.0.8",
     "type-fest": "^5.10.0"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import type {
   BaseSelectProps,
+  SelectComponents,
   SelectSelectionProps,
   SelectValue,
 } from '@sentry/scraps/select';
@@ -24,10 +25,11 @@ function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
 // Base props shared by all select variants
 type BaseSelectFieldProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   BaseSelectProps<TValue, TOption>,
-  'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'renderIndicators' | 'id' | 'options'
+  'onBlur' | 'disabled' | 'ref' | 'inputRef' | 'components' | 'id' | 'options'
 > &
   BaseFieldProps<HTMLInputElement> & {
     options: ReadonlyArray<TOption & SelectValue<TValue>>;
+    components?: Omit<SelectComponents<TOption>, 'Indicators'>;
   };
 
 export type SelectFieldProps<
@@ -68,9 +70,7 @@ export function SelectField<
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
-            renderIndicators={indicators => (
-              <SelectIndicatorsContainer>{indicators}</SelectIndicatorsContainer>
-            )}
+            components={{...props.components, Indicators: SelectIndicatorsContainer}}
             onOpenChange={isOpen => {
               isMenuOpenRef.current = isOpen;
               props.onOpenChange?.(isOpen);

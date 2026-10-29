@@ -28,6 +28,7 @@ import {
   components as selectComponents,
 } from './reactSelectWrapper';
 import type {
+  SelectComponents,
   SelectHandle,
   SelectSelectionProps,
   SelectValue,
@@ -284,13 +285,9 @@ type SelectContentProps<TValue, TOption extends SelectValue<TValue>> = Pick<
   | 'aria-invalid'
   | 'controlLeadingItems'
   | 'dropdownIndicator'
-  | 'indicator'
   | 'inputRef'
   | 'menuFooter'
-  | 'renderIndicators'
-  | 'renderMultiValueLabel'
-  | 'renderValue'
->;
+> & {contentComponents?: SelectComponents<TOption>};
 
 function SelectInput<TValue, TOption extends SelectValue<TValue>>({
   selectProps,
@@ -337,11 +334,14 @@ function IndicatorsContainer<TValue, TOption extends SelectValue<TValue>>({
   React.ComponentProps<typeof selectComponents.IndicatorsContainer>,
   'selectProps'
 > & {selectProps: SelectContentProps<TValue, TOption>}) {
-  return props.selectProps.renderIndicators ? (
-    props.selectProps.renderIndicators(children)
+  const Indicators = props.selectProps.contentComponents?.Indicators;
+  if (Indicators === null) {
+    return null;
+  }
+  return Indicators ? (
+    <Indicators>{children}</Indicators>
   ) : (
     <selectComponents.IndicatorsContainer {...props}>
-      {props.selectProps.indicator}
       {children}
     </selectComponents.IndicatorsContainer>
   );
@@ -354,11 +354,10 @@ function MultiValueLabel<TValue, TOption extends SelectValue<TValue>>({
   React.ComponentProps<typeof selectComponents.MultiValueLabel>,
   'selectProps' | 'data'
 > & {data: TOption; selectProps: SelectContentProps<TValue, TOption>}) {
+  const Label = props.selectProps.contentComponents?.MultiValueLabel;
   return (
     <selectComponents.MultiValueLabel {...props}>
-      {props.selectProps.renderMultiValueLabel
-        ? props.selectProps.renderMultiValueLabel(props.data, children)
-        : children}
+      {Label ? <Label option={props.data}>{children}</Label> : children}
     </selectComponents.MultiValueLabel>
   );
 }
@@ -420,14 +419,15 @@ function SingleValue<TValue, TOption extends SelectValue<TValue>>(
   > & {data: TOption; selectProps: SelectContentProps<TValue, TOption>}
 ) {
   const {leadingItems, label} = props.data;
+  const ValueComponent = props.selectProps.contentComponents?.Value;
   const renderedLeadingItems =
     typeof leadingItems === 'function'
       ? leadingItems({disabled: props.isDisabled, isFocused: false, isSelected: true})
       : leadingItems;
   return (
     <selectComponents.SingleValue {...props}>
-      {props.selectProps.renderValue ? (
-        props.selectProps.renderValue(props.data)
+      {ValueComponent ? (
+        <ValueComponent option={props.data} />
       ) : (
         <SingleValueWrap>
           {renderedLeadingItems}
@@ -483,6 +483,8 @@ export interface BaseSelectProps<
   /** Blur after selection. Defaults to true for single selects, false for multiple. */
   blurInputOnSelect?: boolean;
   className?: string;
+  /** Customize content while Select retains input, option, and chip behavior. */
+  components?: SelectComponents<TOption>;
   /** Content inside the control, before the selected value and input. */
   controlLeadingItems?: React.ReactNode;
   /** Allow values that are not in `options`. */
@@ -494,7 +496,6 @@ export interface BaseSelectProps<
   formatCreateLabel?: (input: string) => React.ReactNode;
   /** ID of the native input, for association with a label. */
   id?: string;
-  indicator?: React.ReactNode;
   /** Ref to the native search input. */
   inputRef?: React.Ref<HTMLInputElement>;
   inputValue?: string;
@@ -524,10 +525,6 @@ export interface BaseSelectProps<
   openMenuOnFocus?: boolean;
   placeholder?: React.ReactNode;
   ref?: React.Ref<SelectHandle>;
-  renderIndicators?: (indicators: React.ReactNode) => React.ReactNode;
-  renderMultiValueLabel?: (option: TOption, label: React.ReactNode) => React.ReactNode;
-  renderOptionLabel?: (option: TOption) => React.ReactNode;
-  renderValue?: (option: TOption) => React.ReactNode;
   searchable?: boolean;
   showCreateOptionIcon?: boolean;
   showDividers?: boolean;
@@ -583,11 +580,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     id,
     isOpen,
     onOpenChange,
-    renderValue,
-    renderMultiValueLabel,
-    renderOptionLabel,
-    renderIndicators,
-    indicator,
+    components,
     controlLeadingItems,
     dropdownIndicator,
     menuFooter,
@@ -686,11 +679,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       menuIsOpen={isOpen}
       onMenuOpen={() => onOpenChange?.(true)}
       onMenuClose={() => onOpenChange?.(false)}
-      renderValue={renderValue}
-      renderMultiValueLabel={renderMultiValueLabel}
-      renderOptionLabel={renderOptionLabel}
-      renderIndicators={renderIndicators}
-      indicator={indicator}
+      contentComponents={components}
       controlLeadingItems={controlLeadingItems}
       dropdownIndicator={dropdownIndicator}
       menuFooter={menuFooter}
@@ -700,7 +689,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
 
 type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
   ControlProps<TValue, TOption>,
-  'value' | 'styles' | 'filterOption' | 'onInputChange'
+  'value' | 'styles' | 'filterOption' | 'onInputChange' | 'components'
 > &
   Pick<
     ReactSelectProps<TOption, boolean>,
@@ -722,7 +711,10 @@ type SelectPickerProps<TValue, TOption extends SelectValue<TValue>> = Omit<
     | 'menuIsOpen'
     | 'onMenuOpen'
     | 'onMenuClose'
-  > & {value: ValueType<TOption, boolean>};
+  > & {
+    value: ValueType<TOption, boolean>;
+    contentComponents?: SelectComponents<TOption>;
+  };
 
 function SelectPicker<TValue, TOption extends SelectValue<TValue>>({
   creatable,

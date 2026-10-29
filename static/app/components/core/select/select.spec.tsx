@@ -9,14 +9,76 @@ import {Text} from '@sentry/scraps/text';
 import {createFilter} from './filter';
 import {Select} from './select';
 import type {ControlProps} from './select';
-import type {SelectHandle, SelectValue, StylesConfig} from './types';
+import type {SelectComponents, SelectHandle, SelectValue, StylesConfig} from './types';
 
 const options = [
   {value: 'apple', label: 'Apple', details: 'Fruit'},
   {value: 'cherry', label: 'Cherry', details: 'Fruit'},
 ];
 
+function FruitValue({option}: {option: (typeof options)[number]}) {
+  return <Text>Selected {option.label}</Text>;
+}
+
+function FruitOptionLabel({option}: {option: (typeof options)[number]}) {
+  return <Text>Choose {option.label}</Text>;
+}
+
+function FruitMultiValueLabel({
+  option,
+  children,
+}: {
+  children: React.ReactNode;
+  option: (typeof options)[number];
+}) {
+  return (
+    <Text>
+      {children}: {option.details}
+    </Text>
+  );
+}
+
+function FruitIndicators({children}: {children: React.ReactNode}) {
+  return (
+    <Fragment>
+      <Text>Fruit indicators</Text>
+      {children}
+    </Fragment>
+  );
+}
+
 describe('selection types', () => {
+  it('checks option types and required props for content components', () => {
+    type Option = (typeof options)[number];
+    type ValueComponent = NonNullable<SelectComponents<Option>['Value']>;
+    type OptionLabel = NonNullable<SelectComponents<Option>['OptionLabel']>;
+    type MultiValueLabel = NonNullable<SelectComponents<Option>['MultiValueLabel']>;
+    type Indicators = NonNullable<SelectComponents<Option>['Indicators']>;
+
+    expectTypeOf<typeof FruitValue>().toMatchTypeOf<ValueComponent>();
+    expectTypeOf<typeof FruitOptionLabel>().toMatchTypeOf<OptionLabel>();
+    expectTypeOf<typeof FruitMultiValueLabel>().toMatchTypeOf<MultiValueLabel>();
+    expectTypeOf<typeof FruitIndicators>().toMatchTypeOf<Indicators>();
+    expectTypeOf<
+      (props: {option: SelectValue<number>}) => React.ReactNode
+    >().not.toMatchTypeOf<ValueComponent>();
+    expectTypeOf<
+      (props: {option: SelectValue<number>}) => React.ReactNode
+    >().not.toMatchTypeOf<OptionLabel>();
+    expectTypeOf<
+      (props: {children: React.ReactNode; option: SelectValue<number>}) => React.ReactNode
+    >().not.toMatchTypeOf<MultiValueLabel>();
+    expectTypeOf<
+      (props: {children: React.ReactNode; required: string}) => React.ReactNode
+    >().not.toMatchTypeOf<Indicators>();
+    expectTypeOf<'Input' | 'Control' | 'Option'>().not.toMatchTypeOf<
+      keyof SelectComponents<Option>
+    >();
+    expectTypeOf<
+      (props: {option: Option; required: string}) => React.ReactNode
+    >().not.toMatchTypeOf<ValueComponent>();
+  });
+
   it('infers option objects for single, clearable, and multiple selections', () => {
     const single = (
       <Select
@@ -161,13 +223,15 @@ describe('selection types', () => {
           expectTypeOf(option).toEqualTypeOf<TOption>();
           return option.searchKey === 'first';
         }}
-        renderValue={option => {
-          expectTypeOf(option).toEqualTypeOf<TOption>();
-          return option.searchKey;
-        }}
-        renderOptionLabel={option => {
-          expectTypeOf(option).toEqualTypeOf<TOption>();
-          return option.searchKey;
+        components={{
+          Value: ({option}) => {
+            expectTypeOf(option).toEqualTypeOf<TOption>();
+            return option.searchKey;
+          },
+          OptionLabel: ({option}) => {
+            expectTypeOf(option).toEqualTypeOf<TOption>();
+            return option.searchKey;
+          },
         }}
         onChange={option => {
           expectTypeOf(option).toEqualTypeOf<TOption>();
@@ -200,9 +264,11 @@ describe('selection types', () => {
         multiple
         options={groupedOptions}
         value={[]}
-        renderMultiValueLabel={option => {
-          expectTypeOf(option).toEqualTypeOf<(typeof options)[number]>();
-          return option.details;
+        components={{
+          MultiValueLabel: ({option}) => {
+            expectTypeOf(option).toEqualTypeOf<(typeof options)[number]>();
+            return option.details;
+          },
         }}
         styles={{
           option: (base, {data}) => {
@@ -276,6 +342,7 @@ describe('selection types', () => {
         'emptyOptionLabel' | 'inFieldLabel' | 'optionHeight'
       >
     >().toBeNever();
+    expectTypeOf<'indicator'>().not.toMatchTypeOf<keyof ControlProps<string, Option>>();
   });
 });
 
@@ -287,8 +354,7 @@ it('customizes value and option content while preserving selection data', async 
       options={options}
       value="apple"
       onChange={onChange}
-      renderValue={option => <Text>Selected {option.label}</Text>}
-      renderOptionLabel={option => <Text>Choose {option.label}</Text>}
+      components={{Value: FruitValue, OptionLabel: FruitOptionLabel}}
     />
   );
 
@@ -309,11 +375,7 @@ it('customizes chip labels while retaining the remove control', async () => {
       options={options}
       value={['apple', 'cherry']}
       onChange={onChange}
-      renderMultiValueLabel={(option, label) => (
-        <Text>
-          {label}: {option.details}
-        </Text>
-      )}
+      components={{MultiValueLabel: FruitMultiValueLabel}}
     />
   );
 
@@ -321,6 +383,42 @@ it('customizes chip labels while retaining the remove control', async () => {
   await userEvent.click(screen.getAllByLabelText('Remove item')[0]!);
 
   expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
+});
+
+it('customizes indicators while retaining the clear control', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      clearable
+      options={options}
+      value="apple"
+      onChange={onChange}
+      components={{Indicators: FruitIndicators}}
+    />
+  );
+
+  expect(screen.getByText('Fruit indicators')).toBeInTheDocument();
+  await userEvent.click(screen.getByLabelText('Clear choices'));
+  expect(onChange).toHaveBeenCalledWith(null, expect.anything());
+});
+
+it('can hide indicators without disabling option selection', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      clearable
+      aria-label="Fruit"
+      options={options}
+      value="apple"
+      onChange={onChange}
+      components={{Indicators: null}}
+    />
+  );
+
+  expect(screen.queryByLabelText('Clear choices')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
+  await userEvent.click(screen.getByRole('menuitemradio', {name: 'Cherry'}));
+  expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());
 });
 
 it('provides a native input ref and forwards validation attributes', () => {

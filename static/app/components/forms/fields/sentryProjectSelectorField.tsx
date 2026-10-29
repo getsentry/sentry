@@ -1,4 +1,5 @@
 import {Flex} from '@sentry/scraps/layout';
+import type {SelectValue} from '@sentry/scraps/select';
 
 import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
@@ -12,6 +13,29 @@ import {SelectField} from './selectField';
  * Function used to group projects by returning the key of the group
  */
 type GroupProjects = (project: Project) => string;
+
+function ProjectMultiValueLabel({
+  option,
+  children,
+}: {
+  children: React.ReactNode;
+  option: SelectValue<string> & {project?: Project};
+}) {
+  return (
+    <Flex align="center" gap="xs">
+      {option.project && (
+        <IdBadge
+          project={option.project}
+          avatarSize={14}
+          avatarProps={{consistentWidth: true}}
+          disableLink
+          hideName
+        />
+      )}
+      {children}
+    </Flex>
+  );
+}
 
 // projects can be passed as a direct prop as well
 export interface RenderFieldProps extends InputFieldProps {
@@ -76,20 +100,7 @@ export function SentryProjectSelectorField({
     <SelectField
       placeholder={placeholder}
       options={projectOptions}
-      renderMultiValueLabel={(option, label) => (
-        <Flex align="center" gap="xs">
-          {option.project && (
-            <IdBadge
-              project={option.project}
-              avatarSize={14}
-              avatarProps={{consistentWidth: true}}
-              disableLink
-              hideName
-            />
-          )}
-          {label}
-        </Flex>
-      )}
+      components={{MultiValueLabel: ProjectMultiValueLabel}}
       {...props}
     />
   );

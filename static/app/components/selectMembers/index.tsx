@@ -91,6 +91,10 @@ function createUnmentionableUser(user: User): MentionableUser {
   };
 }
 
+function MemberValue({option}: {option: MentionableUser}) {
+  return <UserBadge avatarSize={20} user={option.user} hideEmail />;
+}
+
 /**
  * A component that allows you to select organization members.
  */
@@ -182,7 +186,7 @@ function SelectMembers({
     <Select<string, MentionableUser>
       aria-label={ariaLabel}
       options={currentOptions}
-      renderValue={option => <UserBadge avatarSize={20} user={option.user} hideEmail />}
+      components={{Value: MemberValue}}
       filterOption={filterMemberOption}
       isLoading={searchLoading}
       onInputChange={setSearch}

@@ -236,6 +236,26 @@ function WidgetViewerTable({
   }
 }
 
+interface QueryOption extends SelectValue<number> {
+  getHighlightedQuery: (
+    props: React.ComponentProps<typeof HighlightContainer>
+  ) => React.ReactNode;
+}
+
+function QueryValue({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'block'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
+function QueryOptionLabel({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'flex'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
 function DataWidgetViewerModal(props: Props) {
   const {
     organization,
@@ -445,7 +465,7 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const queryOptions = sortedQueries.map((query, index) => {
+  const queryOptions: QueryOption[] = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(
@@ -673,18 +693,11 @@ function DataWidgetViewerModal(props: Props) {
                 display_type: widget.displayType,
               });
             }}
-            renderValue={option =>
-              option.getHighlightedQuery({display: 'block'}) ??
-              (option.label || (
-                <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-              ))
-            }
-            renderOptionLabel={option =>
-              option.getHighlightedQuery({display: 'flex'}) ??
-              (option.label || (
-                <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-              ))
-            }
+            components={{
+              Value: QueryValue,
+              OptionLabel: QueryOptionLabel,
+              ...(widget.queries.length < 2 && {Indicators: null}),
+            }}
             styles={{
               singleValue: () => ({
                 wordBreak: 'break-word',
@@ -693,7 +706,6 @@ function DataWidgetViewerModal(props: Props) {
                 padding: `0 ${theme.space.xs}`,
               }),
             }}
-            {...(widget.queries.length < 2 ? {renderIndicators: () => null} : {})}
             searchable={false}
             disabled={widget.queries.length < 2}
           />
