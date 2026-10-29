@@ -2,6 +2,11 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_has_seer_credits_pb2 import (
+    HasSeerCreditsRequest,
+    HasSeerCreditsResponse,
+)
+
 from sentry.seer.credits import SeerOperation, can_run_seer_operation, estimate_credits
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -12,7 +17,10 @@ class SeerCreditsTest(TestCase):
         for operation in SeerOperation:
             assert estimate_credits(operation) > 0
 
-    @patch("sentry.quotas.backend.has_seer_credits", return_value=False)
+    @patch(
+        "sentry.quotas.backend.has_seer_credits",
+        return_value=HasSeerCreditsResponse(has_enough_credits=False),
+    )
     def test_can_run_seer_operation_skips_billing_when_credit_checks_disabled(
         self, mock_has_seer_credits: MagicMock
     ) -> None:
@@ -20,19 +28,28 @@ class SeerCreditsTest(TestCase):
         mock_has_seer_credits.assert_not_called()
 
     @with_feature("organizations:seer-credit-checks")
-    @patch("sentry.quotas.backend.has_seer_credits", return_value=False)
+    @patch(
+        "sentry.quotas.backend.has_seer_credits",
+        return_value=HasSeerCreditsResponse(has_enough_credits=False),
+    )
     def test_can_run_seer_operation_returns_false_when_billing_has_no_credits(
         self, mock_has_seer_credits: MagicMock
     ) -> None:
         assert not can_run_seer_operation(self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
         mock_has_seer_credits.assert_called_once_with(
-            org_id=self.organization.id,
-            feature_id="autofix",
-            predicted_credit_usage=estimate_credits(SeerOperation.AUTOFIX_ROOT_CAUSE),
+            HasSeerCreditsRequest(
+                organization_id=self.organization.id,
+                feature_id="autofix",
+                predicted_credit_usage=estimate_credits(SeerOperation.AUTOFIX_ROOT_CAUSE),
+                take_lease=False,
+            )
         )
 
     @with_feature("organizations:seer-credit-checks")
-    @patch("sentry.quotas.backend.has_seer_credits", return_value=True)
+    @patch(
+        "sentry.quotas.backend.has_seer_credits",
+        return_value=HasSeerCreditsResponse(has_enough_credits=True),
+    )
     def test_can_run_seer_operation_returns_true_when_billing_has_credits(
         self, mock_has_seer_credits: MagicMock
     ) -> None:
