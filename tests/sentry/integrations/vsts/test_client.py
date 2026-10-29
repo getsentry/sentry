@@ -20,7 +20,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
-from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity, IdentityProvider
@@ -232,9 +231,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         "sentry.integrations.vsts.client.VstsApiClient.check_file",
         side_effect=ApiUnauthorized(text="Unauthorized"),
     )
-    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.source_code_management.repository.metrics.incr")
     def test_check_file_unauthorized(
-        self, mock_record_event: MagicMock, mock_check_file: MagicMock
+        self, mock_incr: MagicMock, mock_check_file: MagicMock
     ) -> None:
         self.assert_installation()
         integration, installation = self._get_integration_and_install()
@@ -257,7 +256,14 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         installation.check_file(repo, path, version)
 
-        assert_halt_metric(mock_record_event, ApiUnauthorized("Unauthorized"))
+        mock_incr.assert_any_call(
+            "integrations.source_code_management.check_file",
+            tags={
+                "integration_name": "vsts",
+                "parent_interaction_type": "unattributed",
+                "result": "unavailable",
+            },
+        )
 
     @responses.activate
     def test_check_no_file(self) -> None:
@@ -390,12 +396,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         source_url = installation.get_stacktrace_link(repo, path, "master", version)
         assert source_url is None
-        halt = mock_record.mock_calls[-2]
-        assert halt.args[0] == EventLifecycleOutcome.HALTED
-        assert (
-            halt.args[1].text
-            == '{"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}'
-        )
+        start, success = mock_record.mock_calls[-2:]
+        assert start.args[0] == EventLifecycleOutcome.STARTED
+        assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
 
 def assert_proxy_request(request, is_proxy=True):
