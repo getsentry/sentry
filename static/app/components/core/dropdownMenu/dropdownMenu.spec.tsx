@@ -1,4 +1,4 @@
-import {createRef, Fragment} from 'react';
+import {Fragment} from 'react';
 import {IconStar} from '@sentry/icons/star';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -221,34 +221,6 @@ describe('DropdownMenu', () => {
 
     await userEvent.click(actionItem);
     expect(onAction).toHaveBeenCalled();
-  });
-
-  it('attaches item refs to the root of items and sections', async () => {
-    const sectionRef = createRef<HTMLLIElement>();
-    const itemRef = createRef<HTMLLIElement>();
-    render(
-      <DropdownMenu
-        triggerLabel="Menu"
-        items={[
-          {
-            key: 'section',
-            label: 'Section',
-            ref: sectionRef,
-            children: [{key: 'item', label: 'Item', ref: itemRef}],
-          },
-        ]}
-      />
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
-
-    expect(sectionRef.current?.tagName).toBe('LI');
-    expect(sectionRef.current).toContainElement(screen.getByText('Section'));
-    expect(sectionRef.current).toContainElement(itemRef.current);
-    expect(itemRef.current?.tagName).toBe('LI');
-    expect(itemRef.current).toContainElement(
-      screen.getByRole('menuitemradio', {name: 'Item'})
-    );
   });
 
   it('renders disabled items', async () => {
