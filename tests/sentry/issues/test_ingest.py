@@ -24,7 +24,6 @@ from sentry.issues.ingest import (
     _create_issue_kwargs,
     hash_fingerprint,
     materialize_metadata,
-    process_occurrence_data,
     save_issue_from_occurrence,
     save_issue_occurrence,
     send_issue_occurrence_to_eventstream,
@@ -318,7 +317,9 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         occurrence_dict = occurrence.to_dict()
         occurrence_dict["event_id"] = event.event_id
 
-        process_occurrence_data(occurrence_dict)
+        # Avoid DB length errors by hashing fingerprint, which is what
+        # happens in production anyways
+        occurrence_dict["fingerprint"] = hash_fingerprint(occurrence_dict["fingerprint"])
 
         with self.tasks(), mock.patch("sentry.issues.ingest.eventstream") as _:
             saved_occurrence, group_info = save_issue_occurrence(occurrence_dict, event)
