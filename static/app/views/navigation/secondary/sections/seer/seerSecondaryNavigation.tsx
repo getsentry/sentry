@@ -54,8 +54,8 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="seer_automations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -66,8 +66,8 @@ function SeerSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="seer_investigations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>

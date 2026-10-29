@@ -160,8 +160,8 @@ function ExploreSecondaryNavigationImpl() {
                   to={`${baseUrl}/errors-v2/`}
                   activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Errors')}
                 </SecondaryNavigation.Link>
@@ -228,8 +228,8 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="new" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="new" />}
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
@@ -240,8 +240,8 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="explore_automations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -252,8 +252,8 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="explore_investigations"
-                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : undefined}
-                  trailingItems={settingsV3 ? undefined : <FeatureBadge type="alpha" />}
+                  leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                  trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>
@@ -276,12 +276,8 @@ function ExploreSecondaryNavigationImpl() {
                     <SecondaryNavigation.Link
                       to={`${baseUrl}/saved-formulas/`}
                       analyticsItemName="explore_saved_formulas"
-                      leadingItems={
-                        settingsV3 ? <FeatureBadge type="alpha" /> : undefined
-                      }
-                      trailingItems={
-                        settingsV3 ? undefined : <FeatureBadge type="alpha" />
-                      }
+                      leadingItems={settingsV3 ? <FeatureBadge type="alpha" /> : null}
+                      trailingItems={settingsV3 ? null : <FeatureBadge type="alpha" />}
                     >
                       {t('Saved Formulas')}
                     </SecondaryNavigation.Link>

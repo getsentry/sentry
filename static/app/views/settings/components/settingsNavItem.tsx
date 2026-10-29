@@ -42,7 +42,7 @@ export function SettingsNavItem({badge, label, id, to, index, ...props}: Props) 
             {...mergeProps(flexProps, props)}
             to={to}
             end={index}
-            leadingItems={settingsV3 ? badgeElement : undefined}
+            leadingItems={settingsV3 ? badgeElement : null}
             trailingItems={settingsV3 ? null : badgeElement}
             analyticsItemName={id ? `settings_${id}` : undefined}
           >
