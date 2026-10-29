@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 from collections.abc import Sequence
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from snuba_sdk import (
@@ -35,6 +36,12 @@ from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger()
 
@@ -168,7 +175,18 @@ def delete_replay_ids(
         logger.info("Deleting Seer data for %d Replays.", len(rows), extra=logging_context)
         replay_ids = [row["replay_id"] for row in rows]
         # Raises once the request's retries are spent, which aborts the run!
-        delete_seer_replay_data(organization_id, project_id, replay_ids)
+        viewer_context = get_viewer_context()
+        if viewer_context is None:
+            seer_viewer_context = ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        else:
+            seer_viewer_context = replace(viewer_context, project_id=project_id)
+
+        with viewer_context_scope(seer_viewer_context):
+            delete_seer_replay_data(organization_id, project_id, replay_ids)
 
     if delete_blobs:
         logger.info("Scheduling %d Replays for blob deletion.", len(rows), extra=logging_context)
