@@ -2,13 +2,16 @@ import {useEffect, useRef, useState, type ComponentProps} from 'react';
 import styled from '@emotion/styled';
 import cloneDeep from 'lodash/cloneDeep';
 
-import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
+import {
+  useWidgetViewportVisibility,
+  WidgetInViewportProvider,
+} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import {isWidgetEditable} from 'sentry/views/dashboards/utils';
 import {useWidgetSlideout} from 'sentry/views/dashboards/utils/useWidgetSlideout';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -89,6 +92,9 @@ export function SortableWidget(props: Props) {
     ) && !isPrebuiltDashboard;
 
   const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget, dashboardFilters);
+  const {hasBeenInViewport, isInViewport} = useWidgetViewportVisibility(widgetRef, {
+    disabled: props.isGeneratedDashboard,
+  });
 
   const disableTransactionWidget =
     organization.features.includes('discover-saved-queries-deprecation') &&
@@ -151,30 +157,28 @@ export function SortableWidget(props: Props) {
       isClickable={hasSlideout}
       data-test-id="sortable-widget"
     >
-      <LazyRender
-        containerHeight={200}
-        withoutContainer
-        disabled={props.isGeneratedDashboard}
-      >
-        <WidgetCard {...widgetProps} />
-        {props.isEditingDashboard && (
-          <Toolbar
-            onEdit={props.onEdit}
-            onDelete={props.onDelete}
-            onDuplicate={props.onDuplicate}
-            isMobile={props.isMobile}
-            disableEdit={disableEdit}
-            disableDuplicate={disableTransactionWidget}
-            disabledReason={
-              disableEdit
-                ? t('Static widgets from the widget library cannot be edited.')
-                : t(
-                    'You may have limited functionality due to the ongoing migration of transactions to spans.'
-                  )
-            }
-          />
-        )}
-      </LazyRender>
+      {hasBeenInViewport && (
+        <WidgetInViewportProvider value={isInViewport}>
+          <WidgetCard {...widgetProps} />
+          {props.isEditingDashboard && (
+            <Toolbar
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+              onDuplicate={props.onDuplicate}
+              isMobile={props.isMobile}
+              disableEdit={disableEdit}
+              disableDuplicate={disableTransactionWidget}
+              disabledReason={
+                disableEdit
+                  ? t('Static widgets from the widget library cannot be edited.')
+                  : t(
+                      'You may have limited functionality due to the ongoing migration of transactions to spans.'
+                    )
+              }
+            />
+          )}
+        </WidgetInViewportProvider>
+      )}
     </GridWidgetWrapper>
   );
 }
