@@ -1607,6 +1607,44 @@ class E(Endpoint):
     assert _run_input(src) == []
 
 
+def test_S025_body_serializer_declared_as_an_instance_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=BodySerializer(partial=True))
+    def put(self, request) -> Response[X]:
+        BodySerializer(data=request.data, partial=True)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_query_serializer_declared_as_an_instance_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(parameters=[QuerySerializer(partial=True)])
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+"""
+    assert _run_input(src) == []
+
+
+def test_S025_instance_of_another_serializer_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"PUT": ApiPublishStatus.PUBLIC}
+
+    @extend_schema(request=OtherSerializer(partial=True))
+    def put(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+"""
+    errors = _run_input(src)
+    assert len(errors) == 1
+    assert "validates the request body" in errors[0]
+
+
 SHAPED = frozenset({"shaped"})
 
 

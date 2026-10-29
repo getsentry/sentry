@@ -441,10 +441,13 @@ def _declared_elements(value: ast.expr) -> list[ast.expr]:
 
 
 def _declared_names(decorators: list[ast.expr], keyword: str) -> set[str]:
-    """Short names declared under `@extend_schema(<keyword>=...)`."""
+    """Short names declared under `@extend_schema(<keyword>=...)`. A serializer
+    written with arguments, like `MySerializer(partial=True)`, counts as `MySerializer`"""
     names: set[str] = set()
     for value in extend_schema_kwarg(decorators, keyword):
         for element in _declared_elements(value):
+            if isinstance(element, ast.Call):
+                element = element.func
             names.add(_name_of(element).rsplit(".", 1)[-1])
     return names
 
