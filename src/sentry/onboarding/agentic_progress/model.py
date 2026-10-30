@@ -82,6 +82,13 @@ class RunStatus(StrEnum):
     CANCELLED = "cancelled"
 
 
+class RunOrigin(StrEnum):
+    """Product surface that registered the onboarding run."""
+
+    ONBOARDING = "onboarding"
+    PROJECT_CREATION = "project_creation"
+
+
 class StageExtra(BaseModel):
     class Config:
         extra = PydanticExtra.forbid
@@ -136,6 +143,7 @@ class PersistedOnboardingRun(BaseModel):
     sequence: StrictInt
     stages: tuple[PersistedStageState, ...]
     run_status: StrictStr = RunStatus.ACTIVE
+    origin: StrictStr | None = None
     schema_version: StrictInt
 
     class Config:
@@ -396,6 +404,9 @@ class OnboardingRun:
     run_status: RunStatus = RunStatus.ACTIVE
     """Lifecycle state of the complete onboarding run."""
 
+    origin: RunOrigin | None = None
+    """Product surface that registered the run, when the client reported one."""
+
     schema_version: int = SCHEMA_VERSION
     """Version of the Redis and public snapshot representation."""
 
@@ -466,6 +477,7 @@ class OnboardingRun:
                 sequence=persisted.sequence,
                 stages=stages,
                 run_status=run_status,
+                origin=RunOrigin(persisted.origin) if persisted.origin is not None else None,
                 schema_version=persisted.schema_version,
             )
         except InvalidOnboardingRun:
@@ -474,7 +486,7 @@ class OnboardingRun:
             raise InvalidOnboardingRun("Persisted onboarding state is invalid") from error
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        value: dict[str, Any] = {
             "run_id": self.run_id,
             "channel_id": self.channel_id,
             "token_hash": self.token_hash,
@@ -497,6 +509,11 @@ class OnboardingRun:
             "run_status": self.run_status.value,
             "schema_version": self.schema_version,
         }
+        # Persisted runs forbid unknown keys, so omitting an unset origin keeps runs
+        # readable by deployments that predate the field.
+        if self.origin is not None:
+            value["origin"] = self.origin.value
+        return value
 
 
 def initial_stages() -> tuple[StageState[Any], ...]:

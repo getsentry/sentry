@@ -29,6 +29,7 @@ from sentry.onboarding.agentic_progress.model import (
     OnboardingRunExpired,
     OnboardingRunTerminal,
     ProgressUpdate,
+    RunOrigin,
     RunStatus,
     Stage,
     StageExtra,
@@ -56,11 +57,13 @@ StageValue = Literal[
     "check_stack_trace_quality",
 ]
 StageStatusValue = Literal["active", "waiting", "completed", "skipped", "failed"]
+RunOriginValue = Literal["onboarding", "project_creation"]
 
 
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
     onboarding_code: str
+    origin: NotRequired[RunOriginValue]
 
 
 class AgenticOnboardingStatusRequest(TypedDict):
@@ -88,6 +91,7 @@ class AgenticOnboardingPermission(OrganizationPermission):
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
     onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    origin = serializers.ChoiceField(choices=[origin.value for origin in RunOrigin], required=False)
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -168,6 +172,7 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingRunRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        origin = serializer.validated_data.get("origin")
         user_id = request.user.id
         assert user_id is not None
         try:
@@ -176,6 +181,7 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 client_run_id=str(serializer.validated_data["client_run_id"]),
                 onboarding_code=serializer.validated_data["onboarding_code"],
+                origin=RunOrigin(origin) if origin is not None else None,
             )
         except RunOwnershipMismatch:
             return Response({"detail": "Onboarding run not found"}, status=404)
@@ -226,6 +232,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 
+        origin = run.origin.value if run.origin is not None else None
         if stage_status_changed:
             analytics.record(
                 AgenticOnboardingStageStatusChangedEvent(
@@ -234,6 +241,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     run_id=run.run_id,
                     stage=values["update"].stage.value,
                     status=values["update"].status.value,
+                    origin=origin,
                 )
             )
 
@@ -245,6 +253,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                         run_id=run.run_id,
                         stage=values["update"].stage.value,
                         status=values["update"].status.value,
+                        origin=origin,
                     )
                 )
 
@@ -255,6 +264,7 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
                     organization_id=organization.id,
                     run_id=run.run_id,
                     status=run.run_status.value,
+                    origin=origin,
                 )
             )
 
