@@ -1837,14 +1837,6 @@
       "count": 1
     }
   },
-  "components/tours/components.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
-    "@sentry/scraps/prefer-primitives": {
-      "count": 2
-    }
-  },
   "components/tours/startTour.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {
       "count": 1
