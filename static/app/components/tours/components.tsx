@@ -130,7 +130,7 @@ export function TourContextProvider<T extends TourEnumType>({
     isTourActive && variant === 'spotlight'
       ? [
           {
-            match: 'Escape',
+            hotkey: 'Escape',
             callback: () => {
               if (tourKey) {
                 mutate({guide: tourKey, status: 'dismissed'});
@@ -144,8 +144,10 @@ export function TourContextProvider<T extends TourEnumType>({
               endTour();
             },
           },
-          {match: ['left', 'h'], callback: () => previousStep()},
-          {match: ['right', 'l'], callback: () => nextStep()},
+          {hotkey: 'ArrowLeft', callback: () => previousStep()},
+          {hotkey: 'H', callback: () => previousStep()},
+          {hotkey: 'ArrowRight', callback: () => nextStep()},
+          {hotkey: 'L', callback: () => nextStep()},
         ]
       : []
   );
