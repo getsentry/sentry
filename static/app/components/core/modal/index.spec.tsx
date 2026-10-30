@@ -68,6 +68,9 @@ describe('GlobalModal', () => {
         );
 
         const dialog = screen.getByRole('dialog');
+        expect(
+          within(dialog).getByRole('heading', {name: 'Something went wrong'})
+        ).toBeInTheDocument();
         expect(within(dialog).getByRole('alert')).toHaveTextContent(
           'There was a problem rendering the dialog.'
         );

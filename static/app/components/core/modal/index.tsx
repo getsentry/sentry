@@ -7,6 +7,7 @@ import {AnimatePresence, motion} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
@@ -231,6 +232,7 @@ export function GlobalModal() {
     modalContainerRef: containerRef,
     closeModal,
   };
+  const {Header} = renderProps;
 
   return createPortal(
     <ContainerQueryProvider elementRef={portalRef}>
@@ -308,6 +310,11 @@ export function GlobalModal() {
                         allowDismiss
                         onDismiss={onCloseButtonClick}
                         message={t('There was a problem rendering the dialog.')}
+                        header={
+                          <Header>
+                            <Heading as="h2">{t('Something went wrong')}</Heading>
+                          </Header>
+                        }
                       >
                         <ModalContent renderer={renderer} renderProps={renderProps} />
                       </ErrorBoundary>
