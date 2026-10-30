@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {
-  webVitalCountField,
+  webVitalScoreCountField,
   webVitalScoreField,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
@@ -56,11 +56,11 @@ describe('WheelWidgetVisualization', () => {
             [webVitalScoreField('cls')]: 1,
             [webVitalScoreField('ttfb')]: 1,
             [webVitalScoreField('inp')]: 0,
-            [webVitalCountField('lcp')]: 10,
-            [webVitalCountField('fcp')]: 10,
-            [webVitalCountField('cls')]: 10,
-            [webVitalCountField('ttfb')]: 10,
-            [webVitalCountField('inp')]: 0,
+            [webVitalScoreCountField('lcp')]: 10,
+            [webVitalScoreCountField('fcp')]: 10,
+            [webVitalScoreCountField('cls')]: 10,
+            [webVitalScoreCountField('ttfb')]: 10,
+            [webVitalScoreCountField('inp')]: 0,
             id: '1',
           },
         ],

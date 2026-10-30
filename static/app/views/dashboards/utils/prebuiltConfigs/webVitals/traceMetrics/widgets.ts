@@ -11,7 +11,7 @@ import type {
   PrebuiltWidgetLayout,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  WEB_VITAL_COUNT_FIELDS,
+  WEB_VITAL_SCORE_COUNT_FIELDS,
   WEB_VITAL_SCORE_FIELDS,
   webVitalCountField,
   webVitalP75Field,
@@ -50,11 +50,11 @@ export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
 ];
 
 /**
- * The shared wheel template, reading each vital's score and count from the
- * metrics. The ring computes the total score from these on the frontend.
+ * The shared wheel template, reading each vital's average score and number of
+ * scores from the score metrics. The ring computes the total on the frontend.
  */
 export function scoreBreakdownWheelWidget(layout: PrebuiltWidgetLayout): PrebuiltWidget {
-  const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_COUNT_FIELDS];
+  const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_SCORE_COUNT_FIELDS];
   return {
     ...SCORE_BREAKDOWN_WHEEL_WIDGET,
     widgetType: WidgetType.TRACEMETRICS,

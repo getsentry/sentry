@@ -39,17 +39,32 @@ export function webVitalP75Field(vital: WebVitals): string {
   return webVitalMetricField('p75', vital);
 }
 
+function webVitalScoreMetricField(
+  aggregation: 'avg' | 'count',
+  vital: WebVitals
+): string {
+  return traceMetricField(
+    aggregation,
+    `browser.web_vital.${vital}.score`,
+    'distribution',
+    'ratio'
+  );
+}
+
 /**
  * Average 0-1 score for a vital. Matches what
  * `performance_score(measurements.score.<vital>)` returns on spans.
  */
 export function webVitalScoreField(vital: WebVitals): string {
-  return traceMetricField(
-    'avg',
-    `browser.web_vital.${vital}.score`,
-    'distribution',
-    'ratio'
-  );
+  return webVitalScoreMetricField('avg', vital);
+}
+
+/**
+ * Number of scores recorded for a vital. Matches what
+ * `count_scores(measurements.score.<vital>)` returns on spans.
+ */
+export function webVitalScoreCountField(vital: WebVitals): string {
+  return webVitalScoreMetricField('count', vital);
 }
 
 /** Number of pageloads or interactions that reported the vital. */
@@ -58,7 +73,7 @@ export function webVitalCountField(vital: WebVitals): string {
 }
 
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
-export const WEB_VITAL_COUNT_FIELDS = ORDER.map(webVitalCountField);
+export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
 /** Trace metrics counterpart of `isPerformanceScoreBreakdownChart`. */
 export function isWebVitalScoreBreakdownChart(widgetQuery: WidgetQuery): boolean {
@@ -66,8 +81,8 @@ export function isWebVitalScoreBreakdownChart(widgetQuery: WidgetQuery): boolean
 }
 
 /**
- * Builds the performance score ring's scores from a row of score and count
- * fields. The total weights each vital's score the way the spans
+ * Builds the performance score ring's scores from a row of score and score
+ * count fields. The total weights each vital's score the way the spans
  * `performance_score(measurements.score.total)` formula does: only vitals
  * with data count, and their weights are rescaled to add up to 100.
  */
@@ -75,7 +90,7 @@ export function getWebVitalScoresFromTraceMetricsRow(
   row: Record<string, unknown>
 ): ProjectScore {
   const vitalsWithData = ORDER.filter(
-    vital => Number(row[webVitalCountField(vital)] ?? 0) > 0
+    vital => Number(row[webVitalScoreCountField(vital)] ?? 0) > 0
   );
   const weights = getWeights(vitalsWithData);
 
