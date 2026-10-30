@@ -1,5 +1,6 @@
 import logging
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.api.helpers.oauth_authorize.request import AuthorizationRequest
@@ -10,6 +11,7 @@ from sentry.api.helpers.oauth_consent import (
     persist_authorization,
     resolve_organization,
 )
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.utils import metrics
@@ -83,13 +85,33 @@ def issue_authorization_code(
 def issue_implicit_token(
     authorization: AuthorizationRequest, user_id: int, organization_id: int | None
 ) -> str:
-    token = ApiToken.objects.create(
-        application=authorization.application,
-        user_id=user_id,
-        refresh_token=None,
-        scope_list=authorization.scopes,
-        scoping_organization_id=organization_id,
-    )
+    token: ApiToken | None = None
+    try:
+        with transaction.atomic(router.db_for_write(ApiToken)):
+            token = ApiToken.objects.create(
+                application=authorization.application,
+                user_id=user_id,
+                refresh_token=None,
+                scope_list=authorization.scopes,
+                scoping_organization_id=organization_id,
+            )
+    except (OutboxDatabaseError, OutboxFlushError):
+        if token is None:
+            raise
+
+        # Guard against replication fanout failures. The token has been
+        # minted, and its outbox has been committed alongside it,
+        # guaranteeing that it will eventually be valid in all regions.
+        logger.warning(
+            "approve.token.outbox-flush-failure",
+            extra={"token_id": token.id, "user_id": user_id},
+            exc_info=True,
+        )
+        metrics.incr(
+            "api_key.outbox_flush_deferred",
+            tags={"category": "API_TOKEN_UPDATE", "callsite": "oauth_implicit_grant"},
+        )
+
     logger.info(
         "approve.token",
         extra={
