@@ -1,6 +1,6 @@
 import logging
 import zlib
-from typing import cast
+from typing import NoReturn, cast
 
 import sentry_sdk
 from sentry_kafka_schemas.codecs import Codec, ValidationError
@@ -111,14 +111,45 @@ def parse_request_message(message: bytes) -> ReplayRecording:
 
 @traces.trace
 def decompress_segment(segment: bytes) -> tuple[bytes, bytes]:
+    """Return the compressed and decompressed forms of a recording segment.
+
+    Decompression is bounded by `replay.consumer.max-segment-decompressed-size`. Stored segments are inflated again on every
+    read, so a segment with an implausible compression ratio is a durable, repeatable cost on
+    the read path -- we drop it here rather than persist it.
+    """
+    max_size = options.get("replay.consumer.max-segment-decompressed-size")
     try:
-        return (segment, zlib.decompress(segment))
+        # Ask for one byte past the limit so an oversized segment is detectable without ever
+        # materializing more than `max_size + 1` bytes.
+        decompressor = zlib.decompressobj()
+        decompressed = decompressor.decompress(segment, max_size + 1)
+
+        # The incremental API returns partial output where `zlib.decompress` raised on a
+        # truncated stream. Normalize so malformed bodies take the branch below.
+        if not decompressor.eof and not decompressor.unconsumed_tail:
+            raise zlib.error("incomplete or truncated stream")
     except zlib.error:
         if segment and segment[0] == ord("["):
+            if len(segment) > max_size:
+                _drop_oversized_segment(len(segment), max_size)
             return (zlib.compress(segment), segment)
         else:
             logger.exception("Invalid recording body.")
             raise DropSilently()
+
+    if len(decompressed) > max_size:
+        _drop_oversized_segment(len(segment), max_size)
+
+    return (segment, decompressed)
+
+
+def _drop_oversized_segment(compressed_size: int, max_size: int) -> NoReturn:
+    metrics.incr("replays.consumer.recording.oversized_segment")
+    logger.warning(
+        "Dropped a recording segment which decompressed past the size limit.",
+        extra={"compressed_size": compressed_size, "max_size": max_size},
+    )
+    raise DropSilently()
 
 
 @traces.trace
