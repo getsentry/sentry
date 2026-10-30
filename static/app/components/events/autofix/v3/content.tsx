@@ -14,6 +14,7 @@ import {
   isLastStepPrIteration,
   isPullRequestsSection,
   isRootCauseSection,
+  isSingleRunAutofix,
   isSolutionSection,
   useExplorerAutofix,
   type AutofixSection,
@@ -25,6 +26,7 @@ import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
+import {SingleRunChat} from 'sentry/components/events/autofix/v3/singleRunChat';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -69,15 +71,19 @@ export function SeerDrawerContent({
     return <AutofixStartCard autofix={autofix} group={group} />;
   }
 
+  const isSingleRun = isSingleRunAutofix(autofix.runState);
+
   return (
     <Stack gap="lg">
+      {isSingleRun && <SingleRunChat autofix={autofix} />}
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
-      {(autofix.runState?.status === 'completed' ||
-        isLastStepPrIteration(autofix.runState)) && (
-        <NextStepWrap isSticky={stickyNextStep}>
-          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
-        </NextStepWrap>
-      )}
+      {!isSingleRun &&
+        (autofix.runState?.status === 'completed' ||
+          isLastStepPrIteration(autofix.runState)) && (
+          <NextStepWrap isSticky={stickyNextStep}>
+            <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+          </NextStepWrap>
+        )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
           key={id}

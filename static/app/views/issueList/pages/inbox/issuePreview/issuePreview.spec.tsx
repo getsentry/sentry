@@ -707,6 +707,56 @@ describe('IssuePreview', () => {
     });
   });
 
+  describe('failed pull request', () => {
+    function mockFailedPullRequest(featureId: string | null) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+        body: ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            feature_id: featureId,
+            repo_pr_states: {
+              'org/repo': {
+                repo_name: 'org/repo',
+                pr_number: null,
+                pr_url: null,
+                branch_name: null,
+                commit_sha: null,
+                pr_creation_error: 'Push failed',
+                pr_creation_status: 'error',
+                pr_id: null,
+                title: null,
+              },
+            },
+          }),
+        }),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+        body: {pullRequests: []},
+      });
+    }
+
+    it('offers Retry PR on a step-based run', async () => {
+      mockFailedPullRequest(null);
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      expect(
+        await screen.findByRole('button', {name: 'Retry PR in org/repo'})
+      ).toBeInTheDocument();
+    });
+
+    it('offers Retry PR on a single run', async () => {
+      mockFailedPullRequest('autofix_single_run');
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      expect(
+        await screen.findByRole('button', {name: 'Retry PR in org/repo'})
+      ).toBeInTheDocument();
+    });
+  });
+
   it('offers to restart Seer when the linked PR is closed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,

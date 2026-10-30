@@ -207,6 +207,7 @@ export interface ExplorerAutofixState {
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
+  feature_id?: string | null;
   pending_user_input?: {
     data: Record<string, unknown>;
     id: string;
@@ -568,6 +569,12 @@ export function isPrIterationBlock(block: Block): boolean {
 
 export function isPullRequestsSection(section: AutofixSection): boolean {
   return section.step === 'pull_request';
+}
+
+export function isSingleRunAutofix(
+  runState: ExplorerAutofixState | null | undefined
+): boolean {
+  return runState?.feature_id === 'autofix_single_run';
 }
 
 export function isCodingAgentsSection(section: AutofixSection): boolean {

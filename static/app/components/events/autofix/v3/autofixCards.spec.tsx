@@ -2216,6 +2216,38 @@ describe('ArtifactCard', () => {
       );
     });
 
+    it('offers Retry PR when PR creation failed', () => {
+      render(
+        <PullRequestsCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection('pull_request', 'completed', [
+            [makePR({pr_number: null, pr_url: null, pr_creation_status: 'error'})],
+          ])}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Retry PR in org/repo'})).toBeEnabled();
+    });
+
+    it('offers Retry PR on a single run', () => {
+      render(
+        <PullRequestsCard
+          autofix={{
+            ...mockAutofixWithRunState,
+            runState: {
+              ...mockAutofixWithRunState.runState!,
+              feature_id: 'autofix_single_run',
+            },
+          }}
+          section={makeSection('pull_request', 'completed', [
+            [makePR({pr_number: null, pr_url: null, pr_creation_status: 'error'})],
+          ])}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Retry PR in org/repo'})).toBeEnabled();
+    });
+
     it('copies markdown when copy button is clicked', async () => {
       render(
         <PullRequestsCard

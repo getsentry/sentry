@@ -5,6 +5,7 @@ import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isSingleRunAutofix,
   useExplorerAutofix,
   type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -84,6 +85,15 @@ function useHandleCopyMarkdown({
   return useMemo(() => {
     if (!aiAutofix.runState) {
       return;
+    }
+
+    if (isSingleRunAutofix(aiAutofix.runState)) {
+      const answer = aiAutofix.runState.blocks.findLast(
+        block => block.message.role === 'assistant' && block.message.content
+      )?.message.content;
+      return answer
+        ? () => copy(answer, {successMessage: t('Analysis copied to clipboard.')})
+        : undefined;
     }
 
     return () => {
