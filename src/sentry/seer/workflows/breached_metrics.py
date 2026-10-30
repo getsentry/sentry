@@ -131,12 +131,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         return cls(config_id=config.id, organization_id=organization_id)
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
-        """Replace existing monitor connections, creating the backing workflow on first use.
-
-        The caller is responsible for authorization and auditing. This method
-        validates organization/type boundaries and updates the graph atomically
-        under the config lock. An empty selection disconnects all monitors.
-        """
+        """Callers must authorize and audit the change."""
         with self._lock_config() as config:
             if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 raise ValueError("Only metric automations support monitor selection.")
@@ -162,15 +157,12 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__seer_workflow_binding__workflow_config=config,
                 ).distinct()
             )
-            connections = list(
-                DetectorWorkflow.objects.filter(workflow__in=workflows).values_list(
-                    "workflow_id", "detector_id"
-                )
+            connections = DetectorWorkflow.objects.filter(workflow__in=workflows).values_list(
+                "workflow_id", "detector_id"
             )
             existing = {detector_id for _, detector_id in connections}
             connected_workflow_ids = {workflow_id for workflow_id, _ in connections}
-            # Retired routes may still have bindings. Leave disabled, disconnected
-            # workflows alone when there is another backing workflow in use.
+            # Ignore retired bindings when another backing workflow is in use.
             candidates = [
                 workflow
                 for workflow in workflows
