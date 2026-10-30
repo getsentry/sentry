@@ -9,6 +9,7 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry import options
+from sentry.cadence import actions  # noqa: F401  # Registers cadence's own trigger actions.
 from sentry.cadence.models import ScheduledTrigger, ScheduledTriggerType
 from sentry.cadence.registry import TriggerContext, trigger_action_registry
 from sentry.cadence.schedule import advance
@@ -46,7 +47,7 @@ def cadence_tick() -> None:
     try:
         for _ in range(TICK_MAX_BATCHES):
             claimed, selected = _claim_batch(now)
-            claimed_count += len(claimed)
+            claimed_count += sum(len(contexts) for contexts in claimed.values())
             _dispatch(claimed)
             if selected < TICK_BATCH_SIZE:
                 return

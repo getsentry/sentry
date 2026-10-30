@@ -205,6 +205,7 @@ class CadenceTickTest(TestCase):
     @patch("sentry.cadence.tasks.metrics.distribution")
     def test_records_metrics(self, mock_distribution: MagicMock, mock_timing: MagicMock) -> None:
         self.create_trigger(NOW - timedelta(seconds=12))
+        self.create_trigger(NOW - timedelta(seconds=5))
         self.create_trigger(NOW + timedelta(minutes=1))
 
         cadence_tick()
@@ -214,7 +215,11 @@ class CadenceTickTest(TestCase):
                 ("cadence.trigger.dispatch_lag", 12.0),
                 {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
             ),
-            (("cadence.tick.claimed", 1), {}),
+            (
+                ("cadence.trigger.dispatch_lag", 5.0),
+                {"tags": {"trigger_type": "seer_workflow"}, "unit": "second"},
+            ),
+            (("cadence.tick.claimed", 2), {}),
         ]
         ((timing_args, _),) = cadence_metric_calls(mock_timing)
         assert timing_args[0] == "cadence.trigger.dispatch_duration"
