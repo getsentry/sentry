@@ -43,7 +43,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
@@ -1352,6 +1352,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                                           team should be created for.
         :auth: required, user-context-needed
         """
+        require_user(request)
         return self.handle_delete(request, organization)
 
 
