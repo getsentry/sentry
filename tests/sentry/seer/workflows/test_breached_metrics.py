@@ -7,7 +7,7 @@ from unittest import mock
 from uuid import uuid4
 
 import pytest
-from django.db import connections, router
+from django.db import connections, router, transaction
 from django.test.utils import CaptureQueriesContext
 from pydantic import ValidationError
 
@@ -705,6 +705,64 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
             self.monitor_ids
         )
+
+    def test_logs_committed_connection_changes_and_skips_unchanged_saves(self) -> None:
+        with mock.patch("sentry.seer.workflows.breached_metrics.logger") as logger:
+            with (
+                self.capture_on_commit_callbacks(execute=True),
+                transaction.atomic(router.db_for_write(SeerWorkflowConfig)),
+            ):
+                created = self.select_monitors(self.monitor_ids[:1])
+                logger.info.assert_not_called()
+
+            logger.info.assert_called_once_with(
+                "seer.workflow.monitors_updated",
+                extra={
+                    "organization_id": self.organization.id,
+                    "workflow_config_id": self.config.id,
+                    "workflow_id": created.backing_workflow_id,
+                    "config_version": created.version,
+                    "workflow_created": True,
+                    "monitor_count": 1,
+                    "added_count": 1,
+                    "removed_count": 0,
+                },
+            )
+            logger.info.reset_mock()
+
+            with self.capture_on_commit_callbacks(execute=True):
+                self.select_monitors(self.monitor_ids[:1])
+                changed = self.select_monitors(self.monitor_ids[1:])
+
+            logger.info.assert_called_once_with(
+                "seer.workflow.monitors_updated",
+                extra={
+                    "organization_id": self.organization.id,
+                    "workflow_config_id": self.config.id,
+                    "workflow_id": created.backing_workflow_id,
+                    "config_version": changed.version,
+                    "workflow_created": False,
+                    "monitor_count": 2,
+                    "added_count": 2,
+                    "removed_count": 1,
+                },
+            )
+
+    def test_outer_transaction_rollback_does_not_log_connection_change(self) -> None:
+        with (
+            mock.patch("sentry.seer.workflows.breached_metrics.logger") as logger,
+            self.capture_on_commit_callbacks(execute=True),
+        ):
+            with (
+                pytest.raises(RuntimeError, match="API update failed"),
+                transaction.atomic(router.db_for_write(SeerWorkflowConfig)),
+            ):
+                self.select_monitors(self.monitor_ids)
+                raise RuntimeError("API update failed")
+
+        logger.info.assert_not_called()
+        self.config.refresh_from_db()
+        assert self.config.backing_workflow_id is None
 
     def test_other_bindings_do_not_change_managed_monitor_selection(self) -> None:
         created = self.select_monitors(self.monitor_ids)

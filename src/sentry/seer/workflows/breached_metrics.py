@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from functools import partial
 from typing import Annotated, Any, Literal
 
 from django.db import router, transaction
@@ -38,6 +40,8 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -164,9 +168,12 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 )
             )
             if existing != selected:
+                action_group_ids = workflow.workflowdataconditiongroup_set.values_list(
+                    "condition_group_id", flat=True
+                )
                 if (
                     Action.objects.filter(
-                        dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
+                        dataconditiongroupaction__condition_group_id__in=action_group_ids
                     )
                     .exclude(seer_workflow_binding__workflow_config=config)
                     .exists()
@@ -192,6 +199,23 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 config.version += 1
                 config.save(
                     update_fields=["backing_workflow", "filters", "version", "date_updated"]
+                )
+                transaction.on_commit(
+                    partial(
+                        logger.info,
+                        "seer.workflow.monitors_updated",
+                        extra={
+                            "organization_id": self.organization_id,
+                            "workflow_config_id": config.id,
+                            "workflow_id": workflow.id,
+                            "config_version": config.version,
+                            "workflow_created": created,
+                            "monitor_count": len(selected),
+                            "added_count": len(selected - existing),
+                            "removed_count": len(existing - selected),
+                        },
+                    ),
+                    using=router.db_for_write(SeerWorkflowConfig),
                 )
 
     def accept(
