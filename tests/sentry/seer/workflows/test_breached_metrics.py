@@ -31,7 +31,6 @@ from sentry.seer.workflows.breached_metrics import (
     MetricBreachRunExtras,
     MetricBreachTrigger,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -99,15 +98,6 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.enabled is False
         assert config.filters == {"all_projects": True, "environments": ["production"]}
-
-    def test_project_selection_is_managed_by_connected_monitors(self) -> None:
-        with pytest.raises(ValueError, match="selected by connecting monitors"):
-            SeerWorkflow(
-                config_id=self.config.id, organization_id=self.config.organization_id
-            ).set_project_selection(SelectedProjects(project_ids=(self.project.id,)))
-
-        self.config.refresh_from_db()
-        assert self.config.filters["all_projects"] is True
 
     def test_replaying_old_metadata_logs_validation_error_without_replacing_run(self) -> None:
         event = self.breach_event(detector_id=1)

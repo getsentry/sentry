@@ -43,6 +43,7 @@ from sentry.api.exceptions import (
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.principal import set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -439,10 +440,9 @@ class Endpoint(APIView):
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
-            if rv.auth is None:
-                rv.auth = orig_auth
-            if rv.user is None:
-                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
+            auth = orig_auth if rv.auth is None else rv.auth
+            user = orig_user if rv.user is None else rv.user
+            set_request_principal(rv, user, auth)
         return rv
 
     def has_pagination(self, response: Response) -> bool:

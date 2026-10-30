@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
@@ -28,8 +29,9 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import NoAccess, from_request
+from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.principal import set_request_principal
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
@@ -40,6 +42,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -260,6 +263,38 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
+
+    def _service_account_request(self, organization: Organization) -> Request:
+        service_account = self.create_service_account(
+            organization=organization, scope_list=["org:read"]
+        )
+        request = drf_request_from_request(self.make_request(method="GET"))
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=service_account.id,
+                organization_id=organization.id,
+                name=service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=service_account.id,
+                organization_id=organization.id,
+                scopes=["org:read"],
+            ),
+        )
+        return request
+
+    def test_service_account_gets_its_credential_access(self) -> None:
+        request = self._service_account_request(self.org)
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, ServiceAccountAccess)
+        assert request.access.has_scope("org:read")
+
+    def test_service_account_has_no_access_to_another_org(self) -> None:
+        request = self._service_account_request(self.create_organization())
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, NoAccess)
 
     def test_org_auth_token_passes_2fa(self) -> None:
         self.org_require_2fa()

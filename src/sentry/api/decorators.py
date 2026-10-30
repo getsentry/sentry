@@ -6,7 +6,8 @@ from django.contrib.auth.models import AnonymousUser
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
-from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired
+from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired, UserRequired
+from sentry.auth.principal import has_user
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -25,8 +26,19 @@ def is_considered_sudo(request: Request) -> bool:
         or is_api_key_auth(request.auth)
         or is_api_token_auth(request.auth)
         or is_org_auth_token_auth(request.auth)
-        or (request.user.is_authenticated and not request.user.has_usable_password())
+        or (has_user(request.user) and not request.user.has_usable_password())
     )
+
+
+def require_sudo(request: Request) -> None:
+    """Raise unless the request counts as sudo. A caller with no user can't re-authenticate."""
+    if is_considered_sudo(request):
+        return
+    if not has_user(request.user):
+        raise UserRequired()
+    # TODO(dcramer): support some kind of auth flow to allow this
+    # externally
+    raise SudoRequired(request.user)
 
 
 type _RFMethod[T, **P] = Callable[Concatenate[T, Request, P], HttpResponseBase]
@@ -37,10 +49,7 @@ def sudo_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
     def wrapped(self: T, request: Request, *args: P.args, **kwargs: P.kwargs) -> HttpResponseBase:
         # If we are already authenticated through an API key we do not
         # care about the sudo flag.
-        if not is_considered_sudo(request):
-            # TODO(dcramer): support some kind of auth flow to allow this
-            # externally
-            raise SudoRequired(request.user)
+        require_sudo(request)
         return func(self, request, *args, **kwargs)
 
     return wrapped

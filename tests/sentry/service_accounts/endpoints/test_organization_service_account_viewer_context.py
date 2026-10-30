@@ -59,8 +59,13 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         return response.data["viewerContext"]
 
     def _get_project(self, viewer_context: str, project: Project) -> Any:
-        url = reverse("sentry-api-0-project-details", args=[self.organization.slug, project.slug])
-        return self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        # Environments needs only project access; details also serializes per-person fields.
+        url = reverse(
+            "sentry-api-0-project-environments", args=[self.organization.slug, project.slug]
+        )
+        # Service accounts only authenticate with the flag on.
+        with self.feature(FEATURE_FLAG):
+            return self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
 
     def test_returns_service_account_viewer_context_and_scopes(self) -> None:
         response = self._post()
@@ -206,7 +211,9 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         other_project = self.create_project(organization=other_org)
         url = reverse("sentry-api-0-project-details", args=[other_org.slug, other_project.slug])
 
-        response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=self._issue())
+        viewer_context = self._issue()
+        with self.feature(FEATURE_FLAG):
+            response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
 
         assert response.status_code == 403
 
