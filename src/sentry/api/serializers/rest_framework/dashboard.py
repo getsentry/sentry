@@ -1011,6 +1011,16 @@ class DashboardPermissionsSerializer(CamelSnakeSerializer[Dashboard]):
         return data
 
 
+class DashboardGlobalFilterTagSerializer(serializers.Serializer):
+    key = serializers.CharField()
+
+
+class DashboardGlobalFilterSerializer(serializers.Serializer):
+    dataset = serializers.CharField()
+    tag = DashboardGlobalFilterTagSerializer()
+    value = serializers.CharField(required=False, allow_blank=True)
+
+
 class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False, help_text="A dashboard's unique id.")
@@ -1058,6 +1068,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         from sentry.api.validators import validate_project_ids
 
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
+
+    def validate_filters(self, filters: dict[str, Any]) -> dict[str, Any]:
+        global_filters = filters.get("global_filter")
+        if global_filters is not None:
+            # The frontend reads `tag.key` from every saved global filter, so
+            # reject malformed entries here instead of persisting them. The
+            # original entries are kept so unvalidated keys are not dropped.
+            serializer = DashboardGlobalFilterSerializer(data=global_filters, many=True)
+            if not serializer.is_valid():
+                raise serializers.ValidationError({"global_filter": serializer.errors})
+        return filters
 
     def validate_query_transformation_updates(self, widgets: list[dict[str, Any]]) -> None:
         query_ids = [

@@ -1541,6 +1541,21 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.data["filters"]["release"] == ["v1"]
         assert response.data["filters"]["releaseId"] == ["1"]
 
+    def test_post_dashboard_with_global_filter_missing_tag(self) -> None:
+        response = self.do_request(
+            "post",
+            self.url,
+            data={
+                "title": "Dashboard from Post",
+                "filters": {"globalFilter": [{"dataset": "spans", "value": ""}]},
+            },
+        )
+        assert response.status_code == 400, response.data
+        assert "globalFilter" in response.data["filters"]
+        assert not Dashboard.objects.filter(
+            organization=self.organization, title="Dashboard from Post"
+        ).exists()
+
     def test_post_with_start_and_end_filter(self) -> None:
         start = (datetime.now() - timedelta(seconds=10)).isoformat()
         end = datetime.now().isoformat()
