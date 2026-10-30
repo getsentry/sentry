@@ -873,6 +873,9 @@ from .endpoints.project_custom_inbound_filters import (
 from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
+from .endpoints.project_native_tools_metadata import (
+    ProjectNativeToolsMetadataEndpoint,
+)
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
 )
@@ -3023,6 +3026,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/attachments/$",
         EventAttachmentsEndpoint.as_view(),
         name="sentry-api-0-event-attachments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/native-tools/(?P<event_id>[^/]+)/metadata/$",
+        ProjectNativeToolsMetadataEndpoint.as_view(),
+        name="sentry-api-0-project-native-tools-metadata",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/events/(?P<event_id>[^/]+)/reprocessable/$",

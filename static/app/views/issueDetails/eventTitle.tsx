@@ -1,6 +1,7 @@
 import {type CSSProperties, Fragment} from 'react';
 import {IconCopyId} from '@sentry/icons/copyId';
 import {IconWarning} from '@sentry/icons/warning';
+import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -14,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {
   getAnalyticsDataForEvent,
   getAnalyticsDataForGroup,
@@ -60,6 +62,30 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
   const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
 
   const {copy} = useCopyToClipboard();
+
+  const queryClient = useQueryClient();
+
+  // Debug-only: fires the request so the response can be inspected in the
+  // network tab. Nothing is rendered from it.
+  const handleFetchMinidumpMetadata = () => {
+    queryClient
+      .fetchQuery(
+        apiOptions.as<unknown>()(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/native-tools/$eventId/metadata/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: group.project.slug,
+              eventId: event.id,
+            },
+            staleTime: 0,
+          }
+        )
+      )
+      .catch(() => {
+        // Errors are visible in the network tab; nothing to surface here.
+      });
+  };
 
   const handleCopyEventId = () => {
     copy(event.id, {successMessage: t('Event ID copied to clipboard')}).then(() => {
@@ -141,6 +167,20 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     </ExternalLink>
                   )}
                 </Text>
+                {
+                  <Fragment>
+                    <Divider />
+                    <Button
+                      size="zero"
+                      variant="transparent"
+                      onClick={handleFetchMinidumpMetadata}
+                    >
+                      <Text size="sm" bold={false} variant="muted" underline>
+                        {t('Minidump Metadata')}
+                      </Text>
+                    </Button>
+                  </Fragment>
+                }
               </Flex>
               {actionableItems && actionableItems.length > 0 && (
                 <Fragment>
