@@ -322,18 +322,30 @@ def test_log_option_events_with_dict_payload(mock_logger: mock.MagicMock) -> Non
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
 def test_log_option_events_with_filtered_string_payload(mock_logger: mock.MagicMock) -> None:
-    """Test that option events whose payload was Relay-scrubbed to a string do not raise."""
+    """Test that option events with a string payload are still logged with the raw value."""
     option: dict[str, Any] = {"data": {"payload": "[Filtered]"}}
     meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
 
-    # Must not raise AttributeError: 'str' object has no attribute 'copy'
     log_option_events(meta, project_id=1, replay_id="test-replay-id")
 
     mock_logger.info.assert_called_once()
     call_args = mock_logger.info.call_args
     assert call_args[0][0] == "sentry.replays.slow_click"
-    assert call_args[1]["extra"]["project_id"] == 1
-    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
+    assert call_args[1]["extra"] == {
+        "payload": "[Filtered]",
+        "project_id": 1,
+        "replay_id": "test-replay-id",
+    }
+
+
+@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
+def test_log_option_events_truncates_long_string_payload(mock_logger: mock.MagicMock) -> None:
+    option: dict[str, Any] = {"data": {"payload": "x" * 1000}}
+    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
+
+    log_option_events(meta, project_id=1, replay_id="test-replay-id")
+
+    assert mock_logger.info.call_args[1]["extra"]["payload"] == "x" * 256
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
