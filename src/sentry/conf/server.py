@@ -805,6 +805,12 @@ VIEWER_CONTEXT_JWT_TTL: int = 900
 # First element is used to sign requests; request is accepted if signed with any element in the list.
 SCM_RPC_SHARED_SECRET: list[str] | None = None
 
+# Ed25519 public keys, as SubjectPublicKeyInfo PEM strings, that verify the grants Seer signs for
+# the SCM git endpoint. Only Seer holds a private key, so these aren't secret. A grant is accepted
+# if any listed key verifies it. To rotate, add the new public key here, switch Seer to the new
+# private key, wait 15 minutes for its old grants to expire, then remove the old public key.
+SCM_GIT_GRANT_PUBLIC_KEYS: list[str] = []
+
 # Shared secret used to sign cross-region RPC requests from the launchpad microservice.
 LAUNCHPAD_RPC_SHARED_SECRET: list[str] | None = None
 if (val := os.environ.get("LAUNCHPAD_RPC_SHARED_SECRET")) is not None:
@@ -2636,7 +2642,9 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
         "http_headers": {
             "request": {
                 "mode": "denylist",
-                "terms": ["forwarded", "-ip", "remote-", "via", "-user"],
+                # "grant" keeps the SCM git endpoint's X-Scm-Git-Grant out of spans and events.
+                # It's a credential, but none of the SDK's own terms match it.
+                "terms": ["forwarded", "-ip", "remote-", "via", "-user", "grant"],
             }
         },
         "cookies": {"mode": "off"},
@@ -3680,6 +3688,13 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Dev only: verifies the grants a local Seer signs. Its private half is committed to Seer's
+    # .envrc, in a public repository, so anyone can sign grants this key accepts.
+    SCM_GIT_GRANT_PUBLIC_KEYS = [
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MCowBQYDK2VwAyEAq8SFj6uFiEB74zliRdruAG69shgf1FNJbj/UCnK0jFM=\n"
+        "-----END PUBLIC KEY-----\n"
+    ]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
