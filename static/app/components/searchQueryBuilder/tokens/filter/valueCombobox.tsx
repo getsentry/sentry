@@ -98,20 +98,16 @@ type SearchQueryValueBuilderProps = {
   editingCommittedValue: boolean;
   /**
    * The filter is pending: its value is only a placeholder, so the input starts
-   * empty and leaving it empty does not keep the placeholder.
+   * empty.
    */
   isPendingValue: boolean;
   /**
    * Closes the editor without committing, when a pending value is left empty
-   * because focus moved away.
+   * because focus moved away. The filter decides what to do once focus settles.
    */
   onClose: () => void;
   onCommit: () => void;
   onDelete: () => void;
-  /**
-   * Removes the pending filter, when its value is submitted or dismissed empty.
-   */
-  onDiscard: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -721,7 +717,6 @@ export function SearchQueryBuilderValueCombobox({
   onClose,
   onDelete,
   onCommit,
-  onDiscard,
   wrapperRef,
   editingCommittedValue,
   isPendingValue,
@@ -1275,7 +1270,7 @@ export function SearchQueryBuilderValueCombobox({
         if (event) {
           onClose();
         } else {
-          onDiscard();
+          onCommit();
         }
         return;
       }
@@ -1338,7 +1333,6 @@ export function SearchQueryBuilderValueCombobox({
       isRegexValue,
       onClose,
       onCommit,
-      onDiscard,
       token,
       updateFilterValue,
     ]
@@ -1486,11 +1480,7 @@ export function SearchQueryBuilderValueCombobox({
         onExit={() => {
           setEditingChip(null);
           setInputValue('');
-          if (isPendingValue) {
-            onDiscard();
-          } else {
-            onCommit();
-          }
+          onCommit();
         }}
         inputValue={inputValue}
         filterValue={filterValue}

@@ -61,9 +61,8 @@ type QueryBuilderState = {
   /**
    * Item key of a number-based filter that was just added and has no value yet.
    * The search grammars have no way to write an empty number filter, so `query`
-   * holds the filter with a placeholder value. The placeholder is never
-   * committed: it is replaced when the user enters a value, and the filter is
-   * removed if they leave it without one.
+   * holds the filter with a placeholder value. The placeholder is only
+   * committed if the user leaves the filter without entering a value.
    */
   pendingFilterKey: string | null;
 
@@ -90,17 +89,12 @@ type UpdateQueryAction = {
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
-type DiscardPendingFilterAction = {
+type CommitPendingFilterAction = {
   /**
-   * Only discard the filter if it is still the pending one.
+   * Only commit the filter if it is still the pending one.
    */
   itemKey: string;
-  /**
-   * Move focus to where the filter was. Leave this off when the user has already
-   * moved focus somewhere else.
-   */
-  refocus: boolean;
-  type: 'DISCARD_PENDING_FILTER';
+  type: 'COMMIT_PENDING_FILTER';
 };
 
 type DeleteTokenAction = {
@@ -275,7 +269,7 @@ export type QueryBuilderActions =
   | CommitQueryAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
-  | DiscardPendingFilterAction
+  | CommitPendingFilterAction
   | DeleteTokenAction
   | DeleteTokensAction
   | DeleteToCursorAction
@@ -1206,8 +1200,7 @@ function getNextPendingFilterKey(
   if (
     action.type === 'CLEAR' ||
     action.type === 'UPDATE_QUERY' ||
-    (action.type === 'DISCARD_PENDING_FILTER' &&
-      action.itemKey === state.pendingFilterKey)
+    (action.type === 'COMMIT_PENDING_FILTER' && action.itemKey === state.pendingFilterKey)
   ) {
     return null;
   }
@@ -1392,29 +1385,11 @@ export function useQueryBuilderState({
             ...state,
             focusOverride: null,
           };
-        case 'DISCARD_PENDING_FILTER': {
+        case 'COMMIT_PENDING_FILTER':
           if (action.itemKey !== state.pendingFilterKey) {
             return state;
           }
-          const pendingFilter = findPendingFilter(
-            state.query,
-            state.pendingFilterKey,
-            parseQuery
-          );
-          if (!pendingFilter) {
-            return state;
-          }
-          const newState = replaceTokensWithText(state, {
-            tokens: [pendingFilter],
-            text: '',
-            parseQuery,
-            shouldCommitQuery: true,
-          });
-          return {
-            ...newState,
-            focusOverride: action.refocus ? newState.focusOverride : null,
-          };
-        }
+          return {...state, committedQuery: state.query};
         case 'DELETE_TOKEN': {
           return {
             ...replaceTokensWithText(state, {

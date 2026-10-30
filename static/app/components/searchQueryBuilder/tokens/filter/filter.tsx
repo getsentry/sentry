@@ -107,15 +107,6 @@ function FilterValue({
             setEditSource(false);
             onActiveChange(false);
           }}
-          onDiscard={() => {
-            setEditSource(false);
-            onActiveChange(false);
-            dispatch({
-              type: 'DISCARD_PENDING_FILTER',
-              itemKey: item.key.toString(),
-              refocus: true,
-            });
-          }}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
@@ -125,6 +116,11 @@ function FilterValue({
           onCommit={() => {
             setEditSource(false);
             onActiveChange(false);
+            // Without a value, keep the placeholder value. This is a no-op if a
+            // value was just entered, since that already ended the pending state.
+            if (isPending) {
+              dispatch({type: 'COMMIT_PENDING_FILTER', itemKey: item.key.toString()});
+            }
             dispatch({type: 'COMMIT_QUERY'});
             // Committing on blur must not move focus back into a dismissed panel.
             if (
@@ -195,10 +191,10 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const {dispatch, pendingFilterKey} = useSearchQueryBuilderState();
   const isPending = pendingFilterKey === item.key;
 
-  // A pending filter has no value, so drop it once the user is done with it.
-  // Wait for focus to settle first: the operator menu moves focus out of the
-  // filter and back.
-  const discardIfAbandoned = useCallback(() => {
+  // Once the user leaves a pending filter without a value, keep its placeholder
+  // value. Wait for focus to settle first: the operator menu moves focus out of
+  // the filter and back.
+  const commitIfAbandoned = useCallback(() => {
     setTimeout(() => {
       if (
         !ref.current ||
@@ -207,24 +203,20 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ) {
         return;
       }
-      dispatch({
-        type: 'DISCARD_PENDING_FILTER',
-        itemKey: item.key.toString(),
-        refocus: false,
-      });
+      dispatch({type: 'COMMIT_PENDING_FILTER', itemKey: item.key.toString()});
     });
   }, [dispatch, item.key]);
 
   useEffect(() => {
     if (isPending && !filterMenuOpen) {
-      discardIfAbandoned();
+      commitIfAbandoned();
     }
-  }, [discardIfAbandoned, filterMenuOpen, isPending]);
+  }, [commitIfAbandoned, filterMenuOpen, isPending]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
       if (isPending) {
-        discardIfAbandoned();
+        commitIfAbandoned();
       }
     },
   });
