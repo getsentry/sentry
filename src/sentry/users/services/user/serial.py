@@ -4,6 +4,7 @@ from typing import Any
 
 from django.utils.functional import LazyObject, empty
 
+from sentry.auth.principal import acting_user_id
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user import (
@@ -18,14 +19,14 @@ from sentry.users.services.user import (
 def serialize_generic_user(user: Any) -> RpcUser | None:
     """Serialize a user-representing object of unknown type to an RpcUser.
 
-    Return None if the user is anonymous (not logged in).
+    Return None if no user is behind it: anonymous, deleted, or e.g. a service account.
     """
     if isinstance(user, LazyObject):  # from auth middleware
         lazy: Any = user
         if lazy._wrapped is empty:
             lazy._setup()
         user = lazy._wrapped
-    if user is None or user.id is None:
+    if acting_user_id(user) is None:
         return None
     if isinstance(user, RpcUser):
         return user
