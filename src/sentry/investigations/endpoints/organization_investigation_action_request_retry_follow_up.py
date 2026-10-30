@@ -24,10 +24,10 @@ from sentry.investigations.endpoints.serializers.responses import (
     InvestigationActionRequestRetryFollowUpResponse,
 )
 from sentry.investigations.endpoints.validators import ActionRequestRetryFollowUpValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services.action_kinds.base import ApplyFailed
 from sentry.investigations.services.action_requests import retry_follow_up
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -62,7 +62,7 @@ class OrganizationInvestigationActionRequestRetryFollowUpEndpoint(
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
         action_request_id: str,
     ) -> Response:
         """

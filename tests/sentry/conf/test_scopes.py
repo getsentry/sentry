@@ -1,6 +1,11 @@
 from django.conf import settings
 
-from sentry.conf.server import SENTRY_READONLY_SCOPES, SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
+from sentry.conf.server import (
+    GRANULAR_SCOPES,
+    SENTRY_READONLY_SCOPES,
+    SENTRY_SCOPE_HIERARCHY_MAPPING,
+    SENTRY_SCOPES,
+)
 from sentry.models.apiscopes import ApiScopes
 from sentry.service_accounts.models import GRANTABLE_SCOPES
 from sentry.testutils.cases import TestCase
@@ -24,7 +29,8 @@ class ScopesTest(TestCase):
             # check that scope is in its own mapping
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
-            if resource in EXPLICIT_SCOPE_RESOURCES:
+            # granular and service account scopes are explicit and imply nothing else
+            if scope in GRANULAR_SCOPES or resource in EXPLICIT_SCOPE_RESOURCES:
                 assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {scope}
                 continue
 

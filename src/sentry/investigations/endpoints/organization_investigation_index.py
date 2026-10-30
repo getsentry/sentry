@@ -28,10 +28,6 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationStatus,
-)
 from sentry.investigations.services import (
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
@@ -40,6 +36,8 @@ from sentry.investigations.services import (
 )
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.viewer_context import ActorId, ActorType
 
 
 @extend_schema(tags=["Investigations"])
@@ -74,20 +72,20 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         paginated array of summaries; follow the Link header for more results. Requires the
         organizations:investigations feature and open organization membership.
         """
-        requested_status = request.GET.get("status", InvestigationStatus.ACTIVE)
-        if requested_status not in InvestigationStatus.values:
+        requested_status = request.GET.get("status", NotebookStatus.ACTIVE)
+        if requested_status not in NotebookStatus.values:
             return Response(
                 {"detail": "Must be active or archived."}, status=status.HTTP_400_BAD_REQUEST
             )
         # A source-backed investigation supersedes earlier revisions of the same
         # lineage, so only the newest revision is listed.
-        newer_lineage_revision = Investigation.objects.filter(
+        newer_lineage_revision = Notebook.objects.filter(
             organization_id=OuterRef("organization_id"),
             source_key=OuterRef("source_key"),
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
-        investigations = Investigation.objects.filter(
+        investigations = Notebook.objects.filter(
             organization=organization, status=requested_status
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
         query = request.GET.get("query")
@@ -164,7 +162,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         )
                     investigation, created = create_agentic_breached_metric_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         resolved_source=resolved_source,
                         project_ids=requested_project_ids,
@@ -179,7 +177,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                     created = True
                     investigation, _ = create_agentic_manual_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         source=source,
                         project_ids=requested_project_ids,

@@ -81,6 +81,9 @@ class ServiceAccount(ReplicatedControlModel):
         models.TextField(), validators=[validate_grantable_scopes], default=list
     )
     is_active = models.BooleanField(default=True, db_default=True)
+    # Every active project in the org, including ones created later, instead of only the
+    # linked `ServiceAccountProject`s. Explicit so access doesn't follow open membership.
+    all_projects = models.BooleanField(default=False, db_default=False)
     # Always a human user, never another service account.
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     date_added = models.DateTimeField(default=timezone.now)
@@ -173,6 +176,7 @@ class ServiceAccountReplica(Model):
     name = models.CharField(max_length=MAX_NAME_LENGTH)
     scope_list = ArrayField(models.TextField(), default=list)
     is_active = models.BooleanField(default=True, db_default=True)
+    all_projects = models.BooleanField(default=False, db_default=False)
 
     class Meta:
         app_label = "service_accounts"

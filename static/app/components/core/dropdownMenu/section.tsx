@@ -21,7 +21,7 @@ export function DropdownMenuSection({node, children}: DropdownMenuSectionProps) 
   });
 
   return (
-    <SectionGroup {...itemProps}>
+    <SectionGroup ref={node.value?.ref} {...itemProps}>
       {node.rendered && (
         <SectionLabel padding="md xl" size="md" {...headingProps}>
           {node.rendered}

@@ -11,7 +11,7 @@ import {
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {matchesHotkey} from '@sentry/scraps/hotkey';
+import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -874,7 +874,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
   } as React.CSSProperties;
 
   const handleListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
-    if (e.repeat || !matchesHotkey(TOGGLE_VIEWED_HOTKEY, e.nativeEvent)) {
+    if (e.repeat || !matchesKeyboardEvent(e.nativeEvent, TOGGLE_VIEWED_HOTKEY)) {
       return;
     }
     const rowIdx = selectedSnapshotKey
