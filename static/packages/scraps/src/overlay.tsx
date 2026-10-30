@@ -24,10 +24,10 @@ export interface OverlayProps
   arrowProps?: OverlayArrowProps;
   children?: React.ReactNode;
   /**
-   * Uses one of the theme's shadows. If undefined, the overlay keeps its
-   * default bottom-edge shadow.
+   * Shadow style. Defaults to `crisp`, the overlay's bottom-edge shadow.
+   * `soft` uses the theme's high shadow.
    */
-  elevation?: 'low' | 'medium' | 'high';
+  elevation?: 'crisp' | 'soft';
   /**
    * The CSS styles for the "origin point" over the overlay. Typically this
    * would be the arrow (or tip).
@@ -98,7 +98,7 @@ export function Overlay({
   children,
   arrowProps,
   animated,
-  elevation,
+  elevation = 'crisp',
   placement,
   originPoint,
   style,
@@ -136,7 +136,7 @@ export function Overlay({
 const OverlayInner = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'elevation',
 })<{
-  elevation?: OverlayProps['elevation'];
+  elevation: NonNullable<OverlayProps['elevation']>;
   placement?: OverlayProps['placement'];
 }>`
   position: relative;
@@ -144,10 +144,10 @@ const OverlayInner = styled(motion.div, {
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p =>
-    p.elevation
-      ? p.theme.shadow[p.elevation]
-      : // oxlint-disable-next-line @sentry/scraps/use-semantic-token
-        `0 2px 0 ${p.theme.tokens.border.primary}`};
+    p.elevation === 'crisp'
+      ? // oxlint-disable-next-line @sentry/scraps/use-semantic-token
+        `0 2px 0 ${p.theme.tokens.border.primary}`
+      : p.theme.shadow.high};
   font-size: ${p => p.theme.font.size.md};
 
   /* Override z-index from useOverlayPosition */
