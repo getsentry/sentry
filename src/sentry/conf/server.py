@@ -1929,8 +1929,12 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:write",
+    "saved_query:read",
+    "saved_query:write",
     "seer:read",
     "seer:write",
+    "service_account:read",
+    "service_account:write",
     "user_preference:read",
     "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1948,7 +1952,9 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "saved_query:read",
     "seer:read",
+    "service_account:read",
     "user_preference:read",
 }
 
@@ -1980,8 +1986,13 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
+    "saved_query:read": {"saved_query:read"},
+    "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "service_account:read": {"service_account:read"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
     "user_preference:read": {"user_preference:read"},
     "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
@@ -2008,6 +2019,8 @@ GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
         "dashboard:write",
+        "saved_query:read",
+        "saved_query:write",
         "user_preference:read",
         "user_preference:write",
     ]
@@ -2033,6 +2046,8 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "org:read",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
         ]
     ),
     # Starring, starred order and last visited accept member:read today, including writes.
@@ -2105,6 +2120,10 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:read", "Read access to dashboards."),
     ),
     (
+        ("saved_query:write", "Write access to saved queries."),
+        ("saved_query:read", "Read access to saved queries."),
+    ),
+    (
         (
             "seer:write",
             "Read and write access to Seer-generated work, such as running Autofix analysis.",
@@ -2112,6 +2131,8 @@ SENTRY_SCOPE_SETS = (
         ("seer:read", "Read access to Seer-generated work."),
     ),
     (
+        ("service_account:write", "Write access to service accounts."),
+        ("service_account:read", "Read access to service accounts."),
         ("user_preference:write", "Write access to your preferences, such as starred items."),
         ("user_preference:read", "Read access to your preferences, such as starred items."),
     ),
@@ -2215,6 +2236,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2251,6 +2274,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2328,6 +2353,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
             "user_preference:read",
@@ -2366,6 +2393,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
             "user_preference:read",
@@ -2399,8 +2428,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
             "user_preference:read",
             "user_preference:write",
         },
@@ -2439,8 +2472,12 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "dashboard:read",
             "dashboard:write",
+            "saved_query:read",
+            "saved_query:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
             "user_preference:read",
             "user_preference:write",
         },
@@ -2614,6 +2651,7 @@ SENTRY_SDK_CONFIG: ServerSdkConfig = {
     # connectivity issues. We are specifically enabling this to help ensure
     # cron monitor check-ins make it through.
     "keep_alive": True,
+    "attach_stacktrace": False,
 }
 
 SENTRY_DEV_DSN = os.environ.get("SENTRY_DEV_DSN")

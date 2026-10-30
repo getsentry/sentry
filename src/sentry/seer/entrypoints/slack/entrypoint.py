@@ -11,11 +11,12 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import InvestigationOrchestrationStatus
 from sentry.locks import locks
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.registry import provider_registry
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.templates.seer import (
@@ -881,7 +882,7 @@ class SlackInvestigationEntrypoint(
             ephemeral_user_id=self.slack_user_id,
         )
 
-    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+    def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         data = SeerInvestigationStarted(
             organization_id=self.organization.id,
             slack_user_id=self.slack_user_id,

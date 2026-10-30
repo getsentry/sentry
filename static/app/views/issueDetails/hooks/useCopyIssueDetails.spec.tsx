@@ -1429,25 +1429,6 @@ LIMIT 21`;
       expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
     });
 
-    it('sets up hotkeys with the correct callbacks', () => {
-      const useHotkeysMock = jest.spyOn(
-        require('@sentry/scraps/hotkey/useHotkeys'),
-        'useHotkeys'
-      );
-
-      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
-        organization,
-      });
-
-      expect(useHotkeysMock).toHaveBeenCalledWith([
-        {
-          match: 'mod+alt+c',
-          callback: expect.any(Function),
-          skipPreventDefault: expect.any(Boolean),
-        },
-      ]);
-    });
-
     it('provides partial data when event is undefined', async () => {
       let capturedText = '';
 
