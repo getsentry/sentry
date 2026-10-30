@@ -4,13 +4,22 @@ import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useProjects} from 'sentry/utils/useProjects';
+import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
+import {
+  AlertWizardRuleTemplates,
+  type MetricAlertType,
+} from 'sentry/views/alerts/wizard/options';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -22,6 +31,7 @@ import {
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 
 const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
   'workflow-engine-disable-legacy-alert-rule-redirects';
@@ -341,30 +351,127 @@ export const withDetectorEditRedirect = <P extends Record<string, any>>(
     makeMonitorEditPathname(orgSlug, detectorId)
   );
 
-const getDetectionType = (type: string | undefined): string | null => {
+const getDetectionType = (type: string | undefined): string | undefined => {
   switch (type) {
     case 'crons':
       return 'monitor_check_in_failure';
+    case 'metric':
+      return 'metric_issue';
     case 'uptime':
       return 'uptime_domain_failure';
     default:
-      return null;
+      return undefined;
   }
 };
 
-function makeCreateRedirectPath(orgSlug: string, alertType: string | undefined) {
-  const detectorType = getDetectionType(alertType);
+function makeCreateRedirectPath(
+  orgSlug: string,
+  alertType: string | undefined,
+  project?: Project
+) {
+  const search = qs.stringify({
+    detectorType: getDetectionType(alertType),
+    project: project?.id,
+  });
 
-  return detectorType
-    ? makeMonitorCreatePathname(orgSlug) + `?detectorType=${detectorType}`
+  return search
+    ? `${makeMonitorCreatePathname(orgSlug)}?${search}`
     : makeMonitorCreatePathname(orgSlug);
+}
+
+function isMonitorableDataset(value: string | undefined): value is Dataset {
+  return (
+    value !== Dataset.REPLAYS &&
+    Object.values<string | undefined>(Dataset).includes(value)
+  );
+}
+
+function isEventType(value: string): value is EventTypes {
+  return Object.values<string>(EventTypes).includes(value);
+}
+
+function isMetricAlertType(value: string | undefined): value is MetricAlertType {
+  return !!value && Object.hasOwn(AlertWizardRuleTemplates, value);
+}
+
+const LEGACY_ALERT_TYPES_BY_WIZARD_OPTION: Record<string, string> = {
+  crons_monitor: 'crons',
+  uptime_monitor: 'uptime',
+};
+
+function makeLegacyCreateRedirectPath({
+  alertType,
+  organization,
+  project,
+  query,
+}: {
+  alertType: string | undefined;
+  organization: Organization;
+  project: Project | undefined;
+  query: Query;
+}) {
+  // The legacy wizard preselected an alert type from `alert_option`, filling
+  // in the dataset and aggregate from its template when none were given.
+  const alertOption = decodeScalar(query.alert_option);
+  const resolvedAlertType =
+    alertType ??
+    (alertOption && Object.hasOwn(LEGACY_ALERT_TYPES_BY_WIZARD_OPTION, alertOption)
+      ? LEGACY_ALERT_TYPES_BY_WIZARD_OPTION[alertOption]
+      : undefined);
+  const template = isMetricAlertType(alertOption)
+    ? AlertWizardRuleTemplates[alertOption]
+    : undefined;
+
+  const dataset = decodeScalar(query.dataset) ?? template?.dataset;
+  const isMetricAlert = resolvedAlertType === undefined || resolvedAlertType === 'metric';
+
+  if (!isMetricAlert || !isMonitorableDataset(dataset)) {
+    return makeCreateRedirectPath(organization.slug, resolvedAlertType, project);
+  }
+
+  const eventTypes = decodeList(query.eventTypes).filter(isEventType);
+  const target = getMetricMonitorUrl({
+    aggregate: decodeScalar(query.aggregate) ?? template?.aggregate ?? '',
+    dataset,
+    environment: decodeScalar(query.environment),
+    eventTypes: eventTypes.length
+      ? eventTypes
+      : template
+        ? [template.eventTypes]
+        : undefined,
+    organization,
+    project,
+    query: query.query === '' ? '' : (decodeScalar(query.query) ?? template?.query),
+    referrer: decodeScalar(query.referrer),
+  });
+  return `${target.pathname}?${qs.stringify(target.query)}`;
 }
 
 export function MonitorCreateRedirect() {
   const organization = useOrganization();
-  const {alertType} = useParams();
+  const location = useLocation();
+  const {alertType, projectId} = useParams<{alertType?: string; projectId?: string}>();
+  const {projects, initiallyLoaded} = useProjects();
 
-  return <Redirect to={makeCreateRedirectPath(organization.slug, alertType)} />;
+  const projectSlugOrId = projectId ?? decodeScalar(location.query.project);
+  if (projectSlugOrId && !initiallyLoaded) {
+    return <LoadingIndicator />;
+  }
+
+  const project = projectSlugOrId
+    ? projects.find(p => p.slug === projectSlugOrId || p.id === projectSlugOrId)
+    : undefined;
+
+  return (
+    <Redirect
+      to={makeLegacyCreateRedirectPath({
+        alertType,
+        organization,
+        project,
+        query: location.query,
+      })}
+    />
+  );
 }
 
 export function UptimeMonitorCreateRedirect() {

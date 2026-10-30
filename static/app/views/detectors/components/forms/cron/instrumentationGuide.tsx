@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {IconGlobe} from '@sentry/icons/globe';
 import {IconTerminal} from '@sentry/icons/terminal';
 import partition from 'lodash/partition';
@@ -38,9 +38,15 @@ const genericIcons: Record<string, React.ReactNode> = {
   http: <IconGlobe size="sm" />,
 };
 
-export function InstrumentationGuide() {
+export function InstrumentationGuide({
+  skipDetectionForInitialProject = false,
+}: {
+  skipDetectionForInitialProject?: boolean;
+}) {
   const {projects} = useProjects();
   const projectId = useCronDetectorFormField('projectId');
+  const [initialProjectId] = useState(projectId);
+  const isInitialProject = projectId === initialProjectId;
   const [skipGuideDetection] = useQueryState('skipGuideDetection', parseAsBoolean);
 
   const selectedProject = projects.find(p => p.id === projectId);
@@ -75,6 +81,10 @@ export function InstrumentationGuide() {
       return;
     }
 
+    if (skipDetectionForInitialProject && isInitialProject) {
+      return;
+    }
+
     // Attempt to find a supported upsert platform using th project platform.
     // Make a second attempt if the exact project platform has no guides by
     // extracting the 'first part' of the platform.
@@ -91,7 +101,13 @@ export function InstrumentationGuide() {
     }
 
     setPlatformGuide(defaultPlatform);
-  }, [projectPlatform, setPlatformGuide, skipGuideDetection]);
+  }, [
+    isInitialProject,
+    projectPlatform,
+    setPlatformGuide,
+    skipDetectionForInitialProject,
+    skipGuideDetection,
+  ]);
 
   const platformItems = regularPlatforms.map<MenuItemProps>(c => {
     const item = {

@@ -107,6 +107,14 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
+    "./useOnClickOutside": {
+      "types": "./dist/useOnClickOutside.d.ts",
+      "import": "./dist/useOnClickOutside.js"
+    },
     "./link": {
       "types": "./dist/link/index.d.ts",
       "import": "./dist/link/index.js"
@@ -284,6 +292,7 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
+    "@tanstack/react-hotkeys": "0.17.0",
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",

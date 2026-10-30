@@ -422,11 +422,11 @@ describe('ProjectAlerts -> TicketRuleModal', () => {
         issueTypeLabel
       );
       expect(dynamicQuery).toHaveBeenCalled();
-      await expect(
-        selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a')
-      ).rejects.toThrow();
+      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Reporter'}));
+      const newChoice = await screen.findByText('b');
+      expect(screen.queryByText('a')).not.toBeInTheDocument();
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'b');
+      await userEvent.click(newChoice);
       await submitSuccess();
     });
 

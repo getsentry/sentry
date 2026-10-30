@@ -41,6 +41,8 @@ interface SplitPanelProps {
   orientation?: Responsive<'horizontal' | 'vertical'>;
   /** Imperative handle exposing `setSize`. */
   ref?: React.Ref<SplitPanelHandle>;
+  /** Set to false to keep the divider in place but stop it from resizing. */
+  resizable?: boolean;
 }
 
 // `size === null` fills the remaining space; otherwise it takes a fixed basis.
@@ -70,6 +72,7 @@ export function SplitPanel({
   maxSize,
   fillMinSize = 0,
   onResizeEnd,
+  resizable = true,
 }: SplitPanelProps) {
   const {t} = useTranslation();
   const orientation =
@@ -184,6 +187,7 @@ export function SplitPanel({
       <DragHandle
         key="divider"
         aria-label={t('Resize panels')}
+        disabled={!resizable}
         isSizedFirst
         max={max}
         min={min}

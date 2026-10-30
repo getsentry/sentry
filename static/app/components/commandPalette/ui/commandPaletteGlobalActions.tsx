@@ -832,7 +832,7 @@ export function GlobalCommandPaletteActions() {
         <CMDKAction
           display={{label: t('Create Alert'), icon: <IconAdd />}}
           keywords={[t('add alert'), t('alert rules'), t('issue alert')]}
-          to={`${prefix}/issues/alerts/wizard/`}
+          to={`${prefix}/monitors/alerts/new/`}
         />
         <CMDKAction
           display={{label: t('Create Project'), icon: <IconAdd />}}

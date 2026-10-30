@@ -17,9 +17,9 @@ from sentry.investigations.endpoints.base import (
 )
 from sentry.investigations.endpoints.serializers.responses import InvestigationPresenceResponse
 from sentry.investigations.endpoints.validators.presence import PresenceValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.presence import HEARTBEAT_INTERVAL, record_visit
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -47,7 +47,7 @@ class OrganizationInvestigationPresenceEndpoint(OrganizationInvestigationEndpoin
         },
     )
     def put(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Internal UI heartbeat. Record the authenticated user as viewing this investigation and
