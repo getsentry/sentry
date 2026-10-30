@@ -16,6 +16,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry_sdk import traces
 
 from bitfield import TypedClassBitField
+from sentry import features
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -503,6 +504,7 @@ class Project(Model):
     def transfer_to(self, organization: Organization) -> None:
         from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+        from sentry.integrations.base import INTEGRATION_TYPE_TO_PROVIDER, IntegrationDomain
         from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
@@ -617,12 +619,23 @@ class Project(Model):
             Detector.objects.filter(project_id=self.id).values_list("id", flat=True)
         )
         if detector_ids:
-            # grab the destination org's integrations outside of the transaction since it's an RPC call
+            # grab the destination org's integrations outside of the transaction since it's an RPC call.
+            # Actions without a usable destination integration get disabled, so leave out
+            # integrations the destination org can't send through: disabled org integrations,
+            # and messaging integrations when its plan doesn't include integration alert rules.
+            excluded_providers: Collection[str] = ()
+            if not features.has("organizations:integrations-alert-rule", organization):
+                excluded_providers = INTEGRATION_TYPE_TO_PROVIDER[IntegrationDomain.MESSAGING]
             destination_integration_ids_by_provider: dict[str, list[int]] = defaultdict(list)
             for integration in integration_service.get_integrations(
-                organization_id=organization.id, status=ObjectStatus.ACTIVE
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
+                org_integration_status=ObjectStatus.ACTIVE,
             ):
-                destination_integration_ids_by_provider[integration.provider].append(integration.id)
+                if integration.provider not in excluded_providers:
+                    destination_integration_ids_by_provider[integration.provider].append(
+                        integration.id
+                    )
             with transaction.atomic(router.db_for_write(Workflow)):
                 # DataSources are 1:1 with their source (e.g. QuerySubscription, Monitor) and are
                 # detector-scoped, so they always transfer.
