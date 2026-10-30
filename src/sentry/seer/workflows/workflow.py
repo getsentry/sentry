@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator, Mapping
+from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, assert_never
@@ -9,10 +9,12 @@ from django.db import router, transaction
 from django.db.models import QuerySet
 from pydantic import BaseModel
 
-from sentry.constants import ObjectStatus
+from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
+    MAX_WORKFLOW_CONFIGS_PER_ORG,
+    SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigExtras,
     SeerWorkflowConfigProject,
@@ -20,6 +22,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExtras,
     SeerWorkflowRunStatus,
+    SeerWorkflowSchedule,
     SeerWorkflowStrategy,
     WorkflowRunSnapshot,
 )
@@ -86,6 +89,75 @@ class SeerWorkflow:
                     if strategy.value not in existing
                 ]
             )
+
+    @classmethod
+    def create_config(
+        cls,
+        *,
+        organization_id: int,
+        strategy: SeerWorkflowStrategy,
+        enabled: bool = False,
+        schedule: SeerWorkflowSchedule,
+        project_ids: Collection[int],
+        environments: Sequence[str] = (),
+        name: str | None = None,
+    ) -> SeerWorkflow:
+        """
+        Create a user-defined automation. Use ``project_ids=[-1]`` to select all
+        projects and ``environments=[]`` for all environments.
+        """
+        if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
+            raise ValueError(f"{strategy} automations cannot be configured")
+
+        requested = set(project_ids)
+        all_projects = requested == ALL_ACCESS_PROJECTS
+        if all_projects:
+            # [-1] is not stored as project links, only in config.filters
+            requested = set()
+
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            existing = (
+                SeerWorkflowConfig.objects.using(database)
+                .filter(
+                    organization_id=organization_id,
+                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+                )
+                .count()
+            )
+            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+                raise ValueError(
+                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+                )
+
+            if requested:
+                valid_project_ids = set(
+                    Project.objects.filter(
+                        organization_id=organization_id, id__in=requested
+                    ).values_list("id", flat=True)
+                )
+                if requested != valid_project_ids:
+                    raise ValueError("Selected projects must exist in the workflow's organization")
+
+            config = SeerWorkflowConfig.objects.using(database).create(
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                schedule=schedule,
+                filters=SeerWorkflowFilters(
+                    all_projects=all_projects,
+                    environments=list(environments),
+                ).dict(),
+                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+            )
+            if requested:
+                SeerWorkflowConfigProject.objects.using(database).bulk_create(
+                    [
+                        SeerWorkflowConfigProject(config=config, project_id=project_id)
+                        for project_id in sorted(requested)
+                    ]
+                )
+        return cls(config_id=config.id, organization_id=organization_id)
 
     def get_config(self) -> SeerWorkflowConfig:
         """Fetch the config without acquiring a lock."""
@@ -202,7 +274,14 @@ class SeerWorkflow:
             raise ValueError("Service account is inactive")
         return replica
 
-    def set_project_selection(self, selection: ProjectSelection) -> None:
+    def set_project_selection(
+        self, selection: ProjectSelection, *, has_access_projects: Collection[int] | None = None
+    ) -> None:
+        """Set the selected projects, bumping the version only when the selection changes.
+
+        With ``has_access_projects``, only links to those projects can be removed, so
+        selected projects outside it are kept. Without it, the whole selection is replaced.
+        """
         match selection:
             case AllProjects():
                 all_projects = True
@@ -214,11 +293,6 @@ class SeerWorkflow:
                 assert_never(selection)
 
         with self._lock_config() as config:
-            if (
-                config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-                and not all_projects
-            ):
-                raise ValueError("Breached metric projects are selected by connecting monitors")
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=project_ids
@@ -227,14 +301,28 @@ class SeerWorkflow:
             if project_ids != valid_project_ids:
                 raise ValueError("Selected projects must exist in the workflow's organization")
 
-            SeerWorkflowConfigProject.objects.filter(config=config).delete()
+            existing = set(
+                SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                    "project_id", flat=True
+                )
+            )
+            removable = existing
+            if has_access_projects is not None:
+                # Keep selected projects the caller can't access.
+                removable = existing & set(has_access_projects)
+            removed = removable - project_ids
+            added = project_ids - existing
+            filters = SeerWorkflowFilters.parse_obj(config.filters)
+            if not removed and not added and filters.all_projects == all_projects:
+                return
+
+            SeerWorkflowConfigProject.objects.filter(config=config, project_id__in=removed).delete()
             SeerWorkflowConfigProject.objects.bulk_create(
                 [
                     SeerWorkflowConfigProject(config=config, project_id=project_id)
-                    for project_id in sorted(project_ids)
+                    for project_id in sorted(added)
                 ]
             )
-            filters = SeerWorkflowFilters.parse_obj(config.filters)
             filters.all_projects = all_projects
             config.filters = config.filters | filters.dict()
             config.version += 1
