@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.registry import activity_handler_registry
@@ -21,7 +22,9 @@ NOTIFICATION_PLATFORM_COMPATIBLE_ACTIVITIES = [
 ]
 
 
-def get_supported_action_types() -> frozenset[Action.Type]:
+def get_supported_action_types(
+    activity_types: Collection[ActivityType],
+) -> frozenset[Action.Type]:
     from sentry.notifications.notification_action.activity_registry.unsupported import (
         UnsupportedActivityHandler,
     )
@@ -30,6 +33,7 @@ def get_supported_action_types() -> frozenset[Action.Type]:
         Action.Type(key)
         for key, handler in activity_handler_registry.registrations.items()
         if handler is not UnsupportedActivityHandler
+        and set(activity_types) <= set(handler.compatible_activity_types)
     )
 
 

@@ -10,6 +10,7 @@ from sentry.api.serializers.rest_framework.environment import EnvironmentField
 from sentry.auth.principal import acting_user_id, has_user
 from sentry.db import models
 from sentry.models.organization import Organization
+from sentry.types.activity import ActivityType
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     ACTION_FILTERS_HELP_TEXT,
@@ -149,41 +150,77 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
         return value
 
-    def has_seer_activity_trigger(self, triggers: InputData | None) -> bool:
+    def get_trigger_condition_types(self, triggers: InputData | None) -> set[str]:
         from sentry.workflow_engine.models import DataCondition
 
         # If this mutation affects triggers, check the incoming payload for activity triggers...
         if triggers:
-            return any(
-                c.get("type") == Condition.SEER_ACTIVITY_TRIGGER
-                for c in triggers.get("conditions", [])
-            )
+            return {c.get("type") for c in triggers.get("conditions", [])}
         # ...otherwise, check if the existing workflow being modified has activity triggers
         workflow: Workflow | None = self.context.get("workflow")
         if workflow is None or workflow.when_condition_group_id is None:
-            return False
-        return DataCondition.objects.filter(
-            condition_group_id=workflow.when_condition_group_id,
-            type=Condition.SEER_ACTIVITY_TRIGGER,
-        ).exists()
+            return set()
+        return set(
+            DataCondition.objects.filter(
+                condition_group_id=workflow.when_condition_group_id
+            ).values_list("type", flat=True)
+        )
+
+    def get_action_types(self, action_filters: ListInputData | None) -> list[str]:
+        if action_filters is not None:
+            return [
+                action["type"]
+                for action_filter in action_filters
+                for action in action_filter.get("actions", [])
+                if action.get("type")
+            ]
+        workflow: Workflow | None = self.context.get("workflow")
+        if workflow is None:
+            return []
+        return list(
+            DataConditionGroupAction.objects.filter(
+                condition_group__workflowdataconditiongroup__workflow_id=workflow.id
+            )
+            .order_by("action_id")
+            .values_list("action__type", flat=True)
+        )
+
+    def get_required_activity_types(self, condition_types: set[str]) -> set[ActivityType]:
+        from sentry.workflow_engine.handlers.workflow.workflow_activity_handlers import (
+            ACTIVITY_TRIGGER_ACTIVITY_TYPES,
+        )
+
+        if condition_types <= ACTIVITY_TRIGGER_ACTIVITY_TYPES.keys():
+            activity_triggers = condition_types
+        else:
+            activity_triggers = condition_types & {Condition.SEER_ACTIVITY_TRIGGER}
+
+        return {
+            activity_type
+            for trigger in activity_triggers
+            for activity_type in ACTIVITY_TRIGGER_ACTIVITY_TYPES[Condition(trigger)]
+        }
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         from sentry.notifications.notification_action.activity_registry.base import (
             get_supported_action_types,
         )
 
-        has_activity_trigger = self.has_seer_activity_trigger(triggers=attrs.get("triggers"))
-        if not has_activity_trigger:
+        if "triggers" not in attrs and "action_filters" not in attrs:
             return attrs
 
-        supported_action_types = get_supported_action_types()
-        for action_filter in attrs.get("action_filters", []):
-            for action in action_filter.get("actions", []):
-                action_type = action.get("type")
-                if action_type and Action.Type(action_type) not in supported_action_types:
-                    raise serializers.ValidationError(
-                        f"Action type '{action_type}' is not supported for activity triggers"
-                    )
+        activity_types = self.get_required_activity_types(
+            self.get_trigger_condition_types(attrs.get("triggers"))
+        )
+        if not activity_types:
+            return attrs
+
+        supported_action_types = get_supported_action_types(activity_types)
+        for action_type in self.get_action_types(attrs.get("action_filters")):
+            if Action.Type(action_type) not in supported_action_types:
+                raise serializers.ValidationError(
+                    f"Action type '{action_type}' is not supported for activity triggers"
+                )
 
         return attrs
 
