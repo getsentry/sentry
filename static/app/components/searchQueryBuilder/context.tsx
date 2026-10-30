@@ -50,6 +50,11 @@ interface SearchQueryBuilderStateContextData {
   handleSearch: (query: string) => void;
   parseQuery: (query: string) => ParseResult | null;
   parsedQuery: ParseResult | null;
+  /**
+   * Item key of a number-based filter that has no value yet. Its value in
+   * `query` is a placeholder and should be shown as empty.
+   */
+  pendingFilterKey: string | null;
   query: string;
 }
 
@@ -410,6 +415,7 @@ export function SearchQueryBuilderProvider({
       handleSearch,
       parseQuery,
       parsedQuery,
+      pendingFilterKey: state.pendingFilterKey,
       query: state.query,
     };
   }, [
@@ -420,6 +426,7 @@ export function SearchQueryBuilderProvider({
     parsedQuery,
     state.committedQuery,
     state.focusOverride,
+    state.pendingFilterKey,
     state.query,
   ]);
 

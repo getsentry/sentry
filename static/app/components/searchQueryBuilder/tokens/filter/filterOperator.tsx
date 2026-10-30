@@ -39,7 +39,7 @@ const MENU_OFFSET: [number, number] = [0, 12];
 
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
-  const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
+  const {dispatch, query, focusOverride, pendingFilterKey} = useSearchQueryBuilderState();
   const {
     allowRegexOperators,
     searchSource,
@@ -134,6 +134,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
         const focusValue =
           initialOpSettingRef.current ||
+          pendingFilterKey === item.key ||
           (isRegexOperator(option.value) && !isRegexOperator(token.operator));
 
         dispatch({

@@ -96,8 +96,22 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
   editingCommittedValue: boolean;
+  /**
+   * The filter is pending: its value is only a placeholder, so the input starts
+   * empty and leaving it empty does not keep the placeholder.
+   */
+  isPendingValue: boolean;
+  /**
+   * Closes the editor without committing, when a pending value is left empty
+   * because focus moved away.
+   */
+  onClose: () => void;
   onCommit: () => void;
   onDelete: () => void;
+  /**
+   * Removes the pending filter, when its value is submitted or dismissed empty.
+   */
+  onDiscard: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -681,8 +695,12 @@ function ValueComboboxCustomMenu(
 export function getInitialInputValue(
   token: TokenResult<Token.FILTER>,
   canSelectMultipleValues: boolean,
-  editingCommittedValue?: boolean
+  editingCommittedValue?: boolean,
+  isPendingValue?: boolean
 ) {
+  if (isPendingValue) {
+    return '';
+  }
   if (isDateToken(token)) {
     return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
   }
@@ -700,10 +718,13 @@ export function getInitialInputValue(
 
 export function SearchQueryBuilderValueCombobox({
   token,
+  onClose,
   onDelete,
   onCommit,
+  onDiscard,
   wrapperRef,
   editingCommittedValue,
+  isPendingValue,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -744,7 +765,12 @@ export function SearchQueryBuilderValueCombobox({
   const [inputValue, setInputValue] = useState(() =>
     canSelectMultipleValues
       ? ''
-      : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
+      : getInitialInputValue(
+          token,
+          canSelectMultipleValues,
+          editingCommittedValue,
+          isPendingValue
+        )
   );
   // Tracks where the input sits within the chip row. `value` is the lifted chip's
   // text (so it can be restored on Escape and reinserted where it was rather than
@@ -1244,7 +1270,16 @@ export function SearchQueryBuilderValueCombobox({
   };
 
   const handleInputValueConfirmed = useCallback(
-    (value: string) => {
+    (value: string, event?: React.FocusEvent<HTMLInputElement>) => {
+      if (isPendingValue && !value.trim()) {
+        if (event) {
+          onClose();
+        } else {
+          onDiscard();
+        }
+        return;
+      }
+
       if (canSelectMultipleValues) {
         if (value.trim()) {
           addTypedValue(value);
@@ -1262,7 +1297,12 @@ export function SearchQueryBuilderValueCombobox({
 
       const isUnchanged =
         value ===
-        getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue);
+        getInitialInputValue(
+          token,
+          canSelectMultipleValues,
+          editingCommittedValue,
+          isPendingValue
+        );
 
       // If there's no user input and the token has no value, set a default one
       if (!value && !token.value.text && !isRegexValue) {
@@ -1294,8 +1334,11 @@ export function SearchQueryBuilderValueCombobox({
       dispatch,
       editingCommittedValue,
       fieldDefinition,
+      isPendingValue,
       isRegexValue,
+      onClose,
       onCommit,
+      onDiscard,
       token,
       updateFilterValue,
     ]
@@ -1443,7 +1486,11 @@ export function SearchQueryBuilderValueCombobox({
         onExit={() => {
           setEditingChip(null);
           setInputValue('');
-          onCommit();
+          if (isPendingValue) {
+            onDiscard();
+          } else {
+            onCommit();
+          }
         }}
         inputValue={inputValue}
         filterValue={filterValue}

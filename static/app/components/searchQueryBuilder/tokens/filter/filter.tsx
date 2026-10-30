@@ -1,4 +1,4 @@
-import {useLayoutEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
@@ -47,10 +47,18 @@ interface SearchQueryTokenProps {
 
 interface FilterValueProps extends SearchQueryTokenProps {
   filterRef: React.RefObject<HTMLDivElement | null>;
+  isPending: boolean;
   onActiveChange: (active: boolean) => void;
 }
 
-function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValueProps) {
+function FilterValue({
+  token,
+  state,
+  item,
+  filterRef,
+  isPending,
+  onActiveChange,
+}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
@@ -94,6 +102,20 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
           token={token}
           wrapperRef={ref}
           editingCommittedValue={editSource === 'click'}
+          isPendingValue={isPending}
+          onClose={() => {
+            setEditSource(false);
+            onActiveChange(false);
+          }}
+          onDiscard={() => {
+            setEditSource(false);
+            onActiveChange(false);
+            dispatch({
+              type: 'DISCARD_PENDING_FILTER',
+              itemKey: item.key.toString(),
+              refocus: true,
+            });
+          }}
           onDelete={() => {
             filterRef.current?.focus();
             state.selectionManager.setFocusedKey(item.key);
@@ -129,10 +151,11 @@ function FilterValue({token, state, item, filterRef, onActiveChange}: FilterValu
       }}
       disabled={disabled}
       showAllValues={showAllFilterValues}
+      isEmpty={isPending}
       {...filterButtonProps}
     >
       <InteractionStateLayer />
-      <FilterValueText token={token} />
+      {isPending ? null : <FilterValueText token={token} />}
     </ValueButton>
   );
 }
@@ -160,10 +183,51 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
 export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  // Read when focus has settled, which can be before the state update renders.
+  const filterMenuOpenRef = useRef(false);
+  const handleFilterMenuOpenChange = useCallback((open: boolean) => {
+    filterMenuOpenRef.current = open;
+    setFilterMenuOpen(open);
+  }, []);
 
   const isFocused = item.key === state.selectionManager.focusedKey;
 
-  const {dispatch} = useSearchQueryBuilderState();
+  const {dispatch, pendingFilterKey} = useSearchQueryBuilderState();
+  const isPending = pendingFilterKey === item.key;
+
+  // A pending filter has no value, so drop it once the user is done with it.
+  // Wait for focus to settle first: the operator menu moves focus out of the
+  // filter and back.
+  const discardIfAbandoned = useCallback(() => {
+    setTimeout(() => {
+      if (
+        !ref.current ||
+        filterMenuOpenRef.current ||
+        ref.current.contains(document.activeElement)
+      ) {
+        return;
+      }
+      dispatch({
+        type: 'DISCARD_PENDING_FILTER',
+        itemKey: item.key.toString(),
+        refocus: false,
+      });
+    });
+  }, [dispatch, item.key]);
+
+  useEffect(() => {
+    if (isPending && !filterMenuOpen) {
+      discardIfAbandoned();
+    }
+  }, [discardIfAbandoned, filterMenuOpen, isPending]);
+
+  const {focusWithinProps} = useFocusWithin({
+    onBlurWithin: () => {
+      if (isPending) {
+        discardIfAbandoned();
+      }
+    },
+  });
   const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
     useSearchQueryBuilderConfig();
   const {showAllFilterValues} = useSearchQueryBuilderLayout();
@@ -184,9 +248,18 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   };
 
   // oxlint-disable-next-line react/refs
-  const modifiedRowProps = mergeProps(rowProps, {
+  const modifiedRowProps = mergeProps(rowProps, focusWithinProps, {
     tabIndex: isFocused ? 0 : -1,
     onKeyDown,
+    // The pending filter's value is a placeholder, so leave it out of the label
+    ...(isPending
+      ? {
+          'aria-label': token.text.slice(
+            0,
+            token.value.location.start.offset - token.location.start.offset
+          ),
+        }
+      : {}),
   });
 
   const hasTokenInvalid =
@@ -232,14 +305,14 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
                 item={item}
                 token={token}
                 state={state}
-                onActiveChange={setFilterMenuOpen}
+                onActiveChange={handleFilterMenuOpenChange}
               />
             ) : (
               <FilterKey
                 token={token}
                 state={state}
                 item={item}
-                onActiveChange={setFilterMenuOpen}
+                onActiveChange={handleFilterMenuOpenChange}
               />
             )}
           </BaseGridCell>
@@ -249,7 +322,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
             token={token}
             state={state}
             item={item}
-            onOpenChange={setFilterMenuOpen}
+            onOpenChange={handleFilterMenuOpenChange}
           />
         </BaseGridCell>
         <FilterValueGridCell {...gridCellProps}>
@@ -258,7 +331,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
             state={state}
             item={item}
             filterRef={ref}
-            onActiveChange={setFilterMenuOpen}
+            isPending={isPending}
+            onActiveChange={handleFilterMenuOpenChange}
           />
         </FilterValueGridCell>
         <BaseGridCell {...gridCellProps}>
@@ -274,8 +348,9 @@ const FilterValueGridCell = styled(BaseGridCell)`
   min-width: 0;
 `;
 
-const ValueButton = styled(UnstyledButton)<{showAllValues: boolean}>`
+const ValueButton = styled(UnstyledButton)<{isEmpty: boolean; showAllValues: boolean}>`
   padding: 0 ${p => p.theme.space['2xs']};
+  min-width: ${p => (p.isEmpty ? p.theme.space.xl : 0)};
   color: ${p => p.theme.tokens.content.accent};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;

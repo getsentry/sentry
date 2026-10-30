@@ -261,33 +261,6 @@ describe('searchSyntax/parser', () => {
     expect(filterOf('avg(span.size):>1kb')).toBeUndefined();
   });
 
-  it.each([
-    ['num:>', FilterType.NUMERIC, TermOperator.GREATER_THAN],
-    ['!num:<=', FilterType.NUMERIC, TermOperator.LESS_THAN_EQUAL],
-    ['num:', FilterType.NUMERIC, TermOperator.DEFAULT],
-    ['span.duration:>', FilterType.DURATION, TermOperator.GREATER_THAN],
-    ['span.size:<', FilterType.SIZE, TermOperator.LESS_THAN],
-    ['count():>', FilterType.AGGREGATE_NUMERIC, TermOperator.GREATER_THAN],
-    [
-      'p95(span.duration):>=',
-      FilterType.AGGREGATE_DURATION,
-      TermOperator.GREATER_THAN_EQUAL,
-    ],
-  ])('parses %s as a filter that must have a value', (query, filterType, operator) => {
-    const filter = parseSearch(query, {
-      numericKeys: new Set(['num']),
-      durationKeys: new Set(['span.duration']),
-      sizeKeys: new Set(['span.size']),
-    })?.find((token): token is TokenResult<Token.FILTER> => token.type === Token.FILTER);
-
-    expect(filter?.filter).toBe(filterType);
-    expect(filter?.operator).toBe(operator);
-    expect(filter?.value.text).toBe('');
-    expect(filter?.invalid).toEqual(
-      expect.objectContaining({type: InvalidReason.FILTER_MUST_HAVE_VALUE})
-    );
-  });
-
   it('returns the matched text for keys, values, and aggregate params', () => {
     const result = parseSearch(
       'tags[foo:bar]:baz browser.name-1:"Fire \\"fox\\"" device.family: count_if(user.email,equals,"I, got \\"quotes\\""):>100 firstSeen:+7d'

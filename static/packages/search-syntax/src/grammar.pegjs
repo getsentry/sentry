@@ -106,7 +106,7 @@ rel_date_filter
 
 // filter for durations
 duration_filter
-  = negation:negation? key:search_key sep op:operator? value:(duration_format / empty_duration_value) &{
+  = negation:negation? key:search_key sep op:operator? value:duration_format &{
       return tc.predicateFilter(FilterType.DURATION, key)
     } {
       return tc.tokenFilter(FilterType.DURATION, key, value, op, !!negation);
@@ -114,7 +114,7 @@ duration_filter
 
 // filter for file size
 size_filter
-  = negation:negation? key:search_key sep op:operator? value:(size_format / empty_size_value) &{
+  = negation:negation? key:search_key sep op:operator? value:size_format &{
       return tc.predicateFilter(FilterType.SIZE, key)
     } {
       return tc.tokenFilter(FilterType.SIZE, key, value, op, !!negation);
@@ -138,7 +138,7 @@ numeric_in_filter
 
 // numeric comparison filter
 numeric_filter
-  = negation:negation? key:search_key sep op:operator? value:(numeric_value / empty_numeric_value) &{
+  = negation:negation? key:search_key sep op:operator? value:numeric_value &{
       return tc.predicateFilter(FilterType.NUMERIC, key)
     } {
       return tc.tokenFilter(FilterType.NUMERIC, key, value, op, !!negation);
@@ -146,7 +146,7 @@ numeric_filter
 
 // aggregate duration filter
 aggregate_duration_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:(duration_format / empty_duration_value) &{
+  = negation:negation? key:aggregate_key sep op:operator? value:duration_format &{
       return tc.predicateFilter(FilterType.AGGREGATE_DURATION, key)
   } {
       return tc.tokenFilter(FilterType.AGGREGATE_DURATION, key, value, op, !!negation);
@@ -154,7 +154,7 @@ aggregate_duration_filter
 
 // aggregate file size filter
 aggregate_size_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:(size_format / empty_size_value) &{
+  = negation:negation? key:aggregate_key sep op:operator? value:size_format &{
       return tc.predicateFilter(FilterType.AGGREGATE_SIZE, key)
   } {
       return tc.tokenFilter(FilterType.AGGREGATE_SIZE, key, value, op, !!negation);
@@ -162,7 +162,7 @@ aggregate_size_filter
 
 // aggregate percentage filter
 aggregate_percentage_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:(percentage_format / empty_percentage_value) &{
+  = negation:negation? key:aggregate_key sep op:operator? value:percentage_format &{
       return tc.predicateFilter(FilterType.AGGREGATE_PERCENTAGE, key)
     } {
       return tc.tokenFilter(FilterType.AGGREGATE_PERCENTAGE, key, value, op, !!negation);
@@ -170,7 +170,7 @@ aggregate_percentage_filter
 
 // aggregate numeric filter
 aggregate_numeric_filter
-  = negation:negation? key:aggregate_key sep op:operator? value:(numeric_value / empty_numeric_value) &{
+  = negation:negation? key:aggregate_key sep op:operator? value:numeric_value &{
       return tc.predicateFilter(FilterType.AGGREGATE_NUMERIC, key)
     } {
       return tc.tokenFilter(FilterType.AGGREGATE_NUMERIC, key, value, op, !!negation);
@@ -506,28 +506,6 @@ size_format
 percentage_format
   = value:numeric "%" {
       return tc.tokenValuePercentage(value);
-    }
-
-// Number based filters may have an empty value, e.g. `span.duration:>`, which
-// is how the search query builder represents a filter that has no value yet.
-empty_numeric_value
-  = &end_value {
-      return tc.tokenValueNumber('', null);
-    }
-
-empty_duration_value
-  = &end_value {
-      return tc.tokenValueDuration('', null);
-    }
-
-empty_size_value
-  = &end_value {
-      return tc.tokenValueSize('', null);
-    }
-
-empty_percentage_value
-  = &end_value {
-      return tc.tokenValuePercentage('');
     }
 
 // Units for special values

@@ -1727,16 +1727,19 @@ describe('SearchQueryBuilder', () => {
       ['<', 'timesSeen:<'],
       ['=', 'timesSeen:='],
     ])(
-      'creates an empty numeric filter when typing <filter>%s',
-      async (operator, expectedQuery) => {
+      'creates a numeric filter without a value when typing <filter>%s',
+      async (operator, expectedFilter) => {
         render(<SearchQueryBuilder {...defaultProps} />, {
           organization: numberOperatorConversionOrganization,
         });
         await userEvent.click(getLastInput());
 
-        await userEvent.keyboard(`timesSeen${operator}{Escape}`);
+        await userEvent.keyboard(`timesSeen${operator}`);
 
-        expect(await screen.findByRole('row', {name: expectedQuery})).toBeInTheDocument();
+        expect(
+          await screen.findByRole('row', {name: expectedFilter})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
       }
     );
 
@@ -1749,14 +1752,13 @@ describe('SearchQueryBuilder', () => {
       expect(getLastInput()).toHaveValue('timesSeen>');
     });
 
-    it('creates empty numeric tag filters from filter key metadata', async () => {
+    it('creates numeric tag filters from filter key metadata', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
         organization: numberOperatorConversionOrganization,
       });
       await userEvent.click(getLastInput());
 
       await userEvent.paste('tags[bar,number]>');
-      await userEvent.keyboard('{Escape}');
 
       expect(
         await screen.findByRole('row', {name: 'tags[bar,number]:>'})
@@ -5230,12 +5232,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard('time{ArrowDown}{Enter}');
 
         expect(await screen.findByRole('row', {name: 'timesSeen:>'})).toBeInTheDocument();
-        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
-
-        await userEvent.keyboard('100{Enter}');
-        expect(
-          await screen.findByRole('row', {name: 'timesSeen:>100'})
-        ).toBeInTheDocument();
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '100');
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5333,6 +5332,117 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
         expect(await screen.findByRole('row', {name: 'duration:>'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+      });
+
+      describe('new filter without a value', () => {
+        async function addDurationFilter() {
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'duration'}));
+          await screen.findByRole('row', {name: 'duration:>'});
+        }
+
+        it('does not change the query until a value is entered', async () => {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...durationProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />
+          );
+          await addDurationFilter();
+          expect(mockOnChange).not.toHaveBeenCalled();
+
+          await userEvent.keyboard('50ms{Enter}');
+
+          expect(
+            await screen.findByRole('row', {name: 'duration:>50ms'})
+          ).toBeInTheDocument();
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+          expect(mockOnChange).toHaveBeenCalledWith(
+            'browser.name:firefox duration:>50ms',
+            expect.anything()
+          );
+        });
+
+        it('keeps the filter while the operator is changed', async () => {
+          const mockOnChange = jest.fn();
+          render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+          await addDurationFilter();
+
+          // The open value menu hides the rest of the filter from assistive tech
+          await userEvent.click(
+            screen.getByRole('button', {
+              name: 'Edit operator for filter: duration',
+              hidden: true,
+            })
+          );
+          await userEvent.click(await screen.findByRole('option', {name: '<'}));
+
+          expect(
+            await screen.findByRole('row', {name: 'duration:<'})
+          ).toBeInTheDocument();
+          expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+          expect(mockOnChange).not.toHaveBeenCalled();
+
+          await userEvent.keyboard('5ms{Enter}');
+
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+          expect(mockOnChange).toHaveBeenCalledWith('duration:<5ms', expect.anything());
+        });
+
+        it.each([
+          ['escape', '{Escape}'],
+          ['enter', '{Enter}'],
+        ])('removes the filter when %s is pressed without a value', async (_, key) => {
+          const mockOnChange = jest.fn();
+          render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+          await addDurationFilter();
+
+          await userEvent.keyboard(key);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByRole('row', {name: 'duration:>'})
+            ).not.toBeInTheDocument();
+          });
+          expect(getLastInput()).toHaveFocus();
+          expect(mockOnChange).not.toHaveBeenCalled();
+        });
+
+        it('does not bring back the placeholder value on undo', async () => {
+          render(<SearchQueryBuilder {...durationProps} />);
+          await addDurationFilter();
+          await userEvent.keyboard('50ms{Enter}');
+          expect(
+            await screen.findByRole('row', {name: 'duration:>50ms'})
+          ).toBeInTheDocument();
+
+          await userEvent.keyboard('{Control>}z{/Control}');
+
+          await waitFor(() => {
+            expect(
+              screen.queryByRole('row', {name: 'duration:>50ms'})
+            ).not.toBeInTheDocument();
+          });
+          expect(screen.queryByRole('row', {name: /^duration:/})).not.toBeInTheDocument();
+        });
+
+        it('removes the filter when focus leaves it without a value', async () => {
+          const mockOnChange = jest.fn();
+          render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+          await addDurationFilter();
+
+          await userEvent.click(document.body);
+
+          await waitFor(() => {
+            expect(
+              screen.queryByRole('row', {name: 'duration:>'})
+            ).not.toBeInTheDocument();
+          });
+          expect(mockOnChange).not.toHaveBeenCalled();
+        });
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5481,6 +5591,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
         expect(await screen.findByRole('row', {name: 'size:>'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5627,6 +5738,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
         expect(await screen.findByRole('row', {name: 'rate:>'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5748,6 +5860,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(screen.getByRole('option', {name: 'cost'}));
 
         expect(await screen.findByRole('row', {name: 'cost:>'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -6298,7 +6411,7 @@ describe('SearchQueryBuilder', () => {
         filterKeySections: [],
       };
 
-      it('can add an aggregate filter with default parameters', async () => {
+      it('can add an aggregate filter with default values', async () => {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
@@ -6396,7 +6509,7 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
-      it('clears the filter value if the type changes after editing parameters', async () => {
+      it('automatically changes the filter value if the type changes after editing parameters', async () => {
         render(
           <SearchQueryBuilder
             {...aggregateDefaultProps}
@@ -6413,9 +6526,10 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(input);
         await userEvent.keyboard('timesSeen{enter}');
 
+        // After selecting timesSeen, the value should change to a number
         expect(
           await screen.findByRole('row', {
-            name: 'p95(timesSeen):>',
+            name: 'p95(timesSeen):>100',
           })
         ).toBeInTheDocument();
       });
@@ -6478,9 +6592,7 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('p95(');
-        expect(
-          screen.getByLabelText('p95(transaction.duration):>300ms')
-        ).toBeInTheDocument();
+        expect(screen.getByLabelText('p95(transaction.duration):>')).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
 
         // XXX(malwilley): SearchQueryBuilderInput updates state in the render
@@ -7208,7 +7320,7 @@ describe('SearchQueryBuilder', () => {
       render(<SearchQueryBuilder {...builderProps} />);
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('bar:{Escape}');
+      await userEvent.keyboard('bar:100{Enter}');
 
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
@@ -7221,12 +7333,14 @@ describe('SearchQueryBuilder', () => {
       });
 
       await userEvent.click(getLastInput());
-      await userEvent.keyboard('bar>{Escape}');
+      await userEvent.keyboard('bar>100{Enter}');
 
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
       ).toHaveTextContent('bar');
-      expect(screen.getByRole('row', {name: 'tags[bar,number]:>'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('row', {name: 'tags[bar,number]:>100'})
+      ).toBeInTheDocument();
     });
 
     it('does not replace string key with suggestion when typing comparison operator', async () => {
@@ -7266,7 +7380,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit key for filter: browser.name'})
       );
       await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter key'}));
-      await userEvent.keyboard('bar{Enter}{Escape}');
+      await userEvent.keyboard('bar{Enter}100{Enter}');
 
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
