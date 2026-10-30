@@ -12,6 +12,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.auth.email import first_matching_email
 from sentry.backup.dependencies import merge_users_for_model_in_org
+from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import ControlOutbox, outbox_context
@@ -64,11 +65,14 @@ from sentry.organizations.services.organization import (
 from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
+    RpcOrganizationAccessContext,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
     RpcOrganizationMemberSummary,
+    RpcOrganizationProjectSummary,
     flags_to_bits,
 )
+from sentry.organizations.services.organization.resources import get_active_resource_ids
 from sentry.organizations.services.organization.serial import (
     serialize_member,
     serialize_organization_summary,
@@ -89,6 +93,77 @@ from sentry.utils.audit import create_org_delete_log
 
 
 class DatabaseBackedOrganizationService(OrganizationService):
+    def get_active_project_ids(self, *, organization_id: int, project_ids: list[int]) -> list[int]:
+        return list(
+            Project.objects.filter(
+                organization_id=organization_id, status=ObjectStatus.ACTIVE, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+
+    def get_access_context(
+        self,
+        *,
+        organization_id: int,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        org = Organization.objects.get_or_none(id=organization_id)
+        if org is None:
+            return None
+        return self._serialize_access_context(
+            org, user_id=user_id, include_resource_ids=include_resource_ids
+        )
+
+    def get_access_context_by_slug(
+        self,
+        *,
+        slug: str,
+        only_visible: bool,
+        user_id: int | None = None,
+        include_resource_ids: bool = False,
+    ) -> RpcOrganizationAccessContext | None:
+        query = Organization.objects.filter(slug=slug)
+        if only_visible:
+            query = query.filter(status=OrganizationStatus.ACTIVE)
+        org = query.get_or_none()
+        if org is None:
+            return None
+        return self._serialize_access_context(
+            org, user_id=user_id, include_resource_ids=include_resource_ids
+        )
+
+    def _serialize_access_context(
+        self, org: Organization, *, user_id: int | None, include_resource_ids: bool
+    ) -> RpcOrganizationAccessContext:
+        member: RpcOrganizationMember | None = None
+        if user_id is not None:
+            org_member = org.member_set.get_or_none(user_id=user_id)
+            if org_member is not None:
+                member = serialize_member(org_member)
+        return RpcOrganizationAccessContext(
+            user_id=user_id,
+            organization=serialize_rpc_organization(
+                org, include_projects=False, include_teams=False
+            ),
+            member=member,
+            resource_ids=(
+                get_active_resource_ids(organization_id=org.id) if include_resource_ids else None
+            ),
+        )
+
+    def get_project_platform_summary(
+        self, *, organization_id: int
+    ) -> RpcOrganizationProjectSummary:
+        return RpcOrganizationProjectSummary(
+            platforms=list(
+                Project.objects.filter(organization_id=organization_id)
+                .order_by()
+                .values_list("platform", flat=True)
+                .distinct()
+            ),
+            flags=self.get_aggregate_project_flags(organization_id=organization_id),
+        )
+
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> RpcOrganizationMember | None:
