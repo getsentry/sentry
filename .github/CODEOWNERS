@@ -83,7 +83,6 @@
 /src/sentry/snuba/                                       @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/data-browsing
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
-/src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/indexer/                      @getsentry/owners-snuba
 /src/sentry/sentry_metrics/consumers/indexer/            @getsentry/owners-snuba
