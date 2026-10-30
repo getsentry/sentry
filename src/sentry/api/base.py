@@ -44,7 +44,7 @@ from sentry.api.exceptions import (
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
-from sentry.auth.principal import RequestPrincipal, has_user, set_request_principal
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user, set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -782,7 +782,7 @@ class ReleaseAnalyticsMixin:
         try:
             analytics.record(
                 ReleaseSetCommitsLocalEvent(
-                    user_id=request.user.id if request.user and request.user.id else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization_id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
