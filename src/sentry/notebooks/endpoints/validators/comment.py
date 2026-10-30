@@ -4,7 +4,7 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.base import InvestigationArchivedError
+from sentry.notebooks.endpoints.base import InvestigationArchivedError
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookBlock, NotebookComment, NotebookStatus
 

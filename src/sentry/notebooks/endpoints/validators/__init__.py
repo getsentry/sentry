@@ -5,6 +5,7 @@ __all__ = (
     "BlockExecutionStartValidator",
     "BlockOrderValidator",
     "BlockUpdateValidator",
+    "FavoriteUpdateValidator",
     "StrictCamelSnakeValidator",
     "VisualizationSuggestionValidator",
     "validate_display",
@@ -22,3 +23,4 @@ from .block import (
     VisualizationSuggestionValidator,
     validate_display,
 )
+from .favorite import FavoriteUpdateValidator

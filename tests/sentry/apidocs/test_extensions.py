@@ -19,17 +19,17 @@ from sentry.apidocs.extensions import (
 )
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
 )
-from sentry.investigations.endpoints.schema import InvestigationSchema
 from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_details import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.schema import InvestigationSchema
 from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
 

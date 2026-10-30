@@ -305,17 +305,11 @@ from sentry.investigations.endpoints.organization_investigation_action_request_r
 from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
     OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_executions import (
     OrganizationInvestigationBlockExecutionsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_block_index import (
-    OrganizationInvestigationBlocksEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
@@ -323,23 +317,11 @@ from sentry.investigations.endpoints.organization_investigation_block_order impo
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_comment_counts import (
-    OrganizationInvestigationCommentCountsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_comment_details import (
-    OrganizationInvestigationCommentDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_comments_index import (
-    OrganizationInvestigationCommentsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_duplicate import (
     OrganizationInvestigationsDuplicateEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_favorite import (
-    OrganizationInvestigationsFavoriteEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationsIndexEndpoint,
@@ -347,9 +329,6 @@ from sentry.investigations.endpoints.organization_investigation_index import (
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_presence import (
-    OrganizationInvestigationPresenceEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_title_generation import (
     OrganizationInvestigationTitleGenerationEndpoint,
@@ -480,6 +459,27 @@ from sentry.monitors.endpoints.project_processing_errors_details import (
 )
 from sentry.monitors.endpoints.project_processing_errors_index import (
     ProjectProcessingErrorsIndexEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_details import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_index import (
+    OrganizationInvestigationBlocksEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comment_counts import (
+    OrganizationInvestigationCommentCountsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comment_details import (
+    OrganizationInvestigationCommentDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comments_index import (
+    OrganizationInvestigationCommentsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_favorite import (
+    OrganizationInvestigationsFavoriteEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_presence import (
+    OrganizationInvestigationPresenceEndpoint,
 )
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,

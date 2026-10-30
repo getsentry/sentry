@@ -11,12 +11,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationEndpoint,
     require_authenticated_user,
 )
-from sentry.investigations.endpoints.serializers.responses import InvestigationPresenceResponse
-from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.serializers.responses import InvestigationPresenceResponse
 from sentry.notebooks.endpoints.validators.presence import PresenceValidator
 from sentry.notebooks.models import Notebook
 from sentry.notebooks.presence import HEARTBEAT_INTERVAL, record_visit

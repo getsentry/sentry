@@ -2,7 +2,6 @@ __all__ = (
     "ActionRequestApplyValidator",
     "ActionRequestRecheckValidator",
     "ActionRequestRetryFollowUpValidator",
-    "FavoriteUpdateValidator",
     "InvestigationCreateValidator",
     "InvestigationCandidatesValidator",
     "InvestigationDeleteValidator",
@@ -19,7 +18,6 @@ from .action_request import (
     ActionRequestRetryFollowUpValidator,
 )
 from .investigation import (
-    FavoriteUpdateValidator,
     InvestigationCandidatesValidator,
     InvestigationCreateValidator,
     InvestigationDeleteValidator,

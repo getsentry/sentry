@@ -13,11 +13,11 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import interrupt_run, synchronize_execution
-from sentry.investigations.endpoints.base import OrganizationInvestigationBlockEndpoint
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationExecutionDetailsResponse,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import OrganizationInvestigationBlockEndpoint
 from sentry.notebooks.endpoints.validators import BlockExecutionResumeValidator
 from sentry.notebooks.models import (
     Notebook,

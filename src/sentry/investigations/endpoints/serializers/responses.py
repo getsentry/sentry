@@ -255,18 +255,6 @@ class InvestigationCandidatesResponse(TypedDict):
     items: list[InvestigationCandidateResponse]
 
 
-class InvestigationViewerResponse(TypedDict):
-    userId: str
-    lastSeen: datetime
-    active: bool
-
-
-class InvestigationPresenceResponse(TypedDict):
-    viewers: list[InvestigationViewerResponse]
-    total: int
-    heartbeatIntervalMs: int
-
-
 class InvestigationTitlePreviewResponse(TypedDict):
     status: str | None
     preview: str | None
