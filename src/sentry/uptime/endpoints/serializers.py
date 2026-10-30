@@ -1,6 +1,7 @@
 from collections.abc import MutableMapping, Sequence
 from typing import Any, Literal, TypedDict, cast, override
 
+from django.db.models import prefetch_related_objects
 from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
     Assertion,
     CheckStatus,
@@ -74,6 +75,9 @@ class UptimeDetectorSerializer(Serializer[UptimeDetectorSerializerResponse]):
     def get_attrs(
         self, item_list: Sequence[Detector], user: Any, **kwargs: Any
     ) -> MutableMapping[Any, Any]:
+        # serialize reads each detector's project slug
+        prefetch_related_objects(item_list, "project")
+
         detector_state_lookup = {
             ds.detector_id: ds for ds in DetectorState.objects.filter(detector__in=item_list)
         }
