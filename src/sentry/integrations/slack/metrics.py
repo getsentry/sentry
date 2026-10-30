@@ -1,13 +1,20 @@
 # metrics constants
 
+from collections.abc import Collection
+
 from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.slack.utils.errors import (
     SLACK_SDK_HALT_ERROR_CATEGORIES,
+    SlackSdkErrorCategory,
     unpack_slack_api_error,
 )
 from sentry.integrations.utils.metrics import EventLifecycle
-from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
+from sentry.shared_integrations.exceptions import (
+    IntegrationConfigurationError,
+    IntegrationError,
+    IntegrationResourceNotFoundError,
+)
 
 # Utils
 SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.users.success"
@@ -25,10 +32,16 @@ def record_lifecycle_termination_level(lifecycle: EventLifecycle, error: SlackAp
         lifecycle.record_failure(e)
 
 
-def translate_slack_api_error(error: SlackApiError) -> None:
+def translate_slack_api_error(
+    error: SlackApiError, not_found: Collection[SlackSdkErrorCategory] = ()
+) -> None:
     reason = unpack_slack_api_error(error)
     if reason is not None:
-        if reason in SLACK_SDK_HALT_ERROR_CATEGORIES:
+        if reason in not_found:
+            raise IntegrationResourceNotFoundError(
+                error_code=error.response.status_code, message=reason.message
+            ) from error
+        elif reason in SLACK_SDK_HALT_ERROR_CATEGORIES:
             raise IntegrationConfigurationError(
                 error_code=error.response.status_code, message=reason.message
             ) from error

@@ -689,6 +689,18 @@ class SlackAgentEntrypoint(
                     reply["pr_status_hash"] = _hash_pr_status(data.repo_pr_states)
                     reply["missing_scope_settings_url"] = data.missing_scope_settings_url
                 SlackSeerAgentReplyCache.set(run_id=run_id, key=key, reply=reply)
+            else:
+                # send_thread_update records why as a halt; this ties it to the run, which retries the
+                # reply on its next refresh.
+                logger.warning(
+                    "seer.entrypoint.slack.agent_update.reply_not_posted",
+                    extra={
+                        "organization_id": organization_id,
+                        "integration_id": integration_id,
+                        "run_id": run_id,
+                        "reply_key": key,
+                    },
+                )
 
         replies = SlackSeerAgentReplyCache.get(run_id=run_id)
         answers = [answer for turn in state.get_turns() if (answer := turn.answer) is not None]
@@ -701,6 +713,7 @@ class SlackAgentEntrypoint(
             None,
         )
         repo_pr_states = _get_repo_pr_states(state)
+        edit_error: IntegrationError | None = None
         for answer in answers:
             posted = replies.get(answer.id)
             if posted is None or "pr_status_hash" not in posted:
@@ -710,21 +723,28 @@ class SlackAgentEntrypoint(
             status_hash = _hash_pr_status(prs)
             if status_hash == posted["pr_status_hash"]:
                 continue
-            edit_thread_message(
-                install=install,
-                channel_id=thread["channel_id"],
-                message_ts=posted["message_ts"],
-                data=SeerAgentResponse(
-                    run_id=state.run_id,
-                    organization_id=organization_id,
-                    summary=answer.message.content or "",
-                    repo_pr_states=prs,
-                    missing_scope_settings_url=posted.get("missing_scope_settings_url"),
-                ),
-            )
+            try:
+                edit_thread_message(
+                    install=install,
+                    channel_id=thread["channel_id"],
+                    message_ts=posted["message_ts"],
+                    data=SeerAgentResponse(
+                        run_id=state.run_id,
+                        organization_id=organization_id,
+                        summary=answer.message.content or "",
+                        repo_pr_states=prs,
+                        missing_scope_settings_url=posted.get("missing_scope_settings_url"),
+                    ),
+                )
+            except IntegrationError as e:
+                # Keep editing the other answers, then raise so the refresh retries this one.
+                edit_error = edit_error or e
+                continue
             SlackSeerAgentReplyCache.set(
                 run_id=run_id, key=answer.id, reply={**posted, "pr_status_hash": status_hash}
             )
+        if edit_error:
+            raise edit_error
 
 
 def _get_repo_pr_states(state: SeerRunState) -> list[RepoPRState]:
