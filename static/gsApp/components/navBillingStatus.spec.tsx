@@ -1,3 +1,4 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
@@ -67,6 +68,11 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     promptMock = MockApiClient.addMockResponse({
       method: 'PUT',
       url: `/organizations/${organization.slug}/prompts-activity/`,
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
     });
     requestUpgradeMock = MockApiClient.addMockResponse({
       method: 'POST',
@@ -279,6 +285,43 @@ describe('PrimaryNavigationQuotaExceeded', () => {
     await userEvent.click(screen.getByText('Request Additional Quota'));
     expect(promptMock).toHaveBeenCalledTimes(4);
     expect(requestUpgradeMock).toHaveBeenCalled();
+  });
+
+  it('should list billing members who receive the quota request', async () => {
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/members/`,
+      body: [
+        MemberFixture({id: '1', email: 'owner@example.com'}),
+        MemberFixture({id: '2', email: 'billing@example.com'}),
+        MemberFixture({id: '3', email: 'invited@example.com', pending: true}),
+      ],
+      match: [MockApiClient.matchQuery({query: 'scope:"org:billing"'})],
+    });
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(
+      await screen.findByText(/will get an email asking them to increase your quota/)
+    ).toHaveTextContent(
+      "Your org's Owners and Billing members (owner@example.com, billing@example.com) will get an email asking them to increase your quota."
+    );
+    expect(screen.getByRole('link', {name: 'owner@example.com'})).toHaveAttribute(
+      'href',
+      'mailto:owner@example.com'
+    );
+    expect(screen.queryByText('invited@example.com')).not.toBeInTheDocument();
+  });
+
+  it('should not list billing members for billing users', async () => {
+    organization.access = ['org:billing'];
+    render(<PrimaryNavigationQuotaExceeded organization={organization} />);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Billing Status'}));
+    expect(await screen.findByText('Quotas Exceeded')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/will get an email asking them to increase your quota/)
+    ).not.toBeInTheDocument();
   });
 
   it('should update prompts when billing user on free plan takes action', async () => {
