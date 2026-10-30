@@ -11,7 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -117,6 +118,7 @@ describe('VercelIntegrationForm', () => {
   });
 
   it('links a project from the modal', async () => {
+    const successSpy = jest.spyOn(toast, 'success');
     renderForm([[102, 'proj-2']]);
     const {waitForModalToHide} = renderGlobalModal();
 
@@ -132,6 +134,9 @@ describe('VercelIntegrationForm', () => {
         ],
       },
       expect.anything()
+    );
+    expect(successSpy).toHaveBeenCalledWith(
+      'Linked my-vercel-project. Redeploy in Vercel to apply.'
     );
   });
 
@@ -171,9 +176,9 @@ describe('VercelIntegrationForm', () => {
     const modal = await pickProjectsInModal();
     await userEvent.click(within(modal).getByRole('button', {name: 'Link Project'}));
 
-    expect(await within(modal).findByRole('alert')).toHaveTextContent(
-      'You must have an enabled DSN to continue!'
-    );
+    const alert = await within(modal).findByRole('alert');
+    expect(alert).toHaveTextContent("Couldn't link my-vercel-project");
+    expect(alert).toHaveTextContent('You must have an enabled DSN to continue!');
 
     await userEvent.click(within(modal).getByRole('button', {name: 'Link Project'}));
 
@@ -182,6 +187,41 @@ describe('VercelIntegrationForm', () => {
     expect(failingMutationOptions.mutationFn).toHaveBeenLastCalledWith(
       {project_mappings: [[101, 'proj-1']]},
       expect.anything()
+    );
+  });
+
+  it('links to each env var that Sentry needs deleted in Vercel', async () => {
+    const error = new RequestError('POST', '/integrations/1/', new Error('Bad Request'));
+    error.responseJSON = {
+      project_mappings: ["Sentry can't update environment variables it didn't create."],
+      existing_env_vars: [
+        {key: 'SENTRY_ORG', target: ['production', 'development']},
+        {key: 'SENTRY_DSN', target: ['preview']},
+      ],
+    };
+    renderForm([], {mutationFn: jest.fn().mockRejectedValue(error)});
+    renderGlobalModal();
+
+    const modal = await pickProjectsInModal();
+    await userEvent.click(within(modal).getByRole('button', {name: 'Link Project'}));
+
+    const alert = await within(modal).findByRole('alert');
+    expect(alert).toHaveTextContent(
+      'Delete these variables in Vercel to link my-vercel-project'
+    );
+    expect(alert).toHaveTextContent('SENTRY_ORGProduction and Development');
+    expect(alert).toHaveTextContent('SENTRY_DSNPreview');
+    expect(
+      within(alert).getByRole('button', {name: 'Find SENTRY_ORG in Vercel'})
+    ).toHaveAttribute(
+      'href',
+      'https://vercel.com/proj-1/settings/environment-variables?q=SENTRY_ORG'
+    );
+    expect(
+      within(alert).getByRole('button', {name: 'Find SENTRY_DSN in Vercel'})
+    ).toHaveAttribute(
+      'href',
+      'https://vercel.com/proj-1/settings/environment-variables?q=SENTRY_DSN'
     );
   });
 
@@ -332,7 +372,7 @@ describe('VercelIntegrationForm', () => {
   });
 
   it('keeps a link and shows why when unlinking fails', async () => {
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
     renderForm([[101, 'proj-1']], {
       mutationFn: jest.fn().mockRejectedValue(new Error('nope')),
     });

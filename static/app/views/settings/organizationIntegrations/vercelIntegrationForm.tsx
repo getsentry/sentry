@@ -14,12 +14,12 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Confirm} from 'sentry/components/confirm';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -30,6 +30,9 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
+import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
@@ -62,6 +65,19 @@ const projectMappingsFieldSchema = z.object({
 });
 
 type ProjectMappingsField = z.infer<typeof projectMappingsFieldSchema>;
+type VercelProject = ProjectMappingsField['mappedDropdown']['items'][number];
+
+const existingEnvVarsSchema = z.object({
+  existing_env_vars: z.array(z.object({key: z.string(), target: z.array(z.string())})),
+});
+
+type SaveError = {
+  message: string;
+  existingEnvVars?: z.infer<typeof existingEnvVarsSchema>['existing_env_vars'];
+  vercelProject?: VercelProject;
+};
+
+const VERCEL_ENVIRONMENTS = ['production', 'preview', 'development'];
 
 const CREATE_PROJECT = 'create-project';
 
@@ -133,13 +149,18 @@ export function VercelIntegrationForm({
     ? new Set(mutation.variables.project_mappings.map(([, id]) => id))
     : undefined;
 
-  const link = ([sentryProjectId, vercelProjectId]: ProjectMapping) =>
-    mutation.mutateAsync({
+  const link = async ([sentryProjectId, vercelProjectId]: ProjectMapping) => {
+    await mutation.mutateAsync({
       project_mappings: [
         ...latestMappings.current.filter(([, linkedId]) => linkedId !== vercelProjectId),
         [sentryProjectId, vercelProjectId],
       ],
     });
+    const vercelProject = vercelProjectsById.get(vercelProjectId);
+    if (vercelProject) {
+      toast.success(t('Linked %s. Redeploy in Vercel to apply.', vercelProject.label));
+    }
+  };
 
   const handleUnlink = (vercelProjectId: string) => {
     mutation.mutate(
@@ -148,7 +169,7 @@ export function VercelIntegrationForm({
           ([, linkedId]) => linkedId !== vercelProjectId
         ),
       },
-      {onError: error => addErrorMessage(getSaveErrorMessage(error))}
+      {onError: error => toast.error(getSaveErrorMessage(error))}
     );
   };
 
@@ -331,7 +352,7 @@ function LinkProjectModal({
   vercelProjects: ProjectMappingsField['mappedDropdown']['items'];
 }) {
   const getSaveErrorMessage = useSaveErrorMessage();
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<SaveError | null>(null);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -339,7 +360,18 @@ function LinkProjectModal({
     onSubmit: ({value}) =>
       onLink([Number(value.sentryProjectId), value.vercelProjectId]).then(
         closeModal,
-        (saveError: Error) => setError(getSaveErrorMessage(saveError))
+        (saveError: Error) =>
+          setError({
+            message: getSaveErrorMessage(saveError),
+            existingEnvVars:
+              saveError instanceof RequestError
+                ? existingEnvVarsSchema.safeParse(saveError.responseJSON).data
+                    ?.existing_env_vars
+                : undefined,
+            vercelProject: vercelProjects.find(
+              project => project.value === value.vercelProjectId
+            ),
+          })
       ),
   });
 
@@ -375,11 +407,6 @@ function LinkProjectModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          {error && (
-            <Alert variant="danger" role="alert">
-              {error}
-            </Alert>
-          )}
           <form.AppField name="vercelProjectId">
             {vercelField => (
               <vercelField.Layout.Stack label={t('Vercel project')} required>
@@ -414,6 +441,7 @@ function LinkProjectModal({
               </sentryField.Layout.Stack>
             )}
           </form.AppField>
+          {error && <SaveErrorAlert {...error} />}
         </Stack>
       </Body>
       <Footer>
@@ -434,6 +462,62 @@ function LinkProjectModal({
       </Footer>
     </form.AppForm>
   );
+}
+
+function SaveErrorAlert({message, existingEnvVars, vercelProject}: SaveError) {
+  const projectName = vercelProject?.label ?? t('this project');
+
+  if (!existingEnvVars) {
+    return (
+      <Alert variant="danger" role="alert">
+        <Stack gap="xs">
+          <Text bold>{t("Couldn't link %s", projectName)}</Text>
+          <Text>{message}</Text>
+        </Stack>
+      </Alert>
+    );
+  }
+
+  return (
+    <Alert variant="danger" role="alert">
+      <Stack gap="lg">
+        <Stack gap="xs">
+          <Text bold>
+            {t('Delete these variables in Vercel to link %s', projectName)}
+          </Text>
+          <Text>{t("Sentry can't overwrite variables it didn't create.")}</Text>
+        </Stack>
+        <Grid columns="max-content 1fr max-content" gap="sm lg" align="center">
+          {existingEnvVars.map(envVar => (
+            <Fragment key={envVar.key}>
+              <Text monospace>{envVar.key}</Text>
+              <Text variant="muted">{formatEnvironments(envVar.target)}</Text>
+              {vercelProject?.url ? (
+                <LinkButton
+                  size="xs"
+                  icon={<IconOpen />}
+                  href={`${vercelProject.url}/settings/environment-variables?q=${encodeURIComponent(envVar.key)}`}
+                  external
+                  aria-label={t('Find %s in Vercel', envVar.key)}
+                >
+                  {t('Find in Vercel')}
+                </LinkButton>
+              ) : (
+                <span />
+              )}
+            </Fragment>
+          ))}
+        </Grid>
+      </Stack>
+    </Alert>
+  );
+}
+
+function formatEnvironments(target: string[]) {
+  if (VERCEL_ENVIRONMENTS.every(environment => target.includes(environment))) {
+    return t('All environments');
+  }
+  return oxfordizeArray(target.map(capitalize));
 }
 
 function NotFound({title}: {title: string}) {
