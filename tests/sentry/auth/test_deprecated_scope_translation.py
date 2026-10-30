@@ -12,8 +12,16 @@ from sentry.auth.deprecated_scope_translation import (
 from sentry.testutils.helpers.options import override_options
 
 ORG_READ_GRANULAR_SCOPES = frozenset(
-    {"dashboard:read", "dashboard:write", "saved_query:read", "saved_query:write"}
+    {
+        "dashboard:read",
+        "dashboard:write",
+        "saved_query:read",
+        "saved_query:write",
+        "user_preference:read",
+        "user_preference:write",
+    }
 )
+USER_PREFERENCE_SCOPES = frozenset({"user_preference:read", "user_preference:write"})
 
 
 @pytest.fixture(autouse=True)
@@ -24,6 +32,10 @@ def deprecated_scope_translation_enabled() -> Generator[None]:
 
 def test_translate_org_read_adds_granular_scopes() -> None:
     assert translate_deprecated_scopes(["org:read"]) == {"org:read"} | ORG_READ_GRANULAR_SCOPES
+
+
+def test_translate_member_read_adds_user_preference_scopes() -> None:
+    assert translate_deprecated_scopes(["member:read"]) == {"member:read"} | USER_PREFERENCE_SCOPES
 
 
 def test_translate_org_read_keeps_org_read() -> None:
@@ -68,10 +80,9 @@ def test_get_deprecated_scope_translations_skips_scopes_already_held() -> None:
     assert get_deprecated_scope_translations(["org:read", *ORG_READ_GRANULAR_SCOPES]) == {}
 
 
-@pytest.mark.parametrize("scope", ["project:read", "member:read"])
-def test_deprecated_scope_without_replacements_is_unchanged(scope: str) -> None:
-    assert translate_deprecated_scopes([scope]) == {scope}
-    assert get_deprecated_scope_translations([scope]) == {}
+def test_deprecated_scope_without_replacements_is_unchanged() -> None:
+    assert translate_deprecated_scopes(["project:read"]) == {"project:read"}
+    assert get_deprecated_scope_translations(["project:read"]) == {}
 
 
 def test_get_deprecated_scope_translations_without_deprecated_scopes() -> None:

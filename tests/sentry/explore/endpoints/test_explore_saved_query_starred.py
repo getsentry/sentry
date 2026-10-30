@@ -1,7 +1,11 @@
 from django.urls import reverse
 
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
@@ -50,3 +54,28 @@ class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
                     organization=self.org, user_id=self.user.id
                 ).values_list("explore_saved_query_id", flat=True)
             ).exists()
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
+    def test_user_preference_write_can_star(self) -> None:
+        self._use_token(["user_preference:write"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url, data={"starred": "1"})
+        assert response.status_code == 200, response.content
+        assert ExploreSavedQueryStarred.objects.filter(
+            organization=self.org, user_id=self.user.id, explore_saved_query_id=self.query_id
+        ).exists()
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
+    def test_user_preference_read_cannot_star(self) -> None:
+        self._use_token(["user_preference:read"])
+        with self.feature(self.feature_name):
+            response = self.client.post(self.url, data={"starred": "1"})
+        assert response.status_code == 403

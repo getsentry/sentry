@@ -43,6 +43,12 @@ class ScopesTest(TestCase):
                 assert resource + ":read" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
                 assert resource + ":write" in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
 
+    def test_scope_sets_group_one_resource(self) -> None:
+        # Each set gets one consent description, so mixing resources hides one of them.
+        for scope_set in settings.SENTRY_SCOPE_SETS:
+            resources = {scope.partition(":")[0] for scope, _ in scope_set}
+            assert len(resources) == 1, resources
+
     def test_readonly_scopes(self) -> None:
         for scope in SENTRY_SCOPES:
             if ":read" in scope:

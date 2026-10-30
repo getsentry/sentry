@@ -37,7 +37,7 @@ class StarQuerySerializer(serializers.Serializer):
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "POST": ["member:read", "member:write"],
+        "POST": ["member:read", "member:write", "user_preference:write"],
     }
 
 
