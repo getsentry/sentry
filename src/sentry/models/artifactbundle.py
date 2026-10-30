@@ -150,8 +150,6 @@ class ArtifactBundleIndex(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
 
-        indexes = (models.Index(fields=("url", "artifact_bundle")),)
-
 
 @cell_silo_model
 class ReleaseArtifactBundle(Model):
