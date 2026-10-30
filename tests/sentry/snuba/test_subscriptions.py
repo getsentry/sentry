@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.snuba.dataset import Dataset
@@ -363,6 +364,32 @@ class UpdateSnubaSubscriptionTest(TestCase):
         assert subscription.snuba_query.aggregate == aggregate
         assert subscription.snuba_query.time_window == int(time_window.total_seconds())
         assert subscription.snuba_query.resolution == int(resolution.total_seconds())
+
+    def test_bumps_date_updated(self) -> None:
+        # Recovery jobs resync Snuba's subscription store from a backup by picking
+        # up subscriptions whose date_updated is after the backup was taken.
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                SnubaQuery.Type.ERROR,
+                Dataset.Events,
+                "level:error",
+                "count()",
+                timedelta(minutes=10),
+                timedelta(minutes=1),
+                None,
+            )
+            subscription = create_snuba_subscription(self.project, "something", snuba_query)
+        backup_time = timezone.now() - timedelta(hours=1)
+        QuerySubscription.objects.filter(id=subscription.id).update(date_updated=backup_time)
+        subscription.refresh_from_db()
+
+        update_snuba_subscription(
+            subscription, SnubaQuery.Type.ERROR, Dataset.Events, "count()", "level:error"
+        )
+
+        subscription.refresh_from_db()
+        assert subscription.date_updated is not None
+        assert subscription.date_updated > backup_time
 
     def test_with_task(self) -> None:
         with self.tasks():
