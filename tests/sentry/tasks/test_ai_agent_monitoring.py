@@ -196,6 +196,82 @@ class FetchAIModelMetadataTest(TestCase):
         )
 
     @responses.activate
+    def test_fetch_ai_model_metadata_provider_prices(self) -> None:
+        self._mock_openrouter_api_response({"data": []})
+        self._mock_models_dev_api_response(
+            {
+                "cloudflare-workers-ai": {
+                    "models": {"@cf/cloudflare/clef": {"cost": {"input": 0.24}}}
+                },
+                "openrouter": {"models": {"cloudflare/clef": {"cost": {"input": 0.042}}}},
+                "anthropic": {"models": {"claude-sonnet-4": {"cost": {"input": 3.0}}}},
+                "poe": {"models": {"anthropic/claude-sonnet-4": {"cost": {"input": 2.60}}}},
+            }
+        )
+
+        fetch_ai_model_metadata()
+
+        config = _get_metadata_from_cache()
+        assert config is not None
+        providers = config["providers"]
+        cloudflare = providers["cloudflare-workers-ai"]
+        assert cloudflare["clef"] == cloudflare["@cf/cloudflare/clef"]
+        assert cloudflare["*clef"] == cloudflare["clef"]
+        assert 55_132 * cloudflare["clef"]["costs"]["inputPerToken"] == pytest.approx(0.01323168)
+        assert providers["openrouter"]["cloudflare/clef"]["costs"][
+            "inputPerToken"
+        ] == pytest.approx(0.042 / 1_000_000)
+        assert providers["anthropic"]["claude-sonnet-4"]["costs"]["inputPerToken"] == 3 / 1_000_000
+        assert providers["poe"]["claude-sonnet-4"]["costs"]["inputPerToken"] == 2.6 / 1_000_000
+
+    @responses.activate
+    def test_provider_prices_openrouter_precedence(self) -> None:
+        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
+        self._mock_models_dev_api_response(
+            {
+                "openai": {"models": {"gpt-4": {"cost": {"input": 30}}}},
+                "openrouter": {"models": {"openai/gpt-4": {"cost": {"input": 20}}}},
+            }
+        )
+
+        fetch_ai_model_metadata()
+
+        config = _get_metadata_from_cache()
+        assert config is not None
+        providers = config["providers"]
+        assert providers["openai"]["gpt-4"]["costs"]["inputPerToken"] == 30 / 1_000_000
+        assert providers["openrouter"]["openai/gpt-4"]["costs"]["inputPerToken"] == 0.0000003
+        assert providers["openrouter"]["gpt-4"] == providers["openrouter"]["openai/gpt-4"]
+        assert config["models"]["gpt-4"] == providers["openrouter"]["gpt-4"]
+
+    @responses.activate
+    def test_provider_model_aliases_do_not_overwrite_full_ids(self) -> None:
+        self._mock_openrouter_api_response({"data": []})
+        self._mock_models_dev_api_response(
+            {
+                "openrouter": {
+                    "models": {
+                        "author-a/shared": {"cost": {"input": 1}},
+                        "author-b/shared": {"cost": {"input": 2}},
+                        "author/snapshot-20240101": {"cost": {"input": 3}},
+                    }
+                },
+            }
+        )
+
+        fetch_ai_model_metadata()
+
+        config = _get_metadata_from_cache()
+        assert config is not None
+        models = config["providers"]["openrouter"]
+        assert models["author-a/shared"]["costs"]["inputPerToken"] == 1 / 1_000_000
+        assert models["author-b/shared"]["costs"]["inputPerToken"] == 2 / 1_000_000
+        assert "shared" not in models
+        assert "*shared" not in models
+        assert models["author/snapshot"] == models["author/snapshot-20240101"]
+        assert models["*snapshot"] == models["author/snapshot-20240101"]
+
+    @responses.activate
     def test_fetch_ai_model_metadata_success_both_apis(self) -> None:
         """Test successful fetching and caching from both APIs"""
         self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
