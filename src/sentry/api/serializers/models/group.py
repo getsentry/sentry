@@ -172,6 +172,7 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
 
 
 class GroupDetailsResponse(BaseGroupSerializerResponse, GroupDetailsResponseOptional):
+    activeAt: datetime | None
     activity: list[dict[str, Any]]
     seenBy: list[dict[str, Any]]
     userReportCount: int

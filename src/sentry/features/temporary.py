@@ -220,6 +220,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:performance-issues-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Load slow-query issue evidence from the spans dataset.
     manager.add("organizations:issue-details-slow-query-span-data", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Default error issue details to the latest regression instead of first seen.
+    manager.add("organizations:issue-details-since-regressed", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable all registered prebuilt dashboards to be synced to the database
     manager.add("organizations:dashboards-sync-all-registered-prebuilt-dashboards", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable Seer Suggestions for Web Vitals Module
