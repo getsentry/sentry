@@ -40,6 +40,7 @@ MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES = [
     "sentry-auth-organization",
     "sentry-oauth-authorize",
     "sentry-oauth-device",
+    "sentry-project-wizard-fetch",
 ]
 
 
