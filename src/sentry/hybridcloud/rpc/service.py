@@ -19,6 +19,7 @@ from collections.abc import (
     Sequence,
 )
 from contextlib import contextmanager
+from contextvars import ContextVar
 from dataclasses import dataclass
 from threading import local
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
@@ -499,9 +500,26 @@ def dispatch_remote_call(
     return remote_silo_call.dispatch(use_test_client)
 
 
-def _create_request_session(retry_count: int) -> requests.Session:
+# Number of retries urllib3 has performed for the RPC request in flight.
+_rpc_retries_used: ContextVar[int] = ContextVar("rpc_retries_used", default=0)
+
+
+class _CountingRetry(Retry):
+    """
+    Retry wrapper that counts the total number of retries, mostly for us to
+    report metrics on request retry counts.
+    """
+
+    def increment(self, *args: Any, **kwargs: Any) -> Self:
+        new_retry = super().increment(*args, **kwargs)
+        _rpc_retries_used.set(_rpc_retries_used.get() + 1)
+        return new_retry
+
+
+def _create_request_session(retry_count: int, report_retries: bool) -> requests.Session:
+    retry_class = _CountingRetry if report_retries else Retry
     retry_adapter = HTTPAdapter(
-        max_retries=Retry(
+        max_retries=retry_class(
             total=retry_count,
             backoff_factor=0.1,
             status_forcelist=[503],
@@ -517,21 +535,22 @@ def _create_request_session(retry_count: int) -> requests.Session:
 _connections = local()
 
 
-def _get_connection(retry_count: int) -> requests.Session:
+def _get_connection(retry_count: int, report_retries: bool) -> requests.Session:
     """
     Get a shared requests.Session.
 
-    Because retry limits are part of the session definition,
-    each unique retry value creates a different connection pool.
+    Because retry limits and retry reporting are part of the session definition,
+    each unique combination of them creates a different connection pool.
     """
     if not hasattr(_connections, "lookup"):
         _connections.lookup = {}
 
-    if not _connections.lookup.get(retry_count, None):
-        http = _create_request_session(retry_count)
-        _connections.lookup[retry_count] = http
+    key = (retry_count, report_retries)
+    if not _connections.lookup.get(key, None):
+        http = _create_request_session(retry_count, report_retries)
+        _connections.lookup[key] = http
 
-    return _connections.lookup[retry_count]
+    return _connections.lookup[key]
 
 
 @dataclass(frozen=True)
@@ -764,13 +783,19 @@ class _RemoteSiloCall:
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
         retry_count = self.get_method_retry_count()
-        http = _get_connection(retry_count)
+        report_retries = options.get("hybridcloud.rpc.retry-reporting.enabled")
+        http = _get_connection(retry_count, report_retries)
 
         url = self.address + self.path
 
         timeout = self.get_method_timeout()
+        retries_token = _rpc_retries_used.set(0)
+        result = "failure"
         try:
-            return http.post(url, headers=headers, data=data, timeout=timeout)
+            response = http.post(url, headers=headers, data=data, timeout=timeout)
+            if response.status_code == 200:
+                result = "success"
+            return response
         except requests.exceptions.ConnectionError as e:
             metrics.incr(
                 "hybrid_cloud.dispatch_rpc.failure",
@@ -789,6 +814,14 @@ class _RemoteSiloCall:
                 tags=self._metrics_tags(kind="timeout"),
             )
             raise self._remote_exception(f"Timeout of {settings.RPC_TIMEOUT} exceeded") from e
+        finally:
+            if report_retries:
+                metrics.distribution(
+                    "hybrid_cloud.dispatch_rpc.retries",
+                    _rpc_retries_used.get(),
+                    tags=self._metrics_tags(result=result),
+                )
+            _rpc_retries_used.reset(retries_token)
 
     def _check_disabled(self) -> None:
         if disabled_service_methods := options.get("hybrid_cloud.rpc.disabled-service-methods"):

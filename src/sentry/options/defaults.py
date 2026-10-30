@@ -2766,6 +2766,13 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Count urllib3 retries per RPC call and report them as hybrid_cloud.dispatch_rpc.retries.
+register(
+    "hybridcloud.rpc.retry-reporting.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Per-destination circuit breaker for outbound RPCs. `enabled` tracks outcomes and
 # records would-be rejections; `enforce` actually rejects calls while the breaker is open.
 register(
