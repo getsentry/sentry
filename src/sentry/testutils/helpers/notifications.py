@@ -16,12 +16,34 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.actor import Actor
-from sentry.workflow_engine.models import AlertRuleWorkflow, Workflow
+from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Workflow
+
+
+def create_origin_for_workflow(workflow: Workflow) -> NotificationOrigin:
+    """Build the origin the workflow engine produces for a Workflow with no legacy Rule."""
+    return NotificationOrigin(
+        label=workflow.name,
+        environment_id=workflow.environment_id,
+        workflow_id=workflow.id,
+        legacy_rule_id=None,
+    )
+
+
+def create_action_context_for_workflow(
+    workflow: Workflow, action: Action, project: Project
+) -> NotificationActionContext:
+    """Build the action context the workflow engine produces when firing `action`."""
+    return NotificationActionContext(
+        origin=create_origin_for_workflow(workflow),
+        action_id=action.id,
+        project=project,
+    )
 
 
 def create_notification_origin(rule: Rule) -> NotificationOrigin:

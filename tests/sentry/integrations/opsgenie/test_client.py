@@ -20,7 +20,7 @@ from sentry.testutils.asserts import (
     assert_slo_metric,
 )
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_origin_for_workflow
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -84,13 +84,8 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
-        origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=123,
-            legacy_rule_id=rule.id,
-        )
+        workflow = self.create_workflow(name="my rule")
+        origin = create_origin_for_workflow(workflow)
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
@@ -113,7 +108,7 @@ class OpsgenieClientTest(APITestCase):
             "details": {
                 "Project Name": self.project.name,
                 "Triggering Workflows": "my rule",
-                "Triggering Workflow URLs": "http://example.com/organizations/baz/monitors/alerts/123/",
+                "Triggering Workflow URLs": f"http://example.com/organizations/baz/monitors/alerts/{workflow.id}/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
                 "Logger": "",
@@ -155,12 +150,12 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
+        workflow = self.create_workflow(name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_origin_for_workflow(workflow)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -210,10 +205,9 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule()
         origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
+            label="my rule",
+            environment_id=None,
             workflow_id=123,
             legacy_rule_id=123,
         )
@@ -238,7 +232,7 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Workflows": rule.label,
+                "Triggering Workflows": "my rule",
                 "Triggering Workflow URLs": "http://example.com/organizations/baz/monitors/alerts/123/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
@@ -275,10 +269,9 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule()
         origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
+            label="my rule",
+            environment_id=None,
             workflow_id=123,
             legacy_rule_id=None,
         )
@@ -303,7 +296,7 @@ class OpsgenieClientTest(APITestCase):
             "priority": "P2",
             "details": {
                 "Project Name": self.project.name,
-                "Triggering Workflows": rule.label,
+                "Triggering Workflows": "my rule",
                 "Triggering Workflow URLs": f"http://example.com/organizations/{self.organization.slug}/monitors/alerts/123/",
                 "Sentry Group": "Hello world",
                 "Sentry ID": group_id,
@@ -327,12 +320,11 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
         origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
+            label="my rule",
+            environment_id=None,
             workflow_id=None,
-            legacy_rule_id=rule.id,
+            legacy_rule_id=456,
         )
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
         payload = client.build_issue_alert_payload(
@@ -349,7 +341,7 @@ class OpsgenieClientTest(APITestCase):
         mock_logger.warning.assert_called_once_with(
             "opsgenie.issue_alert.missing_workflow_id",
             extra={
-                "legacy_rule_id": rule.id,
+                "legacy_rule_id": 456,
                 "group_id": group.id,
                 "project_id": self.project.id,
                 "organization_id": self.organization.id,
@@ -367,10 +359,9 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule()
         origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
+            label="my rule",
+            environment_id=None,
             workflow_id=None,
             legacy_rule_id=TEST_NOTIFICATION_ID,
         )
@@ -415,13 +406,13 @@ class OpsgenieClientTest(APITestCase):
         group = event.group
         assert group is not None
 
-        rule = self.create_project_rule(name="my rule")
+        workflow = self.create_workflow(name="my rule")
         client: OpsgenieClient = self.installation.get_keyring_client("team-123")
 
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[create_notification_origin(rule)],
+                rules=[create_origin_for_workflow(workflow)],
                 event=event,
                 group=group,
                 priority="P2",

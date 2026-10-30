@@ -19,7 +19,6 @@ from sentry.issues.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.issues.ownership.grammar import Rule as GrammarRule
 from sentry.models.environment import Environment
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
@@ -37,6 +36,8 @@ from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotifi
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
     TEST_PERF_ISSUE_OCCURRENCE,
+    create_origin_for_workflow,
+    create_workflow_notification_origin_for_rule,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -56,35 +57,8 @@ def fake_get_tags(event_for_tags, tags):
 class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.workflow_origins: dict[int, NotificationOrigin] = {}
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Member",
-            "targetIdentifier": str(self.user.id),
-        }
-        self.rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
-
-    def create_workflow_origin(self, rule: Rule) -> NotificationOrigin:
-        if origin := self.workflow_origins.get(rule.id):
-            return origin
-
-        workflow = self.create_workflow(
-            organization=rule.project.organization,
-            name=rule.label,
-            environment_id=rule.environment_id,
-        )
-        self.create_alert_rule_workflow(rule_id=rule.id, workflow=workflow)
-        origin = NotificationOrigin(
-            label=workflow.name,
-            environment_id=workflow.environment_id,
-            workflow_id=workflow.id,
-            legacy_rule_id=rule.id,
-        )
-        self.workflow_origins[rule.id] = origin
-        return origin
+        self.workflow = self.create_workflow(name="ja rule")
+        self.origin = create_origin_for_workflow(self.workflow)
 
     def test_issue_alert_user_block(self) -> None:
         """
@@ -96,7 +70,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
         notification_uuid = str(uuid.uuid4())
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(self.rule)),
+            Notification(event=event, rule=self.origin),
             ActionTargetType.MEMBER,
             self.user.id,
             notification_uuid=notification_uuid,
@@ -109,13 +83,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(self.rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.origin.workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.create_workflow_origin(self.rule).workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.origin.workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -138,7 +112,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.create_performance_issue()
         # this is a PerformanceNPlusOneGroupType event
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(self.rule)),
+            Notification(event=event, rule=self.origin),
             ActionTargetType.MEMBER,
             self.user.id,
         )
@@ -149,7 +123,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(self.rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.origin.workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks_with_culprit_blocks(
@@ -159,7 +133,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type=FineTuningAPIKey.ALERTS,
-            issue_link_extra_params=f"&workflow_id={self.create_workflow_origin(self.rule).workflow_id}&alert_type=issue",
+            issue_link_extra_params=f"&workflow_id={self.origin.workflow_id}&alert_type=issue",
         )
 
     @mock.patch("sentry.integrations.slack.message_builder.issues.get_tags", new=fake_get_tags)
@@ -193,7 +167,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         event.group.type = MonitorIncidentType.type_id
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(self.rule)),
+            Notification(event=event, rule=self.origin),
             ActionTargetType.MEMBER,
             self.user.id,
         )
@@ -204,7 +178,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(self.rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.origin.workflow_id}/|ja rule>"
         )
         assert len(blocks) == 4
 
@@ -224,7 +198,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         group_event = event.for_group(event.groups[0])
 
         notification = AlertRuleNotification(
-            Notification(event=group_event, rule=self.create_workflow_origin(self.rule)),
+            Notification(event=group_event, rule=self.origin),
             ActionTargetType.MEMBER,
             self.user.id,
         )
@@ -235,7 +209,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(self.rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.origin.workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
 
@@ -246,7 +220,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             event.group,
             "issue_alert-slack",
             alert_type="alerts",
-            issue_link_extra_params=f"&workflow_id={self.create_workflow_origin(self.rule).workflow_id}&alert_type=issue",
+            issue_link_extra_params=f"&workflow_id={self.origin.workflow_id}&alert_type=issue",
         )
 
     @patch(
@@ -309,7 +283,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(self.rule)),
+            Notification(event=event, rule=self.origin),
             ActionTargetType.MEMBER,
             self.user.id,
         )
@@ -328,19 +302,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
+        workflow = self.create_workflow(name="ja rule")
         ProjectOwnership.objects.create(project_id=self.project.id)
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(rule)),
+            Notification(event=event, rule=create_origin_for_workflow(workflow)),
             ActionTargetType.ISSUE_OWNERS,
             self.user.id,
             FallthroughChoiceType.ACTIVE_MEMBERS,
@@ -354,13 +320,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = notification.notification_uuid
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{create_origin_for_workflow(workflow).workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.create_workflow_origin(rule).workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={create_origin_for_workflow(workflow).workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -368,9 +334,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     def _assert_issue_owners_env_block(
-        self, rule: Rule | NotificationOrigin, environment: Environment
+        self, origin: NotificationOrigin, environment: Environment
     ) -> None:
-        origin = rule if isinstance(rule, NotificationOrigin) else self.create_workflow_origin(rule)
         workflow_id = origin.workflow_id
         assert workflow_id is not None
         event = self.store_event(
@@ -413,36 +378,9 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         """
         environment = self.create_environment(self.project, name="production")
         ProjectOwnership.objects.create(project_id=self.project.id)
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            project=self.project,
-            action_data=[action_data],
-            name="ja rule",
-            environment_id=environment.id,
-        )
+        workflow = self.create_workflow(name="ja rule", environment_id=environment.id)
 
-        self._assert_issue_owners_env_block(rule, environment)
-
-    def test_issue_alert_issue_owners_environment_block__workflow_engine(self) -> None:
-        environment = self.create_environment(self.project, name="production")
-        ProjectOwnership.objects.create(project_id=self.project.id)
-        workflow = self.create_workflow(
-            organization=self.organization,
-            name="ja rule",
-            environment_id=environment.id,
-        )
-        origin = NotificationOrigin(
-            label=workflow.name,
-            environment_id=workflow.environment_id,
-            workflow_id=workflow.id,
-            legacy_rule_id=None,
-        )
-
-        self._assert_issue_owners_env_block(origin, environment)
+        self._assert_issue_owners_env_block(create_origin_for_workflow(workflow), environment)
 
     def test_issue_alert_uses_environment_from_workflow_rule(self) -> None:
         development = self.create_environment(self.project, name="development")
@@ -459,7 +397,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             environment_id=development.id,
         )
-        workflow_id = self.create_workflow_origin(legacy_rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(legacy_rule).workflow_id
         assert workflow_id is not None
         Workflow.objects.filter(id=workflow_id).update(environment_id=production.id)
         workflow_rule = get_rules_from_workflows(self.project, {workflow_id})[workflow_id]
@@ -518,18 +456,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             project_id=self.project.id,
         )
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
+        workflow = self.create_workflow(name="ja rule")
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(rule)),
+            Notification(event=event, rule=create_origin_for_workflow(workflow)),
             ActionTargetType.ISSUE_OWNERS,
             self.team.id,
         )
@@ -550,13 +480,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{create_origin_for_workflow(workflow).workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.create_workflow_origin(rule).workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={create_origin_for_workflow(workflow).workflow_id}&alert_type=issue|*Hello world*>"
         )
         # Verify suggested assignees are in the context block and footer is last
         context_blocks = [b for b in blocks if b.get("type") == "context"]
@@ -597,18 +527,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             project_id=self.project.id,
         )
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
+        workflow = self.create_workflow(name="ja rule")
 
         notification = AlertRuleNotification(
-            Notification(event=event, rule=self.create_workflow_origin(rule)),
+            Notification(event=event, rule=create_origin_for_workflow(workflow)),
             ActionTargetType.ISSUE_OWNERS,
             self.team.id,
         )
@@ -685,16 +607,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             project_id=self.project.id,
         )
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "IssueOwners",
-            "targetIdentifier": "",
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
-        origin = self.create_workflow_origin(rule)
+        workflow = self.create_workflow(name="ja rule")
+        origin = create_origin_for_workflow(workflow)
 
         key = f"mail:p:{self.project.id}"
         backend.add(
@@ -767,16 +681,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
-        notification = Notification(event=event, rule=self.create_workflow_origin(rule))
+        workflow = self.create_workflow(name="ja rule")
+        notification = Notification(event=event, rule=create_origin_for_workflow(workflow))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -794,13 +700,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         assert (
             fallback_text
-            == f"Alert triggered <http://example.com/organizations/{event.organization.slug}/monitors/alerts/{self.create_workflow_origin(rule).workflow_id}/|ja rule>"
+            == f"Alert triggered <http://example.com/organizations/{event.organization.slug}/monitors/alerts/{create_origin_for_workflow(workflow).workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={self.create_workflow_origin(rule).workflow_id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://example.com/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={create_origin_for_workflow(workflow).workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[5]["elements"][0]["text"]
@@ -849,17 +755,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=project2.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
-        }
-        rule = self.create_project_rule(
-            project=project2,
-            name="ja rule",
-            action_data=[action_data],
-        )
-        notification = Notification(event=event, rule=self.create_workflow_origin(rule))
+        workflow = self.create_workflow(name="ja rule")
+        notification = Notification(event=event, rule=create_origin_for_workflow(workflow))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -908,17 +805,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
-        }
-        rule = self.create_project_rule(
-            project=self.project,
-            name="ja rule",
-            action_data=[action_data],
-        )
-        notification = Notification(event=event, rule=self.create_workflow_origin(rule))
+        workflow = self.create_workflow(name="ja rule")
+        notification = Notification(event=event, rule=create_origin_for_workflow(workflow))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -942,16 +830,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": "Team",
-            "targetIdentifier": str(self.team.id),
-        }
-        rule = self.create_project_rule(
-            name="ja rule",
-            action_data=[action_data],
-        )
-        notification = Notification(event=event, rule=self.create_workflow_origin(rule))
+        workflow = self.create_workflow(name="ja rule")
+        notification = Notification(event=event, rule=create_origin_for_workflow(workflow))
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(notification, ActionTargetType.TEAM, self.team.id)
@@ -1001,8 +881,8 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.backend.digest = backend.digest
         digests.enabled.return_value = True
 
-        rule = self.create_project_rule(project=self.project)
-        origin = self.create_workflow_origin(rule)
+        workflow = self.create_workflow(name="Test Alert")
+        origin = create_origin_for_workflow(workflow)
         workflow_id = origin.workflow_id
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(

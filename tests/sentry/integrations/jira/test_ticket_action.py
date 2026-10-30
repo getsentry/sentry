@@ -16,11 +16,12 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
+from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
 
@@ -47,14 +48,24 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         self.login_as(user=self.user)
 
-    def trigger(self, event, rule_object):
-        action = rule_object.data.get("actions", ())[0]
-        context = create_notification_action_context(rule_object)
-        action_inst = self.get_rule(data=action, context=context)
+        self.action_data = {
+            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
+            "integration": self.integration.id,
+            "dynamic_form_fields": [{"name": "project"}],
+            "issuetype": "1",
+            "name": "Create a Jira ticket in the Jira Cloud account",
+            "project": "10000",
+        }
+        workflow = self.create_workflow(name="hello world")
+        action = self.create_action(type=Action.Type.JIRA, integration_id=self.integration.id)
+        self.action_context = create_action_context_for_workflow(workflow, action, self.project)
+
+    def trigger(self, event):
+        action_inst = self.get_rule(data=self.action_data, context=self.action_context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(context=self.action_context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):
@@ -62,37 +73,16 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "key", flat=True
         )[0]
 
-    def configure_valid_alert_rule(self):
-        rule_object = self.create_project_rule(
-            project=self.project,
-            name="hello world",
-            action_match="any",
-            frequency=5,
-            action_data=[
-                {
-                    "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                    "integration": self.integration.id,
-                    "dynamic_form_fields": [{"name": "project"}],
-                    "issuetype": "1",
-                    "name": "Create a Jira ticket in the Jira Cloud account",
-                    "project": "10000",
-                }
-            ],
-        )
-        return rule_object
-
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_ticket_rules(self, mock_record_event: mock.MagicMock) -> None:
         with mock.patch(
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            rule_object = self.configure_valid_alert_rule()
-
             event = self.get_group_event()
 
             # Trigger its `after`
-            self.trigger(event, rule_object)
+            self.trigger(event)
 
             # assert ticket created in DB
             key = self.get_key(event)
@@ -120,7 +110,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             assert event.message in data["description"]
 
             # Trigger its `after` _again_
-            self.trigger(event, rule_object)
+            self.trigger(event)
 
             # assert new ticket NOT created in DB
             assert ExternalIssue.objects.count() == external_issue_count
@@ -145,12 +135,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            rule_object = self.configure_valid_alert_rule()
-
             event = self.get_event()
 
             with pytest.raises(IntegrationConfigurationError):
-                self.trigger(event, rule_object)
+                self.trigger(event)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -176,12 +164,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            rule_object = self.configure_valid_alert_rule()
-
             event = self.get_event()
 
             with pytest.raises(IntegrationFormError):
-                self.trigger(event, rule_object)
+                self.trigger(event)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list
@@ -197,12 +183,10 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             "sentry.integrations.jira.integration.JiraIntegration.get_client",
             return_value=MockJira(),
         ):
-            rule_object = self.configure_valid_alert_rule()
-
             event = self.get_event()
 
             with pytest.raises(IntegrationConfigurationError):
-                self.trigger(event, rule_object)
+                self.trigger(event)
 
             assert mock_record_event.call_count == 2
             start, halt = mock_record_event.call_args_list

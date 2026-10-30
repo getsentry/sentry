@@ -243,14 +243,12 @@ class StatusActionTest(APITestCase):
     def test_rule_lookup_metric_with_workflow(
         self, verify: MagicMock, metrics_incr: MagicMock
     ) -> None:
-        rule = self.create_project_rule(project=self.project1)
-        workflow_id = create_workflow_notification_origin_for_rule(rule).workflow_id
-        assert workflow_id is not None
+        workflow = self.create_workflow(organization=self.org)
 
         response = self.post_webhook(
             action_type=ACTION_TYPE.ARCHIVE,
             archive_input="-1",
-            workflow_ids=[workflow_id],
+            workflow_ids=[workflow.id],
         )
 
         assert response.status_code == 200

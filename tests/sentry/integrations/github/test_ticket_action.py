@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -12,16 +13,18 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.notifications.types import NotificationActionContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.integrations import get_installation_of_type
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
 
@@ -64,10 +67,13 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def trigger(self, event, rule_object):
-        action = rule_object.data.get("actions", ())[0]
-        context = create_notification_action_context(rule_object)
-        action_inst = self.get_rule(data=action, context=context)
+    def trigger(
+        self,
+        event: GroupEvent,
+        action_data: dict[str, Any],
+        context: NotificationActionContext,
+    ) -> object:
+        action_inst = self.get_rule(data=action_data, context=context)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
@@ -116,23 +122,27 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             status=200,
         )
 
-        # Create a new Rule
-        rule_object = self.create_project_rule(
-            project=self.project,
-            name="hello world",
-            action_match="any",
-            frequency=5,
-            action_data=[
-                {
-                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                    "integration": self.integration.id,
-                    "dynamic_form_fields": [{"random": "garbage"}],
+        action_data = {
+            "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+            "integration": self.integration.id,
+            "dynamic_form_fields": [{"random": "garbage"}],
+            "repo": self.repo,
+            "assignee": self.assignee,
+            "labels": self.labels,
+        }
+        workflow = self.create_workflow(name="hello world")
+        action = self.create_action(
+            type=Action.Type.GITHUB,
+            integration_id=self.integration.id,
+            data={
+                "additional_fields": {
                     "repo": self.repo,
                     "assignee": self.assignee,
                     "labels": self.labels,
                 }
-            ],
+            },
         )
+        context = create_action_context_for_workflow(workflow, action, self.project)
 
         event = self.get_group_event()
 
@@ -141,7 +151,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             action_context_scope(ActionSource.SYSTEM),
             capture_action_log() as action_log,
         ):
-            self.trigger(event, rule_object)
+            self.trigger(event, action_data, context)
 
         action_log.assert_logged(
             CreateExternalIssueAction,
@@ -178,7 +188,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         assert sample_description in data["description"]
 
         # Trigger its `after` _again_
-        self.trigger(event, rule_object)
+        self.trigger(event, action_data, context)
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count

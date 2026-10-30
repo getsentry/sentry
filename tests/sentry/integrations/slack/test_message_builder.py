@@ -35,7 +35,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.types import NotificationOrigin
@@ -45,7 +44,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
+from sentry.testutils.helpers.notifications import create_origin_for_workflow
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -67,9 +66,7 @@ def build_test_message_blocks(
     suggested_assignees: str | None = None,
     initial_assignee: Team | User | None = None,
     notes: str | None = None,
-    rule: IssueAlertRule | None = None,
-    legacy_rule_id: int | None = None,
-    workflow_id: int | None = None,
+    origin: NotificationOrigin | None = None,
 ) -> dict[str, Any]:
     project = group.project
 
@@ -84,14 +81,13 @@ def build_test_message_blocks(
         if link_to_event:
             title_link += f"/events/{event.event_id}"
     title_link += "/?referrer=slack"
-    if rule:
-        if workflow_id:
-            title_link += f"&workflow_id={workflow_id}&alert_type=issue"
+    if origin and origin.workflow_id:
+        title_link += f"&workflow_id={origin.workflow_id}&alert_type=issue"
 
     title_text = f":red_circle: <{title_link}|*{formatted_title}*>"
 
-    if rule and workflow_id:
-        block_id = f'{{"issue":{group.id},"workflow":{workflow_id}}}'
+    if origin and origin.workflow_id:
+        block_id = f'{{"issue":{group.id},"workflow":{origin.workflow_id}}}'
     else:
         block_id = f'{{"issue":{group.id}}}'
 
@@ -212,13 +208,11 @@ def build_test_message_blocks(
         }
         blocks.append(notes_section)
 
-    if rule:
-        if workflow_id:
-            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/monitors/alerts/{workflow_id}/|{rule.label}>    Short ID: {group.qualified_short_id}"
-        elif legacy_rule_id:
-            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{legacy_rule_id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+    if origin:
+        if origin.workflow_id:
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/monitors/alerts/{origin.workflow_id}/|{origin.label}>    Short ID: {group.qualified_short_id}"
         else:
-            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{rule.id}/details/|{rule.label}>    Short ID: {group.qualified_short_id}"
+            context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: <http://testserver/organizations/{project.organization.slug}/issues/alerts/rules/bar/{origin.legacy_rule_id}/details/|{origin.label}>    Short ID: {group.qualified_short_id}"
     else:
         context_text = f"Project: <http://testserver/organizations/{project.organization.slug}/issues/?project={project.id}|{project.slug}>    Alert: BAR-{group.short_id}    Short ID: {group.qualified_short_id}"
     context = {
@@ -361,7 +355,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     def test_build_group_block_noa(self) -> None:
-        rule = self.create_project_rule(project=self.project)
+        workflow = self.create_workflow(name="Test Alert", organization=self.organization)
 
         release = self.create_release(project=self.project)
         event = self.store_event(
@@ -382,9 +376,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         self.project.save(update_fields=["flags"])
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
-        origin = create_workflow_notification_origin_for_rule(rule)
-        assert origin.legacy_rule_id is not None
-        assert origin.workflow_id is not None
+        origin = create_origin_for_workflow(workflow)
 
         assert SlackIssuesMessageBuilder(
             group, rules=[origin]
@@ -392,9 +384,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             teams={self.team},
             users={self.user},
             group=group,
-            rule=rule,
-            legacy_rule_id=origin.legacy_rule_id,
-            workflow_id=origin.workflow_id,
+            origin=origin,
         )
 
         # add extra tag to message
@@ -458,22 +448,15 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert SlackIssuesMessageBuilder(group).build() == test_message
 
     def test_build_group_block_with_workflow_only(self) -> None:
-        rule = self.create_project_rule(project=self.project)
-        rule_origin = create_workflow_notification_origin_for_rule(rule)
-        workflow_id = rule_origin.workflow_id
-        assert workflow_id is not None
-        origin = NotificationOrigin(
-            label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=workflow_id,
-            legacy_rule_id=None,
-        )
+        workflow = self.create_workflow(organization=self.organization)
 
-        blocks = SlackIssuesMessageBuilder(self.group, rules=[origin]).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(
+            self.group, rules=[create_origin_for_workflow(workflow)]
+        ).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
-            "workflow": workflow_id,
+            "workflow": workflow.id,
         }
 
     def test_build_group_block_with_message(self) -> None:
@@ -1294,7 +1277,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
     def test_get_context_users_affected(self) -> None:
         env = self.create_environment(project=self.project)
         env2 = self.create_environment(project=self.project)
-        rule = IssueAlertRule.objects.create(project=self.project, label="my rule")
+        workflow = self.create_workflow(name="my rule", organization=self.organization)
 
         event = [
             self.store_event(
@@ -1323,15 +1306,15 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
+        context = get_context(group, [create_origin_for_workflow(workflow)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
         )
 
         # filter users affected by env
-        rule.update(environment_id=env.id)
-        context = get_context(group, [create_workflow_notification_origin_for_rule(rule)])
+        workflow.update(environment_id=env.id)
+        context = get_context(group, [create_origin_for_workflow(workflow)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"

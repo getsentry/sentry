@@ -23,7 +23,7 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -97,13 +97,13 @@ class SlackNotifyActionTest(RuleTestCase):
     ) -> None:
         event = self.get_event()
 
-        fake_rule = self.create_project_rule()
         action = self.create_action(integration_id=self.integration.id)
-        fake_rule.id = action.id
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            context=create_notification_action_context(fake_rule, with_workflow=False),
+            context=create_action_context_for_workflow(
+                self.create_workflow(), action, self.project
+            ),
         )
 
         results = list(rule.after(event=event))
@@ -134,8 +134,6 @@ class SlackNotifyActionTest(RuleTestCase):
         # with the feature flag on and the sampling gate forced open.
         event = self.get_event()
 
-        fake_rule = self.create_project_rule()
-        fake_rule.id = -1
         rule = self.get_rule(
             data={
                 "workspace": self.integration.id,
@@ -144,7 +142,7 @@ class SlackNotifyActionTest(RuleTestCase):
             },
             context=NotificationActionContext(
                 origin=NotificationOrigin(
-                    label=fake_rule.label,
+                    label="Test Alert",
                     environment_id=None,
                     workflow_id=None,
                     legacy_rule_id=-1,
@@ -403,16 +401,16 @@ class SlackNotifyActionTest(RuleTestCase):
         ):
             event = self.get_event()
 
-            fake_rule = self.create_project_rule()
             action = self.create_action(integration_id=self.integration.id)
-            fake_rule.id = action.id
             rule = self.get_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                context=create_notification_action_context(fake_rule, with_workflow=False),
+                context=create_action_context_for_workflow(
+                    self.create_workflow(), action, self.project
+                ),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
