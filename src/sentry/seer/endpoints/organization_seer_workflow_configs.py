@@ -313,7 +313,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         try:
             config = SeerWorkflowConfig.objects.get(
-                id=to_valid_int_id(config_id),
+                id=to_valid_int_id("config_id", config_id),
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
@@ -356,7 +356,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         try:
             config = SeerWorkflowConfig.objects.get(
-                id=to_valid_int_id(config_id),
+                id=to_valid_int_id("config_id", config_id),
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
