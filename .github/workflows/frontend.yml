@@ -49,13 +49,7 @@ jobs:
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript (router v${{ matrix.router }})
-    strategy:
-      fail-fast: false
-      matrix:
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
+    name: typescript
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -190,6 +184,9 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Test workspace CI runner
+        run: node --test scripts/testCi.test.ts
+
       # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
       # Merge base of those two determines which tests to run via --findRelatedTests.
       # If merge base can't be computed or non-frontend files changed, the full
@@ -211,7 +208,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest (router v${{ matrix.router }}, shard ${{ matrix.index }})
+    name: Jest (shard ${{ matrix.index }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -223,9 +220,6 @@ jobs:
       matrix:
         index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
         total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
     permissions:
       contents: read
       # `gh run download` in "Download jest artifacts"
@@ -252,10 +246,10 @@ jobs:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-
+                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
+                jest-cache-${{ runner.os }}-
 
           - name: Download jest artifacts
             env:

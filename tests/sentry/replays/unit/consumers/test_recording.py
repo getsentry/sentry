@@ -4,7 +4,7 @@ from unittest import mock
 
 import msgpack
 import pytest
-from google.api_core.exceptions import BadGateway
+from google.api_core.exceptions import BadGateway, InternalServerError
 
 from sentry.replays.consumers.recording import (
     DropSilently,
@@ -525,16 +525,17 @@ def test_process_message_no_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-def test_commit_message_reraises_bad_gateway() -> None:
-    """A 502 that outlasts the upload retries fails the task so it can be retried."""
+@pytest.mark.parametrize("error", [InternalServerError("500"), BadGateway("502")])
+def test_commit_message_reraises_transient_server_errors(error: Exception) -> None:
+    """A 500/502 that outlasts the upload retries fails the task so it can be retried."""
     with (
         mock.patch(
             "sentry.replays.consumers.recording.commit_recording_message",
-            side_effect=BadGateway("502"),
+            side_effect=error,
         ),
         mock.patch("sentry.replays.consumers.recording.track_recording_metadata") as track,
     ):
-        with pytest.raises(BadGateway):
+        with pytest.raises(type(error)):
             commit_message(mock.Mock(), {"has_sent_replays_cache": None, "options_cache": None})
 
     assert track.call_count == 0

@@ -35,6 +35,7 @@ import {
   anchoredStyles,
   anchorOverlay,
   arrowOverlay,
+  overlayPlatform,
   placementMiddleware,
   shiftOverlay,
 } from '@sentry/scraps/overlayPositioning';
@@ -248,6 +249,7 @@ export function useOverlay({
     elements: {reference: triggerElement, floating: overlayElement},
     middleware,
     placement: initialPlacement,
+    platform: overlayPlatform,
     strategy,
     // Using the `transform` attribute causes our borders to get blurry
     // in chrome. See [0]. This just causes it to use `top` / `left`

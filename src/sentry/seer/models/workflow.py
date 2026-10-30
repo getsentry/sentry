@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from pydantic import BaseModel
 
@@ -11,12 +13,14 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.base import DefaultFieldsModel
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
 class SeerWorkflowStrategy(models.TextChoices):
     AGENTIC_TRIAGE = "agentic_triage"
     DUPLICATE_MONITORS = "duplicate_monitors"
     AGENTIC_TRIAGE_V2 = "agentic_triage_v2"
+    BREACHED_METRIC_INVESTIGATION = "breached_metric_investigation"
 
 
 # Strategies with one config per organization, found or created by get_or_create_for_strategy.
@@ -26,7 +30,9 @@ SEER_LEGACY_WORKFLOW_STRATEGIES = frozenset(
 )
 
 # Strategies with any number of configs per organization. Each config is looked up by its id.
-SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset({SeerWorkflowStrategy.AGENTIC_TRIAGE_V2})
+SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
+    {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
+)
 
 
 class SeerWorkflowConfigExtras(BaseModel):
@@ -60,6 +66,11 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount",
+        on_delete="SET_NULL",
+        null=True,
+    )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
@@ -125,6 +136,79 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
 
 
 @cell_silo_model
+class SeerWorkflowTriggerBinding(DefaultFieldsModel):
+    """Connect a WFE Action to an automation; a config may have multiple bindings."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
+    trigger_action = models.OneToOneField(
+        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
+    )
+
+    class Meta:
+        app_label = "seer"
+        db_table = "seer_workflowtriggerbinding"
+
+    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
+
+
+class SeerWorkflowRunStatus(models.TextChoices):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class SeerWorkflowExecutionStatus(models.TextChoices):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+
+class WorkflowSnapshotFilters(SeerWorkflowFilters):
+    class Config:
+        extra = "allow"
+
+
+class WorkflowRunSnapshot(BaseModel):
+    config_version: int
+    strategy: SeerWorkflowStrategy
+    filters: WorkflowSnapshotFilters
+    project_ids: tuple[int, ...]
+    output_policy: dict[str, Any]
+    inputs: dict[str, Any]
+
+    class Config:
+        allow_mutation = False
+
+
+class WorkflowRunError(BaseModel):
+    # Stable snake_case failure category chosen by the caller, e.g. "dispatch_failed".
+    code: str
+    # Explanation safe to display, e.g. "Could not start the execution."
+    message: str
+
+
+class SeerWorkflowRunExtras(BaseModel):
+    snapshot: WorkflowRunSnapshot
+    error: WorkflowRunError | None = None
+
+    class Config:
+        # Preserve strategy-specific metadata when updating shared fields.
+        extra = "allow"
+
+
+class SeerWorkflowExecutionExtras(BaseModel):
+    error: WorkflowRunError | None = None
+
+    class Config:
+        extra = "allow"
+
+
+@cell_silo_model
 class SeerWorkflowRun(DefaultFieldsModel):
     """Records each workflow invocation for an organization.
 
@@ -136,12 +220,14 @@ class SeerWorkflowRun(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     workflow_config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+        "seer.SeerWorkflowConfig", on_delete=models.CASCADE, null=True
     )
-    # Cron-derived schedule window (currently YYYY-MM-DDTHH:MM), nullable for
-    # manual and historical runs.
-    schedule_id = models.CharField(max_length=256, null=True)
+    # Cron window (e.g. 2024-07-22T22:00) or event identity (e.g. issue_created:123).
+    trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
+    # Null for historical runs that have not adopted the shared lifecycle.
+    status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
+    # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -154,10 +240,10 @@ class SeerWorkflowRun(DefaultFieldsModel):
         ]
         constraints = [
             models.UniqueConstraint(
-                fields=["organization", "workflow_config", "schedule_id"],
-                condition=models.Q(schedule_id__isnull=False),
+                fields=["organization", "workflow_config", "trigger_key"],
+                condition=models.Q(trigger_key__isnull=False),
                 name="seer_nightshiftrun_unique_org_config_schedule",
-            )
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "workflow_config_id", "date_added")
@@ -179,6 +265,11 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     seer_run = models.OneToOneField(
         "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
     )
+    status = models.CharField(
+        max_length=256, choices=SeerWorkflowExecutionStatus.choices, null=True
+    )
+    date_completed = models.DateTimeField(null=True)
+    # Shape: SeerWorkflowExecutionExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

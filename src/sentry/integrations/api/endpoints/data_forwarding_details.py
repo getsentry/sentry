@@ -38,6 +38,10 @@ from sentry.organizations.services.organization.model import (
 from sentry.web.decorators import set_referrer_policy
 
 
+class DataForwarderEnrollmentSerializer(serializers.Serializer):
+    project_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=True)
+
+
 class OrganizationDataForwardingDetailsPermission(OrganizationPermission):
     scope_map = {
         "PUT": ["org:write"],
@@ -138,7 +142,9 @@ class DataForwardingDetailsEndpoint(OrganizationEndpoint):
         Returns:
             Tuple of (project_ids_to_enroll, project_ids_to_unenroll)
         """
-        project_ids_new: set[int] = set(request.data.get("project_ids", []))
+        serializer = DataForwarderEnrollmentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project_ids_new: set[int] = set(serializer.validated_data["project_ids"])
         project_ids_current: set[int] = set(
             DataForwarderProject.objects.filter(
                 data_forwarder=data_forwarder, is_enabled=True

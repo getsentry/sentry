@@ -16,17 +16,14 @@ from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.endpoints.serializers import InvestigationBlockSerializer
 from sentry.investigations.endpoints.validators.block import BlockUpdateValidator
 from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
-    InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     archive_investigation,
@@ -47,8 +44,20 @@ from sentry.investigations.services.orchestration_events import (
     reconcile_orchestration_projection,
     synchronize_orchestration_projection,
 )
+from sentry.notebooks.models import (
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
+    NotebookStatus,
+)
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorId, ActorType
+from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
 
 
 class SeerRunMirrorMixin:
@@ -63,11 +72,12 @@ class SeerRunMirrorMixin:
         )
 
 
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase):
     def test_event_persists_timing_for_the_api(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -110,7 +120,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
     def test_replays_the_stored_application_status(self) -> None:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -166,7 +176,7 @@ class InvestigationOrchestrationEventTransportTest(SeerRunMirrorMixin, TestCase)
     def test_rejects_an_oversized_event_before_persisting(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -196,8 +206,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
         self.seer_run = self.seer_run_mirror(self.seer_run_id)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Agentic investigation",
@@ -293,9 +306,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             return_value=completed_at,
         ):
             self.deliver(self.event(2, "report_block_upserted", payload))
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation, stable_agent_key="summary"
-        )
+        block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         assert block.current_execution is not None
         execution_id = block.current_execution_id
         assert block.current_execution.started_at == started_at
@@ -334,9 +345,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 },
             )
         )
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation, stable_agent_key="summary"
-        )
+        block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         archived = archive_investigation(
@@ -362,9 +371,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         assert block.deleted_at is None
-        assert block.report_revision == 0
+        assert block.producer_revision == 0
         assert block.current_execution is not None
-        assert block.current_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert block.current_execution.status == NotebookBlockExecutionStatus.FAILED
         assert self.investigation.version == version
         assert self.orchestration_run.notebook_revision == notebook_revision
         assert self.orchestration_run.workflow_version == 3
@@ -390,10 +399,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     },
                 )
             )
-        blocks = InvestigationBlock.objects.filter(
-            investigation=self.investigation, deleted_at__isnull=True
+        blocks = NotebookBlock.objects.filter(
+            notebook=self.investigation, deleted_at__isnull=True
         ).order_by("position", "id")
-        assert list(blocks.values_list("stable_agent_key", flat=True)) == ["d", "c", "a", "b"]
+        assert list(blocks.values_list("producer_key", flat=True)) == ["d", "c", "a", "b"]
 
     def test_scope_fallback_keeps_output_permissions_after_project_selection_changes(self) -> None:
         other_project = self.create_project(organization=self.organization)
@@ -508,9 +517,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         ]:
             receipt = self.deliver(event)
             assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
-            block = InvestigationBlock.objects.get(
-                investigation=self.investigation,
-                stable_agent_key="summary",
+            block = NotebookBlock.objects.get(
+                notebook=self.investigation,
+                producer_key="summary",
                 deleted_at__isnull=True,
             )
             assert block.content_execution is not None
@@ -556,9 +565,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         replacement = {**payload, "reportRevision": 1}
         self.deliver(self.event(3, "report_block_started", replacement))
         self.deliver(self.event(4, "report_block_upserted", replacement))
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation, deleted_at__isnull=True
-        )
+        block = NotebookBlock.objects.get(notebook=self.investigation, deleted_at__isnull=True)
         assert block.content_execution is not None
         assert block.content_execution.input_snapshot["projectIds"] == [replacement_project.id]
         assert list(
@@ -583,11 +590,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 )
             )
             assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
-            block = InvestigationBlock.objects.get(
-                investigation=self.investigation, stable_agent_key=kind
-            )
+            block = NotebookBlock.objects.get(notebook=self.investigation, producer_key=kind)
             assert block.current_execution is not None
-            assert block.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+            assert block.current_execution.status == NotebookBlockExecutionStatus.RUNNING
             assert (
                 block.display
                 == {
@@ -613,9 +618,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
             assert receipt.application_status == InvestigationOrchestrationEventStatus.FAILED
             assert receipt.last_applied_sequence == sequence
-            assert not InvestigationBlock.objects.filter(investigation=self.investigation).exists()
-            assert not InvestigationBlockExecution.objects.filter(
-                block__investigation=self.investigation
+            assert not NotebookBlock.objects.filter(notebook=self.investigation).exists()
+            assert not NotebookBlockExecution.objects.filter(
+                block__notebook=self.investigation
             ).exists()
 
         applied = self.deliver(
@@ -623,7 +628,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         assert applied.application_status == InvestigationOrchestrationEventStatus.APPLIED
         assert applied.last_applied_sequence == len(invalid_displays) + 1
-        block = InvestigationBlock.objects.get(investigation=self.investigation)
+        block = NotebookBlock.objects.get(notebook=self.investigation)
         assert block.content == "Original report"
 
     def test_query_report_displays_use_the_editable_block_schema(self) -> None:
@@ -653,8 +658,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     ),
                 )
             )
-            block = InvestigationBlock.objects.get(
-                investigation=self.investigation, stable_agent_key=display_type
+            block = NotebookBlock.objects.get(
+                notebook=self.investigation, producer_key=display_type
             )
             self.investigation.refresh_from_db()
             validator = BlockUpdateValidator(
@@ -674,9 +679,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_kind_replacement_preserves_history_and_recovers_from_snapshot(self) -> None:
         self.deliver(self.event(1, "report_block_upserted", self.report_block()))
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation, stable_agent_key="summary"
-        )
+        block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         assert block.current_execution is not None
         original_execution = block.current_execution
         result = {
@@ -724,7 +727,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert recovered.application_status == InvestigationOrchestrationEventStatus.APPLIED
         original_execution.refresh_from_db()
         assert original_execution.block_id == block.id
-        assert original_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert original_execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert original_execution.result is not None
         assert original_execution.result["markdown"] == "Original report"
         block.refresh_from_db()
@@ -745,9 +748,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         original = self.report_block(projectIds=[], useInvestigationProjectScope=True)
         self.deliver(self.event(1, "report_block_upserted", original))
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation, stable_agent_key="summary"
-        )
+        block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         original_execution = block.current_execution
         assert original_execution is not None
         self.investigation.refresh_from_db()
@@ -811,9 +812,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             block.content_execution.data_project_links.values_list("project_id", flat=True)
         ) == [self.project.id]
         original_execution.refresh_from_db()
-        assert original_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert original_execution.status == NotebookBlockExecutionStatus.COMPLETED
         replacement_execution.refresh_from_db()
-        assert replacement_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert replacement_execution.status == NotebookBlockExecutionStatus.FAILED
         assert replacement_execution.block_id == block.id
         assert (
             serialize(
@@ -1091,11 +1092,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             generation=3,
             phase="investigating",
         )
-        block = self.create_investigation_block(
-            investigation=self.investigation,
+        block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
-            report_revision=1,
-            stable_agent_key="stale-summary",
+            producer_revision=1,
+            producer_key="stale-summary",
         )
 
         reconcile_orchestration_projection(
@@ -1187,23 +1188,23 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
-        assert self.investigation.status == InvestigationStatus.ARCHIVED
+        assert self.investigation.status == NotebookStatus.ARCHIVED
         assert self.investigation.title == original_title
         assert not self.orchestration_run.projection["_sentryControl"].get("manualTitleOverride")
 
     def test_archive_generation_fence_survives_restore_until_a_new_generation(self) -> None:
-        block = self.create_investigation_block(
-            investigation=self.investigation,
+        block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
-            report_revision=1,
-            stable_agent_key="preserved-summary",
+            producer_revision=1,
+            producer_key="preserved-summary",
         )
         archived = archive_investigation_with_orchestration(
             investigation=self.investigation,
             expected_version=self.investigation.version,
             actor_id=self.user.id,
         )
-        assert archived.status == InvestigationStatus.ARCHIVED
+        assert archived.status == NotebookStatus.ARCHIVED
         delayed_projection = self.projection(
             workflow_version=2,
             generation=1,
@@ -1216,14 +1217,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         block.refresh_from_db()
         assert block.deleted_at is None
-        assert block.report_revision == 1
+        assert block.producer_revision == 1
         restored = update_investigation_with_orchestration(
             investigation=archived,
             expected_version=archived.version,
-            fields={"status": InvestigationStatus.ACTIVE},
+            fields={"status": NotebookStatus.ACTIVE},
             project_ids=None,
         )
-        assert restored.status == InvestigationStatus.ACTIVE
+        assert restored.status == NotebookStatus.ACTIVE
         synchronize_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
             seer_run_id=self.seer_run_id,
@@ -1231,7 +1232,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         block.refresh_from_db()
         assert block.deleted_at is None
-        assert block.report_revision == 1
+        assert block.producer_revision == 1
 
         fenced = self.deliver(self.event(1, "report_clear", {"reportRevision": 1}, generation=1))
         assert fenced.application_status == InvestigationOrchestrationEventStatus.IGNORED
@@ -1258,15 +1259,15 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.notebook_revision == 1
 
     def test_text_and_title_stream_resets_replace_stale_content(self) -> None:
-        manual = self.create_investigation_block(
-            investigation=self.investigation,
+        manual = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             content="old manual block",
         )
-        manual_execution = self.create_investigation_block_execution(
+        manual_execution = self.create_notebook_block_execution(
             block=manual,
             block_version=manual.version,
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
         )
         manual.current_execution = manual_execution
         manual.save(update_fields=["current_execution", "date_updated"])
@@ -1329,14 +1330,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         manual.refresh_from_db()
         manual_execution.refresh_from_db()
         assert manual.deleted_at is None
-        assert manual_execution.status == InvestigationBlockExecutionStatus.RUNNING
-        block = InvestigationBlock.objects.get(
-            investigation=self.investigation,
-            stable_agent_key="summary",
+        assert manual_execution.status == NotebookBlockExecutionStatus.RUNNING
+        block = NotebookBlock.objects.get(
+            notebook=self.investigation,
+            producer_key="summary",
         )
         assert block.content == "fresh"
         assert block.generated_content == "fresh"
-        assert block.report_revision == 1
+        assert block.producer_revision == 1
         assert block.content_execution is not None
         assert list(
             block.content_execution.data_project_links.values_list("project_id", flat=True)
@@ -1350,7 +1351,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         assert shared["content"] == "fresh"
         assert shared["generatedContent"] == "fresh"
-        assert shared["outputStatus"] == InvestigationBlockExecutionStatus.RUNNING
+        assert shared["outputStatus"] == NotebookBlockExecutionStatus.RUNNING
         self.investigation.refresh_from_db()
         assert self.investigation.title == "Final title"
         assert self.investigation.summary == "Root cause found"
@@ -1377,17 +1378,17 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 },
             )
         )
-        in_flight = InvestigationBlock.objects.get(stable_agent_key="event-count")
+        in_flight = NotebookBlock.objects.get(producer_key="event-count")
         assert in_flight.current_execution is not None
         assert in_flight.result_execution_id == in_flight.current_execution_id
-        assert in_flight.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert in_flight.current_execution.status == NotebookBlockExecutionStatus.RUNNING
         assert (
             serialize(
                 in_flight,
                 self.user,
                 InvestigationBlockSerializer(),
             )["outputStatus"]
-            == InvestigationBlockExecutionStatus.RUNNING
+            == NotebookBlockExecutionStatus.RUNNING
         )
         result = {
             "schemaVersion": 1,
@@ -1416,14 +1417,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
 
-        block = InvestigationBlock.objects.get(stable_agent_key="event-count")
+        block = NotebookBlock.objects.get(producer_key="event-count")
         assert block.display["queryCollapsed"] is True
         assert block.prompt == "Count matching events once."
         assert block.producing_seer_run_id == 90210
         assert block.current_execution_id == block.result_execution_id
-        execution = InvestigationBlockExecution.objects.get(id=block.result_execution_id)
-        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
-        assert execution.executor == InvestigationBlockExecutor.CODE_MODE
+        execution = NotebookBlockExecution.objects.get(id=block.result_execution_id)
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
+        assert execution.executor == NotebookBlockExecutor.CODE_MODE
         assert execution.result is not None
         assert execution.result["tableMarkdown"] == result["tableMarkdown"]
         assert list(execution.data_project_links.values_list("project_id", flat=True)) == [
@@ -1460,19 +1461,19 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         block.refresh_from_db()
         assert block.current_execution_id != block.result_execution_id
         assert block.current_execution is not None
-        assert block.current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert block.current_execution.status == NotebookBlockExecutionStatus.RUNNING
         assert block.result_execution_id == execution.id
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
 
     def test_replacement_text_is_published_with_its_execution_provenance(self) -> None:
         replacement_project = self.create_project(organization=self.organization)
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=self.project,
         )
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=replacement_project,
         )
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
@@ -1506,7 +1507,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 },
             )
         )
-        block = InvestigationBlock.objects.get(stable_agent_key="summary")
+        block = NotebookBlock.objects.get(producer_key="summary")
         completed_execution_id = block.content_execution_id
 
         self.deliver(
@@ -1738,10 +1739,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.projection["report"]["status"] == "composing"
 
     def test_terminal_full_snapshot_recovers_a_sequence_gap(self) -> None:
-        old_block = self.create_investigation_block(
-            investigation=self.investigation,
-            report_revision=0,
-            stable_agent_key="old-summary",
+        old_block = self.create_notebook_block(
+            notebook=self.investigation,
+            producer_revision=0,
+            producer_key="old-summary",
             content="stale report",
         )
         waiting = self.deliver(
@@ -1810,10 +1811,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         old_block.refresh_from_db()
         assert old_block.deleted_at is not None
-        recovered = InvestigationBlock.objects.get(stable_agent_key="recovered-summary")
+        recovered = NotebookBlock.objects.get(producer_key="recovered-summary")
         assert recovered.content == "Recovered report"
         assert recovered.content_execution is not None
-        assert recovered.content_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert recovered.content_execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert list(
             recovered.content_execution.data_project_links.values_list("project_id", flat=True)
         ) == [self.project.id]
@@ -1885,7 +1886,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         assert failed.application_status == InvestigationOrchestrationEventStatus.FAILED
         assert failed.last_applied_sequence == 0
-        assert not InvestigationBlock.objects.filter(stable_agent_key="invalid").exists()
+        assert not NotebookBlock.objects.filter(producer_key="invalid").exists()
 
         self.deliver(
             self.event(
@@ -1978,8 +1979,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for event in events[:6]:
             self.deliver(event)
 
-        first = InvestigationBlock.objects.get(stable_agent_key="first")
-        second = InvestigationBlock.objects.get(stable_agent_key="second")
+        first = NotebookBlock.objects.get(producer_key="first")
+        second = NotebookBlock.objects.get(producer_key="second")
         assert first.position == 1
         assert second.position == 0
 
@@ -1988,10 +1989,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         first.refresh_from_db()
         second.refresh_from_db()
-        assert first.report_revision == 2
+        assert first.producer_revision == 2
         assert first.content == "revised body"
         assert first.deleted_at is None
-        assert second.report_revision == 2
+        assert second.producer_revision == 2
         assert second.deleted_at is not None
 
         self.deliver(
@@ -2014,7 +2015,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         first.refresh_from_db()
-        assert first.report_revision == 2
+        assert first.producer_revision == 2
         assert first.deleted_at is None
         self.deliver(self.event(10, "report_clear", {"reportRevision": 3}))
         first.refresh_from_db()
@@ -2072,14 +2073,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for event in events:
             self.deliver(event)
 
-        completed = InvestigationBlock.objects.get(stable_agent_key="completed")
-        partial = InvestigationBlock.objects.get(stable_agent_key="partial")
-        assert completed.report_revision == 2
+        completed = NotebookBlock.objects.get(producer_key="completed")
+        partial = NotebookBlock.objects.get(producer_key="partial")
+        assert completed.producer_revision == 2
         assert completed.deleted_at is None
-        assert partial.report_revision == 1
+        assert partial.producer_revision == 1
         assert partial.deleted_at is not None
         assert partial.current_execution is not None
-        assert partial.current_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert partial.current_execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert partial.current_execution.error == {
             "code": "investigation_report_restarted",
             "message": "The investigation report was restarted.",
@@ -2137,14 +2138,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for event in events:
             self.deliver(event)
 
-        blocks = InvestigationBlock.objects.filter(
-            stable_agent_key__in=["partial-text", "partial-query"]
-        ).order_by("stable_agent_key")
+        blocks = NotebookBlock.objects.filter(
+            producer_key__in=["partial-text", "partial-query"]
+        ).order_by("producer_key")
         assert blocks.count() == 2
         for block in blocks:
             assert block.deleted_at is None
             assert block.current_execution is not None
-            assert block.current_execution.status == InvestigationBlockExecutionStatus.FAILED
+            assert block.current_execution.status == NotebookBlockExecutionStatus.FAILED
             assert block.current_execution.error == {
                 "code": "investigation_report_failed",
                 "message": "The investigation report could not be completed.",
@@ -2179,9 +2180,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
 
-        execution = InvestigationBlock.objects.get(stable_agent_key="partial").current_execution
+        execution = NotebookBlock.objects.get(producer_key="partial").current_execution
         assert execution is not None
-        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.status == NotebookBlockExecutionStatus.FAILED
         assert execution.error == {
             "code": "investigation_report_failed",
             "message": "The investigation report could not be completed.",
@@ -2216,9 +2217,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
 
-        execution = InvestigationBlock.objects.get(stable_agent_key="partial").current_execution
+        execution = NotebookBlock.objects.get(producer_key="partial").current_execution
         assert execution is not None
-        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert execution.error == {
             "code": "investigation_cancelled",
             "message": "The investigation was cancelled.",
@@ -2241,10 +2242,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         assert failed.application_status == InvestigationOrchestrationEventStatus.FAILED
-        assert not InvestigationBlock.objects.filter(stable_agent_key="invalid").exists()
-        assert not InvestigationBlockExecution.objects.filter(
-            block__stable_agent_key="invalid"
-        ).exists()
+        assert not NotebookBlock.objects.filter(producer_key="invalid").exists()
+        assert not NotebookBlockExecution.objects.filter(block__producer_key="invalid").exists()
 
         applied = self.deliver(
             self.event(
@@ -2258,8 +2257,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.phase == "planning"
 
     def test_manual_report_block_can_use_persisted_investigation_project_scope(self) -> None:
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=self.project,
         )
         self.orchestration_run.source = {
@@ -2283,7 +2282,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
 
-        execution = InvestigationBlock.objects.get(stable_agent_key="scoped").content_execution
+        execution = NotebookBlock.objects.get(producer_key="scoped").content_execution
         assert execution is not None
         assert list(execution.data_project_links.values_list("project_id", flat=True)) == [
             self.project.id
@@ -2308,11 +2307,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
 
         assert receipt.application_status == InvestigationOrchestrationEventStatus.FAILED
-        assert not InvestigationBlock.objects.filter(stable_agent_key="block").exists()
+        assert not NotebookBlock.objects.filter(producer_key="block").exists()
 
     def test_projection_evidence_must_use_investigation_projects(self) -> None:
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=self.project,
         )
         unlinked_project = self.create_project(organization=self.organization)
@@ -2358,8 +2357,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.workflow_version == 2
 
     def test_projection_accepts_evidence_from_an_investigation_project(self) -> None:
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=self.project,
         )
         projection = self.projection()
@@ -2399,8 +2398,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         ]
 
     def test_verification_evidence_must_use_investigation_projects(self) -> None:
-        self.create_investigation_project(
-            investigation=self.investigation,
+        self.create_notebook_project(
+            notebook=self.investigation,
             project=self.project,
         )
         unlinked_project = self.create_project(organization=self.organization)
@@ -2443,12 +2442,764 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.projection["hypotheses"] == []
 
+    def action_request(self, key: str, **values: Any) -> dict[str, Any]:
+        return {
+            "key": key,
+            "reportRevision": 1,
+            "title": f"Do {key}",
+            "rationale": "It helps.",
+            "impact": None,
+            "action": fake_action(),
+            **values,
+        }
 
+    def request_states(self) -> dict[str, str]:
+        return {
+            row.key: row.state
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
+        }
+
+    def deliver_request(
+        self, sequence: int, item: Any, *, generation: int = 1
+    ) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.event(sequence, "action_requested", {"request": item}, generation=generation)
+        )
+
+    def deliver_withdrawn(self, sequence: int, key: str, reason: str) -> OrchestrationEventReceipt:
+        return self.deliver(
+            self.event(sequence, "action_withdrawn", {"key": key, "reason": reason})
+        )
+
+    def test_action_requested_stores_the_request(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        version = self.investigation.version
+        notebook_revision = self.orchestration_run.notebook_revision
+
+        primary = self.deliver_request(
+            2, self.action_request("widen-window", primary=True, impact="Fewer alerts.")
+        )
+        anchored = self.deliver_request(
+            3,
+            self.action_request(
+                "connect-datadog",
+                anchor={"type": "hypothesis", "id": "h-2"},
+                action=fake_action("datadog"),
+            ),
+        )
+
+        assert primary.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        assert anchored.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        rows = {
+            row.key: row
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
+        }
+        widen, connect = rows["widen-window"], rows["connect-datadog"]
+        assert (widen.primary, widen.anchor_type, widen.impact) == (True, None, "Fewer alerts.")
+        assert widen.action_kind == "test_kind"
+        assert widen.action_payload == self.action_request("widen-window")["action"]
+        assert (connect.primary, connect.anchor_type, connect.anchor_id) == (
+            False,
+            "hypothesis",
+            "h-2",
+        )
+        assert connect.action_payload == fake_action("datadog")
+        assert {row.state for row in rows.values()} == {NotebookActionRequestState.SUGGESTED}
+        self.investigation.refresh_from_db()
+        self.orchestration_run.refresh_from_db()
+        assert self.investigation.version == version
+        assert self.orchestration_run.notebook_revision == notebook_revision
+
+    def test_the_action_kind_hears_about_new_and_changed_requests(self) -> None:
+        self.deliver_request(1, self.action_request("widen"))
+        self.deliver_request(2, self.action_request("widen"))
+        self.deliver_request(3, self.action_request("widen", action=fake_action("b")))
+
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert [request.action_payload for request in kind.upserted] == [
+            fake_action(),
+            fake_action("b"),
+        ]
+
+    def test_a_request_seer_cannot_describe_is_ignored(self) -> None:
+        receipt = self.deliver_request(
+            1, self.action_request("future", action={"kind": "seer_task", "prompt": "Add spans"})
+        )
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        event = InvestigationOrchestrationEvent.objects.get(sequence=1)
+        assert event.error == {"reason": "invalid_action_request"}
+        assert not NotebookActionRequest.objects.exists()
+
+    def test_a_request_for_an_older_report_is_ignored(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        receipt = self.deliver_request(2, self.action_request("late", reportRevision=1))
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        event = InvestigationOrchestrationEvent.objects.get(sequence=2)
+        assert event.error == {"reason": "stale_report_revision"}
+        assert not NotebookActionRequest.objects.exists()
+
+    def test_requests_upsert_by_key(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        action = self.action_request("x")["action"]
+        changed = {**action, "target": "b"}
+        rows = {}
+        for key, state, error in [
+            ("applied", NotebookActionRequestState.APPLIED, None),
+            ("failed", NotebookActionRequestState.FAILED, {"code": "validation_failed"}),
+            ("stale", NotebookActionRequestState.SUPERSEDED, {"code": "stale"}),
+            ("refreshed", NotebookActionRequestState.SUPERSEDED, {"code": "stale"}),
+            ("dropped", NotebookActionRequestState.SUPERSEDED, None),
+            ("withdrawn", NotebookActionRequestState.WITHDRAWN, None),
+            ("reconsidered", NotebookActionRequestState.WITHDRAWN, None),
+        ]:
+            rows[key] = self.create_notebook_action_request(
+                notebook=self.investigation,
+                producer_revision=1,
+                key=key,
+                state=state,
+                error=error,
+                reason="Wrong." if state == NotebookActionRequestState.WITHDRAWN else None,
+                followup_request_id=uuid4() if error == {"code": "stale"} else None,
+                action_kind="test_kind",
+                action_payload=action,
+            )
+
+        for sequence, item in enumerate(
+            [
+                self.action_request("applied", title="New title", action=changed),
+                self.action_request("failed", title="Retitled"),
+                self.action_request("stale"),
+                self.action_request("refreshed", action=changed),
+                self.action_request("dropped"),
+                self.action_request("withdrawn"),
+                self.action_request("reconsidered", action=changed),
+            ],
+            start=2,
+        ):
+            self.deliver_request(sequence, item)
+
+        reloaded = {
+            row.key: row
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
+        }
+        assert {key: row.state for key, row in reloaded.items()} == {
+            "applied": NotebookActionRequestState.APPLIED,
+            "failed": NotebookActionRequestState.FAILED,
+            "stale": NotebookActionRequestState.SUPERSEDED,
+            "refreshed": NotebookActionRequestState.SUGGESTED,
+            "dropped": NotebookActionRequestState.SUGGESTED,
+            "withdrawn": NotebookActionRequestState.WITHDRAWN,
+            "reconsidered": NotebookActionRequestState.SUGGESTED,
+        }
+        assert reloaded["applied"].title == rows["applied"].title
+        assert reloaded["applied"].action_payload == action
+        assert reloaded["failed"].error == {"code": "validation_failed"}
+        assert reloaded["failed"].title == "Retitled"
+        assert reloaded["refreshed"].error is None
+        assert reloaded["refreshed"].followup_request_id is None
+        assert reloaded["refreshed"].action_payload == changed
+        assert reloaded["stale"].followup_request_id == rows["stale"].followup_request_id
+        assert reloaded["withdrawn"].reason == "Wrong."
+        assert reloaded["reconsidered"].reason is None
+
+    def test_a_new_primary_supersedes_the_last_one(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("first", primary=True))
+        self.deliver_request(3, self.action_request("side"))
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            producer_revision=1,
+            key="applied",
+            primary=True,
+            state=NotebookActionRequestState.APPLIED,
+        )
+
+        self.deliver_request(4, self.action_request("second", primary=True))
+
+        assert self.request_states() == {
+            "first": NotebookActionRequestState.SUPERSEDED,
+            "side": NotebookActionRequestState.SUGGESTED,
+            "applied": NotebookActionRequestState.APPLIED,
+            "second": NotebookActionRequestState.SUGGESTED,
+        }
+
+    def test_a_new_primary_keeps_an_anchored_old_primary_as_a_request(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "hyp-1"}
+        self.deliver_request(
+            2,
+            self.action_request(
+                "connect-telemetry-gcp-r1",
+                primary=True,
+                anchor=anchor,
+                action=fake_action("gcp"),
+            ),
+        )
+
+        self.deliver_request(3, self.action_request("widen-window", primary=True))
+
+        rows = {
+            row.key: (row.state, row.primary)
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
+        }
+        assert rows == {
+            "connect-telemetry-gcp-r1": (NotebookActionRequestState.SUGGESTED, False),
+            "widen-window": (NotebookActionRequestState.SUGGESTED, True),
+        }
+
+    def test_an_anchored_primary_resent_for_the_next_report_stays_live(self) -> None:
+        anchor = {"type": "hypothesis", "id": "hyp-1"}
+        connect = fake_action("gcp")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(
+            2,
+            self.action_request(
+                "connect-telemetry-gcp-r1", primary=True, anchor=anchor, action=connect
+            ),
+        )
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            4,
+            self.action_request(
+                "connect-telemetry-gcp-r1",
+                reportRevision=2,
+                primary=False,
+                anchor=anchor,
+                action=connect,
+            ),
+        )
+        self.deliver_request(5, self.action_request("widen-window", reportRevision=2, primary=True))
+
+        rows = {
+            row.key: (row.state, row.primary, row.producer_revision)
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
+        }
+        assert rows == {
+            "connect-telemetry-gcp-r1": (NotebookActionRequestState.SUGGESTED, False, 2),
+            "widen-window": (NotebookActionRequestState.SUGGESTED, True, 2),
+        }
+
+    def test_a_primary_on_a_terminal_key_still_replaces_the_last_primary(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("first", primary=True))
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            producer_revision=1,
+            key="applied",
+            state=NotebookActionRequestState.APPLIED,
+        )
+
+        with patch("sentry.investigations.services.action_requests.logger") as logger:
+            self.deliver_request(3, self.action_request("applied", primary=True))
+
+        logger.warning.assert_called_once()
+        assert self.request_states() == {
+            "first": NotebookActionRequestState.SUPERSEDED,
+            "applied": NotebookActionRequestState.APPLIED,
+        }
+
+    def test_seer_withdraws_only_suggested_requests(self) -> None:
+        for key, state in [
+            ("open", NotebookActionRequestState.SUGGESTED),
+            ("applied", NotebookActionRequestState.APPLIED),
+            ("failed", NotebookActionRequestState.FAILED),
+        ]:
+            self.create_notebook_action_request(notebook=self.investigation, key=key, state=state)
+
+        receipts = [
+            self.deliver_withdrawn(1, "open", "The spikes are real breaches."),
+            self.deliver_withdrawn(2, "applied", "Too late."),
+            self.deliver_withdrawn(3, "failed", "Too late."),
+            self.deliver_withdrawn(4, "missing", "Never sent."),
+        ]
+
+        assert {receipt.application_status for receipt in receipts} == {
+            InvestigationOrchestrationEventStatus.APPLIED
+        }
+        assert self.request_states() == {
+            "open": NotebookActionRequestState.WITHDRAWN,
+            "applied": NotebookActionRequestState.APPLIED,
+            "failed": NotebookActionRequestState.FAILED,
+        }
+        withdrawn = NotebookActionRequest.objects.get(key="open")
+        assert withdrawn.reason == "The spikes are real breaches."
+
+    def test_action_requests_are_fenced_on_archived_investigations(self) -> None:
+        self.create_notebook_action_request(notebook=self.investigation, key="open")
+        archive_investigation_with_orchestration(
+            investigation=self.investigation,
+            expected_version=self.investigation.version,
+            actor_id=self.user.id,
+        )
+
+        requested = self.deliver_request(1, self.action_request("late", reportRevision=0))
+        withdrawn = self.deliver_withdrawn(2, "open", "Wrong.")
+
+        assert requested.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert withdrawn.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert [
+            event.error
+            for event in InvestigationOrchestrationEvent.objects.filter(
+                sequence__in=[1, 2]
+            ).order_by("sequence")
+        ] == [{"reason": "notebook_write_fenced"}] * 2
+        assert self.request_states() == {"open": NotebookActionRequestState.SUGGESTED}
+
+    def test_action_requests_are_fenced_by_generation(self) -> None:
+        self.deliver(
+            self.event(
+                1,
+                "workflow_updated",
+                {"projection": self.projection(workflow_version=2, generation=2)},
+                generation=2,
+            )
+        )
+
+        stale = self.deliver_request(2, self.action_request("old", reportRevision=0), generation=1)
+        future = self.deliver_request(3, self.action_request("new", reportRevision=0), generation=3)
+
+        assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert future.application_status == InvestigationOrchestrationEventStatus.IGNORED
+        assert [
+            event.error
+            for event in InvestigationOrchestrationEvent.objects.filter(
+                sequence__in=[2, 3]
+            ).order_by("sequence")
+        ] == [{"reason": "stale_generation"}, {"reason": "future_generation_without_projection"}]
+        assert not NotebookActionRequest.objects.exists()
+
+    def completed_snapshot(self, sequence: int, **payload: Any) -> dict[str, Any]:
+        return self.event(
+            sequence,
+            "state_snapshot",
+            {
+                "terminal": True,
+                "full": True,
+                "projection": self.projection(
+                    workflow_version=2,
+                    phase="completed",
+                    status="completed",
+                    report_revision=1,
+                    report_status="completed",
+                ),
+                "reportRevision": 1,
+                **payload,
+            },
+        )
+
+    def test_a_terminal_snapshot_makes_its_list_authoritative(self) -> None:
+        for key, state in [
+            ("omitted", NotebookActionRequestState.SUGGESTED),
+            ("omitted-hypothesis", NotebookActionRequestState.SUGGESTED),
+            ("applied", NotebookActionRequestState.APPLIED),
+            ("kept", NotebookActionRequestState.SUGGESTED),
+        ]:
+            self.create_notebook_action_request(
+                notebook=self.investigation,
+                key=key,
+                state=state,
+                anchor_type="hypothesis" if key == "omitted-hypothesis" else None,
+                anchor_id="h-1" if key == "omitted-hypothesis" else None,
+            )
+
+        self.deliver(
+            self.completed_snapshot(
+                5,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("kept"),
+                    self.action_request("widen-window", primary=True),
+                    self.action_request("Bad Key"),
+                ],
+            )
+        )
+
+        assert self.request_states() == {
+            "omitted": NotebookActionRequestState.SUPERSEDED,
+            "omitted-hypothesis": NotebookActionRequestState.SUPERSEDED,
+            "applied": NotebookActionRequestState.APPLIED,
+            "kept": NotebookActionRequestState.SUGGESTED,
+            "widen-window": NotebookActionRequestState.SUGGESTED,
+        }
+
+    def assert_snapshot_keeps_one_primary(self, order: tuple[str, str]) -> None:
+        failed = self.create_notebook_action_request(
+            notebook=self.investigation,
+            key="failed",
+            producer_revision=1,
+            primary=True,
+            state=NotebookActionRequestState.FAILED,
+            error={"code": "validation_failed"},
+        )
+        items = {
+            "newer": self.action_request("newer", primary=True),
+            "failed": self.action_request("failed", primary=True, action=failed.action_payload),
+        }
+
+        self.deliver(
+            self.completed_snapshot(5, blocks=[], actionRequests=[items[key] for key in order])
+        )
+
+        assert self.request_states() == {
+            "newer": NotebookActionRequestState.SUGGESTED,
+            "failed": NotebookActionRequestState.SUPERSEDED,
+        }
+        failed.refresh_from_db()
+        assert failed.error == {"code": "validation_failed"}
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_first(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("newer", "failed"))
+
+    def test_a_snapshot_prefers_a_suggested_primary_listed_last(self) -> None:
+        self.assert_snapshot_keeps_one_primary(("failed", "newer"))
+
+    def test_a_snapshot_only_tells_the_kind_about_the_primary_that_wins(self) -> None:
+        self.deliver(
+            self.completed_snapshot(
+                1,
+                blocks=[],
+                actionRequests=[
+                    self.action_request("loser", primary=True),
+                    self.action_request("winner", primary=True, reportRevision=2),
+                ],
+            )
+        )
+
+        kind = ACTION_KINDS["test_kind"]
+        assert isinstance(kind, RecordingKind)
+        assert self.request_states() == {
+            "loser": NotebookActionRequestState.SUPERSEDED,
+            "winner": NotebookActionRequestState.SUGGESTED,
+        }
+        assert [request.key for request in kind.upserted] == ["winner"]
+
+    def test_removing_a_block_supersedes_the_requests_under_it(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(
+            self.event(
+                2,
+                "report_block_upserted",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "chart",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "Chart",
+                    "content": "body",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver_request(
+            3, self.action_request("under", anchor={"type": "block", "id": "chart"})
+        )
+        self.deliver_request(
+            4, self.action_request("other", anchor={"type": "block", "id": "kept"})
+        )
+
+        self.deliver(
+            self.event(5, "report_block_removed", {"reportRevision": 1, "stableAgentKey": "chart"})
+        )
+
+        assert self.request_states() == {
+            "under": NotebookActionRequestState.SUPERSEDED,
+            "other": NotebookActionRequestState.SUGGESTED,
+        }
+
+    def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver_request(2, self.action_request("current", reportRevision=2, primary=True))
+
+        self.deliver(self.completed_snapshot(3, reportRevision=1, blocks=[], actionRequests=[]))
+
+        assert self.request_states() == {"current": NotebookActionRequestState.SUGGESTED}
+
+    def test_snapshot_without_action_requests_leaves_them_alone(self) -> None:
+        self.create_notebook_action_request(notebook=self.investigation, key="current")
+
+        self.deliver(
+            self.event(
+                1,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": self.projection(
+                        workflow_version=2, phase="completed", status="completed"
+                    ),
+                    "blocks": [],
+                },
+            )
+        )
+
+        assert self.request_states() == {"current": NotebookActionRequestState.SUGGESTED}
+
+    def test_an_adopted_report_revision_keeps_earlier_requests(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver_request(2, self.action_request("widen-window", primary=True))
+
+        self.deliver(
+            self.event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+
+        assert self.request_states() == {"widen-window": NotebookActionRequestState.SUGGESTED}
+
+    def test_a_recheck_leaves_the_notebook_untouched(self) -> None:
+        events = [
+            self.event(1, "report_clear", {"reportRevision": 1}),
+            *(
+                self.event(
+                    sequence,
+                    "report_block_upserted",
+                    self.report_block(key, reportRevision=1, position=sequence - 2),
+                )
+                for sequence, key in [(2, "cause"), (3, "remediation"), (4, "evidence")]
+            ),
+            self.event(5, "report_completed", {"reportRevision": 1}),
+            self.event(
+                6,
+                "metadata_completed",
+                {"reportRevision": 1, "summary": "Seer summary", "summaryDescription": "Body"},
+            ),
+            self.event(
+                7,
+                "action_requested",
+                {"request": self.action_request("widen-window", primary=True)},
+            ),
+            self.event(
+                8,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="completed",
+                        status="completed",
+                        report_revision=1,
+                        report_status="completed",
+                    )
+                },
+            ),
+        ]
+        for event in events:
+            self.deliver(event)
+        blocks = {
+            block.producer_key: block
+            for block in NotebookBlock.objects.filter(notebook=self.investigation)
+        }
+        blocks["cause"].update(content="Edited by a person", position=2)
+        blocks["evidence"].update(position=0)
+        blocks["remediation"].update(deleted_at=timezone.now())
+        self.investigation.refresh_from_db()
+        self.investigation.update(summary="Edited summary")
+        before = {
+            block.id: (block.content, block.position, block.deleted_at)
+            for block in NotebookBlock.objects.filter(notebook=self.investigation)
+        }
+        version = self.investigation.version
+
+        refreshed = self.action_request(
+            "widen-window",
+            primary=True,
+            action=fake_action("b"),
+        )
+        reopened = self.projection(
+            workflow_version=3,
+            phase="metadata",
+            status="processing",
+            report_revision=1,
+            report_status="completed",
+        )
+        completed = self.projection(
+            workflow_version=4,
+            phase="completed",
+            status="completed",
+            report_revision=1,
+            report_status="completed",
+        )
+        for event in [
+            self.event(9, "workflow_updated", {"projection": reopened}),
+            self.event(10, "action_requested", {"request": refreshed}),
+            self.event(11, "workflow_updated", {"projection": completed}),
+            self.event(
+                12,
+                "state_snapshot",
+                {
+                    "terminal": True,
+                    "full": True,
+                    "projection": completed,
+                    "reportRevision": 1,
+                    "actionRequests": [refreshed],
+                },
+            ),
+        ]:
+            assert self.deliver(event).application_status == (
+                InvestigationOrchestrationEventStatus.APPLIED
+            )
+
+        assert {
+            block.id: (block.content, block.position, block.deleted_at)
+            for block in NotebookBlock.objects.filter(notebook=self.investigation)
+        } == before
+        self.investigation.refresh_from_db()
+        assert self.investigation.summary == "Edited summary"
+        assert self.investigation.version == version
+        [row] = NotebookActionRequest.objects.filter(notebook=self.investigation)
+        assert row.action_payload == refreshed["action"]
+
+    def test_a_requests_only_snapshot_for_another_revision_is_ignored(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+
+        self.deliver(
+            self.completed_snapshot(
+                2, reportRevision=0, actionRequests=[self.action_request("late")]
+            )
+        )
+
+        assert not NotebookActionRequest.objects.exists()
+
+    def test_report_clear_supersedes_requests_tied_to_the_old_report(self) -> None:
+        requests: list[tuple[str, dict[str, Any]]] = [
+            ("primary", {"primary": True}),
+            ("block", {"anchor_type": "block", "anchor_id": "b-1"}),
+            ("hypothesis", {"anchor_type": "hypothesis", "anchor_id": "h-1"}),
+            ("unanchored", {}),
+            ("applied", {"primary": True, "state": NotebookActionRequestState.APPLIED}),
+        ]
+        for key, values in requests:
+            self.create_notebook_action_request(notebook=self.investigation, key=key, **values)
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+
+        assert self.request_states() == {
+            "primary": NotebookActionRequestState.SUPERSEDED,
+            "block": NotebookActionRequestState.SUPERSEDED,
+            "hypothesis": NotebookActionRequestState.SUGGESTED,
+            "unanchored": NotebookActionRequestState.SUGGESTED,
+            "applied": NotebookActionRequestState.APPLIED,
+        }
+
+    def stale(self, key: str, **values: Any) -> NotebookActionRequest:
+        return self.create_notebook_action_request(
+            notebook=self.investigation,
+            key=key,
+            producer_revision=1,
+            state=NotebookActionRequestState.SUPERSEDED,
+            error={"code": "stale", "current": {"window": 600}},
+            followup_request_id=uuid4(),
+            action_kind="test_kind",
+            action_payload=fake_action(),
+            **values,
+        )
+
+    def stale_keys(self) -> set[str]:
+        return set(
+            NotebookActionRequest.objects.filter(STALE, notebook=self.investigation).values_list(
+                "key", flat=True
+            )
+        )
+
+    def test_seer_can_withdraw_a_stale_request(self) -> None:
+        self.stale("widen-window")
+
+        self.deliver_withdrawn(1, "widen-window", "The window is fine now.")
+
+        assert self.request_states() == {"widen-window": NotebookActionRequestState.WITHDRAWN}
+
+    def test_a_newer_request_under_the_same_anchor_replaces_a_stale_one(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("elsewhere", anchor_type="hypothesis", anchor_id="h-2")
+
+        self.deliver_request(2, self.action_request("new", anchor=anchor))
+
+        assert self.stale_keys() == {"elsewhere"}
+
+    def test_a_newer_primary_replaces_a_stale_primary(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+
+    def test_a_newer_primary_replaces_a_stale_primary_seer_demoted_first(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        anchor = {"type": "hypothesis", "id": "h-1"}
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(2, self.action_request("old", primary=False, anchor=anchor))
+        self.deliver_request(3, self.action_request("new", primary=True))
+
+        assert self.stale_keys() == set()
+        assert self.request_states()["old"] == NotebookActionRequestState.SUPERSEDED
+
+    def test_seer_sending_a_dropped_stale_request_again_keeps_it_superseded(self) -> None:
+        self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        self.deliver_request(
+            2,
+            self.action_request(
+                "old", reportRevision=2, anchor={"type": "hypothesis", "id": "h-1"}
+            ),
+        )
+
+        assert self.request_states() == {"old": NotebookActionRequestState.SUPERSEDED}
+        assert self.stale_keys() == set()
+
+    def test_seer_sending_a_stale_request_again_keeps_it_stale(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
+
+        self.deliver_request(
+            2,
+            self.action_request("old", primary=True, anchor={"type": "hypothesis", "id": "h-1"}),
+        )
+
+        assert self.stale_keys() == {"old"}
+
+    def test_a_snapshot_that_leaves_out_a_stale_request_stops_listing_it(self) -> None:
+        self.stale("omitted")
+        self.stale("kept")
+
+        self.deliver(
+            self.completed_snapshot(5, blocks=[], actionRequests=[self.action_request("kept")])
+        )
+
+        assert self.stale_keys() == {"kept"}
+
+    def test_a_new_report_stops_listing_every_stale_request(self) -> None:
+        self.stale("hypothesis", anchor_type="hypothesis", anchor_id="h-1")
+        self.stale("unanchored")
+
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+
+        assert self.stale_keys() == set()
+        assert set(self.request_states().values()) == {NotebookActionRequestState.SUPERSEDED}
+
+
+@with_feature("organizations:investigations")
 class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase):
     def orchestration_run(self) -> InvestigationOrchestrationRun:
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],

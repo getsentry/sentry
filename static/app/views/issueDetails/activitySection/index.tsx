@@ -37,8 +37,6 @@ interface ActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
-  /** Position of the comment composer in standalone feeds. */
-  inputPosition?: 'start' | 'end';
   /** Prepared feed rows. Defaults to building rows from the issue activity. */
   items?: DisplayedActivityFeedItem[];
   minHeight?: number;
@@ -56,7 +54,6 @@ export function ActivitySection({
   group,
   activities: providedActivities,
   filterComments,
-  inputPosition = 'start',
   onActivityChange,
   items,
   variant = 'sidebar',
@@ -221,9 +218,8 @@ export function ActivitySection({
   if (isStandalone) {
     return (
       <Grid gap="xl">
-        {inputPosition === 'start' && noteInput}
+        {noteInput}
         {timeline}
-        {inputPosition === 'end' && noteInput}
       </Grid>
     );
   }

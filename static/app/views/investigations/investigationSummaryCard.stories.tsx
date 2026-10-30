@@ -11,7 +11,7 @@ export default Storybook.story('Investigations — Summary Card', story => {
     <Fragment>
       <p>
         Completed investigations surface a short headline and supporting description above
-        the notebook cells.
+        the notebook blocks.
       </p>
       <InvestigationSummaryCard
         summary="Errors rose across releases"

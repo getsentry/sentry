@@ -5,6 +5,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type ComponentProps,
   type ReactNode,
 } from 'react';
 import type {To} from 'react-router';
@@ -28,7 +29,7 @@ import {
 import {CSS} from '@dnd-kit/utilities';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeProps, mergeRefs} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
@@ -69,8 +70,10 @@ import {
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
+const LEADING_SLOT_SIZE = '24px';
 
 interface SecondarySidebarProps {
   children: ReactNode;
@@ -79,9 +82,41 @@ interface SecondarySidebarProps {
 function SecondarySidebar({children}: SecondarySidebarProps) {
   const {currentStepId} = useNavigationTour();
   const stepId = currentStepId ?? NavigationTour.ISSUES;
-  const resizableContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <SecondarySidebarWrapper
+      id={stepId}
+      description={NAVIGATION_TOUR_CONTENT[stepId].description}
+      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    >
+      {({ref, ...props}) => (
+        <SecondarySidebarPanel {...props} tourRef={ref}>
+          {children}
+        </SecondarySidebarPanel>
+      )}
+    </SecondarySidebarWrapper>
+  );
+}
+
+interface SecondarySidebarPanelProps {
+  children: ReactNode;
+  tourRef: React.Ref<HTMLDivElement>;
+  'aria-expanded'?: boolean;
+  className?: string;
+}
+
+function SecondarySidebarPanel({
+  children,
+  tourRef,
+  'aria-expanded': _ariaExpanded,
+  ...props
+}: SecondarySidebarPanelProps) {
+  // One stable ref for both the resizer and the tour. The tour keeps this element
+  // in state, so a new ref on every render would detach and reattach it, which
+  // re-renders the tour and can hit React's update depth limit.
+  const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const {layout} = usePrimaryNavigation();
+  const {layout, activeGroup} = usePrimaryNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -89,7 +124,7 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
   );
 
   const {onMouseDown: handleStartResize, size} = useResizable({
-    ref: resizableContainerRef,
+    ref: containerRef,
     initialSize: secondarySidebarWidth,
     minWidth: SECONDARY_SIDEBAR_MIN_WIDTH,
     maxWidth: SECONDARY_SIDEBAR_MAX_WIDTH,
@@ -98,76 +133,66 @@ function SecondarySidebar({children}: SecondarySidebarProps) {
     },
   });
 
-  const {activeGroup} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
 
   return (
-    <SecondarySidebarWrapper
-      id={stepId}
-      description={NAVIGATION_TOUR_CONTENT[stepId].description}
-      title={NAVIGATION_TOUR_CONTENT[stepId].title}
+    // aria-expanded is omitted here because TourGuide passes it via useOverlay's
+    // triggerProps (designed for button/disclosure triggers), but this element is
+    // a plain container div with no role that supports aria-expanded. Spreading it
+    // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
+    // without a matching ARIA role.
+    <Container
+      height="100%"
+      right="0"
+      {...mergeProps(props, {
+        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
+      })}
+      width={isMobile ? '100%' : `${size}px`}
+      ref={isMobile ? undefined : containerRef}
     >
-      {({ref, 'aria-expanded': _ariaExpanded, ...props}) => (
-        // aria-expanded is omitted here because TourGuide passes it via useOverlay's
-        // triggerProps (designed for button/disclosure triggers), but this element is
-        // a plain container div with no role that supports aria-expanded. Spreading it
-        // would cause a Lighthouse a11y violation: aria-expanded is invalid on a div
-        // without a matching ARIA role.
-        <Container
+      <AnimatePresence mode="popLayout" initial={false}>
+        <MotionContainer
+          width="100%"
           height="100%"
-          right="0"
-          {...props}
-          width={isMobile ? '100%' : `${size}px`}
-          ref={isMobile ? undefined : mergeRefs(resizableContainerRef, ref)}
-          {...{
-            [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-          }}
+          key={activeGroup}
+          initial={{x: -6, opacity: 0}}
+          animate={{x: 0, opacity: 1}}
+          exit={{x: 6, opacity: 0}}
+          transition={{duration: 0.06}}
         >
-          <AnimatePresence mode="popLayout" initial={false}>
-            <MotionContainer
-              width="100%"
-              height="100%"
-              key={activeGroup}
-              initial={{x: -6, opacity: 0}}
-              animate={{x: 0, opacity: 1}}
-              exit={{x: 6, opacity: 0}}
-              transition={{duration: 0.06}}
-            >
-              <Grid
-                rows="auto 1fr auto"
-                role="navigation"
-                aria-label="Secondary Navigation"
-                height="100%"
-              >
-                {children}
-              </Grid>
-              <Container
-                top="0"
-                right="0"
-                bottom="0"
-                width="8px"
-                radius="lg"
-                position="absolute"
-                display={isMobile ? 'none' : undefined}
-              >
-                {p => (
-                  <ResizeHandle
-                    {...p}
-                    ref={resizeHandleRef}
-                    onMouseDown={handleStartResize}
-                    onDoubleClick={() => {
-                      setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
-                    }}
-                    atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
-                    atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
-                  />
-                )}
-              </Container>
-            </MotionContainer>
-          </AnimatePresence>
-        </Container>
-      )}
-    </SecondarySidebarWrapper>
+          <Grid
+            rows="auto 1fr auto"
+            role="navigation"
+            aria-label="Secondary Navigation"
+            height="100%"
+          >
+            {children}
+          </Grid>
+          <Container
+            top="0"
+            right="0"
+            bottom="0"
+            width="8px"
+            radius="lg"
+            position="absolute"
+            display={isMobile ? 'none' : undefined}
+          >
+            {p => (
+              <ResizeHandle
+                {...p}
+                ref={resizeHandleRef}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => {
+                  setSecondarySidebarWidth(SECONDARY_SIDEBAR_WIDTH);
+                }}
+                atMinWidth={size === SECONDARY_SIDEBAR_MIN_WIDTH}
+                atMaxWidth={size === SECONDARY_SIDEBAR_MAX_WIDTH}
+              />
+            )}
+          </Container>
+        </MotionContainer>
+      </AnimatePresence>
+    </Container>
   );
 }
 
@@ -254,6 +279,7 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
    */
   end?: boolean;
   isActive?: boolean;
+  /** Content centered in a reserved 24px by 24px slot, including when empty, when settings-v3 is enabled. */
   leadingItems?: ReactNode;
   trailingItems?: ReactNode;
 }
@@ -264,46 +290,67 @@ interface SecondaryNavigationHeaderProps {
 
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
   const isMobile = layout === 'mobile';
 
   return (
     <Grid
-      columns="1fr auto"
+      columns="minmax(0, 1fr) auto"
       align="center"
       borderBottom="primary"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
-      padding={isMobile ? 'md lg' : '0 md 0 xl'}
+      padding={isMobile ? 'md lg' : '0 sm 0 sm'}
+    >
+      {props.children}
+      <SecondaryNavigationToggle />
+    </Grid>
+  );
+}
+
+function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
+  const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
+
+  return (
+    <Container
+      minWidth="0"
+      padding={settingsV3 ? 'md xs' : undefined}
+      paddingLeft={!settingsV3 && layout !== 'mobile' ? 'lg' : undefined}
     >
       <Text size="md" bold>
-        {props.children}
+        {children}
       </Text>
-      <div>
-        {isMobile ? (
-          <Button
-            size="sm"
-            icon={<IconClose />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant="transparent"
-          />
-        ) : (
-          <Button
-            size="sm"
-            icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
-            aria-label={isCollapsed ? t('Expand') : t('Collapse')}
-            onClick={() => setView(view === 'expanded' ? 'collapsed' : 'expanded')}
-            variant={isCollapsed ? 'primary' : 'transparent'}
-            analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
-            analyticsEventKey="sidebar_secondary_toggle_button_clicked"
-            analyticsParams={{
-              is_collapsed: isCollapsed,
-            }}
-          />
-        )}
-      </div>
-    </Grid>
+    </Container>
+  );
+}
+
+function SecondaryNavigationToggle() {
+  const {layout} = usePrimaryNavigation();
+  const {view, setView} = useSecondaryNavigation();
+  const isCollapsed = view !== 'expanded';
+
+  if (layout === 'mobile') {
+    return (
+      <Button
+        size="sm"
+        icon={<IconClose />}
+        aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+        onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+        variant="transparent"
+      />
+    );
+  }
+
+  return (
+    <Button
+      size="sm"
+      icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
+      aria-label={isCollapsed ? t('Expand') : t('Collapse')}
+      onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
+      variant={isCollapsed ? 'primary' : 'transparent'}
+      analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
+      analyticsEventKey="sidebar_secondary_toggle_button_clicked"
+      analyticsParams={{is_collapsed: isCollapsed}}
+    />
   );
 }
 
@@ -313,12 +360,13 @@ interface SecondaryNavigationBodyProps {
 
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = usePrimaryNavigation();
+  const settingsV3 = useSettingsV3();
 
   return (
     <Container
       overflow="auto"
       overscrollBehavior="contain"
-      padding={layout === 'mobile' ? '0 0 md 0' : undefined}
+      padding={settingsV3 ? 'md xs' : layout === 'mobile' ? '0 0 md 0' : undefined}
     >
       {props.children}
     </Container>
@@ -332,7 +380,74 @@ interface SectionTitleProps {
   setIsCollapsed: (isCollapsed: boolean) => void;
 }
 
+function SecondaryNavigationRow(props: ComponentProps<typeof Grid>) {
+  return (
+    <Grid
+      align="center"
+      position="relative"
+      height="32px"
+      padding="0 sm 0 md"
+      radius="md"
+      {...props}
+      columns={`${LEADING_SLOT_SIZE} minmax(0, 1fr)`}
+      gap="xs"
+    />
+  );
+}
+
 function SectionTitle(props: SectionTitleProps) {
+  const settingsV3 = useSettingsV3();
+  // The leading slot and padding match `SecondaryNavigation.Link`, so the
+  // chevron and title line up with the leading slot and label of each link.
+  if (settingsV3) {
+    const content = (
+      <Fragment>
+        <SecondaryNavigationLeadingSlot>
+          {props.canCollapse ? (
+            <IconChevron direction={props.isCollapsed ? 'right' : 'down'} size="md" />
+          ) : null}
+        </SecondaryNavigationLeadingSlot>
+        <Container minWidth="0" width="100%">
+          <Text as="div" bold ellipsis align="left" density="fixed">
+            {props.children}
+          </Text>
+        </Container>
+      </Fragment>
+    );
+
+    if (!props.canCollapse) {
+      return (
+        <SecondaryNavigationRow width="100%" padding="0 xs 0 md" radius="0">
+          {content}
+        </SecondaryNavigationRow>
+      );
+    }
+
+    return (
+      <Flex width="100%" padding="0" height="32px" justify="start">
+        {flexProps => (
+          <Button
+            {...flexProps}
+            size="sm"
+            variant="transparent"
+            aria-expanded={!props.isCollapsed}
+            onClick={() => props.setIsCollapsed(!props.isCollapsed)}
+          >
+            <SecondaryNavigationRow
+              width="100%"
+              flex="1"
+              minWidth="0"
+              justifyItems="start"
+              radius="0"
+            >
+              {content}
+            </SecondaryNavigationRow>
+          </Button>
+        )}
+      </Flex>
+    );
+  }
+
   if (props.canCollapse) {
     return (
       <Grid columns="1fr auto" align="center" width="100%" padding="sm lg">
@@ -371,20 +486,24 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  /**
+   * The title is the collapse toggle, so only titled sections can collapse.
+   */
   title?: ReactNode;
 }
 
 function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
+  const settingsV3 = useSettingsV3();
   const {layout} = usePrimaryNavigation();
   const [isCollapsedState, setIsCollapsedState] = useLocalStorageState(
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar';
+  const canCollapse = layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
-    <Container padding="md sm" data-nav-section>
+    <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
       {props.title ? (
         <SectionTitle
           canCollapse={canCollapse}
@@ -413,6 +532,7 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization({allowNull: true});
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
@@ -454,18 +574,72 @@ function SecondaryNavigationLink({
     },
   };
 
+  if (!settingsV3) {
+    return (
+      <LegacySidebarNavigationLink {...sharedLinkProps}>
+        {leadingItems}
+        <Text ellipsis variant="inherit">
+          {children}
+        </Text>
+        {trailingItems}
+      </LegacySidebarNavigationLink>
+    );
+  }
+
   return (
-    <SidebarNavigationLink {...sharedLinkProps}>
-      {leadingItems}
-      <Text ellipsis variant="inherit">
-        {children}
-      </Text>
-      {trailingItems}
-    </SidebarNavigationLink>
+    <SecondaryNavigationRow>
+      {gridProps => (
+        <SidebarNavigationLink {...mergeProps(sharedLinkProps, gridProps)}>
+          <SecondaryNavigationLeadingSlot>{leadingItems}</SecondaryNavigationLeadingSlot>
+          <Flex align="center" gap="xs" minWidth="0">
+            <Container flex="1" minWidth="0">
+              <Text ellipsis variant="inherit">
+                {children}
+              </Text>
+            </Container>
+            {trailingItems}
+          </Flex>
+        </SidebarNavigationLink>
+      )}
+    </SecondaryNavigationRow>
+  );
+}
+
+interface SecondaryNavigationLeadingSlotProps {
+  children?: ReactNode;
+}
+
+/**
+ * Fixed-width gutter before a link label, shared with section chevrons.
+ */
+function SecondaryNavigationLeadingSlot(props: SecondaryNavigationLeadingSlotProps) {
+  return (
+    <Flex
+      as="span"
+      align="center"
+      justify="center"
+      width={LEADING_SLOT_SIZE}
+      height={LEADING_SLOT_SIZE}
+      flexShrink={0}
+    >
+      {props.children}
+    </Flex>
   );
 }
 
 function SecondaryNavigationSeparator() {
+  const settingsV3 = useSettingsV3();
+
+  if (settingsV3) {
+    return (
+      <SecondaryNavigationRow height="auto" padding="md" radius="0">
+        <Container column="2" minWidth="0">
+          <Separator orientation="horizontal" border="muted" />
+        </Container>
+      </SecondaryNavigationRow>
+    );
+  }
+
   return (
     <Container padding="0 xl">
       <Separator orientation="horizontal" border="muted" />
@@ -506,6 +680,7 @@ interface CollapsibleProps {
 }
 
 function Collapsible(props: CollapsibleProps) {
+  const settingsV3 = useSettingsV3();
   if (props.disabled) {
     return props.children;
   }
@@ -525,6 +700,8 @@ function Collapsible(props: CollapsibleProps) {
             },
             expanded: {
               height: 'auto',
+              // Let focus rings and other content extend beyond the expanded section.
+              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
             },
           }}
           initial="collapsed"
@@ -740,6 +917,7 @@ function SecondaryNavigationReorderableLink({
   trailingItems,
   onNavigate,
 }: SecondaryNavigationReorderableLinkProps) {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
@@ -783,29 +961,88 @@ function SecondaryNavigationReorderableLink({
     onClick: handleClick,
   };
 
+  if (!settingsV3) {
+    return (
+      <Fragment>
+        <LegacyStyledReorderableLink {...sharedProps} layout="sidebar">
+          <Flex justify="center" align="center" data-reorderable-handle-slot>
+            {icon}
+          </Flex>
+          {children}
+          {trailingItems}
+        </LegacyStyledReorderableLink>
+        <GrabHandle />
+      </Fragment>
+    );
+  }
+
   const content = (
     <Fragment>
-      <Flex justify="center" align="center" data-reorderable-handle-slot>
+      <Flex
+        justify="center"
+        align="center"
+        width={LEADING_SLOT_SIZE}
+        height={LEADING_SLOT_SIZE}
+        flexShrink={0}
+        data-reorderable-handle-slot
+      >
         {icon}
       </Flex>
-      {children}
-      {trailingItems}
+      <Flex align="center" gap="xs" minWidth="0">
+        <Container flex="1" minWidth="0">
+          {children}
+        </Container>
+        {trailingItems}
+      </Flex>
     </Fragment>
   );
 
   return (
     <Fragment>
-      <StyledReorderableLink {...sharedProps} layout="sidebar">
-        {content}
-      </StyledReorderableLink>
+      <SecondaryNavigationRow cursor="pointer">
+        {gridProps => (
+          <StyledReorderableLink {...mergeProps(sharedProps, gridProps)} layout="sidebar">
+            {content}
+          </StyledReorderableLink>
+        )}
+      </SecondaryNavigationRow>
       <GrabHandle />
     </Fragment>
   );
 }
 
 function GrabHandle() {
+  const settingsV3 = useSettingsV3();
   const {attributes, isDragging, listeners, setActivatorNodeRef} =
     useReorderableItemContext();
+
+  if (settingsV3) {
+    return (
+      <Flex
+        align="center"
+        padding="0 sm 0 md"
+        position="absolute"
+        inset="0"
+        pointerEvents="none"
+      >
+        <SecondaryNavigationLeadingSlot>
+          <Flex width="18px" height="18px" justify="center" align="center">
+            {flexProps => (
+              <GrabHandleAnimation
+                {...mergeProps(flexProps, listeners, attributes)}
+                aria-label={t('Drag to reorder')}
+                data-drag-icon
+                ref={setActivatorNodeRef}
+                style={{cursor: isDragging ? 'grabbing' : 'grab'}}
+              >
+                <IconGrabbable variant="muted" aria-hidden="true" />
+              </GrabHandleAnimation>
+            )}
+          </Flex>
+        </SecondaryNavigationLeadingSlot>
+      </Flex>
+    );
+  }
 
   return (
     <Flex
@@ -818,23 +1055,21 @@ function GrabHandle() {
       top="50%"
     >
       {p => (
-        <GrabHandleAnimation
-          {...p}
-          {...listeners}
-          {...attributes}
+        <LegacyGrabHandleAnimation
+          {...mergeProps(p, listeners, attributes)}
           aria-label={t('Drag to reorder')}
           data-drag-icon
           ref={setActivatorNodeRef}
           style={{cursor: isDragging ? 'grabbing' : 'grab'}}
         >
           <IconGrabbable variant="muted" aria-hidden="true" />
-        </GrabHandleAnimation>
+        </LegacyGrabHandleAnimation>
       )}
     </Flex>
   );
 }
 
-const GrabHandleAnimation = styled('div')`
+const LegacyGrabHandleAnimation = styled('div')`
   pointer-events: none;
   opacity: 0;
   z-index: 1;
@@ -842,6 +1077,17 @@ const GrabHandleAnimation = styled('div')`
   left: ${p => p.theme.space.lg};
   transition: opacity ${p => p.theme.motion.smooth.moderate};
   transform: translateY(-50%);
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+`;
+
+const GrabHandleAnimation = styled('div')`
+  pointer-events: none;
+  opacity: 0;
+  z-index: 1;
+  transition: opacity ${p => p.theme.motion.smooth.moderate};
 
   &:focus-visible {
     ${p => p.theme.focusRing()}
@@ -876,6 +1122,66 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 `;
 
 const StyledReorderableLink = styled(Link, {
+  shouldForwardProp: prop => prop !== 'layout',
+})<{
+  layout: 'mobile' | 'sidebar';
+}>`
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  border: 0;
+  user-select: none;
+
+  /* Draw the border on an overlay so it doesn't shift the leading slot out of
+   * line with section titles and the grab handle. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  &:focus-visible {
+    ${p => p.theme.focusRing()}
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.neutral.background.hover};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    }
+  }
+
+  &:active {
+    color: ${p => p.theme.tokens.content.primary};
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.background.active};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.interactive.transparent.accent.border};
+    }
+  }
+
+  &[aria-current='page'] {
+    background-color: ${p =>
+      p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    }
+
+    &:hover {
+      background-color: ${p =>
+        p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+`;
+
+const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
 })<{
   layout: 'mobile' | 'sidebar';
@@ -927,6 +1233,53 @@ const StyledReorderableLink = styled(Link, {
 `;
 
 const SidebarNavigationLink = styled(Link)`
+  color: ${p => p.theme.tokens.interactive.link.neutral.rest};
+  border: 0;
+
+  /* Draw the border on an overlay so it doesn't shift the leading slot out of
+   * line with section titles and the grab handle. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    border-radius: inherit;
+    pointer-events: none;
+  }
+
+  &:hover {
+    color: ${p => p.theme.tokens.interactive.link.neutral.hover};
+    background-color: ${p => p.theme.tokens.interactive.transparent.neutral.background.hover};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.neutral.muted};
+    }
+  }
+
+  &:active {
+    color: ${p => p.theme.tokens.content.primary};
+    background-color: ${p => p.theme.tokens.interactive.transparent.accent.background.active};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.interactive.transparent.accent.border};
+    }
+  }
+
+  &[aria-current='page'] {
+    background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.rest};
+    color: ${p => p.theme.tokens.content.primary};
+
+    &::after {
+      border-color: ${p => p.theme.tokens.border.transparent.accent.muted};
+    }
+
+    &:hover {
+      background-color: ${p => p.theme.tokens.interactive.transparent.accent.selected.background.hover};
+    }
+  }
+`;
+
+const LegacySidebarNavigationLink = styled(Link)`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
@@ -969,6 +1322,7 @@ const SidebarNavigationLink = styled(Link)`
 
 export const SecondaryNavigation = {
   Header: SecondaryNavigationHeader,
+  HeaderTitle: SecondaryNavigationHeaderTitle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

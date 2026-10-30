@@ -1,3 +1,5 @@
+import {runOnFirstShard} from '../../../scripts/jestSingleShard.js';
+
 const config = {
   testEnvironment: '<rootDir>/test/environment.mjs',
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
@@ -18,4 +20,4 @@ const config = {
   watchman: false,
 };
 
-export default config;
+export default runOnFirstShard(config);

@@ -92,7 +92,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             integration = get_integration_from_token(token)
             extra["integration_id"] = integration.id
         except ValueError as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.warning("token-validation-error", extra=extra)
             metrics.incr("jira_server.webhook.invalid_token")
             return self.respond(status=400)
@@ -112,7 +112,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
             handle_assignee_change(integration, data)
             handle_status_change(integration, data)
         except (ApiError, ObjectDoesNotExist) as err:
-            extra.update({"token": token, "error": str(err)})
+            extra["error"] = str(err)
             logger.info("sync-failed", extra=extra)
             return self.respond(status=400)
         else:

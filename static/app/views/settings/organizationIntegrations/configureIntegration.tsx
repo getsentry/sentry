@@ -52,6 +52,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {GcpConnectionStatus} from './gcpConnectionStatus';
+import {GrafanaIntegrationForm} from './grafanaIntegrationForm';
 import {IntegrationAlertRules} from './integrationAlertRules';
 import {IntegrationCodeMappings} from './integrationCodeMappings';
 import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
@@ -301,18 +302,30 @@ function IntegrationMainTab({
               </Container>
             </Flex>
           )}
-          {integration.configOrganization?.map(fieldConfig => (
-            <BackendJsonAutoSaveForm
-              key={fieldConfig.name}
-              field={fieldConfig}
-              initialValue={
-                integration.configData?.[fieldConfig.name] as FieldValue<
-                  typeof fieldConfig
-                >
+          {provider.key === 'grafana' ? (
+            <GrafanaIntegrationForm
+              key={integration.id}
+              initialUrl={
+                typeof integration.configData?.url === 'string'
+                  ? integration.configData.url
+                  : ''
               }
               mutationOptions={integrationMutationOptions}
             />
-          ))}
+          ) : (
+            integration.configOrganization?.map(fieldConfig => (
+              <BackendJsonAutoSaveForm
+                key={fieldConfig.name}
+                field={fieldConfig}
+                initialValue={
+                  integration.configData?.[fieldConfig.name] as FieldValue<
+                    typeof fieldConfig
+                  >
+                }
+                mutationOptions={integrationMutationOptions}
+              />
+            ))
+          )}
         </FieldGroup>
       )}
 

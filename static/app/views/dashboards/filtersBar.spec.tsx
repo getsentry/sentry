@@ -443,6 +443,33 @@ describe('FiltersBar', () => {
     expect(screen.getByRole('button', {name: 'Save for Everyone'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
+
+  describe('query priority', () => {
+    it('hides the control when the feature is off', () => {
+      renderFilterBar();
+
+      expect(
+        screen.queryByRole('button', {name: 'Query priority: Normal'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('defaults to normal and can switch to faster', async () => {
+      organization = OrganizationFixture({
+        features: ['dashboards-basic', 'dashboards-edit', 'low-priority-queries'],
+      });
+      renderFilterBar();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
+      expect(screen.getByText('Balance speed and accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Faster with reduced accuracy')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
+
+      expect(
+        screen.getByRole('button', {name: 'Query priority: Faster'})
+      ).toBeInTheDocument();
+    });
+  });
 });
 
 const mockNetworkRequests = () => {

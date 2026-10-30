@@ -1,6 +1,7 @@
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -9,6 +10,7 @@ from django.urls import reverse
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.integration import (
     JiraIntegrationProvider,
     _build_project_mapping_audit_data,
@@ -1027,6 +1029,31 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
+
+    @responses.activate
+    def test_sync_assignee_outbound_stops_at_first_match(self) -> None:
+        user = self.create_user(email="bob@example.com")
+        self.create_useremail(user, "bob@other.example.com", is_verified=True)
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+        search_url = "https://example.atlassian.net/rest/api/2/user/assignable/search"
+
+        def search(request):
+            email = parse_qs(urlparse(request.url).query)["query"][0]
+            return 200, {}, json.dumps([{"accountId": email, "emailAddress": email}])
+
+        responses.add_callback(responses.GET, search_url, callback=search)
+        responses.add(
+            responses.PUT,
+            "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id,
+            json={},
+        )
+        installation.sync_assignee_outbound(external_issue, serialize_rpc_user(user))
+
+        assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self) -> None:
@@ -2403,6 +2430,14 @@ class JiraApiPipelineTest(APITestCase):
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
+        # The `installed` webhook creates this row before Jira renders the
+        # configure link.
+        self.integration = self.create_provider_integration(
+            provider=self.provider.key,
+            external_id=self.external_id,
+            name="JIRA",
+            metadata=self.metadata,
+        )
 
     def _get_pipeline_url(self) -> str:
         return reverse(
@@ -2420,7 +2455,12 @@ class JiraApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _signed_params(self) -> str:
-        return sign(salt=SALT, external_id=self.external_id, metadata=json.dumps(self.metadata))
+        return sign(salt=SALT, external_id=self.external_id)
+
+    def _assert_not_installed(self) -> None:
+        assert not OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).exists()
 
     def test_initialize_returns_confirmation_data(self) -> None:
         resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
@@ -2432,7 +2472,31 @@ class JiraApiPipelineTest(APITestCase):
         assert "state" in data
         # Confirmation step does not auto-advance.
         assert "appDirectoryInstall" not in data
-        assert not Integration.objects.filter(provider=self.provider.key).exists()
+        self._assert_not_installed()
+
+    def test_initialize_ignores_metadata_in_link(self) -> None:
+        # Links minted by older versions also carried `metadata`. Only the
+        # stored record should be used.
+        legacy = sign(
+            salt=SALT,
+            external_id=self.external_id,
+            metadata=json.dumps({**self.metadata, "base_url": "https://other.atlassian.net"}),
+        )
+        resp = self._initialize_pipeline(initial_data={"signedParams": legacy})
+        assert resp.status_code == 200
+        assert resp.data["data"]["baseUrl"] == "https://example.atlassian.net"
+
+    def test_initialize_unknown_external_id(self) -> None:
+        signed = sign(salt=SALT, external_id="not-an-installed-site")
+        resp = self._initialize_pipeline(initial_data={"signedParams": signed})
+        assert resp.status_code == 400
+        self._assert_not_installed()
+
+    def test_initialize_disabled_integration(self) -> None:
+        self.integration.update(status=ObjectStatus.DISABLED)
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        assert resp.status_code == 400
+        self._assert_not_installed()
 
     def test_initialize_expired_signature(self) -> None:
         with patch("sentry.integrations.jira.integration.INSTALL_EXPIRATION_TIME", -1):
@@ -2442,11 +2506,7 @@ class JiraApiPipelineTest(APITestCase):
     def test_initialize_tampered_signature(self) -> None:
         # Signed with a different salt, so unsigning with SALT raises
         # BadSignature rather than SignatureExpired.
-        tampered = sign(
-            salt="not-the-jira-salt",
-            external_id=self.external_id,
-            metadata=json.dumps(self.metadata),
-        )
+        tampered = sign(salt="not-the-jira-salt", external_id=self.external_id)
         resp = self._initialize_pipeline(initial_data={"signedParams": tampered})
         assert resp.status_code == 400
 
@@ -2454,7 +2514,7 @@ class JiraApiPipelineTest(APITestCase):
         self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
         resp = self._advance_step({"state": "not-the-pipeline-signature"})
         assert resp.status_code == 400
-        assert not Integration.objects.filter(provider=self.provider.key).exists()
+        self._assert_not_installed()
 
     @responses.activate
     def test_install(self) -> None:

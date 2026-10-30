@@ -57,6 +57,7 @@ from sentry.preprod.models import (
     PreprodSnapshotMetrics,
 )
 from sentry.replays.models import ReplayDeletionJobModel
+from sentry.service_accounts.models import ServiceAccount
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.tempest.models import TempestCredentials
@@ -188,20 +189,32 @@ class Fixtures:
     def create_organization_avatar(self, *args, **kwargs):
         return Factories.create_organization_avatar(*args, **kwargs)
 
-    def create_investigation(self, *args, **kwargs):
-        return Factories.create_investigation(*args, **kwargs)
+    def create_notebook(self, *args, **kwargs):
+        return Factories.create_notebook(*args, **kwargs)
 
-    def create_investigation_project(self, *args, **kwargs):
-        return Factories.create_investigation_project(*args, **kwargs)
+    def create_notebook_project(self, *args, **kwargs):
+        return Factories.create_notebook_project(*args, **kwargs)
 
-    def create_investigation_favorite(self, *args, **kwargs):
-        return Factories.create_investigation_favorite(*args, **kwargs)
+    def create_notebook_favorite(self, *args, **kwargs):
+        return Factories.create_notebook_favorite(*args, **kwargs)
 
-    def create_investigation_seen(self, *args, **kwargs):
-        return Factories.create_investigation_seen(*args, **kwargs)
+    def create_notebook_seen(self, *args, **kwargs):
+        return Factories.create_notebook_seen(*args, **kwargs)
 
-    def create_investigation_comment(self, *args, **kwargs):
-        return Factories.create_investigation_comment(*args, **kwargs)
+    def create_notebook_comment(self, *args, **kwargs):
+        return Factories.create_notebook_comment(*args, **kwargs)
+
+    def create_notebook_action_request(self, *args, **kwargs):
+        return Factories.create_notebook_action_request(*args, **kwargs)
+
+    def create_notebook_block(self, *args, **kwargs):
+        return Factories.create_notebook_block(*args, **kwargs)
+
+    def create_notebook_block_execution(self, *args, **kwargs):
+        return Factories.create_notebook_block_execution(*args, **kwargs)
+
+    def create_notebook_block_execution_project(self, *args, **kwargs):
+        return Factories.create_notebook_block_execution_project(*args, **kwargs)
 
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
@@ -211,24 +224,6 @@ class Fixtures:
 
     def create_investigation_orchestration_command(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_command(*args, **kwargs)
-
-    def create_investigation_block(self, *args, **kwargs):
-        return Factories.create_investigation_block(*args, **kwargs)
-
-    def create_investigation_block_dependency(self, *args, **kwargs):
-        return Factories.create_investigation_block_dependency(*args, **kwargs)
-
-    def create_investigation_parameter(self, *args, **kwargs):
-        return Factories.create_investigation_parameter(*args, **kwargs)
-
-    def create_investigation_block_parameter(self, *args, **kwargs):
-        return Factories.create_investigation_block_parameter(*args, **kwargs)
-
-    def create_investigation_block_execution(self, *args, **kwargs):
-        return Factories.create_investigation_block_execution(*args, **kwargs)
-
-    def create_investigation_block_execution_project(self, *args, **kwargs):
-        return Factories.create_investigation_block_execution_project(*args, **kwargs)
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
@@ -355,6 +350,11 @@ class Fixtures:
         if project is None:
             project = self.project
         return Factories.create_repo(project, *args, **kwargs)
+
+    def create_project_repository(self, project=None, **kwargs):
+        if project is None:
+            project = self.project
+        return Factories.create_project_repository(project, **kwargs)
 
     def create_seer_project_repository(self, project=None, **kwargs):
         if project is None:
@@ -569,42 +569,12 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, *args, **kwargs):
-        if not organization:
-            organization = self.organization
-        if projects is None:
-            projects = [self.project]
-
-        return Factories.create_incident(organization, projects, *args, **kwargs)
-
     def create_alert_rule(self, organization=None, projects=None, *args, **kwargs) -> AlertRule:
         if not organization:
             organization = self.organization
         if projects is None:
             projects = [self.project]
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
-
-    def create_alert_rule_trigger(self, alert_rule=None, *args, **kwargs):
-        if not alert_rule:
-            alert_rule = self.create_alert_rule()
-        return Factories.create_alert_rule_trigger(alert_rule, *args, **kwargs)
-
-    def create_alert_rule_trigger_action(
-        self,
-        alert_rule_trigger=None,
-        target_identifier=None,
-        *args,
-        **kwargs,
-    ):
-        if not alert_rule_trigger:
-            alert_rule_trigger = self.create_alert_rule_trigger()
-
-        if not target_identifier:
-            target_identifier = str(self.user.id)
-
-        return Factories.create_alert_rule_trigger_action(
-            alert_rule_trigger, target_identifier=target_identifier, **kwargs
-        )
 
     def create_notification_action(self, organization=None, projects=None, **kwargs):
         return Factories.create_notification_action(
@@ -616,6 +586,14 @@ class Fixtures:
 
     def create_notification_settings_provider(self, *args, **kwargs):
         return Factories.create_notification_settings_provider(*args, **kwargs)
+
+    def create_inbox_item(self, organization=None, user=None, **kwargs):
+        return Factories.create_inbox_item(
+            organization=organization or self.organization, user=user or self.user, **kwargs
+        )
+
+    def create_inbox_item_event(self, *args, **kwargs):
+        return Factories.create_inbox_item_event(*args, **kwargs)
 
     def create_weekly_report_project_exclusion(self, **kwargs):
         return Factories.create_weekly_report_project_exclusion(**kwargs)
@@ -725,6 +703,9 @@ class Fixtures:
     def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
         return Factories.create_gcp_service_account(*args, **kwargs)
 
+    def create_service_account(self, *args: Any, **kwargs: Any) -> ServiceAccount:
+        return Factories.create_service_account(*args, **kwargs)
+
     def create_organization_contributor(
         self,
         organization: Organization,
@@ -807,6 +788,16 @@ class Fixtures:
             organization = self.organization
         return Factories.create_explore_saved_formula(organization, *args, **kwargs)
 
+    def create_explore_saved_query(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_explore_saved_query(organization, **kwargs)
+
+    def create_discover_saved_query(self, organization=None, **kwargs):
+        if organization is None:
+            organization = self.organization
+        return Factories.create_discover_saved_query(organization, **kwargs)
+
     def create_dashboard_favorite_user(self, *args, **kwargs):
         return Factories.create_dashboard_favorite_user(*args, **kwargs)
 
@@ -874,6 +865,9 @@ class Fixtures:
 
     def create_data_condition_group_action(self, *args, **kwargs):
         return Factories.create_data_condition_group_action(*args, **kwargs)
+
+    def create_data_condition_alert_rule_trigger(self, *args, **kwargs):
+        return Factories.create_data_condition_alert_rule_trigger(*args, **kwargs)
 
     def create_detector_workflow(self, *args, **kwargs):
         return Factories.create_detector_workflow(*args, **kwargs)

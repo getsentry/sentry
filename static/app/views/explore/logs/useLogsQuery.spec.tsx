@@ -21,16 +21,14 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
+import type {LogPageParam} from 'sentry/views/explore/logs/logsInfinitePageParams';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {
-  useInfiniteLogsQuery,
-  type LogPageParam,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {useInfiniteLogsQuery} from 'sentry/views/explore/logs/useLogsQuery';
 import {useSetQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 
 type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;

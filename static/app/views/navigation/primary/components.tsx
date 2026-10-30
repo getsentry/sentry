@@ -80,6 +80,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         borderBottom="primary"
         width="100%"
         height={`${PRIMARY_HEADER_HEIGHT}px`}
+        flexShrink={0}
         {...props}
       >
         {props.children}
@@ -131,8 +132,6 @@ interface PrimaryNavigationLinkProps
 
 function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
-  const {layout, features} = usePrimaryNavigation();
-  const isMobile = layout === 'mobile';
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
@@ -146,10 +145,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
-      // On touch mobile devices, prevent navigation and let setActiveGroup handle the active state
-      if (isMobile && !features.hover) {
-        e.preventDefault();
-      }
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
         organization,

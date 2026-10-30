@@ -8,7 +8,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {LOGS_ANCHOR_TIMESTAMP_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
@@ -29,7 +28,6 @@ export type AutoRefreshState =
 
 interface LogsAutoRefreshContextValue {
   autoRefresh: AutoRefreshState;
-  hasInitialized: boolean;
   isTableFrozen: boolean | undefined;
   pausedAt: number | undefined;
   refreshInterval: number;
@@ -94,8 +92,6 @@ export function LogsAutoRefreshProvider({
         isTableFrozen,
         pausedAt,
         setPausedAt,
-        // oxlint-disable-next-line react/refs
-        hasInitialized: hasInitialized.current,
       }}
     >
       {children}
@@ -132,29 +128,40 @@ function pausedAtAllowedToContinue(pausedAt: number | undefined) {
 export function useSetLogsAutoRefresh() {
   const location = useLocation();
   const navigate = useNavigate();
-  const rawHighFidelity = useLogsQueryHighFidelity();
-  const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
-  const highFidelity = autoRefreshHasInitialized ? false : rawHighFidelity;
-  const {infiniteApiOptions} = useLogsApiOptionsWithInfinite({
+  const {infiniteApiOptions: liveApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: 'api.explore.logs-table',
     autoRefresh: true,
-    highFidelity,
+    highFidelity: false,
   });
-  const queryKey = infiniteApiOptions.queryKey;
+  const {infiniteApiOptions: highFidelityApiOptions} = useLogsApiOptionsWithInfinite({
+    referrer: 'api.explore.logs-table',
+    autoRefresh: false,
+    highFidelity: true,
+  });
+  const liveQueryKey = liveApiOptions.queryKey;
+  const highFidelityQueryKey = highFidelityApiOptions.queryKey;
   const queryClient = useQueryClient();
-  const {setPausedAt, pausedAt: currentPausedAt} = useLogsAutoRefresh();
+  const {
+    autoRefresh: currentAutoRefresh,
+    setPausedAt,
+    pausedAt: currentPausedAt,
+  } = useLogsAutoRefresh();
 
   return useCallback(
     (autoRefresh: AutoRefreshState) => {
       if (autoRefresh === 'enabled' && !withinPauseWindow(autoRefresh, currentPausedAt)) {
-        queryClient.removeQueries({queryKey});
+        queryClient.removeQueries({queryKey: liveQueryKey});
+      }
+
+      if (currentAutoRefresh === 'enabled' && autoRefresh !== 'enabled') {
+        queryClient.removeQueries({queryKey: highFidelityQueryKey});
       }
 
       const newPausedAt = autoRefresh === 'paused' ? Date.now() : undefined;
       const target: Location = {...location, query: {...location.query}};
       if (autoRefresh === 'paused') {
         setPausedAt(newPausedAt);
-        queryClient.removeQueries({queryKey});
+        queryClient.removeQueries({queryKey: liveQueryKey});
       } else if (autoRefresh !== 'enabled') {
         // Any error state, or disabled state, should reset the pause state.
         setPausedAt(undefined);
@@ -172,7 +179,16 @@ export function useSetLogsAutoRefresh() {
 
       navigateIfQueryChanged(navigate, location, target);
     },
-    [navigate, location, queryClient, queryKey, setPausedAt, currentPausedAt]
+    [
+      navigate,
+      location,
+      queryClient,
+      liveQueryKey,
+      highFidelityQueryKey,
+      setPausedAt,
+      currentPausedAt,
+      currentAutoRefresh,
+    ]
   );
 }
 

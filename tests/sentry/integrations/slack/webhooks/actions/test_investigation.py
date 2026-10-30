@@ -16,9 +16,9 @@ from sentry.integrations.slack.webhooks.actions.investigation import (
     MissingInvestigationAction,
     _get_investigation_source,
 )
-from sentry.investigations.models import Investigation
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.tracking import NotificationLink
 from sentry.notifications.platform.types import NotificationSource
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
@@ -161,8 +161,8 @@ class SeerInvestigationStartActionTest(BaseEventTest):
             slack_user=slack_user,
         )
 
-    def investigations(self) -> list[Investigation]:
-        return list(Investigation.objects.filter(organization=self.organization))
+    def investigations(self) -> list[Notebook]:
+        return list(Notebook.objects.filter(organization=self.organization))
 
     def test_unlinked_user_gets_link_prompt(self) -> None:
         response = self.click(slack_user={"id": "slack:unlinked", "team_id": "TXXXXXXX1"})
@@ -217,6 +217,19 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         assert self.investigations() == []
 
     @with_feature(FEATURES)
+    @patch(
+        "sentry.models.organizationmember.OrganizationMember.get_scopes",
+        return_value=frozenset({"org:billing"}),
+    )
+    def test_member_without_investigation_scope_is_unavailable(
+        self, mock_get_scopes: MagicMock
+    ) -> None:
+        response = self.click()
+
+        assert response.data["text"] == "Seer can't start an investigation for this alert."
+        assert self.investigations() == []
+
+    @with_feature(FEATURES)
     def test_group_from_another_organization_is_unavailable(self) -> None:
         other_project = self.create_project(organization=self.create_organization())
         other_group = self.create_group(project=other_project, type=MetricIssue.type_id)
@@ -224,7 +237,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         response = self.click(group_id=other_group.id)
 
         assert response.data["text"] == "Seer can't start an investigation for this alert."
-        assert not Investigation.objects.exists()
+        assert not Notebook.objects.exists()
 
     @with_feature(FEATURES)
     def test_malformed_action_value_is_unavailable(self) -> None:
@@ -235,7 +248,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         )
 
         assert response.data["text"] == "Seer can't start an investigation for this alert."
-        assert not Investigation.objects.exists()
+        assert not Notebook.objects.exists()
 
     @with_feature(FEATURES)
     @override_options(

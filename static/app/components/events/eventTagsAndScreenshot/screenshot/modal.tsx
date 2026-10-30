@@ -74,8 +74,8 @@ export function ScreenshotModal({
   };
 
   useHotkeys([
-    {match: 'right', callback: () => paginateItems(1)},
-    {match: 'left', callback: () => paginateItems(-1)},
+    {hotkey: 'ArrowRight', callback: () => paginateItems(1)},
+    {hotkey: 'ArrowLeft', callback: () => paginateItems(-1)},
   ]);
 
   const {dateCreated, size, mimetype} = currentEventAttachment;

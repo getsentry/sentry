@@ -26,6 +26,7 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -36,6 +37,7 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefreshEnabled,
   useSetLogsAutoRefresh,
@@ -513,9 +515,15 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const organization = useOrganization();
+
   const scrollToAnchor = useEffectEvent((anchorId: string) => {
     const index = data.findIndex(row => row[OurLogKnownFieldKey.ID] === anchorId);
     if (index === -1) {
+      trackAnalytics('logs.table.pinned_row_not_in_results', {
+        log_id: anchorId,
+        organization,
+      });
       addErrorMessage(t('This log is not in the current results'));
       clearAnchor();
       return;
@@ -531,7 +539,7 @@ export function LogsInfiniteTable({
 
   const setAutoRefresh = useSetLogsAutoRefresh();
 
-  const handleViewInTable = useCallback(
+  const handleScrollToLog = useCallback(
     (dataRow: OurLogsResponseItem) => {
       if (autoRefresh) {
         setAutoRefresh('paused');
@@ -591,7 +599,7 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
-          onViewInTable={handleViewInTable}
+          onScrollToLog={handleScrollToLog}
         />
       );
     },
@@ -601,7 +609,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       handleTogglePinnedRow,
-      handleViewInTable,
+      handleScrollToLog,
       highlightTerms,
       hoveredRowId,
       logEnd,

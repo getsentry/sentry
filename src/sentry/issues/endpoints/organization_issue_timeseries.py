@@ -170,6 +170,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                         new_grouped_series[key] = series
                     else:
                         for s in series:
+                            assert s["value"] is not None
                             other_series[s["timestamp"]] += s["value"]
 
                 if other_series:

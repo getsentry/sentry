@@ -65,6 +65,15 @@
 /static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
 ## End of Frontend Platform shared code
 
+## Taskbroker workers
+# The taskworker runtime is in the stack trace of every task error. Sentry assigns an
+# issue to the LAST matching line, so this must come before the teams that own the
+# tasks: their line then beats the runtime frame. No other pattern matches these paths,
+# so GitHub review routing does not change.
+/src/sentry/taskworker/                                       @getsentry/streaming-platform
+/tests/sentry/taskworker/                                     @getsentry/streaming-platform
+## End of Taskbroker workers
+
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
 
@@ -119,7 +128,7 @@
 /src/sentry/net/                                         @getsentry/security
 /src/sentry/auth/                                        @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /tests/sentry/auth/                                      @getsentry/security @getsentry/foundations @getsentry/owners-auth
-/src/sentry/api/permissions.py                           @getsentry/security @getsentry/foundations @getsentry/owners-auth
+/src/sentry/api/permissions.py                           @getsentry/security @getsentry/foundations @getsentry/owners-auth @getsentry/owners-api
 /src/sentry/api/authentication.py                        @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/api/endpoints/auth*                          @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/users/api/endpoints/user_permission*         @getsentry/security @getsentry/foundations @getsentry/owners-auth
@@ -129,7 +138,6 @@
 /src/sentry/web/frontend/auth_organization_login.py      @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/auth_provider_login.py          @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/oauth_token.py                  @getsentry/security @getsentry/foundations @getsentry/owners-auth
-/src/sentry/web/frontend/oauth_authorize.py              @getsentry/security @getsentry/foundations @getsentry/owners-auth
 /src/sentry/web/frontend/openidtoken.py                  @getsentry/security
 /.agents/skills/sentry-security/                         @getsentry/security
 
@@ -285,7 +293,6 @@ pnpm-lock.yaml                                           @getsentry/owners-js-de
 
 ## Visibility
 /src/sentry/api/endpoints/organization_tags.py                              @getsentry/data-browsing
-/src/sentry/api/endpoints/organization_events_histogram.py                  @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_facets_performance.py         @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_spans_performance.py          @getsentry/data-browsing
 /src/sentry/api/endpoints/organization_events_trace.py                      @getsentry/data-browsing
@@ -306,7 +313,6 @@ src/sentry/api/endpoints/organization_attribute_mappings.py                 @get
 
 /tests/snuba/api/endpoints/*                                                @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_tags.py                        @getsentry/data-browsing
-/tests/snuba/api/endpoints/test_organization_events_histogram.py            @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_facets_performance.py   @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_spans_performance.py    @getsentry/data-browsing
 /tests/snuba/api/endpoints/test_organization_events_trace.py                @getsentry/data-browsing
@@ -384,6 +390,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/events/interfaces/spans/                           @getsentry/data-browsing
 /static/app/components/events/viewHierarchy/*                             @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/                                @getsentry/data-browsing
+/static/packages/search-syntax/                                           @getsentry/data-browsing
 /static/app/components/searchQueryBuilder/askSeerCombobox/                @getsentry/data-browsing @getsentry/machine-learning-ai
 /static/app/components/arithmeticBuilder/                                 @getsentry/data-browsing
 
@@ -593,14 +600,36 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 
 ## APIs
-/src/sentry/apidocs/                                        @getsentry/docs
-/src/sentry/api/urls.py                                     @getsentry/foundations
-/api-docs/                                                  @getsentry/docs
-/tests/apidocs/                                             @getsentry/docs
-/.github/workflows/openapi.yml                              @getsentry/docs
-/.github/workflows/openapi-diff.yml                         @getsentry/docs
-/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/foundations
-/tests/sentry/api/test_path_params.py                       @getsentry/foundations
+/src/sentry/apidocs/                                        @getsentry/owners-api
+/src/sentry/api/urls.py                                     @getsentry/owners-api
+/api-docs/                                                  @getsentry/owners-api
+/tests/apidocs/                                             @getsentry/owners-api
+/.github/workflows/openapi.yml                              @getsentry/owners-api
+/.github/workflows/openapi-diff.yml                         @getsentry/owners-api
+/src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
+/tests/sentry/api/test_path_params.py                       @getsentry/owners-api
+/src/sentry/api/api_publish_status.py                       @getsentry/owners-api
+/src/sentry/api/endpoint_owners.py                          @getsentry/owners-api
+/tests/sentry/api/test_endpoint_owners.py                   @getsentry/owners-api
+/src/sentry/management/commands/api_endpoint_owners.py      @getsentry/owners-api
+/tests/sentry/management/commands/test_api_endpoint_owners.py  @getsentry/owners-api
+/src/sentry/api/client_kind.py                              @getsentry/owners-api
+/tests/sentry/api/test_client_kind.py                       @getsentry/owners-api
+
+# API lint tooling
+/tools/api_guidelines/                                      @getsentry/owners-api
+/tests/tools/api_guidelines/                                @getsentry/owners-api
+
+# Permission scopes
+/src/sentry/models/apiscopes.py                             @getsentry/owners-api
+/src/sentry/api/caller_scopes.py                            @getsentry/owners-api
+/tests/sentry/api/test_caller_scopes.py                     @getsentry/owners-api
+/src/sentry/api/helpers/oauth_consent.py                    @getsentry/owners-api
+/tests/sentry/api/helpers/test_oauth_consent.py             @getsentry/owners-api
+/tests/sentry/conf/test_scopes.py                           @getsentry/owners-api
+/src/sentry/auth/deprecated_scope_translation.py            @getsentry/owners-api @getsentry/security @getsentry/foundations @getsentry/owners-auth
+/tests/sentry/auth/test_deprecated_scope_translation.py     @getsentry/owners-api @getsentry/security @getsentry/foundations @getsentry/owners-auth
+/static/app/views/settings/account/granularPermissionSelection.tsx  @getsentry/owners-api
 ## End of APIs
 
 
@@ -648,6 +677,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/tasks/test_ai_agent_monitoring.py                                        @getsentry/agent-tracing
 /src/sentry/ai_monitoring/                                                             @getsentry/agent-tracing
 /tests/sentry/ai_monitoring/                                                           @getsentry/agent-tracing
+/src/sentry/telemetry_classifiers/                                                     @getsentry/agent-tracing
+/tests/sentry/telemetry_classifiers/                                                   @getsentry/agent-tracing
 /tests/sentry/api/endpoints/test_organization_ai_conversation*.py                      @getsentry/agent-tracing
 /src/sentry/apidocs/examples/ai_conversation_examples.py                               @getsentry/agent-tracing
 /src/sentry/analytics/events/agent_monitoring_events.py                                @getsentry/agent-tracing
@@ -697,6 +728,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 
 ## End of ML & AI
 
@@ -844,10 +877,6 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of Ecosystem
 
 
-# Taskbroker workers
-/src/sentry/taskworker/                                       @getsentry/streaming-platform
-/tests/sentry/taskworker/                                     @getsentry/streaming-platform
-
 # Tempest
 /src/sentry/tempest/                                       @getsentry/gdx
 /tests/sentry/tempest/                                     @getsentry/gdx
@@ -910,6 +939,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 # Agent Interfaces
 /static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/views/seerWorkflows/                          @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend

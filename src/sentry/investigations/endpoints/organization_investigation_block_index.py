@@ -22,9 +22,9 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationBlockSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import BlockCreateValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services import create_block
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -60,7 +60,7 @@ class OrganizationInvestigationBlocksEndpoint(OrganizationInvestigationEndpoint)
         ],
     )
     def post(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Append a text or query block to an active investigation. Uses investigationVersion for

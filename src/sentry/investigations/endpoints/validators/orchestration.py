@@ -26,6 +26,9 @@ ORCHESTRATION_EVENT_TYPES = (
     "report_failed",
     "title_delta",
     "metadata_completed",
+    "action_requested",
+    "action_withdrawn",
+    "rerun_updated",
     "workflow_failed",
 )
 

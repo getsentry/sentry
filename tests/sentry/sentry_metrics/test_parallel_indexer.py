@@ -1,10 +1,10 @@
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Any
 
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.test import override_settings
 
 from sentry.metrics.middleware import global_tags
 from sentry.sentry_metrics.consumers.indexer.parallel import MetricsConsumerStrategyFactory
@@ -36,9 +36,7 @@ def reset_global_metrics_state() -> Iterator[None]:
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("force_disable_multiprocessing", [True, False])
-def test_basic(
-    request: pytest.FixtureRequest, settings: Any, force_disable_multiprocessing: bool
-) -> None:
+def test_basic(request: pytest.FixtureRequest, force_disable_multiprocessing: bool) -> None:
     """
     Integration test to verify that the parallel indexer can spawn subprocesses
     properly. The main purpose is to verify that there are no
@@ -48,38 +46,39 @@ def test_basic(
     # Eventually we should stop testing with the real multiprocessing strategy
     # and instead have enough sanity checks built into sentry.utils.arroyo to
     # make it no longer necessary.
-    settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = force_disable_multiprocessing
+    with override_settings(
+        KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING=force_disable_multiprocessing
+    ):
+        processing_factory = MetricsConsumerStrategyFactory(
+            max_msg_batch_size=1,
+            max_msg_batch_time=1,
+            max_parallel_batch_size=1,
+            max_parallel_batch_time=1,
+            processes=1,
+            input_block_size=1024,
+            output_block_size=1024,
+            ingest_profile="release-health",
+            indexer_db="postgres",
+        )
 
-    processing_factory = MetricsConsumerStrategyFactory(
-        max_msg_batch_size=1,
-        max_msg_batch_time=1,
-        max_parallel_batch_size=1,
-        max_parallel_batch_time=1,
-        processes=1,
-        input_block_size=1024,
-        output_block_size=1024,
-        ingest_profile="release-health",
-        indexer_db="postgres",
-    )
+        strategy = processing_factory.create_with_partitions(
+            lambda _, force=False: None,
+            {Partition(topic=Topic(name="ingest-bogus-metrics"), index=1): 1},
+        )
 
-    strategy = processing_factory.create_with_partitions(
-        lambda _, force=False: None,
-        {Partition(topic=Topic(name="ingest-bogus-metrics"), index=1): 1},
-    )
+        message = Message(
+            BrokerValue(
+                KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
+                Partition(Topic("topic"), 0),
+                0,
+                datetime.now(),
+            ),
+        )
 
-    message = Message(
-        BrokerValue(
-            KafkaPayload(None, json.dumps(counter_payload).encode("utf-8"), []),
-            Partition(Topic("topic"), 0),
-            0,
-            datetime.now(),
-        ),
-    )
-
-    # Just assert that the strategy does not crash. Further assertions, such as
-    # on the produced messages, would slow down the test significantly.
-    strategy.submit(message=message)
-    strategy.close()
-    strategy.join()
-    # Close the multiprocessing pool
-    processing_factory.shutdown()
+        # Just assert that the strategy does not crash. Further assertions, such as
+        # on the produced messages, would slow down the test significantly.
+        strategy.submit(message=message)
+        strategy.close()
+        strategy.join()
+        # Close the multiprocessing pool
+        processing_factory.shutdown()

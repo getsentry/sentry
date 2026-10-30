@@ -59,7 +59,7 @@ export function SentryComponentInspector() {
 
   useHotkeys([
     {
-      match: 'mod+i',
+      hotkey: 'Mod+I',
       callback: () => {
         if (NODE_ENV !== 'development') {
           return;

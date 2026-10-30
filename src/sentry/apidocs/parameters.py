@@ -834,7 +834,7 @@ Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 Example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 
 With the `logs` dataset, a string attribute can also be matched against a regular expression written as `key://pattern//`, and excluded with `!key://pattern//`.
-Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters.
+Patterns use [RE2 syntax](https://github.com/google/re2/wiki/Syntax), match anywhere in the value unless anchored with `^` or `$`, are case sensitive unless they start with `(?i)`, and are limited to 64 characters. A query can contain up to 16 regular expressions.
 To search for a literal value that starts with `//`, quote it: `key:"//value"`.
 See [regular expressions](/concepts/search/#regular-expressions-logs-only) for more details.
 
@@ -1084,6 +1084,20 @@ class EventParams:
         enum=["latest", "oldest", "recommended"],
     )
 
+    EVENT_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location=OpenApiParameter.QUERY,
+        required=False,
+        type=OpenApiTypes.STR,
+        many=True,
+        enum=["adjacentEvents"],
+        description=(
+            "Parts of the response to skip computing. Specify `adjacentEvents` to skip looking up "
+            "the neighboring events in the issue; `nextEventID` and `previousEventID` are then "
+            "always `null`. Unknown values are ignored."
+        ),
+    )
+
     FULL_PAYLOAD = OpenApiParameter(
         name="full",
         type=OpenApiTypes.BOOL,
@@ -1112,6 +1126,16 @@ class EventParams:
             "[Sentry Search Documentation](https://docs.sentry.io/concepts/search/searchable-properties/events/) for more information. An example query might be `query=transaction:foo AND release:abc`"
         ),
         required=False,
+    )
+
+
+class TraceParams:
+    TRACE_ID = OpenApiParameter(
+        name="trace_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of the trace, a 32-character hexadecimal string.",
     )
 
 
@@ -1535,6 +1559,13 @@ class InvestigationParams:
         required=True,
         type=str,
         description="The ID of an investigation in this organization.",
+    )
+    ACTION_REQUEST_ID = OpenApiParameter(
+        name="action_request_id",
+        location="path",
+        required=True,
+        type=str,
+        description="The ID of an action request in this investigation.",
     )
     CURSOR = OpenApiParameter(
         name="cursor",

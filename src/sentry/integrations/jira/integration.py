@@ -7,7 +7,6 @@ from collections.abc import Mapping, Sequence
 from operator import attrgetter
 from typing import Any, NamedTuple, NoReturn, TypedDict
 
-import orjson
 import sentry_sdk
 from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
@@ -23,6 +22,7 @@ from rest_framework.fields import CharField
 
 from sentry import features
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.constants import ObjectStatus
 from sentry.integrations.base import (
     FeatureDescription,
     IntegrationData,
@@ -31,7 +31,6 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.jira.models.create_issue_metadata import JiraIssueTypeMetadata
-from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira.views import SALT
 from sentry.integrations.mixins.issues import (
     MAX_CHAR,
@@ -1409,6 +1408,8 @@ class JiraIntegration(IssueSyncIntegration):
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break
+                if jira_user is not None:
+                    break
             if jira_user is None:
                 # TODO(jess): do we want to email people about these types of failures?
                 logger.info(
@@ -1515,14 +1516,6 @@ class JiraIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def migrate_issues(self):
-        migrate_issues.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
-        )
-
     def parse_jira_issue_metadata(
         self, meta: dict[str, Any]
     ) -> dict[str, JiraIssueTypeMetadata] | None:
@@ -1538,12 +1531,12 @@ INSTALL_EXPIRATION_TIME = 60 * 60 * 24
 
 
 class JiraInstallParams(TypedDict):
-    """Decoded contents of the `signed_params` blob from a Marketplace install.
+    """Install params resolved from the `signed_params` blob of a Marketplace install.
 
-    The Jira UI hook (`JiraSentryInstallationView`) signs the integration's
-    `external_id` plus a JSON-encoded `metadata` payload into the configure
-    link. We decode `metadata` back into a dict here so it can be bound to
-    pipeline state and consumed by `build_integration`.
+    The Jira UI hook (`JiraSentryInstallationView`) signs only the integration's
+    `external_id` into the configure link. `metadata` is loaded from the
+    integration record the `installed` webhook already created, so it can be
+    bound to pipeline state and consumed by `build_integration`.
     """
 
     external_id: str
@@ -1553,9 +1546,10 @@ class JiraInstallParams(TypedDict):
 class JiraInitialDataSerializer(CamelSnakeSerializer):
     """Initial pipeline data for Jira Cloud Marketplace installs.
 
-    The configure link carries a single `signed_params` blob. We unsign it and
-    bind `external_id` and the decoded `metadata` dict to top-level pipeline
-    state so the confirmation step and `build_integration` can read them.
+    The configure link carries a single `signed_params` blob. We unsign it,
+    look up the integration by `external_id`, and bind `external_id` and the
+    stored `metadata` to top-level pipeline state so the confirmation step and
+    `build_integration` can read them.
     """
 
     signed_params = CharField(required=True)
@@ -1568,9 +1562,19 @@ class JiraInitialDataSerializer(CamelSnakeSerializer):
         except BadSignature:
             raise serializers.ValidationError("Invalid installation link")
 
+        # Links minted before this change also carry `metadata`; ignore it so
+        # the stored record stays the only source for it.
+        integration = integration_service.get_integration(
+            provider=IntegrationProviderSlug.JIRA.value,
+            external_id=decoded["external_id"],
+            status=ObjectStatus.ACTIVE,
+        )
+        if integration is None:
+            raise serializers.ValidationError("Invalid installation link")
+
         return {
-            "external_id": decoded["external_id"],
-            "metadata": orjson.loads(decoded["metadata"]),
+            "external_id": integration.external_id,
+            "metadata": dict(integration.metadata),
         }
 
 

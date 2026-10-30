@@ -1,6 +1,6 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
@@ -22,6 +22,10 @@
     "./theme": {
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
+    },
+    "./formPresentation": {
+      "types": "./dist/formPresentation/index.d.ts",
+      "import": "./dist/formPresentation/index.js"
     },
     "./tokens": {
       "types": "./dist/tokens/index.d.ts",
@@ -63,6 +67,14 @@
       "types": "./dist/slider/index.d.ts",
       "import": "./dist/slider/index.js"
     },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js"
+    },
+    "./textarea": {
+      "types": "./dist/textarea/index.d.ts",
+      "import": "./dist/textarea/index.js"
+    },
     "./slot": {
       "types": "./dist/slot/index.d.ts",
       "import": "./dist/slot/index.js"
@@ -95,6 +107,14 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
+    "./useOnClickOutside": {
+      "types": "./dist/useOnClickOutside.d.ts",
+      "import": "./dist/useOnClickOutside.js"
+    },
     "./link": {
       "types": "./dist/link/index.d.ts",
       "import": "./dist/link/index.js"
@@ -118,6 +138,10 @@
     "./radio": {
       "types": "./dist/radio/index.d.ts",
       "import": "./dist/radio/index.js"
+    },
+    "./toggleCard": {
+      "types": "./dist/toggleCard/index.d.ts",
+      "import": "./dist/toggleCard/index.js"
     },
     "./statusIndicator": {
       "types": "./dist/statusIndicator/index.d.ts",
@@ -194,6 +218,42 @@
     "./useIsInsideInteractiveElement": {
       "types": "./dist/useIsInsideInteractiveElement.d.ts",
       "import": "./dist/useIsInsideInteractiveElement.js"
+    },
+    "./table": {
+      "types": "./dist/table/index.d.ts",
+      "import": "./dist/table/index.js"
+    },
+    "./dragHandle": {
+      "types": "./dist/dragHandle/index.d.ts",
+      "import": "./dist/dragHandle/index.js"
+    },
+    "./spinner": {
+      "types": "./dist/spinner/index.d.ts",
+      "import": "./dist/spinner/index.js"
+    },
+    "./menu": {
+      "types": "./dist/menu/index.d.ts",
+      "import": "./dist/menu/index.js"
+    },
+    "./overlayTrigger": {
+      "types": "./dist/overlayTrigger.d.ts",
+      "import": "./dist/overlayTrigger.js"
+    },
+    "./splitPanel": {
+      "types": "./dist/splitPanel/index.d.ts",
+      "import": "./dist/splitPanel/index.js"
+    },
+    "./useDimensions": {
+      "types": "./dist/useDimensions.d.ts",
+      "import": "./dist/useDimensions.js"
+    },
+    "./useResizableDrawer": {
+      "types": "./dist/useResizableDrawer.d.ts",
+      "import": "./dist/useResizableDrawer.js"
+    },
+    "./toast": {
+      "types": "./dist/toast/index.d.ts",
+      "import": "./dist/toast/index.js"
     }
   },
   "publishConfig": {
@@ -201,7 +261,6 @@
   },
   "scripts": {
     "build": "rslib build",
-    "verify": "node scripts/verify.mjs",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
     "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build",
@@ -217,6 +276,7 @@
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/i18n": "3.13.1",
     "@react-aria/interactions": "3.28.1",
+    "@react-aria/numberfield": "3.13.1",
     "@react-aria/overlays": "3.32.1",
     "@react-aria/radio": "3.13.1",
     "@react-aria/slider": "3.9.1",
@@ -225,17 +285,22 @@
     "@react-stately/collections": "3.13.1",
     "@react-stately/disclosure": "3.1.1",
     "@react-stately/list": "3.14.1",
+    "@react-stately/numberfield": "3.12.1",
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
     "@react-stately/slider": "3.8.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
+    "@tanstack/react-hotkeys": "0.17.0",
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
+    "input-otp": "^1.5.0",
     "query-string": "7.0.1",
-    "type-fest": "^5.8.0"
+    "react-textarea-autosize": "8.5.7",
+    "sonner": "2.0.8",
+    "type-fest": "^5.10.0"
   },
   "devDependencies": {
     "@jest/environment": "30.5.1",
@@ -244,6 +309,7 @@
     "@rslib/core": "1.0.3",
     "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
+    "@tanstack/react-form": "1.28.6",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
@@ -261,6 +327,7 @@
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
+    "@tanstack/react-form": "^1.28.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

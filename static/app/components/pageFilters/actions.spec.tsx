@@ -8,6 +8,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act} from 'sentry-test/reactTestingLibrary';
 
 import {
+  exceedsDatetimeLimits,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
@@ -1004,6 +1005,44 @@ describe('PageFilters ActionCreators', () => {
           query: {start: '2020-03-22T00:53:38', end: '2020-04-21T00:53:38'},
         },
         {replace: undefined}
+      );
+    });
+  });
+
+  describe('exceedsDatetimeLimits()', () => {
+    const now = new Date('2026-10-19T12:00:00Z').getTime();
+
+    function datetime(start: string, end = '2026-10-10T00:00:00Z') {
+      return {period: null, utc: null, start, end};
+    }
+
+    it('returns false when a period equals maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '30d', utc: null, start: null, end: null}, 30)
+      ).toBe(false);
+    });
+
+    it('returns true when a period exceeds maxPickableDays', () => {
+      expect(
+        exceedsDatetimeLimits({period: '31d', utc: null, start: null, end: null}, 30)
+      ).toBe(true);
+    });
+
+    it('returns false when a range starts less than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T12:00:00Z'), 30, undefined, now)
+      ).toBe(false);
+    });
+
+    it('returns true when a range starts more than a day before the window', () => {
+      expect(
+        exceedsDatetimeLimits(datetime('2026-09-18T11:59:00Z'), 30, undefined, now)
+      ).toBe(true);
+    });
+
+    it('returns true when a range is longer than maxDateRange', () => {
+      expect(exceedsDatetimeLimits(datetime('2026-10-01T00:00:00Z'), 30, 7, now)).toBe(
+        true
       );
     });
   });

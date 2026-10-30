@@ -28,6 +28,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.features.base import ProjectFeature
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
@@ -1031,6 +1032,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
+    enableNativeSourceServerMapping: bool
     dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
@@ -1052,6 +1054,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
+
+        # A legacy filter list at the v2 stage lives in a custom inbound filter row, which
+        # replaces whatever its option still holds.
+        for project_id, lists in legacy_filter_lists.read_rows(item_list).items():
+            for filter_type, lines in lists.items():
+                options_by_project[project_id][f"sentry:{filter_type}"] = lines
 
         if self._collapse(ORGANIZATION_KEY):
             orgs = {
@@ -1177,6 +1185,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
+            ),
+            "enableNativeSourceServerMapping": bool(
+                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"

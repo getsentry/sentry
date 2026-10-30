@@ -235,6 +235,16 @@ Handle text overflow with the `ellipsis` prop to truncate long text with an elli
 </Container>
 ```
 
+### Rich content
+
+`Text` trims its box to the glyph bounds. With `ellipsis`, content taller than a line of text, such as a `Tag`, gets clipped. Pass `trim={false}` to keep the full line box.
+
+```jsx
+<Text ellipsis trim={false}>
+  <Tag variant="muted">Option</Tag>
+</Text>
+```
+
 ## Wrapping
 
 Use the `textWrap` prop to control how the text wraps, and the `wordBreak` prop to control where the text is split during wrapping.

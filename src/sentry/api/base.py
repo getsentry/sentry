@@ -268,6 +268,9 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
+    # Non-safe methods that a client may resend after a timeout or 5xx without
+    # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] = frozenset()
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
@@ -661,6 +664,10 @@ class Endpoint(APIView):
                 attributes={"sentry.op": "base.paginate.on_results"},
             ):
                 results = on_results(cursor_result.results)
+            # Skip None items as that generally isn't comformant with API
+            # specs, and None often points to serialization failures.
+            if isinstance(results, list):
+                results = [item for item in results if item is not None]
         else:
             results = cursor_result.results
 
@@ -701,6 +708,8 @@ class StatsMixin:
             resolution_s = request.GET.get("resolution")
             if resolution_s:
                 resolution = self._parse_resolution(resolution_s)
+                if resolution < 0:
+                    raise ValueError
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
             else:

@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import orjson
 import pytest
+from django.test import override_settings
 from django.urls import reverse
 from sentry_relay.processing import normalize_global_config
 
@@ -60,9 +61,11 @@ def call_endpoint(client, relay, private_key):
         "relay.upload-max-chunk.size": 123,
     }
 )
-def test_global_config(settings, inbound_filters_custom_error_values) -> None:
-    settings.SENTRY_INBOUND_FILTER_CUSTOM_VALUES = inbound_filters_custom_error_values
-    config = get_global_config()
+def test_global_config(inbound_filters_custom_error_values) -> None:
+    # Nest the settings override inside `override_options`: the `settings` fixture
+    # is torn down after the decorator exits, which leaks the options into later tests.
+    with override_settings(SENTRY_INBOUND_FILTER_CUSTOM_VALUES=inbound_filters_custom_error_values):
+        config = get_global_config()
 
     normalized = normalize_global_config(config)
     expected = deepcopy(config)

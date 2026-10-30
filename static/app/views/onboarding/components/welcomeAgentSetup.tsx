@@ -1,7 +1,6 @@
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
-import {ManualSetupCard} from 'sentry/components/onboarding/manualSetupCard';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -36,7 +35,7 @@ export function WelcomeAgentSetup({onSetupInBrowser, ...props}: WelcomeAgentSetu
       prompt={prompt}
       feedbackSource="onboarding-agent-setup"
       issueLinkReferrer="onboarding-agentic-first-issue"
-      manualSetup={<ManualSetupCard onSetupInBrowser={onSetupInBrowser} />}
+      onSetupInBrowser={onSetupInBrowser}
     />
   );
 }

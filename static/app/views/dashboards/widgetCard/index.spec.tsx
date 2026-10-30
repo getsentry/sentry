@@ -700,6 +700,79 @@ describe('Dashboards > WidgetCard', () => {
       expect(screen.queryByText('Open in Explore')).not.toBeInTheDocument();
     });
 
+    it('links multi-query metrics widgets to the metrics explorer', async () => {
+      renderWithProviders(
+        <WidgetCard
+          api={api}
+          widget={{
+            ...spansWidget,
+            widgetType: WidgetType.TRACEMETRICS,
+            queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+              fields: [],
+              aggregates: ['avg(value,duration,d,none)'],
+              columns: [],
+              conditions,
+              name: '',
+              orderby: '',
+            })),
+          }}
+          selection={selection}
+          onDelete={() => {}}
+          onEdit={() => {}}
+          onDuplicate={() => {}}
+          showContextMenu
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+        />
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      const link = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+      const url = new URL(link.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(
+        url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
+      ).toEqual(['http.status_code:200', 'http.status_code:500']);
+    });
+
+    it.each([WidgetType.SPANS, WidgetType.LOGS])(
+      'disables Open in Explore for multi-query %s widgets',
+      async widgetType => {
+        renderWithProviders(
+          <WidgetCard
+            api={api}
+            widget={{
+              ...spansWidget,
+              widgetType,
+              queries: [
+                ...spansWidget.queries,
+                {...spansWidget.queries[0]!, conditions: 'span.op:db'},
+              ],
+            }}
+            selection={selection}
+            onDelete={() => {}}
+            onEdit={() => {}}
+            onDuplicate={() => {}}
+            showContextMenu
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />,
+          ['visibility-explore-view']
+        );
+
+        await userEvent.click(await screen.findByLabelText('Widget actions'));
+        const action = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+        expect(action).toHaveAttribute('aria-disabled', 'true');
+        expect(action).not.toHaveAttribute('href');
+        await userEvent.hover(action);
+        expect(
+          await screen.findByText(
+            'Explore does not support multiple queries for this dataset'
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
     it('shows Open in Explore for spans widget with visibility-explore-view', async () => {
       renderWithProviders(
         <WidgetCard

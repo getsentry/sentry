@@ -12,7 +12,7 @@ import {OrganizationCard} from 'sentry/views/authV2/authLogin/components/organiz
 import {OrganizationSsoButton} from 'sentry/views/authV2/authLogin/components/organizationSsoButton';
 import {getOrganizationSsoLoginUrl} from 'sentry/views/authV2/authLogin/utils';
 import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {InvitationAuthentication} from './invitationAuthentication';
 import {InvitationLayout} from './invitationLayout';
@@ -27,7 +27,7 @@ function AcceptOrganizationInvite() {
     token: string;
   }>();
   const {state, actions} = useInvitationFlow(params);
-  useBrandedAuthLoading(state.status === 'loading');
+  useAuthPageLoading(state.status === 'loading');
 
   if (state.status === 'loading') {
     return null;

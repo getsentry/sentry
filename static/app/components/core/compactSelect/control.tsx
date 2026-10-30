@@ -12,17 +12,15 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Footer, Header, Search, Title} from '@sentry/scraps/menu';
+import {Footer, Header, Search, Title, ControlContext} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-
-import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';
 import type {
   SearchConfig,
@@ -488,6 +486,11 @@ export function Control<Value extends SelectKey>({
     highlightSearch,
   ]);
 
+  // A titled header keeps a hidden Clear button so the header doesn't resize when a
+  // selection is made. Without a title, that placeholder would be an empty header bar.
+  const showClearButton = clearable && (hasSelection || !!menuTitle);
+  const hasHeader = !!menuTitle || !!menuHeaderTrailingItems || showClearButton;
+
   const theme = useTheme();
 
   const mergedTriggerProps = mergeProps(
@@ -526,12 +529,12 @@ export function Control<Value extends SelectKey>({
               }
               maxHeight={overlayProps.style?.maxHeight}
               maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuTitle || clearable}
+              data-menu-has-header={hasHeader}
               data-menu-has-search={searchEnabled}
               data-menu-has-footer={!!menuFooter}
             >
               <FocusScope contain>
-                {(menuTitle || menuHeaderTrailingItems || clearable) && (
+                {hasHeader && (
                   <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
                     <Flex
                       align="center"
@@ -542,11 +545,11 @@ export function Control<Value extends SelectKey>({
                     >
                       {menuTitle && <Title>{menuTitle}</Title>}
                       <Flex align="center" gap="xs" marginLeft="auto">
-                        {loading && <StyledLoadingIndicator size={12} />}
+                        {loading && <StyledSpinner size={12} />}
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                           : menuHeaderTrailingItems}
-                        {clearable && (
+                        {showClearButton && (
                           <ClearButton
                             onClick={() => onClear?.({overlayState})}
                             size="zero"
@@ -579,12 +582,16 @@ export function Control<Value extends SelectKey>({
                 {!hideOptions && <Stack minHeight="0">{children}</Stack>}
                 {menuFooter && (
                   <Footer>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
+                    {/* Block wrapper so footer content spans the full width, as
+                        Footer is a row flex container that shrinks its children */}
+                    <Container width="100%">
+                      {typeof menuFooter === 'function'
+                        ? menuFooter({
+                            closeOverlay: overlayState.close,
+                            resetSearch: () => updateSearch(''),
+                          })
+                        : menuFooter}
+                    </Container>
                   </Footer>
                 )}
               </FocusScope>
@@ -611,7 +618,7 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledSpinner = styled(Spinner)`
   display: flex;
   align-items: center;
   && {

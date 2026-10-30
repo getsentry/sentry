@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.investigations.models import InvestigationComment, InvestigationStatus
+from sentry.notebooks.models import NotebookComment, NotebookStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -14,11 +14,11 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.comment = self.create_investigation_comment(
-            investigation=self.investigation, author=self.user, body="before"
+        self.comment = self.create_notebook_comment(
+            notebook=self.investigation, author=self.user, body="before"
         )
         self.member = self.create_user()
         self.create_member(organization=self.organization, user=self.member, role="member")
@@ -57,7 +57,7 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
         response = self.client.delete(self.url(self.comment.id))
 
         assert response.status_code == 204
-        assert not InvestigationComment.objects.filter(id=self.comment.id).exists()
+        assert not NotebookComment.objects.filter(id=self.comment.id).exists()
 
     def test_other_member_cannot_delete(self) -> None:
         self.login_as(self.member)
@@ -65,7 +65,7 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
         response = self.client.delete(self.url(self.comment.id))
 
         assert response.status_code == 403
-        assert InvestigationComment.objects.filter(id=self.comment.id).exists()
+        assert NotebookComment.objects.filter(id=self.comment.id).exists()
 
     def test_manager_cannot_delete_another_users_comment(self) -> None:
         manager = self.create_user()
@@ -77,14 +77,14 @@ class OrganizationInvestigationCommentDetailsTest(APITestCase):
         assert response.status_code == 403
 
     def test_comment_from_another_investigation_is_not_found(self) -> None:
-        other = self.create_investigation(organization=self.organization, title="Other")
-        comment = self.create_investigation_comment(investigation=other, author=self.user)
+        other = self.create_notebook(organization=self.organization, title="Other")
+        comment = self.create_notebook_comment(notebook=other, author=self.user)
 
         assert self.client.delete(self.url(comment.id)).status_code == 404
-        assert InvestigationComment.objects.filter(id=comment.id).exists()
+        assert NotebookComment.objects.filter(id=comment.id).exists()
 
     def test_archived_investigation_is_read_only(self) -> None:
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         archived = {"detail": "Archived investigations are read-only."}
         response = self.client.put(self.url(self.comment.id), data={"body": "after"}, format="json")

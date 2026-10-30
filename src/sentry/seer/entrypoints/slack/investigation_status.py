@@ -15,18 +15,14 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockKind,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
@@ -218,7 +214,7 @@ def _get_progress(
 
 def build_investigation_status(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     projection: Mapping[str, Any] | None,
     phase: str | None = None,
     status: str | None = None,
@@ -292,10 +288,10 @@ def build_investigation_conclusion(
     """Builds the conclusion from the text of the current report, or None if there is no text."""
     investigation = run.investigation
     contents = (
-        InvestigationBlock.objects.filter(
-            investigation_id=investigation.id,
-            report_revision=_report_revision(run),
-            kind=InvestigationBlockKind.TEXT,
+        NotebookBlock.objects.filter(
+            notebook_id=investigation.id,
+            producer_revision=_report_revision(run),
+            kind=NotebookBlockKind.TEXT,
             deleted_at__isnull=True,
         )
         .order_by("position", "id")

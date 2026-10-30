@@ -45,7 +45,10 @@ _MAX_CHECK_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
-_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=25)
+# Total budget across all discovery lookups in one heal run. Leaves room within
+# _HEAL_PROCESSING_DEADLINE for range selection on a few hashes.
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=90)
+_HEAL_PROCESSING_DEADLINE = timedelta(minutes=5)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -471,8 +474,12 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     results: list[str] = []
     cursor: str | None = ""
     using = router.db_for_read(GroupDerivedData)
-    with statement_timeout(using, _STALE_HASH_DISCOVERY_TIMEOUT):
-        while len(results) < limit:
+    deadline = time.monotonic() + _STALE_HASH_DISCOVERY_TIMEOUT.total_seconds()
+    while len(results) < limit:
+        remaining_seconds = deadline - time.monotonic()
+        if remaining_seconds <= 0.001:
+            raise OperationalError("stale hash discovery budget exceeded")
+        with statement_timeout(using, timedelta(seconds=remaining_seconds)):
             cursor = (
                 GroupDerivedData.objects.using(using)
                 .filter(pipeline_hash__gt=cursor)
@@ -480,10 +487,10 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
                 .values_list("pipeline_hash", flat=True)
                 .first()
             )
-            if cursor is None:
-                break
-            if cursor != current_hash:
-                results.append(cursor)
+        if cursor is None:
+            break
+        if cursor != current_hash:
+            results.append(cursor)
     return results
 
 
@@ -491,7 +498,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     name="sentry.issues.derived.tasks.heal_stale_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
-    processing_deadline_duration=120,
+    processing_deadline_duration=int(_HEAL_PROCESSING_DEADLINE.total_seconds()),
 )
 def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
@@ -564,7 +571,6 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             metrics.incr("issues.derived.heal_stale_hash_discovery_failed", sample_rate=1.0)
             stale_hashes = []
         else:
-            # Keep a fixed epoch despite CacheMapping's sliding eviction TTL.
             state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
             state.stale.update(dict.fromkeys(stale_hashes, 0))
             hash_state_changed = True
@@ -662,8 +668,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             old_mark = state.stale[stale_hash]
             new_mark = ranges[-1][1]
             # Marks are optimistic. Dropped tasks and old workers can leave rows
-            # below them because pipeline_hash is promoted state. The fixed state
-            # age is the correctness backstop that forces a from-zero sweep.
+            # below them because pipeline_hash is promoted state. Once every known
+            # hash retires, rediscovery scans from the start and picks those up.
             state.stale[stale_hash] = new_mark
             save_state(state)
             logger.info(
@@ -934,6 +940,7 @@ def regenerate_stale_derived_data_batch(
     from taskbroker_client.state import current_task
 
     from sentry import options
+    from sentry.issues.action_log.backfill import backfill_first_seen_actions
     from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -972,6 +979,10 @@ def regenerate_stale_derived_data_batch(
     range_overflow = len(group_ids) > batch_size
     if range_overflow:
         group_ids = group_ids[:batch_size]
+
+    # Temporary: a pipeline hash bump sweeps every group with derived data, which gives
+    # older groups their FIRST_SEEN entry. Inserted before the rebuild so it's included.
+    backfill_first_seen_actions(group_ids)
 
     result = build_and_promote_batch(
         group_ids,

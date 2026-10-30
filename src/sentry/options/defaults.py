@@ -284,11 +284,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_REQUIRED,
 )
 register(
-    "auth.oauth-react-enabled",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "auth.email-verification-at-signup.rollout-rate",
     type=Float,
     default=0.0,
@@ -317,6 +312,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Turns on the deprecated scope translation in sentry.auth.deprecated_scope_translation, which
+# grants tokens holding a deprecated scope (e.g. org:read) the granular scopes replacing it.
+# Turning this off is safe while endpoints still accept the deprecated scopes. Before any
+# endpoint stops accepting them regardless of this option, enable it everywhere and remove it.
+register(
+    "auth.deprecated-scope-translation.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # User Settings
@@ -451,6 +456,26 @@ register(
     "cleanup.abort_execution",
     default=False,
     type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Notification Platform thread retention, run by `sentry cleanup`. Dry-run is on by
+# default so deletion volume can be measured before anything is removed.
+register(
+    "cleanup.notification-thread.dry-run",
+    default=True,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.retention-days",
+    default=90,
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.notification-thread.batch-size",
+    default=100,
+    type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -743,6 +768,14 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Repair Bitbucket Server repository webhooks that do not have signing secrets.
+register(
+    "bitbucket_server.webhook.secret-repair.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Slack Integration
 register("slack.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -924,6 +957,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+register(
+    "msteams.client-secret-expires-at",
+    default="",
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register("msteams.app-id")
 register(
     "msteams.personal-installation-link.enabled",
@@ -1515,14 +1553,30 @@ register(
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
-# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
-# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+# on conversation id. 0.0 disables generation; 1.0 enables it for every
+# conversation in orgs that have not hidden AI features.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
     type=Float,
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Conversation classifiers PoC.
+register(
+    "classifiers.conversations.project-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum conversations fetched from each project per scan.
+register(
+    "classifiers.conversations.telemetry-limit",
+    type=Int,
+    default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "seer.night_shift.enable",
     type=Bool,
@@ -1880,16 +1934,6 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
-# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
-# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
-register(
-    "custom-inbound-filters.legacy-filter-stage",
-    default={},
-    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2722,6 +2766,47 @@ register(
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Per-destination circuit breaker for outbound RPCs. `enabled` tracks outcomes and
+# records would-be rejections; `enforce` actually rejects calls while the breaker is open.
+register(
+    "hybridcloud.rpc.circuit-breaker.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.enforce",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit_window": 60,  # seconds
+        "broken_state_duration": 30,  # seconds
+        "threshold": 0.5,  # fraction of calls that must fail to trip
+        "floor": 50,  # minimum failures before the threshold applies
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Calls slower than this count as failures: a slow destination ties up workers the
+# same way a failing one does.
+register(
+    "hybridcloud.rpc.circuit-breaker.slow-call-seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Destinations (cell names, or "control") whose calls are rejected outright, whatever the
+# options above say. A manual switch for cutting off a cell during an outage.
+register(
+    "hybridcloud.rpc.circuit-breaker.force-open-destinations",
+    type=Sequence,
+    default=[],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "hybridcloud.apigateway.use_pooling.rate",
     default=0.0,
@@ -3427,13 +3512,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable sending a post update signal after we update groups using a queryset update
-register(
-    "groups.enable-post-update-signal",
-    default=False,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 
 # TODO: For now, only a small number of projects are going through a grouping config transition at
 # any given time, so we're sampling at 100% in order to be able to get good signal. Once we've fully
@@ -3676,6 +3754,14 @@ register(
 # Notifications for Sentry organizations
 register(
     "notifications.platform-rollout.is-sentry",
+    type=Dict,
+    default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notifications for a curated set of customer organizations in limited access
+register(
+    "notifications.platform-rollout.limited-access",
     type=Dict,
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4011,6 +4097,15 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Maximum number of commits associated with a release in one set_commits call.
+# Longer lists keep only the newest commits.
+register(
+    "releases.set-commits.max-commits",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

@@ -268,7 +268,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_TSDB = "sentry.tsdb.snuba.SnubaTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
@@ -356,6 +356,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.EMAIL_BACKEND = settings.SENTRY_OPTIONS["mail.backend"]
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -401,6 +402,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
+
+    # A GC metrics opt-in exported in the developer's shell would start a
+    # flusher thread in the test process and emit python.gc.* during tests.
+    os.environ.pop("SENTRY_GC_METRICS", None)
 
     SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
 
