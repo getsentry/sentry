@@ -203,7 +203,7 @@ def test_detector_type_registration_supports_string_lookup(detector_type: Detect
 
 def test_settings_registration_requires_enum_member() -> None:
     registry = DetectorSettingsRegistry()
-    registry.register(DetectorType.METRIC_ALERT)(DetectorSettings)
+    registry.register(DetectorType.METRIC_ISSUE)(DetectorSettings)
     assert registry.get("metric_issue") is DetectorSettings
 
 
@@ -219,13 +219,13 @@ def test_settings_registration_rejects_strings(detector_type: str) -> None:
 def test_detector_type_enum_preserves_stored_value(
     factories: Factories, default_project: Project
 ) -> None:
-    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ALERT)
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
 
     detector.refresh_from_db()
 
     assert type(detector.type) is str
     assert detector.type == "metric_issue"
-    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC_ALERT)
+    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC_ISSUE)
 
 
 @pytest.fixture
@@ -305,8 +305,8 @@ def test_group_type_without_detector_registration_is_rejected(detector_type: str
 
 def test_enum_member_without_settings_is_rejected() -> None:
     with patch.dict(detector_settings_registry.registrations):
-        del detector_settings_registry.registrations[DetectorType.METRIC_ALERT]
-        detector = Detector(type=DetectorType.METRIC_ALERT, config={})
+        del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
+        detector = Detector(type=DetectorType.METRIC_ISSUE, config={})
         with pytest.raises(ValueError, match="Detector type 'metric_issue' not registered"):
             detector.enforce_config_schema()
 
@@ -322,7 +322,7 @@ def test_type_outside_enum_is_rejected_even_if_settings_exist() -> None:
 def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
     factories: Factories, default_project: Project
 ) -> None:
-    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ALERT)
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
     Detector.objects.filter(id=detector.id).update(type="legacy_unknown_type")
 
     with patch("sentry.workflow_engine.models.detector.logger") as logger:

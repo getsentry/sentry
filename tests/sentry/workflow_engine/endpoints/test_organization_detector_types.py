@@ -93,7 +93,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = DetectorType.METRIC_ALERT
+            slug = DetectorType.METRIC_ISSUE
             description = "Metric alert"
             category = GroupCategory.METRIC.value
             released = True
@@ -101,7 +101,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestCronsGroupType(GroupType):
             type_id = 2
-            slug = DetectorType.CRON_MONITOR_FAILURE
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "Crons"
             category = GroupCategory.OUTAGE.value
             released = True
@@ -109,7 +109,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestUptimeGroupType(GroupType):
             type_id = 3
-            slug = DetectorType.UPTIME_DOMAIN_CHECK_FAILURE
+            slug = DetectorType.UPTIME_DOMAIN_FAILURE
             description = "Uptime"
             category = GroupCategory.OUTAGE.value
             released = True

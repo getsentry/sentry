@@ -70,9 +70,9 @@ class DetectorType(StrEnum):
 
     ERROR = "error"
     ISSUE_STREAM = "issue_stream"
-    METRIC_ALERT = "metric_issue"
-    CRON_MONITOR_FAILURE = "monitor_check_in_failure"
-    UPTIME_DOMAIN_CHECK_FAILURE = "uptime_domain_failure"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
     PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
     SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
     PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"

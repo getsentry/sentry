@@ -122,7 +122,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
             type_id = 3
-            slug = DetectorType.METRIC_ALERT
+            slug = DetectorType.METRIC_ISSUE
             description = "Metric alert fired"
             category = GroupCategory.METRIC.value
 
@@ -130,7 +130,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
         self.create_detector(
             name=self.metric_alert.name,
             project_id=self.project.id,
-            type=DetectorType.METRIC_ALERT,
+            type=DetectorType.METRIC_ISSUE,
             owner_user_id=self.metric_alert.user_id,
             config={
                 "threshold_period": self.metric_alert.threshold_period,
@@ -146,13 +146,13 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type=DetectorType.METRIC_ALERT,
+                type=DetectorType.METRIC_ISSUE,
                 owner_user_id=self.metric_alert.user_id,
                 config={},
             )
 
     def test_no_config(self) -> None:
-        detector = Detector(type=DetectorType.METRIC_ALERT)
+        detector = Detector(type=DetectorType.METRIC_ISSUE)
         with pytest.raises(ValidationError):
             detector.enforce_config_schema()
 
@@ -161,7 +161,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type=DetectorType.METRIC_ALERT,
+                type=DetectorType.METRIC_ISSUE,
                 owner_user_id=self.metric_alert.user_id,
                 config=["some", "stuff"],
             )
@@ -171,7 +171,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type=DetectorType.METRIC_ALERT,
+                type=DetectorType.METRIC_ISSUE,
                 owner_user_id=self.metric_alert.user_id,
                 config={
                     "comparison_delta": "matcha",
@@ -184,7 +184,7 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
             self.create_detector(
                 name=self.metric_alert.name,
                 project_id=self.project.id,
-                type=DetectorType.METRIC_ALERT,
+                type=DetectorType.METRIC_ISSUE,
                 owner_user_id=self.metric_alert.user_id,
                 config={
                     "threshold_period": self.metric_alert.threshold_period,

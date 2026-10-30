@@ -132,7 +132,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
     def test_validate_type_valid(self) -> None:
         class TestGroupType(GroupType):
             type_id = 1
-            slug = DetectorType.METRIC_ALERT
+            slug = DetectorType.METRIC_ISSUE
             description = "no handler"
             category = GroupCategory.METRIC.value
 
@@ -145,7 +145,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
             mock_get_by_slug.return_value = TestGroupType
             validator = self.validator_class()
-            result = validator.validate_type(DetectorType.METRIC_ALERT)
+            result = validator.validate_type(DetectorType.METRIC_ISSUE)
             assert result == mock_get_by_slug.return_value
 
     def test_validate_type_unknown(self) -> None:

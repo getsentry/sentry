@@ -23,6 +23,6 @@ class MonitorIncidentType(GroupType):
     notification_config = NotificationConfig(context=[])
 
 
-@detector_settings_registry.register(DetectorType.CRON_MONITOR_FAILURE)
+@detector_settings_registry.register(DetectorType.MONITOR_CHECK_IN_FAILURE)
 class MonitorIncidentDetectorSettings(DetectorSettings):
     validator = MonitorIncidentDetectorValidator

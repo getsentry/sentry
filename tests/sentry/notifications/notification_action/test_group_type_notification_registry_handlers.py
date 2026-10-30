@@ -122,7 +122,7 @@ class TestGroupTypeNotificationRegistryHandler(BaseWorkflowTest):
         self.project = self.create_project()
         # Use a valid detector type without a notification registry handler.
         self.detector = self.create_detector(
-            project=self.project, type=DetectorType.CRON_MONITOR_FAILURE
+            project=self.project, type=DetectorType.MONITOR_CHECK_IN_FAILURE
         )
         self.workflow = self.create_workflow()
         self.action = Action(type=Action.Type.DISCORD)

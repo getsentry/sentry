@@ -364,7 +364,7 @@ class MetricIssue(GroupType):
     enable_user_status_and_priority_changes = False
 
 
-@detector_settings_registry.register(DetectorType.METRIC_ALERT)
+@detector_settings_registry.register(DetectorType.METRIC_ISSUE)
 class MetricIssueDetectorSettings(DetectorSettings):
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator

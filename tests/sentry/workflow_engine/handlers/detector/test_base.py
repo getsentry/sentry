@@ -275,7 +275,7 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
-            slug = DetectorType.CRON_MONITOR_FAILURE
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "no handler"
             category = GroupCategory.METRIC.value
 
