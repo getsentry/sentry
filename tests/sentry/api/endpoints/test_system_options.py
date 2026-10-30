@@ -13,6 +13,12 @@ from sentry.web.client_config import get_client_config
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
 
+    def tearDown(self) -> None:
+        # Options set through the endpoint stay in the store's in-process cache
+        # after the DB write rolls back, and would leak into later tests.
+        options.default_store.flush_local_cache()
+        super().tearDown()
+
     def test_support_email_update_is_visible_in_client_config(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
