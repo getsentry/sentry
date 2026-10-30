@@ -1,6 +1,7 @@
 import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
+import {AttributeDescription} from 'sentry/components/attributes/attributeDescription';
 import type {FieldKind} from 'sentry/utils/fields';
 import {DEFAULT_ATTRIBUTE_DESCRIPTION, getFieldDefinition} from 'sentry/utils/fields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
@@ -24,7 +25,7 @@ export function AttributeDetails({
   return (
     <Details>
       <DetailsLabel>{label}</DetailsLabel>
-      <DetailsDescription>{description}</DetailsDescription>
+      <AttributeDescription description={description} linksAsText />
     </Details>
   );
 }
@@ -57,8 +58,4 @@ const DetailsLabel = styled('p')`
   font-weight: ${p => p.theme.font.weight.sans.medium};
   word-break: break-all;
   margin-bottom: ${p => p.theme.space.md};
-`;
-
-const DetailsDescription = styled('p')`
-  margin-bottom: 0px;
 `;

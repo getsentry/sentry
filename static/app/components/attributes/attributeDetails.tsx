@@ -6,17 +6,19 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AttributeDescription} from 'sentry/components/attributes/attributeDescription';
 import {t} from 'sentry/locale';
 import type {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
 export interface AttributeDetailsProps {
   name: React.ReactNode;
-  description?: React.ReactNode;
+  description?: string;
   isAddedBySentry?: boolean;
   isInternal?: boolean;
   isScrubbed?: boolean;
   kind?: FieldKind;
+  linksAsText?: boolean;
   valueType?: FieldValueType;
 }
 
@@ -26,6 +28,7 @@ export function AttributeDetails({
   isInternal,
   isScrubbed,
   kind,
+  linksAsText,
   name,
   valueType,
 }: AttributeDetailsProps) {
@@ -47,7 +50,7 @@ export function AttributeDetails({
         {description ? (
           <Stack gap="2xs">
             <Text variant="muted">{t('Description')}</Text>
-            <Text>{description}</Text>
+            <AttributeDescription description={description} linksAsText={linksAsText} />
           </Stack>
         ) : null}
         {isInternal ? (
