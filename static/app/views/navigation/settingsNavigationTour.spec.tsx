@@ -154,6 +154,21 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
   });
 
+  it('moves focus between the action buttons with the arrow keys', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+
+    act(() => screen.getByRole('button', {name: 'Previous'}).focus());
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('button', {name: 'Done'})).toHaveFocus();
+    expect(screen.getByText('Tour projects')).toBeInTheDocument();
+
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.getByRole('button', {name: 'Previous'})).toHaveFocus();
+    expect(screen.getByText('Tour projects')).toBeInTheDocument();
+  });
+
   it('marks the guide as viewed once it is shown, and only once', async () => {
     render(<Tour />, {organization});
     await waitFor(() =>

@@ -294,7 +294,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <Grid flow="column" align="center" gap="md">
+      <Grid flow="column" align="center" gap="md" data-tour-actions>
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -349,6 +349,12 @@ export function TourElementContent<T extends TourEnumType>({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (
+      (event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
+      focusSiblingAction(event)
+    ) {
+      return;
+    }
     if (event.key === 'Escape') {
       event.stopPropagation();
       dismiss();
@@ -378,6 +384,29 @@ export function TourElementContent<T extends TourEnumType>({
       {children}
     </TourGuide>
   );
+}
+
+/**
+ * Moves focus to the neighboring action button, so the arrow keys move between
+ * Previous, Next and Done. Returns false when there is none, such as on the
+ * first button, so the arrow keys can change the step instead.
+ */
+function focusSiblingAction(event: React.KeyboardEvent) {
+  const target = event.target as HTMLElement;
+  const actions = target.closest('[data-tour-actions]');
+  const button = target.closest('button');
+  if (!actions || !button) {
+    return false;
+  }
+  const buttons = Array.from(actions.querySelectorAll('button'));
+  const sibling =
+    buttons[buttons.indexOf(button) + (event.key === 'ArrowRight' ? 1 : -1)];
+  if (!sibling) {
+    return false;
+  }
+  event.preventDefault();
+  sibling.focus();
+  return true;
 }
 
 interface TourGuideProps extends Omit<
