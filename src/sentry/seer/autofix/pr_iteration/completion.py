@@ -22,10 +22,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
     complete_pr_iteration_details,
     outcome_for_failed_run,
 )
-from sentry.seer.autofix.pr_iteration.feedback import (
-    automated_iteration_allowed,
-    latest_iteration_feedback_kind,
-)
+from sentry.seer.autofix.pr_iteration.feedback import latest_iteration_feedback_kind
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.iterations import (
     get_iterations,
@@ -517,8 +514,10 @@ def _retries_on_moved_branch(group: Group, state: SeerRunState, errored_repos: l
 def _branch_moved_retry_decision(state: SeerRunState) -> Decision:
     """Whether the latest iteration may run another turn after the branch moved under its push.
 
-    Each retry is a turn with its own PR_ITERATION block under the same iteration index, so the
-    blocks sharing that index count the turns so far. ``MAX_BRANCH_MOVED_RETRIES`` bounds them.
+    A retry is not a new iteration: it finishes the one it retries on the PR's latest commit, so
+    the iteration gates (the project toggle, the automated caps) don't apply. Only
+    ``MAX_BRANCH_MOVED_RETRIES`` bounds it. Each retry is a turn with its own PR_ITERATION block
+    under the same iteration index, so the blocks sharing that index count the turns so far.
     """
     iterations = get_iterations(state)
     if not iterations:
@@ -528,7 +527,7 @@ def _branch_moved_retry_decision(state: SeerRunState) -> Decision:
     retries = sum(1 for iteration in iterations if iteration.index == latest_index) - 1
     if retries >= MAX_BRANCH_MOVED_RETRIES:
         return Decision(ok=False, reason="retry_cap_reached")
-    return automated_iteration_allowed(state)
+    return Decision(ok=True, reason="under_retry_cap")
 
 
 @traces.trace

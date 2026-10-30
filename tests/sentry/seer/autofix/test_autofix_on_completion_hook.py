@@ -998,20 +998,32 @@ class TestPrIterationCompletionHook(TestCase):
             == PrIterationOutcome.PR_CREATION_ERRORED.value
         )
 
-    def _branch_moved(self, turns: int = 1) -> SeerRunState:
+    def _branch_moved(self, feedback: str = "[]", turns: int = 1) -> SeerRunState:
         """The iteration's push was refused because the PR's branch moved, on its ``turns``-th
         turn (each branch-moved retry adds one)."""
         state = self._unsynced()
         state.blocks[0].message.metadata = {
             **(state.blocks[0].message.metadata or {}),
             "iteration_id": "41",
-            "feedback": "[]",
+            "feedback": feedback,
         }
         state.blocks = [state.blocks[0].copy(deep=True) for _ in range(turns)]
         pr_state = state.repo_pr_states["test-repo"]
         pr_state.pr_creation_status = "error"
         pr_state.pr_creation_error_code = "branch_moved"
         return state
+
+    def _bot_feedback(self) -> str:
+        return serialize_feedback(
+            [
+                Feedback(
+                    source=GithubPrReviewCommentFeedbackSource(
+                        comment=GithubPullRequestReviewComment(id=222, body="inline feedback"),
+                        author_is_bot=True,
+                    )
+                )
+            ]
+        )
 
     def _branch_moved_push(self, state: SeerRunState) -> tuple[PrIterationOutcome | None, bool]:
         """The push outcome, and whether it asked Seer for another turn."""
@@ -1049,6 +1061,13 @@ class TestPrIterationCompletionHook(TestCase):
             self._webhook(self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1))
 
         mock_broadcast.assert_called_once()
+
+    def test_an_automated_iteration_retries_with_pr_iteration_turned_off(self):
+        """A retry finishes the iteration already running, so the iteration gates don't apply."""
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        state = self._branch_moved(feedback=self._bot_feedback())
+
+        assert self._branch_moved_push(state) == (None, True)
 
     def test_a_push_refused_because_the_branch_moved_retries_the_iteration_pinned(self):
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
