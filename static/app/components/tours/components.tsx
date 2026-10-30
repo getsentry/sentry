@@ -525,7 +525,9 @@ export function TourGuide({
     };
     const handleFocusOut = (event: FocusEvent) => {
       // A guide removed while focused can still blur; the cleanup handles it.
-      if (overlay.isConnected && !overlay.contains(event.relatedTarget as Node | null)) {
+      const focusTarget = event.relatedTarget;
+      const staysInGuide = focusTarget instanceof Node && overlay.contains(focusTarget);
+      if (overlay.isConnected && !staysInGuide) {
         hasFocus = false;
       }
     };
