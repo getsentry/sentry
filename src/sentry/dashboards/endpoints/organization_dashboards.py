@@ -380,23 +380,8 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
 
-    def get_allowed_scopes(
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
-    ) -> set[str]:
-        allowed_scopes = super().get_allowed_scopes(request, organization)
-        if isinstance(organization, RpcUserOrganizationContext):
-            organization = organization.organization
-        # Orgs with granular scopes require the dashboard:* scopes instead of org:read. Members
-        # get them from the granular roles, and tokens holding org:read get them from the
-        # deprecated scope translation, so this only applies while the translation is enabled.
-        # TODO: Remove org:read from scope_map once the translation is enabled everywhere.
-        if options.get("auth.deprecated-scope-translation.enabled") and features.has(
-            "organizations:granular-permission-scopes", organization
-        ):
-            allowed_scopes.discard("org:read")
-        return allowed_scopes
+    # dashboard:read and dashboard:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
 
     def has_object_permission(
         self,

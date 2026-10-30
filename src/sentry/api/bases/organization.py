@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
@@ -15,6 +16,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry import features, options
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import (
@@ -91,6 +93,12 @@ class OrganizationPermission(DemoSafePermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
+    # Stop accepting `settings.DEPRECATED_SCOPES` in orgs with granular scopes while the
+    # deprecated scope translation is enabled. Members get the replacements from the granular
+    # roles, and tokens holding a deprecated scope get them from the translation. Only opt in
+    # once every deprecated scope in `scope_map` has a translated replacement that the granular
+    # roles grant and this permission accepts.
+    rejects_deprecated_scopes = False
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -149,7 +157,21 @@ class OrganizationPermission(DemoSafePermission):
         organization: Organization | RpcOrganization | RpcUserOrganizationContext,
     ) -> set[str]:
         """The scopes that grant access to `organization` for the request's method."""
-        return set(self.scope_map.get(request.method or "", []))
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        if self.rejects_deprecated_scopes and self._deprecated_scopes_retired(organization):
+            allowed_scopes -= settings.DEPRECATED_SCOPES
+        return allowed_scopes
+
+    def _deprecated_scopes_retired(
+        self, organization: Organization | RpcOrganization | RpcUserOrganizationContext
+    ) -> bool:
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
+        # TODO: Remove deprecated scopes from opted-in scope maps once the translation is
+        # enabled everywhere.
+        return options.get("auth.deprecated-scope-translation.enabled") and features.has(
+            "organizations:granular-permission-scopes", organization
+        )
 
     def is_member_disabled_from_limit(
         self,

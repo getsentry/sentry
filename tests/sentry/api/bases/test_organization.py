@@ -43,6 +43,8 @@ from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.services.user.serial import serialize_rpc_user
@@ -465,6 +467,52 @@ class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
         self.org.save()
 
         assert not permission.is_not_2fa_compliant(request=drf_request, organization=self.org)
+
+
+class DeprecatedScopesPermission(OrganizationPermission):
+    scope_map = {"GET": ["org:read", "project:read", "member:read", "org:write", "dashboard:read"]}
+    rejects_deprecated_scopes = True
+
+
+class RejectsDeprecatedScopesTest(TestCase):
+    def allowed_scopes(self, permission_cls, organization=None) -> set[str]:
+        request = drf_request_from_request(self.make_request(method="GET"))
+        return permission_cls().get_allowed_scopes(request, organization or self.organization)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == {"org:write", "dashboard:read"}
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_drops_deprecated_scopes_with_organization_context(self) -> None:
+        organization_context = organization_service.get_organization_by_id(
+            id=self.organization.id, user_id=self.user.id
+        )
+        assert organization_context is not None
+        assert self.allowed_scopes(DeprecatedScopesPermission, organization_context) == {
+            "org:write",
+            "dashboard:read",
+        }
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_without_granular_scopes(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_keeps_deprecated_scopes_without_translation(self) -> None:
+        assert self.allowed_scopes(DeprecatedScopesPermission) == set(
+            DeprecatedScopesPermission.scope_map["GET"]
+        )
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_keeps_deprecated_scopes_unless_opted_in(self) -> None:
+        assert self.allowed_scopes(OrganizationPermission) == {"org:read", "org:write", "org:admin"}
 
 
 class BaseOrganizationEndpointTest(TestCase):
