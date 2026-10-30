@@ -9,13 +9,6 @@ type SeerWorkflowError = {
   message: string;
 };
 
-type SeerAutomationRunError = SeerWorkflowError & {
-  /**
-   * Null for the run's own error, otherwise the execution that failed
-   */
-  executionId: string | null;
-};
-
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
   dateCompleted: string | null;
@@ -53,7 +46,14 @@ export type SeerAutomationRun = SeerAutomationRunBase &
          */
         status: 'queued' | 'running' | 'complete' | null;
       }
-    | {errors: SeerAutomationRunError[]; status: 'failed' | 'rejected'}
+    | {
+        /**
+         * Null when the run failed because its executions did; each failed
+         * execution carries its own error
+         */
+        error: SeerWorkflowError | null;
+        status: 'failed' | 'rejected';
+      }
   );
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];
