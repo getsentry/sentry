@@ -223,7 +223,7 @@
     "query-string": "7.0.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "8.4.0",
+    "react-router": "8.5.1",
     "sentry": "workspace:@sentry-internal/app@*",
     "sentry-fixture": "workspace:@sentry-internal/sentry-test@*",
     "sentry-test": "workspace:@sentry-internal/sentry-test@*"
