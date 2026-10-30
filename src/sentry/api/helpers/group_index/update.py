@@ -19,6 +19,7 @@ from rest_framework.response import Response
 
 from sentry import analytics, features
 from sentry.analytics.events.manual_issue_assignment import ManualIssueAssignment
+from sentry.api.exceptions import UserRequired
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
@@ -227,6 +228,10 @@ def update_groups(
         return Response(status=500)
 
     result = dict(serializer.validated_data)
+
+    # Bookmarks and subscriptions belong to a user; checked before any group changes.
+    if acting_user is None and ("isBookmarked" in result or "isSubscribed" in result):
+        raise UserRequired()
 
     discard = result.get("discard")
     if discard:
