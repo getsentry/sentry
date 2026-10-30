@@ -491,6 +491,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
         except (RedisError, RedisClusterException):
             pass
 
+    from sentry import options
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
     from sentry.users.models.user_option import UserOption
@@ -498,6 +499,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     OrganizationOption.objects.clear_local_cache()
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
+    # options.set() caches values in-process, which outlives the test's DB
+    # rollback and would leak them into later tests on the same worker.
+    options.default_store.flush_local_cache()
 
     from sentry.monitors.logic.checkin_config import clear_checkin_config_cache
 
