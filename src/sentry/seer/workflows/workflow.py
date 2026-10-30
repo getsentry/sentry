@@ -26,7 +26,6 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.utils import json
-from sentry.workflow_engine.models import DetectorWorkflow
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -125,7 +124,7 @@ class SeerWorkflow:
                 config_version=config.version,
                 strategy=SeerWorkflowStrategy(config.strategy),
                 filters=config.filters,
-                project_ids=tuple(_get_project_ids(config)),
+                project_ids=tuple(self._get_project_ids(config)),
                 output_policy=config.output_policy,
                 inputs=json.loads(inputs.json()),
             )
@@ -153,7 +152,7 @@ class SeerWorkflow:
 
     def matches_scope(self, project_id: int, environment: str | None) -> bool:
         """Check the automation's scope before recording an admission decision."""
-        return matches_workflow_scope(self.get_config(), project_id, environment)
+        return self._matches_scope(self.get_config(), project_id, environment)
 
     def has_quota_available(self) -> bool:
         """Allow runs until automation quota enforcement is implemented."""
@@ -162,7 +161,7 @@ class SeerWorkflow:
 
     def get_project_ids(self) -> list[int]:
         """Return active project IDs matching this workflow's filters, in ascending order."""
-        return _get_project_ids(self.get_config())
+        return self._get_project_ids(self.get_config())
 
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
@@ -248,45 +247,33 @@ class SeerWorkflow:
             id=self.config_id, organization_id=self.organization_id
         )
 
+    def _matches_scope(
+        self, config: SeerWorkflowConfig, project_id: int, environment: str | None
+    ) -> bool:
+        """Check scope using a config snapshot without modifying it or acquiring a lock."""
+        filters = SeerWorkflowFilters.parse_obj(config.filters)
+        return (
+            config.enabled
+            and (not filters.environments or environment in filters.environments)
+            and self._get_projects(config).filter(id=project_id).exists()
+        )
+
+    def _get_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
+        return list(self._get_projects(config).order_by("id").values_list("id", flat=True))
+
+    def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
+        """Return active projects in the config's scope; strategies may derive it differently."""
+        projects = Project.objects.filter(
+            organization_id=config.organization_id, status=ObjectStatus.ACTIVE
+        )
+        if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
+            projects = projects.filter(
+                id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
+            )
+        return projects
+
 
 @dataclass(frozen=True)
 class WorkflowRunCreationResult:
     lifecycle: SeerWorkflowRunLifecycle
     created: bool
-
-
-def matches_workflow_scope(
-    config: SeerWorkflowConfig, project_id: int, environment: str | None
-) -> bool:
-    """Check scope using a config snapshot without modifying it or acquiring a lock."""
-    filters = SeerWorkflowFilters.parse_obj(config.filters)
-    return (
-        config.enabled
-        and (not filters.environments or environment in filters.environments)
-        and _get_projects(config).filter(id=project_id).exists()
-    )
-
-
-def _get_project_ids(config: SeerWorkflowConfig) -> list[int]:
-    return list(_get_projects(config).order_by("id").values_list("id", flat=True))
-
-
-def _get_projects(config: SeerWorkflowConfig) -> QuerySet[Project]:
-    projects = Project.objects.filter(
-        organization_id=config.organization_id, status=ObjectStatus.ACTIVE
-    )
-    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-        if config.backing_workflow_id is None:
-            return projects.none()
-        return projects.filter(
-            id__in=DetectorWorkflow.objects.filter(
-                workflow_id=config.backing_workflow_id,
-                workflow__status=ObjectStatus.ACTIVE,
-                detector__status=ObjectStatus.ACTIVE,
-            ).values("detector__project_id")
-        )
-    if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
-        projects = projects.filter(
-            id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
-        )
-    return projects

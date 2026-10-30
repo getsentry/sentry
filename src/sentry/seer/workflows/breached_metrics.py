@@ -8,6 +8,7 @@ from functools import partial
 from typing import Annotated, Any, Literal
 
 from django.db import router, transaction
+from django.db.models import QuerySet
 from django.utils import timezone
 from pydantic import BaseModel, Field, PositiveInt, ValidationError
 
@@ -15,6 +16,7 @@ from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionExtras,
@@ -26,7 +28,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow, matches_workflow_scope
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import (
     Action,
@@ -284,7 +286,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             )
             if config is None:
                 return IgnoredMetricBreach("configuration_unavailable")
-            if not matches_workflow_scope(config, group.project_id, trigger.environment):
+            if not self._matches_scope(config, group.project_id, trigger.environment):
                 return IgnoredMetricBreach("out_of_scope")
 
             trigger_key = f"issue_created:{group.id}"
@@ -326,6 +328,20 @@ class BreachedMetricWorkflow(SeerWorkflow):
             workflow_run.start_execution(execution.id)
             workflow_run.complete_execution(execution.id)
             return AcceptedMetricBreach(run=workflow_run.get_run(), created=result.created)
+
+    def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
+        projects = Project.objects.filter(
+            organization_id=config.organization_id, status=ObjectStatus.ACTIVE
+        )
+        if config.backing_workflow_id is None:
+            return projects.none()
+        return projects.filter(
+            id__in=DetectorWorkflow.objects.filter(
+                workflow_id=config.backing_workflow_id,
+                workflow__status=ObjectStatus.ACTIVE,
+                detector__status=ObjectStatus.ACTIVE,
+            ).values("detector__project_id")
+        )
 
     def _create_monitor_workflow(self, config: SeerWorkflowConfig) -> Workflow:
         triggers = DataConditionGroup.objects.create(
