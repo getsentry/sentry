@@ -9,7 +9,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.7.0",
+    "@sentry/react": "11.9.0",
     "@sentry/scraps": "workspace:*",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-query": "5.101.4",
