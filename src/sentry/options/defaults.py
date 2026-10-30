@@ -954,6 +954,15 @@ register("vercel.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIA
 register("vercel.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Jira Forge apps whose invocation tokens we accept, as app ARIs
+# (`ari:cloud:ecosystem::app/<uuid>`). Empty rejects every Forge request.
+register(
+    "jira.forge.app-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
