@@ -238,11 +238,11 @@ function EmailRow({
 }: EmailRowProps) {
   return (
     <EmailItem>
-      <EmailTags>
+      <Grid align="center" gap="md" flow="column">
         {email}
         {!isVerified && <Tag variant="warning">{t('Unverified')}</Tag>}
         {isPrimary && <Tag variant="success">{t('Primary')}</Tag>}
-      </EmailTags>
+      </Grid>
       <Grid flow="column" align="center" gap="md">
         {!isPrimary && isVerified && (
           <Button size="sm" onClick={() => onSetPrimary?.(email)}>
@@ -275,13 +275,6 @@ function EmailRow({
     </EmailItem>
   );
 }
-
-const EmailTags = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const EmailItem = styled(PanelItem)`
   justify-content: space-between;

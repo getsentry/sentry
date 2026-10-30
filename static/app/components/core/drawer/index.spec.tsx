@@ -10,7 +10,12 @@ import {
 import {mockMatchMedia} from 'sentry-test/utils';
 
 import type {DrawerConfig} from '@sentry/scraps/drawer';
-import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {
+  useDrawer,
+  useDrawerPlacement,
+  DrawerBody,
+  DrawerHeader,
+} from '@sentry/scraps/drawer';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -27,6 +32,11 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
       </button>
     </div>
   );
+}
+
+function DrawerPlacement({width, topOffset = 0}: {width: number; topOffset?: number}) {
+  useDrawerPlacement({minWidth: width, topOffset});
+  return null;
 }
 
 describe('GlobalDrawer', () => {
@@ -387,4 +397,67 @@ describe('GlobalDrawer', () => {
     expect(drawer.style.getPropertyValue('--drawer-width')).toBe('50%');
     expect(drawer.style.getPropertyValue('--drawer-max-width')).toBe('85%');
   });
+
+  it.each([
+    {width: 420, topOffset: 0},
+    {width: 420, topOffset: 44},
+    {width: 420, topOffset: 88},
+    {width: 0, topOffset: 0},
+    {width: 0, topOffset: 45},
+  ])(
+    'positions a drawer with pane width $width and banner height $topOffset',
+    async ({width, topOffset}) => {
+      render(
+        <Fragment>
+          <DrawerPlacement width={width} topOffset={topOffset} />
+          <GlobalDrawerTestComponent
+            config={{
+              renderer: () => (
+                <DrawerBody data-test-id="drawer-test-content">docked</DrawerBody>
+              ),
+              options: {ariaLabel, mode: 'passive'},
+            }}
+          />
+        </Fragment>
+      );
+
+      await userEvent.click(screen.getByTestId('drawer-test-open'));
+      expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+      const drawer = screen.getByRole('complementary', {name: ariaLabel});
+      // The global getComputedStyle stub only reads inline styles. Check the
+      // generated rules to verify the panel's placement and minimum width.
+      const rules = Array.from(document.styleSheets).flatMap(sheet =>
+        Array.from(sheet.cssRules)
+      );
+      const dockedRule = rules.find(
+        rule =>
+          rule instanceof CSSStyleRule &&
+          drawer.matches(rule.selectorText) &&
+          rule.style.getPropertyValue('min-width') === '420px'
+      ) as CSSStyleRule | undefined;
+      if (width > 0) {
+        expect(dockedRule).toBeDefined();
+      } else {
+        expect(dockedRule).toBeUndefined();
+      }
+      const panelRules = rules.filter(
+        (rule): rule is CSSStyleRule =>
+          rule instanceof CSSStyleRule && drawer.matches(rule.selectorText)
+      );
+      expect(
+        panelRules.some(rule => rule.style.getPropertyValue('top') === `${topOffset}px`)
+      ).toBe(true);
+      expect(
+        panelRules.some(
+          rule => rule.style.getPropertyValue('height') === `calc(100% - ${topOffset}px)`
+        )
+      ).toBe(true);
+
+      await userEvent.click(screen.getByTestId('drawer-test-close'));
+      await waitForDrawerToHide(ariaLabel);
+      expect(
+        screen.queryByRole('complementary', {name: ariaLabel})
+      ).not.toBeInTheDocument();
+    }
+  );
 });

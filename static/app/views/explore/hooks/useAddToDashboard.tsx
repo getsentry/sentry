@@ -23,6 +23,7 @@ import {
   useQueryParamsSortBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
+import {groupVisualizes} from 'sentry/views/explore/queryParams/visualize';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -32,6 +33,14 @@ export const CHART_TYPE_TO_DISPLAY_TYPE: Record<ChartType, DisplayType> = {
   [ChartType.AREA]: DisplayType.AREA,
   [ChartType.HEATMAP]: DisplayType.HEATMAP,
 };
+
+interface AddToDashboardOptions {
+  /**
+   * Add every aggregate plotted on the same chart as the visualize, not just
+   * the visualize itself.
+   */
+  includeChartGroup?: boolean;
+}
 
 export function useAddToDashboard() {
   const location = useLocation();
@@ -49,15 +58,19 @@ export function useAddToDashboard() {
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
   const getEventView = useCallback(
-    (visualizeIndex: number) => {
-      const yAxis = visualizes[visualizeIndex]!.yAxis;
+    (visualizeIndex: number, options?: AddToDashboardOptions) => {
+      const chartVisualizes = options?.includeChartGroup
+        ? (groupVisualizes(visualizes).find(group => group.index === visualizeIndex)
+            ?.visualizes ?? [visualizes[visualizeIndex]!])
+        : [visualizes[visualizeIndex]!];
+      const yAxes = chartVisualizes.map(visualize => visualize.yAxis);
 
       let fields: any;
       if (mode === Mode.SAMPLES) {
         fields = [];
       } else {
         fields = [
-          ...new Set([...groupBys, yAxis, ...sortBys.map(sort => sort.field)]),
+          ...new Set([...groupBys, ...yAxes, ...sortBys.map(sort => sort.field)]),
         ].filter(Boolean);
       }
 
@@ -70,7 +83,7 @@ export function useAddToDashboard() {
         query: search.formatString(),
         version: 2,
         dataset,
-        yAxis: [yAxis],
+        yAxis: yAxes,
       };
 
       const newEventView = EventView.fromNewQueryWithPageFilters(
@@ -86,8 +99,8 @@ export function useAddToDashboard() {
   );
 
   const addToDashboard = useCallback(
-    (visualizeIndex: number) => {
-      const eventView = getEventView(visualizeIndex);
+    (visualizeIndex: number, options?: AddToDashboardOptions) => {
+      const eventView = getEventView(visualizeIndex, options);
 
       handleAddQueryToDashboard({
         organization,

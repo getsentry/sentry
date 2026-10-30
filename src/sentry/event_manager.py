@@ -17,7 +17,6 @@ from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, OperationalError, connection, router, transaction
 from django.db.models import Max, Q
-from django.db.models.signals import post_save
 from django.utils.encoding import force_str
 from sentry_sdk import traces
 from urllib3.connectionpool import HTTPConnectionPool
@@ -164,7 +163,6 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, OutcomeAggregator, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
 from sentry.utils.safe import get_path, safe_execute, setdefault_path, trim
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 from sentry.workflow_engine.processors.detector import (
     associate_new_group_with_detector,
@@ -1833,13 +1831,6 @@ def _handle_regression(
             transition_type="automatic",
             sender="handle_regression",
         )
-        if not options.get("groups.enable-post-update-signal"):
-            post_save.send_robust(
-                sender=Group,
-                instance=group,
-                created=False,
-                update_fields=["last_seen", "active_at", "status", "substatus"],
-            )
 
     follows_semver = False
     resolved_in_activity = None
@@ -2948,8 +2939,9 @@ def save_transaction_events(
                 )
             except KeyError:
                 continue
-    set_span_attribute("jobs", len(jobs))
-    set_span_attribute("projects", len(projects))
+    span = traces.get_current_span()
+    if span:
+        span.set_attributes({"jobs": len(jobs), "projects": len(projects)})
 
     # NOTE: Keep this list synchronized with sentry/spans/consumers/process_segments/message.py
 

@@ -1,12 +1,15 @@
 import logging
 import math
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.utils import timezone
 from google.protobuf.json_format import MessageToJson
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
 )
@@ -45,6 +48,12 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry_sdk import traces
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
+from sentry.api.helpers.timeseries_transformations import (
+    FillTransformation,
+    Transformation,
+    fill_timeseries,
+    smooth_timeseries,
+)
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.project import Project
@@ -58,6 +67,7 @@ from sentry.search.eap.constants import (
     DOUBLE,
     MAX_ROLLUP_POINTS,
     SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME,
+    TIMESTAMP_ALIAS,
     VALID_GRANULARITIES,
 )
 from sentry.search.eap.resolver import SearchResolver
@@ -80,11 +90,20 @@ logger = logging.getLogger("sentry.snuba.spans_rpc")
 
 
 @dataclass
+class TimeseriesTransformationFlags:
+    filled: list[bool]
+    smoothed: list[bool]
+
+
+@dataclass
 class ProcessedTimeseries:
     timeseries: SnubaData = field(default_factory=list)
     confidence: SnubaData = field(default_factory=list)
     sampling_rate: SnubaData = field(default_factory=list)
     sample_count: SnubaData = field(default_factory=list)
+    transformation_aliases: dict[int, str] = field(default_factory=dict)
+    transformation_flags: dict[int, TimeseriesTransformationFlags] = field(default_factory=dict)
+    comparison_transformation_flags: TimeseriesTransformationFlags | None = None
 
 
 @dataclass
@@ -116,6 +135,25 @@ class TableQuery:
     limit_by: LimitBy | None = None
 
 
+def ensure_flextime_query_orderby(query: TableQuery) -> None:
+    """Put flextime's id sort last, appending it when it is missing.
+
+    See ``_enforce_flextime_routing_orders_by_timestamp_and_item_id``:
+    https://github.com/getsentry/snuba/blob/d22210b3f06a67df98e04b6a61b873633112d60e/snuba/web/rpc/v1/endpoint_trace_item_table.py#L236-L268
+    """
+    if query.sampling_mode != SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+        return
+    orderby = [column for column in (query.orderby or []) if column.lstrip("-").strip()]
+    if not orderby:
+        return
+    if orderby[-1] != "-id":
+        orderby = [column for column in orderby if column.lstrip("-") != "id"]
+        orderby.append("-id")
+    if "id" not in query.selected_columns:
+        query.selected_columns = [*query.selected_columns, "id"]
+    query.orderby = orderby
+
+
 @dataclass
 class TableRequest:
     """Container for rpc requests"""
@@ -123,6 +161,17 @@ class TableRequest:
     rpc_request: TraceItemTableRequest
     columns: list[ResolvedColumn]
     sort_column_aliases: set[str] = field(default_factory=set)
+
+
+def cap_end_timestamp_at_now(meta: RequestMeta) -> None:
+    now = Timestamp()
+    now.FromDatetime(timezone.now())
+    if (
+        meta.start_timestamp.ToNanoseconds()
+        < now.ToNanoseconds()
+        < meta.end_timestamp.ToNanoseconds()
+    ):
+        meta.end_timestamp.CopyFrom(now)
 
 
 def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
@@ -280,6 +329,7 @@ class RPCBase:
     @classmethod
     def get_table_rpc_request(cls, query: TableQuery) -> TableRequest:
         """Make the query"""
+        ensure_flextime_query_orderby(query)
         resolver = query.resolver
         sentry_sdk.set_tag("query.sampling_mode", query.sampling_mode)
         if query.sampling_mode is not None:
@@ -289,6 +339,7 @@ class RPCBase:
             sampling_mode=query.sampling_mode,
             filter_project=cls.filter_project,
         )
+        cap_end_timestamp_at_now(meta)
         where, having, query_contexts = resolver.resolve_query_with_columns(
             query.query_string,
             query.selected_columns,
@@ -436,6 +487,28 @@ class RPCBase:
             resolved_limit_by = TraceItemTableRequest.LimitBy(
                 columns=limit_by_columns, limit=query.limit_by.limit
             )
+
+        if query.sampling_mode == SAMPLING_MODE_HIGHEST_ACCURACY_FLEX_TIME:
+            # Flextime walks rows backward by timestamp. An aggregate has no row to
+            # walk, so the routing cannot paginate it.
+            if has_aggregations or having is not None:
+                raise InvalidSearchQuery("aggregates are not supported with flextime sampling")
+            if len(resolved_orderby) == 0:
+                raise InvalidSearchQuery(
+                    "You must orderby -timestamp and -id to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+
+            # Snuba paginates flextime by walking timestamp backward.
+            # The first order by has to be that column, descending.
+            first_orderby = resolved_orderby[0]
+            if not first_orderby.descending or first_orderby.column.label != TIMESTAMP_ALIAS:
+                raise InvalidSearchQuery(
+                    "Your first orderby must be -timestamp to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
+            if any(not order_by.descending for order_by in resolved_orderby):
+                raise InvalidSearchQuery(
+                    "Your orderby must be descending to use HIGHEST_ACCURACY_FLEX_TIME"
+                )
 
         page_token = (
             PageToken(offset=query.offset) if query.page_token is None else query.page_token
@@ -694,7 +767,10 @@ class RPCBase:
         ):
             # Doing this via timestamps as its the most direct and matches how its stored under the hood
             start = int(params.start.replace(tzinfo=None).timestamp())
-            end = int(params.end.replace(tzinfo=None).timestamp())
+            end = min(
+                int(params.end.replace(tzinfo=None).timestamp()),
+                int(timezone.now().replace(tzinfo=None).timestamp()),
+            )
             timeseries_definition, _ = resolver.resolve_attribute("timestamp")
             # Need timestamp as a double even though that's not how resolver does it so we can pass the timestamp in directly
             timeseries_column = AttributeKey(name=timeseries_definition.internal_name, type=DOUBLE)
@@ -745,6 +821,56 @@ class RPCBase:
             if debug:
                 setattr(e, "debug", MessageToJson(rpc_request))
             raise
+
+    @staticmethod
+    def apply_timeseries_transformations(
+        result: ProcessedTimeseries,
+        timeseries_list: Sequence[TimeSeries],
+        y_axes: Sequence[str],
+        transformations: Mapping[int, Sequence[Transformation]] | None,
+    ) -> None:
+        if not transformations:
+            return
+
+        series_by_label = {series.label: series for series in timeseries_list}
+        output_timestamps = [row["time"] for row in result.timeseries]
+        for axis_index, pipeline in transformations.items():
+            has_fill = any(
+                isinstance(transformation, FillTransformation) for transformation in pipeline
+            )
+            series = series_by_label.get(y_axes[axis_index])
+            timestamps = (
+                [bucket.seconds for bucket in series.buckets]
+                if series is not None
+                else output_timestamps
+            )
+            values = (
+                [
+                    process_value(point.data if point.data_present or not has_fill else None)
+                    for point in series.data_points
+                ]
+                if series is not None
+                else [None] * len(timestamps)
+            )
+            filled = [False] * len(values)
+            smoothed = [False] * len(values)
+            for transformation in pipeline:
+                if isinstance(transformation, FillTransformation):
+                    filled_timeseries = fill_timeseries(timestamps, values, config=transformation)
+                    values = filled_timeseries.values
+                    filled = filled_timeseries.filled
+                else:
+                    values = smooth_timeseries(timestamps, values, config=transformation)
+                    smoothed = [value is not None for value in values]
+
+            alias = f"__transformed_y_axis_{axis_index}"
+            result.transformation_aliases[axis_index] = alias
+            result.transformation_flags[axis_index] = TimeseriesTransformationFlags(
+                filled=filled,
+                smoothed=smoothed,
+            )
+            for row, value in zip(result.timeseries, values):
+                row[alias] = process_value(value)
 
     @classmethod
     def process_timeseries_list(
@@ -805,7 +931,9 @@ class RPCBase:
         list[ResolvedColumn],
         list[ResolvedAttribute],
     ]:
-        selected_equations, selected_axes = arithmetic.categorize_columns(y_axes)
+        selected_equations, selected_axes = arithmetic.categorize_columns(
+            list(dict.fromkeys(y_axes))
+        )
         (functions, _) = search_resolver.resolve_functions(selected_axes)
         equations, _ = search_resolver.resolve_equations(selected_equations)
         groupbys, groupby_contexts = search_resolver.resolve_attributes(groupby)
@@ -889,9 +1017,11 @@ class RPCBase:
         sampling_mode: SAMPLING_MODES | None,
         comparison_delta: timedelta | None = None,
         additional_queries: AdditionalQueries | None = None,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> SnubaTSResult:
         """Make the query"""
         cls.validate_granularity(params)
+        comparison_params = params.copy()
         search_resolver = cls.get_resolver(params, config)
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
@@ -903,6 +1033,9 @@ class RPCBase:
             sampling_mode=sampling_mode,
             additional_queries=additional_queries,
         )
+
+        if comparison_delta is not None and (len(y_axes) != 1 or len(rpc_request.expressions) != 1):
+            raise InvalidSearchQuery("Only one column can be selected for comparison queries")
 
         """Run the query"""
         rpc_response = cls._run_timeseries_rpc(params.debug, rpc_request)
@@ -934,11 +1067,15 @@ class RPCBase:
             )
         apply_resolved_literals(result.timeseries, aggregates)
 
-        if comparison_delta is not None:
-            if len(rpc_request.expressions) != 1:
-                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+        cls.apply_timeseries_transformations(
+            result,
+            rpc_response.result_timeseries,
+            y_axes,
+            transformations,
+        )
 
-            comp_query_params = params.copy()
+        if comparison_delta is not None:
+            comp_query_params = comparison_params
             assert comp_query_params.start is not None, "start is required"
             assert comp_query_params.end is not None, "end is required"
             comp_query_params.start = comp_query_params.start_date - comparison_delta
@@ -957,14 +1094,24 @@ class RPCBase:
             )
             comp_rpc_response = snuba_rpc.timeseries_rpc([comp_rpc_request])[0]
 
-            if comp_rpc_response.result_timeseries:
-                timeseries = comp_rpc_response.result_timeseries[0]
-                processed = cls.process_timeseries_list([timeseries], config)
-                for existing, new in zip(result.timeseries, processed.timeseries):
-                    existing["comparisonCount"] = new[timeseries.label]
-            else:
-                for existing in result.timeseries:
-                    existing["comparisonCount"] = 0
+            processed = cls.process_timeseries_list(
+                list(comp_rpc_response.result_timeseries), config
+            )
+            if not processed.timeseries:
+                processed.timeseries = [
+                    {"time": row["time"] - comparison_delta.total_seconds()}
+                    for row in result.timeseries
+                ]
+            cls.apply_timeseries_transformations(
+                processed,
+                comp_rpc_response.result_timeseries,
+                y_axes,
+                transformations,
+            )
+            comparison_column = processed.transformation_aliases.get(0, y_axes[0])
+            result.comparison_transformation_flags = processed.transformation_flags.get(0)
+            for existing, new in zip(result.timeseries, processed.timeseries):
+                existing["comparisonCount"] = new.get(comparison_column, 0)
 
         return SnubaTSResult(
             {"data": result.timeseries, "processed_timeseries": result, "meta": final_meta},
@@ -1037,6 +1184,7 @@ class RPCBase:
         sampling_mode: SAMPLING_MODES | None,
         equations: list[str] | None = None,
         additional_queries: AdditionalQueries | None = None,
+        transformations: Mapping[int, Sequence[Transformation]] | None = None,
     ) -> Any:
         """We intentionally duplicate run_timeseries_query code here to reduce the complexity of needing multiple helper
         functions that both would call
@@ -1056,7 +1204,9 @@ class RPCBase:
         table_search_resolver = cls.get_resolver(table_query_params, config)
 
         # Make a table query first to get what we need to filter by
-        equation_axes, non_equation_axes = arithmetic.categorize_columns(y_axes)
+        equation_axes, non_equation_axes = arithmetic.categorize_columns(
+            list(dict.fromkeys(y_axes))
+        )
         all_equations = (equations or []) + equation_axes
         top_events = cls._run_table_query(
             TableQuery(
@@ -1089,6 +1239,7 @@ class RPCBase:
         )
 
         """Make the queries"""
+        other_params = params.copy()
         rpc_request, aggregates, groupbys = cls.get_timeseries_query(
             search_resolver=search_resolver,
             params=params,
@@ -1103,8 +1254,8 @@ class RPCBase:
         requests = [rpc_request]
         if include_other:
             other_request, _, _ = cls.get_timeseries_query(
-                search_resolver=search_resolver,
-                params=params,
+                search_resolver=cls.get_resolver(other_params, config),
+                params=other_params,
                 query_string=query_string,
                 y_axes=y_axes,
                 groupby=[],  # in the other series, we want eveything in a single group, so the group by is empty
@@ -1119,7 +1270,7 @@ class RPCBase:
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
-            if len(timeseries_rpc_response) > 1:
+            if include_other:
                 other_response = timeseries_rpc_response[1]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
@@ -1179,6 +1330,12 @@ class RPCBase:
             result_groupby = create_groupby_dict(row, groupby_columns, {}, stringify_none=False)
             result = cls.process_timeseries_list(map_result_key_to_timeseries[result_key], config)
             apply_resolved_literals(result.timeseries, aggregates)
+            cls.apply_timeseries_transformations(
+                result,
+                map_result_key_to_timeseries[result_key],
+                y_axes,
+                transformations,
+            )
             final_result[result_key] = SnubaTSResult(
                 {
                     "data": result.timeseries,
@@ -1198,6 +1355,12 @@ class RPCBase:
             )
             apply_resolved_literals(result.timeseries, aggregates)
             if check_timeseries_has_data(result.timeseries, y_axes):
+                cls.apply_timeseries_transformations(
+                    result,
+                    other_response.result_timeseries,
+                    y_axes,
+                    transformations,
+                )
                 final_result[OTHER_KEY] = SnubaTSResult(
                     {
                         "data": result.timeseries,

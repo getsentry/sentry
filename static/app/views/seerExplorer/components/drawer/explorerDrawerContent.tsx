@@ -7,9 +7,10 @@ import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExpl
  * header chrome. The close affordance comes from `DrawerHeader`, and its handler
  * from the drawer context.
  *
- * This is the only Seer file coupled to the scraps drawer — when the
- * persistent-sidebar flag is removed, deleting it (and `useSeerExplorerDrawer`)
- * drops the drawer surface entirely; the shared content has no drawer imports.
+ * This is the only Seer file coupled to the scraps drawer — once nothing opens
+ * the drawer (orgs without Seer Explorer, and Autofix's `useSeerPanel`), deleting
+ * it (and `useSeerExplorerDrawer`) drops the drawer surface entirely; the shared
+ * content has no drawer imports.
  */
 export function ExplorerDrawerContent({
   getPageReferrer,

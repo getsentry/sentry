@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Table} from '@sentry/scraps/table';
 
 import {Placeholder} from 'sentry/components/placeholder';
@@ -170,7 +171,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
   );
 
   return (
-    <OurLogsContentWrapper>
+    <Stack flex="1 1 auto" minHeight="0">
       <OurLogFilters
         replayId={replayId}
         searchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
@@ -204,16 +205,9 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
           />
         )}
       </LogsItemContainer>
-    </OurLogsContentWrapper>
+    </Stack>
   );
 }
-
-const OurLogsContentWrapper = styled('div')`
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-height: 0;
-`;
 
 const BorderedSection = styled(FluidHeight)<{isStatus?: boolean}>`
   border: 1px solid ${p => p.theme.tokens.border.primary};

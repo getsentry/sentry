@@ -6,7 +6,7 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
@@ -25,7 +25,6 @@ import {
 } from './build-utils/dev-server-host-check.ts';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
-import {getReactRouterConfig} from './build-utils/react-router.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
@@ -54,7 +53,6 @@ const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
 
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const reactRouterConfig = getReactRouterConfig(env);
 const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
@@ -223,7 +221,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -303,7 +318,10 @@ const appConfig: Configuration = {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: true,
+    // On Linux the native (inotify) watcher confuses the
+    // static/app/node_modules/sentry -> .. self-link with the real directory,
+    // so edits under static/app never trigger a rebuild.
+    nativeWatcher: process.platform === 'darwin',
   },
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
@@ -326,7 +344,6 @@ const appConfig: Configuration = {
      */
     rules: [
       ...workspaceResolutionRules,
-      ...reactRouterConfig.rules,
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -501,19 +518,10 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
-      ...reactRouterConfig.alias,
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      // Keep Prose available until the text barrel is fully isolated.
-      '@sentry/scraps/text$': path.join(
-        staticPrefix,
-        'app',
-        'components',
-        'core',
-        'text'
-      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),

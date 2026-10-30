@@ -305,7 +305,12 @@ export function WeeklyReportProjectExclusions({
                         </EmptyStateWarning>
                       ) : (
                         paginatedProjects.map(project => (
-                          <Item key={project.id}>
+                          <Flex
+                            justify="between"
+                            align="center"
+                            padding="lg xl"
+                            key={project.id}
+                          >
                             <IdBadge
                               project={project}
                               avatarSize={20}
@@ -318,7 +323,7 @@ export function WeeklyReportProjectExclusions({
                               onChange={() => handleToggle(String(project.id))}
                               aria-label={t('Toggle weekly report for %s', project.slug)}
                             />
-                          </Item>
+                          </Flex>
                         ))
                       )}
                     </StyledPanelBody>
@@ -392,13 +397,6 @@ const StyledPanelBody = styled(PanelBody)`
   & > div:not(:last-child) {
     border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
   }
-`;
-
-const Item = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const PaginationCaption = styled('span')`

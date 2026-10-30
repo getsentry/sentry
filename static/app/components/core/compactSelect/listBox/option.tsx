@@ -1,5 +1,4 @@
 import {Fragment, useContext, useMemo, useRef} from 'react';
-import styled from '@emotion/styled';
 import type {AriaOptionProps} from '@react-aria/listbox';
 import {useOption} from '@react-aria/listbox';
 import {mergeRefs} from '@react-aria/utils';
@@ -8,19 +7,19 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
-import {LeadWrap} from '@sentry/scraps/compactSelect/styles';
+import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
 import {
-  InnerWrap,
-  MenuListItem,
-  type MenuListItemProps,
-} from '@sentry/scraps/menuListItem';
+  ControlContext,
+  ListItem,
+  useReserveLeadingSlot,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
 
 export interface ListBoxOptionProps extends AriaOptionProps {
   item: Node<any>;
   listState: ListState<any>;
-  size: MenuListItemProps['size'];
+  size: ListItemProps['size'];
   'data-index'?: number;
   ref?: React.Ref<HTMLLIElement>;
   showDetails?: boolean;
@@ -74,7 +73,8 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
-  const leadingItems = (item.props as MenuListItemProps).leadingItems;
+  const reserveLeadingSlot = useReserveLeadingSlot();
+  const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = item.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
 
@@ -98,16 +98,31 @@ export function ListBoxOption({
               readOnly
             />
           ) : (
-            isSelected && <IconCheckmark size={checkboxSize} />
+            isSelected && <IconCheckmark size={checkboxSize} variant="accent" />
           )}
         </LeadWrap>
-        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap aria-hidden="true" minWidth={reserveLeadingSlot ? '16px' : undefined}>
+            {leading}
+          </LeadWrap>
+        ) : null}
       </Fragment>
     );
-  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
+  }, [
+    size,
+    leadingItems,
+    isDisabled,
+    isFocused,
+    isSelected,
+    hideCheck,
+    multiple,
+    reserveLeadingSlot,
+  ]);
 
   return (
-    <StyledMenuListItem
+    <ListItem
       {...optionProps}
       data-index={dataIndex}
       ref={mergeRefs(ref, refProp)}
@@ -118,9 +133,15 @@ export function ListBoxOption({
       isPressed={isPressed}
       isSelected={isSelected}
       isFocused={listState.selectionManager.isFocused && isFocused}
-      priority={(priority ?? (isSelected && !multiple)) ? 'primary' : 'default'}
+      priority={priority ? 'primary' : 'default'}
       labelProps={labelPropsMemo}
       leadingItems={leadingItemsMemo}
+      innerWrapProps={{
+        paddingLeft: getOptionPaddingLeft({
+          hasCheck: !hideCheck,
+          hasLeadingItems: Boolean(leadingItems) || reserveLeadingSlot,
+        }),
+      }}
       trailingItems={trailingItems}
       showDetailsInOverlay={showDetailsInOverlay}
       tooltip={tooltip}
@@ -129,9 +150,3 @@ export function ListBoxOption({
     />
   );
 }
-
-const StyledMenuListItem = styled(MenuListItem)`
-  > ${InnerWrap} {
-    padding-left: ${p => p.theme.space.md};
-  }
-`;

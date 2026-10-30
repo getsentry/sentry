@@ -379,6 +379,13 @@ export function BackendJsonSubmitForm({
                       );
                     case 'select':
                     case 'choice': {
+                      const rawValue = fieldApi.value;
+                      const multipleValue = Array.isArray(rawValue)
+                        ? rawValue
+                        : rawValue === undefined || rawValue === null || rawValue === ''
+                          ? []
+                          : [rawValue as JsonFormAdapterChoiceValue];
+
                       if (field.url || customAsyncQueryOptions?.[field.name]) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
@@ -443,9 +450,7 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={
-                                  (fieldApi.value as JsonFormAdapterChoiceValue[]) ?? []
-                                }
+                                value={multipleValue}
                                 onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                   handleChange(value)
                                 }
@@ -499,9 +504,7 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={
-                                (fieldApi.value as JsonFormAdapterChoiceValue[]) ?? []
-                              }
+                              value={multipleValue}
                               onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                 handleChange(value)
                               }

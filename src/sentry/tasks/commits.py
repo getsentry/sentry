@@ -305,7 +305,7 @@ def fetch_commits_for_ref_with_lifecycle(
                 repo_commits = None
             except Exception as e:
                 span = traces.get_current_span()
-                if isinstance(span, traces.StreamedSpan):
+                if span is not None:
                     span.status = "error"
 
                 if isinstance(e, InvalidIdentity) and getattr(e, "identity", None):

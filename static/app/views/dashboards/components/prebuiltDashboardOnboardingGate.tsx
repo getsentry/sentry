@@ -4,7 +4,7 @@ import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHa
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {getPrebuiltDashboardConfig} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulesOnboardingPanel} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -37,7 +37,9 @@ export function PrebuiltDashboardOnboardingGate({
   const {projects} = useProjects();
   const pageFilters = usePageFilters();
 
-  const prebuiltDashboard = prebuiltId ? PREBUILT_DASHBOARDS[prebuiltId] : undefined;
+  const prebuiltDashboard = prebuiltId
+    ? getPrebuiltDashboardConfig(prebuiltId, organization)
+    : undefined;
   const onboarding = prebuiltDashboard?.onboarding;
 
   const moduleName =
@@ -163,7 +165,6 @@ function DashboardOnboardingInner({
       'Sentry prebuilt dashboard. Shows setup instructions instead of widgets because the selected projects have not sent the data this dashboard needs yet. ' +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
-    onboarding: true,
     title,
     ...toLLMContextProjectFields(selectedProjects),
   });

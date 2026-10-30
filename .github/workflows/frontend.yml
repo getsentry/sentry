@@ -49,13 +49,7 @@ jobs:
   typescript:
     if: needs.files-changed.outputs.frontend_all == 'true'
     needs: files-changed
-    name: typescript (router v${{ matrix.router }})
-    strategy:
-      fail-fast: false
-      matrix:
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
+    name: typescript
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -106,9 +100,9 @@ jobs:
           SENTRY_OXLINT_VERIFIED_BASE: ${{ steps.lint-baseline.outputs.base }}
         run: |
           if [ "$EVENT_NAME" = pull_request ]; then
-            pnpm run lint:js --ci --base HEAD^1
+            pnpm run lint:suppressions --ci --base HEAD^1
           else
-            pnpm run lint:js --ci
+            pnpm run lint:suppressions --ci
           fi
 
       # The ratchet passes with stale budgets inherited from earlier merges, but only
@@ -120,7 +114,7 @@ jobs:
 
       # Decide whether to lint just the PR's impacted files or everything (see
       # frontend-changed-scope.sh): we scope to impacted files only when a merge base
-      # resolves and changes are under static/ or to oxlint-suppressions.json.
+      # resolves and changes are under static/ or to project oxlint-suppressions.json files.
       # Global config or dependency changes require linting everything because
       # their impact can't be traced from source files.
       - name: Compute lint strategy
@@ -139,10 +133,13 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/custom-oxlint.ts --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/lint.ts js --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
+
+      - name: stylelint (workspace packages)
+        run: pnpm --recursive --parallel --no-bail --no-include-workspace-root --if-present run lint:css
 
   prune-oxlint-suppressions:
     needs: oxlint
@@ -187,6 +184,9 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Test workspace CI runner
+        run: node --test scripts/testCi.test.ts
+
       # On PRs, HEAD is the merge commit; its parents (HEAD^1, HEAD^2) are base and head.
       # Merge base of those two determines which tests to run via --findRelatedTests.
       # If merge base can't be computed or non-frontend files changed, the full
@@ -208,7 +208,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest (router v${{ matrix.router }}, shard ${{ matrix.index }})
+    name: Jest (shard ${{ matrix.index }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -220,9 +220,6 @@ jobs:
       matrix:
         index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
         total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
-        router: ['6', '8']
-    env:
-      SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
     permissions:
       contents: read
       # `gh run download` in "Download jest artifacts"
@@ -233,27 +230,26 @@ jobs:
         name: Checkout sentry
 
       # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
-      # runner truncates whenever a step starts (getsentry/sentry#127566).
-      - uses: ./.github/actions/setup-node-toolchain
+      # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
+      # a composite action, and the runner corrupts shared job state when a composite
+      # overlaps another step (actions/runner#4789).
+      - uses: ./.github/actions/setup-node-pnpm
 
       # None of these depend on each other, fetch them all at once. Nothing in this
       # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
-      # actions/download-artifact, actions/github-script, actions/checkout).
+      # actions/download-artifact, actions/github-script, actions/checkout) or be a
+      # composite action.
       - parallel:
-          - uses: ./.github/actions/setup-node-pnpm
-            with:
-              setup-toolchain: 'false'
-
           - name: jest transform cache
             uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
             with:
               path: |
                 .cache/jest
                 ~/.cache/swc
-              key: jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
+              key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-${{ matrix.index }}
               restore-keys: |
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
-                jest-cache-${{ runner.os }}-router${{ matrix.router }}-
+                jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'tests/js/createJestConfig.ts', 'tests/js/jest.config.ci.mjs') }}-
+                jest-cache-${{ runner.os }}-
 
           - name: Download jest artifacts
             env:

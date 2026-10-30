@@ -64,6 +64,7 @@ import {getGroupBysForAggregateMode} from 'sentry/views/explore/logs/getGroupBys
 import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
 import {LogsDownSamplingAlert} from 'sentry/views/explore/logs/logsDownsamplingAlert';
 import {LogsGraph} from 'sentry/views/explore/logs/logsGraph';
+import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/logsIngestDelay';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
 import {LogsTabSeerComboBox} from 'sentry/views/explore/logs/logsTabSeerComboBox';
 import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
@@ -78,7 +79,6 @@ import {
 import {LogsAggregateTable} from 'sentry/views/explore/logs/tables/logsAggregateTable';
 import {LogsInfiniteTable} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {useLogsAggregatesTable} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-import {getMaxIngestDelayTimestamp} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsSearchQueryBuilderProps} from 'sentry/views/explore/logs/useLogsSearchQueryBuilderProps';
 import {useLogsTimeseries} from 'sentry/views/explore/logs/useLogsTimeseries';
 import {usePersistentLogsPageParameters} from 'sentry/views/explore/logs/usePersistentLogsPageParameters';
@@ -89,6 +89,7 @@ import {calculateAverageLogsPerSecond} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsFields,
+  useQueryParamsHasTransformations,
   useQueryParamsGroupBys,
   useQueryParamsMode,
   useQueryParamsSearch,
@@ -140,6 +141,7 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
   const visualizes = useQueryParamsVisualizes();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
+  const hasTransformations = useQueryParamsHasTransformations();
   const saveAsItems = useSaveAsItems({
     visualizes,
     groupBys,
@@ -232,6 +234,16 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
                           {...triggerProps}
                           variant="primary"
                           aria-label={t('Save as')}
+                          disabled={hasTransformations}
+                          tooltipProps={
+                            hasTransformations
+                              ? {
+                                  title: t(
+                                    'Queries with transformations cannot be saved yet.'
+                                  ),
+                                }
+                              : undefined
+                          }
                         >
                           {t('Save as')}
                         </OverlayTrigger.Button>

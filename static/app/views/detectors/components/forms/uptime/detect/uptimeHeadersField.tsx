@@ -5,7 +5,7 @@ import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, Grid} from '@sentry/scraps/layout';
 
 import type {FormFieldProps} from 'sentry/components/forms/formField';
 import {FormField} from 'sentry/components/forms/formField';
@@ -92,7 +92,7 @@ function UptimHeadersControl(props: any) {
       {items.length > 0 && (
         <HeaderItems>
           {items.map(([id, headerName, headerValue], index) => (
-            <HeaderRow key={id}>
+            <Grid align="center" column="1 / -1" columns="subgrid" key={id}>
               <Input
                 monospace
                 disabled={disabled}
@@ -125,7 +125,7 @@ function UptimHeadersControl(props: any) {
                 }
                 onClick={() => removeItem(index)}
               />
-            </HeaderRow>
+            </Grid>
           ))}
         </HeaderItems>
       )}
@@ -152,11 +152,4 @@ const HeaderItems = styled('fieldset')`
   grid-template-columns: minmax(200px, 1fr) 2fr max-content;
   gap: ${p => p.theme.space.md};
   width: 100%;
-`;
-
-const HeaderRow = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 1 / -1;
-  align-items: center;
 `;

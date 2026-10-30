@@ -90,7 +90,7 @@ export function MergeAccountsModal(props: Props) {
               <field.Layout.Stack label="Accounts to merge">
                 <field.SelectAsync
                   multiple
-                  isSearchable
+                  searchable
                   value={field.value}
                   onChange={field.handleChange}
                   queryOptions={search => {

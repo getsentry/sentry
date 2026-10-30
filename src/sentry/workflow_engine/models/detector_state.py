@@ -35,7 +35,8 @@ class DetectorState(DefaultFieldsModel):
     # The detectors priority level from the last detector evaluation
     state = models.CharField(max_length=200, default=DetectorPriorityLevel.OK)
 
-    # A unix epoch timestamp in milliseconds that rotates on each OK --> non-OK transition
+    # A unix epoch timestamp in milliseconds that rotates when the detector leaves OK after
+    # staying OK for its handler's `regression_timeout`
     # This is used for creating unique fingerprints
     activation_id = BoundedBigIntegerField(null=True)
 

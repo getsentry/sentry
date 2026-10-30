@@ -163,7 +163,7 @@ ruleTester.run('require-render-prop-spread', requireRenderPropSpread, {
           <AutoSaveForm>
             {field => (
               <field.Layout.Row label="Name">
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
                 <field.Meta />
               </field.Layout.Row>
             )}

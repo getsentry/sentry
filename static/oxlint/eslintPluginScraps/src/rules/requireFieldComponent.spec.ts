@@ -41,8 +41,12 @@ ruleTester.run('require-field-component', requireFieldComponent, {
       code: '<form.Field name="name">{nameField => <nameField.Select />}</form.Field>',
     },
     {
-      name: 'accepts layout and meta components',
-      code: '<form.Field name="name">{field => <field.Layout.Row><CustomInput /><field.Meta /></field.Layout.Row>}</form.Field>',
+      name: 'accepts a bound control with layout and meta components',
+      code: '<form.Field name="name">{field => <field.Layout.Row><field.Input /><field.Meta /></field.Layout.Row>}</form.Field>',
+    },
+    {
+      name: 'accepts other field components',
+      code: '<form.Field name="name">{field => <field.CustomControl />}</form.Field>',
     },
     {
       name: 'finds a field component inside wrappers and fragments',
@@ -81,12 +85,12 @@ ruleTester.run('require-field-component', requireFieldComponent, {
       code: '<form.Field name="name">{({Input: NameInput}) => <NameInput />}</form.Field>',
     },
     {
-      name: 'supports destructured component namespaces',
-      code: '<form.Field name="name">{({Layout}) => <Layout.Row />}</form.Field>',
+      name: 'supports destructured Base with layout and meta components',
+      code: '<form.Field name="name">{({Base, Layout, Meta}) => <Layout.Row><Base><CustomInput /></Base><Meta /></Layout.Row>}</form.Field>',
     },
     {
-      name: 'supports nested destructuring',
-      code: '<form.Field name="name">{({Layout: {Row}}) => <Row />}</form.Field>',
+      name: 'supports other destructured field components and aliases',
+      code: '<form.Field name="name">{({CustomControl: Input}) => <Input />}</form.Field>',
     },
     {
       name: 'supports default parameters',
@@ -127,7 +131,54 @@ ruleTester.run('require-field-component', requireFieldComponent, {
   ],
   invalid: [
     {
-      name: 'checks item fields inside an exempt ArrayField',
+      name: 'rejects layout and meta without a bound control',
+      code: '<form.Field name="name">{field => <field.Layout.Row><CustomInput /><field.Meta /></field.Layout.Row>}</form.Field>',
+      errors,
+    },
+    ...['Layout', 'Meta'].flatMap(component => [
+      {
+        name: `rejects ${component} alone`,
+        code: `<form.Field name="name">{field => <field.${component} />}</form.Field>`,
+        errors,
+      },
+      {
+        name: `rejects destructured ${component}`,
+        code: `<form.Field name="name">{({${component}}) => <${component} />}</form.Field>`,
+        errors,
+      },
+      {
+        name: `rejects aliased ${component}`,
+        code: `<form.Field name="name">{({${component}: Input}) => <Input />}</form.Field>`,
+        errors,
+      },
+      {
+        name: `rejects ${component} on a rest binding`,
+        code: `<form.Field name="name">{({state, ...field}) => <field.${component} />}</form.Field>`,
+        errors,
+      },
+      {
+        name: `rejects ${component} alone in AutoSaveForm`,
+        code: `import {AutoSaveForm} from "@sentry/scraps/form"; <AutoSaveForm>{field => <field.${component} />}</AutoSaveForm>`,
+        errors,
+      },
+    ]),
+    {
+      name: 'rejects a layout namespace member',
+      code: '<form.Field name="name">{field => <field.Layout.Row />}</form.Field>',
+      errors,
+    },
+    {
+      name: 'rejects a destructured layout namespace member',
+      code: '<form.Field name="name">{({Layout}) => <Layout.Row />}</form.Field>',
+      errors,
+    },
+    {
+      name: 'rejects nested layout destructuring',
+      code: '<form.Field name="name">{({Layout: {Row: Input}}) => <Input />}</form.Field>',
+      errors,
+    },
+    {
+      name: 'checks item fields inside an exempt array-mode AppField',
       code: '<form.ArrayField name="items">{arrayField => arrayField.value.map((_, index) => <form.Field key={index} name={`items[${index}].name`}>{field => <CustomInput value={field.value} />}</form.Field>)}</form.ArrayField>',
       errors,
     },

@@ -46,7 +46,7 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.validators import normalize_event_id
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -656,9 +656,9 @@ def post_process_group(
 
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=event.project.organization_id,
                 project_id=event.project_id,
-                actor_type=ActorType.SYSTEM,
             )
         ):
             is_reprocessed = is_reprocessed_event(event.data)
@@ -697,12 +697,12 @@ def post_process_group(
                 tags=metric_tags,
             )
 
-            nodestore_insert = event.data.get("nodestore_insert")
-            if nodestore_insert is not None:
-                # Measures latency from the Nodestore write to post-processing completion.
+            save_event_start = event.data.get("save_event_start")
+            if save_event_start is not None:
+                # Measures latency from save_event start to post-processing completion.
                 metrics.timing(
-                    "events.nodestore_to_post_process",
-                    time() - nodestore_insert,
+                    "events.save_to_post_process",
+                    time() - save_event_start,
                     instance=event.data.get("platform") or None,
                     tags={
                         **metric_tags,

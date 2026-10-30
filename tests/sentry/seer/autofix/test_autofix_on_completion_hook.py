@@ -65,7 +65,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 def run_state(
@@ -104,10 +104,6 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
                     "headline": "Auth module dereferences a null user",
                     "one_line_description": "Null pointer in auth module",
                     "five_whys": ["Why 1"],
-                    "fixability": {
-                        "assessment": "fixable",
-                        "reason": "Can be fixed in code",
-                    },
                 },
                 reason="explorer",
             )
@@ -273,24 +269,6 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_get_next_step_pr_iteration_is_terminal(self) -> None:
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.PR_ITERATION)
-        assert result is None
-
-    def test_determine_fixability_returns_none_for_non_root_cause(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        group = self.create_group(project=project)
-        state = run_state(blocks=[pr_iteration_memory_block()])
-
-        result = AutofixOnCompletionHook.determine_fixability(
-            organization=organization,
-            group=group,
-            run_id=1,
-            state=state,
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            reached_stopping_point=False,
-        )
-
         assert result is None
 
 
@@ -995,6 +973,59 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_finished_branch_moved_push_pauses_as_an_error(
+        self, mock_fetch, mock_push, mock_consume, mock_complete
+    ):
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        state.repo_pr_states["test-repo"] = RepoPRState.parse_obj(
+            {
+                **state.repo_pr_states["test-repo"].dict(),
+                "pr_creation_status": "error",
+                "pr_creation_error_code": "branch_moved",
+                "pr_creation_error": "A different message from Seer.",
+            }
+        )
+        mock_fetch.return_value = state
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert (
+            get_pause_reason(run_id=123, organization_id=self.organization.id)
+            == PauseReason.RUN_ERRORED
+        )
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
+        mock_push.assert_not_called()
+        mock_consume.assert_not_called()
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.pause_pr_iteration")
+    def test_another_push_error_does_not_pause_as_branch_moved(self, mock_pause, mock_complete):
+        state = self._unsynced()
+        repo_state = state.repo_pr_states["test-repo"]
+        repo_state.pr_creation_status = "error"
+        repo_state.pr_creation_error_code = "another_error"
+        repo_state.pr_creation_error = (
+            "This branch has commits Seer didn't push, so Seer did not overwrite them."
+        )
+
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+
+        mock_pause.assert_not_called()
+        assert (
+            mock_complete.call_args.kwargs["outcome"]
+            == PrIterationOutcome.PR_CREATION_ERRORED.value
+        )
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes", side_effect=ValueError("boom"))
     def test_a_failed_push_reaches_completion_details_as_that_outcome(
         self, mock_push, mock_complete
@@ -1308,7 +1339,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
@@ -1382,7 +1413,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         )
         mock_metrics_incr.assert_any_call("ai.autofix.pr_iteration.completed", sample_rate=1.0)
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration_does_not_emit_pr_created(
         self, mock_broadcast, mock_analytics
@@ -1709,9 +1740,8 @@ class AutofixOnCompletionHookTest(TestCase):
 
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id),
                 organization_id=self.organization.id,
-                user_id=self.user.id,
-                actor_type=ActorType.USER,
             )
         ):
             AutofixOnCompletionHook.execute(self.organization, 123)

@@ -99,7 +99,6 @@ function SpansTabOnboardingInner({
       'onboardingProject is the project the setup instructions are for. ' +
       'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
-    onboarding: true,
     onboardingProject: {slug: project.slug, platform: project.platform},
     ...toLLMContextProjectFields(selectedProjects),
   });

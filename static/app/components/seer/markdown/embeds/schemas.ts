@@ -199,7 +199,8 @@ export const SEER_EMBED_SCHEMAS = {
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
-      'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
+      'When referencing 2+ issues, use one `issuesQuery` listing their short IDs, ' +
+      'e.g. `issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -441,47 +442,57 @@ export const SEER_EMBED_SCHEMAS = {
   },
   alert: {
     description:
-      'The ONLY way to reference a Sentry alert. ' +
-      'Use `id` exactly as the alerts API returns it, and set `kind` to match: ' +
-      '"metric" for a metric alert, "issue" for an issue alert, "uptime" for an ' +
-      'uptime alert, "cron" for a cron alert. ' +
+      'The ONLY way to reference a Sentry Alert. ' +
+      'Monitors decide when data becomes an issue; an Alert is the rule that runs ' +
+      'actions (email, Slack, tickets, webhooks) when issues from its projects or ' +
+      'connected Monitors match its triggers and filters. ' +
+      "Use the Alert's id from the workflows API (`/workflows/`, " +
+      'get_organization_workflow / list_organization_workflows) with `kind` ' +
+      '"issue". This holds for every Alert, including one connected to a metric, ' +
+      'cron, or uptime Monitor. ' +
+      'Reference the Monitor itself with the `monitor` embed, never with this one. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: renders alert conditions and configured actions, plus the ' +
-      'underlying rule configuration for metric, uptime, and cron alerts. ' +
+      "Block: renders the Alert's settings, conditions, and actions. " +
       'Do not duplicate those details as text. ' +
       'Never use a markdown link for alert references.',
     level: ['inline', 'block'],
     schema: z.object({
       id: z.string().min(1),
-      kind: z.enum(['metric', 'issue', 'uptime', 'cron']),
+      kind: z
+        .enum(['metric', 'issue', 'uptime', 'cron'])
+        .describe(
+          'Always "issue" for an Alert. "metric", "uptime", and "cron" are legacy ' +
+            'values that expect a Monitor (detector) id; do not use them.'
+        ),
       name: z.string().min(1).optional(),
     }),
     examples: [
       {
-        label: 'Metric alert',
-        data: {id: '4521', kind: 'metric', name: 'Checkout p95 latency'},
-      },
-      {label: 'Issue alert', data: {id: '881', kind: 'issue'}},
-      {
-        label: 'Uptime alert',
-        data: {id: '774', kind: 'uptime', name: 'Checkout availability'},
+        label: 'Alert',
+        data: {id: '881', kind: 'issue', name: 'New checkout issues to #checkout'},
       },
       {
-        label: 'Cron alert',
-        data: {id: '9931', kind: 'cron', name: 'nightly-sync'},
+        label: 'Alert connected to a metric Monitor',
+        data: {id: '6120', kind: 'issue', name: 'High error rate email'},
       },
     ],
   },
   monitor: {
     description:
-      'The ONLY way to reference a Sentry monitor (error, metric, cron, uptime, ' +
-      'or mobile build detector). Use the numeric id from the detectors API ' +
-      '(get_organization_detector / list_organization_detectors) — do NOT use the ' +
-      '"id" field from the monitors API, which is a GUID and will not work here. ' +
+      'The ONLY way to reference a Sentry Monitor. ' +
+      'A Monitor decides when data becomes an issue: a metric, cron, uptime, or ' +
+      "mobile builds Monitor, or a project's default Error or Issue Stream Monitor. " +
+      'Use the numeric id from the detectors API (`/detectors/`, ' +
+      'get_organization_detector / list_organization_detectors). ' +
+      'Do NOT use the GUID `id` from the Crons API (`/monitors/`, ' +
+      'list_organization_monitors); look up the cron Monitor in the detectors API ' +
+      'instead. ' +
+      'To reference an Alert that acts on issues from a Monitor, use the `alert` ' +
+      'embed. ' +
       'Include the API-provided name when available. ' +
       'Inline: renders a compact link. ' +
-      'Block: loads the live monitor and renders its type-specific configuration/rules. ' +
+      'Block: loads the live Monitor and renders its type-specific configuration. ' +
       'Never use a markdown link for monitor references.',
     level: ['inline', 'block'],
     schema: z.object({
@@ -780,9 +791,11 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issuesQuery: {
     description:
-      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
-      'including a specific list of issue IDs such as ' +
-      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The ONLY way to list multiple Sentry issues. Accepts any issue search terms. ' +
+      'To list several specific issues, put their short IDs in ONE `issue:` filter: ' +
+      '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. Never repeat the `issue:` filter — ' +
+      'space-separated terms are ANDed and an issue has a single short ID, so ' +
+      '`issue:JAVASCRIPT-22SP issue:JAVASCRIPT-39HX` matches nothing. ' +
       'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
       'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +

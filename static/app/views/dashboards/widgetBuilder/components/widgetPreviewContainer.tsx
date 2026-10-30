@@ -5,9 +5,11 @@ import styled from '@emotion/styled';
 import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
+import {Container} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   DisplayType,
   WidgetType,
@@ -111,6 +113,8 @@ export function WidgetPreviewContainer({
   }
   const location = useLocation();
   const theme = useTheme();
+  // The preview's mobile drag controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;
@@ -202,13 +206,13 @@ export function WidgetPreviewContainer({
           }}
         >
           {openWidgetTemplates && !hasUrlParams ? (
-            <WidgetPreviewPlaceholder>
+            <Container padding="xl" width="100%" height="100%">
               {/* eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing heading moved from newWidgetBuilder.tsx. */}
               <h6 style={{margin: 0}}>{t('Widget Title')}</h6>
               <TemplateWidgetPreviewPlaceholder>
                 <p style={{margin: 0}}>{t('Select a widget to preview')}</p>
               </TemplateWidgetPreviewPlaceholder>
-            </WidgetPreviewPlaceholder>
+            </Container>
           ) : (
             <WidgetPreview
               dashboardFilters={dashboardFilters}
@@ -314,12 +318,6 @@ const TemplateWidgetPreviewPlaceholder = styled('div')`
   font-style: italic;
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
-
-const WidgetPreviewPlaceholder = styled('div')`
-  width: 100%;
-  height: 100%;
-  padding: ${p => p.theme.space.xl};
 `;
 
 const FilterBarContainer = styled(motion.div)`

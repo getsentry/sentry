@@ -36,7 +36,7 @@ describe('useTopOffset', () => {
     const {result} = renderHookWithProviders(useTopOffset, {
       organization: OrganizationFixture({
         openMembership: true,
-        features: ['seer-explorer', 'seer-explorer-persistent-sidebar'],
+        features: ['seer-explorer'],
       }),
     });
 

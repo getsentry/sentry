@@ -11,7 +11,7 @@ import {
 } from 'react';
 import {flushSync} from 'react-dom';
 import styled from '@emotion/styled';
-import type {Placement} from '@popperjs/core';
+import type {Placement} from '@floating-ui/react-dom';
 import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 

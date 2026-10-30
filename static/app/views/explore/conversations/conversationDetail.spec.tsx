@@ -78,16 +78,24 @@ const DEFAULT_STATS: ConversationStats = {
 function mockApis(
   title: string | null = null,
   spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
-  statOverrides: Partial<ConversationStats> = {}
+  statOverrides: Partial<ConversationStats> = {},
+  {cursor, nextCursor}: {cursor?: string; nextCursor?: string} = {}
 ) {
-  MockApiClient.addMockResponse({
-    url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+  const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+  const request = MockApiClient.addMockResponse({
+    url,
+    match: [MockApiClient.matchQuery({cursor})],
     body: {
       conversationId: CONVERSATION_ID,
       title,
       spans,
       stats: {...DEFAULT_STATS, ...statOverrides},
     },
+    headers: nextCursor
+      ? {
+          Link: `<${url}?cursor=${nextCursor}>; rel="next"; results="true"; cursor="${nextCursor}"`,
+        }
+      : undefined,
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -97,6 +105,7 @@ function mockApis(
     url: '/organizations/org-slug/projects/',
     body: [],
   });
+  return request;
 }
 
 function renderPage(features: string[] = [], query?: Record<string, string>) {
@@ -133,6 +142,9 @@ describe('ConversationDetailPage span default selection', () => {
       PageFiltersStore.init();
     });
     mockApis();
+    Object.assign(navigator, {
+      clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
+    });
   });
 
   it('opens the first span when switching from transcript to timeline', async () => {

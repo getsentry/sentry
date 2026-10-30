@@ -1,9 +1,10 @@
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
 import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {FieldMeta} from '@sentry/scraps/formPresentation';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
+import {CheckboxGroup, CheckboxGroupItem} from './checkboxGroupField';
 
 type Props = BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & Omit<
     CheckboxProps,
@@ -54,3 +55,6 @@ export function CheckboxField({
     </BaseFieldImpl>
   );
 }
+
+CheckboxField.Group = CheckboxGroup;
+CheckboxField.Item = CheckboxGroupItem;

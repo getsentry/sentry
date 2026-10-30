@@ -2,17 +2,11 @@ import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
 import {Tag} from '@sentry/scraps/badge';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
-
-function getGridRules() {
-  const grid = screen.getByRole('banner').firstElementChild as HTMLElement;
-  return getEmotionRules(grid);
-}
 
 describe('EntityHeader', () => {
   describe('title', () => {
@@ -254,36 +248,6 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
     });
 
-    it('signals navigating with colour and explaining with an underline', () => {
-      render(
-        <EntityHeader
-          title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [
-              {type: 'link', label: 'Dead Clicks', value: 4, to: '/replays/1/'},
-              {type: 'text', label: 'Rage Clicks', value: 0},
-            ],
-          }}
-        />
-      );
-
-      const link = screen.getByRole('link', {name: '4 Dead Clicks'});
-      const plain = screen.getByText('Rage Clicks');
-
-      const textColour = (element: HTMLElement) =>
-        getEmotionRules(element)
-          .join(' ')
-          .match(/[;{]\s*color:\s*([^;}]+)/)?.[1]
-          ?.trim();
-
-      expect(textColour(link)).toBeDefined();
-      expect(textColour(link)).not.toBe(textColour(plain));
-
-      expect(link).not.toHaveStyle({textDecoration: 'underline'});
-      expect(plain).not.toHaveStyle({textDecoration: 'underline'});
-    });
-
     it('explains a stat label through a tooltip without restyling it', async () => {
       render(
         <EntityHeader
@@ -403,45 +367,6 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.getByRole('link', {name: '3 Errors'})).toBe(before);
-    });
-
-    it('gives a linked label the same metrics as an unlinked one', () => {
-      // `Link` emits `text-box-trim` but no font size, so an anchor that does
-      // not carry the label's own text styles trims to whatever it inherits
-      // and the row's baseline moves when a stat resolves into a link.
-      //
-      // Compared against each other rather than against a number, so the two
-      // stay in step if the label's size is ever redesigned.
-      const fontSize = (element: HTMLElement) =>
-        getEmotionRules(element)
-          .join(' ')
-          .match(/font-size:\s*[^;]+/)?.[0];
-
-      const {rerender} = render(
-        <EntityHeader
-          title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 3}],
-          }}
-        />
-      );
-      const plain = fontSize(screen.getByText('Errors'));
-      expect(plain).toBeDefined();
-
-      rerender(
-        <EntityHeader
-          title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
-            ],
-          }}
-        />
-      );
-
-      expect(fontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(plain);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
@@ -916,7 +841,7 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
     });
 
-    it('keeps the grid template steady when declared slots resolve late', () => {
+    it('reserves loading placeholders for metadata that resolves late', () => {
       // What the replay consumer does: every item is gated on one request, so
       // the first paint has none of them.
       const build = (hasData: boolean): EntityHeaderProps => ({
@@ -936,7 +861,6 @@ describe('EntityHeader', () => {
       });
 
       const {rerender} = render(<EntityHeader {...build(false)} />);
-      const loading = getGridRules().filter(rule => rule.includes('grid-template-areas'));
 
       // The declared metadata row holds its space rather than arriving with
       // the data: title + two metadata slots + one stat.
@@ -944,9 +868,6 @@ describe('EntityHeader', () => {
 
       rerender(<EntityHeader {...build(true)} />);
 
-      expect(getGridRules().filter(rule => rule.includes('grid-template-areas'))).toEqual(
-        loading
-      );
       expect(screen.getByText('Chrome')).toBeInTheDocument();
     });
 
@@ -1065,51 +986,6 @@ describe('EntityHeader', () => {
 
       expect(follows(title, metadata)).toBe(true);
       expect(follows(metadata, stat)).toBe(true);
-    });
-
-    it('pins the stat height so an async value cannot shift the rows below', () => {
-      const {rerender} = render(
-        <EntityHeader
-          isLoading
-          title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Seen By', value: 0}],
-          }}
-          metadata={{
-            label: 'Replay properties',
-            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
-          }}
-        />
-      );
-
-      // Stats come last in the DOM, so that they follow the metadata they sit
-      // under in the narrow layout.
-      const placeholders = screen.getAllByTestId('loading-placeholder');
-      const skeleton = placeholders.at(-1)!;
-      expect(
-        getEmotionRules(skeleton.parentElement!).some(r => /height:\s*32px/.test(r))
-      ).toBe(true);
-
-      rerender(
-        <EntityHeader
-          title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Seen By', value: 2}],
-          }}
-          metadata={{
-            label: 'Replay properties',
-            items: [{label: 'Browser', type: 'text', value: 'Chrome 144'}],
-          }}
-        />
-      );
-
-      const loadedStatBox = screen.getByText('Seen By').closest('div')!.parentElement!;
-      expect(getEmotionRules(loadedStatBox).some(r => /height:\s*32px/.test(r))).toBe(
-        true
-      );
     });
   });
 });

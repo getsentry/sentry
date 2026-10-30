@@ -181,11 +181,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         entry = GroupActionLogEntry.objects.get(
             group_id=group.id, type=GroupActionType.COMMENT.value
         )
-        entry_id = str(entry.id)
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert int(comment_id) == entry.data["comment_id"]
 
-        # Put the comment at the oldest edge of the 99-entry action-log window.
+        # Put the comment at the oldest edge of the 99-item mixed feed.
         for _ in range(98):
             self.create_group_action_log_entry(group=group, type=GroupActionType.RESOLVE)
 
@@ -197,25 +196,25 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
         assert notes[0]["commentId"] == comment_id
-        assert notes[0]["id"] == entry_id
+        assert notes[0]["id"] == comment_id
 
         # the comment reference served by the feed round-trips through edit ...
         response = self.client.put(
             f"{comments_url}{comment_id}/", format="json", data={"text": "edited"}
         )
         assert response.status_code == 200, response.content
-        assert response.data["id"] == entry_id
+        assert response.data["id"] == comment_id
         assert response.data["commentId"] == comment_id
         assert response.data["data"]["text"] == "edited"
 
-        # ... the feed folds the appended COMMENT_EDIT back into the comment ...
+        # ... the feed reads the updated Activity without folding COMMENT_EDIT ...
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data["activity"]) == 100
-        assert response.data["activity"][-2]["id"] == entry_id
+        assert response.data["activity"][-2]["id"] == comment_id
         notes = [item for item in response.data["activity"] if item["type"] == "note"]
         assert len(notes) == 1
-        assert notes[0]["id"] == entry_id
+        assert notes[0]["id"] == comment_id
         assert notes[0]["commentId"] == comment_id
         assert notes[0]["data"]["text"] == "edited"
 
@@ -223,7 +222,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         response = self.client.delete(f"{comments_url}{comment_id}/", format="json")
         assert response.status_code == 204, response.status_code
 
-        # ... after which the COMMENT_DELETE drops the comment from the feed
+        # ... after which the deleted Activity is absent from the feed.
         response = self.client.get(details_url, format="json")
         assert response.status_code == 200, response.content
         assert [item for item in response.data["activity"] if item["type"] == "note"] == []
@@ -232,12 +231,21 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_group_action_log_served_when_enabled(self) -> None:
         self.login_as(user=self.user)
         group = self.create_group()
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={"text": "current text"},
+            )
         self.create_group_action_log_entry(
             group=group,
             type=GroupActionType.COMMENT,
             actor_type=GroupActorType.USER,
             actor_id=self.user.id,
-            data={"comment_id": 123, "text": "hello world"},
+            data={"comment_id": note.id, "text": "stale text"},
+            idempotency_key=f"activity:{note.id}",
+            source="web",
         )
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
@@ -247,6 +255,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         get_activity.assert_not_called()
 
         assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+        assert response.data["activity"][0]["id"] == str(note.id)
+        assert response.data["activity"][0]["data"]["text"] == "current text"
+        assert response.data["activity"][0]["source"] == "web"
 
     @action_log_activity_enabled()
     def test_group_action_log_empty_falls_back_to_activity(self) -> None:
@@ -551,7 +562,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
@@ -590,7 +600,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             },
         )
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.check.logger")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
@@ -629,7 +638,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
             },
         )
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.metrics")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_aligned_status_skips(
@@ -650,7 +658,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
         )
 
     @override_options({"issues.derived_data.status_reconciliation.enabled": False})
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_disabled_reconciliation_does_not_schedule(
         self, mock_apply_async: mock.MagicMock
@@ -662,7 +669,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         mock_apply_async.assert_not_called()
 
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.tasks.reconcile_group_status.apply_async")
     def test_derived_not_expected_correct_does_not_schedule(
         self, mock_apply_async: mock.MagicMock
@@ -675,7 +681,6 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         mock_apply_async.assert_not_called()
 
-    @with_feature("projects:issue-status-reconciliation")
     def test_no_derived_data_skips(self) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
@@ -684,13 +689,8 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    @with_feature(
-        {
-            "projects:issue-status-reconciliation": False,
-            "projects:issue-action-log-write-to-db": False,
-        }
-    )
-    def test_feature_flags_off_skip(self) -> None:
+    @with_feature({"projects:issue-action-log-write-to-db": False})
+    def test_feature_flag_off_skips(self) -> None:
         group = self.create_group(status=GroupStatus.IGNORED, substatus=GroupSubStatus.FOREVER)
         self.create_group_derived_data(group=group, data={"status": "open"})
 
@@ -699,35 +699,7 @@ class GroupDetailsReconcileStatusTest(APITestCase, SnubaTestCase):
 
         log.assert_not_logged(ReconcileStatusAction)
 
-    @with_feature(
-        {
-            "projects:issue-status-reconciliation": False,
-            "projects:issue-action-log-write-to-db": True,
-        }
-    )
-    @mock.patch("sentry.issues.derived.check.logger")
-    def test_backfilled_project_logs_without_reconciliation_flag(
-        self, mock_logger: mock.MagicMock
-    ) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-        group.project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
-        self.create_group_derived_data(group=group, data={"status": "closed"})
-
-        self._get(group)
-
-        mock_logger.info.assert_called_once_with(
-            "issues.status_reconciliation.diverged",
-            extra={
-                "group_id": group.id,
-                "project_id": group.project_id,
-                "derived_status": "closed",
-                "actual_status": "open",
-                "source": "read_path",
-            },
-        )
-
     @override_options({"issues.derived_data.read_path_checks.killswitch": True})
-    @with_feature("projects:issue-status-reconciliation")
     @mock.patch("sentry.issues.derived.check.logger")
     def test_read_path_checks_killswitch(self, mock_logger: mock.MagicMock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
@@ -1345,3 +1317,28 @@ class GroupDeleteTest(APITestCase):
         assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
+
+
+class GroupDetailsCorruptDerivedDataTest(APITestCase):
+    @with_feature("projects:issue-status-reconciliation")
+    def test_corrupt_derived_status_does_not_break_details_or_reconcile(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        derived = self.create_group_derived_data(group, data={"status": "invalid"})
+        with (
+            capture_action_log() as log,
+            mock.patch("sentry.issues.derived.check.metrics.incr") as incr,
+        ):
+            response = self.client.get(
+                f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+                {"expand": "derivedData"},
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "unresolved"
+        assert "derivedData" not in response.data
+        log.assert_not_logged(ReconcileStatusAction)
+        incr.assert_any_call(
+            "issues.status_reconciliation.error", sample_rate=1.0, tags={"source": "read_path"}
+        )
+        derived.refresh_from_db()
+        assert derived.data == {"status": "invalid"}

@@ -1,8 +1,10 @@
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import * as qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -20,6 +22,9 @@ import {
   makeMonitorDetailsPathname,
   makeMonitorEditPathname,
 } from 'sentry/views/detectors/pathnames';
+
+const DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE =
+  'workflow-engine-disable-legacy-alert-rule-redirects';
 
 export function MonitorsListRedirect() {
   const organization = useOrganization();
@@ -81,20 +86,28 @@ function withRuleRedirect<P extends Record<string, any>>(
   return function WorkflowEngineRedirectWrapper(props: P) {
     const organization = useOrganization();
     const {ruleId} = useParams();
-
-    const {data: alertRuleWorkflow, isPending} = useApiQuery<AlertRuleWorkflow>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-workflow/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {rule_id: ruleId}},
-      ],
-      {
-        staleTime: 0,
-        enabled: !!ruleId,
-        retry: false,
-      }
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
     );
+
+    const {data: alertRuleWorkflow, isPending} = useQuery({
+      ...apiOptions.as<AlertRuleWorkflow>()(
+        '/organizations/$organizationIdOrSlug/alert-rule-workflow/',
+        {
+          path:
+            ruleId && !redirectsDisabled
+              ? {organizationIdOrSlug: organization.slug}
+              : skipToken,
+          query: {rule_id: ruleId},
+          staleTime: 0,
+        }
+      ),
+      retry: false,
+    });
+
+    if (redirectsDisabled) {
+      return <Redirect to={makeAutomationBasePathname(organization.slug)} />;
+    }
 
     if (isPending) {
       return <LoadingIndicator />;
@@ -123,20 +136,28 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
   return function WorkflowEngineRedirectWrapper(props: P) {
     const organization = useOrganization();
     const {ruleId, detectorId} = useParams();
-
-    const {data: alertRuleDetector, isPending} = useApiQuery<AlertRuleDetector>(
-      [
-        getApiUrl('/organizations/$organizationIdOrSlug/alert-rule-detector/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {query: {alert_rule_id: ruleId}},
-      ],
-      {
-        staleTime: 0,
-        enabled: !!ruleId && !detectorId,
-        retry: false,
-      }
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
     );
+
+    const {data: alertRuleDetector, isPending} = useQuery({
+      ...apiOptions.as<AlertRuleDetector>()(
+        '/organizations/$organizationIdOrSlug/alert-rule-detector/',
+        {
+          path:
+            ruleId && !detectorId && !redirectsDisabled
+              ? {organizationIdOrSlug: organization.slug}
+              : skipToken,
+          query: {alert_rule_id: ruleId},
+          staleTime: 0,
+        }
+      ),
+      retry: false,
+    });
+
+    if (redirectsDisabled) {
+      return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
+    }
 
     if (detectorId) {
       return <Redirect to={makeRedirectPath(detectorId, organization.slug)} />;
@@ -201,6 +222,9 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
     const {ruleId, detectorId} = useParams();
     const location = useLocation();
     const alertId = location.query.alert as string | undefined;
+    const redirectsDisabled = organization.features.includes(
+      DISABLE_LEGACY_ALERT_RULE_REDIRECTS_FEATURE
+    );
 
     if (alertId) {
       return (
@@ -208,6 +232,10 @@ export const withDetectorDetailsRedirect = <P extends Record<string, any>>(
           <Component {...(props as any)} />
         </RedirectToIssue>
       );
+    }
+
+    if (redirectsDisabled) {
+      return <Redirect to={makeMonitorBasePathname(organization.slug)} />;
     }
 
     if (detectorId) {

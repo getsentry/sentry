@@ -322,6 +322,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                           />
                         )}
                         <form.Field name="repoEntries">
+                          {/* eslint-disable-next-line @sentry/scraps/require-field-component -- Show array validation status for the controls above. */}
                           {repoField => <repoField.Meta.Status />}
                         </form.Field>
                       </Flex>

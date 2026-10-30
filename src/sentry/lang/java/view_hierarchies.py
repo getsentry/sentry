@@ -7,7 +7,7 @@ from sentry.attachments import (
     get_attachments_for_event,
     store_attachments_for_event,
 )
-from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.models.project import Project
 
 

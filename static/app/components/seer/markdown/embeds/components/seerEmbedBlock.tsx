@@ -1,4 +1,11 @@
-import {useRef, type ComponentType, type ReactNode} from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import styled from '@emotion/styled';
 import {useDisclosure} from '@react-aria/disclosure';
 import {usePress} from '@react-aria/interactions';
@@ -52,8 +59,14 @@ interface SeerEmbedBlockOwnProps {
    * load can ship collapsed.
    */
   defaultExpanded?: boolean;
+  /**
+   * Controls whether the panel is open. Use with `onExpandedChange`. When
+   * omitted, the card manages its own state, starting from `defaultExpanded`.
+   */
+  expanded?: boolean;
   /** Spacing between the panel's own children. */
   gap?: StackProps['gap'];
+  onExpandedChange?: (expanded: boolean) => void;
   /**
    * Inset around the panel's children. A preview that draws its own row
    * dividers, like an issue row, passes `"0"` so it sits flush in the card.
@@ -67,6 +80,25 @@ interface SeerEmbedBlockOwnProps {
 }
 
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
+
+/**
+ * Controls the surface around a message hands to the block embed that opens it,
+ * to sit at the end of that card's header instead of beside the card. See
+ * `leadingEmbedActions` on `SeerMarkdown`.
+ */
+export interface SeerEmbedBlockHostActions {
+  actions: ReactNode;
+  /**
+   * Called when a card takes the actions, so the host can drop its own copy.
+   * Returns the release, called when the card unmounts. An embed that renders
+   * no card never claims them, and the host keeps showing its own. Keep it
+   * stable: a new function releases the actions and claims them again.
+   */
+  onClaim: () => () => void;
+}
+
+export const SeerEmbedBlockHostActionsContext =
+  createContext<SeerEmbedBlockHostActions | null>(null);
 
 /**
  * The chrome every Seer block embed shares: a bordered card whose header band
@@ -92,18 +124,28 @@ export function SeerEmbedBlock({
   badge,
   children,
   defaultExpanded = true,
+  expanded,
   gap = 'md',
   href,
   icon,
   linkLabel,
+  onExpandedChange,
   padding = 'lg',
   status,
   testId,
   title,
 }: SeerEmbedBlockProps) {
   const panelRef = useRef<HTMLDivElement>(null);
-  const state = useDisclosureState({defaultExpanded});
+  const state = useDisclosureState({
+    defaultExpanded,
+    isExpanded: expanded,
+    onExpandedChange,
+  });
   const {buttonProps, panelProps} = useDisclosure({}, state, panelRef);
+  const hostActions = useContext(SeerEmbedBlockHostActionsContext);
+  const onClaim = hostActions?.onClaim;
+  // A layout effect, so the host drops its own copy before the first paint.
+  useLayoutEffect(() => onClaim?.(), [onClaim]);
   // `buttonProps` speaks react-aria's `onPress`; `usePress` turns that into the
   // DOM handlers a plain <button> understands. The two aria attributes are
   // forwarded by hand because `usePress` returns only press props.
@@ -148,6 +190,7 @@ export function SeerEmbedBlock({
           {badge}
           {href ? <ResourceLink icon={icon} href={href} title={linkLabel} /> : null}
           {actions}
+          {hostActions?.actions}
         </Flex>
       </HeaderRow>
       {/* The panel's padding sits on an inner element, not on the element
@@ -157,7 +200,10 @@ export function SeerEmbedBlock({
           of every collapsed card. */}
       <Container {...panelProps} ref={panelRef}>
         <Stack gap={gap} padding={padding}>
-          {children}
+          {/* An embed nested in this card does not open the message. */}
+          <SeerEmbedBlockHostActionsContext.Provider value={null}>
+            {children}
+          </SeerEmbedBlockHostActionsContext.Provider>
         </Stack>
       </Container>
     </Container>

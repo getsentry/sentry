@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {Flex} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {AutomationBuilderNumberInput} from 'sentry/components/workflowEngine/form/automationBuilderNumberInput';
@@ -65,9 +64,9 @@ function ValueField({minValue = 0}: {minValue?: number}) {
 
 function PercentValueField({minValue = 0}: {minValue?: number}) {
   return (
-    <PercentWrapper>
+    <Flex display="inline-flex" align="center" gap="xs">
       <ValueField minValue={minValue} />%
-    </PercentWrapper>
+    </Flex>
   );
 }
 
@@ -112,9 +111,3 @@ function ComparisonIntervalField() {
     />
   );
 }
-
-const PercentWrapper = styled('div')`
-  display: inline-flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-`;

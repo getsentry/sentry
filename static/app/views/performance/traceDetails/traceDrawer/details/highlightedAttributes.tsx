@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 import * as Sentry from '@sentry/react';
+import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Tag} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
@@ -12,9 +13,18 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {t, tct, tn} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {
+  getScalarAttributeValue,
+  type TraceItemAttributeScalarValue,
+  type TraceItemResponseAttribute,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -24,9 +34,14 @@ import {
 } from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {TokenBreakdownTooltip} from 'sentry/views/insights/pages/agents/components/tokenBreakdownTooltip';
 import {resolveAgentName} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getReportedToolOutputBytes,
+  getToolOutputBytesFromAttributes,
+} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {isMemoryOperation} from 'sentry/views/insights/pages/agents/utils/memory';
 import {
   getIsAiAgentSpan,
+  getIsExecuteToolSpan,
   getToolSpansFilter,
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
@@ -72,19 +87,29 @@ export function getHighlightedSpanAttributes({
   op,
   spanId,
   attributes = {},
+  projectId,
+  description,
 }: {
   attributes:
     | Record<string, string | number | boolean>
     | undefined
     | TraceItemResponseAttribute[];
   spanId: string;
+  description?: string;
   op?: string;
+  projectId?: number;
 }): HighlightedAttribute[] {
   const attributeObject = ensureAttributeObject(attributes);
   const genAiOpType = attributeObject['gen_ai.operation.type'] as string | undefined;
 
   if (genAiOpType) {
-    return getAISpanAttributes({attributes: attributeObject, spanId});
+    return getAISpanAttributes({
+      attributes: attributeObject,
+      spanId,
+      projectId,
+      op,
+      description,
+    });
   }
 
   if (op?.startsWith('mcp.')) {
@@ -94,15 +119,91 @@ export function getHighlightedSpanAttributes({
   return [];
 }
 
+function ToolResultSize({
+  size,
+  projectId,
+  toolName,
+  op,
+  description,
+}: {
+  projectId: number;
+  size: number;
+  description?: string;
+  op?: string;
+  toolName?: string;
+}) {
+  const organization = useOrganization();
+  const search = new MutableSearch(getToolSpansFilter());
+  search.addFilterValue('has', 'gen_ai.tool.call.result.size');
+  if (toolName) {
+    // Conversation nodes have synthetic ops/descriptions, so prefer the tool's identity.
+    search.addFilterValue('gen_ai.tool.name', toolName);
+  } else if (op && description) {
+    search.addFilterValue('span.op', op);
+    search.addFilterValue('span.description', description);
+  }
+  const field = 'avg(gen_ai.tool.call.result.size)';
+  const {data} = useQuery(
+    apiOptions.as<{data: Array<Record<string, number | null>>}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path:
+          toolName || (op && description)
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
+        query: {
+          dataset: DiscoverDatasets.SPANS,
+          field: [field],
+          project: [projectId],
+          statsPeriod: '24h',
+          query: search.formatString(),
+          referrer: 'api.explore.spans-aggregates-table',
+        },
+        staleTime: 60_000,
+      }
+    )
+  );
+  const baseline = data?.data[0]?.[field];
+  const deltaPct =
+    baseline && Number.isFinite(baseline) && baseline > 0
+      ? Math.round(Math.abs(((size - baseline) / baseline) * 100))
+      : 0;
+
+  return (
+    <Flex align="center" gap="sm" wrap="wrap">
+      {formatBytesBase10(size)}
+      {baseline && deltaPct >= 10 ? (
+        <Tag variant={size > baseline ? 'danger' : 'success'}>
+          <InfoText
+            title={t(
+              'Average output size for matching tool calls in this project over the last 24 hours'
+            )}
+          >
+            {size > baseline
+              ? tct('[deltaPct] larger than avg [size]', {
+                  deltaPct: `${deltaPct}%`,
+                  size: formatBytesBase10(baseline),
+                })
+              : tct('[deltaPct] smaller than avg [size]', {
+                  deltaPct: `${deltaPct}%`,
+                  size: formatBytesBase10(baseline),
+                })}
+          </InfoText>
+        </Tag>
+      ) : null}
+    </Flex>
+  );
+}
+
 function ensureAttributeObject(
   attributes: Record<string, string | number | boolean> | TraceItemResponseAttribute[]
 ) {
   if (Array.isArray(attributes)) {
-    return attributes.reduce<Record<string, string | number | boolean>>(
+    return attributes.reduce<Record<string, TraceItemAttributeScalarValue>>(
       (acc, attribute) => {
         // Some attribute keys include prefixes and metadata (e.g. "tags[ai.prompt_tokens.used,number]")
         // prettifyAttributeName normalizes those
-        acc[prettifyAttributeName(attribute.name)] = attribute.value;
+        acc[prettifyAttributeName(attribute.name)] = getScalarAttributeValue(attribute);
         return acc;
       },
       {}
@@ -115,9 +216,15 @@ function ensureAttributeObject(
 function getAISpanAttributes({
   spanId,
   attributes,
+  projectId,
+  op,
+  description,
 }: {
   attributes: Record<string, string | number | boolean>;
   spanId: string;
+  description?: string;
+  op?: string;
+  projectId?: number;
 }) {
   const genAiOpType = attributes['gen_ai.operation.type'] as string | undefined;
 
@@ -219,6 +326,27 @@ function getAISpanAttributes({
     highlightedAttributes.push({
       name: t('Tool Name'),
       value: toolName,
+    });
+  }
+
+  const toolOutputBytes = getToolOutputBytesFromAttributes(key => attributes[key]);
+  const hasReportedSize =
+    getReportedToolOutputBytes(attributes['gen_ai.tool.call.result.size']) !== undefined;
+  if (getIsExecuteToolSpan(genAiOpType) && (toolOutputBytes > 0 || hasReportedSize)) {
+    highlightedAttributes.push({
+      name: t('Result Size'),
+      value:
+        hasReportedSize && projectId !== undefined ? (
+          <ToolResultSize
+            size={toolOutputBytes}
+            projectId={projectId}
+            toolName={typeof toolName === 'string' ? toolName : undefined}
+            op={op}
+            description={description}
+          />
+        ) : (
+          formatBytesBase10(toolOutputBytes)
+        ),
     });
   }
 

@@ -74,6 +74,21 @@ describe('InvestigationHypotheses', () => {
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
   });
 
+  it('tallies the verdicts in the panel header', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderHypotheses({phase: 'completed', status: 'completed'});
+
+    const toggle = await screen.findByRole('button', {name: /Hypotheses/});
+    expect(toggle).toHaveAccessibleName(
+      'Hypotheses 1 supported • 1 inconclusive • 1 refuted'
+    );
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -82,7 +97,7 @@ describe('InvestigationHypotheses', () => {
     const {queryClient} = renderHypotheses();
 
     await screen.findAllByTestId('investigation-hypothesis');
-    const toggle = screen.getByRole('button', {name: 'Hypotheses'});
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     await userEvent.click(toggle);
@@ -214,6 +229,50 @@ describe('InvestigationHypotheses', () => {
     );
 
     expect(request).not.toHaveBeenCalled();
+  });
+
+  it('asks Seer about a hypothesis from its menu', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const onAskSeer = jest.fn();
+
+    renderHypotheses({onAskSeer});
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for An external SSO provider slowed the response',
+      })
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(onAskSeer).toHaveBeenCalledTimes(1);
+    expect(onAskSeer).toHaveBeenCalledWith(expect.objectContaining({id: 'hypothesis-2'}));
+  });
+
+  it('leaves Ask Seer out of the menu without a handler', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for Database or cache degradation delayed the response',
+      })
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Accept'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Ask Seer'})
+    ).not.toBeInTheDocument();
   });
 
   it('sends a disposition command fenced on the workflow version', async () => {

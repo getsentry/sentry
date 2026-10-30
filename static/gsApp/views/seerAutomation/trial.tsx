@@ -11,12 +11,12 @@ import seerConfigMain from 'getsentry-images/spot/seer-config-main.svg';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t, tct} from 'sentry/locale';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';

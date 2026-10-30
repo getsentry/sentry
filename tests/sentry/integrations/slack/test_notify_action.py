@@ -28,7 +28,6 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
-from sentry.workflow_engine.models import Action
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -99,13 +98,12 @@ class SlackNotifyActionTest(RuleTestCase):
         event = self.get_event()
 
         fake_rule = self.create_project_rule()
-        action = Action.objects.all().order_by("id").first()
-        assert action
+        action = self.create_action(integration_id=self.integration.id)
         fake_rule.id = action.id
 
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
-            context=create_notification_action_context(fake_rule),
+            context=create_notification_action_context(fake_rule, with_workflow=False),
         )
 
         results = list(rule.after(event=event))
@@ -406,8 +404,7 @@ class SlackNotifyActionTest(RuleTestCase):
             event = self.get_event()
 
             fake_rule = self.create_project_rule()
-            action = Action.objects.all().order_by("id").first()
-            assert action
+            action = self.create_action(integration_id=self.integration.id)
             fake_rule.id = action.id
             rule = self.get_rule(
                 data={
@@ -415,7 +412,7 @@ class SlackNotifyActionTest(RuleTestCase):
                     "channel": "#my-channel",
                     "channel_id": "123",
                 },
-                context=create_notification_action_context(fake_rule),
+                context=create_notification_action_context(fake_rule, with_workflow=False),
             )
 
             notification_uuid = "123e4567-e89b-12d3-a456-426614174000"

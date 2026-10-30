@@ -46,10 +46,13 @@ import type {
 import {
   customFiltersQueryOptions,
   getCondition,
+  getConditionOperator,
   getCustomFilterUrl,
   getDataTypeLabel,
   getErrorDetail,
+  NEGATED_OPERATORS,
   openCustomFilterModal,
+  OPERATOR_LABELS,
 } from 'sentry/views/settings/project/projectFilters/customFilterModal';
 
 // Values a condition shows in the table before the rest fold into a count.
@@ -65,21 +68,30 @@ function ValueTag({value}: {value: string}) {
   );
 }
 
-// One condition of a filter: its property, then the values any of which matches.
+// One condition of a filter: its property, its operator unless the values speak
+// for themselves, then its values. A match reads "a or b"; a negated one reads
+// "a and b", as the search bar does, since the data must match none of them.
 function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
+  const operator = getConditionOperator(condition);
+  const joiner = NEGATED_OPERATORS.has(operator) ? t('and') : t('or');
 
   return (
     <Flex wrap="wrap" gap="xs" align="center">
       <Text size="sm" variant="muted">
         {getCondition(condition.type).label}
       </Text>
+      {OPERATOR_LABELS[operator] && (
+        <Text size="sm" variant="muted">
+          {OPERATOR_LABELS[operator]}
+        </Text>
+      )}
       {visible.map((value, index) => (
         <Fragment key={index}>
           {index > 0 && (
             <Text size="xs" variant="muted">
-              {t('or')}
+              {joiner}
             </Text>
           )}
           <ValueTag value={value} />
@@ -88,7 +100,7 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
       {hidden.length > 0 && (
         <Fragment>
           <Text size="xs" variant="muted">
-            {t('or')}
+            {joiner}
           </Text>
           <Tag variant="muted">
             <InfoText
@@ -154,6 +166,11 @@ const STATS_CATEGORIES = [
 // A custom filter reports under this reason in ingest outcomes, followed by its id.
 // The backend builds the same string when it sends the filter to Relay.
 const OUTCOMES_REASON_PREFIX = 'custom-inbound-filter:';
+
+// A row that holds a legacy list reports under the id of that list instead.
+function getOutcomesReason(filter: CustomInboundFilter): string {
+  return filter.legacyFilter ?? `${OUTCOMES_REASON_PREFIX}${filter.id}`;
+}
 
 // What one filter dropped, per data category. A filter drops errors, logs, or trace
 // metrics, and each of those counts under its own category in ingest outcomes.
@@ -581,7 +598,7 @@ export function CustomFilters({project}: {project: Project}) {
                   <FilteredVolumeCells
                     intervals={stats?.intervals ?? []}
                     seriesByCategory={stats?.seriesByReason.get(
-                      `${OUTCOMES_REASON_PREFIX}${filter.id}`
+                      getOutcomesReason(filter)
                     )}
                     isPending={isStatsPending}
                     isError={isStatsError}

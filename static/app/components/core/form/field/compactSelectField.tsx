@@ -8,8 +8,8 @@ import {
   type SelectOption,
   type SingleSelectProps,
 } from '@sentry/scraps/compactSelect';
-import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
 import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 

@@ -46,7 +46,7 @@ export function useSaveMetricsMultiQuery() {
       dataset: METRICS_DATASET,
       start,
       end,
-      range: period,
+      statsPeriod: period,
       interval,
       projects,
       environment: environments,

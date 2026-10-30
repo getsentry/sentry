@@ -78,6 +78,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
+        SEER_WORKFLOW = "seer_workflow"
 
         def is_integration(self) -> bool:
             """
@@ -89,14 +90,14 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 Action.Type.SENTRY_APP,
                 Action.Type.PLUGIN,
                 Action.Type.WEBHOOK,
+                Action.Type.SEER_WORKFLOW,
             ]
 
     # The type field is used to denote the type of action we want to trigger
     type = models.TextField(choices=[(t.value, t.value) for t in Type])
     data = models.JSONField(default=dict)
 
-    # LEGACY: The integration_id is used to map the integration_id found in the AlertRuleTriggerAction
-    # This allows us to map the way we're saving the notification channels to the action.
+    # The integration that owns this action's notification channel.
     integration_id = HybridCloudForeignKey(
         "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
     )
@@ -165,20 +166,4 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         )
 
     def get_dedup_key(self) -> str:
-        key_parts = [self.type]
-        if self.integration_id:
-            key_parts.append(str(self.integration_id))
-
-        if self.config:
-            config = self.config.copy()
-            config.pop("target_display", None)
-            key_parts.append(str(config))
-
-        if self.data:
-            data = self.data.copy()
-            if "dynamic_form_fields" in data:
-                data = data["dynamic_form_fields"]
-
-            key_parts.append(str(data))
-
-        return ":".join(key_parts)
+        return self.get_handler().get_dedup_key(self)

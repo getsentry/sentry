@@ -10,6 +10,7 @@ import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
+import {Flex, Container as ScrapsContainer} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -361,10 +362,6 @@ type SpecialField = {
   renderFunc: SpecialFieldRenderFunc;
 };
 
-const DownloadCount = styled('span')`
-  padding-left: ${p => p.theme.space.sm};
-`;
-
 const RightAlignedContainer = styled('span')`
   margin-left: auto;
   margin-right: 0;
@@ -437,7 +434,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
                 icon={
                   <Fragment>
                     <IconDownload variant="primary" size="sm" />
-                    <DownloadCount>{items.length}</DownloadCount>
+                    <ScrapsContainer as="span" paddingLeft="sm">
+                      {items.length}
+                    </ScrapsContainer>
                   </Fragment>
                 }
                 aria-label={t('Download attachments')}
@@ -473,7 +472,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
             }
           >
             <IconDownload variant="primary" size="sm" />
-            <DownloadCount>{minidump ? 1 : 0}</DownloadCount>
+            <ScrapsContainer as="span" paddingLeft="sm">
+              {minidump ? 1 : 0}
+            </ScrapsContainer>
           </Button>
         </RightAlignedContainer>
       );
@@ -1174,7 +1175,7 @@ export const spanOperationRelativeBreakdownRenderer = (
   }
 
   return (
-    <RelativeOpsBreakdown data-test-id="relative-ops-breakdown">
+    <Flex position="relative" data-test-id="relative-ops-breakdown">
       {orderedSpanOpsBreakdownFields.map(field => {
         if (!isDurationValue(data, field)) {
           return null;
@@ -1240,14 +1241,9 @@ export const spanOperationRelativeBreakdownRenderer = (
           <OtherRelativeOpsBreakdown />
         </Tooltip>
       </div>
-    </RelativeOpsBreakdown>
+    </Flex>
   );
 };
-
-const RelativeOpsBreakdown = styled('div')`
-  position: relative;
-  display: flex;
-`;
 
 const RectangleRelativeOpsBreakdown = styled(RowRectangle)`
   position: relative;

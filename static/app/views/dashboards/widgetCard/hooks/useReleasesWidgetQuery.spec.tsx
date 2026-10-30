@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {SessionsFieldFixture} from 'sentry-fixture/sessions';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {SessionField} from 'sentry/types/sessions';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
@@ -461,5 +463,64 @@ describe('useReleasesTableQuery', () => {
         })
       );
     });
+  });
+
+  it('orders groups by release without mutating the response', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: '',
+          fields: ['release', 'project', 'count_unique(user)'],
+          aggregates: ['count_unique(user)'],
+          columns: ['release', 'project'],
+          conditions: '',
+          orderby: 'release',
+        },
+      ],
+    });
+
+    // Most recent first, as returned when sorting releases by date
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/releases/',
+      body: [{version: '2.0'}, {version: '1.0'}],
+    });
+    const response = {
+      start: '2022-01-15T00:00:00Z',
+      end: '2022-01-29T00:00:00Z',
+      query: '',
+      intervals: [],
+      groups: [
+        {
+          by: {release: '2.0', project: 2},
+          totals: {'count_unique(sentry.sessions.user)': 2},
+          series: {},
+        },
+        {
+          by: {release: '1.0', project: 2},
+          totals: {'count_unique(sentry.sessions.user)': 1},
+          series: {},
+        },
+      ],
+    };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/metrics/data/',
+      body: response,
+    });
+    ProjectsStore.loadInitialData([ProjectFixture({id: '2', slug: 'project-slug'})]);
+
+    const {result} = renderHookWithProviders(() =>
+      useReleasesTableQuery({widget, organization, pageFilters, enabled: true, limit: 5})
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.tableResults?.[0]?.data).toEqual([
+      expect.objectContaining({release: '1.0', project: 'project-slug'}),
+      expect.objectContaining({release: '2.0', project: 'project-slug'}),
+    ]);
+    expect(result.current.rawData[0].groups.map((group: any) => group.by)).toEqual([
+      {release: '2.0', project: 2},
+      {release: '1.0', project: 2},
+    ]);
   });
 });

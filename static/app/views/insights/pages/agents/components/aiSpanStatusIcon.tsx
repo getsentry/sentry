@@ -1,4 +1,5 @@
 import {useTheme} from '@emotion/react';
+import {IconBookmark} from '@sentry/icons/bookmark';
 import {IconBot} from '@sentry/icons/bot';
 import {IconChat} from '@sentry/icons/chat';
 import {IconChevron} from '@sentry/icons/chevron';
@@ -6,7 +7,8 @@ import {IconCode} from '@sentry/icons/code';
 import {IconFire} from '@sentry/icons/fire';
 import {IconFix} from '@sentry/icons/fix';
 import {IconList} from '@sentry/icons/list';
-import {IconStack} from '@sentry/icons/stack';
+import {IconSearch} from '@sentry/icons/search';
+import {IconTag} from '@sentry/icons/tag';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,23 +18,38 @@ import {
   getGenAiOpType,
   getSpanColor,
   getTimelineColorByOpType,
+  getTraceNodeAttribute,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {isCodeModeNode} from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {isEvaluationNode} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import {isMemoryNode} from 'sentry/views/insights/pages/agents/utils/memory';
+import {isExtractionNode} from 'sentry/views/insights/pages/agents/utils/extraction';
+import {
+  isMemoryNode,
+  MemoryOperation,
+} from 'sentry/views/insights/pages/agents/utils/memory';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {SpanFields} from 'sentry/views/insights/types';
 
 function operationTypeIcon(node: AITraceSpanNode) {
-  // Evaluations report the ai_client operation type like LLM calls, but
-  // answer a list of questions about a response rather than produce one.
-  // TODO: Replace with a dedicated evaluation icon once design provides one.
+  // Decision spans report the ai_client operation type like LLM calls, but
+  // answer yes/no, score, or categorize questions about an input rather than
+  // produce a response.
   if (isEvaluationNode(node)) {
+    return <IconTag size="md" />;
+  }
+  if (isExtractionNode(node)) {
     return <IconList size="md" />;
   }
-  // TODO: Replace IconStack with a dedicated memory icon once design provides one.
+  // Searches read memory; every other memory operation changes what's saved.
   if (isMemoryNode(node)) {
-    return <IconStack size="md" />;
+    const operationName = getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node);
+    return operationName === MemoryOperation.SEARCH ? (
+      <IconSearch size="md" />
+    ) : (
+      <IconBookmark size="md" />
+    );
   }
   switch (getGenAiOpType(node)) {
     case GenAiOperationType.AGENT:
@@ -60,12 +77,13 @@ interface AiSpanStatusIconProps {
  */
 export function AiSpanStatusIcon({node}: AiSpanStatusIconProps) {
   const theme = useTheme();
+  const isCodeMode = isCodeModeNode(node);
   const hasErrors = hasError(node);
   const iconColor = getSpanColor(node, getTimelineColorByOpType(theme));
 
   return (
     <Flex align="center" position="relative" style={{color: iconColor}} flexShrink={0}>
-      {operationTypeIcon(node)}
+      {isCodeMode ? <IconCode size="md" /> : operationTypeIcon(node)}
       {hasErrors && (
         <Tooltip title={t('This span encountered an error')} skipWrapper>
           <Container

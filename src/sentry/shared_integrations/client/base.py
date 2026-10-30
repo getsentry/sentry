@@ -29,7 +29,7 @@ from ..response.base import BaseApiResponse
 
 
 class SessionSettings(TypedDict):
-    timeout: int
+    timeout: int | tuple[float, float]
     allow_redirects: bool
     # the below are taken from session.merge_environment_settings
     proxies: NotRequired[MutableMapping[str, str]]
@@ -60,9 +60,9 @@ class BaseApiClient:
 
     integration_name: str
 
-    # Timeout for both the connect and the read timeouts.
+    # Timeout for both the connect and the read timeouts, or a (connect, read) tuple.
     # See: https://requests.readthedocs.io/en/latest/user/advanced/#timeouts
-    timeout: int = 30
+    timeout: int | tuple[float, float] = 30
 
     @property
     def name(self) -> str:
@@ -209,7 +209,7 @@ class BaseApiClient:
     # prevents forwarding unexpected keys while keeping _request readable.
     def _build_session_settings(
         self,
-        timeout: int,
+        timeout: int | tuple[float, float],
         allow_redirects: bool,
         *,
         proxies: object | None = None,
@@ -248,7 +248,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
@@ -268,7 +268,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
@@ -287,7 +287,7 @@ class BaseApiClient:
         json: bool = True,
         allow_text: bool = False,
         allow_redirects: bool | None = None,
-        timeout: int | None = None,
+        timeout: int | tuple[float, float] | None = None,
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,

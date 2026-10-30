@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
-from typing import TypeVar
+from typing import Any, TypeVar
 from unittest import mock
 
 import pytest
@@ -149,6 +149,27 @@ def pytest_ignore_collect(collection_path: Path, config: pytest.Config) -> bool 
     return True if rel not in _COLLECT_ALLOWED_FILES else None
 
 
+def _forbid_single_host_flushall() -> None:
+    # The xdist workers and the per-worker Snuba instances share one Redis server and
+    # each use their own DB on it. FLUSHALL deletes every DB, which resets the snowflake
+    # ID counters of the other workers in the middle of their tests. They then generate
+    # IDs that they already used and fail with MaxSnowflakeRetryError.
+    from redis.client import Redis
+    from rediscluster import RedisCluster
+
+    flushall = Redis.flushall
+
+    def guarded_flushall(self: Redis, *args: Any, **kwargs: Any) -> Any:
+        # Prefixed cluster clients only delete the keys of this worker.
+        if isinstance(self, RedisCluster):
+            return flushall(self, *args, **kwargs)
+        raise AssertionError(
+            "FLUSHALL deletes the Redis DBs of all xdist workers. Use flushdb() instead."
+        )
+
+    Redis.flushall = guarded_flushall  # type: ignore[method-assign]
+
+
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
 
@@ -168,6 +189,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
     config.addinivalue_line("markers", "symbolicator: test requires access to symbolicator")
+
+    _forbid_single_host_flushall()
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -245,7 +268,7 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_ALLOW_ORIGIN = "*"
 
-    settings.SENTRY_TSDB = "sentry.tsdb.redissnuba.RedisSnubaTSDB"
+    settings.SENTRY_TSDB = "sentry.tsdb.snuba.SnubaTSDB"
     settings.SENTRY_TSDB_OPTIONS = {}
 
     settings.SENTRY_NEWSLETTER = "sentry.newsletter.dummy.DummyNewsletter"
@@ -333,6 +356,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "aws-lambda.python.layer-version": "34",
         }
     )
+    settings.EMAIL_BACKEND = settings.SENTRY_OPTIONS["mail.backend"]
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -378,6 +402,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
     asset_version_patcher.start()
     from sentry.runner.initializer import initialize_app
+
+    # A GC metrics opt-in exported in the developer's shell would start a
+    # flusher thread in the test process and emit python.gc.* during tests.
+    os.environ.pop("SENTRY_GC_METRICS", None)
 
     SENTRY_SKIP_SERVICE_VALIDATION = "SENTRY_SKIP_SERVICE_VALIDATION" in os.environ
 

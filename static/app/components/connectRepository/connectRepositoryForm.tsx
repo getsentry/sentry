@@ -23,7 +23,6 @@ import {
 } from 'sentry/components/connectRepository/queries';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -158,7 +157,7 @@ export function ConnectRepositoryForm({
       placeholder={t('Search repositories')}
       isLoading={isReposPending}
       searchable
-      components={{MenuList: ScmVirtualizedMenuList}}
+      virtualized
     />
   );
 

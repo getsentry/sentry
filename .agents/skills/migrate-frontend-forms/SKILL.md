@@ -570,6 +570,24 @@ return (
 
 A form that's never actually submitted bypasses validation, pending/disabled state, and field-error wiring.
 
+## Display-Only Information
+
+For dates, status text, or other content without an input, use `DisplayField.Row` or `DisplayField.Stack` from `@sentry/scraps/form`. Do not create an `Field` or `AutoSaveForm` just to get a layout:
+
+```tsx
+<DisplayField.Row label={t('Created')}>
+  <Text>
+    <DateTime date={data.dateCreated} />
+  </Text>
+</DisplayField.Row>
+```
+
+Remove schema entries and default values that existed only to display this content. Preserve text styling with `<Text>` where needed. Use an existing `form.Subscribe` to calculate derived display values during render; do not copy them into form state with `form.setFieldValue`.
+
+`Row` matches the responsive field layout; `Stack` always stacks. These components use description-list semantics without a `<label>`, field context, or error-focus registration. Keep actual read-only inputs on `field.Input readOnly` inside `Field` and `field.Layout.*` so they retain input association. Custom controls that handle form state still need `field.Base`.
+
+See the [form generation guide](../generate-frontend-forms/SKILL.md#display-only-information) for layout props and a subscription example.
+
 ## Preserving Form Search Functionality
 
 Sentry's SettingsSearch allows users to search for individual settings fields. When migrating forms, you must preserve this searchability by wrapping migrated forms with `FormSearch`.
@@ -678,16 +696,18 @@ const schema = z.object({
 <form.Subscribe selector={state => state.values.plan === 'enterprise'}>
   {showBilling =>
     showBilling ? (
-      <form.AppField
+      <form.Field
         name="billingEmail"
-        validators={{onDynamic: z.string().trim().email('Enter a valid billing email')}}
+        validators={defaultFormValidators(
+          z.string().trim().email('Enter a valid billing email')
+        )}
       >
         {field => (
           <field.Layout.Stack label="Billing Email" required>
-            <field.Input value={field.state.value} onChange={field.handleChange} />
+            <field.Input value={field.value} onChange={field.handleChange} />
           </field.Layout.Stack>
         )}
-      </form.AppField>
+      </form.Field>
     ) : null
   }
 </form.Subscribe>;

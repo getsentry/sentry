@@ -8,8 +8,8 @@ ruleTester.run('no-legacy-router-imports', noLegacyRouterImports, {
   valid: [
     "import {Link, type Location} from 'react-router';",
     "import {RouterProvider} from 'react-router/dom';",
-    "import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';",
-    "import {wrapCreateBrowserRouterV6} from '@sentry/react';",
+    "import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';",
+    "import {wrapCreateBrowserRouter} from '@sentry/react';",
     "export {useLocation} from 'react-router';",
     "type Location = import('react-router').Location;",
     "jest.mock('react-router');",

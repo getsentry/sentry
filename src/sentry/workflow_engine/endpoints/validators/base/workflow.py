@@ -130,12 +130,21 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             self._validate_action_filter_ownership(value)
 
         for action_filter in value:
-            for action in action_filter["actions"]:
+            for index, action in enumerate(action_filter["actions"]):
+                action_id = action.get("id")
+                if "workflow" not in self.context and action_id is not None:
+                    raise serializers.ValidationError(
+                        "Action IDs cannot be specified when creating an alert."
+                    )
+
                 action_validator = BaseActionValidator(data=action, context=self.context)
                 action_validator.is_valid(raise_exception=True)
 
-                # update because the validated data does not contain "id" for updates
-                action.update(action_validator.validated_data)
+                validated_action = action_validator.validated_data
+                # Preserve existing action IDs for updates.
+                if action_id is not None:
+                    validated_action["id"] = action_id
+                action_filter["actions"][index] = validated_action
 
         return value
 
@@ -214,12 +223,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         instance = None
 
         # Determine if this is an update or create operation
-        if input_id:
+        if input_id is not None:
             instance = Action.objects.get(id=input_id)
             instance.update(**input_data)
             return instance
 
-        return Action.objects.create(**input_data)
+        return BaseActionValidator(context=self.context).create(input_data)
 
     def update_or_create_actions(
         self,

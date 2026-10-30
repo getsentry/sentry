@@ -63,6 +63,7 @@ describe('node agentMonitoring onboarding', () => {
   it.each([
     ['11.0.0', 'eve'],
     ['11.0.0', 'mastra'],
+    ['11.6.0', 'pi'],
     ['10.69.0', 'cloudflare_agents'],
     ['10.67.0', 'openai'],
   ])('requires SDK version %s for %s', (expectedVersion, integration) => {
@@ -301,6 +302,74 @@ describe('node agentMonitoring onboarding', () => {
     });
   });
 
+  describe('Pi Durable', () => {
+    it('installs the Node SDK', () => {
+      const code = collectCode(config.install(makeParams({integration: 'pi'})));
+
+      expect(code).toContain('npm install @sentry/node');
+    });
+
+    it('preloads Sentry before Pi Durable starts', () => {
+      const code = collectCode(config.configure(makeParams({integration: 'pi'})));
+
+      expect(code).toContain('Sentry.init({');
+      expect(code).toContain('dsn: "https://public@o1.ingest.sentry.io/1"');
+      expect(code).toContain('node --import ./instrument.mjs');
+    });
+
+    it('verifies by running a Pi Durable conversation', () => {
+      const steps = config.verify(makeParams({integration: 'pi'}));
+
+      expect(collectCode(steps)).toBe('');
+      expect(collectText(steps)).toContain('Pi Durable conversations');
+    });
+
+    describe('on Cloudflare', () => {
+      const cloudflareParams = makeParams({
+        integration: 'pi',
+        deploymentTarget: 'cloudflare',
+      });
+
+      it('installs the Cloudflare SDK', () => {
+        const code = collectCode(config.install(cloudflareParams));
+
+        expect(code).toContain('npm install @sentry/cloudflare');
+        expect(code).not.toContain('@sentry/node');
+      });
+
+      it('instruments Pi Durable with the Cloudflare Vite plugin', () => {
+        const code = collectCode(config.configure(cloudflareParams));
+
+        expect(code).toContain('sentryCloudflareVitePlugin()');
+        expect(code).toContain('defineCloudflareOptions((env: Env) => ({');
+        expect(code).toContain('nodejs_compat');
+        expect(code).toMatch(/compatibility_date = "\d{4}-\d{2}-\d{2}"/);
+        expect(code).not.toContain('node --import');
+      });
+    });
+
+    describe('on Bun', () => {
+      const bunParams = {
+        ...makeParams({integration: 'pi'}),
+        platformKey: 'bun',
+      } as DocsParams;
+
+      it('installs the Bun SDK', () => {
+        const code = collectCode(config.install(bunParams));
+
+        expect(code).toBe('bun add @sentry/bun');
+      });
+
+      it('builds with the Sentry Bun plugin and preloads the instrument file', () => {
+        const code = collectCode(config.configure(bunParams));
+
+        expect(code).toContain('import * as Sentry from "@sentry/bun";');
+        expect(code).toContain('plugins: [sentryBunPlugin()]');
+        expect(code).toContain('bun --preload ./instrument.ts dist/app.js');
+      });
+    });
+  });
+
   describe('Cloudflare Agents SDK', () => {
     const agentsParams = makeParams({
       integration: 'cloudflare_agents',
@@ -332,64 +401,6 @@ describe('node agentMonitoring onboarding', () => {
 
       expect(collectCode(steps)).toBe('');
       expect(collectText(steps)).toContain('Trigger your agent');
-    });
-  });
-  describe('data collection step', () => {
-    const DATA_COLLECTION_TITLE = 'Control the Data You Send to Sentry (Optional)';
-
-    it.each([
-      ['vercel_ai', {integration: 'vercel_ai'}, 'Sentry.init({'],
-      ['manual', {integration: 'manual'}, 'Sentry.init({'],
-      ['mastra', {integration: 'mastra'}, 'Sentry.init({'],
-      ['flue', {integration: 'flue'}, 'Sentry.init({'],
-      // Flue on Cloudflare configures Sentry in the blueprint-generated sentry.ts,
-      // so it must not show the `defineCloudflareOptions` file it does not have.
-      [
-        'flue on Cloudflare',
-        {integration: 'flue', deploymentTarget: 'cloudflare'},
-        'blueprint-generated sentry.ts',
-      ],
-      [
-        'on Cloudflare',
-        {integration: 'openai', deploymentTarget: 'cloudflare'},
-        'defineCloudflareOptions((env) => ({',
-      ],
-      [
-        'cloudflare_agents',
-        {integration: 'cloudflare_agents', deploymentTarget: 'cloudflare'},
-        'defineCloudflareOptions((env) => ({',
-      ],
-    ])('offers the genAI opt-out for %s', (_label, platformOptions, wrapper) => {
-      const steps = config.configure(makeParams(platformOptions));
-      const dataCollectionSteps = steps.filter(
-        step => step.title === DATA_COLLECTION_TITLE
-      );
-
-      // Exactly one, even though several integrations reuse another config's steps.
-      expect(dataCollectionSteps).toHaveLength(1);
-      const code = collectCode(dataCollectionSteps);
-      expect(code).toContain('genAI: { inputs: false, outputs: false }');
-      // The snippet shows where the options go, matching the target's init shape.
-      expect(code).toContain(wrapper);
-      // GuidedSteps drops collapsible steps, so a collapsible step would never render.
-      expect(dataCollectionSteps[0]!.collapsible).toBeFalsy();
-    });
-
-    it('does not show `defineCloudflareOptions` for Flue on Cloudflare', () => {
-      const steps = config.configure(
-        makeParams({integration: 'flue', deploymentTarget: 'cloudflare'})
-      );
-      const dataCollectionSteps = steps.filter(
-        step => step.title === DATA_COLLECTION_TITLE
-      );
-
-      expect(collectCode(dataCollectionSteps)).not.toContain('defineCloudflareOptions');
-    });
-
-    it('omits the step for Eve, which never configures the Sentry SDK', () => {
-      const steps = config.configure(makeParams({integration: 'eve'}));
-
-      expect(steps.filter(step => step.title === DATA_COLLECTION_TITLE)).toHaveLength(0);
     });
   });
 });

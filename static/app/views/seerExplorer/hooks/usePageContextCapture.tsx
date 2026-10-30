@@ -1,7 +1,6 @@
-import {useCallback, useEffect, useState, useSyncExternalStore} from 'react';
+import {useCallback, useDeferredValue, useSyncExternalStore} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {useLocation} from 'sentry/utils/useLocation';
 import {
   useLLMContext,
   useLLMContextRegistry,
@@ -50,6 +49,7 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/monitors/mobile-builds/',
   '/monitors/my-monitors/',
   '/monitors/uptime/',
+  '/seer/investigations/:investigationId/',
 ]);
 
 /**
@@ -70,9 +70,12 @@ const PAGE_CONTEXT_READY_NODES = new Map<string, LLMContextNodeType[]>([
   ['/issues/:groupId/attachments/', ['issue-detail']],
   ['/issues/:groupId/distributions/', ['issue-detail']],
   ['/issues/:groupId/distributions/:tagKey/', ['issue-detail']],
+  ['/seer/investigations/:investigationId/', ['investigation']],
 ]);
 
 type CapturedPageContext = {
+  /** Whether `screenshot` is the structured snapshot rather than an ASCII rendering. */
+  isStructured: boolean;
   screenshot: string | undefined;
   snapshot: LLMContextSnapshot | undefined;
 };
@@ -106,12 +109,16 @@ export function usePageContextCapture() {
       // coarse ASCII screenshot everywhere else.
       if (snapshot && allowStructured && STRUCTURED_CONTEXT_ROUTES.has(route)) {
         try {
-          return {snapshot, screenshot: JSON.stringify(snapshot)};
+          return {snapshot, screenshot: JSON.stringify(snapshot), isStructured: true};
         } catch (e) {
           Sentry.captureException(e);
         }
       }
-      return {snapshot, screenshot: captureAsciiSnapshot?.(snapshot?.location)};
+      return {
+        snapshot,
+        screenshot: captureAsciiSnapshot?.(snapshot?.location),
+        isStructured: false,
+      };
     },
     [captureAsciiSnapshot, getLLMContext]
   );
@@ -119,24 +126,19 @@ export function usePageContextCapture() {
 
 /**
  * Whether the route's page context is registered and not loading anymore.
- * Routes not in PAGE_CONTEXT_READY_NODES are always considered ready.
+ * Routes not in PAGE_CONTEXT_READY_NODES only wait for the guard below.
  */
-export function usePageContextReady(route: string): boolean {
+export function usePageContextReady(route: string, contextKey: string): boolean {
   const {subscribe, isNodeReady} = useLLMContextRegistry();
-  const {pathname} = useLocation();
   const expectedNodeTypes = PAGE_CONTEXT_READY_NODES.get(route);
   const isReady = useSyncExternalStore(
     subscribe,
     () => expectedNodeTypes === undefined || expectedNodeTypes.some(isNodeReady)
   );
 
-  // On navigation, the first render still sees the previous page's nodes, which
-  // unregister when it commits. Only trust readiness once it holds after that.
-  const [readyPathname, setReadyPathname] = useState<string | null>(null);
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect -- the re-render after commit is the point.
-    setReadyPathname(isReady ? pathname : null);
-  }, [isReady, pathname]);
+  // After contextKey changes, this render still sees the previous page context, which
+  // updates when it commits. The deferred key catches up in a later render, after that.
+  const settledContextKey = useDeferredValue(contextKey, null);
 
-  return expectedNodeTypes === undefined || (isReady && readyPathname === pathname);
+  return isReady && settledContextKey === contextKey;
 }

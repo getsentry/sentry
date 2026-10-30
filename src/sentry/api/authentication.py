@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import logging
+import time
 from collections.abc import Callable, Iterable
 from typing import Any, ClassVar, NoReturn
 
@@ -14,7 +15,7 @@ from django.http import HttpHeaders
 from django.urls import resolve
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
-from jwt import PyJWTError
+from jwt import MissingRequiredClaimError, PyJWTError
 from rest_framework.authentication import (
     BaseAuthentication,
     BasicAuthentication,
@@ -47,7 +48,9 @@ from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
+from sentry.service_accounts.auth import authenticate_service_account
 from sentry.silo.base import SiloLimit, SiloMode
+from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -374,6 +377,10 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
         return self.transform_auth(user_id, None)
 
 
+# Client-secret JWTs are single-use assertions, so they only need to live long enough to be sent.
+MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS = 5 * 60
+
+
 def get_payload_from_client_secret_jwt(
     headers: HttpHeaders, installation: SentryAppInstallation
 ) -> dict[str, Any]:
@@ -400,6 +407,16 @@ def get_payload_from_client_secret_jwt(
 
     try:
         payload = jwt.decode(encoded_jwt, client_secret, algorithms=["HS256"])
+    except MissingRequiredClaimError as e:
+        logger.warning(
+            "client_secret_jwt_auth.missing_required_claim",
+            extra={
+                "sentry_app_id": installation.sentry_app_id,
+                "installation_id": installation.id,
+                "claim": e.claim,
+            },
+        )
+        raise AuthenticationFailed("Could not validate JWT") from e
     except Exception as e:
         raise AuthenticationFailed("Could not validate JWT") from e
 
@@ -414,8 +431,9 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
     Expects the URL to contain a `uuid` in the path
     """
 
-    def _create_cache_key(self, installation_uuid: str, jti: str) -> str:
-        return f"jwt_client_secret:{installation_uuid}:{jti}"
+    def _create_cache_key(self, sentry_app_id: int, jti: str) -> str:
+        jti_digest = hashlib.sha256(jti.encode()).hexdigest()
+        return f"jwt_client_secret:{sentry_app_id}:{jti_digest}"
 
     def authenticate(self, request: Request):
         if not request.data:
@@ -451,10 +469,29 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         if not jti:
             raise AuthenticationFailed("JWT is missing a jti claim")
 
-        cache_key = self._create_cache_key(installation.uuid, jti)
-        if cache.get(cache_key):
+        seconds_until_expiry = int(payload["exp"]) - int(time.time())
+        if seconds_until_expiry > MAX_CLIENT_SECRET_JWT_LIFETIME_SECONDS:
+            logger.warning(
+                "client_secret_jwt_auth.exp_too_far_in_future",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                    "seconds_until_expiry": seconds_until_expiry,
+                },
+            )
+            raise AuthenticationFailed("JWT expiration is too far in the future")
+
+        cache_key = self._create_cache_key(installation.sentry_app_id, jti)
+        # Atomically remember the jti until the JWT expires so it can't be reused while still valid.
+        if not cache.add(cache_key, True, timeout=max(seconds_until_expiry, 1)):
+            logger.warning(
+                "client_secret_jwt_auth.jti_reused",
+                extra={
+                    "sentry_app_id": installation.sentry_app_id,
+                    "installation_id": installation.id,
+                },
+            )
             raise AuthenticationFailed("JWT has already been used")
-        cache.set(cache_key, True, timeout=60)  # 1 minute
 
         return self.transform_auth(installation.sentry_app.proxy_user_id, None)
 
@@ -932,10 +969,17 @@ class ViewerContextAuthentication(BaseAuthentication):
     Identity-only contexts derive access from organization membership. An optional
     Sentry-signed superuser context instead produces an org-bound credential;
     shared access checks validate it again and cap it to read-only scopes.
+    A service account context produces a userless credential bound to the
+    account's organization and current scopes.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        from sentry.viewer_context import _get_verification_keys, viewer_context_from_header
+        from sentry.viewer_context import (
+            ActorType,
+            _get_verification_keys,
+            get_acting_user_id,
+            viewer_context_from_header,
+        )
 
         header = request.META.get("HTTP_X_VIEWER_CONTEXT")
         if not header:
@@ -944,7 +988,18 @@ class ViewerContextAuthentication(BaseAuthentication):
         verification_keys = _get_verification_keys()
         vc = viewer_context_from_header(header)
 
-        if vc is None or vc.user_id is None:
+        if vc is not None and vc.actor.type == ActorType.SERVICE_ACCOUNT:
+            service_account_auth = authenticate_service_account(vc)
+            if service_account_auth is None:
+                return None
+            sentry_sdk.get_isolation_scope().set_tag("viewer_context_auth", True)
+            sentry_sdk.get_isolation_scope().set_attribute("viewer_context_auth", True)
+            return (AnonymousUser(), service_account_auth)
+
+        user_id = get_acting_user_id(vc)
+        superuser = from_viewer_context_superuser(vc.actor.superuser) if vc is not None else None
+
+        if vc is None or user_id is None:
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
             # Remove once the auth issue is resolved.
@@ -960,7 +1015,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             )
             return None
 
-        user = user_service.get_user(user_id=vc.user_id)
+        user = user_service.get_user(user_id=user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
@@ -973,7 +1028,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                     else "user_suspended"
                     if getattr(user, "is_suspended", False)
                     else "user_inactive",
-                    "vc_user_id": vc.user_id,
+                    "vc_user_id": user_id,
                     "path": request.path,
                 },
             )
@@ -988,7 +1043,7 @@ class ViewerContextAuthentication(BaseAuthentication):
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
 
-        if vc.superuser is not None:
+        if superuser is not None:
             org_context = (
                 organization_service.get_organization_by_id(
                     id=vc.organization_id,
@@ -1000,7 +1055,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 else None
             )
             delegated = (
-                resolve_superuser_access(vc.superuser, user, org_context)
+                resolve_superuser_access(superuser, user, org_context)
                 if org_context is not None
                 else None
             )
@@ -1012,7 +1067,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 user_id=user.id,
                 organization_id=vc.organization_id,
                 scopes=sorted(scopes),
-                superuser=vc.superuser,
+                superuser=superuser,
             )
             # Org-bound access must not enable global staff/superuser bypasses.
             user = user.copy(

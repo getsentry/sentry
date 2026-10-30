@@ -1,10 +1,9 @@
-import orjson
-from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
@@ -28,18 +27,16 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
     def get(self, request: Request, *args, **kwargs) -> Response:
         try:
             integration = get_integration_from_request(request, IntegrationProviderSlug.JIRA.value)
+        except AtlassianConnectTokenExpiredError:
+            return self.get_response({"refresh_required": True})
         except AtlassianConnectValidationError:
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
-        except ExpiredSignatureError:
-            return self.get_response({"refresh_required": True})
 
-        # expose a link to the configuration view
-        signed_data = {
-            "external_id": integration.external_id,
-            "metadata": orjson.dumps(integration.metadata).decode(),
-        }
+        # The pipeline loads everything else from the integration record, so the
+        # link only needs to identify the installation.
         finish_link = "{}.?signed_params={}".format(
-            absolute_uri("/extensions/jira/configure/"), sign(salt=SALT, **signed_data)
+            absolute_uri("/extensions/jira/configure/"),
+            sign(salt=SALT, external_id=integration.external_id),
         )
 
         image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))

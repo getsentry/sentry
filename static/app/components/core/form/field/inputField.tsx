@@ -1,6 +1,6 @@
 import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
 import {type InputProps} from '@sentry/scraps/input';
-import {InputGroup} from '@sentry/scraps/input/inputGroup';
+import {InputGroup} from '@sentry/scraps/input';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 

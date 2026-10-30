@@ -3,16 +3,21 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
+import {
+  DisplayField,
+  useScrapsForm,
+  ScrapsForm,
+  defaultFormValidators,
+} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -188,13 +193,14 @@ export default function ApiNewToken() {
                   displayedPermissions={DISPLAYED_PERMISSIONS}
                 />
               )}
+              <DisplayField.Row
+                label={t('Permissions Preview')}
+                hintText={t('Your token will have the following scopes.')}
+                padding="xl"
+              >
+                <Text>{permissionsPreview || '—'}</Text>
+              </DisplayField.Row>
             </PanelBody>
-            <FieldGroup
-              label={t('Permissions Preview')}
-              help={t('Your token will have the following scopes.')}
-            >
-              <div>{permissionsPreview || '—'}</div>
-            </FieldGroup>
           </Panel>
           <Flex justify="end" gap="md" padding="md">
             <Button onClick={handleGoBack}>{t('Cancel')}</Button>

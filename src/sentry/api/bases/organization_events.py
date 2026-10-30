@@ -148,12 +148,16 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
         return [team for team in teams]
 
+    def _occurrences_dataset_allowed(self, request: Request, organization: Organization) -> bool:
+        return features.has(
+            "organizations:test-occurrences-dataset", organization, actor=request.user
+        ) or EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
+
     def get_dataset(self, request: Request, organization: Organization) -> Any:
         dataset_label = request.GET.get("dataset", Dataset.Discover.value)
-        # Feature flag the occurrence endpoint
         if (
             dataset_label == SupportedTraceItemType.OCCURRENCES.value
-            and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
+            and not self._occurrences_dataset_allowed(request, organization)
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value:
@@ -211,7 +215,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 query_string=query,
                 sampling_mode=sampling_mode,
                 debug=request.user.is_superuser and request.GET.get("debug", False),
-                case_insensitive=request.GET.get("caseInsensitive", "0") == "1",
+                case_insensitive=request.GET.get("caseInsensitive") in ("1", "true"),
             )
             return params
 

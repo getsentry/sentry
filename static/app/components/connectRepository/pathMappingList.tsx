@@ -10,6 +10,7 @@ import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
+import {PathMappingEmptyState} from './pathMappingEmptyState';
 import type {PathMappingValue} from './type';
 import type {ConnectRepoForm} from './useConnectRepoForm';
 import {getPathMappingWarnings} from './warnings';
@@ -47,6 +48,7 @@ const clearIsNewOnCollapse = (
 
 interface Props {
   form: ConnectRepoForm;
+  allowEmpty?: boolean;
   defaultBranch?: string;
   existingMappings?: RepositoryProjectPathConfig[];
   projectSlug?: string;
@@ -57,6 +59,7 @@ interface Props {
 
 export function PathMappingList({
   form,
+  allowEmpty,
   providerKey,
   defaultBranch,
   existingMappings,
@@ -98,7 +101,7 @@ export function PathMappingList({
         {field => {
           const handleDelete = (i: number) => {
             const freshId = nextId();
-            if (form.state.values.pathMappings.length === 1) {
+            if (form.state.values.pathMappings.length === 1 && !allowEmpty) {
               form.setFieldValue('pathMappings', [newRowValue]);
               setRowMeta([{id: freshId, isNew: true}]);
               setOpenId(freshId);
@@ -122,6 +125,9 @@ export function PathMappingList({
           return (
             <form.Subscribe selector={state => state.values.pathMappings}>
               {pathMappings => {
+                if (pathMappings.length === 0) {
+                  return <PathMappingEmptyState onAdd={handleAddAnother} />;
+                }
                 const warnings = getPathMappingWarnings(
                   pathMappings,
                   existingMappings,
@@ -144,7 +150,7 @@ export function PathMappingList({
                           <PathMapping
                             key={meta.id}
                             editing={openId === meta.id}
-                            enableDelete={pathMappings.length > 1}
+                            enableDelete={allowEmpty || pathMappings.length > 1}
                             fields={fields}
                             form={form}
                             isNew={meta.isNew}

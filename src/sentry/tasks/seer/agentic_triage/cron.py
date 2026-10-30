@@ -28,7 +28,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.seer.agent.client import SeerAgentClient
-from sentry.seer.agent.client_utils import AgentRunOptions
 from sentry.seer.agentic_triage.models import AgenticTriagePayload, TriageCandidate, TriageTweaks
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
@@ -268,7 +267,7 @@ def _prepare_scheduled_run(
     run, created = SeerWorkflowRun.objects.get_or_create(
         organization=organization,
         workflow_config=workflow_config,
-        schedule_id=schedule_id,
+        trigger_key=schedule_id,
         defaults={"extras": extras},
     )
     if created:
@@ -354,7 +353,7 @@ def run_agentic_triage_for_org(
         existing_run = SeerWorkflowRun.objects.filter(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
-            schedule_id=schedule_id,
+            trigger_key=schedule_id,
         ).first()
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (
@@ -884,13 +883,6 @@ def _dispatch_pending_shards(
         return ShardDispatchStatus.NO_SEER_ACCESS
 
     using = router.db_for_write(SeerWorkflowRunExecution)
-    agent_run_options: AgentRunOptions = {
-        "enable_code_mode_tools": (
-            "only"
-            if features.has("organizations:seer-night-shift-code-mode", organization)
-            else "off"
-        )
-    }
     planned_shards = list(run.executions.order_by("id"))
     dispatched = 0
     for shard_index, planned_shard in enumerate(planned_shards):
@@ -915,11 +907,7 @@ def _dispatch_pending_shards(
 
             def _link_shard(created: SeerRun) -> None:
                 shard.seer_run = created
-                shard.extras = {
-                    **shard.extras,
-                    "enable_code_mode_tools": agent_run_options["enable_code_mode_tools"],
-                }
-                shard.save(update_fields=["seer_run", "extras"])
+                shard.save(update_fields=["seer_run"])
 
             try:
                 client.start_feature_run(
@@ -929,7 +917,6 @@ def _dispatch_pending_shards(
                     flush=False,
                     on_run_created=_link_shard,
                     referrer="night_shift",
-                    agent_run_options=agent_run_options,
                 )
             except Exception:
                 logger.exception(

@@ -74,6 +74,8 @@ class NotificationSource(StrEnum):
     SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
     SEER_INVESTIGATION_STARTED = "seer-investigation-started"
     SEER_INVESTIGATION_ERROR = "seer-investigation-error"
+    SEER_INVESTIGATION_STATUS = "seer-investigation-status"
+    SEER_INVESTIGATION_CONCLUSION = "seer-investigation-conclusion"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
@@ -140,6 +142,8 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AGENT_WRITE_APPROVAL,
         NotificationSource.SEER_INVESTIGATION_STARTED,
         NotificationSource.SEER_INVESTIGATION_ERROR,
+        NotificationSource.SEER_INVESTIGATION_STATUS,
+        NotificationSource.SEER_INVESTIGATION_CONCLUSION,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
@@ -184,6 +188,8 @@ class NotificationProviderKey(StrEnum):
     MSTEAMS = ExternalProviderEnum.MSTEAMS
     DISCORD = ExternalProviderEnum.DISCORD
 
+
+SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
 
 SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
     "slack": NotificationProviderKey.SLACK,

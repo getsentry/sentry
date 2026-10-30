@@ -10,6 +10,7 @@ import requests as requests_
 import sentry_sdk
 from django.urls import reverse
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -22,7 +23,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
-from sentry.auth.access import from_member
+from sentry.auth.access import from_member, from_user
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
@@ -46,7 +47,9 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvestigationUnavailableReason,
     handle_seer_investigation_start,
+    record_investigation_unavailable,
 )
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
@@ -88,6 +91,7 @@ UNLINK_IDENTITY_MESSAGE = (
 )
 
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
+NO_PROJECT_ACCESS_MESSAGE = "You do not have access to this project."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
@@ -122,6 +126,8 @@ def update_group(
         raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
+    if not from_user(user, group.organization).has_project_access(group.project):
+        raise PermissionDenied(NO_PROJECT_ACCESS_MESSAGE)
 
     with action_context_scope(source=ActionSource.SLACK, actor=GroupActionActor.user(user.id)):
         resp = update_groups(request=request, groups=[group], user=user, data=data)
@@ -434,6 +440,9 @@ class SlackActionEndpoint(Endpoint):
 
                 try:
                     self.on_status(request, identity_user, group, status_action)
+                except PermissionDenied as error:
+                    lifecycle.record_halt(error)
+                    return self.respond_ephemeral(str(error.detail))
                 except client.ApiError as error:
                     lifecycle.record_failure(error)
                     return self.api_error(
@@ -522,6 +531,8 @@ class SlackActionEndpoint(Endpoint):
                             user=identity_user,
                         )
                     defer_attachment_update = True
+            except PermissionDenied as error:
+                return self.respond_ephemeral(str(error.detail))
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -781,7 +792,6 @@ class SlackActionEndpoint(Endpoint):
             extra={
                 "trigger_id": slack_request.data.get("trigger_id"),
                 "integration_id": slack_request.integration.id,
-                "request_data": slack_request.data,
             },
         )
 
@@ -812,10 +822,15 @@ class SlackActionEndpoint(Endpoint):
             )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             identity_user = slack_request.get_identity_user()
             if not identity_user:
+                record_investigation_unavailable(
+                    InvestigationUnavailableReason.IDENTITY_NOT_LINKED,
+                    organization_id=routing_data.organization_id,
+                    integration_id=slack_request.integration.id,
+                )
                 return self._respond_link_identity(slack_request)
-            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             return handle_seer_investigation_start(
                 slack_request=slack_request,
                 organization_id=routing_data.organization_id,

@@ -8,9 +8,6 @@ import {
   waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
-
-import {Container} from '@sentry/scraps/layout';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -270,22 +267,5 @@ describe('FlagDetailsDrawerContent', () => {
         organization: expect.objectContaining({slug: 'org-slug'}),
       })
     );
-  });
-
-  it('shows every column when the container is narrow', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
-
-    const group = GroupFixture();
-    render(
-      <GroupDataContextProvider group={group} project={group.project}>
-        <Container containerType="inline-size">
-          <FlagDetailsDrawerContent group={group} />
-        </Container>
-      </GroupDataContextProvider>
-    );
-
-    const table = await screen.findByRole('table', {name: 'Feature flag audit logs'});
-
-    expect(getEmotionRules(table).join('')).not.toContain('nth-child(');
   });
 });

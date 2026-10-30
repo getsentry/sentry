@@ -544,7 +544,9 @@ export type TagValue = {
   firstSeen: string;
   lastSeen: string;
   name: string;
-  value: string;
+  // Missing tags come back as '' or, for tags Snuba stores in their own
+  // column (like user), null.
+  value: string | null;
   email?: string;
   identifier?: string;
   ipAddress?: string;
@@ -559,7 +561,7 @@ type Topvalue = {
   key: string;
   lastSeen: string;
   name: string;
-  value: string;
+  value: string | null;
   // Might not actually exist.
   query?: string;
   readable?: string;
@@ -698,6 +700,10 @@ interface GroupActivityBase {
   assignee?: string;
   issue?: Group;
   sentry_app?: AvatarSentryApp;
+  /**
+   * Where the action came from, e.g. `web`, `api`, `sentry-cli`, `mcp:cursor`
+   */
+  source?: null | string;
   user?: null | User;
 }
 

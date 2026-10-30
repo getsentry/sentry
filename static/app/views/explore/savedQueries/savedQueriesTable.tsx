@@ -253,6 +253,7 @@ export function SavedQueriesTable({
                     visualizes={query.query[0].visualize}
                     groupBys={query.query[0].groupby}
                     agent={query.agent}
+                    errorsOnly={query.errorsOnly}
                   />
                 ) : (
                   <StyledExploreParams

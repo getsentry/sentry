@@ -713,6 +713,27 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
         assert self._workflow_creation_model_counts() == model_counts
 
+    def test_create_rejects_client_action_id(self) -> None:
+        self._assert_create_rejected_without_writes(
+            {
+                "actionFilters": [
+                    {
+                        "logicType": "any",
+                        "conditions": [],
+                        "actions": [
+                            {
+                                "id": 2**62,
+                                "type": Action.Type.EMAIL,
+                                "config": {"targetType": "issue_owners"},
+                                "data": {},
+                            }
+                        ],
+                    }
+                ]
+            },
+            status_code=400,
+        )
+
     @mock.patch("sentry.workflow_engine.endpoints.validators.base.workflow.create_audit_entry")
     def test_create_workflow__basic(self, mock_audit: mock.MagicMock) -> None:
         response = self.get_success_response(

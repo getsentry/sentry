@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict, override
@@ -9,13 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
-from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationBlockDependency,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockKind,
-    InvestigationBlockParameter,
-)
+from sentry.notebooks.models import NotebookBlock, NotebookBlockExecutionStatus, NotebookBlockKind
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -27,10 +20,17 @@ class InvestigationBlockExecutionSerializerResponse(TypedDict):
     schemaVersion: int
     startedAt: datetime | None
     completedAt: datetime | None
-    error: Any | None
+    error: Any
 
 
 class InvestigationBlockSerializerResponse(TypedDict):
+    """
+    Notebook block. version is the block concurrency token; dependencies are block IDs and
+    parameterKeys reference notebook parameters. output is the latest successful result and may
+    remain available during a rerun; currentExecution describes the latest attempt. Poll
+    execution details for transcript and pending input.
+    """
+
     id: str
     position: int
     kind: str
@@ -38,7 +38,7 @@ class InvestigationBlockSerializerResponse(TypedDict):
     content: str
     generationPrompt: str
     generatedContent: str
-    output: Any | None
+    output: Any
     outputStatus: str
     currentExecution: InvestigationBlockExecutionSerializerResponse | None
     config: dict[str, Any]
@@ -55,46 +55,22 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
     @override
     def get_attrs(
         self,
-        item_list: Sequence[InvestigationBlock],
+        item_list: Sequence[NotebookBlock],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[InvestigationBlock, dict[str, Any]]:
-        dependencies: MutableMapping[int, list[str]] = defaultdict(list)
-        for link in (
-            InvestigationBlockDependency.objects.filter(
-                block__in=item_list, depends_on__deleted_at__isnull=True
-            )
-            .values_list("block_id", "depends_on_id")
-            .order_by("id")
-        ):
-            dependencies[link[0]].append(str(link[1]))
-
-        parameter_keys: MutableMapping[int, list[str]] = defaultdict(list)
-        for block_id, key in (
-            InvestigationBlockParameter.objects.filter(block__in=item_list)
-            .values_list("block_id", "parameter__key")
-            .order_by("parameter__position")
-        ):
-            parameter_keys[block_id].append(key)
-
+    ) -> MutableMapping[NotebookBlock, dict[str, Any]]:
         prefetch_related_objects(
             item_list,
             "current_execution",
             "result_execution",
         )
 
-        return {
-            block: {
-                "dependencies": dependencies[block.id],
-                "parameter_keys": parameter_keys[block.id],
-            }
-            for block in item_list
-        }
+        return {block: {} for block in item_list}
 
     @override
     def serialize(
         self,
-        obj: InvestigationBlock,
+        obj: NotebookBlock,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
@@ -105,12 +81,12 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             output_status = "notRun"
         else:
             visible_execution = (
-                obj.result_execution if obj.kind == InvestigationBlockKind.QUERY else execution
+                obj.result_execution if obj.kind == NotebookBlockKind.QUERY else execution
             )
             output = visible_execution.result if visible_execution is not None else None
             output_status = (
                 "available"
-                if execution.status == InvestigationBlockExecutionStatus.COMPLETED
+                if execution.status == NotebookBlockExecutionStatus.COMPLETED
                 else execution.status
             )
 
@@ -139,8 +115,8 @@ class InvestigationBlockSerializer(Serializer[InvestigationBlockSerializerRespon
             ),
             "config": obj.config,
             "display": obj.display,
-            "dependencies": attrs["dependencies"],
-            "parameterKeys": attrs["parameter_keys"],
+            "dependencies": [],
+            "parameterKeys": [],
             "version": obj.version,
             "staleAt": obj.stale_at,
             "createdBy": str(obj.created_by_id) if obj.created_by_id is not None else None,

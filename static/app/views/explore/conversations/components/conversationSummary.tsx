@@ -68,6 +68,7 @@ interface ConversationSummaryProps {
   conversationId: string;
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
+  hasMoreSpans?: boolean;
   isLoading?: boolean;
   nodeTraceMap?: Map<string, string>;
   /** Project the conversation belongs to; rendered beneath the title. */
@@ -94,6 +95,7 @@ export function ConversationSummary({
   conversationId,
   title,
   project,
+  hasMoreSpans,
   isLoading,
   nodeTraceMap,
 }: ConversationSummaryProps) {
@@ -239,7 +241,11 @@ export function ConversationSummary({
                   </InfoText>
                 </Flex>
               )}
-              <ConversationTraceLink conversationId={conversationId} traces={traces} />
+              <ConversationTraceLink
+                conversationId={conversationId}
+                traces={traces}
+                hasMoreSpans={hasMoreSpans}
+              />
               {project && <ProjectBadge project={project} avatarSize={16} disableLink />}
               <Flex align="center" gap="xs" minWidth={0}>
                 <IconUser size="md" />

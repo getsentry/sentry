@@ -26,7 +26,6 @@ import {
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -197,7 +196,7 @@ export function RepoLockedConnectForm({
       placeholder={t('Search projects')}
       isLoading={isProjectsPending}
       searchable
-      components={{MenuList: ScmVirtualizedMenuList}}
+      virtualized
     />
   );
 

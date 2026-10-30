@@ -9,14 +9,24 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.utils import handle_query_errors
-from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
+from sentry.replays.endpoints.organization_replay_details import GetReplayResponse
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_replay
 from sentry.replays.usecases.reader import has_archived_segment
+from sentry.replays.validators import validate_fields
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -38,15 +48,39 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
     permission_classes = (ReplayDetailsPermission,)
 
-    def get(self, request: Request, project: Project, replay_id: str) -> Response:
+    @extend_schema(
+        operation_id="getProjectReplay",
+        summary="Retrieve a Project's Replay Instance",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            ReplayParams.REPLAY_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            ReplayParams.FIELD,
+        ],
+        responses={
+            200: inline_sentry_response_serializer("GetProjectReplay", GetReplayResponse),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=ReplayExamples.GET_REPLAY_DETAILS,
+    )
+    def get(
+        self, request: Request, project: Project, replay_id: str
+    ) -> Response[GetReplayResponse]:
+        """
+        Return details on an individual replay within a project.
+        """
         self.check_replay_access(request, project)
+        fields = validate_fields(request.query_params.getlist("field"))
 
         filter_params = self.get_filter_params(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
         with handle_query_errors():
             snuba_response = query_replay_instance(
@@ -60,7 +94,7 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
 
         replay_data = process_raw_response(
             snuba_response,
-            fields=request.query_params.getlist("field"),
+            fields=fields,
         )
 
         if len(replay_data) == 0:

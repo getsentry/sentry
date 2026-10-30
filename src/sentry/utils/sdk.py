@@ -21,7 +21,6 @@ from sentry_sdk import Scope, capture_exception, capture_message, isolation_scop
 from sentry_sdk._types import AnnotatedValue
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
-from sentry_sdk.tracing_utils import has_span_streaming_enabled
 from sentry_sdk.transport import make_transport
 from sentry_sdk.types import Event, Hint, Log
 
@@ -642,19 +641,6 @@ def get_trace_id():
         return span.trace_id
 
     return None
-
-
-def set_span_attribute(data_name, value):
-    span_streaming = has_span_streaming_enabled(sentry_sdk.get_client().options)
-    if span_streaming:
-        streamed_span = traces.get_current_span()
-        if streamed_span is not None:
-            streamed_span.set_attribute(data_name, value)
-        return
-
-    span = sentry_sdk.get_current_span()
-    if span is not None:
-        span.set_data(data_name, value)
 
 
 def merge_context_into_scope(

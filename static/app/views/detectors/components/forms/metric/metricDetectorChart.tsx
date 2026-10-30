@@ -6,7 +6,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import type {YAXisComponentOption} from 'echarts';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
@@ -371,7 +371,7 @@ export function MetricDetectorChart({
   }, [isAnomalyDetection, anomalyMarkerResult.incidentMarkerGrid, theme.space]);
 
   return (
-    <ChartContainer>
+    <Container maxWidth="1440px">
       {isEmptyEquation ? (
         <ChartMessage message={t('Enter an equation to preview results')} />
       ) : isLoading ? (
@@ -436,13 +436,9 @@ export function MetricDetectorChart({
           )}
         />
       </ChartFooter>
-    </ChartContainer>
+    </Container>
   );
 }
-
-const ChartContainer = styled('div')`
-  max-width: 1440px;
-`;
 
 const ChartFooter = styled('div')`
   display: flex;

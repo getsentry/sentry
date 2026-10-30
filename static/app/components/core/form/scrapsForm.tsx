@@ -11,9 +11,13 @@ import {
 import {Button, type ButtonProps} from '@sentry/scraps/button';
 import {BaseField} from '@sentry/scraps/form/field/baseField';
 import {CheckboxField} from '@sentry/scraps/form/field/checkboxField';
-import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
+import {
+  FieldMeta,
+  FieldLayout,
+  FormElementContext,
+  useIsInsideFormElement,
+} from '@sentry/scraps/formPresentation';
 
 import {CompactSelectLooseField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
@@ -25,7 +29,6 @@ import {SelectAsyncLooseField} from './field/selectAsyncField';
 import {SelectLooseField} from './field/selectField';
 import {SwitchField} from './field/switchField';
 import {TextAreaField} from './field/textAreaField';
-import {FormElementContext, useIsInsideFormElement} from './formContext';
 import {fieldComponent} from './formHelpers';
 
 function SubmitButton(props: ButtonProps) {
@@ -88,7 +91,10 @@ function Form({children}: {children: React.ReactNode}) {
 
 const fieldComponents = {
   Base: BaseField,
-  Checkbox: fieldComponent.loose(CheckboxField, 'field'),
+  Checkbox: Object.assign(fieldComponent.loose(CheckboxField, 'field'), {
+    Group: CheckboxField.Group,
+    Item: CheckboxField.Item,
+  }),
   CompactSelect: CompactSelectLooseField,
   Input: fieldComponent.loose(InputField, 'field'),
   Number: fieldComponent.loose(NumberField, 'field'),

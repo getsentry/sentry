@@ -6,6 +6,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconPin} from '@sentry/icons/pin';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {
@@ -14,6 +15,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
@@ -302,7 +304,13 @@ export function TraceDrawer(props: TraceDrawerProps) {
         onDoubleClick={onDoubleClickResetToDefault}
         hasIndicators={hasIndicators}
       >
-        <TabsLayout data-test-id="trace-drawer-tabs">
+        <Grid
+          paddingLeft="md"
+          paddingRight="xs"
+          width="100%"
+          columns="auto 1fr auto"
+          data-test-id="trace-drawer-tabs"
+        >
           <TabActions>
             <TabLayoutControlItem>
               <TraceLayoutMinimizeButton
@@ -348,21 +356,21 @@ export function TraceDrawer(props: TraceDrawerProps) {
               />
             ) : null}
           </TabsContainer>
-        </TabsLayout>
+        </Grid>
       </TabsHeightContainer>
       {isDrawerMinimized ? null : (
         <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
           <ContentWrapper>
             {traceState.tabs.current_tab &&
-            typeof traceState.tabs.current_tab.node !== 'string'
-              ? traceState.tabs.current_tab.node.renderDetails({
-                  node: traceState.tabs.current_tab.node,
-                  onTabScrollToNode: props.onTabScrollToNode,
-                  organization,
-                  traceId: props.traceId,
-                  tree: props.trace,
-                })
-              : null}
+            typeof traceState.tabs.current_tab.node !== 'string' ? (
+              <TraceTreeNodeDetails
+                node={traceState.tabs.current_tab.node}
+                onTabScrollToNode={props.onTabScrollToNode}
+                organization={organization}
+                traceId={props.traceId}
+                tree={props.trace}
+              />
+            ) : null}
           </ContentWrapper>
         </Content>
       )}
@@ -525,14 +533,6 @@ const TabsHeightContainer = styled('div')<{
   height: 38px;
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   display: flex;
-`;
-
-const TabsLayout = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  padding-left: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.xs};
-  width: 100%;
 `;
 
 const TabsContainer = styled('ul')`

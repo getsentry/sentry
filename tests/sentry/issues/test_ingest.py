@@ -51,7 +51,7 @@ from sentry.types.group import PriorityLevel
 from sentry.utils import json
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import raw_query
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataPacket
 from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
@@ -181,9 +181,9 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         assert assignee.user_id == self.user.id
         assert captured_contexts == [
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                actor_type=ActorType.SYSTEM,
             )
         ]
 

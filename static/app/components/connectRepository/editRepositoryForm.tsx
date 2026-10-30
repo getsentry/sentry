@@ -75,17 +75,14 @@ function EditRepositoryFormBody({
 }: EditRepositoryFormBodyProps) {
   const organization = useOrganization();
 
-  const seededPathMappings: PathMappingValue[] =
-    seededMappings.length > 0
-      ? seededMappings.map(m => ({
-          id: m.id,
-          stackRoot: m.stackRoot,
-          sourceRoot: m.sourceRoot,
-          branch: m.defaultBranch ?? DEFAULT_BRANCH,
-          automaticallyGenerated: m.automaticallyGenerated,
-          hasCodeOwner: m.hasCodeOwner,
-        }))
-      : [{stackRoot: '', sourceRoot: '', branch: defaultBranch ?? DEFAULT_BRANCH}];
+  const seededPathMappings: PathMappingValue[] = seededMappings.map(m => ({
+    id: m.id,
+    stackRoot: m.stackRoot,
+    sourceRoot: m.sourceRoot,
+    branch: m.defaultBranch ?? DEFAULT_BRANCH,
+    automaticallyGenerated: m.automaticallyGenerated,
+    hasCodeOwner: m.hasCodeOwner,
+  }));
 
   const existingMappings = allMappings.filter(m => m.repoId !== repositoryId);
 
@@ -111,7 +108,7 @@ function EditRepositoryFormBody({
       if (
         !seededMappings ||
         !integrationId ||
-        value.pathMappings.length === 0 ||
+        (value.pathMappings.length === 0 && seededMappings.length === 0) ||
         hasExactDuplicate(value.pathMappings, existingMappings, seededById)
       ) {
         return;
@@ -134,9 +131,11 @@ function EditRepositoryFormBody({
     <ScrapsForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
+          // Allow saving zero mappings when there were seeded mappings to delete;
+          // block save when nothing exists and nothing was added (no-op).
           const canSave =
             Boolean(integrationId) &&
-            pathMappings.length > 0 &&
+            (pathMappings.length > 0 || seededMappings.length > 0) &&
             !hasExactDuplicate(pathMappings, existingMappings, seededById);
 
           const alerts = (
@@ -166,6 +165,7 @@ function EditRepositoryFormBody({
                   <PathMappingList
                     key={repositoryId}
                     form={form}
+                    allowEmpty
                     providerKey={providerKey ?? undefined}
                     defaultBranch={defaultBranch ?? undefined}
                     existingMappings={existingMappings}

@@ -6,7 +6,7 @@ import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
+import {useTranslation} from '@sentry/scraps/translation';
 
 import {IncidentStatus} from 'sentry/views/alerts/types';
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from pydantic import Field
 
@@ -9,6 +9,7 @@ from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
     NotificationData,
+    NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
     NotificationTemplate,
@@ -16,6 +17,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.organizations.services.organization.service import organization_service
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
@@ -194,6 +196,7 @@ class SeerAgentResponse(NotificationData):
     run_id: int
     summary: str
     missing_scope_settings_url: str | None = None
+    repo_pr_states: list[RepoPRState] = Field(default_factory=list)
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 
@@ -247,7 +250,7 @@ class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationSta
     example_data = SeerInvestigationStarted(
         organization_id=1,
         slack_user_id="U0123456789",
-        investigation_url="https://example.sentry.io/explore/investigations/1/",
+        investigation_url="https://example.sentry.io/seer/investigations/1/",
     )
     hide_from_debugger = True
 
@@ -279,4 +282,112 @@ class SeerInvestigationErrorTemplate(NotificationTemplate[SeerInvestigationError
         return NotificationRenderedTemplate(
             subject="Seer couldn't start an investigation",
             body=[ParagraphSection(blocks=[PlainTextBlock(text=data.error_message)])],
+        )
+
+
+class SeerInvestigationHypothesis(TypedDict):
+    statement: str
+    label: str
+    detail: str
+
+
+class SeerInvestigationProgress(TypedDict):
+    title: str
+    status: Literal["in_progress", "complete", "error"]
+    detail: str
+
+
+class SeerInvestigationStatus(NotificationData):
+    """Live status of a Seer investigation, edited in place in the alert's Slack thread."""
+
+    title: str
+    investigation_url: str
+    subtitle: str | None = None
+    hypotheses: list[SeerInvestigationHypothesis] = Field(default_factory=list)
+    progress: SeerInvestigationProgress | None = None
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STATUS
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_STATUS)
+class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStatus]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationStatus(
+        organization_id=1,
+        title="FCP on organization login pages",
+        subtitle="`/auth/login/[org]/` · Aug 27, 09:00–11:00 UTC",
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
+        hypotheses=[
+            SeerInvestigationHypothesis(
+                statement="Database or cache degradation delayed the response",
+                label="● Verifying",
+                detail="Comparing server response time, organization lookup spans, and cache behavior…",
+            ),
+            SeerInvestigationHypothesis(
+                statement="A frontend release added render-blocking assets",
+                label="● Supported",
+                detail="The FCP increase lines up with the release that added a new font file.",
+            ),
+            SeerInvestigationHypothesis(
+                statement="A third-party script slowed the first paint",
+                label="● Refuted",
+                detail="Third-party script timings did not change during the breach window.",
+            ),
+        ],
+        progress=SeerInvestigationProgress(
+            title="Verifying hypotheses",
+            status="in_progress",
+            detail="Checking the remaining explanations against related telemetry.",
+        ),
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationStatus) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject=f"Investigating {data.title}",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=f"{h['statement']}: {h['label']}")])
+                for h in data.hypotheses
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View full investigation", link=data.investigation_url
+                )
+            ],
+        )
+
+
+class SeerInvestigationConclusion(NotificationData):
+    """The report text of a finished Seer investigation, posted in the alert's Slack thread."""
+
+    sections: list[str]
+    investigation_url: str
+    source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
+
+
+@template_registry.register(NotificationSource.SEER_INVESTIGATION_CONCLUSION)
+class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigationConclusion]):
+    category = NotificationCategory.SEER
+    example_data = SeerInvestigationConclusion(
+        organization_id=1,
+        sections=[
+            "## Summary\n\nA frontend release added a render-blocking font file, "
+            "which delayed the first paint on organization login pages.",
+            "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
+            "- Add a performance budget for render-blocking assets.",
+        ],
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
+    )
+    hide_from_debugger = True
+
+    def render(self, data: SeerInvestigationConclusion) -> NotificationRenderedTemplate:
+        return NotificationRenderedTemplate(
+            subject="Seer investigation conclusion",
+            body=[
+                ParagraphSection(blocks=[PlainTextBlock(text=section)]) for section in data.sections
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="View full investigation", link=data.investigation_url
+                )
+            ],
         )

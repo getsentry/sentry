@@ -9,10 +9,12 @@ import type {SelectValue} from '@sentry/scraps/select';
 import {type BaseFieldProps} from './baseField';
 import {SelectField, type SelectFieldProps} from './selectField';
 
-type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> & {
-  field: AnyFieldApi;
-} & DistributedOmit<
-    SelectFieldProps<TValue>,
+type SelectAsyncFieldProps<
+  TData,
+  TValue,
+  TOption extends SelectValue<TValue>,
+> = BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & DistributedOmit<
+    SelectFieldProps<TValue, TOption>,
     'options' | 'isLoading' | 'onInputChange'
   > & {
     /**
@@ -38,15 +40,16 @@ type SelectAsyncFieldProps<TData, TValue> = BaseFieldProps<HTMLInputElement> & {
      */
     queryOptions: (
       debouncedInput: string
-    ) => UseQueryOptions<TData, Error, ReadonlyArray<SelectValue<TValue>>, any>;
+    ) => UseQueryOptions<TData, Error, ReadonlyArray<TOption & SelectValue<TValue>>, any>;
   };
 
 const DEBOUNCE_MS = 250;
 
-function SelectAsyncField<TData, TValue>({
-  queryOptions,
-  ...props
-}: SelectAsyncFieldProps<TData, TValue>) {
+export function SelectAsyncField<
+  TData,
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>({queryOptions, ...props}: SelectAsyncFieldProps<TData, TValue, TOption>) {
   // Internal state for search input
   const [inputValue, setInputValue] = useState('');
   const [debouncedInput] = useDebouncedValue(inputValue, {wait: DEBOUNCE_MS});
@@ -59,19 +62,22 @@ function SelectAsyncField<TData, TValue>({
       {...props}
       options={options}
       isLoading={isPending || inputValue !== debouncedInput}
-      onInputChange={(newInputValue, actionMeta) => {
-        if (actionMeta.action === 'input-change') {
-          setInputValue(newInputValue);
+      onInputChange={(input, reason) => {
+        if (reason === 'input') {
+          setInputValue(input);
         }
       }}
     />
   );
 }
 
-type SelectAsyncLooseField = <TData, TValue>(
-  props: Omit<SelectAsyncFieldProps<TData, TValue>, 'field'>
+type SelectAsyncLooseField = <
+  TData,
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>(
+  props: Omit<SelectAsyncFieldProps<TData, TValue, TOption>, 'field'>
 ) => React.ReactNode;
-
 export const SelectAsyncLooseField = fieldComponent.loose(
   SelectAsyncField,
   'field'

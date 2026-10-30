@@ -40,4 +40,10 @@ describe('ExploreParams', () => {
       screen.getByText(textWithMarkupMatcher('message is //foo//'))
     ).toBeInTheDocument();
   });
+
+  it('should render the errors only filter', () => {
+    jest.spyOn(useDimensions, 'useDimensions').mockReturnValue({width: 900, height: 100});
+    render(<ExploreParams query="" visualizes={[]} groupBys={[]} errorsOnly />);
+    expect(screen.getByText('Errors only')).toBeInTheDocument();
+  });
 });

@@ -23,7 +23,10 @@ type Props = ModalRenderProps & {
 };
 
 const promoCodeSchema = z.object({
-  code: z.string().min(5, 'Code must be at least 5 characters'),
+  isBatch: z.boolean(),
+  code: z.string(),
+  codePrefix: z.string(),
+  count: z.number().nullable(),
   campaign: z.string(),
   isTrialPromo: z.boolean(),
   duration: z.string(),
@@ -55,10 +58,25 @@ const apiDurationValues = [
   'twelve_times',
 ];
 
+const MAX_BATCH_COUNT = 5000;
+
+const codePattern = /^[\w-]+$/;
+
 const durationOptions = apiDurationValues.map((_, index) => ({
   value: String(index + 1),
   label: index === 0 ? 'Once' : `${index + 1} Months`,
 }));
+
+function downloadCodesCsv(promoCodes: PromoCode[], prefix: string) {
+  const csv = ['code', ...promoCodes.map(promoCode => promoCode.code)].join('\n');
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `promo-codes-${prefix}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export function AddPromoCodeModal({
   Body,
@@ -72,15 +90,26 @@ export function AddPromoCodeModal({
   const savedDurationIndex = apiDurationValues.indexOf(promoCode?.duration ?? '');
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof promoCodeSchema>) => {
-      const {amount, trialDays, duration, isTrialPromo, setExpiration, ...otherValues} =
-        values;
-      return fetchMutation<PromoCode>({
+      const {
+        amount,
+        trialDays,
+        duration,
+        isTrialPromo,
+        setExpiration,
+        isBatch,
+        code,
+        codePrefix,
+        count,
+        ...otherValues
+      } = values;
+      return fetchMutation<PromoCode | PromoCode[]>({
         url: promoCode
           ? getApiUrl('/promocodes/$code/', {path: {code: promoCode.code}})
           : getApiUrl('/promocodes/'),
         method: promoCode ? 'PUT' : 'POST',
         data: {
           ...otherValues,
+          ...(isBatch ? {codePrefix, count: String(count)} : {code}),
           ...(promoCode ? (isTrialPromo ? {amount: null} : {trialDays: null}) : {}),
           ...(isTrialPromo ? {trialDays: String(trialDays)} : {amount: String(amount)}),
           ...(!isTrialPromo && {duration}),
@@ -89,18 +118,27 @@ export function AddPromoCodeModal({
         },
       });
     },
-    onSuccess: newCode => {
-      onSubmit?.(newCode);
+    onSuccess: (result, values) => {
+      if (Array.isArray(result)) {
+        downloadCodesCsv(result, values.codePrefix);
+        toast.success(`Created ${result.length} promo codes.`);
+        closeModal();
+        return;
+      }
+      onSubmit?.(result);
       if (promoCode) {
         closeModal();
       } else {
-        navigate(`/_admin/promocodes/${newCode.code}/`);
+        navigate(`/_admin/promocodes/${result.code}/`);
       }
     },
   });
   const form = useScrapsForm({
     defaultValues: {
+      isBatch: false,
       code: promoCode?.code ?? '',
+      codePrefix: '',
+      count: null as number | null,
       campaign: promoCode?.campaign ?? '',
       isTrialPromo: Boolean(promoCode?.trialDays),
       duration:
@@ -147,22 +185,100 @@ export function AddPromoCodeModal({
       </Header>
       <Body>
         <Stack gap="lg">
-          <form.Field name="code">
-            {field => (
-              <field.Layout.Stack
-                label="Code (ID)"
-                hintText="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
-                required
-              >
-                <field.Input
-                  value={field.value}
-                  onChange={field.handleChange}
-                  disabled={!!promoCode}
-                  placeholder="e.g. mysecretcode79"
-                />
-              </field.Layout.Stack>
-            )}
-          </form.Field>
+          {!promoCode && (
+            <form.Field name="isBatch">
+              {field => (
+                <field.Layout.Row label="Create a batch of codes?">
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
+                </field.Layout.Row>
+              )}
+            </form.Field>
+          )}
+          <form.Subscribe selector={state => state.values.isBatch}>
+            {isBatch =>
+              isBatch ? (
+                <Fragment>
+                  <form.Field
+                    name="codePrefix"
+                    validators={defaultFormValidators(
+                      z
+                        .string()
+                        .min(1, 'Code prefix is required')
+                        .max(32, 'Code prefix must be at most 32 characters')
+                        .regex(
+                          codePattern,
+                          'Only letters, numbers, hyphens, and underscores are allowed'
+                        )
+                    )}
+                  >
+                    {field => (
+                      <field.Layout.Stack
+                        label="Code Prefix"
+                        hintText="Each code is this prefix followed by 8 random letters and numbers. Alphanumeric, hyphens, and underscores allowed."
+                        required
+                      >
+                        <field.Input
+                          value={field.value}
+                          onChange={field.handleChange}
+                          placeholder="e.g. PYCON-"
+                        />
+                      </field.Layout.Stack>
+                    )}
+                  </form.Field>
+                  <form.Field
+                    name="count"
+                    validators={defaultFormValidators(
+                      z
+                        .number()
+                        .int('Count must be a whole number')
+                        .min(1, 'Count must be at least 1')
+                        .max(MAX_BATCH_COUNT, `Count must be at most ${MAX_BATCH_COUNT}`)
+                        .nullable()
+                        .refine(value => value !== null, 'Count is required')
+                    )}
+                  >
+                    {field => (
+                      <field.Layout.Stack
+                        label="Count"
+                        hintText={`How many codes to create, up to ${MAX_BATCH_COUNT}. A CSV of the codes downloads once they are created.`}
+                        required
+                      >
+                        <field.Number
+                          min={1}
+                          max={MAX_BATCH_COUNT}
+                          step={1}
+                          value={field.value}
+                          onChange={field.handleChange}
+                        />
+                      </field.Layout.Stack>
+                    )}
+                  </form.Field>
+                </Fragment>
+              ) : (
+                <form.Field
+                  name="code"
+                  validators={defaultFormValidators(
+                    z.string().min(5, 'Code must be at least 5 characters')
+                  )}
+                >
+                  {field => (
+                    <field.Layout.Stack
+                      label="Code (ID)"
+                      hintText="A unique identifier for this promo code. Case-insensitive. Alphanumeric, hyphens, and underscores allowed. Must be at least 5 characters."
+                      required
+                    >
+                      <field.Input
+                        value={field.value}
+                        onChange={field.handleChange}
+                        disabled={!!promoCode}
+                        placeholder="e.g. mysecretcode79"
+                      />
+                    </field.Layout.Stack>
+                  )}
+                </form.Field>
+              )
+            }
+          </form.Subscribe>
           <form.Field name="campaign">
             {field => (
               <field.Layout.Stack
@@ -256,7 +372,7 @@ export function AddPromoCodeModal({
             {field => (
               <field.Layout.Stack
                 label="Max claims"
-                hintText="The maximum number of accounts which can claim this code."
+                hintText="The maximum number of accounts which can claim each code."
                 required
               >
                 <field.Number

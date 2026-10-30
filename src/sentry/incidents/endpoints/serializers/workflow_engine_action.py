@@ -4,12 +4,12 @@ from typing import Any, Sequence
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
-from sentry.incidents.endpoints.serializers.alert_rule_trigger_action import (
+from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.endpoints.serializers.workflow_engine_action_utils import (
     get_identifier_from_action,
     get_input_channel_id,
     human_desc,
 )
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.notifications.models.notificationaction import ActionService, ActionTarget
 from sentry.notifications.notification_action.group_type_notification_registry.handlers.metric_alert_registry_handler import (
     MetricAlertRegistryHandler,

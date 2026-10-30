@@ -7,7 +7,7 @@ import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
@@ -125,7 +125,7 @@ export function SegmentSpansTable({
 
   return (
     <Fragment>
-      <Header>
+      <Grid align="center" marginBottom="md" columns="1fr auto auto auto">
         <CompactSelect
           trigger={triggerProps => (
             <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
@@ -150,7 +150,7 @@ export function SegmentSpansTable({
           onCursor={handleCursor}
           isLoading={isLoading}
         />
-      </Header>
+      </Grid>
 
       <DataGrid
         isLoading={isLoading}
@@ -288,13 +288,6 @@ function CustomPagination({
     />
   );
 }
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${p => p.theme.space.md};
-  align-items: center;
-`;
 
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${p => p.theme.space.md};

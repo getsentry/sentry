@@ -890,9 +890,13 @@ export function ProjectFiltersSettings({project, params}: Props) {
               </AutoSaveForm>
             </FieldGroup>
 
-            <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
-
-            {showCustomFilters && <CustomFilters project={project} />}
+            {/* The table lists the legacy lists as rows of its own once it shows, so
+                the form that edits them as text goes away with it. */}
+            {showCustomFilters ? (
+              <CustomFilters project={project} />
+            ) : (
+              <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
+            )}
           </Fragment>
         )}
       </Access>

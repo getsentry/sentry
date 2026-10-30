@@ -4,14 +4,17 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
-    InvestigationProject,
-    InvestigationSourceType,
-    InvestigationStatus,
+)
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlockExecutionStatus,
+    NotebookProject,
+    NotebookSourceType,
+    NotebookStatus,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -34,7 +37,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
     def test_detail_is_scoped_to_organization(self) -> None:
         other_organization = self.create_organization()
-        foreign = self.create_investigation(
+        foreign = self.create_notebook(
             organization=other_organization, created_by=self.user, title="Foreign"
         )
         url = reverse(
@@ -82,7 +85,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert response.data["status"] == "active"
 
     def test_org_token_can_archive_a_legacy_investigation(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Legacy investigation"
         )
         token = generate_token(self.organization.slug, "")
@@ -104,7 +107,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert response.status_code == 200, response.data
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
 
         restored = self.client.put(
             self.details_url(investigation),
@@ -122,20 +125,20 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert deleted.status_code == 204, deleted.data
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
 
     def test_archive_rejects_an_active_block_run(self) -> None:
         created = self.client.post(
             self.collection_url, data={"title": "Running investigation"}, format="json"
         ).data
-        investigation = Investigation.objects.get(id=created["id"])
+        investigation = Notebook.objects.get(id=created["id"])
         investigation.version += 3
         investigation.save(update_fields=["version", "date_updated"])
-        block = self.create_investigation_block(investigation=investigation, kind="text")
-        self.create_investigation_block_execution(
+        block = self.create_notebook_block(notebook=investigation, kind="text")
+        self.create_notebook_block_execution(
             block=block,
             executor="text_generation",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=block.version,
             input_snapshot={},
         )
@@ -164,17 +167,17 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             data={"source": {"type": "manual", "seed": {}}},
             format="json",
         ).data
-        investigation = Investigation.objects.get(id=created["id"])
-        block = self.create_investigation_block(
-            investigation=investigation,
+        investigation = Notebook.objects.get(id=created["id"])
+        block = self.create_notebook_block(
+            notebook=investigation,
             kind="text",
-            report_revision=1,
-            stable_agent_key="streaming-summary",
+            producer_revision=1,
+            producer_key="streaming-summary",
         )
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=block.version,
             input_snapshot={"projectIds": [self.project.id]},
         )
@@ -192,9 +195,9 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
         assert response.status_code == 204
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert execution.error == {
             "code": "investigation_archived",
             "message": "The investigation was archived.",
@@ -226,7 +229,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
                 )
                 assert archived.status_code == 204, archived.data
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
         assert list(
             run.commands.order_by("id").values_list("expected_workflow_version", flat=True)
         ) == [1, 2]
@@ -237,7 +240,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             data={"source": {"type": "manual", "seed": {}}},
             format="json",
         ).data
-        investigation = Investigation.objects.get(id=created["id"])
+        investigation = Notebook.objects.get(id=created["id"])
 
         response = self.client.put(
             self.details_url(investigation),
@@ -267,6 +270,51 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert stale_response.status_code == 409
         investigation.refresh_from_db()
         assert investigation.title == "My incident title"
+
+    def test_detail_includes_action_requests(self) -> None:
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        investigation = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Breach"
+        )
+        self.create_investigation_orchestration_run(
+            investigation=investigation,
+            source={"type": "breached_metric", "detectorId": str(detector.id)},
+        )
+        action_request = self.create_notebook_action_request(
+            notebook=investigation,
+            key="widen-window",
+            action_kind="update_detector",
+            action_payload={
+                "kind": "update_detector",
+                "detectorId": str(detector.id),
+                "before": {"timeWindowSeconds": 300},
+                "changes": {"timeWindowSeconds": 900},
+            },
+        )
+        url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        [serialized] = response.data["actionRequests"]
+        assert serialized["id"] == str(action_request.id)
+        assert serialized["action"] == action_request.action_payload
+        assert (serialized["canApply"], serialized["cannotApplyReason"]) == (True, None)
+
+        updated = self.client.put(
+            url,
+            data={"investigationVersion": investigation.version, "title": "Renamed"},
+            format="json",
+        )
+
+        assert updated.status_code == 200
+        assert updated.data["actionRequests"][0]["canApply"] is True
 
     def test_metadata_update_persists_and_stale_version_rolls_back(self) -> None:
         created = self.client.post(
@@ -302,11 +350,11 @@ class OrganizationInvestigationDetailsTest(APITestCase):
             format="json",
         )
         assert response.status_code == 409
-        investigation = Investigation.objects.get(id=created["id"])
+        investigation = Notebook.objects.get(id=created["id"])
         assert investigation.title == "After"
 
     def test_regular_member_can_edit_and_archive_another_users_investigation(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Created by someone else",
@@ -330,20 +378,18 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         )
         assert response.status_code == 204
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
 
-    def archived_investigation(self) -> Investigation:
-        investigation = self.create_investigation(
+    def archived_investigation(self) -> Notebook:
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Archived"
         )
-        self.create_investigation_project(investigation=investigation, project=self.project)
-        Investigation.objects.filter(id=investigation.id).update(
-            status=InvestigationStatus.ARCHIVED
-        )
+        self.create_notebook_project(notebook=investigation, project=self.project)
+        Notebook.objects.filter(id=investigation.id).update(status=NotebookStatus.ARCHIVED)
         investigation.refresh_from_db()
         return investigation
 
-    def details_url(self, investigation: Investigation) -> str:
+    def details_url(self, investigation: Notebook) -> str:
         return reverse(
             "sentry-api-0-organization-investigation-details",
             kwargs={
@@ -368,9 +414,9 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
         assert response.status_code == 400
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ARCHIVED
+        assert investigation.status == NotebookStatus.ARCHIVED
         assert list(
-            InvestigationProject.objects.filter(investigation=investigation).values_list(
+            NotebookProject.objects.filter(notebook=investigation).values_list(
                 "project_id", flat=True
             )
         ) == [self.project.id]
@@ -386,7 +432,7 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
         assert response.status_code == 200, response.data
         investigation.refresh_from_db()
-        assert investigation.status == InvestigationStatus.ACTIVE
+        assert investigation.status == NotebookStatus.ACTIVE
 
     def test_archived_investigations_reject_other_edits(self) -> None:
         investigation = self.archived_investigation()
@@ -401,25 +447,21 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         investigation.refresh_from_db()
         assert investigation.title == "Archived"
 
-    def lineage(self) -> tuple[Investigation, Investigation]:
-        first = self.create_investigation(
+    def lineage(self) -> tuple[Notebook, Notebook]:
+        first = self.create_notebook(
             organization=self.organization, created_by=self.user, title="rev1"
         )
-        second = self.create_investigation(
+        second = self.create_notebook(
             organization=self.organization, created_by=self.user, title="rev2"
         )
         for revision, investigation in enumerate((first, second), start=1):
-            Investigation.objects.filter(id=investigation.id).update(
-                source_type=InvestigationSourceType.BREACHED_METRIC,
-                source_ref={},
-                source_key="legacy-lineage",
-                source={"type": "metric_open_period", "ref": {}},
-                lineage_key="lineage",
+            Notebook.objects.filter(id=investigation.id).update(
+                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+                source_key="metric_open_period:1:2",
+                source={"type": "metric_open_period", "ref": {"groupId": "1", "openPeriodId": "2"}},
                 source_revision=revision,
                 status=(
-                    InvestigationStatus.ARCHIVED
-                    if investigation == first
-                    else InvestigationStatus.ACTIVE
+                    NotebookStatus.ARCHIVED if investigation == first else NotebookStatus.ACTIVE
                 ),
             )
             investigation.refresh_from_db()
@@ -437,8 +479,8 @@ class OrganizationInvestigationDetailsTest(APITestCase):
         assert response.status_code == 200, response.data
         first.refresh_from_db()
         second.refresh_from_db()
-        assert second.status == InvestigationStatus.ARCHIVED
-        assert first.status == InvestigationStatus.ARCHIVED
+        assert second.status == NotebookStatus.ARCHIVED
+        assert first.status == NotebookStatus.ARCHIVED
 
     def test_archiving_via_put_cannot_be_combined_with_other_changes(self) -> None:
         first, second = self.lineage()
@@ -455,5 +497,5 @@ class OrganizationInvestigationDetailsTest(APITestCase):
 
         assert response.status_code == 400
         second.refresh_from_db()
-        assert second.status == InvestigationStatus.ACTIVE
+        assert second.status == NotebookStatus.ACTIVE
         assert second.title == "rev2"

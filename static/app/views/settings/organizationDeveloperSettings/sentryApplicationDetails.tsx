@@ -1,6 +1,7 @@
 import {createElement, Fragment, useEffect, useState, type MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
+import {IconDelete} from '@sentry/icons/delete';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
@@ -27,11 +28,9 @@ import {
 } from 'sentry/actionCreators/sentryApps';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
 import {Confirm} from 'sentry/components/confirm';
+import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {InputCopyButton, TextCopyInput} from 'sentry/components/textCopyInput';
 import {
@@ -815,6 +814,7 @@ function SentryAppEditForm({
   const {openModal} = useModal();
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const isInternal = app.status === 'internal';
   const sentryAppQueryOptions = sentryAppApiOptions({appSlug: app.slug});
@@ -863,6 +863,40 @@ function SentryAppEditForm({
       addErrorMessage(t('Unable to delete token'));
     },
   });
+
+  const deleteAppMutation = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+          path: {sentryAppIdOrSlug: app.slug},
+        }),
+        method: 'DELETE',
+      }),
+    onMutate: () => {
+      addLoadingMessage(t('Deleting %s...', app.slug));
+    },
+    onSuccess: () => {
+      addSuccessMessage(t('%s successfully removed.', app.slug));
+      queryClient.setQueryData(
+        sentryAppsApiOptions({orgSlug: organization.slug}).queryKey,
+        old => old && {...old, json: old.json.filter(item => item.slug !== app.slug)}
+      );
+      const type = isInternal ? 'internal' : 'public';
+      navigate(
+        normalizeUrl(`/settings/${organization.slug}/developer-settings/?type=${type}`)
+      );
+    },
+    onError: () => {
+      addErrorMessage(t('Unable to remove %s integration', app.slug));
+    },
+  });
+
+  const disableDeleteReason =
+    app.status === 'published'
+      ? t('Published integrations cannot be removed.')
+      : organization.access.includes('org:admin')
+        ? undefined
+        : t('Organization owner permissions are required for this action.');
 
   const rotateClientSecretMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
@@ -1075,42 +1109,41 @@ function SentryAppEditForm({
         onEventsChange={events => form.setFieldValue('events', events)}
       />
 
-      {isInternal && (
-        <SimpleTable
-          columns={APP_TOKEN_COLUMNS}
-          header={
-            <SimpleTable.HeaderRow>
-              <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell align="right">
-                <Tooltip
-                  disabled={hasTokenAccess()}
-                  title={t(
-                    'You must be a Manager or Owner to create authentication tokens.'
-                  )}
-                >
-                  <Button
-                    size="xs"
-                    icon={<IconAdd />}
-                    onClick={onAddToken}
-                    disabled={!hasTokenAccess()}
-                    data-test-id="token-add"
+      <Stack gap="xl">
+        {isInternal && (
+          <SimpleTable
+            columns={APP_TOKEN_COLUMNS}
+            header={
+              <SimpleTable.HeaderRow>
+                <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
+                <SimpleTable.HeaderCell align="right">
+                  <Tooltip
+                    disabled={hasTokenAccess()}
+                    title={t(
+                      'You must be a Manager or Owner to create authentication tokens.'
+                    )}
                   >
-                    {t('New Token')}
-                  </Button>
-                </Tooltip>
-              </SimpleTable.HeaderCell>
-            </SimpleTable.HeaderRow>
-          }
-        >
-          {renderTokens()}
-        </SimpleTable>
-      )}
+                    <Button
+                      size="xs"
+                      icon={<IconAdd />}
+                      onClick={onAddToken}
+                      disabled={!hasTokenAccess()}
+                      data-test-id="token-add"
+                    >
+                      {t('New Token')}
+                    </Button>
+                  </Tooltip>
+                </SimpleTable.HeaderCell>
+              </SimpleTable.HeaderRow>
+            }
+          >
+            {renderTokens()}
+          </SimpleTable>
+        )}
 
-      <Panel>
-        <PanelHeader>{t('Credentials')}</PanelHeader>
-        <PanelBody>
+        <form.FieldGroup title={t('Credentials')}>
           {!isInternal && (
             <form.Field name="clientId">
               {field => (
@@ -1151,8 +1184,8 @@ function SentryAppEditForm({
                     />
                   </Tooltip>
                 ) : (
-                  <ClientSecret>
-                    <HiddenSecret>{t('hidden')}</HiddenSecret>
+                  <Flex justify="end" align="center" gap="xl">
+                    <Text italic>{t('hidden')}</Text>
                     {hasTokenAccess() ? (
                       <Confirm
                         onConfirm={rotateClientSecret}
@@ -1164,15 +1197,42 @@ function SentryAppEditForm({
                         <Button variant="danger">{t('Rotate client secret')}</Button>
                       </Confirm>
                     ) : undefined}
-                  </ClientSecret>
+                  </Flex>
                 )}
               </field.Layout.Row>
             )}
           </form.Field>
-        </PanelBody>
-      </Panel>
+        </form.FieldGroup>
+      </Stack>
 
-      <Flex justify="end" paddingTop="xl">
+      <Flex justify="between" paddingTop="xl">
+        {disableDeleteReason ? (
+          <Button
+            variant="danger"
+            icon={<IconDelete />}
+            disabled
+            tooltipProps={{title: disableDeleteReason}}
+          >
+            {t('Delete Integration')}
+          </Button>
+        ) : (
+          <ConfirmDelete
+            message={t(
+              'Deleting %s will also delete any and all of its installations. This is a permanent action. Do you wish to continue?',
+              app.slug
+            )}
+            confirmInput={app.slug}
+            onConfirm={() => deleteAppMutation.mutate()}
+          >
+            <Button
+              variant="danger"
+              icon={<IconDelete />}
+              busy={deleteAppMutation.isPending}
+            >
+              {t('Delete Integration')}
+            </Button>
+          </ConfirmDelete>
+        )}
         <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
       </Flex>
     </ScrapsForm>
@@ -1181,16 +1241,4 @@ function SentryAppEditForm({
 
 const InlineTextButton = styled(Button)`
   font-size: inherit;
-`;
-
-const HiddenSecret = styled('span')`
-  width: 100px;
-  font-style: italic;
-`;
-
-const ClientSecret = styled('div')`
-  display: flex;
-  justify-content: right;
-  align-items: center;
-  margin-right: 0;
 `;

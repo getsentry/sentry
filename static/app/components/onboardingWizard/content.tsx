@@ -8,12 +8,12 @@ import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
 import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
 import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
@@ -94,7 +94,9 @@ function TaskCard({
         {title}
         {description && <p>{description}</p>}
       </TaskCardDescription>
-      <TaskCardActions>{actions}</TaskCardActions>
+      <Grid align="start" gap="md" autoColumns="20px" flow="column">
+        {actions}
+      </Grid>
     </TaskCardWrapper>
   );
 }
@@ -625,12 +627,4 @@ const TaskCardDescription = styled('div')`
   strong {
     color: ${p => p.theme.tokens.content.primary};
   }
-`;
-
-const TaskCardActions = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 20px;
-  gap: ${p => p.theme.space.md};
-  align-items: flex-start;
 `;

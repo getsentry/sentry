@@ -27,6 +27,8 @@ const invalidEntrySchema = z
   .unknown()
   .transform(value => ({kind: 'invalid' as const, value}));
 
+const optionSchema = z.union([z.string(), z.boolean().transform(String)]);
+
 /** Probability per option or score value, e.g. `{"billing": 0.62}`. */
 const probabilitiesSchema = z.record(z.string(), z.number());
 
@@ -54,17 +56,24 @@ const scoreAnswerSchema = z
 const choiceAnswerSchema = z
   .object({
     type: z.literal('choice'),
-    choice: z.string(),
+    choice: optionSchema,
     probabilities: probabilitiesSchema.optional(),
     confidence: z.number().optional(),
   })
   .transform(({type: _type, ...answer}) => ({...answer, kind: 'choice' as const}));
+
+// The model declined to answer the question. It carries no probability or
+// reason, so there's nothing to render beyond the refusal itself.
+const refusalAnswerSchema = z
+  .object({type: z.literal('refusal')})
+  .transform(() => ({kind: 'refusal' as const}));
 
 const answerSchema = z.union([
   booleanAnswerSchema,
   noulAnswerSchema,
   scoreAnswerSchema,
   choiceAnswerSchema,
+  refusalAnswerSchema,
   invalidEntrySchema,
 ]);
 
@@ -79,8 +88,10 @@ const questionSchema = z.union([
        * describe each option (`{"billing": "Charges and refunds"}`).
        */
       criteria: z
-        .union([z.array(z.string()), z.record(z.string(), z.string())])
+        .union([z.array(optionSchema), z.record(z.string(), z.string())])
         .optional(),
+      /** Descriptions of score values, e.g. `{"2": "Blocks the customer"}`. */
+      descriptions: z.record(z.string(), z.string()).optional(),
     })
     .transform(question => ({...question, kind: 'question' as const})),
   invalidEntrySchema,
@@ -99,9 +110,58 @@ export type ScoreAnswer = Extract<EvaluationAnswer, {kind: 'score'}>;
  */
 export type InvalidEvaluationEntry = Extract<EvaluationAnswer, {kind: 'invalid'}>;
 
+// A chat-style `state`, e.g. `[{role: 'user', content: [{type: 'input_text',
+// text: '...'}, {type: 'input_image', image_url: '...'}]}]`. It's normalized to a
+// message list: text parts render as text, image parts as a placeholder, and
+// anything unrecognized as raw JSON.
+export type EvaluatedContentPart =
+  | {kind: 'text'; text: string}
+  | {kind: 'image'}
+  | {kind: 'raw'; value: unknown};
+
+export interface EvaluatedMessage {
+  parts: EvaluatedContentPart[];
+  role?: string;
+}
+
+const textPartSchema = z
+  .object({type: z.literal('input_text'), text: z.string()})
+  .transform((part): EvaluatedContentPart => ({kind: 'text', text: part.text}));
+
+const imagePartSchema = z
+  .object({type: z.literal('input_image')})
+  .transform((): EvaluatedContentPart => ({kind: 'image'}));
+
+const contentPartSchema = z.union([textPartSchema, imagePartSchema]);
+
+const stateMessageSchema = z
+  .object({
+    role: z.string().optional(),
+    content: z.union([z.string(), z.array(contentPartSchema)]),
+  })
+  .transform((message): EvaluatedMessage => ({
+    role: message.role,
+    parts:
+      typeof message.content === 'string'
+        ? [{kind: 'text', text: message.content}]
+        : message.content,
+  }));
+
+// Every `state` normalizes to a message list: a plain string becomes one text
+// message, an unrecognized value one raw-JSON message. `undefined` is rejected so
+// an evaluation item without state doesn't match.
+const evaluatedStateSchema = z.union([
+  z.string().transform((text): EvaluatedMessage[] => [{parts: [{kind: 'text', text}]}]),
+  z.array(stateMessageSchema).min(1),
+  z
+    .unknown()
+    .refine(value => value !== undefined)
+    .transform((value): EvaluatedMessage[] => [{parts: [{kind: 'raw', value}]}]),
+]);
+
 export interface EvaluationInput {
   questions: EvaluationQuestionEntry[];
-  state: unknown;
+  state: EvaluatedMessage[];
   /** Set when `questions` isn't a map of questions, holding its raw value. */
   invalidQuestions?: {value: unknown};
 }
@@ -110,9 +170,9 @@ const questionsSchema = z.record(z.string(), questionSchema);
 
 const inputItemSchema = z.object({
   type: z.literal('evaluation'),
-  // The evaluated text is the core of the input, so it must be present.
-  state: z.unknown().refine(state => state !== undefined),
-  questions: z.unknown(),
+  // The evaluated content is the core of the input, so it must be present.
+  state: evaluatedStateSchema,
+  questions: z.unknown().optional(),
 });
 
 const outputItemSchema = z.object({
@@ -168,6 +228,26 @@ export function parseEvaluationInput(raw: unknown): EvaluationInput | null {
       ([key, question]): EvaluationQuestionEntry => ({key, ...question})
     ),
   };
+}
+
+/**
+ * A plain-text form of the evaluated `state` for previews and exports, with
+ * `[image]` standing in for each image part.
+ */
+export function evaluatedStateToText(state: EvaluatedMessage[]): string {
+  return state
+    .map(message =>
+      message.parts
+        .map(part =>
+          part.kind === 'text'
+            ? part.text
+            : part.kind === 'image'
+              ? '[image]'
+              : JSON.stringify(part.value)
+        )
+        .join('\n')
+    )
+    .join('\n');
 }
 
 /**
@@ -267,6 +347,34 @@ export function findQuestion(
   );
 }
 
+export interface EvaluationResult {
+  key: string;
+  answer?: EvaluationAnswer;
+  question?: EvaluationQuestionEntry;
+}
+
+/**
+ * Pairs each question with its answer by key, in question order. Answers to
+ * questions that weren't sent follow at the end.
+ */
+export function getEvaluationResults(
+  questions: EvaluationQuestionEntry[],
+  answers: EvaluationAnswer[]
+): EvaluationResult[] {
+  const answersByKey = new Map(answers.map(answer => [answer.key, answer]));
+  const questionKeys = new Set(questions.map(question => question.key));
+  return [
+    ...questions.map(question => ({
+      key: question.key,
+      question,
+      answer: answersByKey.get(question.key),
+    })),
+    ...answers
+      .filter(answer => !questionKeys.has(answer.key))
+      .map(answer => ({key: answer.key, answer})),
+  ];
+}
+
 /**
  * The name for a score value, from the answer's legend or else the question's
  * criteria. Fractional scores use the closest value, e.g. 1.6 is "high" on
@@ -324,6 +432,8 @@ export function getAnswerLabel(
     }
     case 'choice':
       return answer.choice;
+    case 'refusal':
+      return t('Refused');
     default:
       return null;
   }

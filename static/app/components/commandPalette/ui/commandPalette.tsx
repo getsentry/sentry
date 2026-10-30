@@ -26,8 +26,7 @@ import {Hotkey} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {InnerWrap} from '@sentry/scraps/menuListItem';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
+import type {ListItemProps} from '@sentry/scraps/menu';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
@@ -77,7 +76,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
   };
 }
 
-type CommandPaletteActionMenuItem = MenuListItemProps & {
+type CommandPaletteActionMenuItem = ListItemProps & {
   children: CommandPaletteActionMenuItem[];
   key: string;
   hideCheck?: boolean;
@@ -645,7 +644,7 @@ export function CommandPalette({
                       <Text size="xs" variant="muted">
                         {t('Ask Seer')}
                       </Text>
-                      <Hotkey variant="debossed" value="tab" />
+                      <Hotkey variant="debossed" value="Tab" />
                     </Flex>
                   ) : (
                     <AnimatePresence mode="popLayout">
@@ -1208,21 +1207,21 @@ function CommandPaletteHints() {
         <Flex align="center" gap="lg">
           <Flex align="center" gap="xs">
             <Flex align="center" gap="2xs">
-              <Hotkey variant="debossed" value="up" />
-              <Hotkey variant="debossed" value="down" />
+              <Hotkey variant="debossed" value="ArrowUp" />
+              <Hotkey variant="debossed" value="ArrowDown" />
             </Flex>
             <Text size="xs" variant="muted">
               {t('Move')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="enter" />
+            <Hotkey variant="debossed" value="Enter" />
             <Text size="xs" variant="muted">
               {t('Select')}
             </Text>
           </Flex>
           <Flex align="center" gap="xs">
-            <Hotkey variant="debossed" value="shift+enter" />
+            <Hotkey variant="debossed" value="Shift+Enter" />
             <Text size="xs" variant="muted">
               {t('New tab')}
             </Text>
@@ -1232,7 +1231,7 @@ function CommandPaletteHints() {
           <Text size="xs" variant="muted">
             {t('Toggle Command Palette')}
           </Text>
-          <Hotkey variant="debossed" value="mod+k" />
+          <Hotkey variant="debossed" value="Mod+K" />
         </Flex>
       </Flex>
     </Stack>
@@ -1284,12 +1283,12 @@ const ResultsList = styled(Flex)`
     margin: 0;
   }
 
-  ${InnerWrap} {
+  [data-menu-item-content] {
     padding-top: ${p => p.theme.space.sm};
     padding-bottom: ${p => p.theme.space.sm};
   }
 
-  li[data-focused] > ${InnerWrap} {
+  li[data-focused] > [data-menu-item-content] {
     outline: 2px solid ${p => p.theme.tokens.focus.default};
   }
 `;

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import {IconQuestion} from '@sentry/icons/question';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 
@@ -11,7 +13,7 @@ type Props = {
 
 export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (
-    <Wrapper>
+    <Container column="3/3">
       <ExampleCard
         position="right"
         header={t('Examples for %s in current event', <code>{sourceName}</code>)}
@@ -23,7 +25,7 @@ export function SourceSuggestionExamples({examples, sourceName}: Props) {
           {t('See Example')} <IconQuestion size="xs" />
         </Content>
       </ExampleCard>
-    </Wrapper>
+    </Container>
   );
 }
 
@@ -44,8 +46,4 @@ const Content = styled('span')`
   font-size: ${p => p.theme.font.size.sm};
   text-decoration: underline;
   text-decoration-style: dotted;
-`;
-
-const Wrapper = styled('div')`
-  grid-column: 3/3;
 `;

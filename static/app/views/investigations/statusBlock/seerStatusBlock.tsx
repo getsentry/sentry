@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useState, type ReactNode} from 'react';
 import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 import {IconCircleDashed} from '@sentry/icons/circleDashed';
 import {IconFatal} from '@sentry/icons/fatal';
@@ -6,17 +6,23 @@ import {IconSeer} from '@sentry/icons/seer';
 import {IconWarning} from '@sentry/icons/warning';
 
 import {
-  getToolCallStatusLabel,
+  MessageRow,
+  ThinkingBlock,
   ToolCall,
-  ToolCallIndicator,
   type ToolCallStatus,
 } from '@sentry/scraps/chat';
-import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
+import {
+  isCall,
+  isThought,
+  type SeerStatusActivity,
+} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
+import {ThinkingProse} from 'sentry/views/seerExplorer/components/chat/responseGroup';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
@@ -98,65 +104,72 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
 }
 
 /**
- * The calls behind the current phase, drawn the way the Seer agent draws them.
- *
- * Only the latest is shown: it says what the agent is doing right now, and the
- * block's title is still the sentence to read. When there is history behind it,
- * the latest call becomes the toggle, and opening it lists the earlier calls
- * newest first, so the list reads back in time from what is happening now.
+ * Whether there is a call on both sides of the entry at `index`. Reasoning
+ * between calls is set apart with extra space, as in the agent's thinking block;
+ * reasoning at either end stays tight against the edge.
  */
-function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
-  const latest = toolActivity[toolActivity.length - 1];
-  if (!latest) {
-    return null;
-  }
-  const latestStatus = getToolCallStatus(latest.status);
-  const earlier = toolActivity.slice(0, -1).reverse();
+function isBetweenCalls(toolActivity: SeerStatusActivity[], index: number) {
+  return (
+    toolActivity.slice(0, index).some(isCall) &&
+    toolActivity.slice(index + 1).some(isCall)
+  );
+}
 
-  if (!earlier.length) {
-    return (
-      <Container data-test-id="seer-status-block-tool-activity">
-        <ToolCall title={latest.title} status={latestStatus} />
-      </Container>
-    );
-  }
+/**
+ * What the agent is doing, drawn as the Seer agent's own thinking block: the
+ * latest call is the live title, the agent's reasoning and every call behind the
+ * current phase are listed inside in the order they happened, and the run's clock
+ * sits on the right. It opens while the run works, as the agent's does, and the
+ * viewer can fold it away.
+ *
+ * Before any call has landed the title is "Thinking", as the agent's is before
+ * its first tool runs, so the block holds its place through phases that make no
+ * calls instead of appearing and disappearing between them.
+ *
+ * It leaves out the agent's spinning Seer: the status block's icon already
+ * spins beside it, and a second would show one loading state twice.
+ */
+function SeerThinking({
+  startTime,
+  toolActivity,
+}: {
+  startTime?: Date;
+  toolActivity?: SeerStatusActivity[];
+}) {
+  // Without the run's own start, the clock counts from when the block appeared,
+  // as the agent's does for a response that has only just begun.
+  const [appearedAt] = useState(() => new Date());
+  // Reasoning never titles the block, as in the agent's: the title says what the
+  // agent is doing, and stays a call.
+  const latestCall = toolActivity?.findLast(isCall);
 
   return (
-    <Container data-test-id="seer-status-block-tool-activity">
-      <Disclosure size="xs">
-        <Disclosure.Title
-          leadingItems={
-            // A bare glyph, so it borrows `ToolCall`'s label: the indicator's
-            // default would announce a waiting call as awaiting approval.
-            <ToolCallIndicator
-              status={latestStatus}
-              aria-label={getToolCallStatusLabel(latestStatus, t)}
-            />
-          }
-        >
-          <Text size="sm" variant="secondary" monospace ellipsis>
-            {latest.title}
-          </Text>
-        </Disclosure.Title>
-        <Disclosure.Content>
-          <Stack
-            as="ul"
-            gap="xs"
-            margin="0"
-            padding="0"
-            aria-label={t('Earlier tool calls')}
-          >
-            {earlier.map(activity => (
-              <Flex as="li" key={activity.id} minWidth="0">
-                <ToolCall
-                  title={activity.title}
-                  status={getToolCallStatus(activity.status)}
-                />
-              </Flex>
-            ))}
-          </Stack>
-        </Disclosure.Content>
-      </Disclosure>
+    <Container data-test-id="seer-status-block-thinking">
+      <ThinkingBlock
+        title={latestCall?.title ?? t('Thinking')}
+        startTime={startTime ?? appearedAt}
+        showIcon={false}
+      >
+        {toolActivity?.length
+          ? toolActivity.map((activity, index) =>
+              isThought(activity) ? (
+                <ThinkingProse
+                  key={activity.id}
+                  data-spaced={isBetweenCalls(toolActivity, index)}
+                >
+                  <SeerMarkdown raw={activity.text} />
+                </ThinkingProse>
+              ) : (
+                <MessageRow key={activity.id} from="assistant" density="compact">
+                  <ToolCall
+                    title={activity.title}
+                    status={getToolCallStatus(activity.status)}
+                  />
+                </MessageRow>
+              )
+            )
+          : null}
+      </ThinkingBlock>
     </Container>
   );
 }
@@ -180,9 +193,10 @@ type SeerStatusBlockProps = {
   /** The paragraph under the title. */
   description?: string;
   /**
-   * How long the run has been going, already formatted (e.g. "101.5s"). Left
-   * out when there is nothing to measure from: the projection carries no
-   * run-level start time, so the wired block omits this rather than invent one.
+   * How long the run has been going, already formatted (e.g. "101.5s"), shown
+   * beside the title. The wired block leaves it out: a running block's live
+   * clock is in its thinking block (see `startTime`), and the page header
+   * carries the run's active time.
    */
   elapsed?: string;
   /**
@@ -192,11 +206,19 @@ type SeerStatusBlockProps = {
    */
   meta?: string;
   /**
-   * The tool calls behind the current phase, latest last. Only the latest is
-   * shown; it expands to list the earlier ones. Only a running block should supply
-   * these — once a run stops they are history, not status.
+   * When the run started working, on this browser's clock. A running block's
+   * thinking block counts up from it, so its clock is the run's rather than how
+   * long the page has been open. Left out when the projection can't say, and
+   * the clock then starts when the block appears.
    */
-  toolActivity?: InvestigationToolActivity[];
+  startTime?: Date;
+  /**
+   * The tool calls behind the current phase, and the agent's reasoning between
+   * them, latest last. A running block shows them in a thinking block like the
+   * Seer agent's, with the latest call as its title. Only a running block draws
+   * them — once a run stops they are history, not status.
+   */
+  toolActivity?: SeerStatusActivity[];
   /**
    * A control on the right edge of the block, such as a link to open the
    * investigation. Unlike `action`, it is not a request for input.
@@ -223,6 +245,7 @@ export function SeerStatusBlock({
   description,
   elapsed,
   meta,
+  startTime,
   title,
   toolActivity,
   trailing,
@@ -255,32 +278,35 @@ export function SeerStatusBlock({
           </Flex>
 
           <Stack gap="xs" flex="1 1 auto" minWidth="0">
-            <Flex justify="between" align="center" gap="md">
-              <Text size="md" bold variant={TITLE_VARIANT[variant]}>
-                {title}
-              </Text>
-              {elapsed ? (
-                <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
-                  {elapsed}
+            {/* The text lines sit `md` apart, so 8px between one line and the next. */}
+            <Stack gap="md" minWidth="0">
+              <Flex justify="between" align="center" gap="md">
+                <Text size="md" bold variant={TITLE_VARIANT[variant]}>
+                  {title}
+                </Text>
+                {elapsed ? (
+                  <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
+                    {elapsed}
+                  </Text>
+                ) : null}
+              </Flex>
+
+              {meta ? (
+                <Text size="sm" variant="muted">
+                  {meta}
                 </Text>
               ) : null}
-            </Flex>
 
-            {meta ? (
-              <Text size="sm" variant="muted">
-                {meta}
-              </Text>
-            ) : null}
+              {description ? (
+                <Text size="sm" density="comfortable">
+                  {description}
+                </Text>
+              ) : null}
 
-            {description ? (
-              <Text size="sm" density="comfortable">
-                {description}
-              </Text>
-            ) : null}
-
-            {toolActivity?.length ? (
-              <ToolActivityList toolActivity={toolActivity} />
-            ) : null}
+              {variant === 'running' ? (
+                <SeerThinking startTime={startTime} toolActivity={toolActivity} />
+              ) : null}
+            </Stack>
 
             {children}
 

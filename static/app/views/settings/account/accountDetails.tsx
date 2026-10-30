@@ -18,6 +18,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 // The avatar endpoint ("/users/me/avatar/") returns a User-like type without `options` and other properties that are present in User
 export type ChangeAvatarUser = Omit<
@@ -80,6 +81,8 @@ const DEFAULT_ISSUE_EVENT_OPTIONS = [
 ];
 
 function AccountDetails() {
+  const settingsV3 = useSettingsV3();
+  const title = settingsV3 ? t('General') : t('Account Details');
   const queryClient = useQueryClient();
   const {
     data: user,
@@ -91,7 +94,7 @@ function AccountDetails() {
   if (isPending) {
     return (
       <Fragment>
-        <SettingsPageHeader title={t('Account Details')} />
+        <SettingsPageHeader title={title} />
         <LoadingIndicator />
       </Fragment>
     );
@@ -164,7 +167,7 @@ function AccountDetails() {
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Account Details')} />
-      <SettingsPageHeader title={t('Account Details')} />
+      <SettingsPageHeader title={title} />
       <FormSearch route="/settings/account/details/">
         <FieldGroup title={t('Account Details')}>
           <AutoSaveForm

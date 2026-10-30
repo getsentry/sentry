@@ -1,6 +1,7 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TypedDict
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,12 +9,59 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.endpoints.organization_events import EventsMeta
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, reformat_timestamp_ms_to_isoformat
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.replays.permissions import has_replay_permission
 
+ReplayEventsMetaEvent = TypedDict(
+    "ReplayEventsMetaEvent",
+    {
+        "error.type": list[str] | str,
+        "id": str,
+        "issue.id": int,
+        "issue": str,
+        "level": str,
+        "project.name": str,
+        "timestamp": str,
+        "title": str,
+    },
+)
 
+
+class ReplayEventsMetaResponse(TypedDict):
+    data: list[ReplayEventsMetaEvent]
+    meta: EventsMeta
+
+
+class ReplayEventsMetaNoProjectsResponse(TypedDict):
+    count: int
+
+
+REPLAY_EVENTS_META_DATASET = OpenApiParameter(
+    name="dataset",
+    location="query",
+    required=False,
+    type=str,
+    description="""The dataset to query. Defaults to `discover`. Use `errors` for errors only, or `issuePlatform` for other issue types, such as rage clicks.""",
+)
+
+
+@extend_schema(tags=["Replays"])
 @cell_silo_endpoint
 class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
     """The generic Events endpoints require that the cross-project selection feature
@@ -47,7 +95,42 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         return fields
 
+    @extend_schema(
+        operation_id="listOrganizationReplayEvents",
+        summary="List an Organization's Replay Events",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
+            VisibilityParams.QUERY,
+            VisibilityParams.SORT,
+            VisibilityParams.PER_PAGE,
+            REPLAY_EVENTS_META_DATASET,
+            CursorQueryParam,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ReplayEventsMetaResponse",
+                ReplayEventsMetaResponse | ReplayEventsMetaNoProjectsResponse,
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(self, request: Request, organization: Organization) -> Response:
+        """
+        Return the error and issue events associated with a replay, across all projects the
+        user has access to. Each event includes a fixed set of fields: `error.type`, `id`,
+        `issue.id`, `issue`, `level`, `project.name`, `timestamp`, and `title`. Filter to a
+        replay's events with the `query` parameter, e.g. `replayId:<replay_id>`.
+
+        If the user has no accessible projects, `{"count": 0}` is returned instead.
+        """
         if not features.has("organizations:session-replay", organization, actor=request.user):
             return Response(status=404)
 
