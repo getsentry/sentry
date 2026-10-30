@@ -347,6 +347,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/repos/$repoId/'
   | '/organizations/$organizationIdOrSlug/repos/$repoId/commits/'
   | '/organizations/$organizationIdOrSlug/repos/$repoId/platforms/'
+  | '/organizations/$organizationIdOrSlug/repos/pull-request-files/'
   | '/organizations/$organizationIdOrSlug/repos/settings/'
   | '/organizations/$organizationIdOrSlug/request-project-creation/'
   | '/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/'

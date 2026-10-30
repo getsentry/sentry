@@ -280,6 +280,7 @@ from sentry.integrations.api.endpoints.organization_integrations_index import (
 )
 from sentry.integrations.api.endpoints.organization_pull_request_files import (
     OrganizationPullRequestFilesEndpoint,
+    OrganizationRepositoryPullRequestFilesEndpoint,
 )
 from sentry.integrations.api.endpoints.organization_repositories import (
     OrganizationRepositoriesEndpoint,
@@ -2238,6 +2239,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/pull-requests/(?P<pull_request_id>[^/]+)/files/$",
         OrganizationPullRequestFilesEndpoint.as_view(),
         name="sentry-api-0-organization-pull-request-files",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/repos/pull-request-files/$",
+        OrganizationRepositoryPullRequestFilesEndpoint.as_view(),
+        name="sentry-api-0-organization-repository-pull-request-files",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/repos/$",
