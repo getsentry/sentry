@@ -642,6 +642,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         workflow = Workflow.objects.get(organization=self.organization)
         binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
+        assert updated.backing_workflow_id == workflow.id
         assert updated.filters == {"all_projects": True, "environments": ["production"]}
         assert updated.version == 2
         assert not SeerWorkflowConfigProject.objects.filter(config=self.config).exists()
@@ -705,10 +706,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             self.monitor_ids
         )
 
-    def test_retired_disconnected_workflow_does_not_block_updates(self) -> None:
+    def test_other_bindings_do_not_change_managed_monitor_selection(self) -> None:
         created = self.select_monitors(self.monitor_ids)
-        backing = Workflow.objects.get(organization=self.organization)
-        retired = self.create_bound_workflow(enabled=False)
+        backing = created.backing_workflow
+        assert backing is not None
+        other = self.create_bound_workflow(enabled=True)
+        connection = self.create_detector_workflow(detector=self.monitors[0], workflow=other)
         binding_ids = list(SeerWorkflowTriggerBinding.objects.values_list("id", flat=True))
 
         assert self.select_monitors(self.monitor_ids).version == created.version
@@ -717,24 +720,35 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
             self.monitor_ids[1:]
         )
-        retired.refresh_from_db()
-        assert not retired.enabled
-        assert not retired.detectorworkflow_set.exists()
+        other.refresh_from_db()
+        assert other.enabled
+        assert DetectorWorkflow.objects.get(workflow=other).id == connection.id
         assert list(SeerWorkflowTriggerBinding.objects.values_list("id", flat=True)) == binding_ids
 
-    def test_multiple_connected_workflows_allow_only_unchanged_selection(self) -> None:
-        created = self.select_monitors(self.monitor_ids[:1])
-        second = self.create_bound_workflow(enabled=False)
-        self.create_detector_workflow(detector=self.monitors[1], workflow=second)
-        before = list(DetectorWorkflow.objects.values_list("id", "workflow_id", "detector_id"))
+    def test_existing_binding_does_not_imply_ownership(self) -> None:
+        other = self.create_bound_workflow(enabled=True)
+        connection = self.create_detector_workflow(detector=self.monitors[0], workflow=other)
 
-        assert self.select_monitors(self.monitor_ids[:2]).version == created.version
-        with pytest.raises(ValueError, match="single backing workflow in use"):
+        created = self.select_monitors(self.monitor_ids[1:])
+
+        assert created.backing_workflow is not None
+        assert created.backing_workflow_id != other.id
+        assert set(
+            created.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
+        ) == set(self.monitor_ids[1:])
+        assert DetectorWorkflow.objects.get(workflow=other).id == connection.id
+        assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
+
+    def test_rejects_backing_workflow_from_another_organization(self) -> None:
+        other = self.create_workflow(organization=self.create_organization())
+        self.config.update(backing_workflow=other)
+
+        with pytest.raises(Workflow.DoesNotExist):
             self.select_monitors(self.monitor_ids)
 
-        assert (
-            list(DetectorWorkflow.objects.values_list("id", "workflow_id", "detector_id")) == before
-        )
+        assert not DetectorWorkflow.objects.exists()
+        assert not Workflow.objects.filter(organization=self.organization).exists()
+        assert not SeerWorkflowTriggerBinding.objects.exists()
 
     def test_rejects_changes_to_workflow_shared_with_other_actions(self) -> None:
         self.select_monitors(self.monitor_ids)
@@ -832,6 +846,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert DataConditionGroup.objects.count() == before_groups
         self.config.refresh_from_db()
         assert self.config.version == 1
+        assert self.config.backing_workflow_id is None
         assert self.config.filters == {"all_projects": False, "environments": ["production"]}
 
     def test_connected_breach_starts_run_and_disconnect_stops_it(self) -> None:

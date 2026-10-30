@@ -151,33 +151,19 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     "Selected monitors must be active metric monitors in this organization."
                 )
 
-            workflows = list(
-                Workflow.objects.filter(
-                    organization_id=self.organization_id,
-                    workflowdataconditiongroup__condition_group__dataconditiongroupaction__action__seer_workflow_binding__workflow_config=config,
-                ).distinct()
+            created = config.backing_workflow_id is None
+            if created:
+                config.backing_workflow = workflow = self._create_monitor_workflow(config)
+            else:
+                workflow = Workflow.objects.get(
+                    id=config.backing_workflow_id, organization_id=self.organization_id
+                )
+            existing = set(
+                DetectorWorkflow.objects.filter(workflow=workflow).values_list(
+                    "detector_id", flat=True
+                )
             )
-            connections = DetectorWorkflow.objects.filter(workflow__in=workflows).values_list(
-                "workflow_id", "detector_id"
-            )
-            existing = {detector_id for _, detector_id in connections}
-            connected_workflow_ids = {workflow_id for workflow_id, _ in connections}
-            # Ignore retired bindings when another backing workflow is in use.
-            candidates = [
-                workflow
-                for workflow in workflows
-                if workflow.enabled or workflow.id in connected_workflow_ids
-            ] or workflows
-
-            workflow: Workflow | None
-            if not candidates:
-                workflow = self._create_monitor_workflow(config)
-            elif existing != selected:
-                if len(candidates) != 1:
-                    raise ValueError(
-                        "Changing monitor selection requires a single backing workflow in use."
-                    )
-                workflow = candidates[0]
+            if existing != selected:
                 if (
                     Action.objects.filter(
                         dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
@@ -188,10 +174,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     raise ValueError(
                         "The backing workflow must contain only this automation's actions."
                     )
-            else:
-                workflow = None
-
-            if workflow is not None:
                 DetectorWorkflow.objects.filter(workflow=workflow).exclude(
                     detector_id__in=selected
                 ).delete()
@@ -206,9 +188,11 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if scope_changed:
                 config.filters = {**config.filters, "all_projects": True}
                 SeerWorkflowConfigProject.objects.filter(config=config).delete()
-            if existing != selected or scope_changed:
+            if created or existing != selected or scope_changed:
                 config.version += 1
-                config.save(update_fields=["filters", "version", "date_updated"])
+                config.save(
+                    update_fields=["backing_workflow", "filters", "version", "date_updated"]
+                )
 
     def accept(
         self,
