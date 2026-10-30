@@ -56,7 +56,6 @@ class ForwardPrToSeerTaskTest(TestCase):
 
     @override_settings(
         SEER_API_SHARED_SECRET="viewer-context-test-secret",
-        SENTRY_VIEWER_CONTEXT_ENABLED=True,
     )
     @patch("sentry.pr_metrics.judge.seer_pr_metrics_connection_pool.urlopen")
     def test_propagates_webhook_viewer_context_to_seer(self, mock_urlopen: Any) -> None:

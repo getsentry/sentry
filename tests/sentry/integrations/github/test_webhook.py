@@ -1209,7 +1209,6 @@ class PushEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     @responses.activate
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_viewer_context_set_during_handler(self, mock_record: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during webhook processing."""

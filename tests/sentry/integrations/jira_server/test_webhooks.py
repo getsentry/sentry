@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import jwt
 import responses
-from django.test import override_settings
 from requests.exceptions import ConnectionError
 
 from sentry.integrations.jira_server.integration import JiraServerIntegration
@@ -229,7 +228,6 @@ class JiraServerWebhookEndpointTest(APITestCase):
             },
         )
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch.object(JiraServerIntegration, "sync_status_inbound")
     def test_post_update_status_sets_viewer_context(self, mock_sync: MagicMock) -> None:
         captured_contexts: list = []
