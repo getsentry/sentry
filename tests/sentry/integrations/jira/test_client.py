@@ -265,3 +265,18 @@ class JiraClientTest(TestCase):
         )
         res = self.jira_client.search_issues("login crash")
         assert res == body
+
+    @responses.activate
+    @mock.patch(
+        "sentry.integrations.jira.integration.JiraCloudClient.finalize_request",
+        side_effect=mock_finalize_request,
+    )
+    def test_get_transitions_is_not_cached(self, mock_finalize: mock.MagicMock) -> None:
+        # Transitions depend on the issue's current status, so a cached list goes stale
+        # as soon as the issue moves.
+        url = "https://example.atlassian.net/rest/api/2/issue/APP-1/transitions"
+        responses.get(url, json={"transitions": [{"id": "1"}]})
+        responses.get(url, json={"transitions": [{"id": "2"}]})
+
+        assert self.jira_client.get_transitions("APP-1") == [{"id": "1"}]
+        assert self.jira_client.get_transitions("APP-1") == [{"id": "2"}]

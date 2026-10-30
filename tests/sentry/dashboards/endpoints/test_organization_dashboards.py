@@ -3130,8 +3130,19 @@ class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Dashboard 1"
 
+    def test_write_scope_cannot_read(self) -> None:
+        # Write does not imply read.
+        self._use_token(["dashboard:write"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.get(self.details_url).status_code == 403
+
+    def test_read_and_write_scopes_can_read_and_write(self) -> None:
+        self._use_token(["dashboard:read", "dashboard:write"])
+        assert self.client.get(self.details_url).status_code == 200
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+
     def test_write_scope_can_create_update_and_delete(self) -> None:
-        # `dashboard:write` implies `dashboard:read`, so the saved token holds both.
         self._use_token(["dashboard:write"])
         with outbox_runner():
             response = self.client.post(self.url, data={"title": "Created"})

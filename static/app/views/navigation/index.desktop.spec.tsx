@@ -225,6 +225,33 @@ describe('desktop navigation', () => {
     );
   });
 
+  it('collapses a settings v3 section', async () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <Navigation />
+      </PrimaryNavigationContextProvider>,
+      navigationContext({
+        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        initialRouterConfig: {
+          location: {pathname: '/settings/org-slug/projects/project-slug/'},
+          route: '/settings/:orgId/projects/:projectId/',
+        },
+      })
+    );
+
+    const processing = screen.getByRole('button', {name: 'Processing'});
+    expect(processing).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('link', {name: 'Inbound Filters'})).toBeInTheDocument();
+
+    await userEvent.click(processing);
+    expect(processing).toHaveAttribute('aria-expanded', 'false');
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('link', {name: 'Inbound Filters'})
+      ).not.toBeInTheDocument()
+    );
+  });
+
   describe('settings v3', () => {
     const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
 
@@ -237,6 +264,100 @@ describe('desktop navigation', () => {
         url: '/projects/org-slug/second-project/',
         body: ProjectFixture({id: '999', slug: 'second-project'}),
       });
+    });
+
+    it('opens the organization menu for the second tour step and closes it on Done', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      const {router} = render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText('Quick settings-access for your important Projects')
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Settings'})).toBeInTheDocument();
+      expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Settings'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps keyboard focus in the tour while it opens the organization menu', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      await userEvent.tab({shift: true});
+      expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      const guide = await screen.findByText(
+        'Quick settings-access for your important Projects'
+      );
+      await waitFor(() => expect(guide.closest('[tabindex="-1"]')).toHaveFocus());
+      await userEvent.keyboard('{Escape}');
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      ).toHaveFocus();
+    });
+
+    it('explains project creation in the tour when no projects are available', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      ProjectsStore.loadInitialData([]);
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [],
+      });
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      expect(
+        await screen.findByText(
+          'Create your first project from this menu. Then star projects to pin their settings shortcuts to this list.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create Project'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+      expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
     });
 
     it('shows the settings scope rail', async () => {
