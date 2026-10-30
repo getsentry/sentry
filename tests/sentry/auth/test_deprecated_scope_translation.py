@@ -12,7 +12,14 @@ from sentry.auth.deprecated_scope_translation import (
 from sentry.testutils.helpers.options import override_options
 
 ORG_READ_GRANULAR_SCOPES = frozenset(
-    {"dashboard:read", "dashboard:write", "saved_query:read", "saved_query:write"}
+    {
+        "dashboard:read",
+        "dashboard:write",
+        "saved_query:read",
+        "saved_query:write",
+        "user_preference:read",
+        "user_preference:write",
+    }
 )
 USER_PREFERENCE_SCOPES = frozenset({"user_preference:read", "user_preference:write"})
 

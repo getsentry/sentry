@@ -2048,6 +2048,9 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            # Recent searches and prompt activity accept org:read today, including writes.
+            "user_preference:read",
+            "user_preference:write",
         ]
     ),
     # Starring, starred order and last visited accept member:read today, including writes.
