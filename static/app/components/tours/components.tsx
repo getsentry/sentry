@@ -613,11 +613,6 @@ export function TourGuide({
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
                                 size="zero"
-                                style={{
-                                  color:
-                                    invertedTheme.tokens.interactive.transparent.neutral
-                                      .content.headings,
-                                }}
                               />
                             )}
                           </Flex>
