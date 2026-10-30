@@ -205,15 +205,24 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
                         # TODO: What about unrecognized keys?
                         pass
 
-        # Use include_all_accessible=True to get all projects the user can access,
-        # not just those explicitly requested. This filter is ALWAYS applied to ensure
-        # users with no project access only see org-level workflows.
-        projects = self.get_projects(request, organization, include_all_accessible=True)
+        # This filter is ALWAYS applied so users with no project access only see
+        # org-level workflows. A request without project params means "My Projects",
+        # so it is scoped to the user's member projects like other organization
+        # endpoints. ID and detector lookups target specific workflows, so they
+        # search every project the user can access.
+        requested_projects = self.get_requested_project_params_unchecked(request)
+        include_all_accessible = (
+            requested_projects.has_values
+            or bool(request.GET.getlist("id"))
+            or bool(request.GET.getlist("detector"))
+        )
+        projects = self.get_projects(
+            request, organization, include_all_accessible=include_all_accessible
+        )
         accessible_workflows = Q(detectorworkflow__detector__project__in=projects)
         # Detached workflows are organization-level and do not match a specific
         # project filter. ID filters take precedence over project filters, and the
         # all-project sentinels are equivalent to no project filter.
-        requested_projects = self.get_requested_project_params_unchecked(request)
         has_specific_project_filter = (
             not request.GET.getlist("id")
             and requested_projects.has_values
