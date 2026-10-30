@@ -1,13 +1,14 @@
 from django.db.models import Count
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.principal import has_user
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 
 
 @register(Broadcast)
 class BroadcastSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
-        if not user.is_authenticated:
+        if not has_user(user):
             seen = set()
         else:
             seen = set(
