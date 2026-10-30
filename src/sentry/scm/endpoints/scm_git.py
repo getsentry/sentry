@@ -102,14 +102,15 @@ class ScmGitEndpoint(Endpoint):
         except GitGrantKeyError as e:
             # No grant could verify against the key list. That's Sentry's misconfiguration, not the
             # grant's fault, so it's a 500 rather than a 403. Seer fails a checkout on a 500 at
-            # once, where it retries a 502 or 503, which no retry would fix. The message names a
-            # key by its place in the list, never its contents.
+            # once, where it retries a 502 or 503, which no retry would fix. Only the report says
+            # which key is wrong: the client can't fix Sentry's settings.
             return _refuse(
                 "grant_public_keys_invalid",
                 500,
                 f"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured: {e}",
                 context,
                 tags={},
+                client_detail="Sentry's git grant keys are misconfigured.",
             )
         except SCMCodedError as e:
             return _refuse(e.code, 403, e.detail, context, tags={})
@@ -166,13 +167,20 @@ def _request_body(request: HttpRequest) -> Readable | None:
 
 
 def _refuse(
-    code: str, status: int, detail: str, context: dict[str, str], tags: dict[str, str]
+    code: str,
+    status: int,
+    detail: str,
+    context: dict[str, str],
+    tags: dict[str, str],
+    *,
+    client_detail: str | None = None,
 ) -> HttpResponse:
-    # Counted and reported like the refusals GitServer answers itself.
+    # Counted and reported like the refusals GitServer answers itself. The client gets the detail
+    # too, unless client_detail replaces it.
     record_count_metric(FAILED_METRIC, 1, {"code": code} | tags)
     _report_failure(code, detail, context)
     # Never a 401: on a 401 git asks for credentials, which a coding job doesn't have.
-    return _plain_text(detail, status)
+    return _plain_text(detail if client_detail is None else client_detail, status)
 
 
 def _report_failure(code: str, detail: str, context: dict[str, str]) -> None:
