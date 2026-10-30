@@ -33,6 +33,8 @@ import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
+import {encodeSort} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -54,9 +56,11 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_QUERY_KEY,
   LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {
   getScalarAttributeValue,
@@ -80,6 +84,7 @@ import {
 } from 'sentry/views/explore/logs/fieldRenderers';
 import {useLogsFrozenIsFrozen} from 'sentry/views/explore/logs/logsFrozenContext';
 import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {
   DetailsBody,
   DetailsContent,
@@ -114,6 +119,8 @@ import {
   getLogRowItem,
   getLogRowTimestampMillis,
   getLogSeverityLevel,
+  getLogsUrl,
+  getTimeBasedSortBy,
   isPseudoLogResponseItem,
   isRegularLogResponseItem,
   ourlogToJson,
@@ -122,6 +129,8 @@ import type {ReplayEmbeddedTableOptions} from 'sentry/views/explore/logs/utils/l
 import {
   useAddSearchFilter,
   useQueryParamsFields,
+  useQueryParamsSearch,
+  useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -285,7 +294,10 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const navigate = useNavigate();
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  const logsPinning = useLogsPinning();
   const fields = useQueryParamsFields();
+  const search = useQueryParamsSearch();
+  const sortBys = useQueryParamsSortBys();
   const projects = useProjects();
 
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
@@ -535,6 +547,53 @@ export const LogRowContent = memo(function LogRowContentImpl({
       ]
     : [];
 
+  const traceId = dataRow[OurLogKnownFieldKey.TRACE_ID];
+  const traceContextQuery = traceId
+    ? MutableSearch.fromQueryObject({
+        [OurLogKnownFieldKey.TRACE_ID]: String(traceId),
+      }).formatString()
+    : undefined;
+
+  function getViewInContextMenuItem(
+    context: 'trace' | 'time',
+    query: string | undefined
+  ): MenuItemProps {
+    return {
+      key: `view-in-${context}-context`,
+      label: context === 'trace' ? t('View in trace context') : t('View in time context'),
+      externalHref: getLogsUrl({
+        organization,
+        selection,
+        query,
+        field: fields.includes(OurLogKnownFieldKey.TIMESTAMP)
+          ? fields
+          : [OurLogKnownFieldKey.TIMESTAMP, ...fields],
+        sortBy: encodeSort(getTimeBasedSortBy(sortBys) ?? logsTimestampDescendingSortBy),
+        pinnedRowIds: Array.from(
+          new Set([...(logsPinning?.getPinnedRowIds() ?? []), rowId])
+        ),
+        rowId,
+        anchorTimestamp: String(dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]),
+      }),
+      onAction: () => {
+        trackAnalytics('logs.table.row_viewed_in_context', {
+          context,
+          log_id: rowId,
+          organization,
+        });
+      },
+    };
+  }
+
+  const viewInContextMenuItems: MenuItemProps[] = isFrozen
+    ? []
+    : [
+        ...(search.isEmpty() ? [] : [getViewInContextMenuItem('time', undefined)]),
+        ...(traceContextQuery && search.formatString() !== traceContextQuery
+          ? [getViewInContextMenuItem('trace', traceContextQuery)]
+          : []),
+      ];
+
   const buttonSize = 'xs';
   const chevronIcon = (
     <IconChevron size={buttonSize} direction={expanded ? 'down' : 'right'} />
@@ -747,6 +806,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
                             } else {
                               params.set(LOGS_QUERY_KEY, `id:${logId}`);
                               params.delete(LOGS_ROW_ID_KEY);
+                              params.delete(LOGS_ANCHOR_TIMESTAMP_KEY);
                             }
                           });
                           copy(url, {
@@ -767,7 +827,11 @@ export const LogRowContent = memo(function LogRowContentImpl({
                       }
                     }}
                     allowActions={ALLOWED_CELL_ACTIONS}
-                    extraMenuItems={[...(extraMenuItems ?? []), ...scrollToLogMenuItems]}
+                    extraMenuItems={[
+                      ...(extraMenuItems ?? []),
+                      ...scrollToLogMenuItems,
+                      ...viewInContextMenuItems,
+                    ]}
                     pin={pin}
                   >
                     {renderedField}
