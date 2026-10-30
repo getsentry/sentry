@@ -43,7 +43,7 @@ describe('RunsTable', () => {
           makeRun({
             id: '11',
             status: 'failed',
-            error: {code: 'internal_error', message: 'Boom'},
+            errors: [{code: 'internal_error', message: 'Boom', executionId: null}],
           }),
         ],
       },

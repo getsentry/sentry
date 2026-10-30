@@ -66,7 +66,13 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
     configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: 'failed',
-    error: {code: 'seer_unavailable', message: 'Seer was unavailable. Try again later.'},
+    errors: [
+      {
+        code: 'timeout',
+        message: 'The agent timed out after 10 minutes.',
+        executionId: '5081',
+      },
+    ],
     dateAdded: ago(60 * 5),
     dateUpdated: ago(60 * 5 - 2),
     dateCompleted: ago(60 * 5 - 2),
@@ -87,10 +93,13 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
     configId: 'placeholder-breached-metrics',
     strategy: 'breached_metrics',
     status: 'rejected',
-    error: {
-      code: 'budget_exceeded',
-      message: 'This automation is over its monthly budget.',
-    },
+    errors: [
+      {
+        code: 'budget_exceeded',
+        message: 'This automation is over its monthly budget.',
+        executionId: null,
+      },
+    ],
     dateAdded: ago(60 * 26),
     dateUpdated: ago(60 * 26),
     dateCompleted: ago(60 * 26),
