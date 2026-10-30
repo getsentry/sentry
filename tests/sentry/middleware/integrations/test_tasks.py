@@ -427,3 +427,32 @@ class RouteSlackSeerEventTest(TestCase):
     def test_missing_integration_is_noop(self, mock_resolve: MagicMock) -> None:
         self._run_task(integration_id=99999)
         mock_resolve.assert_not_called()
+
+    @patch("sentry.middleware.integrations.tasks.send_halt_message")
+    @patch("sentry.middleware.integrations.tasks.resolve_seer_organization")
+    def test_missing_slack_user_id_is_noop(
+        self, mock_resolve: MagicMock, mock_send_halt: MagicMock
+    ) -> None:
+        from sentry.seer.entrypoints.cache import SeerOperatorPendingMentionCache
+        from sentry.seer.entrypoints.slack.entrypoint import SlackPendingMentionPayload
+        from sentry.seer.entrypoints.types import SeerEntrypointKey
+
+        route_slack_seer_event(
+            payload=self.payload,
+            integration_id=self.integration.id,
+            slack_user_id="",
+            channel_id="D1",
+            thread_ts="",
+            message_ts="123.456",
+            event_type="message",
+            message_text="",
+        )
+
+        mock_resolve.assert_not_called()
+        mock_send_halt.assert_not_called()
+        cached = SeerOperatorPendingMentionCache[SlackPendingMentionPayload].pop(
+            entrypoint_key=str(SeerEntrypointKey.SLACK),
+            integration_id=self.integration.id,
+            user_ext_id="",
+        )
+        assert cached is None

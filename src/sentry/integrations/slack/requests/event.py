@@ -317,7 +317,14 @@ class SlackEventRequest(SlackDMRequest):
         return (
             self.type == "app_mention"
             or self.type == "assistant_thread_started"
-            or (self.dm_data.get("type") == "message" and self.has_assistant_scope)
+            or (
+                self.dm_data.get("type") == "message"
+                and self.has_assistant_scope
+                # Message events without an author (e.g. `message_changed`/`message_deleted`
+                # subtypes) or from bots aren't prompts for Seer, and have no user to reply to.
+                and bool(self.user_id)
+                and not self.is_bot()
+            )
         )
 
     @all_silo_function

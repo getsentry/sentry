@@ -220,6 +220,12 @@ def route_slack_seer_event(
         "message_ts": message_ts,
         "event_type": event_type,
     }
+    if not slack_user_id:
+        # Without a Slack user there is no identity to resolve and no recipient for an
+        # ephemeral halt message (Slack rejects an empty `user`), so there's nothing to do.
+        logger.warning("route_slack_seer_event.missing_slack_user_id", extra=logging_ctx)
+        return
+
     integration = integration_service.get_integration(
         integration_id=integration_id, status=ObjectStatus.ACTIVE
     )
