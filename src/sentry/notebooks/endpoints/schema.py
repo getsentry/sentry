@@ -1,9 +1,19 @@
 from typing import Any
 
+from django.urls import resolve
+
 from sentry.apidocs.schema import SentrySchema
 
 
 class InvestigationSchema(SentrySchema):
+    def is_excluded(self) -> bool:
+        # List each operation once, under /notebooks/, while it also serves at /investigations/.
+        if "/investigations/" in self.path:
+            match = resolve(self.path.replace("/investigations/", "/notebooks/", 1))
+            if getattr(match.func, "view_class", None) is type(self.view):
+                return True
+        return super().is_excluded()
+
     def _get_request_body(self, direction: str = "request") -> dict[str, Any] | None:
         # Archive and block deletion require versions in a JSON body. Spectacular
         # otherwise drops DELETE bodies even when request= is explicitly annotated.
