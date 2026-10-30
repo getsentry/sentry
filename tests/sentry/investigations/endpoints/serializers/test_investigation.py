@@ -428,7 +428,11 @@ class InvestigationActionRequestSerializationTest(TestCase):
     def test_an_undelivered_follow_up_has_no_reason(self) -> None:
         self.add_followed_up_request(
             status=InvestigationOrchestrationCommandStatus.FAILED,
-            error={"code": "seer_command_dispatch_failed", "retryable": True},
+            error={
+                "code": "seer_command_dispatch_failed",
+                "dispatchReason": "actor_access_denied",
+                "retryable": True,
+            },
         )
 
         (serialized,) = self.serialize_requests()
