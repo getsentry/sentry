@@ -2057,6 +2057,7 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
     # Starring, starred order and last visited accept member:read today, including writes.
     "member:read": frozenset(
         [
+            # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
             "user_preference:read",
             "user_preference:write",
