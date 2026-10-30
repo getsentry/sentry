@@ -631,8 +631,8 @@ importers:
         specifier: ^1.0.1
         version: 1.0.2
       cbor2:
-        specifier: ^1.12.0
-        version: 1.12.0
+        specifier: ^2.4.1
+        version: 2.4.1
       classnames:
         specifier: 2.3.1
         version: 2.3.1
@@ -1947,6 +1947,10 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       postcss-selector-parser: ^7.0.0
+
+  '@cto.af/wtf8@1.0.0':
+    resolution: {integrity: sha512-qI0XnZxcj/FmASB8XXWqG49bSIzu0I/02deAjhnTni9IZ7KMRVlh8EFLE+mmJlMA169lET6rTCFhEsZSjOwlhA==}
+    engines: {node: '>=22'}
 
   '@ctrl/tinycolor@4.2.1':
     resolution: {integrity: sha512-Vh5uy9Y1JBMId6J1f68TMXnZrTCvNdo9Fu2k0d1YnJngR+sM5kWTKl441c/3TFs+cG0NWOjRWgQ/iaWhbYx+7A==}
@@ -5452,9 +5456,9 @@ packages:
     resolution: {integrity: sha512-PiT/hQmTonHhl/HFGN+Lx3JJUznrVYJ3+AQsnthneZbvW7x+f08Tk7yLJTLEOUvBTbduLeeBkxEaYXUOUrRq6g==}
     engines: {node: 6.* || 8.* || >= 10.*}
 
-  cbor2@1.12.0:
-    resolution: {integrity: sha512-3Cco8XQhi27DogSp9Ri6LYNZLi/TBY/JVnDe+mj06NkBjW/ZYOtekaEU4wZ4xcRMNrFkDv8KNtOAqHyDfz3lYg==}
-    engines: {node: '>=18.7'}
+  cbor2@2.4.1:
+    resolution: {integrity: sha512-h4OqPnSvIEUNCxTNb9pwMZPKjhNKO9bkPwQJOR7d5oBIrZR/CO098atrLl4AkQmB1p3opCvo2UFt4fhRSWC/vQ==}
+    engines: {node: '>=22'}
 
   ccount@2.0.1:
     resolution: {integrity: sha512-eyrF0jiFpY+3drT6383f1qhkbGsLSifNAjA61IUjZjmLCWjItY6LB9ft9YhoDgwfmclB2zhu51Lc7+95b8NRAg==}
@@ -9830,6 +9834,8 @@ snapshots:
     dependencies:
       postcss-selector-parser: 7.1.6
 
+  '@cto.af/wtf8@1.0.0': {}
+
   '@ctrl/tinycolor@4.2.1': {}
 
   '@dnd-kit/accessibility@3.1.0(react@19.3.0)':
@@ -13103,7 +13109,9 @@ snapshots:
     dependencies:
       rsvp: 4.8.5
 
-  cbor2@1.12.0: {}
+  cbor2@2.4.1:
+    dependencies:
+      '@cto.af/wtf8': 1.0.0
 
   ccount@2.0.1: {}
 
