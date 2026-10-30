@@ -1111,18 +1111,23 @@ def _lock_run_after_investigation(
     )
 
 
+def schedule_workflow_output_completion(investigation_id: int, database: str) -> None:
+    from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
+
+    transaction.on_commit(
+        lambda: finish_investigation_executions.delay(investigation_id=investigation_id),
+        using=database,
+    )
+
+
 def schedule_investigation_updates(investigation_id: int, database: str) -> None:
     from sentry.seer.entrypoints.operator import process_investigation_updates
-    from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 
     transaction.on_commit(
         lambda: process_investigation_updates.delay(investigation_id=investigation_id),
         using=database,
     )
-    transaction.on_commit(
-        lambda: finish_investigation_executions.delay(investigation_id=investigation_id),
-        using=database,
-    )
+    schedule_workflow_output_completion(investigation_id, database)
 
 
 def _apply_available_events(
@@ -1134,6 +1139,7 @@ def _apply_available_events(
     projection_applied = False
     with transaction.atomic(using=database):
         run = _lock_run_after_investigation(orchestration_run_id)
+        status_before = run.status
         delivered = InvestigationOrchestrationEvent.objects.get(id=delivered_event_id)
         if delivered.sequence <= run.last_event_sequence:
             if delivered.application_status == InvestigationOrchestrationEventStatus.PENDING:
@@ -1241,6 +1247,8 @@ def _apply_available_events(
         )
         if projection_applied:
             schedule_investigation_updates(run.investigation_id, database)
+        elif run.status != status_before:
+            schedule_workflow_output_completion(run.investigation_id, database)
         delivered.refresh_from_db()
         return _OrchestrationEventApplication(
             event=delivered,

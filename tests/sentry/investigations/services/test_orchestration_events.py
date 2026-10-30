@@ -1016,6 +1016,23 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
         mock_delay.assert_not_called()
 
+    @patch("sentry.seer_workflow_outputs.tasks.finish_investigation_executions.delay")
+    def test_workflow_failure_without_projection_schedules_workflow_output_completion(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            receipt = self.deliver(
+                self.event(
+                    1,
+                    "workflow_failed",
+                    {"error": {"code": "seer_failed", "message": "Seer gave up."}},
+                )
+            )
+            mock_delay.assert_not_called()
+
+        assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
     @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
     def test_stale_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
         self.orchestration_run.update(
