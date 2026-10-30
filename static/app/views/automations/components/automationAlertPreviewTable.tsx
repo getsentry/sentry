@@ -12,7 +12,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {Group} from 'sentry/types/group';
 import type {AlertPreviewResponse} from 'sentry/types/workflowEngine/automations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -97,18 +96,15 @@ export function AutomationAlertPreviewTable({
     isError: isGroupsError,
     isPending: isGroupsPending,
   } = useQuery(
-    apiOptions.as<Array<Pick<Group, 'id' | 'title' | 'project'>>>()(
-      '/organizations/$organizationIdOrSlug/issues/',
-      {
-        path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          group: groupIds,
-          project: projectIds,
-          collapse: ['stats', 'unhandled'],
-        },
-        staleTime: 30_000,
-      }
-    )
+    apiOptions.contract('/organizations/$organizationIdOrSlug/issues/', {
+      path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query: {
+        group: groupIds,
+        project: projectIds,
+        collapse: ['stats', 'unhandled'],
+      },
+      staleTime: 30_000,
+    })
   );
   const groupsById = new Map(groups.map(group => [group.id, group]));
 

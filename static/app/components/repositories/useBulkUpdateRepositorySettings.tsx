@@ -48,16 +48,13 @@ export function useBulkUpdateRepositorySettings(
     ...options,
     onSettled: (data, error, variables, onMutateResult, context) => {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.as<Repository[]>()(
-          '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
-        ).queryKey,
+        queryKey: apiOptions.contract('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+          staleTime: 0,
+        }).queryKey,
       });
       queryClient.invalidateQueries({
-        queryKey: apiOptions.asInfinite<Repository[]>()(
+        queryKey: apiOptions.contractInfinite(
           '/organizations/$organizationIdOrSlug/repos/',
           {
             path: {organizationIdOrSlug: organization.slug},

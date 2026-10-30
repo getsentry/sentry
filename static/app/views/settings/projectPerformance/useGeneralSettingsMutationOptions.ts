@@ -6,10 +6,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import type {GeneralSettings} from './projectPerformanceSettings';
-
 export const getGeneralSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
-  apiOptions.as<GeneralSettings>()(
+  apiOptions.contract(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
     {
       path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},

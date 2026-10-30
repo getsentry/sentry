@@ -12,7 +12,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
@@ -26,7 +25,7 @@ function EventFlamegraphContent({event, project}: Props) {
   const organization = useOrganization();
   const [selectedAttachment, setSelectedAttachment] = useState<string>();
   const attachmentsQuery = useQuery({
-    ...apiOptions.as<IssueAttachment[]>()(
+    ...apiOptions.contract(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
       {
         path: {
@@ -45,7 +44,7 @@ function EventFlamegraphContent({event, project}: Props) {
   const attachment =
     attachments.find(item => item.id === selectedAttachment) ?? attachments[0];
   const attachmentQuery = useQuery({
-    ...apiOptions.as<unknown>()(
+    ...apiOptions.contract(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/$attachmentId/',
       {
         path: attachment

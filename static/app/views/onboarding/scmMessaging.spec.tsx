@@ -440,7 +440,7 @@ describe('ScmMessaging', () => {
         staleTime: 0,
       }
     );
-    const validateOptions = apiOptions.as<{valid: boolean}>()(
+    const validateOptions = apiOptions.contract(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
         path: {organizationIdOrSlug: 'org-slug', integrationId: '15'},

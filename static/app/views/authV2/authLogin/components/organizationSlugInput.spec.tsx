@@ -4,7 +4,6 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 
 import {OrganizationSlugInput} from './organizationSlugInput';
 
@@ -113,7 +112,7 @@ describe('OrganizationSlugInput', () => {
 
   it('does not select stale cached data when its refetch fails', async () => {
     const queryClient = makeTestQueryClient();
-    const queryOptions = apiOptions.as<AuthOrganization>()(
+    const queryOptions = apiOptions.contract(
       '/auth/organizations/$organizationIdOrSlug/config/',
       {path: {organizationIdOrSlug: 'acme'}, staleTime: 0}
     );

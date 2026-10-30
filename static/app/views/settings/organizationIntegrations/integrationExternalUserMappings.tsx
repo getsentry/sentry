@@ -79,7 +79,7 @@ export function IntegrationExternalUserMappings(props: Props) {
     isPending: isInitialResultsPending,
     isError: isInitialResultsError,
   } = useQuery(
-    apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
+    apiOptions.contract('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
     })

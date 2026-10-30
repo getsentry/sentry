@@ -28,7 +28,7 @@ import {t, tct} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import type {Release, SourceMapsArchive} from 'sentry/types/release';
+import type {SourceMapsArchive} from 'sentry/types/release';
 import type {DebugIdBundle, DebugIdBundleAssociation} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -133,7 +133,7 @@ function useSourceMapUploads({
   );
 
   const {data: releasesData, isPending: releasesLoading} = useQuery({
-    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         project: [project.id],

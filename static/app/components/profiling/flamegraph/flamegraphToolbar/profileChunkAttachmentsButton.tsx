@@ -58,7 +58,7 @@ export function ProfileChunkAttachmentsButton() {
   const enabled = Boolean(project && profilerId && start && end);
 
   const {data: attachments} = useQuery(
-    apiOptions.as<ProfileChunkAttachment[]>()(
+    apiOptions.contract(
       '/organizations/$organizationIdOrSlug/profiling/chunk-attachments/',
       {
         path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,

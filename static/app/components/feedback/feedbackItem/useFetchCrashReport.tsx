@@ -1,6 +1,5 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -13,7 +12,7 @@ interface Props {
 
 export function useFetchCrashReport({crashReportId, organization, projectSlug}: Props) {
   const {data: eventData, isFetching: isEventFetching} = useQuery({
-    ...apiOptions.as<Event>()(
+    ...apiOptions.contract(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/',
       {
         path: {

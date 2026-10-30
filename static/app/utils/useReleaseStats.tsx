@@ -5,11 +5,6 @@ import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface ReleaseMetaBasic {
-  date: string;
-  version: string;
-}
-
 interface UseReleaseStatsParams {
   datetime: Parameters<typeof normalizeDateTimeParams>[0];
   environments: readonly string[];
@@ -27,21 +22,18 @@ export function useReleaseStats(
   const organization = useOrganization();
 
   const result = useInfiniteQuery(
-    apiOptions.asInfinite<ReleaseMetaBasic[]>()(
-      '/organizations/$organizationIdOrSlug/releases/stats/',
-      {
-        path:
-          queryOptions?.enabled === false
-            ? skipToken
-            : {organizationIdOrSlug: organization.slug},
-        query: {
-          environment: environments,
-          project: projects,
-          ...normalizeDateTimeParams(datetime),
-        },
-        staleTime: queryOptions?.staleTime ?? Infinity,
-      }
-    )
+    apiOptions.contractInfinite('/organizations/$organizationIdOrSlug/releases/stats/', {
+      path:
+        queryOptions?.enabled === false
+          ? skipToken
+          : {organizationIdOrSlug: organization.slug},
+      query: {
+        environment: environments,
+        project: projects,
+        ...normalizeDateTimeParams(datetime),
+      },
+      staleTime: queryOptions?.staleTime ?? Infinity,
+    })
   );
 
   const {isLoading, isPending, isError, error, data} = result;

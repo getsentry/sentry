@@ -72,7 +72,7 @@ export function IssueDiff({
   // Resolve "latest" to concrete event IDs (skipped if concrete IDs were passed)
   const [baseLatestQuery, targetLatestQuery] = useQueries({
     queries: [
-      apiOptions.as<{eventID: string}>()(
+      apiOptions.contract(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
           path:
@@ -86,7 +86,7 @@ export function IssueDiff({
           staleTime: 60_000,
         }
       ),
-      apiOptions.as<{eventID: string}>()(
+      apiOptions.contract(
         '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
         {
           path:

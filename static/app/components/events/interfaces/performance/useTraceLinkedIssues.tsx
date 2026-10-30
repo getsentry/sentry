@@ -1,7 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -24,7 +23,7 @@ export function useTraceLinkedIssues({event}: {event: Event}) {
     statsPeriod: TRACE_ISSUES_STATS_PERIOD,
   };
   const {data, isError, isPending} = useQuery({
-    ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/issues/', {
       path: query ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: queryParams,
       staleTime: TRACE_ISSUES_STALE_TIME,

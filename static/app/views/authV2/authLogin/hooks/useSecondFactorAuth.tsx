@@ -11,11 +11,6 @@ import {authConfigQueryOptions} from './useAuthConfig';
 
 export type SecondFactorAuthResult = AuthenticatedResult;
 
-interface MfaMethodsResponse {
-  mfaMethods: MfaMethod[];
-  mfaRequired: true;
-}
-
 interface SmsChallengeResponse {
   expiresIn: number;
   method: 'sms';
@@ -49,10 +44,9 @@ export type SecondFactorCredentials =
 
 type SecondFactorChallengeMethod = Extract<MfaMethod['id'], 'sms' | 'u2f'>;
 
-export const secondFactorMethodsQueryOptions = apiOptions.as<MfaMethodsResponse>()(
-  '/auth/2fa/',
-  {staleTime: 0}
-);
+export const secondFactorMethodsQueryOptions = apiOptions.contract('/auth/2fa/', {
+  staleTime: 0,
+});
 
 export function useSecondFactorMethods(enabled: boolean) {
   return useQuery({

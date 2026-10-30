@@ -22,13 +22,10 @@ export type AuthOrganization = {
 };
 
 export function authOrganizationQueryOptions(organizationSlug?: string) {
-  return apiOptions.as<AuthOrganization>()(
-    '/auth/organizations/$organizationIdOrSlug/config/',
-    {
-      path: organizationSlug ? {organizationIdOrSlug: organizationSlug} : skipToken,
-      staleTime: 0,
-    }
-  );
+  return apiOptions.contract('/auth/organizations/$organizationIdOrSlug/config/', {
+    path: organizationSlug ? {organizationIdOrSlug: organizationSlug} : skipToken,
+    staleTime: 0,
+  });
 }
 
 export function useAuthOrganization(organizationSlug?: string) {

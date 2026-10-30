@@ -1,6 +1,7 @@
 import type {SkipToken} from '@tanstack/react-query';
 import {infiniteQueryOptions, queryOptions, skipToken} from '@tanstack/react-query';
 
+import type {ApiMapping} from 'sentry/utils/api/apiContracts.generated';
 import {apiFetch, apiFetchInfinite} from 'sentry/utils/api/apiFetch';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
@@ -11,6 +12,27 @@ import type {KnownSentryApiUrls} from 'sentry/utils/api/knownSentryApiUrls.gener
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 
 type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
+
+/**
+ * Routes whose GET response type is known from the backend contract.
+ */
+export type ContractApiUrls = {
+  [TApiPath in keyof ApiMapping]: 'GET' extends keyof ApiMapping[TApiPath]
+    ? TApiPath
+    : never;
+}[keyof ApiMapping];
+
+/**
+ * The response type the backend declares for `GET <path>`, from the generated
+ * `ApiMapping`. `unknown` for routes without a contract.
+ */
+export type ContractResponse<TApiPath extends string> = TApiPath extends keyof ApiMapping
+  ? 'GET' extends keyof ApiMapping[TApiPath]
+    ? ApiMapping[TApiPath]['GET'] extends {response: infer TResponse}
+      ? TResponse
+      : unknown
+    : unknown
+  : unknown;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
@@ -51,7 +73,8 @@ function _apiOptions<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
-  // todo: infer the actual data type from the ApiMapping
+  // `apiOptions.as<T>()` passes T explicitly; `apiOptions.contract()` passes
+  // the response type the backend declares for the route.
   TActualData = TManualData,
 >(
   path: TApiPath,
@@ -85,7 +108,6 @@ function _apiOptionsInfinite<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
   TApiPath extends KnownApiUrls = KnownApiUrls,
-  // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
   path: TApiPath,
@@ -152,6 +174,19 @@ function _apiOptionsInfinite<
  * const items = data?.json ?? [];
  * const pageLinks = data?.headers.Link;
  * ```
+ *
+ * @example Inferring the response type from the backend contract
+ * ```ts
+ * const query = useQuery(
+ *   apiOptions.contract('/organizations/$organizationIdOrSlug/teams/', {
+ *     path: {organizationIdOrSlug: organization.slug},
+ *     staleTime: 30_000,
+ *   })
+ * );
+ * // query.data is the response type the backend declares for GET on this
+ * // route (see apiContracts.generated.ts). Only routes with a GET contract
+ * // are accepted; use `as<T>()` for the rest.
+ * ```
  */
 export const apiOptions = {
   as:
@@ -169,4 +204,14 @@ export const apiOptions = {
       options: Options & PathParamOptions<TApiPath>
     ) =>
       _apiOptionsInfinite<TManualData>(path, options as never),
+
+  contract: <TApiPath extends ContractApiUrls>(
+    path: TApiPath,
+    options: Options & PathParamOptions<TApiPath>
+  ) => _apiOptions<ContractResponse<TApiPath>, TApiPath>(path, options as never),
+
+  contractInfinite: <TApiPath extends ContractApiUrls>(
+    path: TApiPath,
+    options: Options & PathParamOptions<TApiPath>
+  ) => _apiOptionsInfinite<ContractResponse<TApiPath>, TApiPath>(path, options as never),
 };
