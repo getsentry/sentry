@@ -298,7 +298,6 @@ class BreachedMetricWorkflow(SeerWorkflow):
         group: Group,
         execution: SeerWorkflowRunExecution,
     ) -> WorkflowRunError | None:
-        """Start or reuse the open period's investigation and link it to the execution."""
         try:
             with transaction.atomic(router.db_for_write(Notebook)):
                 open_period = get_latest_open_period(group)

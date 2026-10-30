@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
     namespace=seer_tasks,
 )
 def finish_investigation_executions(*, investigation_id: int) -> None:
-    """Finish the running workflow executions that are waiting on this investigation."""
     executions = SeerWorkflowRunExecution.objects.filter(
         output_links__notebook_id=investigation_id,
         status=SeerWorkflowExecutionStatus.RUNNING,

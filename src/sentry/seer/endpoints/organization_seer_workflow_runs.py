@@ -168,12 +168,10 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         ``status`` distinguishes failed/rejected records, which include an ``error``
         code and display-safe message, from other records, which omit ``error``.
-        A run fails or is rejected in one of three ways:
+        A run fails or is rejected in one of two ways:
 
-        - Rejected before starting (e.g. over quota): the run's ``error`` says why
-          and it has no executions.
-        - Failed before starting any execution: the run's ``error`` says why and it
-          has no executions.
+        - Rejected (e.g. over quota) or failed before starting any execution: the
+          run's ``error`` says why and it has no executions.
         - Failed because one or more executions failed: the run's ``error`` is null
           and each failed execution carries its own ``error``.
 
@@ -258,18 +256,13 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     }
     status = SeerWorkflowRunStatus(run.status) if run.status is not None else None
     if status == SeerWorkflowRunStatus.FAILED or status == SeerWorkflowRunStatus.REJECTED:
+        error = run.extras.get("error")
         return {
             **result,
             "status": status,
-            "error": serialize_run_error(run),
+            "error": serialize_workflow_error(error) if error is not None else None,
         }
     return {**result, "status": status}
-
-
-def serialize_run_error(run: SeerWorkflowRun) -> SeerWorkflowErrorResponse | None:
-    """Null when the run failed because of its executions, which carry the errors."""
-    error = run.extras.get("error")
-    return serialize_workflow_error(error) if error is not None else None
 
 
 def serialize_workflow_execution(

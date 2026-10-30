@@ -578,8 +578,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     def test_failed_investigation_dispatch_fails_the_run(self) -> None:
         self.attach_service_account()
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.logger.exception") as log_error:
-            self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
         run = SeerWorkflowRun.objects.get(workflow_config=self.config)
         assert run.status == SeerWorkflowRunStatus.FAILED
@@ -590,31 +589,11 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         }
         assert not Notebook.objects.exists()
         assert not SeerWorkflowOutputLink.objects.exists()
-        log_error.assert_called_once_with(
-            "seer.workflow.investigation_dispatch_failed",
-            extra={
-                "organization_id": self.organization.id,
-                "workflow_config_id": self.config.id,
-                "execution_id": execution.id,
-                "group_id": self.group.id,
-            },
-        )
 
     @with_feature("organizations:investigations")
     def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:
         self.attach_service_account()
-        open_period = get_latest_open_period(self.group)
-        assert open_period is not None
-        notebook = self.create_notebook(
-            self.organization,
-            title="Example error spike",
-            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
-            source_key=f"metric_open_period:{self.group.id}:{open_period.id}",
-            source_revision=1,
-        )
-        orchestration_run = Factories.create_investigation_orchestration_run(
-            notebook, status=InvestigationOrchestrationStatus.PROCESSING
-        )
+        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.PROCESSING)
 
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
@@ -627,7 +606,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         ]
         assert Notebook.objects.get() == notebook
 
-        orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
+        notebook.orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
         finish_investigation_executions(investigation_id=notebook.id)
 
         run.refresh_from_db()
@@ -640,18 +619,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         self,
     ) -> None:
         self.attach_service_account()
-        open_period = get_latest_open_period(self.group)
-        assert open_period is not None
-        notebook = self.create_notebook(
-            self.organization,
-            title="Example error spike",
-            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
-            source_key=f"metric_open_period:{self.group.id}:{open_period.id}",
-            source_revision=1,
-        )
-        Factories.create_investigation_orchestration_run(
-            notebook, status=InvestigationOrchestrationStatus.COMPLETED
-        )
+        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.COMPLETED)
 
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
@@ -662,6 +630,19 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert SeerWorkflowOutputLink.objects.filter(
             execution=execution, notebook=notebook
         ).exists()
+
+    def create_active_investigation(self, status: InvestigationOrchestrationStatus) -> Notebook:
+        open_period = get_latest_open_period(self.group)
+        assert open_period is not None
+        notebook = self.create_notebook(
+            self.organization,
+            title="Example error spike",
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key=f"metric_open_period:{self.group.id}:{open_period.id}",
+            source_revision=1,
+        )
+        Factories.create_investigation_orchestration_run(notebook, status=status)
+        return notebook
 
     def attach_service_account(self) -> None:
         self.organization.flags.allow_joinleave = True

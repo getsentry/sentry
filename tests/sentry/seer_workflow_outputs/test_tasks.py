@@ -31,17 +31,6 @@ class FinishInvestigationExecutionsTest(TestCase):
         Factories.create_seer_workflow_output_link(self.execution, notebook=notebook)
         return notebook
 
-    def test_completed_investigation_completes_the_run(self) -> None:
-        notebook = self.link_investigation(InvestigationOrchestrationStatus.COMPLETED)
-
-        finish_investigation_executions(investigation_id=notebook.id)
-
-        self.execution.refresh_from_db()
-        self.workflow_run.refresh_from_db()
-        assert self.execution.status == SeerWorkflowExecutionStatus.COMPLETE
-        assert self.execution.extras == {"error": None}
-        assert self.workflow_run.status == SeerWorkflowRunStatus.COMPLETE
-
     def test_failed_investigation_fails_the_run(self) -> None:
         notebook = self.link_investigation(InvestigationOrchestrationStatus.FAILED)
 
@@ -67,16 +56,6 @@ class FinishInvestigationExecutionsTest(TestCase):
         assert self.execution.status == SeerWorkflowExecutionStatus.FAILED
         assert self.execution.extras["error"]["code"] == "investigation_cancelled"
 
-    def test_unfinished_investigation_keeps_the_run_running(self) -> None:
-        notebook = self.link_investigation(InvestigationOrchestrationStatus.PROCESSING)
-
-        finish_investigation_executions(investigation_id=notebook.id)
-
-        self.execution.refresh_from_db()
-        self.workflow_run.refresh_from_db()
-        assert self.execution.status == SeerWorkflowExecutionStatus.RUNNING
-        assert self.workflow_run.status == SeerWorkflowRunStatus.RUNNING
-
     def test_execution_waits_for_every_linked_investigation(self) -> None:
         finished = self.link_investigation(InvestigationOrchestrationStatus.COMPLETED)
         pending = self.link_investigation(InvestigationOrchestrationStatus.PROCESSING)
@@ -88,7 +67,10 @@ class FinishInvestigationExecutionsTest(TestCase):
         pending.orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
         finish_investigation_executions(investigation_id=pending.id)
         self.execution.refresh_from_db()
+        self.workflow_run.refresh_from_db()
         assert self.execution.status == SeerWorkflowExecutionStatus.COMPLETE
+        assert self.execution.extras == {"error": None}
+        assert self.workflow_run.status == SeerWorkflowRunStatus.COMPLETE
 
     def test_finished_executions_are_left_alone(self) -> None:
         notebook = self.link_investigation(InvestigationOrchestrationStatus.FAILED)

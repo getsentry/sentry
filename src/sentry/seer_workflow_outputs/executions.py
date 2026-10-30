@@ -19,7 +19,6 @@ TERMINAL_INVESTIGATION_STATUSES = frozenset(
 def finish_execution_if_outputs_done(
     execution: SeerWorkflowRunExecution, *, organization_id: int
 ) -> None:
-    """Complete the execution once every investigation it is linked to has finished."""
     statuses = set(
         InvestigationOrchestrationRun.objects.filter(
             investigation__workflow_output_links__execution_id=execution.id
