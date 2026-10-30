@@ -133,7 +133,12 @@ jobs:
       - name: Install Chromium (Arm)
         if: runner.arch == 'ARM64'
         run: |
-          sudo snap install chromium
+          # The snap store intermittently times out (HTTP 408), so retry.
+          for attempt in 1 2 3 4 5; do
+            sudo snap install chromium && break
+            [ "$attempt" -lt 5 ] || exit 1
+            sleep $((attempt * 10))
+          done
           printf '#!/bin/sh\nexec /snap/bin/chromium "$@"\n' | sudo tee /usr/local/bin/google-chrome >/dev/null
           printf '#!/bin/sh\nexec /snap/bin/chromium.chromedriver "$@"\n' | sudo tee /usr/local/bin/chromedriver >/dev/null
           sudo chmod 755 /usr/local/bin/google-chrome /usr/local/bin/chromedriver
