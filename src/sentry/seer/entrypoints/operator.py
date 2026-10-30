@@ -5,6 +5,9 @@ from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.inbox.issue import record_issue_pr_ready_for_review
+from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
+from sentry.inbox.types import InboxActor
 from sentry.investigations.access import has_investigations_access
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
@@ -55,6 +58,7 @@ from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.safe import get_path, safe_execute
 from sentry.viewer_context import ActorId, ActorType
 
 SEER_EVENT_TO_ACTIVITY_TYPE: dict[SentryAppEventType, ActivityType] = {
@@ -769,6 +773,22 @@ def _create_seer_activity(
         data=activity_data if activity_data else None,
         send_notification=False,
     )
+    if event_type == SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+        pr_urls = [
+            pr_url
+            for pr in get_path(event_payload, "pull_requests", default=[])
+            if (pr_url := get_path(pr, "pull_request", "pr_url"))
+        ]
+        if pr_urls:
+            safe_execute(
+                record_issue_pr_ready_for_review,
+                group=group,
+                pr_urls=pr_urls,
+                seer_run_id=event_payload["run_id"],
+                actor=InboxActor.user(actor_user_id)
+                if actor_user_id is not None
+                else INBOX_SYSTEM_ACTOR,
+            )
 
 
 def record_seer_activity(

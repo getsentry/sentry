@@ -10,7 +10,7 @@ import {getTimeFormat} from 'sentry/utils/dates';
  * ["Feb 1st", "Feb 2nd", "Feb 3rd"] when ECharts aligns ticks with days of the month
  * ["11:00pm", "Feb 2nd", "1:00am"] when ECharts aligns ticks with hours across a day boundary
  * ["Mar 1st", "Apr 1st", "May 1st"] when ECharts aligns ticks with starts of month
- * ["Dec 1st", "Jan 1st 2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
+ * ["Dec 1st", "2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
  * ["12:00pm", "1:00am", "2:00am", "3:00am"] when ECharts aligns ticks with hours starts
  *
  * @param value Tick timestamp in UTC milliseconds
@@ -33,7 +33,7 @@ export function formatXAxisTimestamp(value: number, userTimezone: string): strin
     parsed.second() === 0
   ) {
     // Start of a year
-    format = 'MMM Do YYYY';
+    format = 'YYYY';
   } else if (
     parsed.date() === 1 &&
     parsed.hour() === 0 &&

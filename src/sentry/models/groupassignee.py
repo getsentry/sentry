@@ -13,6 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
 from sentry.issues.derived.framework import DerivedDataError
@@ -29,6 +30,7 @@ from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
+from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -147,8 +149,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         force_autoassign: bool = False,
         assignment_source: AssignmentSource | None = None,
     ) -> GroupAssignmentState:
+        from sentry.inbox.issue import record_issue_assignment
         from sentry.integrations.utils.sync import sync_group_assignee_outbound
-        from sentry.models.activity import Activity
+        from sentry.models.activity import Activity, ActivityIntegration
         from sentry.models.groupsubscription import GroupSubscription
         from sentry.users.models.user import User as UserModel
         from sentry.users.services.user import RpcUser
@@ -230,6 +233,23 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
                 user=acting_user,
                 data=data,
             )
+            integration = extra.get("integration") if extra is not None else None
+            try:
+                inbox_assignment_source = (
+                    ActivityIntegration(integration) if integration is not None else None
+                )
+            except ValueError:
+                logger.exception("groupassignee.inbox.invalid_integration")
+            else:
+                safe_execute(
+                    record_issue_assignment,
+                    group=group,
+                    assignee=assigned_to,
+                    assignment_source=inbox_assignment_source,
+                    actor=InboxActor.user(acting_user.id)
+                    if acting_user is not None
+                    else SYSTEM_ACTOR,
+                )
             record_group_history(group, GroupHistoryStatus.ASSIGNED, actor=acting_user)
 
             GroupOwner.invalidate_assignee_exists_cache(group.id)
