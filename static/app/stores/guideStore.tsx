@@ -4,7 +4,7 @@ import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -84,7 +84,7 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
-  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
+  modalStoreListener: null | (() => void);
   nextStep(): void;
   onURLChange(): void;
   recordCue(guide: string): void;
@@ -111,15 +111,14 @@ const storeConfig: GuideStoreDefinition = {
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
-    this.modalStoreListener = ModalStore.listen(() => {
-      const isOpen = typeof ModalStore.getState().renderer === 'function';
-
-      if (isOpen) {
-        this.setForceHide(true);
-      } else {
-        this.setForceHide(false);
+    this.modalStoreListener = ModalStore.subscribe((modalState, prevModalState) => {
+      const isOpen = isModalOpen(modalState);
+      if (isOpen === isModalOpen(prevModalState)) {
+        return;
       }
-    }, undefined);
+
+      this.setForceHide(isOpen);
+    });
   },
 
   teardown() {
