@@ -20,7 +20,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
-from sentry.api.utils import to_valid_int_id_list
+from sentry.api.utils import to_valid_int_id, to_valid_int_id_list
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALL_ACCESS_PROJECT_ID
@@ -313,7 +313,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         try:
             config = SeerWorkflowConfig.objects.get(
-                id=int(config_id),
+                id=to_valid_int_id(config_id),
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
@@ -356,7 +356,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         try:
             config = SeerWorkflowConfig.objects.get(
-                id=int(config_id),
+                id=to_valid_int_id(config_id),
                 organization=organization,
                 strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
             )
