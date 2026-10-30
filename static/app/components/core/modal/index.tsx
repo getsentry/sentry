@@ -13,7 +13,7 @@ import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ROOT_ELEMENT} from 'sentry/constants';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {isModalOpen, ModalStore, type ModalRenderer} from 'sentry/stores/modalStore';
 import {getModalPortal} from 'sentry/utils/getModalPortal';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -110,7 +110,7 @@ function useModalStore() {
   );
   return {
     ...store,
-    visible: typeof store.renderer === 'function',
+    visible: isModalOpen(store),
   };
 }
 
@@ -331,34 +331,23 @@ export function GlobalModal() {
 interface UseModalReturn {
   closeModal: () => void;
   isOpen: boolean;
-  openModal: (
-    renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-    options?: ModalOptions
-  ) => void;
+  openModal: (renderer: ModalRenderer, options?: ModalOptions) => void;
   /** @deprecated Use `isOpen` instead. */
   visible: boolean;
   focusTrap?: FocusTrap;
 }
 
 export function useModal(): UseModalReturn {
-  const modalRenderer = useStore(ModalStore, state => state.renderer);
+  const isOpen = useStore(ModalStore, isModalOpen);
   const focusTrap = useStore(ModalStore, state => state.focusTrap);
 
-  const openModal = useCallback(
-    (
-      renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-      options?: ModalOptions
-    ) => {
-      ModalStore.openModal(renderer, options ?? {});
-    },
-    []
-  );
+  const openModal = useCallback((renderer: ModalRenderer, options?: ModalOptions) => {
+    ModalStore.openModal(renderer, options ?? {});
+  }, []);
 
   const closeModalFn = useCallback(() => {
     ModalStore.closeModal();
   }, []);
-
-  const isOpen = typeof modalRenderer === 'function';
 
   return {
     openModal,

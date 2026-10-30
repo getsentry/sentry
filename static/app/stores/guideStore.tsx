@@ -4,7 +4,7 @@ import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
@@ -112,11 +112,12 @@ const storeConfig: GuideStoreDefinition = {
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
     this.modalStoreListener = ModalStore.subscribe((modalState, prevModalState) => {
-      if (modalState.renderer === prevModalState.renderer) {
+      const isOpen = isModalOpen(modalState);
+      if (isOpen === isModalOpen(prevModalState)) {
         return;
       }
 
-      this.setForceHide(typeof modalState.renderer === 'function');
+      this.setForceHide(isOpen);
     });
   },
 

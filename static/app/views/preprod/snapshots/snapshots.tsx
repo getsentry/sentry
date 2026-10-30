@@ -17,7 +17,7 @@ import {Flex, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -670,7 +670,7 @@ export default function SnapshotsPage() {
       ) {
         return;
       }
-      if (typeof ModalStore.getState().renderer === 'function') {
+      if (isModalOpen(ModalStore.getState())) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;
