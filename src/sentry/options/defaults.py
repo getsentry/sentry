@@ -4100,6 +4100,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum number of commits associated with a release in one set_commits call.
+# Longer lists keep only the newest commits.
+register(
+    "releases.set-commits.max-commits",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Secret Scanning. Allows to temporarily disable signature verification.
 register(
     "secret-scanning.github.enable-signature-verification",

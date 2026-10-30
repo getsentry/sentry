@@ -11,6 +11,7 @@ from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.organization_releases import get_stats_period_detail
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseSerializer
 from sentry.api.serializers.types import ReleaseSerializerResponse
@@ -133,6 +134,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             scope.set_tag("failure_reason", "Release.DoesNotExist")
             scope.set_attribute("failure_reason", "Release.DoesNotExist")
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         serializer = ReleaseSerializer(data=request.data, partial=True)
 
@@ -206,6 +208,7 @@ class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         try:
             release.safe_delete()

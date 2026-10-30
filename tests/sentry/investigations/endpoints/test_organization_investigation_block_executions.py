@@ -7,10 +7,7 @@ from uuid import uuid4
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.models import (
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-)
+from sentry.notebooks.models import NotebookBlockExecution, NotebookBlockExecutionStatus
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -32,14 +29,14 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Query execution",
         )
-        self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.block = self.create_investigation_block(
-            investigation=self.investigation,
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="query",
             prompt="Show unresolved errors over the last day",
             display={"type": "table"},
@@ -84,8 +81,8 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         )
 
         assert response.status_code == 202, response.data
-        execution = InvestigationBlockExecution.objects.get(id=response.data["id"])
-        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        execution = NotebookBlockExecution.objects.get(id=response.data["id"])
+        assert execution.status == NotebookBlockExecutionStatus.RUNNING
         assert execution.seer_run == run
         assert execution.input_snapshot["prompt"] == self.block.prompt
         assert execution.input_snapshot["projectIds"] == [self.project.id]
@@ -182,16 +179,16 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
     )
     def test_dispatch_failure_cancels_other_active_cells(self, mock_client: MagicMock) -> None:
-        sibling_block = self.create_investigation_block(
-            investigation=self.investigation,
+        sibling_block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             prompt="Explain the spike",
             position=1,
         )
-        sibling_execution = self.create_investigation_block_execution(
+        sibling_execution = self.create_notebook_block_execution(
             block=sibling_block,
             executor="text_generation",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=sibling_block.version,
         )
         sibling_block.current_execution = sibling_execution
@@ -208,10 +205,10 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
         )
 
         assert response.status_code == 500
-        failed_execution = InvestigationBlockExecution.objects.get(block=self.block)
+        failed_execution = NotebookBlockExecution.objects.get(block=self.block)
         sibling_execution.refresh_from_db()
-        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
-        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert failed_execution.status == NotebookBlockExecutionStatus.FAILED
+        assert sibling_execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert sibling_execution.error == {
             "code": "investigation_execution_failed",
             "message": "Cancelled because another cell in this investigation failed.",
@@ -223,22 +220,22 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Text generation",
         )
-        self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.context_block = self.create_investigation_block(
-            investigation=self.investigation,
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.context_block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="query",
             title="Error trend",
             prompt="Show errors over time",
         )
-        context_execution = self.create_investigation_block_execution(
+        context_execution = self.create_notebook_block_execution(
             block=self.context_block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.COMPLETED,
+            status=NotebookBlockExecutionStatus.COMPLETED,
             block_version=self.context_block.version,
             input_snapshot={"projectIds": [self.project.id]},
             input_fingerprint="c" * 64,
@@ -248,8 +245,8 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
         self.context_block.current_execution = context_execution
         self.context_block.result_execution = context_execution
         self.context_block.save(update_fields=["current_execution", "result_execution"])
-        self.block = self.create_investigation_block(
-            investigation=self.investigation,
+        self.block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             title="Summary",
             prompt="Explain the most important change.",
@@ -267,22 +264,22 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
         "sentry.investigations.endpoints.organization_investigation_block_executions.SeerAgentClient"
     )
     def test_starts_text_generation_with_typed_context(self, mock_client: MagicMock) -> None:
-        sibling_text = self.create_investigation_block(
-            investigation=self.investigation,
+        sibling_text = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             title="Release notes",
             content="Checkout was deployed yesterday.",
         )
-        failed_query = self.create_investigation_block(
-            investigation=self.investigation,
+        failed_query = self.create_notebook_block(
+            notebook=self.investigation,
             kind="query",
             title="Failed query",
             prompt="Find transactions",
         )
-        failed_execution = self.create_investigation_block_execution(
+        failed_execution = self.create_notebook_block_execution(
             block=failed_query,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.FAILED,
+            status=NotebookBlockExecutionStatus.FAILED,
             block_version=failed_query.version,
             input_snapshot={"projectIds": [self.project.id]},
             input_fingerprint="f" * 64,
@@ -309,7 +306,7 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
         )
 
         assert response.status_code == 202, response.data
-        execution = InvestigationBlockExecution.objects.get(id=response.data["id"])
+        execution = NotebookBlockExecution.objects.get(id=response.data["id"])
         assert execution.executor == "text_generation"
         context = {item["block_id"]: item for item in execution.input_snapshot["context"]}
         assert set(context) == {

@@ -460,8 +460,8 @@ describe('FiltersBar', () => {
       renderFilterBar();
 
       await userEvent.click(screen.getByRole('button', {name: 'Query priority: Normal'}));
-      expect(screen.getByText('Relatively Accurate')).toBeInTheDocument();
-      expect(screen.getByText('Low Accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Balance speed and accuracy')).toBeInTheDocument();
+      expect(screen.getByText('Faster with reduced accuracy')).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('option', {name: 'Faster'}));
 
