@@ -36,7 +36,12 @@ def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
-        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        path.startswith(
+            (
+                "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/notebooks/",
+            )
+        )
         for path, _regex, _method, _callback in selected
     )
     assert all(
