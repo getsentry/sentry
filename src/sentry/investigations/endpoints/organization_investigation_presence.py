@@ -16,10 +16,10 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
 )
 from sentry.investigations.endpoints.serializers.responses import InvestigationPresenceResponse
-from sentry.investigations.endpoints.validators.presence import PresenceValidator
-from sentry.investigations.presence import HEARTBEAT_INTERVAL, record_visit
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators.presence import PresenceValidator
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.presence import HEARTBEAT_INTERVAL, record_visit
 
 
 @extend_schema(tags=["Investigations"])

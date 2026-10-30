@@ -11,16 +11,16 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.constants import ObjectStatus
-from sentry.investigations.access import has_investigations_access
 from sentry.investigations.endpoints.schema import InvestigationSchema
-from sentry.investigations.services import (
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.notebooks.access import has_investigations_access
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment
+from sentry.notebooks.services import (
     InvestigationConflictError,
     InvestigationSourceNotFound,
     InvestigationValidationError,
 )
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment
 
 
 class InvestigationArchivedError(APIException):

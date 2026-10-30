@@ -15,10 +15,8 @@ from rest_framework.exceptions import APIException
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
-    MAX_MARKDOWN_CHARS,
     OrchestrationProjectionSerializer,
     valid_action_requests,
-    validate_text_result,
 )
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
@@ -44,6 +42,7 @@ from sentry.investigations.services.orchestration import (
     schedule_orchestration_commands,
 )
 from sentry.models.project import Project
+from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS, validate_text_result
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,

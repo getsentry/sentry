@@ -1,4 +1,4 @@
-from sentry.investigations.access import has_investigations_access
+from sentry.notebooks.access import has_investigations_access
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 

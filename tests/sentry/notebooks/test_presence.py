@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.investigations.presence import PRESENCE_WINDOW, record_heartbeat
+from sentry.notebooks.presence import PRESENCE_WINDOW, record_heartbeat
 from sentry.testutils.cases import TestCase
 
 

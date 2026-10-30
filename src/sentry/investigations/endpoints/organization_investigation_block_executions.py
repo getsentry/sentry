@@ -22,18 +22,15 @@ from sentry.investigations.endpoints.base import (
     service_error,
 )
 from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
-from sentry.investigations.endpoints.validators import BlockExecutionStartValidator
-from sentry.investigations.services import (
-    create_block_execution,
-    mark_block_execution_dispatch_failed,
-)
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators import BlockExecutionStartValidator
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
     NotebookBlockExecution,
     NotebookBlockKind,
 )
+from sentry.notebooks.services import create_block_execution, mark_block_execution_dispatch_failed
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.utils import metrics
 

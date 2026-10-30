@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators import (
+from sentry.notebooks.endpoints.validators import (
     BlockCreateValidator,
     BlockOrderValidator,
     BlockUpdateValidator,

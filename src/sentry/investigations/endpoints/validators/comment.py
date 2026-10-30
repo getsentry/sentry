@@ -5,7 +5,7 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.base import InvestigationArchivedError
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookBlock, NotebookComment, NotebookStatus
 
 MAX_COMMENT_LENGTH = 10_000

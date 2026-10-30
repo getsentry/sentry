@@ -18,14 +18,14 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
     service_error,
 )
-from sentry.investigations.endpoints.serializers import (
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.serializers import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
 )
-from sentry.investigations.endpoints.validators import BlockDeleteValidator, BlockUpdateValidator
-from sentry.investigations.services import delete_block, update_block
-from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators import BlockDeleteValidator, BlockUpdateValidator
 from sentry.notebooks.models import Notebook, NotebookBlock
+from sentry.notebooks.services import delete_block, update_block
 
 
 @extend_schema(tags=["Investigations"])

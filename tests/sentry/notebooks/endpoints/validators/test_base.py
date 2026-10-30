@@ -5,8 +5,7 @@ from typing import Any
 import pytest
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators import (
-    InvestigationCreateValidator,
+from sentry.notebooks.endpoints.validators import (
     StrictCamelSnakeValidator,
     VisualizationSuggestionValidator,
 )
@@ -46,13 +45,6 @@ class TestStrictCamelSnakeValidator:
         )
 
         assert data["nested"] == {"promptCollapsed": True, "xAxis": "time"}
-
-    def test_converts_multi_word_error_keys_to_camel_case(self) -> None:
-        validator = InvestigationCreateValidator(data={"title": "T", "projectIds": "nope"})
-
-        assert not validator.is_valid()
-        assert "projectIds" in validator.errors
-        assert "project_ids" not in validator.errors
 
     def test_rejects_colliding_camel_and_snake_keys(self) -> None:
         with pytest.raises(serializers.ValidationError):

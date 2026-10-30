@@ -41,7 +41,7 @@ class OrganizationInvestigationIndexTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    @mock.patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @mock.patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_create_manual_and_list(self, metrics_count: mock.MagicMock) -> None:
         response = self.client.post(
             self.collection_url,

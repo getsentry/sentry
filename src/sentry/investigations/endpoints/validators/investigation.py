@@ -4,11 +4,11 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationSourceField,
     validate_agentic_source,
 )
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookStatus
 
 
