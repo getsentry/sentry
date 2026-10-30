@@ -34,7 +34,7 @@ DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
 # Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
 # worker holds up the whole shard; this bounds how big that can be.
-PIECES_PER_SHARD = 48
+PIECES_PER_SHARD = 24
 
 
 @dataclass(frozen=True)
