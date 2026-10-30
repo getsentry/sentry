@@ -559,7 +559,7 @@ export function TourGuide({
               <ThemeProvider theme={invertedTheme}>
                 <ClassNames>
                   {({css, theme: currentTheme}) => (
-                    <TourOverlay
+                    <Overlay
                       animated
                       arrowProps={{
                         ...arrowProps,
@@ -621,7 +621,7 @@ export function TourGuide({
                           </Flex>
                         )}
                       </Stack>
-                    </TourOverlay>
+                    </Overlay>
                   )}
                 </ClassNames>
               </ThemeProvider>
@@ -635,11 +635,6 @@ export function TourGuide({
 
 // useOverlay keeps 16px between the guide and each edge of the viewport.
 const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
-
-// Replaces the Overlay's own shadow, which no layout primitive can override.
-const TourOverlay = styled(Overlay)`
-  box-shadow: ${p => p.theme.shadow.high};
-`;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="primary" size="sm" />;
