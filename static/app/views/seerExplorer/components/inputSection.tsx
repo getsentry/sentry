@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
+import type {RepoChanges} from 'sentry/views/seerExplorer/runChanges';
 import type {RepoPRState, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface FileApprovalActions {
@@ -47,7 +48,14 @@ interface InputSectionProps {
   disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  /** Whether Seer is working, which disables `onPushChanges`. */
+  isAgentBusy?: boolean;
+  /** Opens the diff of the run's changes to a repo. */
+  onOpenChanges?: (repoName: string) => void;
+  /** Asks Seer to push its unpushed changes, with `message` as the user's message. */
+  onPushChanges?: (message: string) => void;
   questionActions?: QuestionActions;
+  runChanges?: RepoChanges[];
   runId?: SeerExplorerRunId | null;
 }
 
@@ -57,15 +65,19 @@ export function InputSection({
   canSendMessage = true,
   disabledPlaceholder,
   interruptState = 'disabled',
+  isAgentBusy,
   onInputChange,
   onInputClick,
   onInterrupt,
   onKeyDown,
+  onOpenChanges,
+  onPushChanges,
   onSend,
   repoPRStates,
   composerRef,
   fileApprovalActions,
   questionActions,
+  runChanges,
   runId,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
@@ -73,7 +85,14 @@ export function InputSection({
   const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
   // Keyed by run so collapse state resets when switching conversations.
   const prLinksBar = agentCreatesPRs ? (
-    <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />
+    <PRLinksBar
+      key={runId ?? undefined}
+      repoPRStates={repoPRStates}
+      changes={runChanges}
+      isAgentBusy={isAgentBusy}
+      onOpenChanges={onOpenChanges}
+      onPushChanges={onPushChanges}
+    />
   ) : null;
 
   // Handle keyboard shortcuts for file approval

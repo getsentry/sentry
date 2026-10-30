@@ -82,7 +82,7 @@ describe('InputSection', () => {
       render(<InputSection {...makeProps({enabled: false})} />, {organization});
 
       expect(screen.getByTestId('seer-explorer-input')).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'acme/web#482'})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'acme/web#482'})).toBeInTheDocument();
     });
   });
 });
