@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections import Counter
 from collections.abc import Callable
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -55,6 +56,13 @@ BRANCH_MOVED_RETRY_PROMPT = (
 # Retries one iteration gets when its push is refused because the branch moved. A busy branch
 # can outrun every retry, so this is what ends the loop.
 MAX_BRANCH_MOVED_RETRIES = 2
+
+
+class Retrying(Enum):
+    """The push didn't end the iteration: another turn of it runs, and that turn's completion
+    ends it."""
+
+    BRANCH_MOVED = "branch_moved"
 
 
 def _iteration_repo_states(state: SeerRunState) -> list[dict[str, Any]]:
@@ -190,6 +198,8 @@ def iteration_completed_webhook_fields(
     group: Group,
     state: SeerRunState,
     format_code_changes: Callable[[SeerRunState], dict],
+    *,
+    retrying: bool,
 ) -> dict[str, Any] | None:
     log_ctx = iteration_log_context(organization, group, state)
     iteration_index = get_latest_iteration_index(state)
@@ -207,7 +217,7 @@ def iteration_completed_webhook_fields(
 
     _, is_synced = state.has_code_changes()
     errored_repos = [] if is_synced else iteration_terminal_errored_repos(state)
-    if errored_repos and _retries_on_moved_branch(group, state, errored_repos):
+    if retrying:
         # Another turn of this iteration runs; its completion emits the webhook.
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
@@ -252,12 +262,14 @@ def continue_pr_iteration(
     run_id: int,
     state: SeerRunState,
     referrer: AutofixReferrer,
-) -> None:
+) -> bool:
+    """Push the iteration's changes or end the iteration. Returns whether another turn of the
+    iteration runs."""
     log_ctx = iteration_log_context(organization, group, state)
 
     outcome = pr_iteration_push_outcome(log_ctx, group, run_id, state, referrer)
 
-    if outcome is None:
+    if outcome is None or isinstance(outcome, Retrying):
         metrics.incr(
             "autofix.pr_iteration.step",
             tags={
@@ -267,7 +279,7 @@ def continue_pr_iteration(
             },
             sample_rate=1.0,
         )
-        return
+        return isinstance(outcome, Retrying)
 
     if (
         state.status == "completed"
@@ -308,6 +320,7 @@ def continue_pr_iteration(
         organization_id=organization.id,
         outcome=outcome.value,
     )
+    return False
 
 
 @traces.trace
@@ -384,7 +397,7 @@ def pr_iteration_push_outcome(
     run_id: int,
     state: SeerRunState,
     referrer: AutofixReferrer,
-) -> PrIterationOutcome | None:
+) -> PrIterationOutcome | Retrying | None:
     if not state.repo_pr_states:
         log_ctx.error(
             "autofix.pr_iteration.push",
@@ -502,15 +515,6 @@ def _push_failed_on_moved_branch(
     )
 
 
-def _retries_on_moved_branch(group: Group, state: SeerRunState, errored_repos: list[str]) -> bool:
-    """Whether a push refused because the branch moved runs another turn of the iteration
-    instead of ending it."""
-    return (
-        _push_failed_on_moved_branch(group, state, errored_repos)
-        and _branch_moved_retry_decision(state).ok
-    )
-
-
 def _branch_moved_retry_decision(state: SeerRunState) -> Decision:
     """Whether the latest iteration may run another turn after the branch moved under its push.
 
@@ -536,7 +540,7 @@ def _retry_push_on_moved_branch(
     group: Group,
     run_id: int,
     state: SeerRunState,
-) -> PrIterationOutcome | None:
+) -> PrIterationOutcome | Retrying:
     """Run another turn of the same iteration. It starts on the PR's latest commit, so the push
     that follows it can land on top."""
     decision = _branch_moved_retry_decision(state)
@@ -580,4 +584,4 @@ def _retry_push_on_moved_branch(
         )
         return PrIterationOutcome.PR_CREATION_ERRORED
     log_ctx.info("autofix.pr_iteration.push", outcome="retrying", reason="branch_moved")
-    return None
+    return Retrying.BRANCH_MOVED

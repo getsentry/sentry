@@ -223,8 +223,19 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._record_triggered(organization, run_id, group)
         log_completion_received(organization, group, state)
 
+        # Push first: only the push knows whether another turn of the iteration runs, and that
+        # turn's completion emits the webhook instead.
+        _, referrer = get_current_step(state)
+        retrying = continue_pr_iteration(
+            organization,
+            group,
+            run_id,
+            state,
+            referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+        )
+
         iteration_fields = iteration_completed_webhook_fields(
-            organization, group, state, cls._format_code_changes_payload
+            organization, group, state, cls._format_code_changes_payload, retrying=retrying
         )
         if iteration_fields is not None:
             cls._send_step_webhook(
@@ -249,15 +260,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "outcomes": dict(reaction_outcomes),
                 },
             )
-
-        _, referrer = get_current_step(state)
-        continue_pr_iteration(
-            organization,
-            group,
-            run_id,
-            state,
-            referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
-        )
 
     @classmethod
     def _run_completed(cls, organization: Organization, run_id: int, state: SeerRunState) -> bool:

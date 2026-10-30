@@ -28,6 +28,7 @@ from sentry.seer.autofix.on_completion_hook import (
 from sentry.seer.autofix.pr_iteration.completion import (
     BRANCH_MOVED_RETRY_PROMPT,
     MAX_BRANCH_MOVED_RETRIES,
+    Retrying,
     continue_pr_iteration,
     iteration_completed_webhook_fields,
     iteration_log_context,
@@ -718,6 +719,7 @@ class TestPrIterationCompletionHook(TestCase):
             self.group,
             state,
             AutofixOnCompletionHook._format_code_changes_payload,
+            retrying=False,
         )
         if iteration_fields is not None:
             AutofixOnCompletionHook._send_step_webhook(
@@ -1025,7 +1027,9 @@ class TestPrIterationCompletionHook(TestCase):
             ]
         )
 
-    def _branch_moved_push(self, state: SeerRunState) -> tuple[PrIterationOutcome | None, bool]:
+    def _branch_moved_push(
+        self, state: SeerRunState
+    ) -> tuple[PrIterationOutcome | Retrying | None, bool]:
         """The push outcome, and whether it asked Seer for another turn."""
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
         self.create_seer_agent_run(
@@ -1048,26 +1052,68 @@ class TestPrIterationCompletionHook(TestCase):
     def test_a_branch_moved_push_retries_up_to_the_retry_cap(self):
         state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES)
 
-        assert self._branch_moved_push(state) == (None, True)
+        assert self._branch_moved_push(state) == (Retrying.BRANCH_MOVED, True)
 
     def test_a_branch_moved_push_past_the_retry_cap_ends_the_iteration_as_errored(self):
         state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
 
         assert self._branch_moved_push(state) == (PrIterationOutcome.PR_CREATION_ERRORED, False)
 
-    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
-    def test_a_branch_moved_push_past_the_retry_cap_emits_the_webhook(self, mock_broadcast):
-        with self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"):
-            self._webhook(self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1))
+    def _complete(
+        self, state: SeerRunState, seer_error: Exception | None = None
+    ) -> tuple[bool, bool]:
+        """Run the completion hook on ``state``: whether it asked Seer for another turn, and
+        whether it emitted iteration_completed."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=state),
+            patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay") as mock_broadcast,
+            patch(f"{COMPLETION_PATH}.complete_pr_iteration_details"),
+        ):
+            continue_feature_run = mock_client_cls.return_value.continue_feature_run
+            continue_feature_run.return_value = run
+            continue_feature_run.side_effect = seer_error
+            AutofixOnCompletionHook.execute(self.organization, 123)
 
-        mock_broadcast.assert_called_once()
+        events = [call.kwargs["event_name"] for call in mock_broadcast.call_args_list]
+        return continue_feature_run.called, SeerActionType.ITERATION_COMPLETED.value in events
+
+    def test_a_branch_moved_retry_holds_the_webhook(self):
+        """The retry turn finishes the iteration, and its completion emits the webhook."""
+        assert self._complete(self._branch_moved()) == (True, False)
+
+    def test_a_branch_moved_push_past_the_retry_cap_emits_the_webhook(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        assert self._complete(state) == (False, True)
+
+    def test_a_branch_moved_retry_that_seer_refuses_emits_the_webhook(self):
+        state = self._branch_moved()
+
+        assert self._complete(state, seer_error=SeerApiError("unavailable", 503)) == (True, True)
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    def test_a_branch_moved_push_on_a_closed_pr_emits_the_webhook(
+        self, mock_make_scm, mock_get_pull_request
+    ):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        assert self._complete(self._branch_moved()) == (False, True)
 
     def test_an_automated_iteration_retries_with_pr_iteration_turned_off(self):
         """A retry finishes the iteration already running, so the iteration gates don't apply."""
         self.project.update_option("sentry:seer_pr_iteration", False)
         state = self._branch_moved(feedback=self._bot_feedback())
 
-        assert self._branch_moved_push(state) == (None, True)
+        assert self._branch_moved_push(state) == (Retrying.BRANCH_MOVED, True)
 
     def test_a_push_refused_because_the_branch_moved_retries_the_iteration_pinned(self):
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1090,7 +1136,7 @@ class TestPrIterationCompletionHook(TestCase):
                 AutofixReferrer.ON_COMPLETION_HOOK,
             )
 
-        assert outcome is None
+        assert outcome == Retrying.BRANCH_MOVED
         mock_push.assert_not_called()
         kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
         assert kwargs["agent_run_options"]["pin_to_pr_head"] is True
@@ -1100,14 +1146,6 @@ class TestPrIterationCompletionHook(TestCase):
         assert payload["step_args"]["iteration_index"] == 1
         assert payload["step_args"]["iteration_id"] == 41
         assert payload["step_args"]["feedback"] == "[]"
-
-    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
-    def test_a_branch_moved_push_that_retries_does_not_emit_the_webhook(self, mock_broadcast):
-        """The retry turn finishes the iteration, and its completion emits the webhook."""
-        with self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"):
-            self._webhook(self._branch_moved())
-
-        mock_broadcast.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.pause_pr_iteration")
     @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
@@ -1582,6 +1620,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 self.group,
                 state,
                 AutofixOnCompletionHook._format_code_changes_payload,
+                retrying=False,
             ),
         )
 
@@ -1633,6 +1672,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 self.group,
                 state,
                 AutofixOnCompletionHook._format_code_changes_payload,
+                retrying=False,
             ),
         )
 
