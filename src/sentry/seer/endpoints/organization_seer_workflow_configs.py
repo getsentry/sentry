@@ -371,7 +371,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if not request.access.has_global_access:
                     raise PermissionDenied
 
-            if not all_projects:
+            if not all_projects and bool(project_ids):
                 requested = self.get_projects(request, organization, project_ids=set(project_ids))
                 if not all(
                     request.access.has_project_scope(project, "project:read")
