@@ -28,6 +28,6 @@ def finish_investigation_executions(*, investigation_id: int) -> None:
             )
         except InvalidWorkflowTransition:
             logger.info(
-                "seer.workflow.output_completion_skipped",
+                "seer.workflow.execution_completion_conflict",
                 extra={"execution_id": execution.id, "investigation_id": investigation_id},
             )
