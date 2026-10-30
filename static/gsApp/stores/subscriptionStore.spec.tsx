@@ -54,6 +54,64 @@ describe('SubscriptionStore', () => {
     ).toBeUndefined();
   });
 
+  it('retries after a failed load', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    await expect(SubscriptionStore.loadData(organization.slug)).rejects.toBeDefined();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+
+    await SubscriptionStore.loadData(organization.slug);
+    expect(SubscriptionStore.getState()[organization.slug]).toEqual({
+      ...subscription,
+      setAt: expect.any(Number),
+    });
+  });
+
+  it('does not run callbacks from a failed load after a retry', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+    const failedCallback = jest.fn();
+
+    await expect(
+      SubscriptionStore.loadData(organization.slug, failedCallback)
+    ).rejects.toBeDefined();
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      body: subscription,
+    });
+    const retryCallback = jest.fn();
+
+    await SubscriptionStore.loadData(organization.slug, retryCallback);
+    expect(failedCallback).not.toHaveBeenCalled();
+    expect(retryCallback).toHaveBeenCalledTimes(1);
+  });
+
+  it('shares a failed load with concurrent callers', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      statusCode: 500,
+      body: {},
+    });
+
+    const first = SubscriptionStore.loadData(organization.slug);
+    const second = SubscriptionStore.loadData(organization.slug);
+
+    await expect(first).rejects.toBeDefined();
+    await expect(second).rejects.toBeDefined();
+  });
+
   it('should return stable reference from getState', () => {
     SubscriptionStore.set(organization.slug, subscription);
     const state = SubscriptionStore.getState();

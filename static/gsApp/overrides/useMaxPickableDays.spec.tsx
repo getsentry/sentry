@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DataCategory} from 'sentry/types/core';
 
@@ -10,7 +10,17 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {useMaxPickableDays} from './useMaxPickableDays';
 
 describe('useMaxPickableDays', () => {
-  describe('without subscription effective retentions', () => {
+  describe('before the subscription loads', () => {
+    beforeEach(() => {
+      SubscriptionStore.init();
+      MockApiClient.addMockResponse({
+        url: `/customers/${OrganizationFixture().slug}/`,
+        body: {},
+        // Keep the request pending so the subscription stays unloaded.
+        asyncDelay: new Promise(() => {}),
+      });
+    });
+
     afterEach(() => {
       jest.useRealTimers();
     });
@@ -23,6 +33,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         maxPickableDays: 90,
         maxUpgradableDays: 90,
       });
@@ -36,6 +47,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         maxPickableDays: 90,
         maxUpgradableDays: 90,
       });
@@ -50,6 +62,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         maxPickableDays: 30,
         maxUpgradableDays: 90,
         upsellFooter: expect.any(Object),
@@ -64,6 +77,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         defaultPeriod: '24h',
         maxPickableDays: 30,
         maxUpgradableDays: 30,
@@ -78,6 +92,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         defaultPeriod: '24h',
         maxPickableDays: 30,
         maxUpgradableDays: 30,
@@ -99,6 +114,7 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         maxPickableDays: 30,
         maxUpgradableDays: 90,
         upsellFooter: expect.any(Object),
@@ -118,10 +134,49 @@ describe('useMaxPickableDays', () => {
       );
 
       expect(result.current).toEqual({
+        isLoading: true,
         maxPickableDays: 30,
         maxUpgradableDays: 30,
         defaultPeriod: '24h',
       });
+    });
+
+    it('stops loading once the subscription loads', () => {
+      const organization = OrganizationFixture();
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRANSACTIONS]}),
+        {organization}
+      );
+
+      expect(result.current.isLoading).toBe(true);
+
+      act(() =>
+        SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
+      );
+
+      expect(result.current).toEqual({
+        maxPickableDays: 30,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('stops loading when the subscription request fails', async () => {
+      const organization = OrganizationFixture();
+      MockApiClient.addMockResponse({
+        url: `/customers/${organization.slug}/`,
+        statusCode: 500,
+        body: {},
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRANSACTIONS]}),
+        {organization}
+      );
+
+      expect(result.current.isLoading).toBe(true);
+      await waitFor(() =>
+        expect(result.current).toEqual({maxPickableDays: 90, maxUpgradableDays: 90})
+      );
     });
   });
 

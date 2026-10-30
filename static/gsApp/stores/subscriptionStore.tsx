@@ -19,7 +19,7 @@ type Subscriptions = Record<string, Subscription>;
 interface Internal {
   api: Client;
   callbacks: Record<string, GetCallback[]>;
-  loadingData: Record<string, boolean>;
+  loadingData: Record<string, Promise<void>>;
 }
 
 interface SubscriptionStoreDefintion
@@ -89,11 +89,7 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
     this.trigger(this.state[orgSlug]);
   },
 
-  async loadData(
-    orgSlug: string,
-    callback?: null | GetCallback,
-    {markStartedTrial} = {}
-  ) {
+  loadData(orgSlug: string, callback?: null | GetCallback, {markStartedTrial} = {}) {
     if (this.callbacks[orgSlug] === undefined) {
       this.callbacks[orgSlug] = [];
     }
@@ -102,18 +98,28 @@ const subscriptionStoreConfig: SubscriptionStoreDefintion = {
       this.callbacks[orgSlug].push(callback);
     }
 
-    if (this.loadingData[orgSlug]) {
-      return;
-    }
-    this.loadingData[orgSlug] = true;
+    // Share the in-flight request so every caller sees its failure, and clear it when it
+    // settles so a failed load can be retried. Drop the failed load's callbacks so a
+    // later retry does not run them.
+    this.loadingData[orgSlug] ??= this.api
+      .requestPromise(`/customers/${orgSlug}/`)
+      .then(
+        (data: Subscription) => {
+          if (markStartedTrial) {
+            data.isTrialStarted = true;
+          }
+          this.set(orgSlug, data);
+        },
+        (error: unknown) => {
+          delete this.callbacks[orgSlug];
+          throw error;
+        }
+      )
+      .finally(() => {
+        delete this.loadingData[orgSlug];
+      });
 
-    const data = await this.api.requestPromise(`/customers/${orgSlug}/`);
-    if (markStartedTrial) {
-      data.isTrialStarted = true;
-    }
-
-    this.set(orgSlug, data);
-    delete this.loadingData[orgSlug];
+    return this.loadingData[orgSlug];
   },
 };
 

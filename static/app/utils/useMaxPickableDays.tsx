@@ -36,6 +36,11 @@ export interface MaxPickableDaysOptions {
   maxUpgradableDays: NonNullable<DatePageFilterProps['maxPickableDays']>;
   defaultPeriod?: DatePageFilterProps['defaultPeriod'];
   /**
+   * True while the limits are still fallbacks, such as before the subscription loads.
+   * Wait for it before clamping a date selection, since the real limits may be higher.
+   */
+  isLoading?: boolean;
+  /**
    * The maximum number of sequential days that can be selected on the date page filter
    */
   maxDateRange?: number;
