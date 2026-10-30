@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
@@ -145,7 +146,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 "chat_suggestions",
                 payload,
                 organization,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 timeout=3.5,
             )
         except HTTPError:

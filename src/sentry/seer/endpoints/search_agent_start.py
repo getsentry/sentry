@@ -16,6 +16,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
 from sentry.api.client_kind import ClientKind, get_client_kind
+from sentry.auth.principal import acting_user_id
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
@@ -236,11 +237,11 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         timezone = user_org_context.get("user_timezone")
         try:
             viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
+                organization_id=organization.id, user_id=acting_user_id(request.user)
             )
             result = send_search_agent_start_request(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 project_ids=project_ids,
                 natural_language_query=natural_language_query,
                 strategy=strategy,

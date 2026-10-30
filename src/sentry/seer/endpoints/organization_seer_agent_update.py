@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
@@ -72,7 +73,7 @@ class OrganizationSeerAgentUpdateEndpoint(OrganizationEndpoint):
         if not has_access:
             return Response({"detail": error}, status=403)
 
-        user_id = request.user.id
+        user_id = acting_user_id(request.user)
         if user_id is None:
             raise PermissionDenied("A user account is required to update a conversation.")
 

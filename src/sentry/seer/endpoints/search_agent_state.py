@@ -12,6 +12,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission, resolve_seer_run
 from sentry.seer.models import SeerApiError
@@ -93,7 +94,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        user_id = request.user.id
+        user_id = acting_user_id(request.user)
         if user_id is None:
             return Response(
                 {"detail": "You do not have access to this run."},
@@ -106,7 +107,7 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
 
         try:
             viewer_context = SeerViewerContext(
-                organization_id=organization.id, user_id=request.user.id
+                organization_id=organization.id, user_id=acting_user_id(request.user)
             )
             data = fetch_search_agent_state(
                 seer_run_id, organization.id, viewer_context=viewer_context

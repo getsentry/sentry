@@ -20,6 +20,7 @@ from sentry.api.serializers.models.seer_run import (
     SeerRunSerializer,
 )
 from sentry.api.utils import get_date_range_from_params
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.seer.agent.client import SeerAgentClient
@@ -223,7 +224,7 @@ class OrganizationSeerRunsEndpoint(OrganizationEndpoint):
                     runs,
                     organization,
                     questions=run_questions,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                 )
                 for run, data in zip(runs, serialized):
                     data["outputs"] = outputs_by_run_id.get(run.id, [])

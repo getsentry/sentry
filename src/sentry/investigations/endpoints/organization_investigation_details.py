@@ -12,6 +12,7 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
     organization_project_ids,
@@ -138,7 +139,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 archived = archive_investigation_with_orchestration(
                     investigation=investigation,
                     expected_version=expected_version,
-                    actor_id=request.user.id,
+                    actor_id=acting_user_id(request.user),
                 )
             except Exception as error:
                 response = service_error(error)
@@ -204,7 +205,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             archive_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=validator.validated_data["investigation_version"],
-                actor_id=request.user.id,
+                actor_id=acting_user_id(request.user),
             )
         except Exception as error:
             response = service_error(error)
