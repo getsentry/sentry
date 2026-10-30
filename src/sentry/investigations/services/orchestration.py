@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import logging
 from copy import deepcopy
 from dataclasses import dataclass
@@ -16,16 +15,11 @@ from rest_framework.exceptions import PermissionDenied
 from sentry.auth.access import from_user
 from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
-    InvestigationSourceType,
-    InvestigationStatus,
 )
 from sentry.investigations.services.action_kinds.base import FollowUpCommandType
 from sentry.investigations.services.breached_metrics import (
@@ -43,9 +37,15 @@ from sentry.investigations.services.investigations import (
     update_investigation,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookSourceType,
+    NotebookStatus,
+)
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.users.services.user.service import user_service
-from sentry.utils import json
 from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
@@ -184,16 +184,14 @@ def _create_agentic_investigation(
     orchestration_source: dict[str, Any],
     project_ids: list[int],
     filters: dict[str, Any],
-    source_type: str = InvestigationSourceType.MANUAL,
-    source_ref: dict[str, Any] | None = None,
+    source_type: str = NotebookSourceType.MANUAL,
     source_key: str | None = None,
-    lineage_key: str | None = None,
     source_revision: int | None = None,
-) -> tuple[Investigation, InvestigationOrchestrationRun]:
+) -> tuple[Notebook, InvestigationOrchestrationRun]:
     """Create the notebook and its parent control-plane aggregate atomically."""
 
-    with transaction.atomic(using=router.db_for_write(Investigation)):
-        investigation = Investigation.objects.create(
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        investigation = Notebook.objects.create(
             organization=organization,
             created_by_id=creator.id if creator.type == ActorType.USER else None,
             created_by_service_account_id=(
@@ -201,10 +199,8 @@ def _create_agentic_investigation(
             ),
             title=title or default_investigation_title(source_type),
             source_type=source_type,
-            source_ref=deepcopy(source_ref or {}),
             source_key=source_key,
             source=deepcopy(source),
-            lineage_key=lineage_key,
             source_revision=source_revision,
             filters=deepcopy(filters),
         )
@@ -419,15 +415,13 @@ def schedule_orchestration_commands(run_id: int) -> None:
 
 
 def archive_investigation_with_orchestration(
-    *, investigation: Investigation, expected_version: int, actor_id: int | None
-) -> Investigation:
+    *, investigation: Notebook, expected_version: int, actor_id: int | None
+) -> Notebook:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
@@ -444,7 +438,7 @@ def archive_investigation_with_orchestration(
             if expected_version > locked_investigation.version:
                 raise InvestigationConflictError("Investigation has changed.")
             archive_version = locked_investigation.version
-        if locked_investigation.status == InvestigationStatus.ARCHIVED:
+        if locked_investigation.status == NotebookStatus.ARCHIVED:
             return locked_investigation
         if run is not None and run.status not in {
             InvestigationOrchestrationStatus.COMPLETED,
@@ -471,16 +465,16 @@ def archive_investigation_with_orchestration(
             run.date_updated = timezone.now()
             run.save(update_fields=["projection", "date_updated"])
             now = timezone.now()
-            InvestigationBlockExecution.objects.filter(
-                block__investigation=locked_investigation,
+            NotebookBlockExecution.objects.filter(
+                block__notebook=locked_investigation,
                 status__in=(
-                    InvestigationBlockExecutionStatus.PENDING,
-                    InvestigationBlockExecutionStatus.RUNNING,
-                    InvestigationBlockExecutionStatus.AWAITING_INPUT,
-                    InvestigationBlockExecutionStatus.STOPPING,
+                    NotebookBlockExecutionStatus.PENDING,
+                    NotebookBlockExecutionStatus.RUNNING,
+                    NotebookBlockExecutionStatus.AWAITING_INPUT,
+                    NotebookBlockExecutionStatus.STOPPING,
                 ),
             ).update(
-                status=InvestigationBlockExecutionStatus.CANCELLED,
+                status=NotebookBlockExecutionStatus.CANCELLED,
                 error={
                     "code": "investigation_archived",
                     "message": "The investigation was archived.",
@@ -496,18 +490,16 @@ def archive_investigation_with_orchestration(
 
 def update_investigation_with_orchestration(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     expected_version: int,
     fields: dict[str, Any],
     project_ids: list[int] | None,
-) -> Investigation:
+) -> Notebook:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
@@ -516,7 +508,7 @@ def update_investigation_with_orchestration(
         )
         if (
             run is not None
-            and locked_investigation.status == InvestigationStatus.ACTIVE
+            and locked_investigation.status == NotebookStatus.ACTIVE
             and set(fields) == {"title"}
             and project_ids is None
         ):
@@ -565,7 +557,7 @@ def create_agentic_manual_investigation(
     source: dict[str, Any],
     project_ids: list[int],
     filters: dict[str, Any],
-) -> tuple[Investigation, InvestigationOrchestrationRun]:
+) -> tuple[Notebook, InvestigationOrchestrationRun]:
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     return _create_agentic_investigation(
         organization=organization,
@@ -624,16 +616,16 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
     }
 
 
-def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any] | None:
+def rebuild_orchestration_source(investigation: Notebook) -> dict[str, Any] | None:
     """The source Seer gets when the run starts, built again from the monitor as it is now.
     None if Sentry can no longer read the monitor.
     """
 
-    if investigation.source_type == InvestigationSourceType.MANUAL:
+    if investigation.source_type == NotebookSourceType.MANUAL:
         return _manual_orchestration_source(investigation.source)
     source_ref = (
-        int(investigation.source_ref["groupId"]),
-        int(investigation.source_ref["openPeriodId"]),
+        int(investigation.source["ref"]["groupId"]),
+        int(investigation.source["ref"]["openPeriodId"]),
     )
     # The access check ran when the investigation started, so allow the monitor's own project.
     project_id = int(investigation.source["snapshot"]["project"]["id"])
@@ -648,12 +640,8 @@ def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any]
 
 
 def agentic_breached_metric_source_key(source: dict[str, Any]) -> str:
-    identity = {
-        "templateKey": "agentic_breached_metric",
-        "type": source["type"],
-        "ref": source["ref"],
-    }
-    return hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+    ref = source["ref"]
+    return f"metric_open_period:{ref['groupId']}:{ref['openPeriodId']}"
 
 
 def create_agentic_breached_metric_investigation(
@@ -664,26 +652,26 @@ def create_agentic_breached_metric_investigation(
     resolved_source: BreachedMetricSource,
     project_ids: list[int],
     filters: dict[str, Any],
-) -> tuple[Investigation, bool]:
+) -> tuple[Notebook, bool]:
     _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     if resolved_source.project_id not in project_ids:
         raise InvestigationValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
-    # Uniqueness on active lineage and revision arbitrates concurrent launches.
+    # Uniqueness on the active source and revision arbitrates concurrent launches.
     for attempt in range(3):
         active = (
-            Investigation.objects.filter(
+            Notebook.objects.filter(
                 organization=organization,
                 source_key=source_key,
-                status=InvestigationStatus.ACTIVE,
+                status=NotebookStatus.ACTIVE,
             )
             .order_by("-source_revision", "-id")
             .first()
         )
         if active is not None:
             return active, False
-        latest_revision = Investigation.objects.filter(
+        latest_revision = Notebook.objects.filter(
             organization=organization,
             source_key=source_key,
         ).aggregate(latest=Max("source_revision"))["latest"]
@@ -696,19 +684,17 @@ def create_agentic_breached_metric_investigation(
                 orchestration_source=_breached_metric_orchestration_source(normalized_source),
                 project_ids=project_ids,
                 filters=filters,
-                source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
-                source_ref=normalized_source["ref"],
+                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
                 source_key=source_key,
-                lineage_key=source_key,
                 source_revision=(latest_revision or 0) + 1,
             )
             return investigation, True
         except IntegrityError:
             if attempt == 2:
-                active = Investigation.objects.filter(
+                active = Notebook.objects.filter(
                     organization=organization,
                     source_key=source_key,
-                    status=InvestigationStatus.ACTIVE,
+                    status=NotebookStatus.ACTIVE,
                 ).first()
                 if active is not None:
                     return active, False
@@ -746,7 +732,7 @@ def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str
     return projection
 
 
-def get_orchestration_projection(investigation: Investigation) -> dict[str, Any]:
+def get_orchestration_projection(investigation: Notebook) -> dict[str, Any]:
     try:
         run = InvestigationOrchestrationRun.objects.select_related("seer_run").get(
             investigation=investigation
@@ -779,7 +765,7 @@ def _command_acceptance(
 
 def accept_orchestration_command(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     request_id: UUID,
     expected_workflow_version: int,
     command_type: str,
@@ -789,12 +775,10 @@ def accept_orchestration_command(
     with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
         # Investigation-wide mutations lock the aggregate root before subordinate rows.
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
-        if locked_investigation.status == InvestigationStatus.ARCHIVED:
+        if locked_investigation.status == NotebookStatus.ARCHIVED:
             raise InvestigationValidationError(
                 {"detail": "Archived investigations do not accept commands."}
             )

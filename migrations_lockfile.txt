@@ -19,7 +19,7 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0014_add_actor_references
+investigations: 0016_remove_old_notebook_models
 
 monitors: 0023_drop_checkin_monitor
 
@@ -39,7 +39,7 @@ seer: 0045_workflow_run_lifecycle
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1248_add_apisetupcode
+sentry: 1249_add_apisetupcode
 
 service_accounts: 0003_add_all_projects
 

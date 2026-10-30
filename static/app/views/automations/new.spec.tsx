@@ -643,6 +643,29 @@ describe('AutomationNewSettings', () => {
     expect(await screen.findByText('my-project')).toBeInTheDocument();
   });
 
+  it('pre-selects the project from the project query param over page filters', async () => {
+    const queryProject = ProjectFixture({id: '2', slug: 'query-project', isMember: true});
+    const filterProject = ProjectFixture({
+      id: '3',
+      slug: 'filter-project',
+      isMember: true,
+    });
+    ProjectsStore.loadInitialData([queryProject, filterProject]);
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({projects: [Number(filterProject.id)]})
+    );
+
+    render(<AutomationNewSettings />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/', query: {project: queryProject.id}},
+      },
+    });
+
+    expect(await screen.findByText('query-project')).toBeInTheDocument();
+    expect(screen.queryByText('filter-project')).not.toBeInTheDocument();
+  });
+
   it('pre-selects the first member project when "my projects" is selected', async () => {
     const memberProject = ProjectFixture({
       id: '3',

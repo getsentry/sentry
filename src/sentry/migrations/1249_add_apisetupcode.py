@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("sentry", "1247_drop_metric_trigger"),
+        ("sentry", "1248_add_dashboard_non_user_creator"),
     ]
 
     operations = [
