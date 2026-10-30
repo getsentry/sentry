@@ -229,6 +229,9 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
+      - name: Start resource monitor
+        run: python3 .github/workflows/scripts/monitor-resources.py --start
+
       # Overlaps the per-worker ClickHouse bootstrap with devservices up.
       - name: Start per-worker Snuba bootstrap in the background
         if: env.XDIST_PER_WORKER_SNUBA == '1'
@@ -308,6 +311,11 @@ jobs:
             make test-python-ci
           fi
 
+      - name: Stop resource monitor
+        if: always()
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
       - name: Extract test durations
@@ -325,6 +333,17 @@ jobs:
         with:
           name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
           path: .artifacts/test-durations.json
+          retention-days: 30
+
+      - name: Upload resource usage
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-resource-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: |
+            .artifacts/resource-usage.jsonl
+            .artifacts/resource-usage-summary.json
           retention-days: 30
 
       - name: Report failures
