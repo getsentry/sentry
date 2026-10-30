@@ -17,8 +17,8 @@ interface Props {
   team: Team;
   disabled?: boolean;
   keepMenuInViewport?: boolean;
-  menuPortalTarget?: ControlProps['menuPortalTarget'];
-  size?: ControlProps['size'];
+  menuPortalTarget?: ControlProps<string>['menuPortalTarget'];
+  size?: ControlProps<string>['size'];
 }
 
 export function TeamRoleSelect({

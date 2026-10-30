@@ -107,6 +107,14 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
+    "./useOnClickOutside": {
+      "types": "./dist/useOnClickOutside.d.ts",
+      "import": "./dist/useOnClickOutside.js"
+    },
     "./link": {
       "types": "./dist/link/index.d.ts",
       "import": "./dist/link/index.js"
@@ -230,6 +238,22 @@
     "./overlayTrigger": {
       "types": "./dist/overlayTrigger.d.ts",
       "import": "./dist/overlayTrigger.js"
+    },
+    "./splitPanel": {
+      "types": "./dist/splitPanel/index.d.ts",
+      "import": "./dist/splitPanel/index.js"
+    },
+    "./useDimensions": {
+      "types": "./dist/useDimensions.d.ts",
+      "import": "./dist/useDimensions.js"
+    },
+    "./useResizableDrawer": {
+      "types": "./dist/useResizableDrawer.d.ts",
+      "import": "./dist/useResizableDrawer.js"
+    },
+    "./toast": {
+      "types": "./dist/toast/index.d.ts",
+      "import": "./dist/toast/index.js"
     }
   },
   "publishConfig": {
@@ -268,12 +292,14 @@
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
     "@sentry/react": "11.7.0",
+    "@tanstack/react-hotkeys": "0.17.0",
     "@types/react": "19.3.0",
     "classnames": "2.3.1",
     "framer-motion": "12.38.0",
     "input-otp": "^1.5.0",
     "query-string": "7.0.1",
     "react-textarea-autosize": "8.5.7",
+    "sonner": "2.0.8",
     "type-fest": "^5.10.0"
   },
   "devDependencies": {

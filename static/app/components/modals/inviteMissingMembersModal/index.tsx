@@ -298,6 +298,7 @@ export function InviteMissingMembersModal({
                 </SimpleTable.RowCell>
                 <SimpleTable.RowCell>
                   <TeamSelector
+                    value={Array.from(member.teamSlugs)}
                     aria-label={t('Add to Team')}
                     data-test-id="select-teams"
                     disabled={!isTeamRolesAllowed}

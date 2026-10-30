@@ -14,11 +14,7 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
@@ -26,6 +22,7 @@ from sentry.investigations.models.orchestration import (
 from sentry.investigations.services.action_requests import LIVE_STATES
 from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
+from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
@@ -216,7 +213,7 @@ def _get_progress(
 
 def build_investigation_status(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     projection: Mapping[str, Any] | None,
     phase: str | None = None,
     status: str | None = None,
@@ -274,9 +271,9 @@ def build_investigation_status(
 
 def _build_next_step(run: InvestigationOrchestrationRun) -> SeerInvestigationNextStep | None:
     """The step Seer suggests after the current report, if it still stands."""
-    request = InvestigationActionRequest.objects.filter(
-        investigation_id=run.investigation_id,
-        report_revision=_report_revision(run),
+    request = NotebookActionRequest.objects.filter(
+        notebook_id=run.investigation_id,
+        producer_revision=_report_revision(run),
         primary=True,
         state__in=LIVE_STATES,
     ).first()

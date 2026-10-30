@@ -1,7 +1,8 @@
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {useMedia} from 'sentry/utils/useMedia';
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 const MIN_WIDTH_PERCENT = 20;
@@ -34,6 +35,8 @@ export function useDrawerResizing({
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
+  // The drawer is fixed to the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;

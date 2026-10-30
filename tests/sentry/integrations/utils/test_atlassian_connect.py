@@ -7,6 +7,7 @@ from django.test import RequestFactory, override_settings
 from jwt import InvalidAlgorithmError
 
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
     AtlassianConnectValidationError,
     authenticate_asymmetric_jwt,
     get_integration_from_jwt,
@@ -83,6 +84,16 @@ class AtlassianConnectTest(TestCase):
         )
         assert integration.id == self.integration.id
 
+    def test_get_integration_from_jwt_rejects_malformed_token(self) -> None:
+        with pytest.raises(AtlassianConnectValidationError, match="Malformed token"):
+            get_integration_from_jwt(
+                token="not-a-jwt",
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+
     def test_get_integration_from_jwt_rejects_non_hs256_algorithm(self) -> None:
         # JWT with alg=none and a valid issuer — must be rejected
         with pytest.raises(AtlassianConnectValidationError, match="Invalid algorithm"):
@@ -150,7 +161,7 @@ class AtlassianConnectTest(TestCase):
         except AtlassianConnectValidationError as e:
             assert str(e) == "Query hash mismatch"
 
-        try:
+        with pytest.raises(AtlassianConnectTokenExpiredError, match="Signature is expired"):
             get_integration_from_jwt(
                 token=self.expired_jwt,
                 path=self.path,
@@ -158,8 +169,6 @@ class AtlassianConnectTest(TestCase):
                 query_params=self.query_params,
                 method=self.method,
             )
-        except AtlassianConnectValidationError as e:
-            assert str(e) == "Signature is expired"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_parse_integration_from_request(self) -> None:

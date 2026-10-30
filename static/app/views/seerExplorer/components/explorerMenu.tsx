@@ -9,7 +9,7 @@ interface SlashCommandHandlers {
   /** `/investigate` runs when sent, since it takes a question, so the menu only completes it. */
   canInvestigate?: boolean;
   onBashMode?: (value: boolean) => void;
-  onCodeMode?: (value: 'off' | 'on' | 'only') => void;
+  onCodeMode?: (value: 'off' | 'only') => void;
   onConversations?: () => void;
   onMaxSize?: () => void;
   onMedSize?: () => void;
@@ -291,12 +291,6 @@ function useSlashCommands({
               key: '/code-mode-off',
               description: 'Disable code mode tools',
               handler: () => onCodeMode('off'),
-            },
-            {
-              title: '/code-mode-on',
-              key: '/code-mode-on',
-              description: 'Enable code mode tools alongside standard tools',
-              handler: () => onCodeMode('on'),
             },
             {
               title: '/code-mode-only',

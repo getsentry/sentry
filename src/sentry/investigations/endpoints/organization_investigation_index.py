@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from django.db import router, transaction
 from django.db.models import Exists, OuterRef, Q
-from django.db.models.functions import Coalesce
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -30,20 +28,16 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationStatus,
-)
 from sentry.investigations.services import (
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
     create_manual_investigation,
-    create_template_investigation,
     resolve_investigation_source,
 )
-from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.viewer_context import ActorId, ActorType
 
 
 @extend_schema(tags=["Investigations"])
@@ -78,26 +72,22 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         paginated array of summaries; follow the Link header for more results. Requires the
         organizations:investigations feature and open organization membership.
         """
-        requested_status = request.GET.get("status", InvestigationStatus.ACTIVE)
-        if requested_status not in InvestigationStatus.values:
+        requested_status = request.GET.get("status", NotebookStatus.ACTIVE)
+        if requested_status not in NotebookStatus.values:
             return Response(
                 {"detail": "Must be active or archived."}, status=status.HTTP_400_BAD_REQUEST
             )
         # A source-backed investigation supersedes earlier revisions of the same
         # lineage, so only the newest revision is listed.
-        newer_lineage_revision = Investigation.objects.annotate(
-            compatibility_lineage_key=Coalesce("source_key", "lineage_key")
-        ).filter(
+        newer_lineage_revision = Notebook.objects.filter(
             organization_id=OuterRef("organization_id"),
-            compatibility_lineage_key=OuterRef("compatibility_lineage_key"),
+            source_key=OuterRef("source_key"),
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
-        investigations = (
-            Investigation.objects.filter(organization=organization, status=requested_status)
-            .annotate(compatibility_lineage_key=Coalesce("source_key", "lineage_key"))
-            .filter(Q(compatibility_lineage_key__isnull=True) | ~Exists(newer_lineage_revision))
-        )
+        investigations = Notebook.objects.filter(
+            organization=organization, status=requested_status
+        ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
         query = request.GET.get("query")
         if query:
             investigations = investigations.filter(title__icontains=query)
@@ -140,8 +130,6 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
     def post(self, request: Request, organization: Organization) -> Response:
         """
         Create a blank notebook with title, or supply source to start an agentic investigation.
-        For template-based creation, supply templateKey, templateVersion, and source, with
-        optional parameters; projectIds and filters are controlled by the template.
         A manual source without a non-blank prompt waits for input. Metric sources resolve their
         context server-side and may reuse an existing active investigation (200); new
         investigations return 201. Returns notebook details, blocks, parameters, and
@@ -155,7 +143,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         values = validator.validated_data
         project_ids = organization_project_ids(organization)
         try:
-            if "source" in values and "template_key" not in values:
+            if "source" in values:
                 source = values["source"]
                 requested_project_ids = values.get("project_ids", [])
                 if source["type"] == "metric_open_period":
@@ -174,7 +162,7 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                         )
                     investigation, created = create_agentic_breached_metric_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         resolved_source=resolved_source,
                         project_ids=requested_project_ids,
@@ -189,27 +177,11 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
                     created = True
                     investigation, _ = create_agentic_manual_investigation(
                         organization=organization,
-                        user_id=user_id(request),
+                        creator=ActorId(ActorType.USER, user_id(request)),
                         title=values.get("title"),
                         source=source,
                         project_ids=requested_project_ids,
                         filters=values.get("filters", {}),
-                    )
-            elif "template_key" in values:
-                with transaction.atomic(using=router.db_for_write(Investigation)):
-                    investigation, created = create_template_investigation(
-                        organization=organization,
-                        user_id=user_id(request),
-                        template_key=values["template_key"],
-                        template_version=values["template_version"],
-                        source=values["source"],
-                        supplied_parameters=values.get("parameters", {}),
-                        accessible_project_ids=project_ids,
-                        title=values.get("title"),
-                    )
-                    schedule_eligible_auto_run_blocks(
-                        investigation_id=investigation.id,
-                        user_id=user_id(request),
                     )
             else:
                 created = True

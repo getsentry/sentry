@@ -10,15 +10,12 @@ from slack_sdk.web import SlackResponse
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequestState,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -1279,7 +1276,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             provider="slack",
             metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",
@@ -1390,7 +1387,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         )
 
     def _set_summary(self, summary: str | None, description: str | None = None) -> None:
-        Investigation.objects.filter(id=self.investigation.id).update(
+        Notebook.objects.filter(id=self.investigation.id).update(
             summary=summary, summary_description=description
         )
 
@@ -1697,8 +1694,8 @@ class SlackInvestigationEntrypointTest(TestCase):
     def test_conclusion_includes_the_suggested_next_step(self) -> None:
         self._set_cache()
         self._set_summary("A release added a slow font")
-        self.create_investigation_action_request(
-            investigation=self.investigation,
+        self.create_notebook_action_request(
+            notebook=self.investigation,
             primary=True,
             title="Preload the font",
             rationale="It stops blocking the first paint.",
@@ -1715,17 +1712,15 @@ class SlackInvestigationEntrypointTest(TestCase):
     def test_conclusion_skips_next_steps_that_are_not_current(self) -> None:
         self._set_cache()
         self._set_summary("A release added a slow font")
-        self.create_investigation_action_request(
-            investigation=self.investigation, key="not-primary"
-        )
-        self.create_investigation_action_request(
-            investigation=self.investigation,
+        self.create_notebook_action_request(notebook=self.investigation, key="not-primary")
+        self.create_notebook_action_request(
+            notebook=self.investigation,
             key="withdrawn",
             primary=True,
-            state=InvestigationActionRequestState.WITHDRAWN,
+            state=NotebookActionRequestState.WITHDRAWN,
         )
-        self.create_investigation_action_request(
-            investigation=self.investigation, key="other-report", primary=True, report_revision=1
+        self.create_notebook_action_request(
+            notebook=self.investigation, key="other-report", primary=True, producer_revision=1
         )
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
@@ -1736,8 +1731,8 @@ class SlackInvestigationEntrypointTest(TestCase):
     def test_conclusion_truncates_the_next_step_rationale(self) -> None:
         self._set_cache()
         self._set_summary("A release added a slow font")
-        self.create_investigation_action_request(
-            investigation=self.investigation, primary=True, title="Act", rationale="a" * 3000
+        self.create_notebook_action_request(
+            notebook=self.investigation, primary=True, title="Act", rationale="a" * 3000
         )
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 

@@ -15,8 +15,10 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.services.assignment_source import AssignmentSource
 from sentry.issues.derived.features import FIRST_ASSIGNMENT_ACTION_ID
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.replay import FeatureHistoryLimitExceeded, replay_feature_from_log
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.issues.derived.store import GroupDerivedDataStore
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -159,17 +161,27 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             "organizations:issue-summary-on-first-assignment", group.project.organization
         ):
             derived = GroupDerivedData.objects.get_or_none(group_id=group.id)
-            if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
-                try:
+            try:
+                if derived is None or derived.pipeline_hash != PIPELINE.pipeline_hash:
                     is_first_assignment = (
                         replay_feature_from_log(group.id, PIPELINE, FIRST_ASSIGNMENT_ACTION_ID)
                         is None
                     )
-                except FeatureHistoryLimitExceeded:
-                    is_first_assignment = False
-            else:
-                state = GroupDerivedDataStore.load(PIPELINE, derived)
-                is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+                else:
+                    state = GroupDerivedDataStore.load(PIPELINE, derived)
+                    is_first_assignment = state[FIRST_ASSIGNMENT_ACTION_ID] is None
+            except FeatureHistoryLimitExceeded:
+                is_first_assignment = False
+            except DerivedDataError as error:
+                report_derived_data_error(
+                    error,
+                    derived=derived,
+                    group_id=group.id,
+                    operation="assign",
+                    pipeline_hash=PIPELINE.pipeline_hash,
+                )
+                # An optional summary must not prevent assignment or be sent twice.
+                is_first_assignment = False
 
         GroupSubscription.objects.subscribe_actor(
             group=group, actor=assigned_to, reason=GroupSubscriptionReason.assigned

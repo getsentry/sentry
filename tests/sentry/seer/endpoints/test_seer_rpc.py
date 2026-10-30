@@ -21,6 +21,7 @@ from sentry.api.client_kind import ClientKind, get_client_kind
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.types import ExternalProviders
 from sentry.investigations.models import (
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationEventStatus,
@@ -56,7 +57,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
 from sentry.types.activity import ActivityType
 from sentry.users.models.identity import Identity
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
-from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorId, ActorType, ViewerContext, encode_viewer_context
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -1209,11 +1210,12 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         assert "features" in response.data
 
+    @with_feature("organizations:investigations")
     def test_investigation_event_is_scoped_applied_and_idempotent(self) -> None:
         organization = self.create_organization(owner=self.user)
         investigation, run = create_agentic_manual_investigation(
             organization=organization,
-            user_id=self.user.id,
+            creator=ActorId(ActorType.USER, self.user.id),
             title=None,
             source={"type": "manual", "prompt": "Investigate latency"},
             project_ids=[],
@@ -1405,7 +1407,7 @@ class TestSeerRpcViewerContextAuth(APITestCase):
     def test_investigation_event_cannot_cross_organization_scope(self) -> None:
         organization = self.create_organization(owner=self.user)
         other_organization = self.create_organization()
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=other_organization,
             created_by=self.user,
             source={"type": "manual"},
@@ -1481,6 +1483,24 @@ class TestSeerRpcViewerContextAuth(APITestCase):
         assert response.status_code == 200
         returned_ids = {p["id"] for p in response.data["projects"]}
         assert returned_ids == {project.id}
+
+    def test_service_account_viewer_context_is_rejected(self) -> None:
+        org = self.create_organization()
+        self.create_project(organization=org)
+        service_account = self.create_service_account(organization=org, scope_list=["org:read"])
+        path = self._get_path("get_organization_projects")
+        data: dict[str, Any] = {"args": {"org_id": org.id}, "meta": {}}
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                    organization_id=org.id,
+                )
+            ),
+        )
+        assert response.status_code == 403
 
     def test_user_scoped_viewer_context_authenticates(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -1603,3 +1623,90 @@ class TestSeerRpcViewerContextAuth(APITestCase):
             HTTP_X_VIEWER_CONTEXT=self._vc_header(organization_id=other_org.id),
         )
         assert response.status_code == 403
+
+
+@override_settings(SEER_RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+class TestGetCommitAuthor(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.actor = self.create_user(name="Mona Lisa")
+        self.create_member(user=self.actor, organization=self.organization)
+
+    def _link_github(self) -> None:
+        self.create_external_user(
+            user=self.actor,
+            organization=self.organization,
+            provider=ExternalProviders.GITHUB.value,
+            external_name="@octocat",
+            external_id="583231",
+            integration=self.create_integration(
+                organization=self.organization, provider="github", external_id="gh:1"
+            ),
+        )
+
+    def _call(self, *, actor: Actor, viewer_org_id: int) -> Any:
+        path = reverse("sentry-api-0-seer-rpc-service", kwargs={"method_name": "get_commit_author"})
+        data: dict[str, Any] = {"args": {"org_id": self.organization.id}, "meta": {}}
+        body = orjson.dumps(data).decode()
+        response = self.client.post(
+            path,
+            data=data,
+            HTTP_AUTHORIZATION=f"rpcsignature {generate_request_signature(path, body.encode())}",
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(actor=actor, organization_id=viewer_org_id)
+            ),
+        )
+        assert response.status_code == 200, response.data
+        return response.data
+
+    def test_resolves_the_viewing_user(self) -> None:
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+        )
+        assert data == {
+            "author": {
+                "name": "Mona Lisa",
+                "email": "583231+octocat@users.noreply.github.com",
+                "scm_login": "octocat",
+            }
+        }
+
+    def test_resolves_the_user_an_agent_acts_for(self) -> None:
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.AGENT, delegated_user_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+        )
+        assert data["author"]["scm_login"] == "octocat"
+
+    def test_preserves_an_author_without_scm_login(self) -> None:
+        author = {"name": "Mona Lisa", "email": "octocat@users.noreply.github.com"}
+        with patch("sentry.seer.endpoints.seer_rpc.commit_author_for_user", return_value=author):
+            data = self._call(
+                actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+                viewer_org_id=self.organization.id,
+            )
+        assert data == {"author": author}
+
+    def test_no_author_without_a_github_identity(self) -> None:
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.organization.id,
+        )
+        assert data == {"author": None}
+
+    def test_no_author_without_an_acting_user(self) -> None:
+        self._link_github()
+        data = self._call(actor=Actor(type=ActorType.SYSTEM), viewer_org_id=self.organization.id)
+        assert data == {"author": None}
+
+    def test_no_author_when_viewer_is_in_another_org(self) -> None:
+        self._link_github()
+        data = self._call(
+            actor=Actor(type=ActorType.USER, actor_id=self.actor.id),
+            viewer_org_id=self.create_organization().id,
+        )
+        assert data == {"author": None}
