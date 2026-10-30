@@ -11,7 +11,7 @@ import socket
 import sys
 from collections.abc import Callable, Mapping, MutableSequence
 from datetime import datetime, timedelta
-from typing import Any, Final, Literal, Union, overload
+from typing import Any, Literal, Union, overload
 from urllib.parse import urlparse
 
 import orjson
@@ -2620,37 +2620,17 @@ if SENTRY_DEV_DSN:
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
-# The sample rate to use for profiles. This is conditional on the usage of
-# traces_sample_rate. So that means the true sample rate will be approximately
-# traces_sample_rate * profiles_sample_rate
-# (subject to things like the traces_sampler)
-SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
-
-# We want to test a few schedulers possible in the profiler. Some are platform
-# specific, and each have their own pros/cons. See the sdk for more details.
-SENTRY_PROFILER_MODE: Final = "sleep"
-
-# To have finer control over which process will have profiling enabled, this
-# environment variable will be required to enable profiling.
+# To have finer control over which process will have continuous profiling enabled,
+# this environment variable will be required to enable continuous profiling.
 #
 # This is because profiling requires that we run some stuff globally, and we
 # are not ready to run this on the more critical parts of the codebase such as
 # the ingest workers yet.
-#
-# This will allow us to have finer control over where we are running the
-# profiler. For example, only on the web server.
-SENTRY_PROFILING_ENABLED = os.environ.get("SENTRY_PROFILING_ENABLED", SPOTLIGHT)
-
-# To have finer control over which process will have continuous profiling enabled,
-# this environment variable will be required to enable continuous profiling.
-#
-# This setting takes precedence over `SENTRY_PROFILING_ENABLED` forcing the SDK
-# to operate under the continuous profiling model.
 SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILING_ENABLED", False)
 
 # The sample rate to use for continuous profile sessions. This sample rate is
 # evaluated once per process and the decision is used for the remainer of the session.
-SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
+SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
 
 # Tells the sentry sdk to run under the trace lifecycle mode which
 # ensures the profiler is running whenever there is an active trace.

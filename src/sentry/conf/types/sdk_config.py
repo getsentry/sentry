@@ -27,8 +27,6 @@ class SdkConfig(TypedDict):
     before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_log: NotRequired[Callable[[Log, Hint], Log | None]]
     profiles_sample_rate: NotRequired[float]
-    profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
-    profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     profile_session_sample_rate: NotRequired[float]
     profile_lifecycle: NotRequired[Literal["manual", "trace"]]
     enable_db_query_source: NotRequired[bool]
