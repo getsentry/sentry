@@ -1,23 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
-from typing import Any, Optional, TypeVar
+from typing import Any
 
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.types.actor import Actor
+
+# Each notification class builds its own template context, so the shared
+# mapping cannot be a single schema. Providers look up keys they understand.
+type NotificationContext = Mapping[str, Any]
+type ActorNotificationContext = Mapping[Actor, NotificationContext]
 
 # Shortcut so that types don't explode.
 NotifyCallable = Callable[
     [
         BaseNotification,
         Iterable[Actor],
-        Mapping[str, Any],
-        Optional[Mapping[Actor, Mapping[str, Any]]],
+        NotificationContext,
+        ActorNotificationContext | None,
     ],
     None,
 ]
-Notifiable = TypeVar("Notifiable", bound=NotifyCallable)
 
 # Global notifier registry.
 registry: MutableMapping[ExternalProviders, NotifyCallable] = {}
@@ -28,7 +32,7 @@ def notification_providers() -> Iterable[ExternalProviders]:
     return registry.keys()
 
 
-def register_notification_provider(
+def register_notification_provider[Notifiable: NotifyCallable](
     provider: ExternalProviders,
 ) -> Callable[[Notifiable], Notifiable]:
     """
@@ -45,10 +49,10 @@ def register_notification_provider(
 
 def notify(
     provider: ExternalProviders,
-    notification: Any,
+    notification: BaseNotification,
     recipients: Iterable[Actor],
-    shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None = None,
+    shared_context: NotificationContext,
+    extra_context_by_actor: ActorNotificationContext | None = None,
 ) -> None:
     """Send notifications to these users or team."""
 
