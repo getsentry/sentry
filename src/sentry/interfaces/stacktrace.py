@@ -148,6 +148,7 @@ class Frame(Interface):
             "context_line",
             "data",
             "errors",
+            "file_revision",
             "filename",
             "function",
             "raw_function",
@@ -202,6 +203,7 @@ class Frame(Interface):
                 "parent_index": self.parent_index,
                 "sample_count": self.sample_count,
                 "lock": self.lock,
+                "file_revision": self.file_revision or None,
                 "source_link": self.source_link or None,
             }
         )
@@ -239,6 +241,7 @@ class Frame(Interface):
             "trust": self.trust,
             "errors": self.errors,
             "lock": self.lock,
+            "fileRevision": self.file_revision,
             "sourceLink": source_link,
         }
 
@@ -299,6 +302,7 @@ class Frame(Interface):
             "trust": meta.get("trust"),
             "errors": meta.get("errors"),
             "lock": meta.get("lock"),
+            "fileRevision": meta.get("file_revision"),
             "sourceLink": meta.get("source_link"),
         }
 

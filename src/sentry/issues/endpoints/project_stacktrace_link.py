@@ -72,7 +72,8 @@ def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
         "file": parameters.get("file", ""),
         # XXX: Temp change to support try_path_munging until refactored
         "filename": parameters.get("file", ""),
-        "commit_id": parameters.get("commitId"),
+        # A frame's source server revision pins its file more precisely than the release commit.
+        "commit_id": parameters.get("fileRevision") or parameters.get("commitId"),
         "platform": parameters.get("platform"),
         "sdk_name": parameters.get("sdkName"),
         "abs_path": parameters.get("absPath"),
@@ -175,6 +176,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `file`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
+    `fileRevision` (optional): The source server revision of the frame's file.
+                               Takes precedence over `commitId`.
     `sdkName` (optional): The sdk.name associated with the event
     `absPath` (optional): The abs_path field value of the relevant stack frame
     `module`   (optional): The module field value of the relevant stack frame
@@ -208,6 +211,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             ),
             OpenApiParameter(
                 "commitId", type=str, description="The commit ID associated with the event."
+            ),
+            OpenApiParameter(
+                "fileRevision",
+                type=str,
+                description=(
+                    "The source server revision of the frame's file, if known. "
+                    "Takes precedence over `commitId`."
+                ),
             ),
             OpenApiParameter(
                 "sdkName", type=str, description="The SDK name associated with the event."
