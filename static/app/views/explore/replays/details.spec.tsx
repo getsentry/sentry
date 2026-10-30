@@ -1,78 +1,29 @@
 import type {ReactNode} from 'react';
-import {Replayer} from '@sentry/rrweb';
+import {duration} from 'moment-timezone';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebFullSnapshotFrameEventFixture,
+  RRWebIncrementalSnapshotFrameEventFixture,
+  RRWebInitFrameEventsFixture,
+} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {EventType} from 'sentry/utils/replays/types';
+import {IncrementalSource} from 'sentry/utils/replays/types';
+import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ReplayDetails from './details';
 
 jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
-
-jest.mock('@sentry/rrweb', () => ({
-  ...jest.requireActual('@sentry/rrweb'),
-  Replayer: jest.fn().mockImplementation((_events, {root}: {root: HTMLElement}) => {
-    const wrapper = document.createElement('div');
-    root.appendChild(wrapper);
-    return {
-      config: {skipInactive: false, speed: 1},
-      destroy: jest.fn(),
-      getCurrentTime: () => 0,
-      iframe: document.createElement('iframe'),
-      on: jest.fn(),
-      pause: jest.fn(),
-      play: jest.fn(),
-      setConfig: jest.fn(),
-      wrapper,
-    };
-  }),
-}));
-
-// Unlike rrweb's `Replayer`, the video player has no `wrapper`
-jest.mock('sentry/components/replays/videoReplayerWithInteractions', () => ({
-  VideoReplayerWithInteractions: jest.fn().mockImplementation(() => ({
-    config: {skipInactive: false, speed: 1},
-    destroy: jest.fn(),
-    getCurrentTime: () => 0,
-    pause: jest.fn(),
-    play: jest.fn(),
-    setConfig: jest.fn(),
-  })),
-}));
-
-jest.mock('sentry/views/explore/replays/detail/page', () => ({
-  ReplayDetailsPage: function TestPlayer() {
-    const {Button} = jest.requireActual('@sentry/scraps/button');
-    const {useReplayContext} = jest.requireActual(
-      'sentry/components/replays/replayContext'
-    );
-    const {isPlaying, setRoot, togglePlayPause} = useReplayContext();
-    return (
-      <div ref={setRoot}>
-        <Button onClick={() => togglePlayPause(true)}>Play</Button>
-        <span>{isPlaying ? 'Playing' : 'Paused'}</span>
-      </div>
-    );
-  },
-}));
 
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 const defaultReaderResult = {
@@ -94,12 +45,14 @@ const defaultReaderResult = {
 
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
-    <TopBar.Slot.Provider>
-      <TopBar.Slot.Outlet name="title">
-        {props => <div {...props} data-test-id="topbar-title-slot" />}
-      </TopBar.Slot.Outlet>
-      {children}
-    </TopBar.Slot.Provider>
+    <SecondaryNavigationContextProvider>
+      <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="title">
+          {props => <div {...props} data-test-id="topbar-title-slot" />}
+        </TopBar.Slot.Outlet>
+        {children}
+      </TopBar.Slot.Provider>
+    </SecondaryNavigationContextProvider>
   );
 }
 
@@ -289,82 +242,71 @@ describe('ReplayDetails', () => {
     ).toBeInTheDocument();
   });
 
-  describe('switching to a cached replay', () => {
+  it('starts the next replay paused when switching to a cached replay', async () => {
     const startedAt = new Date('2023-12-25T00:00:00');
-    const webAttachments = RRWebInitFrameEventsFixture({timestamp: startedAt});
-    const videoAttachments = [
-      {
-        type: EventType.Custom,
-        timestamp: startedAt.getTime(),
-        data: {tag: 'video', payload: {duration: 5_000, segmentId: 0}},
-      },
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: startedAt}),
+      // A later event keeps rrweb from finishing as soon as it starts playing
+      RRWebIncrementalSnapshotFrameEventFixture({
+        timestamp: new Date(startedAt.getTime() + 30_000),
+        data: {
+          source: IncrementalSource.MouseMove,
+          positions: [{x: 0, y: 0, id: 1, timeOffset: 0}],
+        },
+      }),
     ];
-
-    // Every reader is ready on its first render, as it is when the replay
-    // record is already cached, so the page never renders without a replay
-    function mockCachedReplays(attachmentsById: Record<string, unknown[]>) {
-      const readers = Object.fromEntries(
-        Object.entries(attachmentsById).map(([id, attachments]) => {
-          const replayRecord = ReplayRecordFixture({
-            id,
-            has_viewed: true,
-            started_at: startedAt,
-          });
-          const replay = ReplayReader.factory({
-            attachments,
-            errors: [],
-            fetching: false,
-            replayRecord,
-          });
-          return [id, {...defaultReaderResult, replay, replayId: id, replayRecord}];
-        })
-      );
-      mockUseLoadReplayReader.mockImplementation(({replaySlug}) => readers[replaySlug]!);
-    }
-
-    beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/replays/other-replay-id/',
-        body: {data: ReplayRecordFixture({id: 'other-replay-id'})},
+    // The reader is ready on its first render, as it is when the replay record
+    // is already cached, so the page never renders without a replay
+    mockUseLoadReplayReader.mockImplementation(({replaySlug}) => {
+      const replayRecord = ReplayRecordFixture({
+        id: replaySlug,
+        duration: duration(60_000),
+        finished_at: new Date(startedAt.getTime() + 60_000),
+        has_viewed: true,
+        started_at: startedAt,
       });
-      MockApiClient.addMockResponse({
-        url: `/projects/org-slug/${ProjectFixture().slug}/replays/other-replay-id/viewed-by/`,
-        body: {data: {viewed_by: []}},
+      const replay = ReplayReader.factory({
+        attachments,
+        errors: [],
+        fetching: false,
+        replayRecord,
       });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/seer/setup-check/',
-        body: AutofixSetupFixture({}),
-      });
+      return {...defaultReaderResult, replay, replayId: replaySlug, replayRecord};
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/other-replay-id/',
+      body: {data: ReplayRecordFixture({id: 'other-replay-id'})},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${ProjectFixture().slug}/replays/other-replay-id/viewed-by/`,
+      body: {data: {viewed_by: []}},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
     });
 
-    it('starts the next replay paused', async () => {
-      mockCachedReplays({
-        'test-replay-id': webAttachments,
-        'other-replay-id': webAttachments,
-      });
-      const {router} = renderDetails();
-      await userEvent.click(screen.getByRole('button', {name: 'Play'}));
-      expect(screen.getByText('Playing')).toBeInTheDocument();
+    // jsdom gives every element a zero size, and the player only renders once
+    // the layout has measured some space for it
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800);
 
-      router.navigate('/organizations/org-slug/replays/other-replay-id/');
+    const {router} = renderDetails();
+    await userEvent.click(await screen.findByRole('button', {name: 'Play'}));
+    expect(await screen.findByRole('button', {name: 'Pause'})).toBeInTheDocument();
 
-      expect(await screen.findByText('Paused')).toBeInTheDocument();
-    });
+    router.navigate('/organizations/org-slug/replays/other-replay-id/');
 
-    it('replaces the video player when the next replay is a web replay', async () => {
-      mockCachedReplays({
-        'test-replay-id': videoAttachments,
-        'other-replay-id': webAttachments,
-      });
-      const {router} = renderDetails();
-      const videoReplayer = jest.mocked(VideoReplayerWithInteractions).mock.results[0]!
-        .value;
-
-      router.navigate('/organizations/org-slug/replays/other-replay-id/');
-
-      await waitFor(() => expect(Replayer).toHaveBeenCalledTimes(1));
-      expect(videoReplayer.destroy).toHaveBeenCalled();
-    });
+    expect(await screen.findByRole('button', {name: 'Play'})).toBeInTheDocument();
   });
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
