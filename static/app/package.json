@@ -66,7 +66,7 @@
     "@tanstack/react-form-devtools": "0.2.20",
     "@tanstack/react-hotkeys-devtools": "0.11.1",
     "@tanstack/react-pacer": "^0.22.1",
-    "@tanstack/react-pacer-devtools": "0.7.1",
+    "@tanstack/react-pacer-devtools": "0.9.1",
     "@tanstack/react-query": "5.101.4",
     "@tanstack/react-query-devtools": "5.101.4",
     "@tanstack/react-query-persist-client": "5.101.4",
