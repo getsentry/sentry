@@ -643,7 +643,13 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     const query = qs.parse(routerLocation.search);
-    if (typeof query.zoomToNode !== 'string') {
+    // `node` is only read when a trace loads, so links into the already open trace (e.g. Seer's
+    // "View span") pass their target as `revealNode` instead.
+    const zoomToNode = typeof query.zoomToNode === 'string' ? query.zoomToNode : null;
+    const revealNode =
+      !zoomToNode && typeof query.revealNode === 'string' ? query.revealNode : null;
+    const targetPath = zoomToNode ?? revealNode;
+    if (!targetPath) {
       handledZoomQueryRef.current = null;
       return;
     }
@@ -657,19 +663,20 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     handledZoomQueryRef.current = routerLocation.search;
 
     const node = props.tree.root.findChild(candidate =>
-      candidate.matchByPath(query.zoomToNode as TraceTree.NodePath)
+      candidate.matchByPath(targetPath as TraceTree.NodePath)
     );
 
     const {
       zoomToNode: _zoomToNode,
       zoomToTimestamp: _zoomToTimestamp,
       zoomToVital: _zoomToVital,
+      revealNode: _revealNode,
       ...nextQuery
     } = query;
     navigate(
       {
         pathname: routerLocation.pathname,
-        query: nextQuery,
+        query: revealNode ? {...nextQuery, node: revealNode} : nextQuery,
       },
       {replace: true}
     );
@@ -679,6 +686,9 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     }
 
     void onTabScrollToNode(node);
+    if (revealNode) {
+      return;
+    }
     const timestamp =
       typeof query.zoomToTimestamp === 'string'
         ? Number.parseFloat(query.zoomToTimestamp)

@@ -1219,6 +1219,35 @@ describe('trace view', () => {
       await waitFor(() => expect(rootTransactionRow).toHaveFocus());
     });
 
+    it('reveals a span linked within the already loaded trace', async () => {
+      mockQueryString('?node=span-second-transaction');
+      setupEAPTraceView();
+      const {router} = render(<TraceView />, {initialRouterConfig});
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'SpanID: second-transaction'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+      await waitFor(() =>
+        expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument()
+      );
+      act(() =>
+        router.navigate(
+          '/organizations/org-slug/performance/trace/trace-id/?revealNode=span-third-transaction'
+        )
+      );
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'SpanID: third-transaction'
+      );
+      expect(
+        within(screen.getByTestId('trace-virtualized-list'))
+          .getByText('third transaction')
+          .closest(VISIBLE_TRACE_ROW_SELECTOR)
+      ).toHaveAttribute('tabindex', '0');
+      expect(router.location.query).toEqual({node: 'span-third-transaction'});
+    });
+
     it('warns when an EAP node from the URL cannot be found', async () => {
       mockQueryString('?eventId=does-not-exist');
       setupEAPTraceView();
