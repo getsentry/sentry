@@ -684,21 +684,11 @@ def test_flamegraph_inline_frames_do_not_inherit_captured_metadata(flamegraph_pa
 @django_db_all
 @pytest.mark.parametrize("error", [TimeoutError(), Timeout(), ConnectionError(), RuntimeError()])
 def test_flamegraph_transport_error_does_not_block_event_symbolication(
-    cached_flamegraph, error
+    native_event_with_flamegraph, error
 ) -> None:
-    data, payload, symbolicator = cached_flamegraph
-    data["platform"] = "native"
-    data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
-    symbolicator.process_payload.side_effect = [
-        {
-            "status": "completed",
-            "modules": [],
-            "stacktraces": [
-                {"frames": [{"original_index": 0, "function": "main", "status": "symbolicated"}]}
-            ],
-        },
-        error,
-    ]
+    data, payload, symbolicator = native_event_with_flamegraph
+    event_response = next(symbolicator.process_payload.side_effect)
+    symbolicator.process_payload.side_effect = [event_response, error]
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch("sentry.utils.metrics.incr") as incr,
@@ -715,18 +705,9 @@ def test_flamegraph_transport_error_does_not_block_event_symbolication(
 @django_db_all
 @pytest.mark.parametrize("error", [MissingAttachmentChunks(), FileNotFoundError()])
 def test_flamegraph_unavailable_data_does_not_block_event_symbolication(
-    cached_flamegraph, error
+    native_event_with_flamegraph, error
 ) -> None:
-    data, _, symbolicator = cached_flamegraph
-    data["platform"] = "native"
-    data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
-    symbolicator.process_payload.return_value = {
-        "status": "completed",
-        "modules": [],
-        "stacktraces": [
-            {"frames": [{"original_index": 0, "function": "main", "status": "symbolicated"}]}
-        ],
-    }
+    data, _, symbolicator = native_event_with_flamegraph
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch.object(CachedAttachment, "load_data", side_effect=error),
@@ -837,9 +818,11 @@ def test_flamegraph_node_limit_preserves_original(cached_flamegraph, node_limit,
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", node_limit),
+        mock.patch("sentry_sdk.capture_exception") as capture,
         mock.patch("sentry.utils.metrics.incr") as incr,
     ):
         assert process_native_stacktraces(symbolicator, data) is None
+    capture.assert_not_called()
     incr.assert_any_call("process.native.flamegraph.skipped", tags={"reason": reason})
     assert data == original
     assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == orjson.dumps(
@@ -848,20 +831,10 @@ def test_flamegraph_node_limit_preserves_original(cached_flamegraph, node_limit,
 
 
 @django_db_all
-def test_flamegraph_node_limit_does_not_block_event_symbolication(cached_flamegraph) -> None:
-    data, payload, symbolicator = cached_flamegraph
-    data["platform"] = "native"
-    data["exception"] = {"values": [deepcopy(NATIVE_EXCEPTION)]}
-    symbolicator.process_payload.side_effect = [
-        {
-            "status": "completed",
-            "modules": [],
-            "stacktraces": [
-                {"frames": [{"original_index": 0, "function": "main", "status": "symbolicated"}]}
-            ],
-        },
-        symbolicator.process_payload.return_value,
-    ]
+def test_flamegraph_node_limit_does_not_block_event_symbolication(
+    native_event_with_flamegraph,
+) -> None:
+    data, payload, symbolicator = native_event_with_flamegraph
     with (
         Feature({"organizations:flamegraph-attachments": True}),
         mock.patch("sentry.lang.native.flamegraphs.MAX_EXPANDED_NODES", 1),
@@ -1003,9 +976,11 @@ def test_flamegraph_invalid_attachment(cached_flamegraph, raw, reason) -> None:
     )
     with (
         Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch("sentry_sdk.capture_exception") as capture,
         mock.patch("sentry.utils.metrics.incr") as incr,
     ):
         assert process_native_stacktraces(symbolicator, data) is None
+    capture.assert_not_called()
     incr.assert_any_call("process.native.flamegraph.skipped", tags={"reason": reason})
     symbolicator.process_payload.assert_not_called()
     assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == raw

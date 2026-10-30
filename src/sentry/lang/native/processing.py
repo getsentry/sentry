@@ -577,8 +577,7 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                 sentry_sdk.capture_exception(error)
                 metrics.incr("process.native.flamegraph.skipped", tags={"reason": "timeout"})
                 break
-            except FlamegraphExpansionLimitExceeded as error:
-                sentry_sdk.capture_exception(error)
+            except FlamegraphExpansionLimitExceeded:
                 metrics.incr(
                     "process.native.flamegraph.skipped", tags={"reason": "expansion_limit"}
                 )
@@ -591,7 +590,7 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
     return attachments_changed
 
 
-def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> bool:
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -614,7 +613,7 @@ def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> 
     ]
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
-        return None
+        return False
 
     signal = signal_from_data(data)
 
@@ -630,7 +629,7 @@ def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> 
     )
 
     if not _handle_response_status(data, response):
-        return data
+        return True
 
     # Emit Apple symbol stats
     apple_symbol_stats = response.get("apple_symbol_stats")
@@ -683,7 +682,7 @@ def _process_native_event_stacktraces(symbolicator: Symbolicator, data: Any) -> 
         new_frames.reverse()
         sinfo.stacktrace["frames"] = new_frames
 
-    return data
+    return True
 
 
 def emit_apple_symbol_stats(apple_symbol_stats, data):

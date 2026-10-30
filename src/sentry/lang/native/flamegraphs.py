@@ -164,7 +164,13 @@ class Flamegraphs:
                     metrics.incr("process.native.flamegraph.skipped", tags={"reason": "raw_size"})
                     continue
                 reason = "invalid_json"
-                payload = rapidjson.loads(raw, allow_nan=False)
+                try:
+                    payload = rapidjson.loads(raw, allow_nan=False)
+                except (rapidjson.JSONDecodeError, UnicodeDecodeError):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_json"}
+                    )
+                    continue
                 if not isinstance(payload, dict):
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
