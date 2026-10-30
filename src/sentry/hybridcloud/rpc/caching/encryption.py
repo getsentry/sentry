@@ -5,7 +5,6 @@ from enum import StrEnum
 from typing import NamedTuple
 
 import sentry_sdk
-from cryptography.fernet import InvalidToken
 
 from sentry.utils import metrics
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
@@ -15,6 +14,8 @@ logger = logging.getLogger(__name__)
 # Default prefix used by the silo cache callables. Matches the encrypted DB field
 # namespace so the stored format is ``enc:<method>:...``.
 CACHE_ENCRYPTION_PREFIX = "enc:"
+
+METRICS_PREFIX = "hybridcloud.caching"
 
 
 class InvalidEncryptionMethod(Exception):
@@ -88,14 +89,14 @@ class CacheEncrypter:
         handler = _HANDLERS[method]
         tags = {"method": method}
         try:
-            with metrics.timer("hybridcloud.caching.encrypt.duration", tags=tags):
+            with metrics.timer(f"{METRICS_PREFIX}.encrypt.duration", tags=tags):
                 value_bytes = value.encode("utf-8")
                 encrypted_bytes, key_id = handler.encrypt(value_bytes)
         except Exception:
-            metrics.incr("hybridcloud.caching.encrypt", tags={**tags, "status": "failure"})
+            metrics.incr(f"{METRICS_PREFIX}.encrypt", tags={**tags, "status": "failure"})
             raise
 
-        metrics.incr("hybridcloud.caching.encrypt", tags={**tags, "status": "success"})
+        metrics.incr(f"{METRICS_PREFIX}.encrypt", tags={**tags, "status": "success"})
         encoded = base64.b64encode(encrypted_bytes).decode("utf-8")
         return f"{CACHE_ENCRYPTION_PREFIX}{method}:{key_id}:{encoded}"
 
@@ -114,26 +115,21 @@ class CacheEncrypter:
         handler = _HANDLERS[parsed.method]
         tags = {"method": parsed.method}
         try:
-            with metrics.timer("hybridcloud.caching.decrypt.duration", tags=tags):
+            with metrics.timer(f"{METRICS_PREFIX}.decrypt.duration", tags=tags):
                 decrypted = handler.decrypt(base64.b64decode(parsed.payload), parsed.key_id)
-        except (InvalidToken, ValueError) as e:
-            # Expected data problems: ciphertext that fails authentication, corrupt
-            # base64, or a key id this process does not have (e.g. after rotation).
-            metrics.incr("hybridcloud.caching.decrypt", tags={**tags, "status": "failure"})
-            raise DecryptionError from e
         except Exception as e:
             sentry_sdk.capture_exception(e)
-            logger.exception("Failed to decrypt cache value with %s", parsed.method)
-            metrics.incr("hybridcloud.caching.decrypt", tags={**tags, "status": "failure"})
-            return value
+            logger.exception("hybridcloud.rpc_cache.decryption", extra={"method": parsed.method})
+            metrics.incr(f"{METRICS_PREFIX}.decrypt", tags={**tags, "status": "failure"})
+            raise DecryptionError from e
 
         try:
             decoded = decrypted.decode("utf-8")
         except UnicodeDecodeError as e:
-            metrics.incr("hybridcloud.caching.decrypt", tags={**tags, "status": "failure"})
+            metrics.incr(f"{METRICS_PREFIX}.decrypt", tags={**tags, "status": "failure"})
             raise InvalidEncodingError("Decrypted cache value is not valid UTF-8") from e
 
-        metrics.incr("hybridcloud.caching.decrypt", tags={**tags, "status": "success"})
+        metrics.incr(f"{METRICS_PREFIX}.decrypt", tags={**tags, "status": "success"})
         return decoded
 
     @staticmethod

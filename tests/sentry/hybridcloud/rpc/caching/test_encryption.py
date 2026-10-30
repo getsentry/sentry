@@ -1,10 +1,11 @@
 import base64
+import binascii
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from unittest.mock import patch
 
 import pytest
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 from django.test import override_settings
 
 from sentry.hybridcloud.rpc.caching.encryption import (
@@ -76,9 +77,16 @@ def test_decrypt_corrupt_base64_raises() -> None:
 
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
-        pytest.raises(DecryptionError),
+        patch(
+            "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
+        ) as capture_exception,
+        pytest.raises(DecryptionError) as exc_info,
     ):
         CacheEncrypter.decrypt(fernet_value)
+
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, binascii.Error)
+    capture_exception.assert_called_once_with(cause)
 
 
 @no_silo_test
@@ -87,9 +95,16 @@ def test_decrypt_invalid_token_raises() -> None:
 
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
-        pytest.raises(DecryptionError),
+        patch(
+            "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
+        ) as capture_exception,
+        pytest.raises(DecryptionError) as exc_info,
     ):
         CacheEncrypter.decrypt(value)
+
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, InvalidToken)
+    capture_exception.assert_called_once_with(cause)
 
 
 @no_silo_test
@@ -113,11 +128,14 @@ def test_decrypt_unknown_key_id_raises() -> None:
             patch(
                 "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
             ) as capture_exception,
-            pytest.raises(DecryptionError),
+            pytest.raises(DecryptionError) as exc_info,
         ):
             CacheEncrypter.decrypt(relabelled)
 
-    capture_exception.assert_not_called()
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert str(cause) == "Encryption key with ID 'k2' not found."
+    capture_exception.assert_called_once_with(cause)
 
 
 @no_silo_test
@@ -164,13 +182,19 @@ def test_decrypt_failure_records_metric() -> None:
     with (
         fernet_keys("k1", {"k1": Fernet(Fernet.generate_key())}),
         patch("sentry.hybridcloud.rpc.caching.encryption.metrics") as metrics,
-        pytest.raises(DecryptionError),
+        patch(
+            "sentry.hybridcloud.rpc.caching.encryption.sentry_sdk.capture_exception"
+        ) as capture_exception,
+        pytest.raises(DecryptionError) as exc_info,
     ):
         CacheEncrypter.decrypt(value)
 
     metrics.incr.assert_called_once_with(
         "hybridcloud.caching.decrypt", tags={"method": "fernet", "status": "failure"}
     )
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, InvalidToken)
+    capture_exception.assert_called_once_with(cause)
 
 
 @no_silo_test
