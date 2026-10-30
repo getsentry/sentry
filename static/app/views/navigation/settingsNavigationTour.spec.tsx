@@ -154,17 +154,8 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
   });
 
-  it('does not mark the guide as seen while it is shown or moved between steps', async () => {
+  it('marks the guide as viewed once it is shown, and only once', async () => {
     render(<Tour />, {organization});
-    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
-    expect(dismissRequest).not.toHaveBeenCalled();
-  });
-
-  it('marks the guide as viewed when the last step is done', async () => {
-    render(<Tour />, {organization});
-    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Done'}));
     await waitFor(() =>
       expect(dismissRequest).toHaveBeenCalledWith(
         '/assistant/',
@@ -173,6 +164,9 @@ describe('Settings navigation tour', () => {
         })
       )
     );
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    expect(dismissRequest).toHaveBeenCalledTimes(1);
   });
 
   it('tracks dismissing the guide', async () => {
@@ -215,7 +209,7 @@ describe('Settings navigation tour', () => {
     expect(screen.getByText('Tour entry')).toBeInTheDocument();
   });
 
-  it('ends without marking the guide as seen when the user enters settings', async () => {
+  it('ends without dismissing the guide when the user enters settings', async () => {
     const {router} = render(<Tour />, {
       organization,
       initialRouterConfig: {
@@ -225,7 +219,12 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     act(() => router.navigate('/settings/org-slug/'));
     await waitFor(() => expect(screen.queryByText('Tour entry')).not.toBeInTheDocument());
-    expect(dismissRequest).not.toHaveBeenCalled();
+    expect(dismissRequest).not.toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
+      })
+    );
   });
 
   it('does not start inside settings where the organization menu is unavailable', () => {
