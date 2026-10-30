@@ -68,6 +68,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
+      # experiment: 2-worker control at the frontend-only shard count
       XDIST_WORKERS: '2'
 
     steps:
