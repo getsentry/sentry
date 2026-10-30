@@ -646,8 +646,8 @@ importers:
         specifier: 3.45.0
         version: 3.45.0
       cronstrue:
-        specifier: ^2.50.0
-        version: 2.50.0
+        specifier: ^3.38.0
+        version: 3.38.0
       d3-selection:
         specifier: ^3.0.0
         version: 3.0.0
@@ -5657,8 +5657,8 @@ packages:
   create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
 
-  cronstrue@2.50.0:
-    resolution: {integrity: sha512-ULYhWIonJzlScCCQrPUG5uMXzXxSixty4djud9SS37DoNxDdkeRocxzHuAo4ImRBUK+mAuU5X9TSwEDccnnuPg==}
+  cronstrue@3.38.0:
+    resolution: {integrity: sha512-i10xR7fS4AH9LKwmt3gYdt/5lSsB2qFGSNfC8aeyYybxo48DCMz+nUrSVI4kUj8yo+SgTbMJqp/BWEem9avlcA==}
     hasBin: true
 
   cross-fetch@3.2.0:
@@ -13268,7 +13268,7 @@ snapshots:
   create-require@1.1.1:
     optional: true
 
-  cronstrue@2.50.0: {}
+  cronstrue@3.38.0: {}
 
   cross-fetch@3.2.0(encoding@0.1.13):
     dependencies:
