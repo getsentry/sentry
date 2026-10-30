@@ -4,8 +4,12 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ActionRequestCard} from 'sentry/views/investigations/actionRequests/actionRequestCard';
+import {
+  ActionRequestCard,
+  isStaleActionRequest,
+} from 'sentry/views/investigations/actionRequests/actionRequestCard';
 import {PlaceholderBar} from 'sentry/views/investigations/hypotheses/hypothesisPlaceholder';
+import {isWritingMetadata} from 'sentry/views/investigations/runState';
 import type {
   InvestigationActionRequest,
   InvestigationDetail,
@@ -14,19 +18,23 @@ import type {
 
 type NextStepCardProps = {
   actionRequests: InvestigationActionRequest[] | undefined;
+  investigationId: string;
   orchestration: InvestigationOrchestration | undefined;
   /** The action requests predate the run's current next step. */
   actionRequestsStale?: boolean;
   orchestrationLoading?: boolean;
   source?: InvestigationDetail['source'];
+  waitingOnRun?: boolean;
 };
 
 export function NextStepCard({
   actionRequests,
   actionRequestsStale = false,
+  investigationId,
   orchestration,
   orchestrationLoading = false,
   source,
+  waitingOnRun = false,
 }: NextStepCardProps) {
   const heading = t('Recommended action');
 
@@ -43,7 +51,10 @@ export function NextStepCard({
     return (
       <ActionRequestCard
         actionRequest={actionRequest}
+        finishing={orchestration?.report.nextStep?.status === 'generating'}
         heading={heading}
+        investigationId={investigationId}
+        runProcessing={isRunWorking(orchestration) || waitingOnRun}
         source={source}
       />
     );
@@ -60,6 +71,10 @@ export function NextStepCard({
   return null;
 }
 
+export function isRunWorking(orchestration: InvestigationOrchestration | undefined) {
+  return orchestration?.status === 'pending' || orchestration?.status === 'processing';
+}
+
 export function getPrimaryActionRequest(
   actionRequests: InvestigationActionRequest[],
   reportRevision: number | undefined
@@ -69,7 +84,10 @@ export function getPrimaryActionRequest(
     Math.max(...actionRequests.map(actionRequest => actionRequest.reportRevision));
   return actionRequests
     .filter(
-      actionRequest => actionRequest.primary && actionRequest.reportRevision >= revision
+      actionRequest =>
+        actionRequest.primary &&
+        actionRequest.reportRevision >= revision &&
+        (actionRequest.state !== 'superseded' || isStaleActionRequest(actionRequest))
     )
     .toSorted(
       (a, b) =>
@@ -86,9 +104,11 @@ function isNextStepPending(
   if (status === 'generating' || (status === 'completed' && actionRequestsStale)) {
     return true;
   }
-  const runningMetadata =
-    orchestration?.status === 'processing' && orchestration.phase === 'metadata';
-  return runningMetadata && (status === 'not_started' || status === 'completed');
+  return (
+    orchestration !== undefined &&
+    isWritingMetadata(orchestration) &&
+    (status === 'not_started' || status === 'completed')
+  );
 }
 
 function NextStepFailed({heading}: {heading: string}) {

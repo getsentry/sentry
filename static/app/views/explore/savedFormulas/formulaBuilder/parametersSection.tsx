@@ -1,9 +1,10 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -11,18 +12,25 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import type {FormulaParamType} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
+import type {
+  FormulaDataset,
+  FormulaParamType,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {
   BuilderSection,
   FIELD_MAX_WIDTH,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/builderSection';
 import {
+  isInvalidSuggestedNumber,
   MAX_INPUT_PARAMS,
   MAX_PARAMS,
   newParam,
   type DraftParam,
 } from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {OptionSizedLabel} from 'sentry/views/explore/savedFormulas/formulaBuilder/optionSizedLabel';
+import {TRACE_ITEM_DATASET_MAP} from 'sentry/views/explore/savedFormulas/formulaBuilder/referencesSection';
 import {FormulaEquationInput} from 'sentry/views/explore/savedFormulas/formulaEquationInput';
 
 const SIGMA = '\u03A3';
@@ -32,13 +40,37 @@ const VALUE_TYPE_OPTIONS: Array<{label: string; value: FormulaParamType}> = [
   {value: 'column', label: t('attribute')},
 ];
 
+function useColumnOptions(dataset: FormulaDataset) {
+  const traceItemType = TRACE_ITEM_DATASET_MAP[dataset];
+  const {attributes, isLoading} = useTraceItemDatasetAttributes(
+    traceItemType,
+    {},
+    'number'
+  );
+  const options = useMemo(
+    () => Object.values(attributes).map(tag => optionFromTag(tag, traceItemType)),
+    [attributes, traceItemType]
+  );
+  return {options, isLoading};
+}
+
+function withSavedColumn(options: Array<SelectOption<string>>, value: string) {
+  if (!value || options.some(option => option.value === value)) {
+    return options;
+  }
+  return [{value, label: value, textValue: value}, ...options];
+}
+
 export function ParametersSection({
+  dataset,
   params,
   onChange,
 }: {
+  dataset: FormulaDataset;
   onChange: (params: DraftParam[]) => void;
   params: DraftParam[];
 }) {
+  const {options: columnOptions, isLoading: isColumnsLoading} = useColumnOptions(dataset);
   // A calculation is derived from the other params, so there has to be one first.
   const valueParams = params.filter(param => param.type !== 'calculation');
   const isFull = params.length >= MAX_PARAMS;
@@ -78,7 +110,7 @@ export function ParametersSection({
                 </CalculationTab>
               </Container>
             ) : (
-              <Flex flex="1" align="center">
+              <Flex flex="1" align="center" gap="md" minWidth="0">
                 <CompactSelect
                   value={param.type}
                   options={VALUE_TYPE_OPTIONS}
@@ -89,8 +121,46 @@ export function ParametersSection({
                       </OptionSizedLabel>
                     </OverlayTrigger.Button>
                   )}
-                  onChange={option => update(param.key, {type: option.value})}
+                  onChange={option => {
+                    if (option.value !== param.type) {
+                      update(param.key, {type: option.value, value: ''});
+                    }
+                  }}
                 />
+                {param.type === 'number' ? (
+                  <Container flex="1" minWidth="0">
+                    <Input
+                      value={param.value}
+                      inputMode="decimal"
+                      placeholder={t('Suggested value')}
+                      aria-label={t('Suggested value')}
+                      aria-invalid={isInvalidSuggestedNumber(param)}
+                      onChange={event => update(param.key, {value: event.target.value})}
+                    />
+                  </Container>
+                ) : (
+                  <SuggestedColumnSelect
+                    search
+                    clearable
+                    value={param.value || undefined}
+                    options={withSavedColumn(columnOptions, param.value)}
+                    loading={isColumnsLoading}
+                    trigger={({children, ...triggerProps}) => (
+                      <OverlayTrigger.Button
+                        {...triggerProps}
+                        style={{width: '100%'}}
+                        aria-label={t('Suggested value')}
+                      >
+                        {param.value ? children : t('Suggested value')}
+                      </OverlayTrigger.Button>
+                    )}
+                    onChange={option =>
+                      update(param.key, {
+                        value: typeof option?.value === 'string' ? option.value : '',
+                      })
+                    }
+                  />
+                )}
               </Flex>
             )}
             <Button
@@ -149,6 +219,11 @@ export function ParametersSection({
 const NameInput = styled(Input)`
   width: 200px;
   flex: none;
+`;
+
+const SuggestedColumnSelect = styled(CompactSelect)`
+  flex: 1;
+  min-width: 0;
 `;
 
 const TAB_WIDTH = 28;

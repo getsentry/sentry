@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -9,6 +9,7 @@ describe('DroppedDataLayerControl', () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.SPANS}
+        hasDroppedData
         showDroppedData
         onChange={onChange}
       />
@@ -25,6 +26,7 @@ describe('DroppedDataLayerControl', () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.SPANS}
+        hasDroppedData
         showDroppedData={false}
         onChange={onChange}
       />
@@ -40,6 +42,7 @@ describe('DroppedDataLayerControl', () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.OURLOGS}
+        hasDroppedData
         showDroppedData={false}
         onChange={jest.fn()}
       />
@@ -54,6 +57,7 @@ describe('DroppedDataLayerControl', () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.SPANS}
+        hasDroppedData
         showDroppedData={false}
         onChange={jest.fn()}
       />
@@ -68,6 +72,7 @@ describe('DroppedDataLayerControl', () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.SPANS}
+        hasDroppedData
         showDroppedData
         onChange={jest.fn()}
       />
@@ -78,10 +83,40 @@ describe('DroppedDataLayerControl', () => {
     );
   });
 
+  it('disables the layer and explains why when nothing was dropped', async () => {
+    const onChange = jest.fn();
+    render(
+      <DroppedDataLayerControl
+        dataset={DiscoverDatasets.SPANS}
+        hasDroppedData={false}
+        showDroppedData
+        onChange={onChange}
+      />
+    );
+
+    const trigger = screen.getByRole('button', {name: 'Chart layers'});
+    expect(trigger).toHaveTextContent('Layers');
+
+    await userEvent.click(trigger);
+
+    const option = screen.getByRole('option', {name: 'Dropped Spans'});
+    expect(option).toHaveAttribute('aria-disabled', 'true');
+    expect(option).toHaveAttribute('aria-selected', 'false');
+
+    await userEvent.hover(within(option).getByText('Dropped Spans'));
+    expect(
+      await screen.findByText('No significant dropped spans in this time range')
+    ).toBeInTheDocument();
+
+    await userEvent.click(option);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
   it('describes the control on hover', async () => {
     render(
       <DroppedDataLayerControl
         dataset={DiscoverDatasets.SPANS}
+        hasDroppedData
         showDroppedData
         onChange={jest.fn()}
       />

@@ -500,7 +500,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
             data=SeerInvestigationStarted(
                 organization_id=1,
                 slack_user_id="U0123456789",
-                investigation_url="https://example.sentry.io/explore/investigations/1/",
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
             ),
             template=SeerInvestigationStartedTemplate(),
             provider=SlackNotificationProvider,
@@ -519,7 +519,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_link_button(self) -> None:
-        url = "https://acme.sentry.io/explore/investigations/1/"
+        url = "https://acme.sentry.io/seer/investigations/1/"
         data = SeerInvestigationStarted(
             organization_id=1, slack_user_id="U0123456789", investigation_url=url
         )
@@ -579,7 +579,7 @@ class SeerSlackRendererInvestigationTest(TestCase):
         }
     )
     def test_render_investigation_status_decorates_link(self) -> None:
-        url = "https://acme.sentry.io/explore/investigations/1/"
+        url = "https://acme.sentry.io/seer/investigations/1/"
 
         renderable, links = NotificationService.render_template(
             data=SeerInvestigationStatus(
@@ -696,11 +696,10 @@ class SeerSlackRendererInvestigationTest(TestCase):
         )
 
         assert renderable["text"] == "Seer finished the investigation"
-        *sections, divider, actions = renderable["blocks"]
-        assert [
-            section.text for section in sections if isinstance(section, MarkdownBlock)
-        ] == data.sections
-        assert len(sections) == len(data.sections)
+        section, divider, actions = renderable["blocks"]
+        assert isinstance(section, SectionBlock)
+        assert section.text is not None
+        assert section.text.text == f"*{data.summary}*\n{data.summary_description}"
         assert isinstance(divider, DividerBlock)
         assert isinstance(actions, ActionsBlock)
         (button,) = actions.elements
@@ -714,3 +713,16 @@ class SeerSlackRendererInvestigationTest(TestCase):
         assert button.style == "primary"
         assert button.value == "link_clicked"
         assert links == {NotificationLink.INVESTIGATION}
+
+    def test_render_investigation_conclusion_without_description(self) -> None:
+        template = SeerInvestigationConclusionTemplate()
+        data = template.example_data.copy(update={"summary_description": None})
+
+        renderable, _ = NotificationService.render_template(
+            data=data, template=template, provider=SlackNotificationProvider
+        )
+
+        section = renderable["blocks"][0]
+        assert isinstance(section, SectionBlock)
+        assert section.text is not None
+        assert section.text.text == f"*{data.summary}*"

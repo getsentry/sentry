@@ -133,6 +133,7 @@ class Referrer(StrEnum):
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
+    API_EXPLORE_DROPPED_DATA_SDK_VERSIONS = "api.explore.dropped-data.sdk-versions"
     API_EXPLORE_SPANS_RAW_COUNT_NORMAL = "api.explore.spans.raw-count.normal"
     API_EXPLORE_SPANS_RAW_COUNT_HIGH_ACCURACY = "api.explore.spans.raw-count.high-accuracy"
     API_EXPLORE_LOGS_RAW_COUNT_NORMAL = "api.explore.logs.raw-count.normal"
@@ -908,8 +909,6 @@ class Referrer(StrEnum):
     TSDB_MODELID_609 = "tsdb-modelid:609"
     TSDB_MODELID_610 = "tsdb-modelid:610"
     TSDB_MODELID_611 = "tsdb-modelid:611"
-    TSDB_MODELID_800 = "tsdb-modelid:800"
-    TSDB_MODELID_801 = "tsdb-modelid:801"
 
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"

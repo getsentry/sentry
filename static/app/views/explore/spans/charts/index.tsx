@@ -7,12 +7,13 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
@@ -38,13 +39,16 @@ import {
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
-  isVisualizeFunction,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -52,6 +56,7 @@ import {CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
 import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -112,7 +117,11 @@ export function ExploreCharts({
 
   function updateVisualizes(
     indices: number[],
-    options: {chartType?: ChartType; visible?: boolean}
+    options: {
+      chartType?: ChartType;
+      transformations?: readonly string[];
+      visible?: boolean;
+    }
   ) {
     const newVisualizes = visualizes.map((visualize, i) => {
       if (indices.includes(i)) {
@@ -147,6 +156,9 @@ export function ExploreCharts({
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
+              onTransformationsChange={transformations =>
+                updateVisualizes(indices, {transformations})
+              }
               query={query}
               timeseriesResult={timeseriesResult}
               visualizes={group.visualizes}
@@ -176,7 +188,7 @@ function getChartInfo({
   const series = getTimeSeriesForQuery(
     timeseriesResult.data,
     visualize.yAxis,
-    isVisualizeFunction(visualize) ? visualize.transformations : []
+    visualize.transformations
   );
 
   let confidenceSeries = series;
@@ -250,6 +262,7 @@ interface ChartProps {
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTransformationsChange: (transformations: readonly string[]) => void;
   query: string;
   rawSpanCounts: RawCounts;
   timeseriesResult: SortedTimeSeries;
@@ -266,6 +279,7 @@ function Chart({
   index,
   onChartTypeChange,
   onChartVisibilityChange,
+  onTransformationsChange,
   query,
   rawSpanCounts,
   visualizes,
@@ -278,12 +292,17 @@ function Chart({
   const visualize = visualizes[0]!;
 
   const organization = useOrganization();
+  const showTransformationControls =
+    visualize.visible &&
+    visualize.chartType !== ChartType.HEATMAP &&
+    organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();
   const [interval, setInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
+  const isDroppedDataLoaded = defined(droppedEvents);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
@@ -352,9 +371,10 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
+      {isDroppedDataLoaded ? (
         <DroppedDataLayerControl
           dataset={dataset}
+          hasDroppedData={canShowDroppedData}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
@@ -428,7 +448,7 @@ function Chart({
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
   return (
-    <ChartWrapper ref={chartWrapperRef}>
+    <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}
@@ -492,24 +512,64 @@ function Chart({
         }
         Footer={
           visualize.visible && (
-            <ConfidenceFooter
-              extrapolate={extrapolate}
-              sampleCount={chartInfo.sampleCount}
-              isLoading={chartInfo.timeseriesResult?.isPending || false}
-              isSampled={chartInfo.isSampled}
-              confidence={chartInfo.confidence}
-              topEvents={
-                topEvents ? Math.min(topEvents, chartInfos[0]!.series.length) : undefined
-              }
-              dataScanned={chartInfo.dataScanned}
-              rawSpanCounts={rawSpanCounts}
-              userQuery={query.trim()}
-            />
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  <ConfidenceFooter
+                    extrapolate={extrapolate}
+                    sampleCount={chartInfo.sampleCount}
+                    isLoading={chartInfo.timeseriesResult?.isPending || false}
+                    isSampled={chartInfo.isSampled}
+                    confidence={chartInfo.confidence}
+                    topEvents={
+                      topEvents
+                        ? Math.min(topEvents, chartInfos[0]!.series.length)
+                        : undefined
+                    }
+                    dataScanned={chartInfo.dataScanned}
+                    rawSpanCounts={rawSpanCounts}
+                    userQuery={query.trim()}
+                  />
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={dataset}
+                      hasUserQuery={!!query.trim()}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
+                {showTransformationControls ? (
+                  <AddTransformationButton
+                    traceItemDataset={TraceItemDataset.SPANS}
+                    transformations={visualize.transformations}
+                    onChange={onTransformationsChange}
+                  />
+                ) : null}
+              </Flex>
+            </Container>
           )
         }
         height={chartHeight}
         revealActions="always"
+        borderless
       />
+      {showTransformationControls && visualize.transformations.length > 0 ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            layout="inline"
+            onChange={onTransformationsChange}
+          />
+        </Container>
+      ) : null}
     </ChartWrapper>
   );
 }

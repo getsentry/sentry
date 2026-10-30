@@ -17,6 +17,7 @@ from sentry.notifications.platform.types import (
     PlainTextBlock,
 )
 from sentry.organizations.services.organization.service import organization_service
+from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 
@@ -195,6 +196,7 @@ class SeerAgentResponse(NotificationData):
     run_id: int
     summary: str
     missing_scope_settings_url: str | None = None
+    repo_pr_states: list[RepoPRState] = Field(default_factory=list)
     source: NotificationSource = NotificationSource.SEER_AGENT_RESPONSE
 
 
@@ -248,7 +250,7 @@ class SeerInvestigationStartedTemplate(NotificationTemplate[SeerInvestigationSta
     example_data = SeerInvestigationStarted(
         organization_id=1,
         slack_user_id="U0123456789",
-        investigation_url="https://example.sentry.io/explore/investigations/1/",
+        investigation_url="https://example.sentry.io/seer/investigations/1/",
     )
     hide_from_debugger = True
 
@@ -313,7 +315,7 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
         organization_id=1,
         title="FCP on organization login pages",
         subtitle="`/auth/login/[org]/` · Aug 27, 09:00–11:00 UTC",
-        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
         hypotheses=[
             SeerInvestigationHypothesis(
                 statement="Database or cache degradation delayed the response",
@@ -355,9 +357,10 @@ class SeerInvestigationStatusTemplate(NotificationTemplate[SeerInvestigationStat
 
 
 class SeerInvestigationConclusion(NotificationData):
-    """The report text of a finished Seer investigation, posted in the alert's Slack thread."""
+    """The summary of a finished Seer investigation, posted in the alert's Slack thread."""
 
-    sections: list[str]
+    summary: str
+    summary_description: str | None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_CONCLUSION
 
@@ -367,13 +370,10 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
     category = NotificationCategory.SEER
     example_data = SeerInvestigationConclusion(
         organization_id=1,
-        sections=[
-            "## Summary\n\nA frontend release added a render-blocking font file, "
-            "which delayed the first paint on organization login pages.",
-            "## Next steps\n\n- Preload the font file or load it asynchronously.\n"
-            "- Add a performance budget for render-blocking assets.",
-        ],
-        investigation_url="https://sentry.io/organizations/example/explore/investigations/1/",
+        summary="A render-blocking font slowed the login page",
+        summary_description="A frontend release added a render-blocking font file, "
+        "which delayed the first paint on organization login pages.",
+        investigation_url="https://sentry.io/organizations/example/seer/investigations/1/",
     )
     hide_from_debugger = True
 
@@ -381,7 +381,9 @@ class SeerInvestigationConclusionTemplate(NotificationTemplate[SeerInvestigation
         return NotificationRenderedTemplate(
             subject="Seer investigation conclusion",
             body=[
-                ParagraphSection(blocks=[PlainTextBlock(text=section)]) for section in data.sections
+                ParagraphSection(blocks=[PlainTextBlock(text=text)])
+                for text in (data.summary, data.summary_description)
+                if text
             ],
             actions=[
                 NotificationRenderedAction(

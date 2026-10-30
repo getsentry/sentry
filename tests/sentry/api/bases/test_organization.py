@@ -9,6 +9,7 @@ from django.db.models import F
 from django.test import RequestFactory, override_settings
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.request import Request
 from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
@@ -28,16 +29,20 @@ from sentry.api.exceptions import (
     TwoFactorRequired,
 )
 from sentry.api.utils import MAX_STATS_PERIOD
-from sentry.auth.access import NoAccess, from_request
+from sentry.auth.access import NoAccess, ServiceAccountAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.principal import set_request_principal
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import Superuser
-from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
+from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -258,6 +263,38 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             permission.determine_access(request=request, organization=self.org)
+
+    def _service_account_request(self, organization: Organization) -> Request:
+        service_account = self.create_service_account(
+            organization=organization, scope_list=["org:read"]
+        )
+        request = drf_request_from_request(self.make_request(method="GET"))
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=service_account.id,
+                organization_id=organization.id,
+                name=service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=service_account.id,
+                organization_id=organization.id,
+                scopes=["org:read"],
+            ),
+        )
+        return request
+
+    def test_service_account_gets_its_credential_access(self) -> None:
+        request = self._service_account_request(self.org)
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, ServiceAccountAccess)
+        assert request.access.has_scope("org:read")
+
+    def test_service_account_has_no_access_to_another_org(self) -> None:
+        request = self._service_account_request(self.create_organization())
+        self.permission_cls().determine_access(request=request, organization=self.org)
+        assert isinstance(request.access, NoAccess)
 
     def test_org_auth_token_passes_2fa(self) -> None:
         self.org_require_2fa()
@@ -910,6 +947,70 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         second_cache_key = mock_cache.get.call_args.args[0]
 
         assert first_cache_key != second_cache_key
+
+    def build_service_account_request(
+        self, organization: Organization | None = None, params: dict[str, str] | None = None
+    ):
+        service_account = self.create_service_account(
+            organization=organization or self.org,
+            scope_list=["project:releases"],
+            project_ids=[self.project_1.id] if organization is None else [],
+        )
+        request = RequestFactory().get("/", params or {})
+        request.session = SessionBase()
+        request.user = AnonymousUser()
+        request.auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=service_account.id,
+            organization_id=service_account.organization_id,
+            scopes=["project:releases"],
+        )
+        request.access = from_request(drf_request_from_request(request), self.org)
+        return request
+
+    def test_service_account_gets_linked_projects(self) -> None:
+        request = self.build_service_account_request()
+
+        assert {p.id for p in self.endpoint.get_projects(request, self.org)} == {self.project_1.id}
+        with pytest.raises(PermissionDenied):
+            self.endpoint.get_projects(request, self.org, project_ids={self.project_2.id})
+
+    def test_service_account_from_other_org_gets_no_projects(self) -> None:
+        request = self.build_service_account_request(organization=self.create_organization())
+
+        assert self.endpoint.get_projects(request, self.org) == []
+
+    def test_service_account_release_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_all_projects_are_limited_to_linked_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request(params={"project": str(ALL_ACCESS_PROJECT_ID)})
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_projects_with_open_membership(self) -> None:
+        self.org.flags.allow_joinleave = True
+        self.org.save()
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {
+            self.project_1.id,
+            self.project_2.id,
+        }
+
+    def test_service_account_release_permission_follows_linked_projects(self) -> None:
+        linked_release = self.create_release(project=self.project_1)
+        unlinked_release = self.create_release(project=self.project_2)
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request()
+
+        assert endpoint.has_release_permission(request, self.org, linked_release)
+        assert not endpoint.has_release_permission(request, self.org, unlinked_release)
 
     def test_get_requested_project_ids_unchecked_ignores_slugs(self) -> None:
         request = self.build_request(project=["1", "my-slug", "42"])

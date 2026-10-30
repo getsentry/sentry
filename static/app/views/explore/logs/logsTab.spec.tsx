@@ -1,8 +1,15 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -202,6 +209,74 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('edits per-series transformations beneath the charts through the log URL', async () => {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                {groupBy: 'severity'},
+                {yAxes: ['count(message)'], transformations: ['fill(zero)']},
+                {yAxes: ['avg(severity_number)'], transformations: ['smooth(asap,10)']},
+              ].map(field => JSON.stringify(field)),
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        }),
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    expect(await screen.findByText('some log message1')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+    await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '3'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(asap,3)'],
+        }),
+      ])
+    );
+
+    await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[1]!);
+    expect(
+      screen.queryByRole('button', {name: 'Max Window Size'})
+    ).not.toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
+    expect(screen.getByRole('button', {name: 'Max Window Size'})).toHaveTextContent('3');
+
+    const rows = screen.getAllByRole('group', {name: 'Transformation 1'});
+    await userEvent.click(
+      within(rows[1]!).getByRole('button', {name: 'Remove transformation'})
+    );
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Add Transformation'})[1]!
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await waitFor(() =>
+      expect(router.location.query.aggregateField).toEqual([
+        JSON.stringify({groupBy: 'severity'}),
+        JSON.stringify({yAxes: ['count(message)'], transformations: ['fill(zero)']}),
+        JSON.stringify({
+          yAxes: ['avg(severity_number)'],
+          transformations: ['smooth(sma,3)'],
+        }),
+      ])
+    );
   });
 
   it('disables saving when any log series has transformations', async () => {
@@ -861,6 +936,63 @@ describe('LogsTabContent', () => {
     ).toBeInTheDocument();
   });
 
+  it('warns that results may be incomplete while auto-refresh is enabled', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we don't scan your full log volume while auto-refresh is on/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when auto-refresh finds no logs in a full scan', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'full'},
+      },
+    });
+    const autorefreshEnabledRouterConfig = structuredClone(initialRouterConfig);
+    autorefreshEnabledRouterConfig.location.query[LOGS_FIELDS_KEY] = [
+      'timestamp',
+      'message',
+    ];
+    autorefreshEnabledRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+    autorefreshEnabledRouterConfig.location.query[LOGS_AUTO_REFRESH_KEY] = 'enabled';
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: autorefreshEnabledRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(screen.queryByText(/may be incomplete/)).not.toBeInTheDocument();
+  });
+
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
@@ -871,7 +1003,7 @@ describe('LogsTabContent', () => {
         ],
         body: {
           meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });

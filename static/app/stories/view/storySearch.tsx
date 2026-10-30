@@ -176,7 +176,7 @@ export function StorySearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const hierarchy = useStoryHierarchy();
   const [inputValue, setInputValue] = useState('');
-  useHotkeys([{match: '/', callback: () => inputRef.current?.focus()}]);
+  useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
 
   const deferredInputValue = useDeferredValue(inputValue);
 

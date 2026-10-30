@@ -196,6 +196,44 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         )
         assert response.data[2]["dataSources"][0]["queryObj"] == serialize(subscription)
 
+    def test_hides_cron_and_uptime_detectors_without_data_source(self) -> None:
+        uptime_detector = self.create_uptime_detector(project=self.project, name="Uptime")
+        cron_detector = ensure_cron_detector(self.create_monitor(project=self.project, name="Cron"))
+        assert cron_detector is not None
+        metric_detector = self.create_detector(
+            project=self.project, name="Metric", type=MetricIssue.slug
+        )
+        orphaned_uptime = self.create_detector(
+            project=self.project,
+            name="Orphaned Uptime",
+            type=UptimeDomainCheckFailure.slug,
+            config={
+                "mode": 1,
+                "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
+            },
+        )
+        orphaned_cron = self.create_detector(
+            project=self.project, name="Orphaned Cron", type=MonitorIncidentType.slug
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+
+        ids = {d["id"] for d in response.data}
+        assert ids == {
+            str(self.error_detector.id),
+            str(self.issue_stream_detector.id),
+            str(uptime_detector.id),
+            str(cron_detector.id),
+            str(metric_detector.id),
+        }
+        assert str(orphaned_uptime.id) not in ids
+        assert str(orphaned_cron.id) not in ids
+        assert int(response["X-Hits"]) == 5
+
     def test_default_detector_result(self) -> None:
         """
         Test that the only results are the default detectors for a project
@@ -544,22 +582,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         metric_detector = self.create_detector(
             project=self.project, name="Metric Detector", type=MetricIssue.slug
         )
-        uptime_detector = self.create_detector(
-            project=self.project,
-            name="Uptime Detector",
-            type=UptimeDomainCheckFailure.slug,
-            config={
-                "mode": 1,
-                "environment": "production",
-                "recovery_threshold": 1,
-                "downtime_threshold": 3,
-            },
+        uptime_detector = self.create_uptime_detector(project=self.project, name="Uptime Detector")
+        cron_detector = ensure_cron_detector(
+            self.create_monitor(project=self.project, name="Cron Detector")
         )
-        cron_detector = self.create_detector(
-            project=self.project,
-            name="Cron Detector",
-            type=MonitorIncidentType.slug,
-        )
+        assert cron_detector is not None
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
@@ -2133,7 +2160,6 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             organization=self.organization,
             projects=[self.project],
         )
-        self.create_alert_rule_trigger(alert_rule=alert_rule)
         detector = self.create_detector(
             project=self.project,
             type=MetricIssue.slug,

@@ -15,6 +15,7 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -34,6 +35,7 @@ from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
     PendingUserInput,
+    RepoPRState,
     SeerRunState,
 )
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
@@ -54,6 +56,7 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
+from sentry.seer.entrypoints.slack.investigation_status import MAX_SUMMARY_DESCRIPTION_LENGTH
 from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
     schedule_all_thread_updates,
@@ -723,6 +726,7 @@ class SlackAgentEntrypointTest(TestCase):
             organization=self.organization,
             external_id="TXXXXXXXXX2",
             provider="slack",
+            metadata={"access_token": "xoxb-test-token"},
         )
 
     def _get_entrypoint(self, thread_ts: str | None = None) -> SlackAgentEntrypoint:
@@ -1104,6 +1108,129 @@ class SlackAgentEntrypointTest(TestCase):
             "I sent you a message."
         )
 
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.has_history_scope",
+        return_value=True,
+    )
+    @patch("slack_sdk.web.client.WebClient.chat_update")
+    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
+    def test_messages_and_pr_footers_across_conversation_turns(
+        self, post: Mock, update: Mock, _scope: Mock
+    ) -> None:
+        post.side_effect = [
+            _slack_response({"ok": True, "ts": "1.1"}),
+            _slack_response({"ok": True, "ts": "2.2"}),
+            _slack_response({"ok": True, "ts": "3.3"}),
+        ]
+        update.return_value = _slack_response({"ok": True})
+        slack = Mock()
+        slack.attach_mock(post, "post")
+        slack.attach_mock(update, "update")
+        cache_payload = self._get_entrypoint().create_agent_cache_payload()
+        state = _agent_state("I found a missing cache key.")
+        state.blocks[0].message.content = "Investigate the cache error."
+
+        def add_message(role: str, content: str) -> None:
+            state.blocks.append(
+                MemoryBlock(
+                    id=f"b{len(state.blocks) + 1}",
+                    message=Message(role=role, content=content),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            )
+
+        def refresh() -> None:
+            SlackAgentEntrypoint.on_agent_update(
+                cache_payload=cache_payload, run_id=state.run_id, state=state
+            )
+
+        refresh()
+
+        add_message("user", "Open a PR to fix it.")
+        state.status = "processing"
+        pr = RepoPRState(repo_name="acme/web", pr_creation_status="creating")
+        state.repo_pr_states[pr.repo_name] = pr
+        refresh()
+
+        add_message("assistant", "I'm opening a PR with the fix.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_number = 7
+        pr.pr_url = "https://github.com/acme/web/pull/7"
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "abcdef1234567890"
+        refresh()
+
+        add_message("user", "Also handle empty cache keys.")
+        state.status = "processing"
+        pr.pr_creation_status = "creating"
+        refresh()
+
+        add_message("assistant", "I've added empty-key handling.")
+        state.status = "completed"
+        refresh()
+
+        pr.pr_creation_status = "completed"
+        pr.commit_sha = "1234567890abcdef"
+        refresh()
+        refresh()
+
+        def blocks(summary: str, *footers: str) -> list[dict[str, Any]]:
+            return [{"type": "markdown", "text": summary}] + [
+                {"type": "context", "elements": [{"type": "mrkdwn", "text": footer}]}
+                for footer in footers
+            ]
+
+        pr_link = "<https://github.com/acme/web/pull/7|acme/web#7>"
+        for _, _, kwargs in slack.mock_calls:
+            assert kwargs["channel"] == self.channel_id
+            assert kwargs["text"] == "Seer Agent has finished"
+        assert [
+            (
+                method,
+                kwargs.get("ts", kwargs.get("thread_ts")),
+                [block.to_dict() for block in kwargs["blocks"]],
+            )
+            for method, _, kwargs in slack.mock_calls
+        ] == [
+            ("post", self.thread_ts, blocks("I found a missing cache key.")),
+            (
+                "update",
+                "1.1",
+                blocks("I found a missing cache key.", "Creating a PR in `acme/web`..."),
+            ),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I'm opening a PR with the fix.", "Creating a PR in `acme/web`..."),
+            ),
+            ("update", "1.1", blocks("I found a missing cache key.")),
+            (
+                "update",
+                "2.2",
+                blocks(
+                    "I'm opening a PR with the fix.",
+                    f"Latest push complete for {pr_link} (`abcdef1`)",
+                ),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.", f"Updating {pr_link}...")),
+            (
+                "post",
+                self.thread_ts,
+                blocks("I've added empty-key handling.", f"Updating {pr_link}..."),
+            ),
+            ("update", "2.2", blocks("I'm opening a PR with the fix.")),
+            (
+                "update",
+                "3.3",
+                blocks(
+                    "I've added empty-key handling.",
+                    f"Latest push complete for {pr_link} (`1234567`)",
+                ),
+            ),
+        ]
+
 
 def _slack_response(data: dict[str, Any]) -> SlackResponse:
     return SlackResponse(
@@ -1146,7 +1273,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             provider="slack",
             metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",
@@ -1256,20 +1383,21 @@ class SlackInvestigationEntrypointTest(TestCase):
             status=status
         )
 
-    def _report_cell(self, content: str, **kwargs: Any) -> None:
-        kwargs.setdefault("report_revision", 0)
-        self.create_investigation_block(investigation=self.investigation, content=content, **kwargs)
+    def _set_summary(self, summary: str | None, description: str | None = None) -> None:
+        Notebook.objects.filter(id=self.investigation.id).update(
+            summary=summary, summary_description=description
+        )
 
-    def _conclusion_sections(self) -> list[str]:
+    def _conclusion_text(self) -> str:
         (call,) = [
             call
             for call in self.mock_post_message.call_args_list
             if call.kwargs["text"] == "Seer finished the investigation"
         ]
         assert call.kwargs["thread_ts"] == self.message_ts
-        *sections, _divider, actions = call.kwargs["blocks"]
+        section, _divider, actions = call.kwargs["blocks"]
         assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
-        return [section.text for section in sections]
+        return section.text.text
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
@@ -1512,25 +1640,21 @@ class SlackInvestigationEntrypointTest(TestCase):
 
     def test_completed_run_posts_conclusion_once(self) -> None:
         self._set_cache()
-        self._report_cell("## Summary\n\nA release added a slow font.", position=0)
-        self._report_cell("## Next steps\n\nPreload the font.", position=1)
+        self._set_summary("A release added a slow font", "Preload the font.")
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
         self._update([_hypothesis()])
 
         self.mock_update.assert_called_once()
-        assert self._conclusion_sections() == [
-            "## Summary\n\nA release added a slow font.",
-            "## Next steps\n\nPreload the font.",
-        ]
+        assert self._conclusion_text() == "*A release added a slow font*\nPreload the font."
         cache_payload = self._get_cache()
         assert cache_payload is not None
         assert cache_payload["final_sent"] is True
 
     def test_conclusion_posts_when_status_is_unchanged(self) -> None:
         self._set_cache()
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         self._update([_hypothesis()])
         self.mock_update.reset_mock()
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
@@ -1538,10 +1662,10 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_not_called()
-        assert self._conclusion_sections() == ["The release added a slow font."]
+        assert self._conclusion_text() == "*A release added a slow font*"
 
     def test_failed_or_cancelled_run_posts_no_conclusion(self) -> None:
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         for status in (
             InvestigationOrchestrationStatus.FAILED,
             InvestigationOrchestrationStatus.CANCELLED,
@@ -1553,40 +1677,20 @@ class SlackInvestigationEntrypointTest(TestCase):
 
             self.mock_post_message.assert_not_called()
 
-    def test_conclusion_skips_query_deleted_empty_and_manual_cells(self) -> None:
+    def test_conclusion_escapes_and_truncates_the_summary(self) -> None:
         self._set_cache()
-        self._report_cell("Second", position=2)
-        self._report_cell("First", position=0)
-        self._report_cell("Query", position=1, kind="query")
-        self._report_cell("Deleted", position=3, deleted_at=datetime(2024, 8, 27, tzinfo=UTC))
-        self._report_cell("  \n", position=4)
-        self._report_cell("Manual", position=5, report_revision=None)
+        self._set_summary("<!channel> & friends", "a" * 3000)
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
 
-        assert self._conclusion_sections() == ["First", "Second"]
-
-    def test_conclusion_strips_embed_tags(self) -> None:
-        self._set_cache()
-        self._report_cell(
-            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n"
-            '{% issue %}{"id": "PYTHON-FLASK-6 (id 5)"}{% /issue %}\n\n'
-            '## Why\nIt started at {% timestamp %}{"value": "now"}{% /timestamp %}.\n'
-            '{% chart %}\n{"title": "Errors"}\n{% /chart %}\n'
-            'See {% docs href="https://docs.sentry.io" title="Docs" /%}.'
+        assert self._conclusion_text() == (
+            "*&lt;!channel&gt; &amp; friends*\n" + "a" * (MAX_SUMMARY_DESCRIPTION_LENGTH - 1) + "…"
         )
-        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
-        self._update([_hypothesis()])
-
-        assert self._conclusion_sections() == [
-            "Errors are a known `KeyError` (PYTHON-FLASK-6).\n\n## Why\nIt started at .\nSee ."
-        ]
-
-    def test_no_text_cells_marks_final_sent(self) -> None:
+    def test_no_summary_marks_final_sent(self) -> None:
         self._set_cache()
-        self._report_cell("", kind="query")
+        self._set_summary(None)
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])
@@ -1598,7 +1702,7 @@ class SlackInvestigationEntrypointTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_failed_conclusion_post_leaves_final_sent_unset(self, mock_record: Mock) -> None:
-        self._report_cell("The release added a slow font.")
+        self._set_summary("A release added a slow font")
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
         for error, halt_count in (("ratelimited", 2), ("invalid_blocks", 1)):
             self._set_cache()
@@ -1619,18 +1723,3 @@ class SlackInvestigationEntrypointTest(TestCase):
                 if call.args[0] == EventLifecycleOutcome.HALTED
             ]
             assert len(halts) == halt_count, error
-
-    def test_conclusion_is_cut_at_a_paragraph(self) -> None:
-        self._set_cache()
-        self._report_cell("a" * 6000, position=0)
-        self._report_cell("b" * 4000 + "\n\n" + "c" * 4000, position=1)
-        self._report_cell("d", position=2)
-        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
-
-        self._update([_hypothesis()])
-
-        assert self._conclusion_sections() == [
-            "a" * 6000,
-            "b" * 4000,
-            "_The rest of the report is in the full investigation._",
-        ]

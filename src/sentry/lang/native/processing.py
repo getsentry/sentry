@@ -130,6 +130,8 @@ def _merge_frame(new_frame, symbolicated, platform="native"):
         new_frame["source_link"] = symbolicated["source_link"]
     if symbolicated.get("vars"):
         new_frame["vars"] = symbolicated["vars"]
+    if symbolicated.get("file_revision"):
+        new_frame["file_revision"] = symbolicated["file_revision"]
 
     addr_mode = symbolicated.get("addr_mode")
     if addr_mode is None:

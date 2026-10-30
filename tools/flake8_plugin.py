@@ -3,9 +3,10 @@ from __future__ import annotations
 import ast
 import os
 from collections import Counter
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, NamedTuple
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
@@ -183,22 +184,23 @@ S031_msg = (
     "override_options(...) so the change is undone in order"
 )
 
+S032_msg = (
+    "S032 acting_user_id() is None when no user is calling (e.g. a service account), "
+    "and a None lookup matches rows with no user; call require_user(request) or handle "
+    "None first"
+)
+# Lookups only: writing None, e.g. to created_by_id, is how a caller with no user is
+# recorded.
+_S032_query_methods = frozenset(("filter", "exclude", "get", "get_or_create", "update_or_create"))
+
+S033_msg = (
+    "S033 Don't assign request.user or request.auth directly; call "
+    "set_request_principal(request, user, auth)."
+)
+
 # Existing callers are pinned to their exact function and occurrence count. This is a
 # shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
-S030_allowlist: dict[str, dict[tuple[str, str], int]] = {
-    "src/sentry/integrations/utils/external_issues.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("_make_generate_external_issue_details_request", "call LlmGenerateRequest"): 1,
-        ("_make_generate_external_issue_details_request", "call make_llm_generate_request"): 1,
-    },
-    "src/sentry/uptime/seer_assertions.py": {
-        (_S030_MODULE_SCOPE, "import LlmGenerateRequest"): 1,
-        (_S030_MODULE_SCOPE, "import make_llm_generate_request"): 1,
-        ("generate_assertion_suggestions", "call LlmGenerateRequest"): 1,
-        ("generate_assertion_suggestions", "call make_llm_generate_request"): 1,
-    },
-}
+S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
 
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
@@ -459,6 +461,41 @@ def _name_of(node: ast.expr) -> str:
     return ast.unparse(node)
 
 
+def _is_acting_user_id(node: ast.expr) -> bool:
+    """A call to `acting_user_id(...)`."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "acting_user_id"
+    )
+
+
+def _is_named_request(node: ast.expr) -> bool:
+    """`request`, `self.request`, `drf_request`, ..."""
+    if isinstance(node, ast.Name):
+        return node.id.endswith("request")
+    return isinstance(node, ast.Attribute) and node.attr.endswith("request")
+
+
+def _is_request_principal_attr(node: ast.expr) -> bool:
+    """`request.user` / `request.auth` on anything named like a request."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr in ("user", "auth")
+        and _is_named_request(node.value)
+    )
+
+
+def _unpack_targets(targets: list[ast.expr]) -> Iterator[ast.expr]:
+    stack = list(targets)
+    while stack:
+        target = stack.pop()
+        if isinstance(target, (ast.Tuple, ast.List)):
+            stack.extend(target.elts)
+        else:
+            yield target
+
+
 def _is_seer_connection_pool_call(node: ast.expr) -> bool:
     if not isinstance(node, ast.Call):
         return False
@@ -694,23 +731,66 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+class _StartEnd(NamedTuple):
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+
+
+def _start_and_end(node: ast.expr) -> _StartEnd:
+    """Where a node starts and ends, as ast reports it (columns are 0-based)"""
+    return _StartEnd(
+        line=node.lineno,
+        column=node.col_offset,
+        end_line=node.end_lineno or node.lineno,
+        end_column=node.end_col_offset or node.col_offset,
+    )
+
+
+# Short source names used in violation keys, so a query and a body read of the
+# same name stay separate violations.
+_SOURCE_PREFIX = {"query string": "query", "request body": "body"}
+
+
+@dataclass(frozen=True)
+class ApiInputViolation:
+    """Structured record of a single S025-S028 API input lint violation.
+
+    Preserves the `Class.method` scope, prefixed input `key`, and full start and end
+    position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
+    """
+
+    rule: str
+    message: str
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+    severity: Literal["error", "warning"]
+    scope: str  # Class.method
+    key: str  # source and name, for example "query:id"
+    tool: str = "sentry-flake8"
+
+
 class _InputCtx:
     """One PUBLIC method's input sources, gathered during the single traversal."""
 
-    def __init__(self, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+        self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
         self.query_locals: set[str] = set()
         self.body_locals: set[str] = set()
-        # (line, col, serializer) for each serializer built from that source
-        self.query_validators: list[tuple[int, int, str]] = []
-        self.body_validators: list[tuple[int, int, str]] = []
-        # (line, col, key, source) reads with a literal key
-        self.literal_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, rendered key, source) reads whose key is computed
-        self.computed_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, callee, source) the whole dict passed somewhere
-        self.hand_offs: list[tuple[int, int, str, str]] = []
+        # (start_end, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[_StartEnd, str]] = []
+        self.body_validators: list[tuple[_StartEnd, str]] = []
+        # (start_end, key, source) reads with a literal key
+        self.literal_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[_StartEnd, str, str]] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -734,11 +814,11 @@ class _InputCtx:
             return "request body"
         return None
 
-    def record_read(self, key: ast.expr, source: str, line: int, col: int) -> None:
+    def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
-            self.literal_reads.append((line, col, key.value, source))
+            self.literal_reads.append((_start_and_end(node), key.value, source))
         else:
-            self.computed_reads.append((line, col, ast.unparse(key), source))
+            self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -750,6 +830,8 @@ class SentryVisitor(ast.NodeVisitor):
         eap_suite_classes: set[str] | None = None,
     ) -> None:
         self.errors: list[tuple[int, int, str]] = []
+        # Every S025-S028 violation, enforced or not; see get_api_violations
+        self.api_violations: list[ApiInputViolation] = []
         self.filename = filename
         self._s015_year = s015_year
         self._s015_msg = s015_msg
@@ -998,14 +1080,17 @@ class SentryVisitor(ast.NodeVisitor):
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         self._check_S031(node.targets)
+        self._check_S033(node.targets)
         self.generic_visit(node)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_Delete(self, node: ast.Delete) -> None:
@@ -1018,6 +1103,19 @@ class SentryVisitor(ast.NodeVisitor):
         for target in targets:
             if _is_settings_target(target):
                 self.errors.append((target.lineno, target.col_offset, S031_msg))
+
+    def _s033_applies(self) -> bool:
+        # set_request_principal is the one setter; tests may assign directly.
+        return not _is_tests_path(self.filename) and not self.filename.endswith(
+            "sentry/auth/principal.py"
+        )
+
+    def _check_S033(self, targets: list[ast.expr]) -> None:
+        if not self._s033_applies():
+            return
+        for target in _unpack_targets(targets):
+            if _is_request_principal_attr(target):
+                self.errors.append((target.lineno, target.col_offset, S033_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)
@@ -1140,7 +1238,7 @@ class SentryVisitor(ast.NodeVisitor):
             ctx = self._input_stack[-1]
             source = ctx.source_of(node.value)
             if source is not None:
-                ctx.record_read(node.slice, source, node.lineno, node.col_offset)
+                ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
     def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -1154,6 +1252,7 @@ class SentryVisitor(ast.NodeVisitor):
         decorators = self._class_decorators + node.decorator_list
         self._input_stack.append(
             _InputCtx(
+                f"{self._class_stack[-1]}.{node.name}",
                 _declared_names(decorators, "parameters"),
                 _declared_names(decorators, "request"),
             )
@@ -1167,7 +1266,7 @@ class SentryVisitor(ast.NodeVisitor):
         if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
             source = ctx.source_of(func.value)
             if source is not None and node.args:
-                ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
+                ctx.record_read(node.args[0], source, node)
             # On anything but the request this is an ordinary lookup, and
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
@@ -1180,7 +1279,7 @@ class SentryVisitor(ast.NodeVisitor):
             if source is not None:
                 name = _name_of(func).rsplit(".", 1)[-1]
                 if name not in _CONTAINER_OPS:
-                    ctx.hand_offs.append((node.lineno, node.col_offset, name, source))
+                    ctx.hand_offs.append((_start_and_end(node), name, source))
                 return
 
     def _record_validator(self, node: ast.Call) -> None:
@@ -1195,29 +1294,51 @@ class SentryVisitor(ast.NodeVisitor):
                 continue
             name = _name_of(node.func).rsplit(".", 1)[-1]
             if ctx.is_query(keyword.value):
-                ctx.query_validators.append((node.lineno, node.col_offset, name))
+                ctx.query_validators.append((_start_and_end(node), name))
             elif ctx.is_body(keyword.value):
-                ctx.body_validators.append((node.lineno, node.col_offset, name))
+                ctx.body_validators.append((_start_and_end(node), name))
 
-    def _report_input(self, line: int, col: int, msg: str, rule: str) -> None:
-        """Fatal only for an enforced rule; otherwise recorded unless asked for."""
-        if rule in ENFORCED or os.environ.get(INPUT_LINT_ALL_ENV):
-            self.errors.append((line, col, msg))
+    def _report_input(
+        self, ctx: _InputCtx, start_end: _StartEnd, msg: str, group: str, key: str, source: str
+    ) -> None:
+        """Always recorded as a structured violation; fatal only for an enforced group."""
+        enforced = group in ENFORCED
+        self.api_violations.append(
+            ApiInputViolation(
+                # flake8 requires every message to start with its code
+                rule=msg.split(" ", 1)[0],
+                message=msg,
+                line=start_end.line,
+                column=start_end.column,
+                end_line=start_end.end_line,
+                end_column=start_end.end_column,
+                severity="error" if enforced else "warning",
+                scope=ctx.scope,
+                key=f"{_SOURCE_PREFIX[source]}:{key}",
+            )
+        )
+        if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
+            self.errors.append((start_end.line, start_end.column, msg))
 
     def _exit_input(self) -> None:
         ctx = self._input_stack.pop()
-        for line, col, name in ctx.query_validators:
+        for start_end, name in ctx.query_validators:
             if name not in ctx.declared_params:
-                self._report_input(line, col, S025_query_msg.format(name), "declared")
-        for line, col, name in ctx.body_validators:
+                msg = S025_query_msg.format(name)
+                self._report_input(ctx, start_end, msg, "declared", name, "query string")
+        for start_end, name in ctx.body_validators:
             if name not in ctx.declared_body:
-                self._report_input(line, col, S025_body_msg.format(name), "declared")
-        for line, col, key, source in ctx.literal_reads:
-            self._report_input(line, col, S026_msg.format(repr(key), source), "shaped")
-        for line, col, key, source in ctx.computed_reads:
-            self._report_input(line, col, S027_msg.format(source, key), "shaped")
-        for line, col, callee, source in ctx.hand_offs:
-            self._report_input(line, col, S028_msg.format(source, callee), "shaped")
+                msg = S025_body_msg.format(name)
+                self._report_input(ctx, start_end, msg, "declared", name, "request body")
+        for start_end, key, source in ctx.literal_reads:
+            msg = S026_msg.format(repr(key), source)
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, key, source in ctx.computed_reads:
+            msg = S027_msg.format(source, key)
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, callee, source in ctx.hand_offs:
+            msg = S028_msg.format(source, callee)
+            self._report_input(ctx, start_end, msg, "shaped", callee, source)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
@@ -1256,6 +1377,28 @@ class SentryVisitor(ast.NodeVisitor):
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
 
+        # S033: setattr(request, "user" | "auth", ...).
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "setattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and node.args[1].value in ("user", "auth")
+            and self._s033_applies()
+            and _is_named_request(node.args[0])
+        ):
+            self.errors.append((node.lineno, node.col_offset, S033_msg))
+
+        # S032: a caller's possibly-None user_id used as a queryset lookup.
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in _S032_query_methods
+            and ".objects" in _name_of(node.func.value)
+        ):
+            for keyword in node.keywords:
+                if _is_acting_user_id(keyword.value):
+                    self.errors.append((keyword.lineno, keyword.col_offset, S032_msg))
+
         if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
             for keyword in node.keywords:
                 if keyword.arg == "extra" and isinstance(keyword.value, ast.Dict):
@@ -1285,6 +1428,24 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.lineno, node.col_offset, S020_msg))
 
         self.generic_visit(node)
+
+
+def get_api_violations(
+    tree: ast.AST, filename: str, all_rules: bool = True
+) -> list[ApiInputViolation]:
+    """Scan a file's AST and keep structured records for S025-S028 violations.
+
+    Unlike flake8's plain text output, these records preserve the method scope
+    and parameter key needed for baseline tracking. By default `all_rules=True`,
+    this returns every violation even if the rule is currently disabled in flake8.
+    """
+    visitor = SentryVisitor(filename, datetime.now(timezone.utc).year, _s015_msg())
+    visitor.visit(tree)
+    violations = []
+    for violation in visitor.api_violations:
+        if all_rules or violation.severity == "error":
+            violations.append(violation)
+    return violations
 
 
 class SentryCheck:

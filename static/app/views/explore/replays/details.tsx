@@ -117,7 +117,13 @@ function ReplayDetailsContent() {
     <SentryDocumentTitle title={title}>
       <Stack flex={1} height="100%" minHeight="0" width="100%" overflow="hidden">
         {replay ? (
-          <ReplayDetailsProviders replay={replay} projectSlug={readerResult.projectSlug}>
+          <ReplayDetailsProviders
+            // A cached replay record skips the `replay === null` render that
+            // otherwise remounts the page, so reset per-replay state here
+            key={readerResult.replayId}
+            replay={replay}
+            projectSlug={readerResult.projectSlug}
+          >
             {pageContent}
           </ReplayDetailsProviders>
         ) : (

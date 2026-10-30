@@ -1,10 +1,11 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -48,10 +49,7 @@ import {
   useQueryParamsQuery,
   useQueryParamsTopEventsLimit,
 } from 'sentry/views/explore/queryParams/context';
-import {
-  isVisualizeEquation,
-  isVisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {useRawCounts} from 'sentry/views/explore/useRawCounts';
 import {
@@ -194,11 +192,7 @@ function Graph({
     const rawSeries = [
       ...new Set(
         visualizes.flatMap(v =>
-          getTimeSeriesForQuery(
-            timeseriesResult.data,
-            v.yAxis,
-            isVisualizeFunction(v) ? v.transformations : []
-          )
+          getTimeSeriesForQuery(timeseriesResult.data, v.yAxis, v.transformations)
         )
       ),
     ];
@@ -277,6 +271,7 @@ function Graph({
         chartInfo.dataScanned
       )
     : null;
+  const isDroppedDataLoaded = showChart && defined(droppedEvents);
   const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
@@ -302,9 +297,10 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {canShowDroppedData ? (
+            {isDroppedDataLoaded ? (
               <DroppedDataLayerControl
                 dataset={DiscoverDatasets.TRACEMETRICS}
+                hasDroppedData={canShowDroppedData}
                 showDroppedData={isDroppedDataLayerOn}
                 onChange={setIsDroppedDataLayerOn}
               />
@@ -350,17 +346,37 @@ function Graph({
         }
         Footer={
           showChart || footerActions ? (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              {showChart ? (
-                <ConfidenceFooter
-                  chartInfo={chartInfo}
-                  isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-                  hasUserQuery={!!userQuery}
-                  rawMetricCounts={rawMetricCounts}
-                />
-              ) : null}
-              {footerActions}
-            </Flex>
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {showChart ? (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={
+                        timeseriesResult.isPending || timeseriesResult.isFetching
+                      }
+                      hasUserQuery={!!userQuery}
+                      rawMetricCounts={rawMetricCounts}
+                    />
+                  ) : null}
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={DiscoverDatasets.TRACEMETRICS}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
+                {footerActions}
+              </Flex>
+            </Container>
           ) : undefined
         }
         height={height}

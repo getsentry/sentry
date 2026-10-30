@@ -148,7 +148,7 @@ class SeerInvestigationStartedTemplateTest(TestCase):
             SeerInvestigationStarted(
                 organization_id=1,
                 slack_user_id="U0123456789",
-                investigation_url="https://example.sentry.io/explore/investigations/1/",
+                investigation_url="https://example.sentry.io/seer/investigations/1/",
             )
         )
 
@@ -188,7 +188,7 @@ class SeerInvestigationConclusionTemplateTest(TestCase):
         rendered = template.render_example()
 
         assert rendered.subject == "Seer investigation conclusion"
-        assert len(rendered.body) == len(template.example_data.sections)
+        assert len(rendered.body) == 2
         (action,) = rendered.actions
         assert action.label == "View full investigation"
         assert action.link == template.example_data.investigation_url

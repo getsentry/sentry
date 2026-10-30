@@ -40,9 +40,11 @@ from sentry.api.exceptions import (
     InsufficientScope,
     StaffRequired,
     SuperuserRequired,
+    UserRequired,
 )
 from sentry.apidocs.hooks import HTTP_METHOD_NAME
 from sentry.auth import access
+from sentry.auth.principal import RequestPrincipal, has_user, set_request_principal
 from sentry.auth.scope_declaration import bind_endpoint_scope_declaration
 from sentry.auth.staff import has_staff_option
 from sentry.hybridcloud.apigateway.cell_request_resolvers import CellRequestResolver
@@ -54,6 +56,7 @@ from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
 from sentry.seer import agent_token
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.snuba.query_sources import QuerySource
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -268,9 +271,17 @@ class Endpoint(APIView):
 
     owner: ApiOwner = ApiOwner.UNOWNED
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
+    # Non-safe methods that a client may resend after a timeout or 5xx without
+    # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] = frozenset()
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None
+    # For endpoints people may call with any credential, API tokens included, but a caller
+    # with no user (e.g. a service account) may not: it gets a 403 user-required, counted
+    # in api.user_required. Browser-only endpoints use SessionNoAuthTokenAuthentication,
+    # which refuses every token; for one user-only path, call require_user(request).
+    requires_user: bool = False
 
     @classmethod
     def as_view(cls, **initkwargs: Any) -> AsView[GenericView]:
@@ -305,6 +316,12 @@ class Endpoint(APIView):
             name=name,
             has_results="true" if bool(cursor) else "false",
         )
+
+    def initial(self, request: Request, *args: Any, **kwargs: Any) -> None:
+        super().initial(request, *args, **kwargs)
+        principal: RequestPrincipal = request.user
+        if self.requires_user and principal.is_authenticated and not has_user(principal):
+            raise UserRequired()
 
     def convert_args(self, request: Request, *args, **kwargs):
         return (args, kwargs)
@@ -397,6 +414,9 @@ class Endpoint(APIView):
 
         :returns: A 500 response including the event id of the captured Sentry event.
         """
+        if isinstance(exc, UserRequired):
+            # Shows which endpoints callers with no user behind them still can't use.
+            metrics.incr("api.user_required", tags={"endpoint": type(self).__name__})
         try:
             # Django REST Framework's built-in exception handler. If `settings.EXCEPTION_HANDLER`
             # exists and returns a response, that's used. Otherwise, `exc` is just re-raised
@@ -436,10 +456,9 @@ class Endpoint(APIView):
         # If our request is being made via our internal API client, we need to
         # stitch back on auth and user information
         if getattr(request, "__from_api_client__", False):
-            if rv.auth is None:
-                rv.auth = orig_auth
-            if rv.user is None:
-                rv.user = orig_user  # type: ignore[unreachable]  # the request here is partially initialized
+            auth = orig_auth if rv.auth is None else rv.auth
+            user = orig_user if rv.user is None else rv.user
+            set_request_principal(rv, user, auth)
         return rv
 
     def has_pagination(self, response: Response) -> bool:
@@ -705,6 +724,8 @@ class StatsMixin:
             resolution_s = request.GET.get("resolution")
             if resolution_s:
                 resolution = self._parse_resolution(resolution_s)
+                if resolution < 0:
+                    raise ValueError
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
             else:

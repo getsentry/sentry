@@ -308,29 +308,16 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         # Getsentry stacks. Getsentry tests use the same default lock backend and the same check.
         # --------------------------------
         #
-        # INFRENG-810: history_cls_lock, from Subscription.create_for_organization and apply_subscription_change
-        ("getsentry.models.billinghistory.history_cls_lock.<locals>.wrapper",),
-        # INFRENG-810: customer model_lock in Subscription.create_sentry_customer
-        (
-            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
-            "getsentry.models.subscription.Subscription.create_sentry_customer",
-        ),
         # INFRENG-811: reserved_budget_subscription_lock in tally_usage
         (
             "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
             "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
         ),
-        # INFRENG-812: subscription_lock during org provisioning (start_trial, and the legacy
-        # on-demand max spend upgrade from switch_performance_plan)
+        # INFRENG-812: subscription_lock in start_trial during org provisioning
         (
             "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
             "getsentry.billing.trial.start_trial",
             "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
-        ),
-        (
-            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
-            "getsentry.billing.ondemand_budgets.legacy_upgrade_ondemand_max_spend",
-            "getsentry.billing.switch_plan.switch_performance_plan",
         ),
         # INFRENG-813: platform trial locks in TrialService._create_product_trial and
         # _create_subscription_trial

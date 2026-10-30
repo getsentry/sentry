@@ -16,8 +16,7 @@ from sentry import audit_log, features, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
-from sentry.api.decorators import is_considered_sudo
-from sentry.api.exceptions import SudoRequired
+from sentry.api.decorators import require_sudo
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.permissions import StaffPermissionMixin
@@ -338,6 +337,10 @@ E.g. `['release', 'environment']`""",
         allow_blank=True,
         allow_null=True,
         help_text="Custom symbol sources, as a JSON string, to use when symbolicating events.",
+    )
+    enableNativeSourceServerMapping = serializers.BooleanField(
+        required=False,
+        help_text="Apply source server (srcsrv) information from native debug files to symbolicated frames.",
     )
     scrubIPAddresses = serializers.BooleanField(
         required=False,
@@ -941,6 +944,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:scm_source_context_enabled"] = result[
                     "scmSourceContextEnabled"
                 ]
+        if result.get("enableNativeSourceServerMapping") is not None:
+            if project.update_option(
+                "sentry:enable_native_source_server_mapping",
+                result["enableNativeSourceServerMapping"],
+            ):
+                changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
+                    "enableNativeSourceServerMapping"
+                ]
         if result.get("targetSampleRate") is not None:
             if project.update_option(
                 "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
@@ -1374,8 +1385,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         # In most cases we want to confirm password before deleting a project, but this isn't
         # necessary if we never received any events in the first place. This allows us to avoid
         # password confirmation in onboarding when undoing project creation.
-        if project.first_event is not None and not is_considered_sudo(request):
-            raise SudoRequired(request.user)
+        if project.first_event is not None:
+            require_sudo(request)
 
         updated = Project.objects.filter(id=project.id, status=ObjectStatus.ACTIVE).update(
             status=ObjectStatus.PENDING_DELETION

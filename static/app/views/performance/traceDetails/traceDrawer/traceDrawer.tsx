@@ -15,6 +15,7 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
+import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
@@ -361,15 +362,15 @@ export function TraceDrawer(props: TraceDrawerProps) {
         <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
           <ContentWrapper>
             {traceState.tabs.current_tab &&
-            typeof traceState.tabs.current_tab.node !== 'string'
-              ? traceState.tabs.current_tab.node.renderDetails({
-                  node: traceState.tabs.current_tab.node,
-                  onTabScrollToNode: props.onTabScrollToNode,
-                  organization,
-                  traceId: props.traceId,
-                  tree: props.trace,
-                })
-              : null}
+            typeof traceState.tabs.current_tab.node !== 'string' ? (
+              <TraceTreeNodeDetails
+                node={traceState.tabs.current_tab.node}
+                onTabScrollToNode={props.onTabScrollToNode}
+                organization={organization}
+                traceId={props.traceId}
+                tree={props.trace}
+              />
+            ) : null}
           </ContentWrapper>
         </Content>
       )}

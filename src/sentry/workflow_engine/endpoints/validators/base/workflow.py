@@ -7,6 +7,7 @@ from sentry import audit_log, features, options
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.environment import EnvironmentField
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.db import models
 from sentry.models.organization import Organization
 from sentry.utils.audit import create_audit_entry
@@ -399,7 +400,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
             log_alerting_quota_hit(
                 object_type="workflow",
                 organization=org,
-                actor=request.user if request.user.is_authenticated else None,
+                actor=request.user if has_user(request.user) else None,
             )
             raise serializers.ValidationError(
                 f"You may not exceed {max_workflows} workflows per organization."
@@ -438,7 +439,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 organization_id=organization.id,
                 environment_id=environment.id if environment else None,
                 when_condition_group=when_condition_group,
-                created_by_id=request.user.id,
+                created_by_id=acting_user_id(request.user),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
             )

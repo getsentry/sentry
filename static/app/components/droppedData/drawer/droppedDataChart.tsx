@@ -6,13 +6,12 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {ChartLegend, type LegendItem} from 'sentry/components/charts/chartLegend';
 import {
-  datasetNoun,
   isOutcomeSelected,
-  outcomeLabel,
   type OutcomeColors,
   type OutcomeSelection,
-} from 'sentry/components/droppedData/outcomes';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+} from 'sentry/components/droppedData/drawer/outcomeColors';
+import {datasetNoun, outcomeLabel} from 'sentry/components/droppedData/outcomes';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -25,7 +24,7 @@ const STACK_NAME = 'dropped';
 const CHART_HEIGHT = '112px';
 
 export function droppedEventsToSeries(
-  droppedEvents: DroppedEventsBucket[]
+  droppedEvents: OutcomeRow[]
 ): Record<string, TimeSeries> {
   // Bars only stack when every series has a value at the same timestamps, so
   // build one shared, sorted time axis and zerofill each outcome onto it.
@@ -64,7 +63,7 @@ export function droppedEventsToSeries(
 interface DroppedDataChartProps {
   colors: OutcomeColors;
   dataset: DiscoverDatasets;
-  droppedEvents: DroppedEventsBucket[];
+  droppedEvents: OutcomeRow[];
   hasAskSeer: boolean;
   onSelectionChange: (selection: OutcomeSelection) => void;
   selection: OutcomeSelection;

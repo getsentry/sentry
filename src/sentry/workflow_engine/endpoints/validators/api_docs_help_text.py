@@ -327,7 +327,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -353,7 +353,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -510,7 +510,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
                 "config":{
                     "targetType":"specific",
                     "targetIdentifier":"12345",
-                    "targetDisplay":"",
+                    "targetDisplay":""
                     },
                 "integrationId":"1234",
                 "data":{
