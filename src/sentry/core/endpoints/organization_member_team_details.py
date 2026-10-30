@@ -32,6 +32,7 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
+from sentry.auth.principal import acting_user_id
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
@@ -222,7 +223,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user.id if request.user.id != member.user_id else None
+        requester = request.user.id if acting_user_id(request.user) != member.user_id else None
         if requester:
             omt.update(requester_id=requester)
 

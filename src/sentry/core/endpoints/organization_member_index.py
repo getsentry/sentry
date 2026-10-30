@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.principal import acting_user_id
 from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
@@ -460,7 +461,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=acting_user_id(request.user),
             )
 
             if settings.SENTRY_ENABLE_INVITES:

@@ -11,6 +11,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.auth.principal import require_user
 from sentry.auth_v2.endpoints.base import AuthV2Endpoint
 from sentry.users.api.serializers.user import UserSerializerWithOrgMemberships
 from sentry.users.models.user import User
@@ -62,7 +63,7 @@ class AuthMergeUserAccountsEndpoint(AuthV2Endpoint):
             return Response(validator.errors, status=400)
         result = validator.validated_data
 
-        primary_user = User.objects.get(id=request.user.id)
+        primary_user = User.objects.get(id=require_user(request).id)
         verification_code = UserMergeVerificationCode.objects.filter(
             user_id=primary_user.id
         ).first()

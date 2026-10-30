@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
 from sentry.hybridcloud.models.outbox import outbox_context
@@ -140,7 +141,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization_id=organization.id,
                 role=result["role"] or organization.default_role,
                 email=result["email"],
-                inviter_id=request.user.id,
+                inviter_id=acting_user_id(request.user),
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 

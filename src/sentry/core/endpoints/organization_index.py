@@ -27,7 +27,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, require_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
@@ -183,7 +183,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
             # also fetches organizations in which you are a member of an owner team
             queryset = Organization.objects.get_organizations_where_user_is_owner(
-                user_id=request.user.id
+                user_id=require_user(request).id
             )
             if agent_organization_id is not None:
                 queryset = queryset.filter(id=agent_organization_id)
@@ -324,10 +324,10 @@ class OrganizationIndexEndpoint(Endpoint):
             else:
                 queryset = queryset.none()
         elif not (is_active_superuser(request) and request.GET.get("show") == "all"):
-            assert request.user.id is not None
+            user = require_user(request)
             queryset = queryset.filter(
                 organization_id__in=OrganizationMemberMapping.objects.filter(
-                    user_id=request.user.id
+                    user_id=user.id
                 ).values("organization_id")
             )
             if request.auth and request.auth.organization_id is not None and queryset.count() > 1:
@@ -423,7 +423,7 @@ class OrganizationIndexEndpoint(Endpoint):
         owner_role = roles.get_top_dog().id
 
         owner_org_ids = OrganizationMemberMapping.objects.filter(
-            user_id=request.user.id,
+            user_id=require_user(request).id,
             role=owner_role,
         ).values_list("organization_id", flat=True)
 
@@ -505,7 +505,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         limit = options.get("api.rate-limit.org-create")
         if limit and ratelimiter.backend.is_limited(
-            f"org-create:{request.user.id}", limit=limit, window=3600
+            f"org-create:{require_user(request).id}", limit=limit, window=3600
         ):
             return Response(
                 {"detail": "You are attempting to create too many organizations too quickly."},
@@ -535,7 +535,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 "type": 0,
             },
             "ip_address": request.META["REMOTE_ADDR"],
-            "provisioning_user_id": request.user.id,
+            "provisioning_user_id": require_user(request).id,
             "sender": "in-app",
             "referrer": "in-app",
         }
@@ -549,7 +549,7 @@ class OrganizationIndexEndpoint(Endpoint):
                 provision_options=OrganizationOptions(
                     name=result["name"],
                     slug=result.get("slug") or result["name"],
-                    owning_user_id=request.user.id,
+                    owning_user_id=require_user(request).id,
                     owner=rpc_user,
                     create_default_team=create_default_team,
                     ip_address=request.META["REMOTE_ADDR"],

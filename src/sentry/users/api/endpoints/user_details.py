@@ -22,6 +22,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import CamelSnakeModelSerializer
 from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import require_user
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import LANGUAGES
 from sentry.core.endpoints.organization_details import post_org_pending_deletion
@@ -462,7 +463,7 @@ class UserDetailsEndpoint(UserEndpoint):
                         organization_id=member_mapping.organization_id,
                         date_added=django_timezone.now(),
                         event_id=audit_log.get_event_id("MEMBER_REMOVE"),
-                        actor_user_id=request.user.id,
+                        actor_user_id=require_user(request).id,
                         actor_label=request.user.username,
                         ip_address=request.META["REMOTE_ADDR"],
                         target_object_id=member_mapping.organizationmember_id,
@@ -472,7 +473,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 )
 
         logging_data = {
-            "actor_id": request.user.id,
+            "actor_id": require_user(request).id,
             "ip_address": request.META["REMOTE_ADDR"],
             "user_id": user.id,
         }
@@ -489,7 +490,7 @@ class UserDetailsEndpoint(UserEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        is_current_user = request.user.id == user.id
+        is_current_user = require_user(request).id == user.id
 
         if hard_delete:
             user_id = user.id
