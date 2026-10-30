@@ -1931,6 +1931,8 @@ SENTRY_SCOPES = {
     "dashboard:write",
     "seer:read",
     "seer:write",
+    "user_preference:read",
+    "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1947,6 +1949,7 @@ SENTRY_READONLY_SCOPES = {
     "alerts:read",
     "dashboard:read",
     "seer:read",
+    "user_preference:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1979,6 +1982,8 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "dashboard:write": {"dashboard:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "user_preference:read": {"user_preference:read"},
+    "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2003,6 +2008,8 @@ GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
         "dashboard:write",
+        "user_preference:read",
+        "user_preference:write",
     ]
 )
 
@@ -2026,6 +2033,14 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "org:read",
             "dashboard:read",
             "dashboard:write",
+        ]
+    ),
+    # Starring, starred order and last visited accept member:read today, including writes.
+    "member:read": frozenset(
+        [
+            "member:read",
+            "user_preference:read",
+            "user_preference:write",
         ]
     ),
 }
@@ -2095,6 +2110,10 @@ SENTRY_SCOPE_SETS = (
             "Read and write access to Seer-generated work, such as running Autofix analysis.",
         ),
         ("seer:read", "Read access to Seer-generated work."),
+    ),
+    (
+        ("user_preference:write", "Write access to your preferences, such as starred items."),
+        ("user_preference:read", "Read access to your preferences, such as starred items."),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
@@ -2311,6 +2330,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "seer:read",
             "seer:write",
+            "user_preference:read",
+            "user_preference:write",
         },
     },
     {
@@ -2347,6 +2368,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "seer:read",
             "seer:write",
+            "user_preference:read",
+            "user_preference:write",
         },
         "is_retired": True,
     },
@@ -2378,6 +2401,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "seer:read",
             "seer:write",
+            "user_preference:read",
+            "user_preference:write",
         },
         "is_global": True,
     },
@@ -2416,6 +2441,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "dashboard:write",
             "seer:read",
             "seer:write",
+            "user_preference:read",
+            "user_preference:write",
         },
         "is_global": True,
     },

@@ -12,6 +12,7 @@ from sentry.auth.deprecated_scope_translation import (
 from sentry.testutils.helpers.options import override_options
 
 DASHBOARD_SCOPES = frozenset({"dashboard:read", "dashboard:write"})
+USER_PREFERENCE_SCOPES = frozenset({"user_preference:read", "user_preference:write"})
 
 
 @pytest.fixture(autouse=True)
@@ -22,6 +23,10 @@ def deprecated_scope_translation_enabled() -> Generator[None]:
 
 def test_translate_org_read_adds_dashboard_scopes() -> None:
     assert translate_deprecated_scopes(["org:read"]) == {"org:read"} | DASHBOARD_SCOPES
+
+
+def test_translate_member_read_adds_user_preference_scopes() -> None:
+    assert translate_deprecated_scopes(["member:read"]) == {"member:read"} | USER_PREFERENCE_SCOPES
 
 
 def test_translate_org_read_keeps_org_read() -> None:

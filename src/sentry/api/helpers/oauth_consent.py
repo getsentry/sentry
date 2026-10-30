@@ -195,6 +195,15 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "user_preferences",
+        "Your preferences",
+        ("user_preference:read", "user_preference:write"),
+        access_descriptions={
+            "read": "View your starred items, such as dashboards, saved queries, and issue views.",
+            "write": "Star, unstar, and reorder items such as dashboards, saved queries, and issue views.",
+        },
+    ),
+    OAuthPermissionResource(
         "openid",
         "Authentication",
         ("openid",),
@@ -221,6 +230,7 @@ _PERMISSION_ACTIONS = {
     "invite": ("invite",),
     # Granular write scopes do not imply read.
     "dashboard:write": ("write",),
+    "user_preference:write": ("write",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }

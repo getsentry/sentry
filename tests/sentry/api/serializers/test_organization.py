@@ -29,7 +29,12 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-granular_scopes = ["dashboard:read", "dashboard:write"]
+granular_scopes = [
+    "dashboard:read",
+    "dashboard:write",
+    "user_preference:read",
+    "user_preference:write",
+]
 non_default_owner_scopes = [
     "org:ci",
     "org:tokens",

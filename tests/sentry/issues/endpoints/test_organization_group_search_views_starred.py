@@ -5,6 +5,7 @@ from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 
@@ -148,3 +149,22 @@ class OrganizationGroupSearchViewsStarredEndpointTest(APITestCase):
         created_by_values = [view.get("createdBy") for view in response.data]
         assert any(cb is not None for cb in created_by_values)
         assert any(cb is None for cb in created_by_values)
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_read_can_list_starred(self) -> None:
+        self.create_view(user=self.user, name="Starred View", starred=True)
+        self._use_token(["user_preference:read"])
+        response = self.get_success_response(self.organization.slug)
+        assert [view["name"] for view in response.data] == ["Starred View"]
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_user_preference_write_cannot_list_starred(self) -> None:
+        # Write does not imply read.
+        self._use_token(["user_preference:write"])
+        self.get_error_response(self.organization.slug, status_code=403)

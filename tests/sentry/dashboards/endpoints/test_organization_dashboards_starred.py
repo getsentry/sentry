@@ -2,7 +2,10 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.models.dashboard import DashboardFavoriteUser
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
@@ -234,3 +237,61 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
             .order_by("position")
             .values_list("dashboard_id", flat=True)
         ) == [self.dashboard_3.id, self.dashboard_1.id, self.dashboard_2.id]
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsStarredScopeTest(StarredDashboardTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboard-starred",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.order_url = reverse(
+            "sentry-api-0-organization-dashboard-starred-order",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.dashboard_1 = self.create_dashboard(title="Dashboard 1")
+        self.dashboard_2 = self.create_dashboard(title="Dashboard 2")
+        self.create_dashboard_favorite_user(self.dashboard_1, self.user, self.organization, 0)
+        self.create_dashboard_favorite_user(self.dashboard_2, self.user, self.organization, 1)
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_read_scope_can_list_starred(self) -> None:
+        self._use_token(["user_preference:read"])
+        response = self.do_request("get", self.url)
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+    def test_read_scope_cannot_reorder(self) -> None:
+        self._use_token(["user_preference:read"])
+        response = self.do_request(
+            "put",
+            self.order_url,
+            data={"dashboard_ids": [self.dashboard_2.id, self.dashboard_1.id]},
+        )
+        assert response.status_code == 403
+
+    def test_write_scope_can_reorder(self) -> None:
+        self._use_token(["user_preference:write"])
+        response = self.do_request(
+            "put",
+            self.order_url,
+            data={"dashboard_ids": [self.dashboard_2.id, self.dashboard_1.id]},
+        )
+        assert response.status_code == 204, response.content
+
+    def test_write_scope_cannot_list_starred(self) -> None:
+        # Write does not imply read.
+        self._use_token(["user_preference:write"])
+        assert self.do_request("get", self.url).status_code == 403
+
+    def test_dashboard_scopes_cannot_list_starred(self) -> None:
+        # Starred dashboards are user preferences, not dashboard content.
+        self._use_token(["dashboard:read", "dashboard:write"])
+        assert self.do_request("get", self.url).status_code == 403
