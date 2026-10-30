@@ -7,6 +7,10 @@ from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsRequest,
+    CheckSeerCreditsResponse,
+)
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -742,3 +746,9 @@ class Quota(Service):
         Checks if the organization has access to Seer for the given data category and seat object.
         """
         return True
+
+    def check_seer_credits(self, request: CheckSeerCreditsRequest) -> CheckSeerCreditsResponse:
+        """
+        Checks if the organization has enough Seer credits for the predicted usage.
+        """
+        return CheckSeerCreditsResponse(has_enough_credits=True)
