@@ -45,7 +45,10 @@ interface DefaultProps {
   perItemMapping?: boolean;
 }
 
-type MappedSelector = DistributedOmit<ControlProps<string | number>, 'options'> & {
+type MappedSelector = DistributedOmit<
+  ControlProps<string | number>,
+  'options' | 'value' | 'onChange'
+> & {
   choices?: Choices;
   options?: ControlProps<string | number>['options'];
 };

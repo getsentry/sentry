@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 
+from sentry_sdk import traces
+
 from sentry import options
 from sentry.utils import metrics
 from sentry.utils.circuit_breaker2 import (
@@ -101,6 +103,11 @@ class RpcCircuitBreaker:
             "hybrid_cloud.dispatch_rpc.circuit_breaker.rejected",
             tags={**self.metric_tags, "reason": reason},
         )
+        # Tag the RPC span so traces show which requests the breaker turned away.
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("circuit_breaker.rejected", reason)
+            span.set_attribute("circuit_breaker.destination", self.destination)
 
     def _record_internal_error(self, kind: str) -> None:
         logger.exception(

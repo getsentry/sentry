@@ -71,11 +71,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {
-  isVisualize,
-  isVisualizeFunction,
-  type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -128,10 +124,7 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
   ) {
     setVisualizes(
       visualizes.map((visualize, i) =>
-        (i === index && isVisualizeFunction(visualize)
-          ? visualize.replace({transformations})
-          : visualize
-        ).serialize()
+        (i === index ? visualize.replace({transformations}) : visualize).serialize()
       )
     );
   }
@@ -178,7 +171,6 @@ function Graph({
   const organization = useOrganization();
   const showTransformationControls =
     visualize.visible &&
-    isVisualizeFunction(visualize) &&
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const isShortViewport = useIsShortViewport();
@@ -218,7 +210,7 @@ function Graph({
         : getTimeSeriesForQuery(
             timeseriesResult.data,
             aggregate,
-            isVisualizeFunction(visualize) ? visualize.transformations : []
+            visualize.transformations
           );
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);

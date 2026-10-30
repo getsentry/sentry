@@ -412,14 +412,15 @@ class HealSchedulerStateTest(TestCase):
         with patch.object(_state_cache, "get", return_value=state):
             assert load_state() is None
 
-    def test_expired(self) -> None:
+    def test_old_discovery_keeps_hashes_and_marks(self) -> None:
         state = HealSchedulerState(
             head_hash="current",
-            discovered_at=datetime.now(timezone.utc) - timedelta(days=3),
+            stale={"stale-a": 42},
+            discovered_at=datetime.now(timezone.utc) - timedelta(days=10),
         )
 
         with patch.object(_state_cache, "get", return_value=state):
-            assert load_state() is None
+            assert load_state() == state
 
 
 @with_feature("projects:issue-action-log-write-to-db")
@@ -1985,7 +1986,18 @@ class DiscoverStalePipelineHashesTest(DerivedDataTaskTestBase):
         with patch("sentry.issues.derived.tasks.statement_timeout") as timeout:
             _discover_stale_pipeline_hashes(PIPELINE.pipeline_hash, limit=5)
 
-        assert timeout.call_args.args[1] == timedelta(seconds=25)
+        assert timedelta(seconds=80) < timeout.call_args.args[1] <= timedelta(seconds=90)
+
+    def test_exhausted_budget_raises(self) -> None:
+        self._seed_hashes(["a-hash"])
+
+        with (
+            patch(
+                "sentry.issues.derived.tasks._STALE_HASH_DISCOVERY_TIMEOUT", timedelta(seconds=0)
+            ),
+            pytest.raises(OperationalError),
+        ):
+            _discover_stale_pipeline_hashes("m-current", limit=5)
 
     def test_excludes_null_pipeline_hash(self) -> None:
         current = PIPELINE.pipeline_hash

@@ -3,6 +3,29 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {SelectField} from './selectField';
 
 describe('legacy SelectField options', () => {
+  it('uses the placeholder for an empty selection and only lists real choices', async () => {
+    const onChange = jest.fn();
+    render(
+      <SelectField
+        name="fruit"
+        label="Fruit"
+        value={null}
+        placeholder="Choose fruit"
+        choices={[
+          ['apple', 'Apple'],
+          ['cherry', 'Cherry'],
+        ]}
+        onChange={onChange}
+      />
+    );
+
+    expect(screen.getByText('Choose fruit')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
+    expect(onChange).toHaveBeenCalledWith('apple', expect.anything());
+  });
+
   it('shows field errors in the indicators and retains the clear control', async () => {
     const onChange = jest.fn();
     const {rerender} = render(

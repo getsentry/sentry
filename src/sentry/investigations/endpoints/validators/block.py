@@ -8,7 +8,7 @@ from rest_framework import serializers
 
 from sentry.investigations.contracts import VisualizationSerializer, validate_query_result
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.investigations.models import InvestigationBlockKind
+from sentry.notebooks.models import NotebookBlockKind
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -109,7 +109,7 @@ def _validate_versioned_query_display(display: dict[str, Any]) -> dict[str, Any]
 
 
 def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
-    if kind == InvestigationBlockKind.TEXT:
+    if kind == NotebookBlockKind.TEXT:
         return _validate_text_display(display)
 
     display_type = display.get("type")
@@ -133,7 +133,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
         help_text="Current investigation version from the latest detail response. Stale versions return 409.",
     )
     kind = serializers.ChoiceField(
-        choices=InvestigationBlockKind.choices,
+        choices=NotebookBlockKind.choices,
         help_text="Block kind: text for Markdown or query for an agent-generated data query.",
     )
     title = serializers.CharField(
@@ -161,7 +161,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
             "display",
             (
                 {"type": "markdown"}
-                if kind == InvestigationBlockKind.TEXT
+                if kind == NotebookBlockKind.TEXT
                 else {"version": 1, "type": "table", "defaultView": "table"}
             ),
         )

@@ -21,12 +21,12 @@ type SingleSelectProps = Exclude<ControlProps<string, RoleOption>, {multiple: tr
 type Props = DistributedOmit<SingleSelectProps, 'multiple' | 'value' | 'options'> & {
   disableUnallowed: boolean;
   roles: BaseRole[];
+  value: string | null;
   /**
    * Requires `menuPortalTarget={document.body}`: the shift is computed from
    * viewport coordinates.
    */
   keepMenuInViewport?: boolean;
-  value?: string | null;
 };
 
 export function RoleSelectControl({
