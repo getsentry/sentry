@@ -260,14 +260,18 @@ class DigestNotification(ProjectNotification):
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
-            alert_id = list(self.digest.digest)[0].link_id
+            origin = list(self.digest.digest)[0]
+            alert_id = origin.link_id
+            workflow_id = origin.workflow_id
         except Exception:
             alert_id = None
+            workflow_id = None
 
         return {
             "target_type": self.target_type.value,
             "target_identifier": self.target_identifier,
             "alert_id": alert_id,
+            "workflow_id": workflow_id,
             **super().get_log_params(recipient),
         }
 
@@ -281,6 +285,7 @@ class DigestNotification(ProjectNotification):
                     project_id=self.project.id,
                     provider=provider.name,
                     alert_id=log_params["alert_id"] if log_params["alert_id"] else "",
+                    workflow_id=log_params["workflow_id"],
                     alert_type="issue_alert",
                     external_id=str(recipient.id),
                     notification_uuid=self.notification_uuid,

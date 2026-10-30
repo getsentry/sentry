@@ -15,3 +15,4 @@ class BaseNotificationSent(analytics.Event, abc.ABC):
     actor_type: str | None = None
     notification_uuid: str
     alert_id: int | None = None
+    workflow_id: int | None = None
