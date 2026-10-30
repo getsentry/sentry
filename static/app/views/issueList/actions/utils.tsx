@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
+import {skipToken} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {bulkUpdate} from 'sentry/actionCreators/group';
+import {bulkUpdate, paramsToQueryArgs} from 'sentry/actionCreators/group';
 import {
   addErrorMessage,
   addLoadingMessage,
@@ -16,6 +17,7 @@ import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowE
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -202,6 +204,56 @@ function getSelectedProjectIds({
   }
 
   return selection.projects;
+}
+
+export function issueResolveCapabilityOptions({
+  organizationSlug,
+  itemIds,
+  selection,
+  query,
+  sort,
+  enabled,
+}: {
+  enabled: boolean;
+  itemIds: string[] | undefined;
+  organizationSlug: string;
+  query: string;
+  selection: PageFilters;
+  sort: IssueSortOptions;
+}) {
+  return apiOptions.as<{canResolve: boolean}>()(
+    '/organizations/$organizationIdOrSlug/issues-resolve-capability/',
+    {
+      path:
+        enabled && itemIds?.length !== 0
+          ? {organizationIdOrSlug: organizationSlug}
+          : skipToken,
+      query: paramsToQueryArgs({
+        itemIds,
+        project: getSelectedProjectIds({selectedGroupIds: itemIds, selection}),
+        environment: selection.environments,
+        query,
+        sort,
+        ...selection.datetime,
+      }),
+      staleTime: 0,
+    }
+  );
+}
+
+export function getResolveDisabledReason(
+  canResolve: boolean | undefined,
+  isError: boolean
+) {
+  if (isError) {
+    return t('Unable to check whether these issues can be resolved.');
+  }
+  if (canResolve === undefined) {
+    return t('Checking whether these issues can be resolved…');
+  }
+  return canResolve
+    ? undefined
+    : t('One or more selected issues cannot be resolved manually.');
 }
 
 export function invalidateIssueQueries({

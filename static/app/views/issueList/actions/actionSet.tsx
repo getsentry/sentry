@@ -28,6 +28,7 @@ import {ConfirmAction, getConfirm, getLabel} from './utils';
 type Props = {
   allInQuerySelected: boolean;
   anySelected: boolean;
+  canResolve: boolean;
   issues: Set<string>;
   multiSelected: boolean;
   onDelete: () => void;
@@ -36,6 +37,7 @@ type Props = {
   onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
+  resolveDisabledReason: string | undefined;
   selectedProjectSlug?: string;
 };
 
@@ -51,6 +53,8 @@ export function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
+  canResolve,
+  resolveDisabledReason,
 }: Props) {
   const organization = useOrganization();
   const area = useAnalyticsArea();
@@ -119,12 +123,6 @@ export function ActionSet({
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
   const {enabled: mergeSupported, disabledReason: mergeDisabledReason} =
     isActionSupported(selectedIssues, 'merge');
-  const {enabled: resolveSupported, disabledReason: resolveDisabledReason} =
-    isActionSupported(selectedIssues, 'resolve');
-  const {enabled: archiveUntilOccurrenceSupported} = isActionSupported(
-    selectedIssues,
-    'archiveUntilOccurrence'
-  );
 
   // Members may or may not have access to delete events based on organization settings
   const hasDeleteAccess = organization.access.includes('event:admin');
@@ -266,15 +264,8 @@ export function ActionSet({
         onShouldConfirm={onShouldConfirm}
         onUpdate={handleUpdate}
         anySelected={anySelected}
-        disabled={!resolveSupported}
-        disabledReason={
-          resolveSupported
-            ? undefined
-            : (resolveDisabledReason ??
-              t(
-                'One or more selected issues resolve automatically and cannot be resolved manually.'
-              ))
-        }
+        disabled={!canResolve}
+        disabledReason={resolveDisabledReason}
         confirm={confirm}
         label={label}
         selectedProjectSlug={selectedProjectSlug}
@@ -285,7 +276,6 @@ export function ActionSet({
         confirmMessage={() => confirm({action: ConfirmAction.ARCHIVE, canBeUndone: true})}
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
-        disableArchiveUntilOccurrence={!archiveUntilOccurrenceSupported}
       />
       <Button
         size="xs"

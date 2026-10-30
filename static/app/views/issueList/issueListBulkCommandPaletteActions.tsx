@@ -10,6 +10,7 @@ import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {useCommandPaletteState} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -17,7 +18,6 @@ import type {PageFilters} from 'sentry/types/core';
 import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -25,6 +25,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {BULK_LIMIT, BULK_LIMIT_STR} from 'sentry/views/issueList/actions/constants';
 import {
   invalidateIssueQueries,
+  issueResolveCapabilityOptions,
   performBulkUpdate as performSharedBulkUpdate,
 } from 'sentry/views/issueList/actions/utils';
 import {
@@ -229,6 +230,7 @@ function useIssueListBulkCommandPaletteActions({
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {anySelected, selectedIdsSet, allInQuerySelected} = useIssueSelectionSummary();
+  const {open} = useCommandPaletteState();
   const {deselectAll} = useIssueSelectionActions();
 
   const numIssues = selectedIdsSet.size;
@@ -241,12 +243,21 @@ function useIssueListBulkCommandPaletteActions({
     [selectedIdsSet]
   );
 
+  const resolveCapability = useQuery(
+    issueResolveCapabilityOptions({
+      organizationSlug: organization.slug,
+      itemIds:
+        allInQuerySelected || !anySelected
+          ? undefined
+          : groupIds.filter(id => selectedIdsSet.has(id)),
+      selection,
+      query,
+      sort,
+      enabled: open,
+    })
+  );
   const canResolve =
-    selectedIssues.every(
-      issue => getConfigForIssueType(issue, issue.project).actions.resolve.enabled
-    ) &&
-    (allInQuerySelected ||
-      selectedIssues.some(issue => issue.status !== GroupStatus.RESOLVED));
+    resolveCapability.data?.canResolve === true && !resolveCapability.isError;
   const canArchive =
     allInQuerySelected ||
     selectedIssues.some(issue => issue.status !== GroupStatus.IGNORED);
@@ -361,7 +372,7 @@ function useIssueListBulkCommandPaletteActions({
 export function IssueListMarkAllCommandPaletteAction(
   props: IssueListMarkAllCommandPaletteActionProps
 ) {
-  const {anySelected, confirmBulkAction, handleBulkUpdate, handleUpdate} =
+  const {anySelected, canResolve, confirmBulkAction, handleBulkUpdate, handleUpdate} =
     useIssueListBulkCommandPaletteActions(props);
 
   if (anySelected) {
@@ -392,22 +403,24 @@ export function IssueListMarkAllCommandPaletteAction(
           }
         />
       </CMDKAction>
-      <CMDKAction
-        display={{label: t('Resolved'), icon: <IconCheckmark />}}
-        keywords={['resolve', 'fix', 'done', 'close']}
-        onAction={() =>
-          confirmBulkAction(
-            t('resolve'),
-            () =>
-              handleUpdateAll({
-                status: GroupStatus.RESOLVED,
-                statusDetails: {},
-                substatus: null,
-              }),
-            'allInQuery'
-          )
-        }
-      />
+      {canResolve && (
+        <CMDKAction
+          display={{label: t('Resolved'), icon: <IconCheckmark />}}
+          keywords={['resolve', 'fix', 'done', 'close']}
+          onAction={() =>
+            confirmBulkAction(
+              t('resolve'),
+              () =>
+                handleUpdateAll({
+                  status: GroupStatus.RESOLVED,
+                  statusDetails: {},
+                  substatus: null,
+                }),
+              'allInQuery'
+            )
+          }
+        />
+      )}
       <CMDKAction
         display={{label: t('Archived'), icon: <IconClock />}}
         keywords={['archive', 'ignore', 'snooze', 'mute']}
