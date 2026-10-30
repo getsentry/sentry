@@ -17,7 +17,7 @@ import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigati
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 // TODO: Set to the settings navigation GA date. Users who join after it don't see the tour.
-const SETTINGS_NAVIGATION_GA_DATE = new Date(2026, 11, 1);
+const TOUR_SETTINGS_NAV_DATE_THRESHOLD = new Date(2026, 11, 1);
 
 // Must match the guide key registered in `src/sentry/assistant/guides.py`.
 const SETTINGS_NAVIGATION_TOUR_GUIDE_KEY = 'tour.settings_navigation';
@@ -28,8 +28,8 @@ type Step = (typeof STEPS)[number];
 const SettingsNavigationTourContext = createContext<TourContextType<Step> | null>(null);
 
 /**
- * Whether the tour can be shown right now. The tour pauses, rather than ends,
- * while this is false.
+ * Whether the tour can be shown right now. The tour only starts while this is
+ * true, and ends if it becomes false while the tour is running.
  */
 function useCanShowSettingsNavigationTour() {
   const organization = useOrganization({allowNull: true});
@@ -44,7 +44,7 @@ function useCanShowSettingsNavigationTour() {
   const isEligible =
     hasSettingsV3 &&
     !!organization &&
-    new Date(user.dateJoined) < SETTINGS_NAVIGATION_GA_DATE;
+    new Date(user.dateJoined) < TOUR_SETTINGS_NAV_DATE_THRESHOLD;
   // The organization menu must be visible, and nothing else may be on top.
   const isMenuAvailable = layout === 'sidebar' && !inSettings;
   const isUnobstructed = !navigationTour.currentStepId && !isModalVisible;
@@ -66,26 +66,41 @@ export function SettingsNavigationTourProvider({children}: {children: ReactNode}
       tourKey={SETTINGS_NAVIGATION_TOUR_GUIDE_KEY}
       isCompleted={false}
       orderedStepIds={STEPS}
-      enabled={canShow}
       variant="subtle"
       requireAllStepsRegistered={false}
     >
-      <SettingsNavigationTourStarter shouldStart={canShow && !isSeen} />
+      <SettingsNavigationTourController canShow={canShow} isSeen={isSeen} />
       {children}
     </TourContextProvider>
   );
 }
 
-function SettingsNavigationTourStarter({shouldStart}: {shouldStart: boolean}) {
+function SettingsNavigationTourController({
+  canShow,
+  isSeen,
+}: {
+  canShow: boolean;
+  isSeen: boolean;
+}) {
   const tour = useContext(SettingsNavigationTourContext);
   const startTour = tour?.startTour;
-  const isIdle = !!tour && !tour.isCompleted && tour.currentStepId === null;
+  const endTour = tour?.endTour;
+  const isRunning = !!tour?.currentStepId;
+  const isIdle = !!tour && !tour.isCompleted && !isRunning;
 
   useEffect(() => {
-    if (shouldStart && isIdle) {
+    if (canShow && !isSeen && isIdle) {
       startTour?.();
     }
-  }, [shouldStart, isIdle, startTour]);
+  }, [canShow, isSeen, isIdle, startTour]);
+
+  // Something else took over the screen. Ending the tour doesn't mark it as
+  // seen, so it shows again on the next visit.
+  useEffect(() => {
+    if (!canShow && isRunning) {
+      endTour?.();
+    }
+  }, [canShow, isRunning, endTour]);
 
   return null;
 }

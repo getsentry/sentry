@@ -48,13 +48,6 @@ export interface TourContextProviderProps<T extends TourEnumType> {
    */
   orderedStepIds: TourState<T>['orderedStepIds'];
   /**
-   * Whether the tour can be shown. A disabled tour is hidden from its elements
-   * without ending: it does not blur the page, mark the guide as viewed, or
-   * handle hotkeys, and resumes at the same step once enabled again.
-   * @default true
-   */
-  enabled?: boolean;
-  /**
    * Called when the tour is ended by the user, either by dismissing the tour or by completing the last step.
    */
   onEndTour?: () => void;
@@ -87,7 +80,6 @@ export function TourContextProvider<T extends TourEnumType>({
   tourKey,
   TourContext,
   orderedStepIds,
-  enabled = true,
   variant = 'spotlight',
   onEndTour,
   onStartTour,
@@ -116,14 +108,10 @@ export function TourContextProvider<T extends TourEnumType>({
     options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
-  const isTourActive = currentStepId !== null && enabled;
-  const visibleTourContextValue = useMemo(
-    () => ({
-      ...tourContextValue,
-      currentStepId: enabled ? currentStepId : null,
-      variant,
-    }),
-    [enabled, tourContextValue, currentStepId, variant]
+  const isTourActive = currentStepId !== null;
+  const variantTourContextValue = useMemo(
+    () => ({...tourContextValue, variant}),
+    [tourContextValue, variant]
   );
 
   // Subtle tours leave the page usable, so their guides handle these keys only
@@ -161,7 +149,7 @@ export function TourContextProvider<T extends TourEnumType>({
   }, [isTourActive, mutate, tourKey, variant]);
 
   return (
-    <TourContext value={visibleTourContextValue}>
+    <TourContext value={variantTourContextValue}>
       {isTourActive && variant === 'spotlight' && (
         <BlurWindow data-test-id="tour-blur-window" />
       )}

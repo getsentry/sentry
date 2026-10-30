@@ -215,6 +215,19 @@ describe('Settings navigation tour', () => {
     expect(screen.getByText('Tour entry')).toBeInTheDocument();
   });
 
+  it('ends without marking the guide as seen when the user enters settings', async () => {
+    const {router} = render(<Tour />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/'},
+      },
+    });
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    act(() => router.navigate('/settings/org-slug/'));
+    await waitFor(() => expect(screen.queryByText('Tour entry')).not.toBeInTheDocument());
+    expect(dismissRequest).not.toHaveBeenCalled();
+  });
+
   it('does not start inside settings where the organization menu is unavailable', () => {
     render(<Tour />, {
       organization,
