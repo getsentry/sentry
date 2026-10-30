@@ -57,7 +57,6 @@ DELETE_EVENTS_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
         ignore=(DeleteAborted,),
     ),
     silo_mode=SiloMode.CELL,
-    silenced_exceptions=(DeleteAborted,),
 )
 @track_group_async_operation
 def delete_events_for_groups_from_nodestore_and_eventstore(
@@ -178,8 +177,7 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             metrics.incr(f"{prefix}.warning", tags={"type": "all-projects-deleted"}, sample_rate=1)
         else:
             metrics.incr(f"{prefix}.error", tags={"type": "unqualified-query-error"}, sample_rate=1)
-            # Not retryable, but DeleteAborted is silenced, so log it to reach Sentry.
-            logger.exception("deletions.nodestore.unqualified_query_error", extra=extra)
+            # Report to Sentry to investigate
             raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
 
     except Exception:
