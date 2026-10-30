@@ -29,9 +29,9 @@ const MAX_UNCOLLAPSED_STEPS = 2;
 type HypothesisCardProps = {
   hypothesis: InvestigationHypothesis;
   /**
-   * Menu items for the card's overflow menu. The card does not own commands —
-   * the surface rendering it decides which of accept, reject, retry, and Ask
-   * Seer apply, and supplies them here. No menu renders when this is empty.
+   * Menu items for the card's overflow menu. The card does not own actions —
+   * the surface rendering it supplies them here, like "Ask Seer". No menu
+   * renders when this is empty.
    */
   actions?: MenuItemProps[];
   /**
