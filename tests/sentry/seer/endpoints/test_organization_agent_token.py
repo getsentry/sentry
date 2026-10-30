@@ -601,6 +601,7 @@ class ServiceAccountGap(StrEnum):
     REQUIRES_USER = "rejects, or stores state for, an anonymous request.user"
     USER_ACTOR_ERROR = "500s using an anonymous request.user as an actor"
     NO_ORG_ROLE = "checks the caller's org role"
+    NO_TEAM_ACCESS = "service accounts reach no teams in v1"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
@@ -641,6 +642,15 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "TeamDetails_delete": ServiceAccountGap.USER_ACTOR_ERROR,
     "EventAttachmentDetails": ServiceAccountGap.NO_ORG_ROLE,
     "OrganizationMemberIndex_post": ServiceAccountGap.NO_ORG_ROLE,
+    "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
+    "ProjectTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamDetails": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamMembers": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamProjects": ServiceAccountGap.NO_TEAM_ACCESS,
+    "TeamProjects_post": ServiceAccountGap.NO_TEAM_ACCESS,
 }
 
 
@@ -2225,7 +2235,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             organization=self.org,
             name="permission-matrix",
             scope_list=sorted(SERVICE_ACCOUNT_SCOPES),
-            project_ids=[self.project.id],
+            all_projects=True,
         )
         self._service_account_context = encode_viewer_context(
             ViewerContext(

@@ -46,7 +46,7 @@ from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
-from sentry.service_accounts.models import ServiceAccountProjectReplica
+from sentry.service_accounts.models import ServiceAccountProjectReplica, ServiceAccountReplica
 from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -793,9 +793,10 @@ class OrganizationGlobalAccess(DbAccess):
 class ServiceAccountAccess(DbAccess):
     """
     A service account's access to its organization. It has no membership, so its
-    scopes are the account's own. With open membership it reaches every active team
-    and project, like `OrganizationGlobalAccess`. Without it, it reaches only the
-    active projects linked to the account, and no teams.
+    scopes are the account's own. With `all_projects` it reaches every active project
+    in the org. Without it, it reaches only the active projects linked to the
+    account. It never reaches teams. Open membership is a setting for people, so
+    it doesn't apply.
     """
 
     def __init__(
@@ -804,23 +805,18 @@ class ServiceAccountAccess(DbAccess):
         service_account_id: int,
         organization_id: int,
         scopes: Iterable[str],
-        has_open_membership: bool,
+        all_projects: bool,
     ) -> None:
         self._service_account_id = service_account_id
         self._organization_id = organization_id
         super().__init__(
             sso_is_valid=True,
-            has_open_membership=has_open_membership,
-            has_global_access=has_open_membership,
+            has_global_access=all_projects,
             scopes=frozenset(scopes),
         )
 
     def has_team_access(self, team: Team) -> bool:
-        return bool(
-            self.has_global_access
-            and team.organization_id == self._organization_id
-            and team.status == TeamStatus.ACTIVE
-        )
+        return False
 
     def has_project_access(self, project: Project) -> bool:
         if (
@@ -838,13 +834,7 @@ class ServiceAccountAccess(DbAccess):
 
     @cached_property
     def accessible_team_ids(self) -> frozenset[int]:
-        if not self.has_global_access:
-            return frozenset()
-        return frozenset(
-            Team.objects.filter(
-                organization_id=self._organization_id, status=TeamStatus.ACTIVE
-            ).values_list("id", flat=True)
-        )
+        return frozenset()
 
     @cached_property
     def accessible_project_ids(self) -> frozenset[int]:
@@ -1416,9 +1406,7 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
     if is_system_auth(auth):
         return SystemAccess()
     if is_service_account_auth(auth):
-        return from_service_account_auth(
-            auth, organization.id, bool(organization.flags.allow_joinleave)
-        )
+        return from_service_account_auth(auth, organization.id)
     if is_agent_auth(auth):
         access: Access = DEFAULT
         if auth.user_id is not None and auth.organization_id == organization.id:
@@ -1449,8 +1437,7 @@ def from_rpc_auth(
     if is_system_auth(auth):
         return SystemAccess()
     if is_service_account_auth(auth):
-        organization = rpc_user_org_context.organization
-        return from_service_account_auth(auth, organization.id, organization.flags.allow_joinleave)
+        return from_service_account_auth(auth, rpc_user_org_context.organization.id)
     if is_agent_auth(auth):
         # Agents are non-user actors with member-derived, capped authority -- never the
         # org-global access an org token gets. Dispatched here so the cap holds at the
@@ -1493,17 +1480,26 @@ def from_agent_auth(
     return from_rpc_member(rpc_user_org_context, scopes=auth.get_scopes())
 
 
-def from_service_account_auth(
-    auth: AuthenticatedToken, organization_id: int, has_open_membership: bool
-) -> Access:
+def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) -> Access:
     # Bound to the account's own org, like agent tokens.
     if auth.entity_id is None or auth.organization_id != organization_id:
+        return DEFAULT
+    # The token doesn't carry `all_projects`, so read it from the replica, like the
+    # project links. An account deactivated since authentication gets no access.
+    all_projects = (
+        ServiceAccountReplica.objects.filter(
+            service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
+        )
+        .values_list("all_projects", flat=True)
+        .first()
+    )
+    if all_projects is None:
         return DEFAULT
     return ServiceAccountAccess(
         service_account_id=auth.entity_id,
         organization_id=organization_id,
         scopes=auth.get_scopes(),
-        has_open_membership=has_open_membership,
+        all_projects=all_projects,
     )
 
 
