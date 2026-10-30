@@ -112,7 +112,9 @@ const PAUSE_REASON_GROUP_NAMES = new Map([
   ['organization_pause_cost_centers', SOLUTIONS_ORGANIZATION_PAUSE_NAME],
 ]);
 
-// Group names that are shown as written, without title case.
+// Group names that are shown as written. Other group names go through `startCase`, which
+// removes punctuation. Solutions is a new concept, so these names must tell users where
+// to find it, and "solutions.sentry.io" needs its punctuation.
 export const VERBATIM_REASON_GROUP_NAMES = new Set(PAUSE_REASON_GROUP_NAMES.values());
 
 // Invalid reasons should not be exposed directly, but instead in the following groups:
