@@ -204,6 +204,10 @@ class SeerWorkflow:
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
         with self._lock_config() as config:
+            if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and isinstance(
+                selection, SelectedProjects
+            ):
+                raise ValueError("Breached metric projects are selected by connecting monitors")
             self._apply_project_selection(config, selection)
             config.version += 1
             config.save(update_fields=["filters", "version", "date_updated"])
@@ -221,11 +225,6 @@ class SeerWorkflow:
             case _:
                 assert_never(selection)
 
-        if (
-            config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-            and not all_projects
-        ):
-            raise ValueError("Breached metric projects are selected by connecting monitors")
         valid_project_ids = set(
             Project.objects.filter(
                 organization_id=config.organization_id, id__in=project_ids

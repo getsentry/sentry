@@ -643,9 +643,13 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         workflow = Workflow.objects.get(organization=self.organization)
         binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
         assert updated.backing_workflow_id == workflow.id
-        assert updated.filters == {"all_projects": True, "environments": ["production"]}
+        assert updated.filters == {"all_projects": False, "environments": ["production"]}
         assert updated.version == 2
-        assert not SeerWorkflowConfigProject.objects.filter(config=self.config).exists()
+        assert set(
+            SeerWorkflowConfigProject.objects.filter(config=self.config).values_list(
+                "project_id", flat=True
+            )
+        ) == {monitor.project_id for monitor in self.monitors}
         assert set(workflow.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
             self.monitor_ids
         )
@@ -675,12 +679,18 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         changed = self.select_monitors(selected)
         assert changed.version == 3
+        assert set(
+            SeerWorkflowConfigProject.objects.filter(config=self.config).values_list(
+                "project_id", flat=True
+            )
+        ) == {monitor.project_id for monitor in self.monitors[1:]}
         connections = list(backing.detectorworkflow_set.values_list("id", flat=True))
         repeated = self.select_monitors([*reversed(selected), selected[0]])
         assert repeated.version == changed.version
         assert list(backing.detectorworkflow_set.values_list("id", flat=True)) == connections
 
         assert self.select_monitors([]).version == 4
+        assert not SeerWorkflowConfigProject.objects.filter(config=self.config).exists()
         assert not backing.detectorworkflow_set.exists()
         assert DetectorWorkflow.objects.filter(id=unrelated.id).exists()
 
@@ -705,6 +715,38 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
             self.monitor_ids
         )
+
+    def test_project_stays_selected_until_its_last_monitor_is_disconnected(self) -> None:
+        shared = self.create_detector(project=self.monitors[0].project, type=MetricIssue.slug)
+        self.select_monitors([self.monitors[0].id, shared.id, self.monitors[1].id])
+        workflow = BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        )
+
+        assert workflow.get_project_ids() == sorted(
+            [self.monitors[0].project_id, self.monitors[1].project_id]
+        )
+        self.select_monitors([shared.id, self.monitors[1].id])
+        assert workflow.get_project_ids() == sorted(
+            [self.monitors[0].project_id, self.monitors[1].project_id]
+        )
+        self.select_monitors([self.monitors[1].id])
+        assert workflow.get_project_ids() == [self.monitors[1].project_id]
+
+    def test_unchanged_monitor_selection_repairs_project_scope(self) -> None:
+        original = self.select_monitors(self.monitor_ids[:1])
+        connection = DetectorWorkflow.objects.get(workflow=original.backing_workflow)
+        self.config.update(filters={"all_projects": True, "environments": ["production"]})
+        Factories.create_seer_workflow_config_project(self.config, self.monitors[1].project)
+
+        updated = self.select_monitors(self.monitor_ids[:1])
+
+        assert updated.filters == {"all_projects": False, "environments": ["production"]}
+        assert updated.version == original.version + 1
+        assert SeerWorkflowConfigProject.objects.get(config=self.config).project_id == (
+            self.monitors[0].project_id
+        )
+        assert DetectorWorkflow.objects.get(workflow=updated.backing_workflow).id == connection.id
 
     def test_logs_committed_connection_changes_and_skips_unchanged_saves(self) -> None:
         with mock.patch("sentry.seer.workflows.breached_metrics.logger") as logger:
@@ -908,6 +950,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert self.config.filters == {"all_projects": False, "environments": ["production"]}
 
     def test_connected_breach_starts_run_and_disconnect_stops_it(self) -> None:
+        self.create_project()
         self.select_monitors(self.monitor_ids)
         for monitor in self.monitors:
             self.process_breach(monitor)
@@ -915,6 +958,10 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert set(SeerWorkflowRunExecution.objects.values_list("extras__result", flat=True)) == {
             "noop"
         }
+        for run in SeerWorkflowRun.objects.filter(workflow_config=self.config):
+            assert set(run.extras["snapshot"]["project_ids"]) == {
+                monitor.project_id for monitor in self.monitors
+            }
 
         self.select_monitors([])
         self.process_breach(self.monitors[0])
@@ -936,6 +983,28 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert set(DetectorWorkflow.objects.values_list("detector_id", flat=True)) == set(
             self.monitor_ids[:2]
         )
+
+    def test_failed_project_update_rolls_back_monitor_changes(self) -> None:
+        original = self.select_monitors(self.monitor_ids[:2])
+        with (
+            mock.patch(
+                "sentry.seer.workflows.workflow.SeerWorkflowConfigProject.objects.bulk_create",
+                side_effect=RuntimeError("project update failed"),
+            ),
+            pytest.raises(RuntimeError, match="project update failed"),
+        ):
+            self.select_monitors(self.monitor_ids[1:])
+
+        self.config.refresh_from_db()
+        assert self.config.version == original.version
+        assert set(DetectorWorkflow.objects.values_list("detector_id", flat=True)) == set(
+            self.monitor_ids[:2]
+        )
+        assert set(
+            SeerWorkflowConfigProject.objects.filter(config=self.config).values_list(
+                "project_id", flat=True
+            )
+        ) == {monitor.project_id for monitor in self.monitors[:2]}
 
     def select_monitors(self, monitor_ids: list[int]) -> SeerWorkflowConfig:
         workflow = BreachedMetricWorkflow(

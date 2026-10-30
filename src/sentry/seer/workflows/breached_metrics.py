@@ -17,6 +17,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
+    SeerWorkflowConfigProject,
     SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
@@ -26,7 +27,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, matches_workflow_scope
+from sentry.seer.workflows.workflow import SeerWorkflow, SelectedProjects, matches_workflow_scope
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import (
     Action,
@@ -140,16 +141,16 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 raise ValueError("Only metric automations support monitor selection.")
 
             selected = set(monitor_ids)
-            eligible = set(
+            projects_by_monitor = dict(
                 Detector.objects.filter(
                     id__in=selected,
                     project__organization_id=self.organization_id,
                     project__status=ObjectStatus.ACTIVE,
                     type=MetricIssue.slug,
                     status=ObjectStatus.ACTIVE,
-                ).values_list("id", flat=True)
+                ).values_list("id", "project_id")
             )
-            if selected != eligible:
+            if selected != set(projects_by_monitor):
                 raise ValueError(
                     "Selected monitors must be active metric monitors in this organization."
                 )
@@ -190,9 +191,19 @@ class BreachedMetricWorkflow(SeerWorkflow):
                     ]
                 )
 
-            scope_changed = not config.filters.get("all_projects")
+            project_ids = set(projects_by_monitor.values())
+            current_project_ids = set(
+                SeerWorkflowConfigProject.objects.filter(config=config).values_list(
+                    "project_id", flat=True
+                )
+            )
+            scope_changed = config.filters.get("all_projects", False) or (
+                project_ids != current_project_ids
+            )
             if scope_changed:
-                self._apply_project_selection(config, AllProjects())
+                self._apply_project_selection(
+                    config, SelectedProjects(project_ids=tuple(sorted(project_ids)))
+                )
             if created or existing != selected or scope_changed:
                 config.version += 1
                 config.save(
