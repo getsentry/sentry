@@ -1735,9 +1735,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
-    def test_open_pr_on_single_run_returns_404(
-        self, mock_explorer_update_request, mock_explorer_state_request
-    ):
+    def test_open_pr_on_single_run(self, mock_explorer_update_request, mock_explorer_state_request):
         self.login_as(user=self.user)
         group = self.create_group()
         run = self.create_seer_run(organization=group.organization, seer_run_state_id=123)
@@ -1754,8 +1752,8 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             format="json",
         )
 
-        assert response.status_code == 404, response.data
-        mock_explorer_update_request.assert_not_called()
+        assert response.status_code == 202, response.data
+        assert mock_explorer_update_request.call_args[0][0]["payload"]["type"] == "create_pr"
 
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     def test_open_pr_permission_error(self, mock_explorer_state_request):

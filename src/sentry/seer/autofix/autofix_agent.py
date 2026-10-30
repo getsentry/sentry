@@ -848,7 +848,6 @@ def trigger_push_changes(
     client = get_autofix_agent_client(group, user=user)
 
     if state is None:
-        require_autofix_run_for_group(group, run_id)
         state = _get_group_run_state(client, group, run_id)
     else:
         _validate_run_belongs_to_group(state, group)
