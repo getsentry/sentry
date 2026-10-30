@@ -15,14 +15,14 @@ from sentry.investigations.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
 )
-from sentry.investigations.endpoints.base import (
+from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
     organization_project_ids,
     require_authenticated_user,
     service_error,
 )
-from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
-from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.validators import BlockExecutionStartValidator
 from sentry.notebooks.models import (
     Notebook,

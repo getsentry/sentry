@@ -11,12 +11,6 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationsBaseEndpoint,
-    can_request_actor_create_investigation,
-    organization_project_ids,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers import orchestration_summaries_by_investigation
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCandidateResponse,
@@ -26,6 +20,12 @@ from sentry.investigations.endpoints.validators import InvestigationCandidatesVa
 from sentry.investigations.services import agentic_breached_metric_source_key
 from sentry.investigations.services.breached_metrics import resolve_investigation_sources
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationsBaseEndpoint,
+    can_request_actor_create_investigation,
+    organization_project_ids,
+    service_error,
+)
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 
 

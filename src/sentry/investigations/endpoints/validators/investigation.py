@@ -112,9 +112,3 @@ class PermissionsUpdateValidator(StrictCamelSnakeValidator):
         if len(value) != len(set(value)):
             raise serializers.ValidationError("Team IDs must be unique.")
         return value
-
-
-class FavoriteUpdateValidator(StrictCamelSnakeValidator):
-    should_favorite = serializers.BooleanField(
-        help_text="Whether this investigation is a favorite for the authenticated user."
-    )

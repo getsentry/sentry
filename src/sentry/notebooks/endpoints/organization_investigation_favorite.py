@@ -10,12 +10,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
-from sentry.investigations.endpoints.base import (
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationEndpoint,
     require_authenticated_user,
 )
-from sentry.investigations.endpoints.validators import FavoriteUpdateValidator
-from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators import FavoriteUpdateValidator
 from sentry.notebooks.models import Notebook, NotebookFavoriteUser
 
 

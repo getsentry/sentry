@@ -12,11 +12,11 @@ from rest_framework.response import Response
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.requests.action import SlackActionRequest
-from sentry.investigations.endpoints.base import organization_project_ids
 from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notebooks.access import INVESTIGATION_SCOPES
+from sentry.notebooks.endpoints.base import organization_project_ids
 from sentry.notebooks.services import InvestigationSourceNotFound, InvestigationValidationError
 from sentry.seer.entrypoints.operator import SeerInvestigationOperator
 from sentry.seer.entrypoints.slack.entrypoint import (

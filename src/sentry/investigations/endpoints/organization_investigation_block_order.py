@@ -12,16 +12,16 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+    service_error,
+)
 from sentry.notebooks.endpoints.validators import BlockOrderValidator
 from sentry.notebooks.models import Notebook
 from sentry.notebooks.services import reorder_blocks

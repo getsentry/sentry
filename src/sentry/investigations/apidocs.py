@@ -7,7 +7,7 @@ They are excluded from the public schema and its downstream publishing workflow.
 
 from typing import Any
 
-from sentry.investigations.endpoints.base import OrganizationInvestigationsBaseEndpoint
+from sentry.notebooks.endpoints.base import OrganizationInvestigationsBaseEndpoint
 
 
 def investigation_endpoints(endpoints: Any) -> Any:
