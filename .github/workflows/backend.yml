@@ -302,6 +302,17 @@ jobs:
           docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
           time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
 
+      # Each shard runs ~8k ClickHouse queries (mostly test-reset truncates and inserts),
+      # and ClickHouse logs and sample-profiles every one into its system tables.
+      - name: Stop ClickHouse logging every query
+        continue-on-error: true
+        run: |
+          docker cp .github/workflows/scripts/clickhouse-ci-profile.xml \
+            snuba-clickhouse-1:/etc/clickhouse-server/users.d/ci-profile.xml
+          docker exec snuba-clickhouse-1 clickhouse-client --query "SYSTEM RELOAD CONFIG"
+          docker exec snuba-clickhouse-1 clickhouse-client --query \
+            "SELECT getSetting('log_queries'), getSetting('query_profiler_cpu_time_period_ns')"
+
       - name: Install py-spy
         if: env.PROFILE_BACKEND_TESTS == '1'
         run: |
@@ -343,6 +354,14 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      - name: ClickHouse queries logged during tests
+        if: always()
+        continue-on-error: true
+        run: |
+          docker exec snuba-clickhouse-1 clickhouse-client --query "SYSTEM FLUSH LOGS"
+          docker exec snuba-clickhouse-1 clickhouse-client --query \
+            "SELECT count() FROM system.query_log WHERE event_time > now() - INTERVAL 10 MINUTE"
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.

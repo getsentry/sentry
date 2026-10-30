@@ -1,0 +1,11 @@
+<!-- CI only: don't log or sample-profile every test query (see backend.yml). -->
+<clickhouse>
+    <profiles>
+        <default>
+            <log_queries>0</log_queries>
+            <log_processors_profiles>0</log_processors_profiles>
+            <query_profiler_real_time_period_ns>0</query_profiler_real_time_period_ns>
+            <query_profiler_cpu_time_period_ns>0</query_profiler_cpu_time_period_ns>
+        </default>
+    </profiles>
+</clickhouse>
