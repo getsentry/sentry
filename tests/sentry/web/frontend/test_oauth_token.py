@@ -1,13 +1,16 @@
+from datetime import timedelta
 from functools import cached_property
 
 from django.utils import timezone
 
 from sentry.locks import locks
-from sentry.models.apiapplication import ApiApplication
+from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apigrant import ApiGrant
+from sentry.models.apisetupcode import ApiSetupCode
 from sentry.models.apitoken import ApiToken
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -2017,3 +2020,130 @@ class OAuthTokenPublicClientRefreshTest(TestCase):
         )
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_request"}
+
+
+@control_silo_test
+class OAuthTokenSetupCodeTest(TestCase):
+    """Tests for the setup_code grant type."""
+
+    grant_type = "urn:sentry:params:oauth:grant-type:setup_code"
+
+    @cached_property
+    def path(self) -> str:
+        return "/oauth/token/"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com", client_secret=None
+        )
+        self.enterContext(
+            override_options({"oauth.setup-code.allowed-client-ids": [self.application.client_id]})
+        )
+        self.setup_code, self.code = ApiSetupCode.mint(
+            application=self.application,
+            user_id=self.user.id,
+            scope_list=["project:read", "org:read"],
+            organization_id=None,
+        )
+
+    def exchange(self, code: str | None = None, client_id: str | None = None):
+        data = {"grant_type": self.grant_type, "client_id": client_id or self.application.client_id}
+        if code is not None:
+            data["setup_code"] = code
+        return self.client.post(self.path, data)
+
+    def test_exchanges_code_for_token(self) -> None:
+        resp = self.exchange(self.code)
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(application=self.application)
+        assert data["access_token"] == token.token
+        assert data["refresh_token"] == token.refresh_token
+        assert data["user"]["id"] == str(self.user.id)
+        assert set(data["scope"].split()) == {"project:read", "org:read"}
+        assert "organization_id" not in data
+        assert token.user_id == self.user.id
+        assert not ApiSetupCode.objects.exists()
+
+    def test_code_is_single_use(self) -> None:
+        assert self.exchange(self.code).status_code == 200
+        resp = self.exchange(self.code)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        assert ApiToken.objects.filter(application=self.application).count() == 1
+
+    def test_expired_code_is_rejected_and_consumed(self) -> None:
+        self.setup_code.update(expires_at=timezone.now() - timedelta(seconds=1))
+        resp = self.exchange(self.code)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        assert not ApiSetupCode.objects.exists()
+        assert not ApiToken.objects.filter(application=self.application).exists()
+
+    def test_organization_scoped_code(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        _, code = ApiSetupCode.mint(
+            application=self.application,
+            user_id=self.user.id,
+            scope_list=["project:read"],
+            organization_id=organization.id,
+        )
+        resp = self.exchange(code)
+        assert resp.status_code == 200
+        assert json.loads(resp.content)["organization_id"] == str(organization.id)
+        token = ApiToken.objects.get(application=self.application)
+        assert token.scoping_organization_id == organization.id
+
+    def test_revoked_code_is_rejected(self) -> None:
+        ApiSetupCode.mint(
+            application=self.application,
+            user_id=self.user.id,
+            scope_list=["project:read"],
+            organization_id=None,
+        )
+        resp = self.exchange(self.code)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+
+    def test_missing_setup_code(self) -> None:
+        resp = self.exchange()
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_request"}
+
+    def test_invalid_setup_code(self) -> None:
+        resp = self.exchange("sntryc_invalid")
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        assert ApiSetupCode.objects.exists()
+
+    def test_wrong_application(self) -> None:
+        other_application = ApiApplication.objects.create(
+            owner=self.user, redirect_uris="https://example.com", client_secret=None
+        )
+        with override_options(
+            {
+                "oauth.setup-code.allowed-client-ids": [
+                    self.application.client_id,
+                    other_application.client_id,
+                ]
+            }
+        ):
+            resp = self.exchange(self.code, client_id=other_application.client_id)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        assert ApiSetupCode.objects.exists()
+
+    def test_application_not_allowlisted(self) -> None:
+        with override_options({"oauth.setup-code.allowed-client-ids": []}):
+            resp = self.exchange(self.code)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "unauthorized_client"}
+        assert not ApiToken.objects.filter(application=self.application).exists()
+
+    def test_inactive_application_invalidates_code(self) -> None:
+        self.application.update(status=ApiApplicationStatus.inactive)
+        resp = self.exchange(self.code)
+        assert resp.status_code == 400
+        assert json.loads(resp.content) == {"error": "invalid_grant"}
+        assert not ApiSetupCode.objects.exists()
