@@ -206,6 +206,17 @@ def iteration_completed_webhook_fields(
 
     _, is_synced = state.has_code_changes()
     errored_repos = [] if is_synced else iteration_terminal_errored_repos(state)
+    if errored_repos and _retries_on_moved_branch(group, state, errored_repos):
+        # Another turn of this iteration runs; its completion emits the webhook.
+        log_ctx.info(
+            "autofix.pr_iteration.iteration_outcome",
+            outcome="retrying",
+            reason="branch_moved",
+            webhook_emitted=False,
+            iteration_index=iteration_index,
+            errored_repos=errored_repos,
+        )
+        return None
     if not is_synced and not errored_repos:
         log_ctx.info(
             "autofix.pr_iteration.iteration_outcome",
@@ -402,9 +413,8 @@ def pr_iteration_push_outcome(
         return PrIterationOutcome.ALREADY_PUSHED
 
     errored_repos = iteration_terminal_errored_repos(state)
-    if errored_repos and _push_failed_on_moved_branch(group, state, errored_repos):
-        return _retry_push_on_moved_branch(log_ctx, group, run_id, state)
-    if errored_repos:
+    moved_branch = bool(errored_repos) and _push_failed_on_moved_branch(group, state, errored_repos)
+    if errored_repos and not moved_branch:
         log_ctx.info(
             "autofix.pr_iteration.push",
             outcome="not_pushed",
@@ -422,6 +432,9 @@ def pr_iteration_push_outcome(
         )
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="pr_closed")
         return PrIterationOutcome.PR_CLOSED
+
+    if moved_branch:
+        return _retry_push_on_moved_branch(log_ctx, group, run_id, state)
 
     metrics.incr(
         "autofix.pr_iteration.step",
@@ -488,6 +501,15 @@ def _push_failed_on_moved_branch(
     )
 
 
+def _retries_on_moved_branch(group: Group, state: SeerRunState, errored_repos: list[str]) -> bool:
+    """Whether a push refused because the branch moved runs another turn of the iteration
+    instead of ending it."""
+    return (
+        _push_failed_on_moved_branch(group, state, errored_repos)
+        and automated_iteration_allowed(state).ok
+    )
+
+
 @traces.trace
 def _retry_push_on_moved_branch(
     log_ctx: PrIterationLogContext,
@@ -509,23 +531,33 @@ def _retry_push_on_moved_branch(
 
     iteration = get_iterations(state)[-1]
     metadata = iteration.blocks[0].message.metadata or {}
-    trigger_autofix_feature(
-        group,
-        AutofixFeatureArgs(
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.ON_COMPLETION_HOOK,
-            existing_run_id=run_id,
-            user_context=BRANCH_MOVED_RETRY_PROMPT,
-            step_args=PrIterationStepArgs(
-                iteration_index=iteration.index,
-                iteration_id=triggered_iteration_id(state),
-                feedback=metadata.get("feedback"),
-                commit_author=metadata.get("commit_author"),
-                pr_urls={
-                    pr.repo_name: pr.pr_url for pr in state.repo_pr_states.values() if pr.pr_url
-                },
+    try:
+        trigger_autofix_feature(
+            group,
+            AutofixFeatureArgs(
+                step=AutofixStep.PR_ITERATION,
+                referrer=AutofixReferrer.ON_COMPLETION_HOOK,
+                existing_run_id=run_id,
+                user_context=BRANCH_MOVED_RETRY_PROMPT,
+                step_args=PrIterationStepArgs(
+                    iteration_index=iteration.index,
+                    iteration_id=triggered_iteration_id(state),
+                    feedback=metadata.get("feedback"),
+                    commit_author=metadata.get("commit_author"),
+                    pr_urls={
+                        pr.repo_name: pr.pr_url for pr in state.repo_pr_states.values() if pr.pr_url
+                    },
+                ),
             ),
-        ),
-    )
+        )
+    except Exception as e:
+        # End the iteration as errored, so the caller pauses the run and records the outcome.
+        log_ctx.error(
+            "autofix.pr_iteration.push",
+            outcome="not_pushed",
+            reason="branch_moved_retry_failed",
+            error_type=type(e).__name__,
+        )
+        return PrIterationOutcome.PR_CREATION_ERRORED
     log_ctx.info("autofix.pr_iteration.push", outcome="retrying", reason="branch_moved")
     return None
