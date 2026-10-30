@@ -9,15 +9,19 @@ import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-function HelpfulMembers() {
+export function useBillingMembers() {
   const organization = useOrganization();
-  const {data: billingMembers} = useQuery(
+  return useQuery(
     apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {query: 'scope:"org:billing"'},
       staleTime: 0,
     })
   );
+}
+
+function HelpfulMembers() {
+  const {data: billingMembers} = useBillingMembers();
 
   if (!billingMembers || billingMembers.length === 0) {
     return null;
