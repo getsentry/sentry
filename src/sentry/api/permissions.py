@@ -444,7 +444,7 @@ class DisallowImpersonatedTokenCreation(BasePermission):
                 "impersonation.token_creation_blocked",
                 extra={
                     "actual_user_id": actual_user.id,
-                    "impersonated_user_id": request.user.id,
+                    "impersonated_user_id": acting_user_id(request.user),
                     "method": request.method,
                     "path": request.path,
                 },

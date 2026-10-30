@@ -6,6 +6,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.organizations.services.organization import organization_service
@@ -30,14 +31,14 @@ class UserOrganizationIntegrationsEndpoint(UserEndpoint):
         :auth: required
         """
         organizations = (
-            user_service.get_organizations(user_id=request.user.id, only_visible=True)
-            if request.user.id is not None
+            user_service.get_organizations(user_id=require_user(request).id, only_visible=True)
+            if require_user(request).id is not None
             else ()
         )
         organization_ids = []
         for o in organizations:
             org_context = organization_service.get_organization_by_id(
-                id=o.id, user_id=request.user.id
+                id=o.id, user_id=require_user(request).id
             )
             if org_context and org_context.member and "org:read" in org_context.member.scopes:
                 organization_ids.append(o.id)
