@@ -432,11 +432,12 @@ class SeerRunState(BaseModel):
         ``pr_number`` is what says the PR exists: seer only ever sets it from a
         created pull request, so an errored state that carries one is a PR that
         opened and then took a failed push, not a creation that never landed.
+        Seer also adds a placeholder state (``creating`` or no status) before it
+        asks the provider to open the PR; without a ``pr_number`` that is not a
+        PR yet either, whatever its status.
         """
         return [
-            pr_state
-            for pr_state in self.repo_pr_states.values()
-            if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
+            pr_state for pr_state in self.repo_pr_states.values() if pr_state.pr_number is not None
         ]
 
     def get_artifacts(self) -> dict[str, Artifact]:
