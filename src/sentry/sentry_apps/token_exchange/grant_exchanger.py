@@ -7,6 +7,7 @@ from django.utils.functional import cached_property
 
 from sentry import analytics
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -23,6 +24,7 @@ from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.silo.safety import unguarded_write
 from sentry.users.models.user import User
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.token-exchange")
 
@@ -43,6 +45,7 @@ class GrantExchanger:
             operation_type=SentryAppInteractionType.AUTHORIZATIONS,
             event_type=SentryAppEventType.GRANT_EXCHANGER,
         ).capture() as lifecycle:
+            token: ApiToken | None = None
             try:
                 lifecycle.add_extras(
                     {
@@ -74,6 +77,30 @@ class GrantExchanger:
                     # Once it's exchanged it's no longer valid and should not be
                     # exchangeable, so we delete it.
                     self._delete_grant()
+            except (OutboxDatabaseError, OutboxFlushError) as e:
+                if token is None:
+                    raise SentryAppSentryError(
+                        message="Failed to exchange given grant",
+                        status_code=500,
+                        webhook_context={"installation_uuid": self.install.uuid},
+                    ) from e
+
+                # Guard against replication fanout failures. The token has been
+                # minted, and its outbox has been committed alongside it,
+                # guaranteeing that it will eventually be valid in all regions.
+                logger.warning(
+                    "grant-exchanger.outbox-failure",
+                    extra={
+                        "installation_uuid": self.install.uuid,
+                        "token_id": token.id,
+                        "last_characters": token.token_last_characters,
+                    },
+                    exc_info=e,
+                )
+                metrics.incr(
+                    "api_key.outbox_flush_deferred",
+                    tags={"category": "API_TOKEN_UPDATE", "callsite": "sentry_app_grant_exchanger"},
+                )
             except SentryAppIntegratorError as e:
                 lifecycle.record_halt(halt_reason=e)
                 raise

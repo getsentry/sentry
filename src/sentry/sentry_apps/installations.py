@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import datetime
+import logging
 from functools import cached_property
 from typing import TYPE_CHECKING, TypedDict
 
@@ -19,6 +20,7 @@ from sentry.analytics.events.sentry_app_installed import SentryAppInstalledEvent
 from sentry.api.serializers import serialize
 from sentry.constants import INTERNAL_INTEGRATION_TOKEN_COUNT_MAX, SentryAppInstallationStatus
 from sentry.exceptions import ApiTokenLimitError
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
@@ -46,6 +48,8 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
+logger = logging.getLogger(__name__)
+
 VALID_ACTIONS = ["created", "deleted"]
 
 
@@ -55,10 +59,31 @@ class SentryAppInstallationTokenCreator:
     expires_at: datetime.date | None = None
 
     def run(self, user: User | RpcUser, request: HttpRequest | None = None) -> ApiToken:
-        with transaction.atomic(router.db_for_write(ApiToken)):
-            self._check_token_limit()
-            api_token = self._create_api_token()
-            self._create_sentry_app_installation_token(api_token=api_token)
+        api_token: ApiToken | None = None
+        try:
+            with transaction.atomic(router.db_for_write(ApiToken)):
+                self._check_token_limit()
+                api_token = self._create_api_token()
+                self._create_sentry_app_installation_token(api_token=api_token)
+        except (OutboxDatabaseError, OutboxFlushError):
+            if api_token is None:
+                raise
+
+            # Guard against replication fanout failures. The token has been
+            # minted, and its outbox has been committed alongside it,
+            # guaranteeing that it will eventually be valid in all regions.
+            logger.warning(
+                "sentry_app_installation_token.outbox-flush-failure",
+                extra={
+                    "token_id": api_token.id,
+                    "sentry_app_installation_id": self.sentry_app_installation.id,
+                },
+                exc_info=True,
+            )
+            metrics.incr(
+                "api_key.outbox_flush_deferred",
+                tags={"category": "API_TOKEN_UPDATE", "callsite": "sentry_app_installation_token"},
+            )
         self.record_analytics(user)
         return api_token
 

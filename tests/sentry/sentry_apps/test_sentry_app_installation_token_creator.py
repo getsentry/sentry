@@ -4,15 +4,21 @@ from unittest.mock import MagicMock, patch
 from sentry.analytics.events.sentry_app_installation_token_created import (
     SentryAppInstallationTokenCreated,
 )
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.apitoken import ApiToken
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 class TestCreatorBase(TestCase):
@@ -33,6 +39,34 @@ class TestCreatorInternal(TestCreatorBase):
         )
 
         self.sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=self.sentry_app)
+
+    def test_returns_token_on_outbox_flush_failure(self) -> None:
+        request = self.make_request(user=self.user, method="GET")
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            api_token = SentryAppInstallationTokenCreator(
+                sentry_app_installation=self.sentry_app_installation
+            ).run(user=self.user, request=request)
+
+        mock_replication.assert_called()
+        assert SentryAppInstallationToken.objects.filter(
+            sentry_app_installation=self.sentry_app_installation, api_token=api_token
+        ).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=api_token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=api_token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=api_token.id).exists()
 
     @patch("sentry.utils.audit.create_audit_entry")
     @patch("sentry.analytics.record")
