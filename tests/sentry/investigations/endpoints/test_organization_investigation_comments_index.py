@@ -3,7 +3,7 @@ from __future__ import annotations
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.investigations.models import InvestigationComment, InvestigationStatus
+from sentry.notebooks.models import NotebookComment, NotebookStatus
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -15,10 +15,10 @@ class OrganizationInvestigationCommentsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Investigation"
         )
-        self.block = self.create_investigation_block(investigation=self.investigation)
+        self.block = self.create_notebook_block(notebook=self.investigation)
         self.url = reverse(
             "sentry-api-0-organization-investigation-comments",
             kwargs={
@@ -34,8 +34,8 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert response.data["body"] == "Looks like a deploy"
         assert response.data["blockId"] is None
         assert response.data["author"]["id"] == str(self.user.id)
-        comment = InvestigationComment.objects.get(id=response.data["id"])
-        assert comment.investigation_id == self.investigation.id
+        comment = NotebookComment.objects.get(id=response.data["id"])
+        assert comment.notebook_id == self.investigation.id
         assert comment.author_id == self.user.id
 
     def test_create_block_comment(self) -> None:
@@ -47,8 +47,8 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert response.data["blockId"] == str(self.block.id)
 
     def test_create_rejects_a_block_from_another_investigation(self) -> None:
-        other = self.create_investigation(organization=self.organization, title="Other")
-        other_block = self.create_investigation_block(investigation=other)
+        other = self.create_notebook(organization=self.organization, title="Other")
+        other_block = self.create_notebook_block(notebook=other)
 
         response = self.client.post(
             self.url, data={"body": "Hi", "blockId": other_block.id}, format="json"
@@ -78,7 +78,7 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert response.status_code == 400
 
     def test_archived_investigation_is_read_only(self) -> None:
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         response = self.client.post(self.url, data={"body": "Hi"}, format="json")
 
@@ -86,11 +86,11 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert response.data == {"detail": "Archived investigations are read-only."}
 
     def test_list_is_newest_first(self) -> None:
-        first = self.create_investigation_comment(
-            investigation=self.investigation, author=self.user, body="first"
+        first = self.create_notebook_comment(
+            notebook=self.investigation, author=self.user, body="first"
         )
-        second = self.create_investigation_comment(
-            investigation=self.investigation, author=self.user, block=self.block, body="second"
+        second = self.create_notebook_comment(
+            notebook=self.investigation, author=self.user, block=self.block, body="second"
         )
 
         response = self.client.get(self.url)
@@ -99,11 +99,9 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert [c["id"] for c in response.data] == [str(second.id), str(first.id)]
 
     def test_list_hides_comments_on_a_deleted_block(self) -> None:
-        page_comment = self.create_investigation_comment(
-            investigation=self.investigation, author=self.user
-        )
-        self.create_investigation_comment(
-            investigation=self.investigation, author=self.user, block=self.block
+        page_comment = self.create_notebook_comment(notebook=self.investigation, author=self.user)
+        self.create_notebook_comment(
+            notebook=self.investigation, author=self.user, block=self.block
         )
         self.block.update(deleted_at=timezone.now())
 
@@ -112,9 +110,9 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert [c["id"] for c in response.data] == [str(page_comment.id)]
 
     def test_list_filters_by_block(self) -> None:
-        self.create_investigation_comment(investigation=self.investigation, author=self.user)
-        block_comment = self.create_investigation_comment(
-            investigation=self.investigation, author=self.user, block=self.block
+        self.create_notebook_comment(notebook=self.investigation, author=self.user)
+        block_comment = self.create_notebook_comment(
+            notebook=self.investigation, author=self.user, block=self.block
         )
 
         response = self.client.get(self.url, {"blockId": self.block.id})
@@ -127,7 +125,7 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         assert response.status_code == 400
 
     def test_list_keeps_comments_of_a_deleted_author(self) -> None:
-        self.create_investigation_comment(investigation=self.investigation, author=None)
+        self.create_notebook_comment(notebook=self.investigation, author=None)
 
         response = self.client.get(self.url)
 

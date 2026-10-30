@@ -38,7 +38,6 @@ const completedInvestigation = InvestigationBreachedMetricDetailFixture({
   summary: 'Connection acquisition is delaying checkout requests',
   summaryDescription:
     'The p95 increase begins four minutes after the deploy and appears in every production region.\nThe strongest signal is exhausted database connections in payments-api.',
-  template: {key: 'breached_metric', version: 1},
   source: {
     ...InvestigationMetricSourceFixture({
       id: '42',
@@ -201,6 +200,60 @@ const agenticReportOrchestration = InvestigationOrchestrationFixture({
   report: {...InvestigationOrchestrationFixture().report, status: 'completed'},
 });
 
+function reportTextBlock(id: string, position: number, title: string, markdown: string) {
+  return InvestigationBlockFixture({
+    id,
+    position,
+    title,
+    outputStatus: 'completed',
+    output: {schemaVersion: 1, markdown},
+    currentExecution: InvestigationBlockExecutionFixture({id: `${id}-execution`}),
+  });
+}
+
+// The agentic report as Seer writes one: each text block opens with a level-two
+// heading, some with level-three ones under it, which is what the outline beside
+// it lists.
+const outlinedReportInvestigation = {
+  ...agenticReportInvestigation,
+  id: 'completed-outlined-report',
+  blocks: [
+    reportTextBlock(
+      'outline-what-happened',
+      0,
+      'What happened',
+      '## What happened\n\nCheckout p95 rose from **420 ms to 1.84 s** after the `payments-api` deploy, in every production region.'
+    ),
+    {...completedInvestigation.blocks[1]!, position: 1},
+    reportTextBlock(
+      'outline-how-we-know',
+      2,
+      'Evidence analysis',
+      '## How we know\n\n### Connection waits\n\nThe slowest checkout transactions spend their extra time waiting for a database connection.\n\n### Query time\n\nQuery execution time is unchanged.'
+    ),
+    {...completedInvestigation.blocks[2]!, position: 3},
+    reportTextBlock(
+      'outline-when',
+      4,
+      'Deploy timing',
+      '## When it happened\n\nThe first slow requests arrived four minutes after the deploy finished, once the new connection-pool settings reached every host.'
+    ),
+    {...completedInvestigation.blocks[3]!, position: 5},
+    reportTextBlock(
+      'outline-unknowns',
+      6,
+      "What we don't know",
+      "## What we don't know\n\nWhether the smaller pool or the shorter acquire timeout matters more. Both changed in the same deploy."
+    ),
+    reportTextBlock(
+      'outline-next',
+      7,
+      'What to do next',
+      '## What to do next\n\n- Roll back the connection-pool change in `payments-api`.\n- Watch connection acquisition time for 30 minutes.'
+    ),
+  ],
+};
+
 const manualInvestigation = InvestigationDetailFixture({
   id: 'manual-invoice-timeouts',
   title: 'Invoice PDF timeouts in eu-west-1',
@@ -245,7 +298,6 @@ const runningInvestigation = InvestigationRunningDetailFixture({
   dateCreated: '2026-08-27T15:31:00Z',
   dateUpdated: '2026-08-27T15:31:22Z',
   titleGeneration: {status: 'running'},
-  template: {key: 'breached_metric', version: 1},
   blocks: [
     InvestigationBlockFixture({
       id: 'running-summary',
@@ -268,22 +320,12 @@ const runningInvestigation = InvestigationRunningDetailFixture({
       generationPrompt: 'Compare event volume and users across active releases.',
       outputStatus: 'pending',
       config: {autoRun: true},
-      dependencies: ['running-summary'],
       currentExecution: InvestigationBlockExecutionFixture({
         id: runningQueryExecutionId,
         status: 'pending',
         startedAt: null,
         completedAt: null,
       }),
-    }),
-    InvestigationBlockFixture({
-      id: 'waiting-synthesis',
-      position: 2,
-      title: 'Synthesize findings',
-      content: '',
-      generationPrompt: 'Summarize the likely cause and recommended next steps.',
-      config: {autoRun: true},
-      dependencies: ['running-summary', 'running-query'],
     }),
   ],
 });
@@ -295,7 +337,6 @@ const skeletonInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   blocks: [
     InvestigationBlockFixture({
       id: 'skeleton-summary',
@@ -318,7 +359,6 @@ const skeletonInvestigation = InvestigationDetailFixture({
       generationPrompt: 'Compare event volume and users across active releases.',
       outputStatus: 'running',
       config: {autoRun: true},
-      dependencies: ['skeleton-summary'],
       currentExecution: InvestigationBlockExecutionFixture({
         id: skeletonQueryExecutionId,
         status: 'running',
@@ -333,7 +373,6 @@ const reportingInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'reporting',
     status: 'processing',
@@ -364,7 +403,6 @@ const awaitingInputRunInvestigation = InvestigationDetailFixture({
   title: 'Checkout latency after the payments-api deploy',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'intake',
     status: 'awaiting_input',
@@ -414,7 +452,7 @@ const failedBlock = InvestigationBlockFixture({
 });
 const cancelledBlock = InvestigationBlockFixture({
   id: 'cancelled-query',
-  position: 2,
+  position: 1,
   kind: 'query',
   title: 'Regional error breakdown',
   content: '',
@@ -431,26 +469,7 @@ const failureInvestigation = InvestigationFailedDetailFixture({
   title: 'Release health regression after 8.42.0',
   status: 'active',
   sourceType: 'metric_open_period',
-  blocks: [
-    failedBlock,
-    InvestigationBlockFixture({
-      id: 'blocked-by-failure',
-      position: 1,
-      title: 'Summarize the release regression',
-      content: '',
-      config: {autoRun: true},
-      dependencies: [failedBlock.id],
-    }),
-    cancelledBlock,
-    InvestigationBlockFixture({
-      id: 'blocked-by-cancellation',
-      position: 3,
-      title: 'Recommend next steps',
-      content: '',
-      config: {autoRun: true},
-      dependencies: [cancelledBlock.id],
-    }),
-  ],
+  blocks: [failedBlock, cancelledBlock],
 });
 
 const archivedInvestigation = InvestigationDetailFixture({
@@ -461,7 +480,6 @@ const archivedInvestigation = InvestigationDetailFixture({
   dateCreated: '2026-08-27T15:44:00Z',
   dateUpdated: '2026-08-27T15:44:00Z',
   blocks: [],
-  template: {key: 'breached_metric', version: 1},
 });
 
 // An agentic run that has only just started: Seer is still scanning, so there
@@ -472,7 +490,6 @@ const gatheringContextInvestigation = InvestigationDetailFixture({
   title: 'New breached metrics investigation',
   status: 'active',
   sourceType: 'metric_open_period',
-  template: {key: 'breached_metric', version: 1},
   orchestration: {
     phase: 'broad_scan',
     status: 'processing',
@@ -509,6 +526,28 @@ const gatheringContextOrchestration = InvestigationOrchestrationFixture({
 });
 
 export default Storybook.story('Investigations — Detail', story => {
+  story('Completed report with an outline', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-outlined-report"
+      details={[outlinedReportInvestigation]}
+      orchestration={{
+        [outlinedReportInvestigation.id]: {
+          ...agenticReportOrchestration,
+          investigationId: outlinedReportInvestigation.id,
+        },
+      }}
+    >
+      {/*
+       * Measured the way the app's main column is, so the outline only shows
+       * once this is at least 1152px wide. Nothing clips it, so it sticks as the
+       * story scrolls.
+       */}
+      <Container containerType="inline-size" border="primary" radius="md">
+        <InvestigationBootstrapPage investigationId={outlinedReportInvestigation.id} />
+      </Container>
+    </InvestigationFixtureApi>
+  ));
+
   story('Completed agentic report', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-agentic-report"
@@ -726,7 +765,7 @@ export default Storybook.story('Investigations — Detail', story => {
     </InvestigationFixtureApi>
   ));
 
-  story('Failures, cancellations, and blocked dependencies', () => (
+  story('Failures and cancellations', () => (
     <InvestigationFixtureApi
       organizationSlug="storybook-investigation-failures"
       details={[failureInvestigation]}

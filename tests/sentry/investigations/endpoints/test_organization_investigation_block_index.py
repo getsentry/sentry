@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.investigations.models import InvestigationBlock
+from sentry.notebooks.models import NotebookBlock
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -14,7 +14,7 @@ class InvestigationBlockIndexEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Block tests",
@@ -46,8 +46,8 @@ class InvestigationBlockIndexEndpointTest(APITestCase):
         assert response.data["generationPrompt"] == "Generate the query"
         assert response.data["generatedContent"] == ""
 
-        block = InvestigationBlock.objects.get(id=response.data["id"])
-        assert block.investigation_id == self.investigation.id
+        block = NotebookBlock.objects.get(id=response.data["id"])
+        assert block.notebook_id == self.investigation.id
 
         self.investigation.refresh_from_db()
         assert self.investigation.version == 2
@@ -189,4 +189,4 @@ class InvestigationBlockIndexEndpointTest(APITestCase):
             format="json",
         )
         assert response.status_code == 403
-        assert not InvestigationBlock.objects.filter(investigation=self.investigation).exists()
+        assert not NotebookBlock.objects.filter(notebook=self.investigation).exists()

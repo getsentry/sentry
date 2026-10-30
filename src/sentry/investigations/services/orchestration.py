@@ -4,7 +4,7 @@ import logging
 from copy import deepcopy
 from dataclasses import dataclass
 from functools import partial
-from typing import Any
+from typing import Any, get_args
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -12,18 +12,16 @@ from django.db.models import Max
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.auth.access import from_user
+from sentry.investigations.access import INVESTIGATION_SCOPES, has_investigations_access
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
-    InvestigationSourceType,
-    InvestigationStatus,
 )
+from sentry.investigations.services.action_kinds.base import FollowUpCommandType
 from sentry.investigations.services.breached_metrics import (
     BreachedMetricSource,
     resolve_breached_metric_sources,
@@ -33,13 +31,22 @@ from sentry.investigations.services.investigations import (
     InvestigationSourceNotFound,
     InvestigationValidationError,
     _create_project_links,
-    _legacy_storage_filters,
+    _validate_project_ids,
     archive_investigation,
     default_investigation_title,
-    investigation_lineage_key,
     update_investigation,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookSourceType,
+    NotebookStatus,
+)
+from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.users.services.user.service import user_service
+from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +68,7 @@ class AcceptedOrchestrationCommand:
 __all__ = [
     "AcceptedOrchestrationCommand",
     "accept_orchestration_command",
-    "agentic_breached_metric_lineage_key",
+    "agentic_breached_metric_source_key",
     "archive_investigation_with_orchestration",
     "create_agentic_breached_metric_investigation",
     "create_agentic_manual_investigation",
@@ -134,33 +141,66 @@ def _initial_projection(
     )
 
 
+def _validate_creation_actor(
+    *, organization: Organization, creator: ActorId, project_ids: list[int]
+) -> None:
+    if (
+        creator.type not in (ActorType.USER, ActorType.SERVICE_ACCOUNT)
+        or type(creator.id) is not int
+        or creator.id <= 0
+    ):
+        raise InvestigationValidationError(
+            {"creator": "A user or service account with a positive integer ID is required."}
+        )
+    if creator.type == ActorType.USER:
+        user = user_service.get_user(user_id=creator.id)
+        access = from_user(user, organization=organization)
+        if not any(access.has_scope(scope) for scope in INVESTIGATION_SCOPES) or not (
+            has_investigations_access(organization, actor=user)
+        ):
+            raise PermissionDenied
+    else:
+        try:
+            account = ServiceAccountReplica.objects.get(
+                service_account_id=creator.id, organization_id=organization.id, is_active=True
+            )
+        except ServiceAccountReplica.DoesNotExist as error:
+            raise PermissionDenied from error
+        if not INVESTIGATION_SCOPES.intersection(
+            account.scope_list
+        ) or not has_investigations_access(organization):
+            raise PermissionDenied
+
+    # Open membership grants authorized members access to every active organization project.
+    _validate_project_ids(organization.id, project_ids)
+
+
 def _create_agentic_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     source: dict[str, Any],
     orchestration_source: dict[str, Any],
     project_ids: list[int],
     filters: dict[str, Any],
-    source_type: str = InvestigationSourceType.MANUAL,
-    source_ref: dict[str, Any] | None = None,
+    source_type: str = NotebookSourceType.MANUAL,
     source_key: str | None = None,
-    lineage_key: str | None = None,
     source_revision: int | None = None,
-) -> tuple[Investigation, InvestigationOrchestrationRun]:
+) -> tuple[Notebook, InvestigationOrchestrationRun]:
     """Create the notebook and its parent control-plane aggregate atomically."""
 
-    with transaction.atomic(using=router.db_for_write(Investigation)):
-        investigation = Investigation.objects.create(
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        investigation = Notebook.objects.create(
             organization=organization,
-            created_by_id=user_id,
+            created_by_id=creator.id if creator.type == ActorType.USER else None,
+            created_by_service_account_id=(
+                creator.id if creator.type == ActorType.SERVICE_ACCOUNT else None
+            ),
             title=title or default_investigation_title(source_type),
             source_type=source_type,
-            source_ref=deepcopy(source_ref or {}),
             source_key=source_key,
             source=deepcopy(source),
-            lineage_key=lineage_key,
             source_revision=source_revision,
             filters=deepcopy(filters),
         )
@@ -175,6 +215,9 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
+        # Remove once dispatch can use the saved service-account identity.
+        if creator.type == ActorType.SERVICE_ACCOUNT:
+            raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
     return investigation, orchestration_run
 
@@ -220,7 +263,7 @@ def _validate_command_target(
         raise InvestigationValidationError({"detail": "Hypothesis was not found."})
 
 
-def _clear_command_dispatch_error(
+def clear_command_dispatch_error(
     run: InvestigationOrchestrationRun,
     *,
     request_id: UUID,
@@ -244,38 +287,77 @@ def _clear_command_dispatch_error(
         run.error = None
 
 
+def requeue_commands_behind(
+    run: InvestigationOrchestrationRun,
+    command: InvestigationOrchestrationCommand,
+) -> int:
+    """Queue the commands that failed because this one did, and return how many."""
+
+    return InvestigationOrchestrationCommand.objects.filter(
+        orchestration_run=run,
+        id__gt=command.id,
+        status=InvestigationOrchestrationCommandStatus.FAILED,
+        error__code="earlier_command_failed",
+    ).update(
+        status=InvestigationOrchestrationCommandStatus.ACCEPTED,
+        error=None,
+        date_updated=timezone.now(),
+    )
+
+
 def _requeue_failed_command(
     run: InvestigationOrchestrationRun,
     command: InvestigationOrchestrationCommand,
 ) -> None:
-    queued: list[InvestigationOrchestrationCommand] = []
-    now = timezone.now()
-    for candidate in InvestigationOrchestrationCommand.objects.filter(
-        orchestration_run=run,
-        id__gte=command.id,
-        status=InvestigationOrchestrationCommandStatus.FAILED,
-    ).order_by("id"):
-        error_code = candidate.error.get("code") if isinstance(candidate.error, dict) else None
-        if candidate.id == command.id or error_code == "earlier_command_failed":
-            candidate.status = InvestigationOrchestrationCommandStatus.ACCEPTED
-            candidate.error = None
-            candidate.date_updated = now
-            queued.append(candidate)
-    if queued:
-        InvestigationOrchestrationCommand.objects.bulk_update(
-            queued,
-            ["status", "error", "date_updated"],
-        )
-    _clear_command_dispatch_error(run, request_id=command.request_id)
+    command.update(
+        status=InvestigationOrchestrationCommandStatus.ACCEPTED,
+        error=None,
+        date_updated=timezone.now(),
+    )
+    requeue_commands_behind(run, command)
+    clear_command_dispatch_error(run, request_id=command.request_id)
     run.save(update_fields=["projection", "error", "date_updated"])
 
 
-def _command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool:
+def command_can_be_requeued(command: InvestigationOrchestrationCommand) -> bool:
+    return command_error_can_be_requeued(command.error)
+
+
+def command_error_can_be_requeued(error: object) -> bool:
     return (
-        isinstance(command.error, dict)
-        and command.error.get("code") == "seer_command_dispatch_failed"
-        and command.error.get("retryable") is True
+        isinstance(error, dict)
+        and error.get("code") == "seer_command_dispatch_failed"
+        and error.get("retryable") is True
     )
+
+
+def command_can_be_resent(command_type: str, error: object) -> bool:
+    """Whether a failed command never reached Seer and can go out again as it is."""
+
+    if command_error_can_be_requeued(error):
+        return True
+    # A conflict ahead of it doesn't matter to Seer, since it doesn't check the version.
+    return (
+        command_type in UNVERSIONED_COMMAND_TYPES
+        and isinstance(error, dict)
+        and error.get("code") == "earlier_command_conflicted"
+    )
+
+
+def follow_up_can_be_retried(command_type: str, error: object) -> bool:
+    """Whether a failed follow-up can be tried again."""
+
+    if command_type == "recheck_action_requests":
+        # A retried re-check goes out as a new command, unless Seer said the report moved on.
+        # One behind an undelivered command goes out when that command does.
+        return not (
+            isinstance(error, dict)
+            and (
+                error.get("reason") == "action_requests_report_changed"
+                or error.get("code") == "earlier_command_failed"
+            )
+        )
+    return command_can_be_resent(command_type, error)
 
 
 def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
@@ -301,6 +383,15 @@ def _reset_create_dispatch_failure(run: InvestigationOrchestrationRun) -> None:
         ]
 
 
+# Commands that only keep Seer's action requests in sync. Neither side checks or moves the
+# workflow version for them.
+INTERNAL_COMMAND_TYPES = frozenset({"record_action_outcome"})
+# Commands Seer runs whatever its workflow version is. Sentry still moves the version for them.
+UNVERSIONED_COMMAND_TYPES = frozenset({"rerun_after_connection"})
+# Commands Sentry sends for an action request, which shows how they went.
+FOLLOW_UP_COMMAND_TYPES: frozenset[str] = frozenset(get_args(FollowUpCommandType))
+
+
 def _is_run_retry(command_type: str, payload: dict[str, Any]) -> bool:
     return command_type == "retry" and payload.get("target") == "run"
 
@@ -314,7 +405,7 @@ def _schedule_orchestration_create(run_id: int) -> None:
     )
 
 
-def _schedule_orchestration_commands(run_id: int) -> None:
+def schedule_orchestration_commands(run_id: int) -> None:
     from sentry.tasks.seer.investigation import dispatch_investigation_orchestration_commands
 
     transaction.on_commit(
@@ -324,15 +415,13 @@ def _schedule_orchestration_commands(run_id: int) -> None:
 
 
 def archive_investigation_with_orchestration(
-    *, investigation: Investigation, expected_version: int, actor_id: int | None
-) -> Investigation:
+    *, investigation: Notebook, expected_version: int, actor_id: int | None
+) -> Notebook:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
@@ -349,7 +438,7 @@ def archive_investigation_with_orchestration(
             if expected_version > locked_investigation.version:
                 raise InvestigationConflictError("Investigation has changed.")
             archive_version = locked_investigation.version
-        if locked_investigation.status == InvestigationStatus.ARCHIVED:
+        if locked_investigation.status == NotebookStatus.ARCHIVED:
             return locked_investigation
         if run is not None and run.status not in {
             InvestigationOrchestrationStatus.COMPLETED,
@@ -376,16 +465,16 @@ def archive_investigation_with_orchestration(
             run.date_updated = timezone.now()
             run.save(update_fields=["projection", "date_updated"])
             now = timezone.now()
-            InvestigationBlockExecution.objects.filter(
-                block__investigation=locked_investigation,
+            NotebookBlockExecution.objects.filter(
+                block__notebook=locked_investigation,
                 status__in=(
-                    InvestigationBlockExecutionStatus.PENDING,
-                    InvestigationBlockExecutionStatus.RUNNING,
-                    InvestigationBlockExecutionStatus.AWAITING_INPUT,
-                    InvestigationBlockExecutionStatus.STOPPING,
+                    NotebookBlockExecutionStatus.PENDING,
+                    NotebookBlockExecutionStatus.RUNNING,
+                    NotebookBlockExecutionStatus.AWAITING_INPUT,
+                    NotebookBlockExecutionStatus.STOPPING,
                 ),
             ).update(
-                status=InvestigationBlockExecutionStatus.CANCELLED,
+                status=NotebookBlockExecutionStatus.CANCELLED,
                 error={
                     "code": "investigation_archived",
                     "message": "The investigation was archived.",
@@ -401,18 +490,16 @@ def archive_investigation_with_orchestration(
 
 def update_investigation_with_orchestration(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     expected_version: int,
     fields: dict[str, Any],
     project_ids: list[int] | None,
-) -> Investigation:
+) -> Notebook:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
         run = (
             InvestigationOrchestrationRun.objects.select_for_update()
@@ -421,7 +508,7 @@ def update_investigation_with_orchestration(
         )
         if (
             run is not None
-            and locked_investigation.status == InvestigationStatus.ACTIVE
+            and locked_investigation.status == NotebookStatus.ACTIVE
             and set(fields) == {"title"}
             and project_ids is None
         ):
@@ -465,15 +552,16 @@ def _manual_orchestration_source(source: dict[str, Any]) -> dict[str, Any]:
 def create_agentic_manual_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     source: dict[str, Any],
     project_ids: list[int],
     filters: dict[str, Any],
-) -> tuple[Investigation, InvestigationOrchestrationRun]:
+) -> tuple[Notebook, InvestigationOrchestrationRun]:
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
     return _create_agentic_investigation(
         organization=organization,
-        user_id=user_id,
+        creator=creator,
         title=title,
         source=source,
         orchestration_source=_manual_orchestration_source(source),
@@ -528,16 +616,16 @@ def _breached_metric_orchestration_source(source: dict[str, Any]) -> dict[str, A
     }
 
 
-def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any] | None:
+def rebuild_orchestration_source(investigation: Notebook) -> dict[str, Any] | None:
     """The source Seer gets when the run starts, built again from the monitor as it is now.
     None if Sentry can no longer read the monitor.
     """
 
-    if investigation.source_type == InvestigationSourceType.MANUAL:
+    if investigation.source_type == NotebookSourceType.MANUAL:
         return _manual_orchestration_source(investigation.source)
     source_ref = (
-        int(investigation.source_ref["groupId"]),
-        int(investigation.source_ref["openPeriodId"]),
+        int(investigation.source["ref"]["groupId"]),
+        int(investigation.source["ref"]["openPeriodId"]),
     )
     # The access check ran when the investigation started, so allow the monitor's own project.
     project_id = int(investigation.source["snapshot"]["project"]["id"])
@@ -551,60 +639,62 @@ def rebuild_orchestration_source(investigation: Investigation) -> dict[str, Any]
     return _breached_metric_orchestration_source(resolved.source)
 
 
-def agentic_breached_metric_lineage_key(source: dict[str, Any]) -> str:
-    return investigation_lineage_key("agentic_breached_metric", source)
+def agentic_breached_metric_source_key(source: dict[str, Any]) -> str:
+    ref = source["ref"]
+    return f"metric_open_period:{ref['groupId']}:{ref['openPeriodId']}"
 
 
 def create_agentic_breached_metric_investigation(
     *,
     organization: Organization,
-    user_id: int,
+    creator: ActorId,
     title: str | None,
     resolved_source: BreachedMetricSource,
     project_ids: list[int],
     filters: dict[str, Any],
-) -> tuple[Investigation, bool]:
+) -> tuple[Notebook, bool]:
+    _validate_creation_actor(organization=organization, creator=creator, project_ids=project_ids)
+    if resolved_source.project_id not in project_ids:
+        raise InvestigationValidationError({"projectIds": "The metric project must be selected."})
     normalized_source = resolved_source.source
-    lineage_key = agentic_breached_metric_lineage_key(normalized_source)
-    # Uniqueness on active lineage and revision arbitrates concurrent launches.
+    source_key = agentic_breached_metric_source_key(normalized_source)
+    # Uniqueness on the active source and revision arbitrates concurrent launches.
     for attempt in range(3):
         active = (
-            Investigation.objects.filter(
+            Notebook.objects.filter(
                 organization=organization,
-                lineage_key=lineage_key,
-                status=InvestigationStatus.ACTIVE,
+                source_key=source_key,
+                status=NotebookStatus.ACTIVE,
             )
             .order_by("-source_revision", "-id")
             .first()
         )
         if active is not None:
             return active, False
-        latest_revision = Investigation.objects.filter(
+        latest_revision = Notebook.objects.filter(
             organization=organization,
-            lineage_key=lineage_key,
+            source_key=source_key,
         ).aggregate(latest=Max("source_revision"))["latest"]
         try:
             investigation, _ = _create_agentic_investigation(
                 organization=organization,
-                user_id=user_id,
+                creator=creator,
                 title=title,
                 source=normalized_source,
                 orchestration_source=_breached_metric_orchestration_source(normalized_source),
                 project_ids=project_ids,
-                filters=_legacy_storage_filters(normalized_source, filters),
-                source_type=InvestigationSourceType.METRIC_OPEN_PERIOD,
-                source_ref=normalized_source["ref"],
-                source_key=lineage_key,
-                lineage_key=lineage_key,
+                filters=filters,
+                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+                source_key=source_key,
                 source_revision=(latest_revision or 0) + 1,
             )
             return investigation, True
         except IntegrityError:
             if attempt == 2:
-                active = Investigation.objects.filter(
+                active = Notebook.objects.filter(
                     organization=organization,
-                    lineage_key=lineage_key,
-                    status=InvestigationStatus.ACTIVE,
+                    source_key=source_key,
+                    status=NotebookStatus.ACTIVE,
                 ).first()
                 if active is not None:
                     return active, False
@@ -642,7 +732,7 @@ def _serialize_orchestration_run(run: InvestigationOrchestrationRun) -> dict[str
     return projection
 
 
-def get_orchestration_projection(investigation: Investigation) -> dict[str, Any]:
+def get_orchestration_projection(investigation: Notebook) -> dict[str, Any]:
     try:
         run = InvestigationOrchestrationRun.objects.select_related("seer_run").get(
             investigation=investigation
@@ -675,22 +765,20 @@ def _command_acceptance(
 
 def accept_orchestration_command(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     request_id: UUID,
     expected_workflow_version: int,
     command_type: str,
     payload: dict[str, Any],
-    actor_id: int,
+    actor_id: int | None,
 ) -> AcceptedOrchestrationCommand:
     with transaction.atomic(using=router.db_for_write(InvestigationOrchestrationRun)):
         # Investigation-wide mutations lock the aggregate root before subordinate rows.
         try:
-            locked_investigation = Investigation.objects.select_for_update().get(
-                id=investigation.id
-            )
-        except Investigation.DoesNotExist:
+            locked_investigation = Notebook.objects.select_for_update().get(id=investigation.id)
+        except Notebook.DoesNotExist:
             raise InvestigationSourceNotFound
-        if locked_investigation.status == InvestigationStatus.ARCHIVED:
+        if locked_investigation.status == NotebookStatus.ARCHIVED:
             raise InvestigationValidationError(
                 {"detail": "Archived investigations do not accept commands."}
             )
@@ -701,12 +789,13 @@ def accept_orchestration_command(
         except InvestigationOrchestrationRun.DoesNotExist:
             raise InvestigationSourceNotFound
 
+        internal = command_type in INTERNAL_COMMAND_TYPES
         existing = InvestigationOrchestrationCommand.objects.filter(
             orchestration_run=run, request_id=request_id
         ).first()
         if existing is not None:
             if (
-                existing.expected_workflow_version != expected_workflow_version
+                (not internal and existing.expected_workflow_version != expected_workflow_version)
                 or existing.type != command_type
                 or existing.payload != payload
             ):
@@ -717,19 +806,19 @@ def accept_orchestration_command(
                 _schedule_orchestration_create(run.id)
             elif (
                 existing.status == InvestigationOrchestrationCommandStatus.FAILED
-                and _command_can_be_requeued(existing)
+                and command_can_be_resent(existing.type, existing.error)
             ):
                 _requeue_failed_command(run, existing)
                 existing.refresh_from_db(fields=["status", "error"])
-                _schedule_orchestration_commands(run.id)
+                schedule_orchestration_commands(run.id)
             elif existing.status in {
                 InvestigationOrchestrationCommandStatus.ACCEPTED,
                 InvestigationOrchestrationCommandStatus.DISPATCHED,
             }:
-                _schedule_orchestration_commands(run.id)
+                schedule_orchestration_commands(run.id)
             return _command_acceptance(run, existing, duplicate=True)
 
-        if run.workflow_version != expected_workflow_version:
+        if not internal and run.workflow_version != expected_workflow_version:
             raise InvestigationConflictError("Workflow version does not match.")
 
         _validate_command_target(
@@ -761,7 +850,7 @@ def accept_orchestration_command(
             _schedule_orchestration_create(run.id)
             return _command_acceptance(run, command, duplicate=False)
 
-        resulting_version = run.workflow_version + 1
+        resulting_version = run.workflow_version if internal else run.workflow_version + 1
         command = InvestigationOrchestrationCommand.objects.create(
             orchestration_run=run,
             request_id=request_id,
@@ -783,5 +872,5 @@ def accept_orchestration_command(
                 "date_updated",
             ]
         )
-        _schedule_orchestration_commands(run.id)
+        schedule_orchestration_commands(run.id)
         return _command_acceptance(run, command, duplicate=False)

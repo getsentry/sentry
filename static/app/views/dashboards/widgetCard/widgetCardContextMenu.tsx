@@ -32,10 +32,7 @@ import {
   performanceScoreTooltip,
   usesTimeSeriesData,
 } from 'sentry/views/dashboards/utils';
-import {
-  getWidgetExploreUrl,
-  widgetTypeSupportsExploreMultiQuery,
-} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {getWidgetExploreUrl} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
@@ -240,9 +237,7 @@ export function getMenuOptions(
     organization.features.includes('visibility-explore-view') &&
     (widget.widgetType === WidgetType.SPANS || widget.widgetType === WidgetType.LOGS)
   ) {
-    const multiQueryUnsupported =
-      widget.queries.length > 1 &&
-      !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+    const multiQueryUnsupported = widget.queries.length > 1;
 
     menuOptions.push({
       key: 'open-in-explore',

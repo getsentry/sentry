@@ -11,6 +11,11 @@ from sentry.models.project import Project
 from sentry.models.repository import Repository
 
 
+def normalize_scm_provider_key(provider_key: str) -> str:
+    """Return the canonical integration provider slug."""
+    return provider_key.removeprefix("integrations:")
+
+
 class SCMIntegrationInteractionType(StrEnum):
     """
     SCM integration features
@@ -51,6 +56,8 @@ class SCMIntegrationInteractionType(StrEnum):
     # Releases
     COMPARE_COMMITS = "compare_commits"
     LINK_ISSUE_TO_PR = "link_issue_to_pr"
+    RESOLVE_ISSUE_VIA_COMMIT = "resolve_issue_via_commit"
+    RESOLVE_ISSUE_VIA_PR = "resolve_issue_via_pr"
 
     # Status Checks
     CREATE_STATUS_CHECK = "create_status_check"
@@ -65,6 +72,7 @@ class SCMIntegrationInteractionType(StrEnum):
 
 class SCMResolutionHaltReason(StrEnum):
     GROUP_LINK_ALREADY_EXISTS = "group_link_already_exists"
+    ISSUE_ALREADY_RESOLVED = "issue_already_resolved"
 
 
 @dataclass
@@ -82,7 +90,7 @@ class SCMIntegrationInteractionEvent(IntegrationEventLifecycleMetric):
         return IntegrationDomain.SOURCE_CODE_MANAGEMENT
 
     def get_integration_name(self) -> str:
-        return self.provider_key
+        return normalize_scm_provider_key(self.provider_key)
 
     def get_interaction_type(self) -> str:
         return str(self.interaction_type)
