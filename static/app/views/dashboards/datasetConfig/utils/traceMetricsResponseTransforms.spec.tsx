@@ -39,14 +39,13 @@ describe('traceMetricsResponseTransforms.transformTimeSeries', () => {
     const valueByVital = Object.fromEntries(
       result.map(r => [r.timeSeries.yAxis, r.timeSeries.values[0]!.value])
     );
-    // Every vital has data, so the default weights (in percent) apply and the
-    // five contributions add up to a total score of 100.
+
     expect(valueByVital[webVitalScoreField('lcp')]).toBeCloseTo(30);
     expect(valueByVital[webVitalScoreField('inp')]).toBeCloseTo(30);
     expect(valueByVital[webVitalScoreField('fcp')]).toBeCloseTo(15);
     expect(valueByVital[webVitalScoreField('cls')]).toBeCloseTo(15);
     expect(valueByVital[webVitalScoreField('ttfb')]).toBeCloseTo(10);
-    // The avg over a duration metric comes back typed as a duration
+
     expect(result.every(r => r.timeSeries.meta.valueType === 'score')).toBe(true);
   });
 });
