@@ -59,6 +59,7 @@ class DatabaseBackedIssueService(IssueService):
         # get the latest group link date for each group
         group_link_subquery = dict(
             GroupLink.objects.filter(
+                linked_type=GroupLink.LinkedType.issue,
                 linked_id__in=external_issue_ids,
                 project__organization__in=organization,
             )

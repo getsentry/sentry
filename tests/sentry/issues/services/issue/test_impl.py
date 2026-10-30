@@ -1,4 +1,5 @@
 from sentry.issues.services.issue.impl import DatabaseBackedIssueService
+from sentry.models.grouplink import GroupLink
 from sentry.models.groupshare import GroupShare
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
@@ -56,3 +57,31 @@ class GetSharedForOrgTest(TestCase):
             slug=self.organization.slug, share_id="00000000-0000-0000-0000-000000000000"
         )
         assert result is None
+
+
+@cell_silo_test
+class GetExternalIssueGroupsTest(TestCase):
+    def test_ignores_other_link_types(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, external_id="jira:1", provider="jira"
+        )
+        group = self.create_group(project=self.project)
+        external_issue = self.create_integration_external_issue(
+            group=group, integration=integration, key="APP-123"
+        )
+        # A commit link whose id happens to equal the external issue's id.
+        commit_linked_group = self.create_group(project=self.project)
+        self.create_group_link(
+            group=commit_linked_group,
+            linked_id=external_issue.id,
+            linked_type=GroupLink.LinkedType.commit,
+        )
+
+        result = DatabaseBackedIssueService().get_external_issue_groups(
+            cell_name="us", external_issue_key="APP-123", integration_id=integration.id
+        )
+
+        assert result is not None
+        assert [metadata.title_url for metadata in result] == [
+            group.get_absolute_url(params={"referrer": "sentry-issues-glance"})
+        ]
