@@ -485,7 +485,7 @@ function SaveErrorAlert({message, existingEnvVars, vercelProject}: SaveError) {
           <Text bold>
             {t('Delete these variables in Vercel to link %s', projectName)}
           </Text>
-          <Text>{t("Sentry can't overwrite variables it didn't create.")}</Text>
+          <Text>{t("Sentry can't overwrite the following variables:")}</Text>
         </Stack>
         <Grid columns="max-content 1fr max-content" gap="sm lg" align="center">
           {existingEnvVars.map(envVar => (
