@@ -292,7 +292,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             self.create_organization(owner=self.user),
             strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
         )
-        for config_id in (legacy.id, foreign.id, I64_MAX, "invalid"):
+        for config_id in (legacy.id, foreign.id, I64_MAX):
             self.get_error_response(self.organization.slug, config_id, status_code=404)
             self.get_error_response(
                 self.organization.slug,
@@ -301,6 +301,16 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 projectIds=[self.project.id],
                 status_code=404,
             )
+
+    def test_invalid_id_returns_400(self) -> None:
+        self.get_error_response(self.organization.slug, "invalid", status_code=400)
+        self.get_error_response(
+            self.organization.slug,
+            "invalid",
+            method="put",
+            projectIds=[self.project.id],
+            status_code=400,
+        )
 
     def test_put_replaces_projects(self) -> None:
         kept = self.create_project()
