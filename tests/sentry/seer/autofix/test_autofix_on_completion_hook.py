@@ -27,6 +27,7 @@ from sentry.seer.autofix.on_completion_hook import (
 )
 from sentry.seer.autofix.pr_iteration.completion import (
     BRANCH_MOVED_RETRY_PROMPT,
+    MAX_BRANCH_MOVED_RETRIES,
     continue_pr_iteration,
     iteration_completed_webhook_fields,
     iteration_log_context,
@@ -997,18 +998,57 @@ class TestPrIterationCompletionHook(TestCase):
             == PrIterationOutcome.PR_CREATION_ERRORED.value
         )
 
-    def _branch_moved(self) -> SeerRunState:
-        """The iteration's push was refused because the PR's branch moved."""
+    def _branch_moved(self, turns: int = 1) -> SeerRunState:
+        """The iteration's push was refused because the PR's branch moved, on its ``turns``-th
+        turn (each branch-moved retry adds one)."""
         state = self._unsynced()
         state.blocks[0].message.metadata = {
             **(state.blocks[0].message.metadata or {}),
             "iteration_id": "41",
             "feedback": "[]",
         }
+        state.blocks = [state.blocks[0].copy(deep=True) for _ in range(turns)]
         pr_state = state.repo_pr_states["test-repo"]
         pr_state.pr_creation_status = "error"
         pr_state.pr_creation_error_code = "branch_moved"
         return state
+
+    def _branch_moved_push(self, state: SeerRunState) -> tuple[PrIterationOutcome | None, bool]:
+        """The push outcome, and whether it asked Seer for another turn."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = run
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+        return outcome, mock_client_cls.return_value.continue_feature_run.called
+
+    def test_a_branch_moved_push_retries_up_to_the_retry_cap(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES)
+
+        assert self._branch_moved_push(state) == (None, True)
+
+    def test_a_branch_moved_push_past_the_retry_cap_ends_the_iteration_as_errored(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        assert self._branch_moved_push(state) == (PrIterationOutcome.PR_CREATION_ERRORED, False)
+
+    @patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay")
+    def test_a_branch_moved_push_past_the_retry_cap_emits_the_webhook(self, mock_broadcast):
+        with self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"):
+            self._webhook(self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1))
+
+        mock_broadcast.assert_called_once()
 
     def test_a_push_refused_because_the_branch_moved_retries_the_iteration_pinned(self):
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)

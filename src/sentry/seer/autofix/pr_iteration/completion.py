@@ -26,7 +26,7 @@ from sentry.seer.autofix.pr_iteration.feedback import (
     automated_iteration_allowed,
     latest_iteration_feedback_kind,
 )
-from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
+from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.iterations import (
     get_iterations,
     get_latest_iteration_index,
@@ -54,6 +54,10 @@ BRANCH_MOVED_RETRY_PROMPT = (
     "Your last push failed because the pull request's branch has new commits. Make sure your "
     "changes are integrated with the latest code on the branch."
 )
+
+# Retries one iteration gets when its push is refused because the branch moved. A busy branch
+# can outrun every retry, so this is what ends the loop.
+MAX_BRANCH_MOVED_RETRIES = 2
 
 
 def _iteration_repo_states(state: SeerRunState) -> list[dict[str, Any]]:
@@ -506,8 +510,25 @@ def _retries_on_moved_branch(group: Group, state: SeerRunState, errored_repos: l
     instead of ending it."""
     return (
         _push_failed_on_moved_branch(group, state, errored_repos)
-        and automated_iteration_allowed(state).ok
+        and _branch_moved_retry_decision(state).ok
     )
+
+
+def _branch_moved_retry_decision(state: SeerRunState) -> Decision:
+    """Whether the latest iteration may run another turn after the branch moved under its push.
+
+    Each retry is a turn with its own PR_ITERATION block under the same iteration index, so the
+    blocks sharing that index count the turns so far. ``MAX_BRANCH_MOVED_RETRIES`` bounds them.
+    """
+    iterations = get_iterations(state)
+    if not iterations:
+        return Decision(ok=False, reason="no_iteration")
+
+    latest_index = iterations[-1].index
+    retries = sum(1 for iteration in iterations if iteration.index == latest_index) - 1
+    if retries >= MAX_BRANCH_MOVED_RETRIES:
+        return Decision(ok=False, reason="retry_cap_reached")
+    return automated_iteration_allowed(state)
 
 
 @traces.trace
@@ -519,7 +540,7 @@ def _retry_push_on_moved_branch(
 ) -> PrIterationOutcome | None:
     """Run another turn of the same iteration. It starts on the PR's latest commit, so the push
     that follows it can land on top."""
-    decision = automated_iteration_allowed(state)
+    decision = _branch_moved_retry_decision(state)
     if not decision.ok:
         log_ctx.info(
             "autofix.pr_iteration.push",
