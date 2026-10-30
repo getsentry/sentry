@@ -253,10 +253,8 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
 };
 
 export enum FractionUnit {
-  /** Fraction of 1. A ratio of 1 is 100%. */
-  RATIO = 'ratio',
-  /** Fraction of 100. */
-  PERCENT = 'percent',
+  RATIO = 'ratio', // 1 means 100%
+  PERCENT = 'percent', // 100 means 100%
 }
 
 // Fractions normalized to a ratio of 1

@@ -14,7 +14,6 @@ export const FALLBACK_UNIT_FOR_FIELD_TYPE = {
   integer: null,
   date: null,
   duration: DurationUnit.MILLISECOND,
-  // Percentages are formatted as ratios of 1 unless the unit says otherwise
   percentage: FractionUnit.RATIO,
   string: null,
   size: SizeUnit.BYTE,
