@@ -911,6 +911,20 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
 
+    @patch("sentry.seer_workflow_outputs.tasks.finish_investigation_executions.delay")
+    def test_workflow_update_schedules_workflow_output_completion_on_commit(
+        self, mock_delay: Mock
+    ) -> None:
+        with self.outer_transaction():
+            self.deliver(
+                self.event(
+                    1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+                )
+            )
+            mock_delay.assert_not_called()
+
+        mock_delay.assert_called_once_with(investigation_id=self.investigation.id)
+
     @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
     def test_rolled_back_workflow_update_does_not_schedule_investigation_updates(
         self, mock_delay: Mock

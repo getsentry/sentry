@@ -61,6 +61,10 @@ class SeerWorkflowErrorResponse(TypedDict):
     message: str
 
 
+class SeerWorkflowRunErrorItemResponse(SeerWorkflowErrorResponse):
+    executionId: str | None
+
+
 class SeerWorkflowExecutionResponseBase(TypedDict):
     id: str
     seerRunId: str | None
@@ -113,7 +117,7 @@ class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
 
 class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
     status: Literal[SeerWorkflowRunStatus.FAILED, SeerWorkflowRunStatus.REJECTED]
-    error: SeerWorkflowErrorResponse
+    errors: list[SeerWorkflowRunErrorItemResponse]
 
 
 SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorResponse
@@ -168,7 +172,8 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         ``status`` distinguishes failed/rejected records, which include an ``error``
         code and display-safe message, from other records, which omit ``error``.
-        Missing error details use code ``unknown``. Historical rows without lifecycle
+        Failed/rejected runs list ``errors`` instead: the run's own error, with a null
+        ``executionId``, then each failed execution's error with its ``executionId``. Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
         Limited-access members must be able to access every project in the saved run
         snapshot; runs without a saved scope are hidden from them.
@@ -252,9 +257,24 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
         return {
             **result,
             "status": status,
-            "error": serialize_workflow_error(run.extras.get("error")),
+            "errors": serialize_run_errors(run),
         }
     return {**result, "status": status}
+
+
+def serialize_run_errors(run: SeerWorkflowRun) -> list[SeerWorkflowRunErrorItemResponse]:
+    errors: list[tuple[object, str | None]] = (
+        [(run.extras["error"], None)] if run.extras.get("error") is not None else []
+    )
+    errors.extend(
+        (execution.extras.get("error"), str(execution.id))
+        for execution in run.executions.all()
+        if execution.status == SeerWorkflowExecutionStatus.FAILED
+    )
+    return [
+        {**serialize_workflow_error(error), "executionId": execution_id}
+        for error, execution_id in errors or [(None, None)]
+    ]
 
 
 def serialize_workflow_execution(
