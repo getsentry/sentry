@@ -1,6 +1,6 @@
 import isEqual from 'lodash/isEqual';
 
-import {DurationUnit, type DataUnit} from 'sentry/utils/discover/fields';
+import {DurationUnit, FractionUnit, type DataUnit} from 'sentry/utils/discover/fields';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {traceMetricField} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/traceMetricField';
 import {
@@ -47,7 +47,7 @@ function webVitalScoreMetricField(
     aggregation,
     `browser.web_vital.${vital}.score`,
     'distribution',
-    'ratio'
+    FractionUnit.RATIO
   );
 }
 
