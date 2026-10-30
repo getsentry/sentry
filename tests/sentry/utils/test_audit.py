@@ -9,6 +9,7 @@ from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.deletedteam import DeletedTeam
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -66,9 +67,12 @@ class CreateAuditEntryTest(TestCase):
                 service_account_id=1, organization_id=self.org.id, name="deploy-bot"
             )
         )
+        req.auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=self.org.id
+        )
         entry = create_audit_entry(req, organization_id=self.org.id, data={"thing": "to True"})
         assert entry.actor is None
-        assert entry.actor_label == "deploy-bot"
+        assert entry.actor_label == "service_account:1 (deploy-bot)"
 
     def test_audit_entry_agent_token_attributes_to_delegating_user(self) -> None:
         req = fake_http_request(AnonymousUser())
