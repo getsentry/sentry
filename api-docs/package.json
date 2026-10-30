@@ -18,7 +18,7 @@
   "dependencies": {
     "json-diff": "^0.7.1",
     "json-refs": "^3.0.15",
-    "openapi-examples-validator": "^6.0.2",
+    "openapi-examples-validator": "^7.1.0",
     "sane": "^5.0.1",
     "yaml": "2.9.0"
   },
