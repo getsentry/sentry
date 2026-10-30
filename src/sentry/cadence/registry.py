@@ -10,7 +10,7 @@ from sentry.utils.registry import Registry
 
 @dataclass(frozen=True)
 class TriggerContext:
-    """What a trigger action is told about the run it should schedule."""
+    """What a trigger action is told about a run it should hand off."""
 
     organization_id: int
     trigger_type: ScheduledTriggerType
@@ -35,5 +35,5 @@ trigger_action_registry: Registry[TriggerAction] = Registry(enable_reverse_looku
 def register_trigger_action(
     trigger_type: ScheduledTriggerType,
 ) -> Callable[[TriggerAction], TriggerAction]:
-    """Register the action that schedules the task for `trigger_type`."""
+    """Register the action that hands off due runs of `trigger_type`. See `TriggerAction`."""
     return trigger_action_registry.register(trigger_type)
