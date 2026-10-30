@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """Calculate the number of backend test shards needed for CI.
 
-Selected runs use the test item estimate supplied by the selection job.
-Standalone runs can count test files using static analysis without importing
-modules or bootstrapping Django.
+Selected runs size shards by the per-file durations in
+`backend-test-durations.json`, or by the test item estimate supplied by the
+selection job when the selected files aren't available. Standalone runs can
+count test files using static analysis without importing modules or
+bootstrapping Django.
 """
 
 from __future__ import annotations
@@ -14,8 +16,16 @@ import os
 import sys
 from pathlib import Path
 
-from count_test_items import count_tests_in_file
+from count_test_items import count_tests_in_file, estimate_file_seconds
 
+DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
+# Selective runs aim for a slowest shard job of about 3 minutes on the PR
+# runners (ubuntu-26.04-arm, XDIST_WORKERS=4 in backend.yml). Setup, pytest
+# startup and collection take about 2.5 of those minutes, which leaves each
+# xdist worker about this many seconds of tests, as timed in the durations
+# file (Arm runs them about 25% faster than that).
+WORKER_SECONDS_PER_SHARD = 45
+XDIST_WORKERS = 4
 TESTS_PER_SHARD = 300
 MIN_SHARDS = 1
 MAX_SHARDS = 30
@@ -74,6 +84,41 @@ def collect_test_count() -> int | None:
     return total
 
 
+def selected_test_seconds() -> list[float] | None:
+    """Estimated seconds for each selected test file, or None without the inputs."""
+    selected_tests_file = os.environ.get("SELECTED_TESTS_FILE")
+    if not selected_tests_file or not DURATIONS_FILE.is_file():
+        return None
+    path = Path(selected_tests_file)
+    if not path.is_file():
+        return None
+    files = [line.strip() for line in path.read_text().splitlines() if line.strip()]
+    return list(estimate_file_seconds(files, DURATIONS_FILE).values())
+
+
+def calculate_shards_by_duration(seconds: list[float]) -> int:
+    """Enough shards that no xdist worker gets more than WORKER_SECONDS_PER_SHARD.
+
+    pytest-selected.py splits a slow file across shards, but runs each piece
+    on one worker, so the slowest file needs enough shards on its own.
+    """
+    if not seconds:
+        print("No tests to run, skipping (0 shards)", file=sys.stderr)
+        return 0
+    total = sum(seconds)
+    needed = max(
+        math.ceil(total / (XDIST_WORKERS * WORKER_SECONDS_PER_SHARD)),
+        math.ceil(max(seconds) / WORKER_SECONDS_PER_SHARD),
+    )
+    bounded = max(MIN_SHARDS, min(needed, MAX_SHARDS))
+    print(
+        f"Calculated {bounded} shards ({total:.0f}s of tests, slowest file "
+        f"{max(seconds):.0f}s, {WORKER_SECONDS_PER_SHARD}s per worker)",
+        file=sys.stderr,
+    )
+    return bounded
+
+
 def calculate_shards(test_count: int | None) -> int:
     if test_count is None:
         print(f"Using default shard count: {DEFAULT_SHARDS}", file=sys.stderr)
@@ -102,10 +147,14 @@ def calculate_shards(test_count: int | None) -> int:
 
 
 def main() -> int:
-    test_count = collect_test_count()
-    if test_count is None and "SELECTED_TEST_ITEM_COUNT" in os.environ:
-        return 1
-    shard_count = calculate_shards(test_count)
+    seconds = selected_test_seconds()
+    if seconds is not None:
+        shard_count = calculate_shards_by_duration(seconds)
+    else:
+        test_count = collect_test_count()
+        if test_count is None and "SELECTED_TEST_ITEM_COUNT" in os.environ:
+            return 1
+        shard_count = calculate_shards(test_count)
     shard_indices = json.dumps(list(range(shard_count)))
 
     github_output = os.getenv("GITHUB_OUTPUT")

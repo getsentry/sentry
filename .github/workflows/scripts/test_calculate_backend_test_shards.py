@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib
+import json
 
 import pytest
 
@@ -128,3 +129,40 @@ class TestCollectTestCount:
         monkeypatch.chdir(tmp_path)
         monkeypatch.delenv("SELECTED_TESTS_FILE", raising=False)
         assert collect_test_count() is None
+
+
+class TestCalculateShardsByDuration:
+    def test_no_tests_returns_zero(self):
+        assert _mod.calculate_shards_by_duration([]) == 0
+
+    def test_packs_workers_up_to_the_budget(self):
+        # 4 workers x 45s per shard = 180s of tests per shard.
+        assert _mod.calculate_shards_by_duration([60.0] * 6) == 2
+        assert _mod.calculate_shards_by_duration([1.0] * 10) == 1
+
+    def test_slow_file_gets_a_shard_per_worker_budget(self):
+        # Each piece of a split file runs on one worker.
+        assert _mod.calculate_shards_by_duration([450.0, 1.0]) == 10
+
+    def test_capped_at_max_shards(self):
+        assert _mod.calculate_shards_by_duration([100_000.0]) == 30
+
+    def test_main_uses_durations_for_selected_files(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "tests").mkdir()
+        (tmp_path / "tests" / "test_new.py").write_text("def test_a(): pass\ndef test_b(): pass\n")
+        durations = tmp_path / "durations.json"
+        durations.write_text(
+            json.dumps({"seconds_per_test": 100.0, "files": {"tests/test_slow.py": 200.0}})
+        )
+        selected = tmp_path / "selected.txt"
+        selected.write_text("tests/test_slow.py\ntests/test_new.py\ntests/helpers.py\n")
+        output = tmp_path / "github_output"
+        monkeypatch.setattr(_mod, "DURATIONS_FILE", durations)
+        monkeypatch.setenv("SELECTED_TESTS_FILE", str(selected))
+        monkeypatch.setenv("SELECTED_TEST_ITEM_COUNT", "1")
+        monkeypatch.setenv("GITHUB_OUTPUT", str(output))
+
+        assert _mod.main() == 0
+        # 200s + 2 new tests x 100s = 400s, the slowest file needs ceil(200 / 45) = 5.
+        assert "shard-count=5\n" in output.read_text()
