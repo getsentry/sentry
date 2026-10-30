@@ -304,6 +304,28 @@ describe('useNetworkFilters', () => {
     });
     expect(result.current.items).toHaveLength(1);
   });
+
+  it('should not throw when a frame has an undefined description', () => {
+    const [undescribedFrame] = hydrateSpans(ReplayRecordFixture(), [
+      ReplayRequestFrameFixture({
+        op: 'resource.fetch',
+        description: undefined as any,
+        startTimestamp: new Date(1663131080.641),
+        endTimestamp: new Date(1663131080.65),
+        data: {method: 'GET', statusCode: 200},
+      }),
+    ]);
+    const {result} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames: [undescribedFrame!]},
+      initialRouterConfig: {
+        location: {
+          pathname: '/',
+          query: {f_n_search: 'anything'},
+        },
+      },
+    });
+    expect(result.current.items).toHaveLength(0);
+  });
 });
 
 describe('getMethodTypes', () => {
