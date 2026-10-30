@@ -657,6 +657,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
         assert updated.backing_workflow_id == workflow.id
         assert workflow.name == "Seer automation"
+        assert workflow.config == {"frequency": 0}
         assert updated.filters == {"all_projects": False, "environments": ["production"]}
         assert updated.version == 2
         assert self.project_ids() == {monitor.project_id for monitor in self.monitors}

@@ -367,7 +367,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             organization_id=self.organization_id,
             name="Seer automation",
             enabled=True,
-            config={},
+            config={"frequency": 0},
             when_condition_group=triggers,
         )
         action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
