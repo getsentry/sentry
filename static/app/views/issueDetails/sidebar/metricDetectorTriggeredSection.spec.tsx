@@ -111,7 +111,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: 'Errors rose across releases',
@@ -152,7 +152,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -200,7 +200,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -255,7 +255,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -313,7 +313,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -365,7 +365,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: 'Errors rose across releases',
@@ -398,7 +398,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -471,7 +471,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -514,7 +514,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       body: {
         id: '4567',
         summary: null,
@@ -568,7 +568,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'investigate'}]},
     });
     const launchMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/',
+      url: '/organizations/org-slug/notebooks/',
       method: 'POST',
       body: {id: '4567'},
     });
@@ -692,7 +692,7 @@ describe('MetricDetectorTriggeredSection', () => {
       body: {items: [{status: 'view', investigationId: '4567'}]},
     });
     const detailMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/investigations/4567/',
+      url: '/organizations/org-slug/notebooks/4567/',
       statusCode: 404,
     });
 
