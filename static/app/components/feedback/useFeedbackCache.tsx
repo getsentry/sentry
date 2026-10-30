@@ -27,10 +27,8 @@ export function useFeedbackCache() {
 
   const updateCachedQueryKey = useCallback(
     (queryKey: readonly unknown[], payload: Partial<FeedbackIssue>) => {
-      queryClient.setQueryData(
-        queryKey,
-        (prev: ApiResponse<FeedbackIssue> | undefined) =>
-          prev ? {...prev, json: {...prev.json, ...payload}} : prev
+      queryClient.setQueryData(queryKey, (prev: ApiResponse<FeedbackIssue> | undefined) =>
+        prev ? {...prev, json: {...prev.json, ...payload}} : prev
       );
     },
     [queryClient]
