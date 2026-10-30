@@ -46,7 +46,28 @@ function getBudgetExceededInvoicedLimitError(plan: Plan) {
   );
 }
 
-type UpdateError = undefined | Error | string | Record<string, string[]>;
+type UpdateError = undefined | Error | string | Record<string, string | string[]>;
+
+function getUpdateErrorFromResponse(
+  responseJSON: RequestError['responseJSON'],
+  fallback: string
+): UpdateError {
+  if (!responseJSON || typeof responseJSON !== 'object') {
+    return fallback;
+  }
+
+  // APIException-style responses (e.g. 402 for a missing payment method) return
+  // a single string `detail` rather than a map of field errors.
+  const {detail} = responseJSON;
+  if (typeof detail === 'string') {
+    return detail;
+  }
+  if (detail && typeof detail === 'object') {
+    return typeof detail.message === 'string' ? detail.message : fallback;
+  }
+
+  return responseJSON as Record<string, string | string[]>;
+}
 
 type Props = {
   organization: Organization;
@@ -60,10 +81,11 @@ function BudgetUpdateError({error, plan}: {error: UpdateError; plan: Plan}) {
 
   if (!(error instanceof Error) && typeof error === 'object') {
     const listOfErrors = Object.entries(error).map(
-      ([field, errors]: [string, string[]]) => {
+      ([field, errors]: [string, string | string[]]) => {
         return (
           <li key={field}>
-            <strong>{field}</strong> {errors.join(' ')}
+            <strong>{field}</strong>{' '}
+            {Array.isArray(errors) ? errors.join(' ') : String(errors)}
           </li>
         );
       }
@@ -134,8 +156,8 @@ export function SpendLimitsEditModal({
     onError: error => {
       const saveError = getBudgetSaveError(subscription.planDetails);
       setUpdateError(
-        error instanceof RequestError && error.responseJSON
-          ? (error.responseJSON as Record<string, string[]>)
+        error instanceof RequestError
+          ? getUpdateErrorFromResponse(error.responseJSON, saveError)
           : saveError
       );
       addErrorMessage(saveError);
