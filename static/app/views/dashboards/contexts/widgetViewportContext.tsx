@@ -18,15 +18,23 @@ function supportsIntersectionObserver(): boolean {
   return 'IntersectionObserver' in window;
 }
 
+interface UseWidgetViewportVisibilityOptions {
+  ref: RefObject<Element | null>;
+  disabled?: boolean;
+}
+
 /**
  * Tracks whether a dashboard widget is near the viewport. Unlike `LazyRender`,
  * this keeps observing after the first intersection so widget queries can be
  * paused while the widget is offscreen.
  */
-export function useWidgetViewportVisibility(
-  ref: RefObject<Element | null>,
-  {disabled = false}: {disabled?: boolean} = {}
-): {hasBeenInViewport: boolean; isInViewport: boolean} {
+export function useWidgetViewportVisibility({
+  ref,
+  disabled = false,
+}: UseWidgetViewportVisibilityOptions): {
+  hasBeenInViewport: boolean;
+  isInViewport: boolean;
+} {
   const alwaysVisible = disabled || !supportsIntersectionObserver();
   const [isInViewport, setIsInViewport] = useState(false);
   const [hasBeenInViewport, setHasBeenInViewport] = useState(false);

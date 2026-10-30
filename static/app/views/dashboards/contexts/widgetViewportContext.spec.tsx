@@ -36,7 +36,7 @@ describe('useWidgetViewportVisibility', () => {
   const ref = {current: document.createElement('div')};
 
   it('keeps tracking visibility after the first intersection', () => {
-    const {result} = renderHookWithProviders(() => useWidgetViewportVisibility(ref));
+    const {result} = renderHookWithProviders(() => useWidgetViewportVisibility({ref}));
 
     expect(observerOptions?.rootMargin).toBe('200px 0px');
     expect(result.current).toEqual({hasBeenInViewport: false, isInViewport: false});
@@ -50,7 +50,7 @@ describe('useWidgetViewportVisibility', () => {
 
   it('is always visible when disabled', () => {
     const {result} = renderHookWithProviders(() =>
-      useWidgetViewportVisibility(ref, {disabled: true})
+      useWidgetViewportVisibility({ref, disabled: true})
     );
 
     expect(result.current).toEqual({hasBeenInViewport: true, isInViewport: true});

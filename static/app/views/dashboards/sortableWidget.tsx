@@ -92,7 +92,8 @@ export function SortableWidget(props: Props) {
     ) && !isPrebuiltDashboard;
 
   const {hasSlideout, onWidgetClick} = useWidgetSlideout(widget, dashboardFilters);
-  const {hasBeenInViewport, isInViewport} = useWidgetViewportVisibility(widgetRef, {
+  const {hasBeenInViewport, isInViewport} = useWidgetViewportVisibility({
+    ref: widgetRef,
     disabled: props.isGeneratedDashboard,
   });
 
