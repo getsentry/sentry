@@ -23,6 +23,7 @@ import json
 import math
 import os
 import shlex
+import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -176,6 +177,17 @@ def per_file_plan_applies(args: list[str], files: list[str]) -> bool:
     return not any(os.path.isabs(f) or f.startswith(os.pardir + os.sep) for f in files)
 
 
+def start_assert_rewrite_prewarm(shard_file: Path) -> None:
+    """Rewrite the shard's test files once in the background instead of in every
+    xdist worker. See prewarm_assert_rewrite.py."""
+    # Without xdist the one pytest process would just race it for the same work.
+    if "-n" in shlex.split(os.environ.get("PYTEST_ADDOPTS", "")):
+        subprocess.Popen(
+            [sys.executable, str(Path(__file__).parent / "prewarm_assert_rewrite.py"), shard_file],
+            stdin=subprocess.DEVNULL,
+        )
+
+
 def run_full_shard(args: list[str], total: int, group: int) -> int:
     files = list_test_files(args)
     if not per_file_plan_applies(args, files):
@@ -216,6 +228,7 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     os.environ["PYTEST_PLUGINS"] = ",".join(
         filter(None, [os.environ.get("PYTEST_PLUGINS"), "pytest_shard_plugin"])
     )
+    start_assert_rewrite_prewarm(shard_file)
     return int(pytest.main(args))
 
 
@@ -251,6 +264,7 @@ def main(args: list[str]) -> int:
     os.environ["TOTAL_TEST_GROUPS"] = str(shard.item_groups)
     os.environ["TEST_GROUP"] = str(shard.item_group)
 
+    start_assert_rewrite_prewarm(shard_file)
     exit_code = pytest.main(args)
     # Counts are estimates, so a shard can end up with no tests.
     if exit_code == pytest.ExitCode.NO_TESTS_COLLECTED:

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib
+import subprocess
+import sys
 import time
 
 _mod = importlib.import_module("monitor-resources")
@@ -93,9 +95,24 @@ def test_classify_process() -> None:
 
 def test_tracker_attributes_cpu_on_this_host() -> None:
     tracker = _mod.ProcessCpuTracker()
-    assert tracker.sample() == {}
+    assert tracker.sample() == ({}, {})
     deadline = time.monotonic() + 0.3
     while time.monotonic() < deadline:
         pass
-    groups = tracker.sample()
+    groups, _ = tracker.sample()
     assert groups.get("pytest:main", 0) > 0
+
+
+def test_tracker_attributes_reaped_children() -> None:
+    tracker = _mod.ProcessCpuTracker()
+    tracker.sample()
+    subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "import time\nt = time.monotonic()\nwhile time.monotonic() - t < 0.3: pass",
+        ],
+        check=True,
+    )
+    _, children = tracker.sample()
+    assert children.get("pytest:main", 0) > 0

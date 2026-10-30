@@ -94,17 +94,30 @@ def read_text(path: str) -> str:
         return ""
 
 
-def read_proc_stat(pid: str) -> tuple[str, int, int] | None:
-    """Returns (comm, cpu ticks, start time) for a pid."""
+def read_proc_stat(pid: str) -> tuple[str, int, int, int] | None:
+    """Returns (comm, cpu ticks, reaped children's cpu ticks, start time) for a pid."""
     data = read_text(f"/proc/{pid}/stat")
     if ")" not in data:
         return None
     comm = data[data.index("(") + 1 : data.rindex(")")]
     fields = data[data.rindex(")") + 2 :].split()
     try:
-        return comm, int(fields[11]) + int(fields[12]), int(fields[19])
+        return (
+            comm,
+            int(fields[11]) + int(fields[12]),
+            int(fields[13]) + int(fields[14]),
+            int(fields[19]),
+        )
     except (IndexError, ValueError):
         return None
+
+
+def read_cgroup_cpu_s(cgroup: str) -> float | None:
+    for line in read_text(f"/sys/fs/cgroup{cgroup}/cpu.stat").splitlines():
+        key, _, value = line.partition(" ")
+        if key == "usage_usec":
+            return int(value) / 1e6
+    return None
 
 
 def docker_container_names() -> dict[str, str]:
@@ -133,11 +146,18 @@ def classify_process(cmdline: str, comm: str) -> str:
 
 
 class ProcessCpuTracker:
-    """Attributes CPU ticks between samples to process groups."""
+    """Attributes CPU between samples to process groups.
+
+    Live processes are attributed by their own counters. CPU of processes that
+    exited between samples is recovered from their cgroup's cpu.stat and
+    reported as `exited:<cgroup>`.
+    """
 
     def __init__(self) -> None:
-        self.prev: dict[tuple[str, int], int] = {}
+        self.prev: dict[tuple[str, int], tuple[int, int]] = {}
         self.labels: dict[tuple[str, int], str] = {}
+        self.cgroups: dict[tuple[str, int], str] = {}
+        self.cgroup_cpu_s: dict[str, float] = {}
         self.containers: dict[str, str] = {}
         self.containers_refreshed = float("-inf")
         self.primed = False
@@ -150,38 +170,78 @@ class ProcessCpuTracker:
             name = self.containers.get(container_id)
         return name
 
-    def label(self, pid: str, comm: str) -> tuple[str, bool]:
+    def cgroup_label(self, cgroup: str) -> tuple[str, bool]:
         """Returns (label, final). Unresolved container ids are retried later."""
-        if m := DOCKER_ID_RE.search(read_text(f"/proc/{pid}/cgroup")):
+        if m := DOCKER_ID_RE.search(cgroup):
             name = self.container_name(m.group(1))
             return f"docker:{name or m.group(1)[:12]}", name is not None
-        cmdline = read_text(f"/proc/{pid}/cmdline").replace("\0", " ").strip()
-        return classify_process(cmdline, comm), True
+        return cgroup, True
 
-    def sample(self) -> dict[str, int]:
-        """Returns cpu ticks per group since the previous call."""
-        current: dict[tuple[str, int], int] = {}
-        by_group: dict[str, int] = {}
+    def label(self, key: tuple[str, int], comm: str) -> str:
+        if (label := self.labels.get(key)) is not None:
+            return label
+        label, final = self.cgroup_label(self.cgroups[key])
+        if not label.startswith("docker:"):
+            cmdline = read_text(f"/proc/{key[0]}/cmdline").replace("\0", " ").strip()
+            label = classify_process(cmdline, comm)
+        if final:
+            self.labels[key] = label
+        return label
+
+    def sample(self) -> tuple[dict[str, float], dict[str, float]]:
+        """Returns CPU-seconds since the previous call, by group and by the
+        group of the parent that reaped the children."""
+        current: dict[tuple[str, int], tuple[int, int]] = {}
+        by_group: dict[str, float] = {}
+        children: dict[str, float] = {}
+        live_by_cgroup: dict[str, float] = {}
         for pid in os.listdir("/proc"):
             if not pid.isdigit() or (stat := read_proc_stat(pid)) is None:
                 continue
-            comm, ticks, start = stat
+            comm, ticks, child_ticks, start = stat
             key = (pid, start)
-            current[key] = ticks
+            current[key] = (ticks, child_ticks)
+            if key not in self.cgroups:
+                self.cgroups[key] = read_text(f"/proc/{pid}/cgroup").partition("::")[2].strip()
             if not self.primed:
                 continue
-            delta = ticks - self.prev.get(key, 0)
-            if delta <= 0:
+            prev_ticks, prev_child_ticks = self.prev.get(key, (0, child_ticks))
+            delta = (ticks - prev_ticks) / CLK_TCK
+            child_delta = (child_ticks - prev_child_ticks) / CLK_TCK
+            if delta <= 0 and child_delta <= 0:
                 continue
-            if (label := self.labels.get(key)) is None:
-                label, final = self.label(pid, comm)
-                if final:
-                    self.labels[key] = label
-            by_group[label] = by_group.get(label, 0) + delta
+            label = self.label(key, comm)
+            if delta > 0:
+                by_group[label] = by_group.get(label, 0.0) + delta
+                cgroup = self.cgroups[key]
+                live_by_cgroup[cgroup] = live_by_cgroup.get(cgroup, 0.0) + delta
+            if child_delta > 0:
+                children[label] = children.get(label, 0.0) + child_delta
+
+        cgroups = {cg for k, cg in self.cgroups.items() if k in current} | set(self.cgroup_cpu_s)
+        # A parent's cpu.stat includes its children; only leaves are exact.
+        leaves = {
+            cg
+            for cg in cgroups
+            if cg not in ("", "/") and not any(o.startswith(cg + "/") for o in cgroups)
+        }
+        cgroup_cpu_s: dict[str, float] = {}
+        for cg in leaves:
+            if (usage := read_cgroup_cpu_s(cg)) is None:
+                continue
+            cgroup_cpu_s[cg] = usage
+            if (prev_usage := self.cgroup_cpu_s.get(cg)) is not None:
+                exited = usage - prev_usage - live_by_cgroup.get(cg, 0.0)
+                if exited > 0.01:
+                    group = f"exited:{self.cgroup_label(cg)[0]}"
+                    by_group[group] = by_group.get(group, 0.0) + exited
+
         self.labels = {k: v for k, v in self.labels.items() if k in current}
+        self.cgroups = {k: v for k, v in self.cgroups.items() if k in current}
         self.prev = current
+        self.cgroup_cpu_s = cgroup_cpu_s
         self.primed = True
-        return by_group
+        return by_group, children
 
 
 def read_mem() -> dict[str, float] | None:
@@ -252,14 +312,15 @@ def sample(
     if prev_cpu is not None and curr_cpu is not None:
         entry["cpu_modes_pct"] = cpu_mode_percents(prev_cpu, curr_cpu)
         if tracker is not None:
-            groups = tracker.sample()
-            unattributed = busy_ticks(prev_cpu, curr_cpu) - sum(groups.values())
+            groups, children = tracker.sample()
+            unattributed = busy_ticks(prev_cpu, curr_cpu) / CLK_TCK - sum(groups.values())
             if unattributed > 0:
                 groups["unattributed"] = unattributed
             # CPU-seconds per group since the previous sample.
-            entry["cpu_s_by_group"] = {
-                k: round(v / CLK_TCK, 2) for k, v in sorted(groups.items(), key=lambda kv: -kv[1])
-            }
+            entry["cpu_s_by_group"] = rounded_by_value(groups)
+            # CPU-seconds of exited children, by the group of the parent that reaped them.
+            # Overlaps cpu_s_by_group for children that were alive at an earlier sample.
+            entry["children_cpu_s_by_parent"] = rounded_by_value(children)
     return entry, curr_cpu
 
 
@@ -269,6 +330,10 @@ def percentile(values: list[float], pct: float) -> float:
     ordered = sorted(values)
     idx = min(len(ordered) - 1, int(pct / 100.0 * len(ordered)))
     return ordered[idx]
+
+
+def rounded_by_value(d: dict[str, float]) -> dict[str, float]:
+    return {k: round(v, 2) for k, v in sorted(d.items(), key=lambda kv: -kv[1]) if v >= 0.005}
 
 
 def cpu_s_by_group(samples: list[dict]) -> dict[str, float]:
