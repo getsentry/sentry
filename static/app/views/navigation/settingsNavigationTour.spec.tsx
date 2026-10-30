@@ -154,6 +154,15 @@ describe('Settings navigation tour', () => {
     expect(screen.queryByText('Tour projects')).not.toBeInTheDocument();
   });
 
+  it('returns focus to the highlighted element when a focused guide closes', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    act(() => screen.getByRole('button', {name: 'Next'}).focus());
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'entry'})).toHaveFocus();
+  });
+
   it('does not take focus when the guide opens on its own', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();

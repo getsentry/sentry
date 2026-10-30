@@ -278,6 +278,11 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   setStep: (stepId: T) => void;
   startTour: () => void;
   /**
+   * Set by `TourContextProvider` for subtle tours. True while a guide hands its
+   * focus over to the guide of the next step.
+   */
+  focusHandoffRef?: React.RefObject<boolean>;
+  /**
    * How the tour presents itself. Set by `TourContextProvider`.
    */
   variant?: TourVariant;

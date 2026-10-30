@@ -6,6 +6,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -296,6 +297,34 @@ describe('desktop navigation', () => {
       expect(
         screen.queryByRole('menuitemradio', {name: 'Settings'})
       ).not.toBeInTheDocument();
+    });
+
+    it('keeps keyboard focus in the tour while it opens the organization menu', async () => {
+      MockApiClient.addMockResponse({
+        url: '/assistant/',
+        body: [{guide: 'tour.settings_navigation', seen: false}],
+      });
+      MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({organization: settingsV3})
+      );
+      expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
+      act(() => screen.getByRole('button', {name: 'Next'}).focus());
+      await userEvent.keyboard('{Enter}');
+      const guide = await screen.findByText(
+        'Quick settings-access for your important Projects'
+      );
+      await waitFor(() => expect(guide.closest('[tabindex="-1"]')).toHaveFocus());
+      await userEvent.keyboard('{Escape}');
+      expect(
+        screen.queryByText('Quick settings-access for your important Projects')
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Toggle organization menu'})
+      ).toHaveFocus();
     });
 
     it('explains project creation in the tour when no projects are available', async () => {
