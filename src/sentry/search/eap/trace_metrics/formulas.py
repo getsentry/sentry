@@ -216,6 +216,6 @@ for combinator, apply_combinator in TRACE_METRICS_FORMULA_COMBINATORS.items():
 
 TRACE_METRICS_FORMULA_DEFINITIONS.update(combinator_formula_definitions)
 
-# The web vital score formulas take a single vital argument rather than a metric, so they are
-# added after the `if` combinators which only apply to metric formulas.
+# The web vital score formulas take the spans `measurements.score.total` argument rather than a
+# metric, so they are added after the `if` combinators which only apply to metric formulas.
 TRACE_METRICS_FORMULA_DEFINITIONS.update(WEB_VITALS_FORMULA_DEFINITIONS)

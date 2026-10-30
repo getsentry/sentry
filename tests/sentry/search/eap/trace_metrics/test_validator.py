@@ -7,7 +7,7 @@ from sentry.search.eap.trace_metrics.validator import (
     extract_trace_metrics_from_aggregate,
     validate_trace_metrics_aggregate,
 )
-from sentry.search.eap.trace_metrics.web_vitals import WEB_VITAL_TRACE_METRICS
+from sentry.search.eap.trace_metrics.web_vitals import WEB_VITAL_SCORE_METRICS
 
 
 def test_extract_trace_metrics_from_metric_aggregate() -> None:
@@ -20,22 +20,18 @@ def test_extract_trace_metrics_from_metric_aggregate() -> None:
 
 
 def test_extract_trace_metrics_from_web_vital_formula() -> None:
-    assert extract_trace_metric_from_aggregate("performance_score(measurements.score.lcp)") is None
-    assert extract_trace_metrics_from_aggregate(
-        "performance_score(measurements.score.lcp)"
-    ) == frozenset([WEB_VITAL_TRACE_METRICS["lcp"]])
-    assert extract_trace_metrics_from_aggregate(
-        "opportunity_score(measurements.score.total)"
-    ) == frozenset(WEB_VITAL_TRACE_METRICS.values())
+    aggregate = "performance_score(measurements.score.total)"
+    assert extract_trace_metric_from_aggregate(aggregate) is None
+    assert extract_trace_metrics_from_aggregate(aggregate) == frozenset(
+        WEB_VITAL_SCORE_METRICS.values()
+    )
 
 
 @pytest.mark.parametrize(
     "aggregate",
     [
-        "performance_score(measurements.score.lcp)",
         "performance_score(measurements.score.total)",
-        "opportunity_score(measurements.score.cls)",
-        "count_scores(measurements.score.inp)",
+        "opportunity_score(measurements.score.total)",
         "p75(value,browser.web_vital.lcp,distribution,millisecond)",
     ],
 )
@@ -46,7 +42,9 @@ def test_validate_trace_metrics_aggregate_accepts(aggregate: str) -> None:
 @pytest.mark.parametrize(
     "aggregate",
     [
-        "performance_score(measurements.score.fid)",
+        # Single vitals are plain aggregates over the score metric, not formulas
+        "performance_score(measurements.score.lcp)",
+        "count_scores(measurements.score.lcp)",
         "performance_score(value)",
         "sum(value)",
     ],
