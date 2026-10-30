@@ -13,8 +13,8 @@ def test_legacy_backend_loads_snuba_tsdb() -> None:
         "snuba": {"rollups": ((10, 360),)},
     }
     with pytest.warns(DeprecatedSettingWarning):
-        path, options = resolve_backend("sentry.tsdb.redissnuba.RedisSnubaTSDB", options)
+        path, resolved = resolve_backend("sentry.tsdb.redissnuba.RedisSnubaTSDB", options)
 
-    tsdb = import_string(path)(**options)
+    tsdb = import_string(path)(**resolved)
     assert isinstance(tsdb, SnubaTSDB)
     assert tsdb.rollups == {10: 360}
