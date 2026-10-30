@@ -219,8 +219,7 @@ def _create_agentic_investigation(
             source=deepcopy(orchestration_source),
             projection=projection,
         )
-        # Seer can still attempt human-only agent-token minting for account runs.
-        # Keep creation disabled until Seer supports the service-account credential path.
+        # Remove once dispatch can use the saved service-account identity.
         if creator.type == ActorType.SERVICE_ACCOUNT:
             raise PermissionDenied
         _schedule_orchestration_create(orchestration_run.id)
