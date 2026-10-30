@@ -15,6 +15,7 @@ from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
+    normalize_scm_provider_key,
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
@@ -32,6 +33,9 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
+from sentry.utils import metrics
+
+CHECK_FILE_METRIC = "integrations.source_code_management.check_file"
 
 HaltReason = Literal[
     "configuration_error",
@@ -251,7 +255,12 @@ class RepositoryIntegration(
             integration_id=self.org_integration.integration_id,
         )
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+    def _check_file(
+        self,
+        repo: Repository,
+        filepath: str,
+        branch: str | None = None,
+    ) -> str | None:
         """
         Calls the client's `check_file` method to see if the file exists.
         Returns the link to the file if it exists, otherwise return `None`.
@@ -264,59 +273,76 @@ class RepositoryIntegration(
         filepath: file from the stacktrace (string)
         branch: commitsha or default_branch (string)
         """
-        with self.record_event(SCMIntegrationInteractionType.CHECK_FILE).capture() as lifecycle:
-            filepath = filepath.lstrip("/")
-            try:
-                client = self.get_client()
-            except IntegrationConfigurationError:
-                # This is likely due to access being revoked by the user, or
-                # some other misconfiguration on the integration's side.
+        filepath = filepath.lstrip("/")
+        try:
+            client = self.get_client()
+        except IntegrationConfigurationError:
+            # This is likely due to access being revoked by the user, or
+            # some other misconfiguration on the integration's side.
+            return None
+        except (Identity.DoesNotExist, IntegrationError):
+            sentry_sdk.capture_exception()
+            return None
+        try:
+            response = client.check_file(repo, filepath, branch)
+            if not response:
                 return None
-            except (Identity.DoesNotExist, IntegrationError):
-                sentry_sdk.capture_exception()
+        except IdentityNotValid:
+            return None
+        except ApiRetryError:
+            # Ignore retry errors for self-hosted GitLab.
+            if (
+                self.integration_name == IntegrationProviderSlug.GITLAB.value
+                and client.base_url != GITLAB_CLOUD_BASE_URL
+            ):
                 return None
-            try:
-                response = client.check_file(repo, filepath, branch)
-                if not response:
-                    return None
-            except IdentityNotValid:
+            raise
+        except ApiUnauthorized:
+            return None
+        except (ApiForbiddenError, IntegrationConfigurationError):
+            # Re-raise since 403 errors need to be propagated to the user.
+            raise
+        except ApiError as e:
+            if e.code in (404, 400):
                 return None
-            except ApiRetryError as e:
-                # Ignore retry errors for GitLab
-                # TODO(ecosystem): Remove this once we have a better way to handle this
-                if (
-                    self.integration_name == IntegrationProviderSlug.GITLAB.value
-                    and client.base_url != GITLAB_CLOUD_BASE_URL
-                ):
-                    lifecycle.record_halt(e)
-                    return None
-                else:
-                    raise
-            except ApiUnauthorized as e:
-                lifecycle.record_halt(e)
+            # TODO(ecosystem): Remove this once we have a better way to handle this
+            # It involves decomposing this logic.
+            if (
+                e.json
+                and e.json.get("typeKey") == "AadUserStateException"
+                and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
+            ):
                 return None
-            except (ApiForbiddenError, IntegrationConfigurationError) as e:
-                lifecycle.record_halt(e)
-                # Need to re-raise since 403 errors will be returned to user via get_link
-                raise
-            except ApiError as e:
-                if e.code in (404, 400):
-                    lifecycle.record_halt(e)
-                    return None
-                # TODO(ecosystem): Remove this once we have a better way to handle this
-                # It involves decomposing this logic
-                #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
-                elif (
-                    e.json
-                    and e.json.get("typeKey") == "AadUserStateException"
-                    and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
-                ):
-                    lifecycle.record_halt(e)
-                    return None
-                else:
-                    raise
+            raise
 
-            return self.format_source_url(repo, filepath, branch)
+        return self.format_source_url(repo, filepath, branch)
+
+    def check_file(
+        self,
+        repo: Repository,
+        filepath: str,
+        branch: str | None,
+        *,
+        parent_interaction_type: SCMIntegrationInteractionType,
+    ) -> str | None:
+        metric_tags = {
+            "integration_name": normalize_scm_provider_key(self.integration_name),
+            "parent_interaction_type": str(parent_interaction_type),
+        }
+        try:
+            source_url = self._check_file(repo, filepath, branch)
+        except Exception:
+            metrics.incr(CHECK_FILE_METRIC, tags={**metric_tags, "result": "error"})
+            raise
+
+        metrics.incr(
+            CHECK_FILE_METRIC,
+            tags={
+                **metric_tags,
+                "result": "file_found" if source_url is not None else "unavailable",
+            },
+        )
+        return source_url
 
     def encode_source_url(self, url: str) -> str:
         """Percent-encode a source URL's path, such as square brackets in a filepath."""
@@ -356,7 +382,12 @@ class RepositoryIntegration(
                 if version:
                     scope.set_tag("stacktrace_link.tried_version", True)
                     scope.set_attribute("stacktrace_link.tried_version", True)
-                    source_url = self.check_file(repo, filepath, version)
+                    source_url = self.check_file(
+                        repo,
+                        filepath,
+                        version,
+                        parent_interaction_type=SCMIntegrationInteractionType.GET_STACKTRACE_LINK,
+                    )
                     if source_url:
                         scope.set_tag("stacktrace_link.used_version", True)
                         scope.set_attribute("stacktrace_link.used_version", True)
@@ -364,9 +395,14 @@ class RepositoryIntegration(
 
                 scope.set_tag("stacktrace_link.used_version", False)
                 scope.set_attribute("stacktrace_link.used_version", False)
-                source_url = self.check_file(repo, filepath, default)
+                source_url = self.check_file(
+                    repo,
+                    filepath,
+                    default,
+                    parent_interaction_type=SCMIntegrationInteractionType.GET_STACKTRACE_LINK,
+                )
             except (ApiForbiddenError, IntegrationConfigurationError) as e:
-                # Similar to the `check_file` implementation, we need to re-raise
+                # Similar to the `_check_file` implementation, we need to re-raise
                 # for 403 errors as these need to be propagated to the user.
                 lifecycle.record_halt(e)
                 raise
@@ -401,7 +437,12 @@ class RepositoryIntegration(
                 raise NotImplementedError("Implement self.codeowners_locations to use this method.")
 
             for filepath in self.codeowners_locations:
-                html_url = self.check_file(repo, filepath, ref)
+                html_url = self.check_file(
+                    repo,
+                    filepath,
+                    ref,
+                    parent_interaction_type=SCMIntegrationInteractionType.GET_CODEOWNER_FILE,
+                )
                 if html_url:
                     try:
                         contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
