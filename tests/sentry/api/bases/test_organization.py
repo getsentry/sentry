@@ -949,12 +949,16 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
         assert first_cache_key != second_cache_key
 
     def build_service_account_request(
-        self, organization: Organization | None = None, params: dict[str, str] | None = None
+        self,
+        organization: Organization | None = None,
+        params: dict[str, str] | None = None,
+        all_projects: bool = False,
     ):
         service_account = self.create_service_account(
             organization=organization or self.org,
             scope_list=["project:releases"],
-            project_ids=[self.project_1.id] if organization is None else [],
+            project_ids=[self.project_1.id] if organization is None and not all_projects else [],
+            all_projects=all_projects,
         )
         request = RequestFactory().get("/", params or {})
         request.session = SessionBase()
@@ -992,11 +996,17 @@ class GetProjectIdsTest(BaseOrganizationEndpointTest):
 
         assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
 
-    def test_service_account_release_projects_with_open_membership(self) -> None:
+    def test_service_account_release_projects_ignore_open_membership(self) -> None:
         self.org.flags.allow_joinleave = True
         self.org.save()
         endpoint = OrganizationReleasesBaseEndpoint()
         request = self.build_service_account_request()
+
+        assert {p.id for p in endpoint.get_projects(request, self.org)} == {self.project_1.id}
+
+    def test_service_account_release_projects_with_all_projects(self) -> None:
+        endpoint = OrganizationReleasesBaseEndpoint()
+        request = self.build_service_account_request(all_projects=True)
 
         assert {p.id for p in endpoint.get_projects(request, self.org)} == {
             self.project_1.id,
