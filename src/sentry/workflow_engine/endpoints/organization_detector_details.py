@@ -27,7 +27,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.metric_issue_detector import schedule_update_project_config
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
@@ -48,11 +47,12 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.types import DetectorType
 
 
 def check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
     """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
-    if detector.type != MetricIssue.slug:
+    if detector.type != DetectorType.METRIC_ISSUE:
         return
 
     # Single query: DataSource -> (cast source_id) -> QuerySubscription -> SnubaQuery
@@ -177,9 +177,9 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
                 enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
-        group_type = request.data.get("type") or detector.group_type.slug
+        detector_type = request.data.get("type") or detector.type
         validator = get_detector_validator(
-            request, detector.linked_project, group_type, detector, partial=True
+            request, detector.linked_project, detector_type, detector, partial=True
         )
 
         if not validator.is_valid():
@@ -220,7 +220,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         )
         validator.delete()
 
-        if detector.type == MetricIssue.slug:
+        if detector.type == DetectorType.METRIC_ISSUE:
             schedule_update_project_config(detector)
 
         create_audit_entry(

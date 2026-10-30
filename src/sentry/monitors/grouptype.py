@@ -25,4 +25,5 @@ class MonitorIncidentType(GroupType):
 
 @detector_settings_registry.register(DetectorType.MONITOR_CHECK_IN_FAILURE)
 class MonitorIncidentDetectorSettings(DetectorSettings):
+    type_visibility = True
     validator = MonitorIncidentDetectorValidator

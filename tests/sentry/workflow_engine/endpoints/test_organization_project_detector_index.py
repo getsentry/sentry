@@ -9,11 +9,17 @@ from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
+from sentry.issues import grouptype
 from sentry.models.environment import Environment
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor, ScheduleType, is_monitor_muted
 from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
+from sentry.preprod.size_analysis.grouptype import (
+    PreprodSizeAnalysisDetectorHandler,
+    PreprodSizeAnalysisDetectorSettings,
+    PreprodSizeAnalysisGroupType,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import (
     QuerySubscription,
@@ -34,8 +40,13 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
+from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
+from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
+    DetectorPriorityLevel,
+    DetectorType,
+    FeatureGate,
+)
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
     assert_querysets_unchanged,
@@ -282,16 +293,15 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             "type": [get_unknown_detector_type_error("invalid_type", self.organization)]
         }
 
-    def test_incompatible_group_type(self) -> None:
-        with mock.patch.object(MetricIssue, "detector_settings", None):
-            data = {**self.valid_data, "type": MetricIssue.slug}
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **data,
-                status_code=400,
-            )
-            assert response.data == {"type": ["Detector type not compatible with detectors"]}
+    def test_detector_type_without_an_api_validator(self) -> None:
+        data = {**self.valid_data, "type": DetectorType.ISSUE_STREAM}
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=400,
+        )
+        assert response.data == {"type": ["Detector type not compatible with detectors"]}
 
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
@@ -814,3 +824,55 @@ class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
         assert monitor.config["timezone"] == "America/New_York"
         assert monitor.config["failure_issue_threshold"] == 3
         assert monitor.config["recovery_threshold"] == 2
+
+
+@cell_silo_test
+class DetectorImplementationIdentityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "POST"
+
+    def test_create_and_edit_without_a_matching_issue_type(self) -> None:
+        self.login_as(user=self.user)
+        project = self.create_project()
+
+        class RegistryOnlySettings(PreprodSizeAnalysisDetectorSettings):
+            type_visibility = True
+
+        detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
+        with (
+            mock.patch.dict(
+                detector_settings_registry.registrations,
+                {detector_type: RegistryOnlySettings},
+            ),
+            mock.patch.dict(grouptype.registry._slug_lookup),
+        ):
+            del grouptype.registry._slug_lookup[detector_type]
+            response = self.get_success_response(
+                self.organization.slug,
+                project.slug,
+                type=detector_type,
+                name="Size detector",
+                config={"threshold_type": "absolute", "measurement": "install_size"},
+                status_code=201,
+            )
+            detector = Detector.objects.get(id=response.data["id"])
+            assert detector.type == detector_type
+            assert isinstance(detector.detector_handler, PreprodSizeAnalysisDetectorHandler)
+
+            issue = self.create_group(project=project, type=PreprodSizeAnalysisGroupType.type_id)
+            self.create_detector_group(detector=detector, group=issue)
+            detail_url = f"/api/0/organizations/{self.organization.slug}/detectors/{detector.id}/"
+            response = self.client.get(detail_url)
+            assert response.status_code == 200
+            assert response.data["type"] == detector_type
+
+            response = self.client.put(detail_url, {"name": "Renamed size detector"}, format="json")
+            assert response.status_code == 200
+            detector.refresh_from_db()
+            assert detector.name == "Renamed size detector"
+
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/detector-types/"
+            )
+            assert response.status_code == 200
+            assert detector_type in response.data

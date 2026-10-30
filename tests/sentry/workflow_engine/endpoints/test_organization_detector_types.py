@@ -36,12 +36,14 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         self.login_as(user=self.user)
 
         self.registry_patcher = patch(
-            "sentry.workflow_engine.endpoints.organization_detector_types.grouptype.registry",
+            "sentry.issues.grouptype.registry",
             new=GroupTypeRegistry(),
         )
         self.registry_patcher.start()
 
-        self.detector_settings_patcher = patch.dict(detector_settings_registry.registrations)
+        self.detector_settings_patcher = patch.dict(
+            detector_settings_registry.registrations, clear=True
+        )
         self.detector_settings_patcher.start()
 
         class MockDetectorHandler(DetectorHandler[dict[Never, Never], bool]):
@@ -125,9 +127,9 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class MockDetectorSettings(DetectorSettings):
             handler = MockDetectorHandler
+            type_visibility = True
 
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
-            detector_settings_registry.registrations.pop(group_type.slug)
             detector_settings_registry.register(group_type.slug)(MockDetectorSettings)
 
         self.expected_type_slugs = sorted(
@@ -150,6 +152,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class GatedDetectorSettings(DetectorSettings):
             handler = detector_settings_registry.get(gated_slug).handler
+            type_visibility = True
             api_availability = availability
 
         detector_settings_registry.registrations[gated_slug] = GatedDetectorSettings
@@ -172,3 +175,72 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             assert response.data == self.expected_type_slugs
             response = self.get_success_response(other_org.slug)
             assert response.data == self.expected_type_slugs[1:]
+
+    def test_discovery_does_not_require_matching_issue_types(self) -> None:
+        with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_registration_alone_does_not_expose_a_type(self) -> None:
+        class HiddenSettings(DetectorSettings):
+            handler = detector_settings_registry.get(self.expected_type_slugs[0]).handler
+
+        with patch.dict(
+            detector_settings_registry.registrations,
+            {DetectorType.PERFORMANCE_SLOW_DB_QUERY: HiddenSettings},
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == self.expected_type_slugs
+
+    def test_type_visibility_feature_is_scoped_to_organization(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        detector_type = self.expected_type_slugs[0]
+        original_settings = detector_settings_registry.get(detector_type)
+
+        class GatedSettings(DetectorSettings):
+            handler = original_settings.handler
+            type_visibility = FeatureGate(GATE_FEATURE)
+
+        with (
+            patch.dict(detector_settings_registry.registrations, {detector_type: GatedSettings}),
+            self.feature({GATE_FEATURE: [self.organization.slug]}),
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+            response = self.get_success_response(other_org.slug)
+            assert response.data == self.expected_type_slugs[1:]
+
+
+@cell_silo_test
+class RegisteredDetectorTypesCompatibilityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-detector-type-index"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def test_existing_discovery_without_visibility_features(self) -> None:
+        with self.feature(
+            {
+                "organizations:issue-preprod-size-analysis-visible": False,
+                "organizations:issue-sourcemap-configuration-visible": False,
+            }
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == ["error", "metric_issue", "uptime_domain_failure"]
+
+    def test_existing_visibility_features_still_expose_the_same_types(self) -> None:
+        with self.feature(
+            {
+                "organizations:issue-preprod-size-analysis-visible": True,
+                "organizations:issue-sourcemap-configuration-visible": True,
+            }
+        ):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data == [
+            "error",
+            "metric_issue",
+            "preprod_size_analysis",
+            "sourcemap_configuration",
+            "uptime_domain_failure",
+        ]

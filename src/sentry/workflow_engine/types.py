@@ -360,6 +360,8 @@ class DetectorSettings:
     )
 
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
+    # Controls type discovery and suggested API choices, not access to existing rows.
+    type_visibility: ClassVar[APIGate] = False
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     # None preserves legacy detectors whose configuration is validated outside this model.

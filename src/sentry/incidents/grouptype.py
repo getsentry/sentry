@@ -366,6 +366,7 @@ class MetricIssue(GroupType):
 
 @detector_settings_registry.register(DetectorType.METRIC_ISSUE)
 class MetricIssueDetectorSettings(DetectorSettings):
+    type_visibility = True
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator
     config_schema = {

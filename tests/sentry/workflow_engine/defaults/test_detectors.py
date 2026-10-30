@@ -9,6 +9,7 @@ from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
+from sentry.issues.grouptype import GroupTypeRegistry
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -26,6 +27,7 @@ from sentry.workflow_engine.types import (
     ALL_PROJECTS_DETECTOR_NAME,
     ERROR_DETECTOR_NAME,
     ISSUE_STREAM_DETECTOR_NAME,
+    DetectorType,
 )
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -48,6 +50,21 @@ class TestEnsureDefaultDetectors(TestCase):
         assert issue_stream_detector.name == ISSUE_STREAM_DETECTOR_NAME
         assert issue_stream_detector.project_id == project.id
         assert issue_stream_detector.type == IssueStreamGroupType.slug
+
+    def test_default_names_do_not_require_matching_issue_types(self) -> None:
+        project = self.create_project(create_default_detectors=False)
+        with (
+            self.feature("projects:workflow-engine-performance-detectors"),
+            patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()),
+        ):
+            detectors = ensure_default_detectors(project)
+        assert {detector.type: detector.name for detector in detectors.values()} == {
+            DetectorType.ERROR: ERROR_DETECTOR_NAME,
+            DetectorType.ISSUE_STREAM: ISSUE_STREAM_DETECTOR_NAME,
+            DetectorType.PERFORMANCE_SLOW_DB_QUERY: "Slow DB Query",
+            DetectorType.PERFORMANCE_LARGE_HTTP_PAYLOAD: "Large HTTP payload",
+            DetectorType.QUERY_INJECTION_VULNERABILITY: "Potential Query Injection Vulnerability",
+        }
 
     def _project_row_locks(self, queries: CaptureQueriesContext) -> list[str]:
         return [

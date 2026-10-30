@@ -8,7 +8,6 @@ from django.db.models.functions import Cast
 from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.query import in_iexact
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.subscription_limits import get_disallowed_metric_datasets
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
@@ -16,7 +15,7 @@ from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import APIGate, DetectorAPIOperation
+from sentry.workflow_engine.types import APIGate, DetectorAPIOperation, DetectorType
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -98,7 +97,7 @@ def exclude_disallowed_metric_detectors(
         )
     )
 
-    return queryset.exclude(Q(type=MetricIssue.slug) & Exists(disallowed_ds))
+    return queryset.exclude(Q(type=DetectorType.METRIC_ISSUE) & Exists(disallowed_ds))
 
 
 def apply_filter[T: Model](

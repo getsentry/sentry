@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
 from sentry.issues.grouptype import (
     AIDetectedHTTPGroupType,
     FeedbackGroup,
@@ -81,6 +82,26 @@ class OrganizationOpenPeriodsTest(APITestCase):
             status_code=200,
         )
         assert resp.data == []
+
+    def test_history_uses_associated_issue_types_without_matching_detector_group_type(self) -> None:
+        detector = self.create_detector(type=MetricIssue.slug)
+        allowed_issue = self.create_group(type=ErrorGroupType.type_id)
+        denied_issue = self.create_group(type=MetricIssue.type_id)
+        self.create_detector_group(detector=detector, group=allowed_issue)
+        self.create_detector_group(detector=detector, group=denied_issue)
+        assert GroupOpenPeriod.objects.filter(group=denied_issue).exists()
+
+        with (
+            patch.dict(grouptype.registry._slug_lookup),
+            self.options(
+                {"workflow_engine.group.type_id.open_periods_type_denylist": [MetricIssue.type_id]}
+            ),
+        ):
+            del grouptype.registry._slug_lookup[MetricIssue.slug]
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"detectorId": detector.id}
+            )
+        assert [period["groupId"] for period in response.data] == [str(allowed_issue.id)]
 
     def test_open_period_linked_to_group(self) -> None:
         response = self.get_success_response(

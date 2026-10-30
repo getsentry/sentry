@@ -60,6 +60,7 @@ class ErrorGroupType(GroupType):
 
 @detector_settings_registry.register(DetectorType.ERROR)
 class ErrorDetectorSettings(DetectorSettings):
+    type_visibility = True
     handler = ErrorDetectorHandler
     validator = ErrorDetectorValidator
     config_schema = {"type": "object", "additionalProperties": False}

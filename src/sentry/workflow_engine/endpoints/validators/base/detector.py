@@ -1,4 +1,3 @@
-import builtins
 from dataclasses import dataclass
 from typing import Any, NotRequired, TypedDict
 
@@ -12,8 +11,6 @@ from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.auth.principal import acting_user_id, has_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.issues import grouptype
-from sentry.issues.grouptype import GroupType
 from sentry.utils.audit import create_audit_entry
 from sentry.workflow_engine.endpoints.validators.api_docs_help_text import (
     CONDITION_GROUP_HELP_TEXT,
@@ -43,7 +40,8 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.data_condition import DataCondition
-from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DataConditionType, DetectorPriorityLevel, DetectorType
 
 
 @dataclass(frozen=True)
@@ -115,20 +113,22 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         required=False, help_text="Set to False if you want to disable the monitor."
     )
 
-    def validate_type(self, value: str) -> builtins.type[GroupType]:
-        type = grouptype.registry.get_by_slug(value)
-        if type is None:
+    def validate_type(self, value: str) -> DetectorType:
+        try:
+            detector_type = DetectorType(value)
+            settings = detector_settings_registry.get(detector_type)
+        except ValueError:
             organization = self.context.get("organization")
             if organization:
                 error_message = get_unknown_detector_type_error(value, organization)
             else:
                 error_message = f"Unknown detector type '{value}'"
             raise serializers.ValidationError(error_message)
-        if type.detector_settings is None or type.detector_settings.validator is None:
+        if settings.validator is None:
             raise serializers.ValidationError("Detector type not compatible with detectors")
         # TODO: Probably need to check a feature flag to decide if a given
         # org/user is allowed to add a detector
-        return type
+        return detector_type
 
     def validate_workflow_ids(self, value: list[int]) -> list[int]:
         validate_workflow_connections(
@@ -200,12 +200,12 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         if detector_quota.has_exceeded:
             request = self.context["request"]
             log_alerting_quota_hit(
-                object_type=f"detector:{validated_data['type'].slug}",
+                object_type=f"detector:{validated_data['type']}",
                 organization=self.context["organization"],
                 actor=request.user if has_user(request.user) else None,
             )
             raise serializers.ValidationError(
-                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type'].slug} monitors."
+                f"Used {detector_quota.count}/{detector_quota.limit} of allowed {validated_data['type']} monitors."
             )
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
@@ -328,7 +328,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
                 name=validated_data["name"],
                 description=validated_data.get("description"),
                 workflow_condition_group=condition_group,
-                type=validated_data["type"].slug,
+                type=validated_data["type"],
                 config=validated_data.get("config", {}),
                 owner_user_id=owner_user_id,
                 owner_team_id=owner_team_id,
