@@ -21,7 +21,8 @@ from sentry.ratelimits.sliding_windows import Quota
 from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
-from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_detector_type_filters
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings
 
 if TYPE_CHECKING:

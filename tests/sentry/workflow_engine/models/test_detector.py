@@ -317,10 +317,9 @@ def test_enum_member_without_settings_is_rejected() -> None:
         del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
         detector = Detector(type=DetectorType.METRIC_ISSUE, config={})
         with pytest.raises(
-            ValueError, match="Detector type 'metric_issue' not registered"
-        ) as error:
+            NoRegistrationExistsError, match="No registration exists for metric_issue"
+        ):
             detector.enforce_config_schema()
-        assert isinstance(error.value.__cause__, NoRegistrationExistsError)
         logger.exception.assert_not_called()
 
 
@@ -369,10 +368,9 @@ def test_stored_detector_with_missing_settings_is_reported(
         logger.exception.assert_not_called()
 
         with pytest.raises(
-            ValueError, match="Detector type 'metric_issue' not registered"
-        ) as error:
+            NoRegistrationExistsError, match="No registration exists for metric_issue"
+        ):
             _ = detector.settings
-        assert isinstance(error.value.__cause__, NoRegistrationExistsError)
         logger.exception.assert_called_once_with(
             "Existing detector's DetectorType has no registered settings",
             extra={"detector_id": detector.id, "detector_type": "metric_issue"},

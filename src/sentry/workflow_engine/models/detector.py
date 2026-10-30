@@ -22,8 +22,9 @@ from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_detector_type_filters
 from sentry.workflow_engine.models import DataCondition
-from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorSettings, DetectorType
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
@@ -216,13 +217,13 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
 
         try:
             return detector_settings_registry.get(detector_type)
-        except NoRegistrationExistsError as exc:
+        except NoRegistrationExistsError:
             if not self._state.adding:
                 logger.exception(
                     "Existing detector's DetectorType has no registered settings",
                     extra={"detector_id": self.id, "detector_type": self.type},
                 )
-            raise ValueError(f"Detector type '{self.type}' not registered") from exc
+            raise
 
     def get_snapshot(self) -> DetectorSnapshot:
         trigger_condition = None
