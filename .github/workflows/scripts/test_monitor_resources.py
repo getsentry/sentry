@@ -116,3 +116,10 @@ def test_tracker_attributes_reaped_children() -> None:
     )
     _, children = tracker.sample()
     assert children.get("pytest:main", 0) > 0
+
+
+def test_cpu_model(tmp_path) -> None:
+    cpuinfo = tmp_path / "cpuinfo"
+    cpuinfo.write_text("processor\t: 0\nmodel name\t: AMD EPYC 7763 64-Core Processor\n")
+    assert _mod.cpu_model(str(cpuinfo)) == "AMD EPYC 7763 64-Core Processor"
+    assert _mod.cpu_model(str(tmp_path / "missing")) is None

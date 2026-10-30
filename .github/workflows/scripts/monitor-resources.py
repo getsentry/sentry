@@ -94,6 +94,15 @@ def read_text(path: str) -> str:
         return ""
 
 
+def cpu_model(cpuinfo: str = "/proc/cpuinfo") -> str | None:
+    """Runner CPUs vary a lot in speed, so record which one a shard got."""
+    for line in read_text(cpuinfo).splitlines():
+        key, _, value = line.partition(":")
+        if key.strip() == "model name":
+            return value.strip()
+    return None
+
+
 def read_proc_stat(pid: str) -> tuple[str, int, int, int] | None:
     """Returns (comm, cpu ticks, reaped children's cpu ticks, start time) for a pid."""
     data = read_text(f"/proc/{pid}/stat")
@@ -480,6 +489,7 @@ def stop_background(output: Path, summary_path: Path | None) -> int:
             except json.JSONDecodeError:
                 continue
     summary = summarize(samples)
+    summary["cpu_model"] = cpu_model()
     if summary_path is not None:
         summary_path.parent.mkdir(parents=True, exist_ok=True)
         summary_path.write_text(json.dumps(summary, indent=2) + "\n")
@@ -491,7 +501,8 @@ def stop_background(output: Path, summary_path: Path | None) -> int:
         f"mem_max={summary['memory']['max_used_pct']}% "
         f"mem_avail_min={summary['memory']['min_available_gb']}GB "
         f"swap_max={summary['memory']['max_swap_used_mb']}MB "
-        f"verdict={summary['headroom']['one_more_worker']}"
+        f"verdict={summary['headroom']['one_more_worker']} "
+        f"cpu_model={summary['cpu_model']}"
     )
     print(line)
     top = list(summary["cpu_s_by_group_during_tests"].items())[:10]

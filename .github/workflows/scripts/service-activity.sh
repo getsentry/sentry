@@ -1,17 +1,10 @@
 #!/usr/bin/env bash
-# Summarizes what Postgres and ClickHouse did since a UTC timestamp, to explain
-# their CPU use during backend tests (see the resource monitor's per-container
-# totals).
+# Summarizes what ClickHouse did since a UTC timestamp, to explain its CPU use
+# during backend tests (see the resource monitor's per-container totals).
 #
 #   service-activity.sh 2026-01-01T00:00:00Z
 set -u
 since=$1
-
-echo "== postgres (log_connections, log_autovacuum_min_duration=0)"
-pg_log=$(docker logs --since "$since" postgres-postgres-1 2>&1)
-echo "connections: $(grep -c 'connection authorized' <<<"$pg_log")"
-echo "autovacuum runs: $(grep -c 'automatic vacuum' <<<"$pg_log")"
-echo "autoanalyze runs: $(grep -c 'automatic analyze' <<<"$pg_log")"
 
 echo "== clickhouse queries by kind"
 ch() {
