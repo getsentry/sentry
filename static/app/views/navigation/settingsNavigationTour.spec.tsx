@@ -154,9 +154,17 @@ describe('Settings navigation tour', () => {
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
   });
 
-  it('marks the guide as viewed once it shows', async () => {
+  it('does not mark the guide as seen while it is shown or moved between steps', async () => {
     render(<Tour />, {organization});
-    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    expect(dismissRequest).not.toHaveBeenCalled();
+  });
+
+  it('marks the guide as viewed when the last step is done', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Done'}));
     await waitFor(() =>
       expect(dismissRequest).toHaveBeenCalledWith(
         '/assistant/',

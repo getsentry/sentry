@@ -152,11 +152,13 @@ export function TourContextProvider<T extends TourEnumType>({
       : []
   );
 
+  // Spotlight tours count as seen once shown. Subtle tours only count once the
+  // user finishes or dismisses them, so one left mid-way shows up again.
   useEffect(() => {
-    if (isTourActive && tourKey) {
+    if (isTourActive && tourKey && variant === 'spotlight') {
       mutate({guide: tourKey, status: 'viewed'});
     }
-  }, [isTourActive, mutate, tourKey]);
+  }, [isTourActive, mutate, tourKey, variant]);
 
   return (
     <TourContext value={visibleTourContextValue}>
@@ -319,6 +321,9 @@ export function TourElementContent<T extends TourEnumType>({
           <TourAction
             size="xs"
             onClick={() => {
+              if (tourKey && variant === 'subtle') {
+                mutate({guide: tourKey, status: 'viewed'});
+              }
               endTour();
               trackAnalytics('tour-guide.finish', {
                 organization,
@@ -343,6 +348,8 @@ export function TourElementContent<T extends TourEnumType>({
       id,
       stepCount,
       tourKey,
+      variant,
+      mutate,
     ]
   );
 
