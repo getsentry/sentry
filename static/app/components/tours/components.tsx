@@ -1,5 +1,5 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -23,6 +23,7 @@ import {
   type TourVariant,
 } from 'sentry/components/tours/tourContext';
 import {useMutateAssistant} from 'sentry/components/tours/useAssistant';
+import {useGuideFocusHandoff} from 'sentry/components/tours/useGuideFocusHandoff';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -114,7 +115,7 @@ export function TourContextProvider<T extends TourEnumType>({
     [tourContextValue, variant]
   );
 
-  // Subtle tours leave the page usable, so their guides handle these keys only
+  // Subtle tours leave the page usable, so their guides handle Escape only
   // while focused instead.
   useHotkeys(
     isTourActive && variant === 'spotlight'
@@ -294,7 +295,7 @@ export function TourElementContent<T extends TourEnumType>({
 
   const defaultActions = useMemo(
     () => (
-      <Grid flow="column" align="center" gap="md" data-tour-actions>
+      <Grid flow="column" align="center" gap="md">
         {hasPreviousStep && (
           <TextTourAction size="xs" onClick={previousStep}>
             {t('Previous')}
@@ -349,19 +350,9 @@ export function TourElementContent<T extends TourEnumType>({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (
-      (event.key === 'ArrowLeft' || event.key === 'ArrowRight') &&
-      focusSiblingAction(event)
-    ) {
-      return;
-    }
     if (event.key === 'Escape') {
       event.stopPropagation();
       dismiss();
-    } else if (event.key === 'ArrowLeft' && hasPreviousStep) {
-      previousStep();
-    } else if (event.key === 'ArrowRight' && hasNextStep) {
-      nextStep();
     }
   };
 
@@ -386,29 +377,6 @@ export function TourElementContent<T extends TourEnumType>({
   );
 }
 
-/**
- * Moves focus to the neighboring action button, so the arrow keys move between
- * Previous, Next and Done. Returns false when there is none, such as on the
- * first button, so the arrow keys can change the step instead.
- */
-function focusSiblingAction(event: React.KeyboardEvent) {
-  const target = event.target as HTMLElement;
-  const actions = target.closest('[data-tour-actions]');
-  const button = target.closest('button');
-  if (!actions || !button) {
-    return false;
-  }
-  const buttons = Array.from(actions.querySelectorAll('button'));
-  const sibling =
-    buttons[buttons.indexOf(button) + (event.key === 'ArrowRight' ? 1 : -1)];
-  if (!sibling) {
-    return false;
-  }
-  event.preventDefault();
-  sibling.focus();
-  return true;
-}
-
 interface TourGuideProps extends Omit<
   HTMLAttributes<HTMLElement>,
   'title' | 'id' | 'children'
@@ -430,7 +398,7 @@ interface TourGuideProps extends Omit<
   margin?: number;
   offset?: UseOverlayProps['offset'];
   /**
-   * Handles keys pressed while the guide has focus. The guide can then be
+   * Handles keys pressed while focus is inside the guide. The guide can then be
    * focused, and keeps focus when the tour moves to another step.
    */
   onKeyDown?: (event: React.KeyboardEvent) => void;
@@ -452,46 +420,6 @@ const zIndex = {
  * highlighted element, such as one that is taller than the viewport.
  */
 const keepGuideInViewport = {crossAxis: true, tether: false};
-
-/**
- * Whether focus is inside a guide, and whether a guide that had focus just
- * closed. A step change closes one guide and opens the next in the same commit,
- * so the next guide can take focus over. The handoff expires right after that
- * commit, so a guide that opens later never steals focus.
- */
-let guideHasFocus = false;
-let isHandingOffGuideFocus = false;
-
-function releaseGuideFocus() {
-  if (!guideHasFocus) {
-    return;
-  }
-  guideHasFocus = false;
-  isHandingOffGuideFocus = true;
-  queueMicrotask(() => {
-    isHandingOffGuideFocus = false;
-  });
-}
-
-function takeGuideFocus() {
-  const shouldTakeFocus = isHandingOffGuideFocus;
-  isHandingOffGuideFocus = false;
-  return shouldTakeFocus;
-}
-
-function handleGuideFocus() {
-  guideHasFocus = true;
-}
-
-function handleGuideBlur(event: React.FocusEvent<HTMLElement>) {
-  // A guide removed by a step change can still blur. Its focus is handed off.
-  if (
-    event.currentTarget.isConnected &&
-    !event.currentTarget.contains(event.relatedTarget)
-  ) {
-    guideHasFocus = false;
-  }
-}
 
 export function TourGuide({
   children,
@@ -538,28 +466,7 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
-  // When the tour moves to another step while a guide has focus, focus the next
-  // guide so the user can keep navigating with the keyboard.
-  const isFocusable = defined(onKeyDown);
-  const shouldTakeFocusRef = useRef(false);
-  useEffect(() => {
-    if (!isOpen || !isFocusable) {
-      shouldTakeFocusRef.current = false;
-      return;
-    }
-    if (takeGuideFocus()) {
-      shouldTakeFocusRef.current = true;
-    }
-    // The guide's element can attach after it opens; this runs again then.
-    if (shouldTakeFocusRef.current && overlayRef.current) {
-      shouldTakeFocusRef.current = false;
-      overlayRef.current.focus();
-    }
-    return releaseGuideFocus;
-  }, [isOpen, isFocusable, overlayRef]);
-  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
-    ? {tabIndex: -1, onKeyDown, onFocus: handleGuideFocus, onBlur: handleGuideBlur}
-    : {};
+  const focusProps = useGuideFocusHandoff({isOpen, overlayRef, onKeyDown});
 
   return (
     <Fragment>

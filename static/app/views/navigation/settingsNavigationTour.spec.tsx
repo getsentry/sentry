@@ -140,33 +140,24 @@ describe('Settings navigation tour', () => {
     expect(screen.queryByTestId('tour-blur-window')).not.toBeInTheDocument();
   });
 
-  it('navigates steps with the arrow keys while the guide has focus', async () => {
+  it('moves focus to the next guide when the tour changes step from the guide', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    await userEvent.keyboard('{ArrowRight}');
-    expect(screen.getByText('Tour entry')).toBeInTheDocument();
-
     act(() => screen.getByRole('button', {name: 'Next'}).focus());
-    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
-    // Focus moves to the new guide, so the keys keep working.
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByText('Tour projects').closest('[tabindex="-1"]')).toHaveFocus()
+    );
+    // Keys keep working, since focus stayed inside the tour.
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Tour projects')).not.toBeInTheDocument();
   });
 
-  it('moves focus between the action buttons with the arrow keys', async () => {
+  it('does not take focus when the guide opens on its own', async () => {
     render(<Tour />, {organization});
-    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
-    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
-
-    act(() => screen.getByRole('button', {name: 'Previous'}).focus());
-    await userEvent.keyboard('{ArrowRight}');
-    expect(screen.getByRole('button', {name: 'Done'})).toHaveFocus();
-    expect(screen.getByText('Tour projects')).toBeInTheDocument();
-
-    await userEvent.keyboard('{ArrowLeft}');
-    expect(screen.getByRole('button', {name: 'Previous'})).toHaveFocus();
-    expect(screen.getByText('Tour projects')).toBeInTheDocument();
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    expect(screen.getByText('Tour entry').closest('[tabindex="-1"]')).not.toHaveFocus();
   });
 
   it('marks the guide as viewed once it is shown, and only once', async () => {
