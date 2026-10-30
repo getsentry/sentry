@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from dataclasses import replace
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 from uuid import uuid4
 
@@ -69,17 +70,16 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
             create_open_period=False,
         )
         self.action = self.create_action(type=Action.Type.SEER_WORKFLOW)
-        self.config = BreachedMetricWorkflow.create(self.organization.id, enabled=True).get_config()
-        Factories.create_seer_workflow_trigger_binding(self.config, self.action)
-        self.config.update(backing_workflow=self.create_monitored_workflow())
+        self.config = self.create_metric_config(trigger_actions=[self.action])
 
-    def create_monitored_workflow(self) -> Workflow:
-        workflow = self.create_workflow(organization=self.organization)
-        self.create_detector_workflow(
-            detector=self.create_detector(project=self.project, type=MetricIssue.slug),
-            workflow=workflow,
+    def create_metric_config(self, **kwargs: Any) -> SeerWorkflowConfig:
+        return Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            enabled=True,
+            monitors=[self.create_detector(project=self.project, type=MetricIssue.slug)],
+            **kwargs,
         )
-        return workflow
 
     def breach_event(self, *, detector_id: int, value: int = 180) -> GroupEvent:
         event_id = uuid4().hex
@@ -128,9 +128,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
             with pytest.raises(ValueError, match="selected by connecting monitors"):
                 workflow.set_project_selection(selection)
 
-        self.config.refresh_from_db()
-        assert self.config.filters["all_projects"] is False
-        assert self.config.version == 1
+        assert workflow.get_config().version == self.config.version
 
     def test_replaying_old_metadata_logs_validation_error_without_replacing_run(self) -> None:
         event = self.breach_event(detector_id=1)
@@ -361,7 +359,9 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             self.detector.update(name="Edited after breach")
             self.condition.update(comparison=200)
             snapshot = deepcopy(run.extras["snapshot"])
-            self.config.update(version=2, output_policy={"review_required": True})
+            self.config.update(
+                version=self.config.version + 1, output_policy={"review_required": True}
+            )
 
             self.process_breach_workflow(event)
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id, value=240))
@@ -375,7 +375,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert trigger["workflow_id"] == self.workflow.id
         assert trigger["action_id"] == self.action.id
         assert run.extras["snapshot"] == snapshot
-        assert run.extras["snapshot"]["config_version"] == 1
+        assert run.extras["snapshot"]["config_version"] == self.config.version - 1
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert run.date_completed is not None
         execution = SeerWorkflowRunExecution.objects.get(run=run)
@@ -410,11 +410,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         shared_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         Factories.create_seer_workflow_trigger_binding(self.config, shared_action)
         other_action = self.create_action(type=Action.Type.SEER_WORKFLOW)
-        other_config = BreachedMetricWorkflow.create(
-            self.organization.id, enabled=True
-        ).get_config()
-        other_config.update(backing_workflow=self.create_monitored_workflow())
-        Factories.create_seer_workflow_trigger_binding(other_config, other_action)
+        other_config = self.create_metric_config(trigger_actions=[other_action])
         self.create_data_condition_group_action(
             action=shared_action, condition_group=self.action_conditions
         )

@@ -10,17 +10,12 @@ from sentry.testutils.factories import Factories
 class GetSeerWorkflowTest(TestCase):
     def test_breached_metric_config_uses_monitor_scope(self) -> None:
         monitored = self.create_project()
-        workflow = self.create_workflow(organization=self.organization)
-        self.create_detector_workflow(
-            detector=self.create_detector(project=monitored, type=MetricIssue.slug),
-            workflow=workflow,
-        )
         config = Factories.create_seer_workflow_config(
             self.organization,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
             filters={"all_projects": True},
+            monitors=[self.create_detector(project=monitored, type=MetricIssue.slug)],
         )
-        config.update(backing_workflow=workflow)
 
         seer_workflow = get_seer_workflow(config)
 
