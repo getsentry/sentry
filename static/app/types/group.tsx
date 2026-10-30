@@ -1342,6 +1342,7 @@ export interface BaseGroup {
   title: string;
   type: EventOrGroupType;
   userReportCount: number;
+  activeAt?: string | null;
   derivedData?: GroupDerivedData;
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];

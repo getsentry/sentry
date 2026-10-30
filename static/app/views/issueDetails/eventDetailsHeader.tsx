@@ -65,6 +65,11 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
   const hasSetStatsPeriod =
     location.query.statsPeriod || location.query.start || location.query.end;
   const defaultStatsPeriod = useGroupDefaultStatsPeriod(group, project);
+  const defaultPeriodLabel = getRelativeDate(
+    defaultStatsPeriod.sinceDate ?? group.firstSeen
+  )
+    .replace(/^a (?=\w+$)/, '1 ')
+    .replace(/^an (?=\w+$)/, '1 ');
   const shouldShowSinceFirstSeenOption = issueTypeConfig.defaultTimePeriod.sinceFirstSeen;
   const period = hasSetStatsPeriod
     ? getPeriod({
@@ -159,12 +164,16 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                               ...(defaultStatsPeriod?.statsPeriod &&
                               shouldShowSinceFirstSeenOption
                                 ? {
-                                    [defaultStatsPeriod.statsPeriod]: t(
-                                      'Last %s (since first seen)',
-                                      getRelativeDate(group.firstSeen)
-                                        .replace(/^a (?=\w+$)/, '1 ')
-                                        .replace(/^an (?=\w+$)/, '1 ')
-                                    ),
+                                    [defaultStatsPeriod.statsPeriod]:
+                                      defaultStatsPeriod.isSinceRegressed
+                                        ? t(
+                                            'Last %s (since regressed)',
+                                            defaultPeriodLabel
+                                          )
+                                        : t(
+                                            'Last %s (since first seen)',
+                                            defaultPeriodLabel
+                                          ),
                                   }
                                 : {}),
                               ...props.defaultOptions,
@@ -197,11 +206,13 @@ export function EventDetailsHeader({group, event, project}: EventDetailsHeaderPr
                               {period === defaultStatsPeriod &&
                               !defaultStatsPeriod.isMaxRetention &&
                               shouldShowSinceFirstSeenOption
-                                ? tct('Since First Seen ([period])', {
-                                    period: getRelativeDate(group.firstSeen)
-                                      .replace(/^a (?=\w+$)/, '1 ')
-                                      .replace(/^an (?=\w+$)/, '1 '),
-                                  })
+                                ? defaultStatsPeriod.isSinceRegressed
+                                  ? tct('Since Regressed ([period])', {
+                                      period: defaultPeriodLabel,
+                                    })
+                                  : tct('Since First Seen ([period])', {
+                                      period: defaultPeriodLabel,
+                                    })
                                 : triggerProps.children}
                             </TimeRangeSelectTrigger>
                           )}
