@@ -113,6 +113,8 @@ export function WidgetPreviewContainer({
   }
   const location = useLocation();
   const theme = useTheme();
+  // The preview's mobile drag controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;

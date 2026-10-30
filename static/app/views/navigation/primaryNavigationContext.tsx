@@ -78,6 +78,8 @@ export function PrimaryNavigationContextProvider(
   } | null>(null);
 
   const theme = useTheme();
+  // Primary navigation switches at the viewport breakpoint.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMobile = useMedia(`(width < ${theme.breakpoints.md})`);
   const hasHover = useMedia('(hover: hover)');
   const activeRouteGroup = useActiveNavigationGroup();

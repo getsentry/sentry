@@ -195,6 +195,8 @@ function WidgetBuilderSlideoutInner({
   // always use time as the X-axis
   const showXAxisSelector = isCategoricalBarWidget;
 
+  // The slideout's mobile controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   // Sort By controls the ordering of results.
