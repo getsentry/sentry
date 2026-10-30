@@ -124,10 +124,20 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
         elif status:
             queryset = queryset.none()
 
+        projects_by_id = {project.id: project for project in projects}
+
+        def serialize_keys(keys: list[ProjectKey]) -> list[ProjectKeySerializerResponse]:
+            # Prevent the project and organization from being fetched again for each key's DSNs.
+            for key in keys:
+                project = projects_by_id[key.project_id]
+                project.set_cached_field_value("organization", organization)
+                key.set_cached_field_value("project", project)
+            return serialize(keys, request.user, request=request)
+
         return self.paginate(
             request=request,
             queryset=queryset,
             order_by="-id",
             default_per_page=10,
-            on_results=lambda x: serialize(x, request.user, request=request),
+            on_results=serialize_keys,
         )
