@@ -293,7 +293,12 @@ class OrganizationDashboardsStarredScopeTest(StarredDashboardTestCase):
         self._use_token(["user_preference:write"])
         assert self.do_request("get", self.url).status_code == 403
 
-    def test_dashboard_scopes_cannot_list_starred(self) -> None:
-        # Starred dashboards are user preferences, not dashboard content.
+    def test_dashboard_scopes_still_accepted(self) -> None:
         self._use_token(["dashboard:read", "dashboard:write"])
-        assert self.do_request("get", self.url).status_code == 403
+        assert self.do_request("get", self.url).status_code == 200
+        response = self.do_request(
+            "put",
+            self.order_url,
+            data={"dashboard_ids": [self.dashboard_2.id, self.dashboard_1.id]},
+        )
+        assert response.status_code == 204, response.content
