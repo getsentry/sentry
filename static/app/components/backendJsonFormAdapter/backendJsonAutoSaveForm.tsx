@@ -61,7 +61,7 @@ export function BackendJsonAutoSaveForm<
                 <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                   <TableHeaderRow
                     config={field}
-                    value={fieldApi.state.value}
+                    value={fieldApi.value}
                     onAdd={newValue => {
                       fieldApi.handleChange(newValue);
                     }}
@@ -71,7 +71,7 @@ export function BackendJsonAutoSaveForm<
                 </fieldApi.Layout.Row>
                 <TableBody
                   config={field}
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
                   disabled={!!getDisabledProp(field) || baseProps.disabled}
@@ -103,18 +103,18 @@ export function BackendJsonAutoSaveForm<
                 <Stack flexGrow={1} gap="xl">
                   <ProjectMapperTable
                     config={field}
-                    value={fieldApi.state.value}
+                    value={fieldApi.value}
                     onDelete={handleChangeAndSave}
                     disabled={!!getDisabledProp(field) || baseProps.disabled}
                   />
                   <ProjectMapperAddRow
                     config={field}
-                    value={fieldApi.state.value}
+                    value={fieldApi.value}
                     onAdd={handleChangeAndSave}
                     indicator={indicator}
                     disabled={!!getDisabledProp(field) || baseProps.disabled}
                   />
-                  <ProjectMapperNextButton config={field} value={fieldApi.state.value} />
+                  <ProjectMapperNextButton config={field} value={fieldApi.value} />
                 </Stack>
               );
             }}
@@ -139,7 +139,7 @@ export function BackendJsonAutoSaveForm<
                 <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                   <ChoiceMapperDropdown
                     config={field}
-                    value={fieldApi.state.value}
+                    value={fieldApi.value}
                     onLabelAdd={(key, label) => {
                       setLabels(prev => ({...prev, [key]: label}));
                     }}
@@ -150,7 +150,7 @@ export function BackendJsonAutoSaveForm<
                 </fieldApi.Layout.Row>
                 <ChoiceMapperTable
                   config={field}
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   labels={labels}
                   onUpdate={fieldApi.handleChange}
                   onSave={() => baseProps.onBlur()}
@@ -177,7 +177,7 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Switch
-                  checked={fieldApi.state.value}
+                  checked={fieldApi.value}
                   onChange={fieldApi.handleChange}
                   disabled={getDisabledProp(field)}
                 />
@@ -187,7 +187,7 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.TextArea
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
                   disabled={getDisabledProp(field)}
@@ -198,7 +198,7 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Number
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
                   disabled={getDisabledProp(field)}
@@ -211,8 +211,8 @@ export function BackendJsonAutoSaveForm<
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Select
                   {...(field.multiple
-                    ? {multiple: true as const, value: fieldApi.state.value ?? []}
-                    : {value: fieldApi.state.value})}
+                    ? {multiple: true as const, value: fieldApi.value ?? []}
+                    : {value: fieldApi.value})}
                   onChange={fieldApi.handleChange}
                   options={transformChoices(field.choices)}
                   creatable={field.creatable}
@@ -224,7 +224,7 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Password
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
                   disabled={getDisabledProp(field)}
@@ -238,7 +238,7 @@ export function BackendJsonAutoSaveForm<
             return (
               <fieldApi.Layout.Row label={field.label} hintText={field.help}>
                 <fieldApi.Input
-                  value={fieldApi.state.value}
+                  value={fieldApi.value}
                   onChange={fieldApi.handleChange}
                   placeholder={field.placeholder}
                   disabled={getDisabledProp(field)}

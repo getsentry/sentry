@@ -4,7 +4,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
@@ -160,49 +160,48 @@ function AdminUserEditForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: toFormValues(user),
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => updateMutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
     <Fragment>
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <form.FieldGroup title={t('User details')}>
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Row label={t('Name')} required>
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="username">
+          <form.Field name="username">
             {field => (
               <field.Layout.Row
                 label={t('Username')}
                 hintText={t('The username is the unique id of the user in the system')}
                 required
               >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="email">
+          <form.Field name="email">
             {field => (
               <field.Layout.Row
                 label={t('Email')}
                 hintText={t('The users primary email address')}
                 required
               >
-                <field.Input value={field.state.value} onChange={field.handleChange} />
+                <field.Input value={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="isActive">
+          <form.Field name="isActive">
             {field => (
               <field.Layout.Row
                 label={t('Active')}
@@ -210,12 +209,12 @@ function AdminUserEditForm({
                   'Designates whether this user should be treated as active. Unselect this instead of deleting accounts.'
                 )}
               >
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="isStaff">
+          <form.Field name="isStaff">
             {field => (
               <field.Layout.Row
                 label={t('Admin')}
@@ -223,12 +222,12 @@ function AdminUserEditForm({
                   'Designates whether this user can perform administrative functions.'
                 )}
               >
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
 
-          <form.AppField name="isSuperuser">
+          <form.Field name="isSuperuser">
             {field => (
               <field.Layout.Row
                 label={t('Superuser')}
@@ -236,10 +235,10 @@ function AdminUserEditForm({
                   'Designates whether this user has all permissions without explicitly assigning them.'
                 )}
               >
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
-          </form.AppField>
+          </form.Field>
         </form.FieldGroup>
 
         <Flex justify="end" gap="md" padding="md">
@@ -263,7 +262,7 @@ function AdminUserEditForm({
           </Button>
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
-      </form.AppForm>
+      </ScrapsForm>
     </Fragment>
   );
 }

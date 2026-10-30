@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -45,13 +45,10 @@ function SamplingModeSwitchModal({
   );
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       targetSampleRate: formatPercent(initialTargetRate || 0),
     },
-    validators: {
-      onDynamic: targetSampleRateSchema,
-    },
+    validators: defaultFormValidators(targetSampleRateSchema),
     onSubmit: ({value}) => {
       const changes: Parameters<typeof updateOrganization>[0] = {samplingMode};
       if (samplingMode === 'organization') {
@@ -71,7 +68,7 @@ function SamplingModeSwitchModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header>
         <h5>
           {samplingMode === 'organization'
@@ -104,7 +101,7 @@ function SamplingModeSwitchModal({
                 )}
           </span>
           {samplingMode === 'organization' ? (
-            <form.AppField name="targetSampleRate">
+            <form.Field name="targetSampleRate">
               {field => (
                 <field.Layout.Stack label={t('Global Target Sample Rate')} required>
                   {/* Match the width of PercentInput (120px) */}
@@ -112,7 +109,7 @@ function SamplingModeSwitchModal({
                     <field.Input
                       type="number"
                       step="any"
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       disabled={isPending}
                       trailingItems={<strong>%</strong>}
@@ -120,7 +117,7 @@ function SamplingModeSwitchModal({
                   </div>
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           ) : null}
           <span>
             {samplingMode === 'organization'
@@ -144,7 +141,7 @@ function SamplingModeSwitchModal({
           </form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

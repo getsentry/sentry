@@ -6,7 +6,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {PasswordStrengthIndicator} from 'sentry/components/passwordStrengthIndicator';
@@ -59,20 +59,21 @@ export function RegistrationForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: lockedEmail ?? '', name: '', password: '', subscribe: false},
-    validators: {onDynamic: schema},
-    onSubmit: ({value, formApi}) =>
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError}) =>
       mutation.mutateAsync(schema.parse(value)).catch((error: unknown) => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
         }
+        return;
       }),
   });
 
   return (
     <Stack width="100%" gap="2xl">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="lg">
           {mutation.error && (
             <Alert role="alert" variant="danger">
@@ -82,19 +83,19 @@ export function RegistrationForm({
               )}
             </Alert>
           )}
-          <form.AppField name="name">
+          <form.Field name="name">
             {field => (
               <field.Layout.Stack label={t('Name')} required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autoComplete="name"
                   placeholder={t('John Doe')}
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="email">
+          </form.Field>
+          <form.Field name="email">
             {field => (
               <field.Layout.Stack
                 label={t('Email')}
@@ -107,7 +108,7 @@ export function RegistrationForm({
               >
                 <field.Input
                   type="email"
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   readOnly={lockedEmail !== undefined}
                   autoComplete="email"
@@ -115,18 +116,18 @@ export function RegistrationForm({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="password">
+          </form.Field>
+          <form.Field name="password">
             {field => (
               <field.Layout.Stack label={t('Password')} required>
                 <field.Input
                   type={isPasswordVisible ? 'text' : 'password'}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   autoComplete="new-password"
                   trailingItems={
                     <Fragment>
-                      <PasswordStrengthIndicator value={field.state.value} />
+                      <PasswordStrengthIndicator value={field.value} />
                       <Button
                         size="xs"
                         variant="transparent"
@@ -147,12 +148,12 @@ export function RegistrationForm({
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           {hasNewsletter && (
-            <form.AppField name="subscribe">
+            <form.Field name="subscribe">
               {field => (
                 <field.Checkbox
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   label={t('Send me the Sentry newsletter')}
                   hintText={t(
@@ -160,10 +161,10 @@ export function RegistrationForm({
                   )}
                 />
               )}
-            </form.AppField>
+            </form.Field>
           )}
         </Stack>
-      </form.AppForm>
+      </ScrapsForm>
       <Flex align="center" justify={secondaryAction ? 'between' : 'end'} gap="md">
         {secondaryAction}
         <form.Subscribe

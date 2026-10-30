@@ -17,7 +17,7 @@ describe('CursorApiKeyStep', () => {
   });
 
   it('calls advance with API key on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<CursorApiKeyStep {...makeStepProps({stepData: {}, advance})} />);
 
     await userEvent.type(screen.getByLabelText('Cursor API Key'), 'cursor-api-key-123');

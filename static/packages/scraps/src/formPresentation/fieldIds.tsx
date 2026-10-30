@@ -1,19 +1,10 @@
-import {useFieldContext} from './formContext';
+import type {FieldWithValue} from './formHelpers';
 
-export const useFieldId = () => {
-  const field = useFieldContext();
+export const getFieldId = (field: FieldWithValue<unknown>) =>
+  field.form.formId + field.name;
 
-  return field.form.formId + field.name;
-};
+export const getHintTextId = (field: FieldWithValue<unknown>) =>
+  `${getFieldId(field)}-hint`;
 
-export const useHintTextId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-hint`;
-};
-
-export const useLabelId = () => {
-  const fieldId = useFieldId();
-
-  return `${fieldId}-label`;
-};
+export const getLabelId = (field: FieldWithValue<unknown>) =>
+  `${getFieldId(field)}-label`;

@@ -2,7 +2,7 @@ import {useMutation, type UseMutationOptions} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -27,10 +27,9 @@ export function GrafanaIntegrationForm({
 }) {
   const mutation = useMutation(mutationOptions);
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {url: initialUrl, token: ''},
-    validators: {onDynamic: configSchema},
-    onSubmit: ({value}) =>
+    validators: defaultFormValidators(configSchema),
+    onSubmit: ({value, createValidationError}) =>
       mutation
         .mutateAsync(configSchema.parse(value))
         .then(() => {
@@ -39,20 +38,22 @@ export function GrafanaIntegrationForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values));
+            const fields = requestErrorToFieldErrors(error, value);
+            return fields ? createValidationError({fields}) : undefined;
           }
+          return;
         }),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         {mutation.error && (
           <Alert variant="danger" role="alert">
             {getRequestErrorUserMessage(mutation.error)}
           </Alert>
         )}
-        <form.AppField name="url">
+        <form.Field name="url">
           {field => (
             <field.Layout.Row
               label={t('Grafana URL')}
@@ -62,14 +63,14 @@ export function GrafanaIntegrationForm({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={mutation.isPending}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
-        <form.AppField name="token">
+        </form.Field>
+        <form.Field name="token">
           {field => (
             <field.Layout.Row
               label={t('Service account token')}
@@ -78,18 +79,18 @@ export function GrafanaIntegrationForm({
               )}
             >
               <field.Password
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 autoComplete="new-password"
                 disabled={mutation.isPending}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex justify="end">
           <form.SubmitButton>{t('Save and test')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

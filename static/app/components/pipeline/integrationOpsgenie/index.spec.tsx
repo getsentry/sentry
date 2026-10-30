@@ -24,7 +24,7 @@ describe('OpsgenieInstallationConfigStep', () => {
   });
 
   it('calls advance with form data on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <OpsgenieInstallationConfigStep
         {...makeStepProps({stepData: {baseUrlChoices}, advance})}
@@ -51,7 +51,7 @@ describe('OpsgenieInstallationConfigStep', () => {
   });
 
   it('submits without api key when left empty', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(
       <OpsgenieInstallationConfigStep
         {...makeStepProps({stepData: {baseUrlChoices}, advance})}

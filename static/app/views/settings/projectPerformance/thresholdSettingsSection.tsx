@@ -55,7 +55,7 @@ export function ThresholdSettingsSection({
             )}
           >
             <field.Select
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               disabled={!hasWriteAccess || isResetting}
               options={CALCULATION_METHOD_OPTIONS}
@@ -86,7 +86,7 @@ export function ThresholdSettingsSection({
             )}
           >
             <field.Input
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               placeholder={t('300')}
               disabled={!hasWriteAccess || isResetting}

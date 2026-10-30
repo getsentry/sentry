@@ -1,7 +1,7 @@
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
@@ -83,9 +83,8 @@ function RenameDashboardModal({
   const {mutateAsync: renameDashboard} = useRenameDashboard();
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {title: dashboard.title},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: async ({value}) => {
       const title = value.title.trim();
 
@@ -110,7 +109,7 @@ function RenameDashboardModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h3" size="xl">
           {t('Rename Dashboard')}
@@ -118,18 +117,18 @@ function RenameDashboardModal({
       </Header>
 
       <Body>
-        <form.AppField name="title">
+        <form.Field name="title">
           {field => (
             <field.Layout.Stack label={t('Name')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 maxLength={MAX_TITLE_LENGTH}
                 autoFocus
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
       </Body>
 
       <Footer>
@@ -138,6 +137,6 @@ function RenameDashboardModal({
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

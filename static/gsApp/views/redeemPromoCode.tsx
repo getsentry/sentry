@@ -1,7 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -57,32 +57,34 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
       fetchOrganizationDetails(new Client(), organization.slug);
       addSuccessMessage(msg);
     },
-    onError: error => {
-      if (error instanceof RequestError) {
-        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values));
-
-        // non-field errors can be camelcase or snake case
-        const nonFieldErrors =
-          error.responseJSON?.non_field_errors || error.responseJSON?.nonFieldErrors;
-
-        if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
-          addErrorMessage(nonFieldErrors[0], {duration: 10000});
-        }
-      } else {
-        addErrorMessage(t('Unable to redeem promo code'));
-      }
-    },
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {code: ''},
-    validators: {onDynamic: schema},
-    onSubmit: ({value}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: ({value, createValidationError, formApi}) => {
       return mutation
         .mutateAsync(value)
-        .then(() => form.reset())
-        .catch(() => {});
+        .then(() => formApi.reset())
+        .catch(error => {
+          if (error instanceof RequestError) {
+            const fields = requestErrorToFieldErrors(error, value);
+            if (fields) {
+              return createValidationError({fields});
+            }
+
+            // Non-field errors can be camelcase or snake case.
+            const nonFieldErrors =
+              error.responseJSON?.non_field_errors || error.responseJSON?.nonFieldErrors;
+
+            if (Array.isArray(nonFieldErrors) && nonFieldErrors.length) {
+              addErrorMessage(nonFieldErrors[0], {duration: 10000});
+            }
+          } else {
+            addErrorMessage(t('Unable to redeem promo code'));
+          }
+          return;
+        });
     },
   });
 
@@ -99,9 +101,9 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
         <SentryDocumentTitle title={t('Redeem Promo Code')} orgSlug={organization.slug} />
         <SettingsPageHeader title={t('Redeem Promotional Code')} />
         <div className="ref-redeem-code">
-          <form.AppForm form={form}>
+          <ScrapsForm form={form}>
             <form.FieldGroup title={t('Redeem Promotional Code')}>
-              <form.AppField name="code">
+              <form.Field name="code">
                 {field => (
                   <field.Layout.Row
                     label={t('Promotional Code')}
@@ -110,18 +112,15 @@ function RedeemPromoCode({subscription}: {subscription: Subscription}) {
                     )}
                     required
                   >
-                    <field.Input
-                      value={field.state.value}
-                      onChange={field.handleChange}
-                    />
+                    <field.Input value={field.value} onChange={field.handleChange} />
                   </field.Layout.Row>
                 )}
-              </form.AppField>
+              </form.Field>
               <Flex align="center" justify="end">
                 <form.SubmitButton>{t('Redeem')}</form.SubmitButton>
               </Flex>
             </form.FieldGroup>
-          </form.AppForm>
+          </ScrapsForm>
         </div>
       </SubscriptionContext>
     </SubscriptionPageContainer>

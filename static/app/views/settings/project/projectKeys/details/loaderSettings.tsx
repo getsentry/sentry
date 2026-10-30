@@ -164,7 +164,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={sdkVersionChoices.map(([value, label]) => ({
                     value,
@@ -214,7 +214,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     isMutating
@@ -276,7 +276,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     isMutating
@@ -322,7 +322,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     isMutating
@@ -383,7 +383,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
                 }
               >
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     isMutating
@@ -417,7 +417,7 @@ export function LoaderSettings({keyId, orgSlug, project, data, updateData}: Prop
             {field => (
               <field.Layout.Row label={t('Enable SDK debugging')}>
                 <field.Switch
-                  checked={field.state.value}
+                  checked={field.value}
                   onChange={field.handleChange}
                   disabled={
                     isMutating

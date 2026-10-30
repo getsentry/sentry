@@ -119,14 +119,14 @@ export default function ProjectSecurityAndPrivacy() {
                 )}
               >
                 <field.Select
-                  value={field.state.value ?? INHERIT_VALUE}
+                  value={field.value ?? INHERIT_VALUE}
                   onChange={value =>
                     field.handleChange(value === INHERIT_VALUE ? null : value)
                   }
                   disabled={!hasAccess}
                   options={getStoreCrashReportsOptions(
                     organization.storeCrashReports,
-                    field.state.value
+                    field.value
                   )}
                 />
               </field.Layout.Row>
@@ -155,7 +155,7 @@ export default function ProjectSecurityAndPrivacy() {
               hintText={t('Enable server-side data scrubbing')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={getScrubberDisabledReason({
                   orgOverride: Boolean(organization.dataScrubber),
@@ -189,7 +189,7 @@ export default function ProjectSecurityAndPrivacy() {
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={getScrubberDisabledReason({
                   orgOverride: Boolean(organization.dataScrubberDefaults),
@@ -222,7 +222,7 @@ export default function ProjectSecurityAndPrivacy() {
               hintText={t('Preventing IP addresses from being stored for new events')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={getScrubberDisabledReason({
                   orgOverride: Boolean(organization.scrubIPAddresses),
@@ -250,7 +250,7 @@ export default function ProjectSecurityAndPrivacy() {
               )}
             >
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('email')}
                 disabled={!hasAccess}
@@ -279,7 +279,7 @@ export default function ProjectSecurityAndPrivacy() {
               )}
             >
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('business-email')}
                 disabled={!hasAccess}

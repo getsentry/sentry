@@ -11,7 +11,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {
+  AutoSaveForm,
+  useScrapsForm,
+  ScrapsForm,
+  defaultFormValidators,
+} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 
 const schema = z.object({
@@ -30,18 +35,17 @@ function TestForm({
   onSubmit?: (value: {scopes: string[]}) => void;
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {scopes: defaultValue},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => onSubmit(value),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="scopes">
+    <ScrapsForm form={form}>
+      <form.Field name="scopes">
         {field => (
           <field.Checkbox.Group
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
@@ -55,9 +59,9 @@ function TestForm({
             </field.Layout.Stack>
           </field.Checkbox.Group>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Save</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -74,7 +78,7 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn}}
     >
       {field => (
-        <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
+        <field.Checkbox.Group value={field.value} onChange={field.handleChange}>
           <field.Layout.Stack label="Scopes">
             <field.Checkbox.Item value="read">Read</field.Checkbox.Item>
             <field.Checkbox.Item value="write">Write</field.Checkbox.Item>

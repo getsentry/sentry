@@ -2,7 +2,7 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -64,40 +64,39 @@ function RefundVercelRequestModal({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {guid: '', reason: ''},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => mutation.mutateAsync(schema.parse(value)).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>Initiate Vercel Refund</Header>
       <Body>
         <Stack gap="xl">
           <Text>Send request to Vercel to initiate a refund for a given invoice.</Text>
-          <form.AppField name="guid">
+          <form.Field name="guid">
             {field => (
               <field.Layout.Stack label="Invoice GUID" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="invoice guid"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="reason">
+          </form.Field>
+          <form.Field name="reason">
             {field => (
               <field.Layout.Stack label="Reason" required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="reason for refund"
                 />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
         </Stack>
       </Body>
       <Footer>
@@ -106,7 +105,7 @@ function RefundVercelRequestModal({
           <form.SubmitButton>Send Request</form.SubmitButton>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

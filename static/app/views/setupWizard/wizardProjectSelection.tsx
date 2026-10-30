@@ -6,7 +6,12 @@ import {z} from 'zod';
 
 import {OrganizationAvatar} from '@sentry/scraps/avatar';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {
+  useScrapsForm,
+  useSelector,
+  defaultFormValidators,
+  ScrapsForm,
+} from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -105,9 +110,8 @@ export function WizardProjectSelection({
     newProjectTeam: null,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: wizardSchema},
+    validators: defaultFormValidators(wizardSchema),
     onSubmit: async ({value}) => {
       const parsedValue = wizardSchema.parse(value);
       const organization = organizations.find(
@@ -143,8 +147,8 @@ export function WizardProjectSelection({
         .catch(() => {});
     },
   });
-  const selectedOrgId = useStore(form.store, state => state.values.organizationId);
-  const selectedProjectId = useStore(form.store, state => state.values.projectId);
+  const selectedOrgId = useSelector(form.atom, state => state.values.organizationId);
+  const selectedProjectId = useSelector(form.atom, state => state.values.projectId);
   const isCreateProjectSelected = selectedProjectId === CREATE_PROJECT_VALUE;
 
   const selectedOrg = useMemo(
@@ -273,21 +277,24 @@ export function WizardProjectSelection({
   }
 
   const platformField = (
-    <form.AppField
+    <form.Field
       name="newProjectPlatform"
-      validators={{
-        onDynamic: z
-          .string()
-          .nullable()
-          .refine(value => value !== null, t('Select a platform')),
-      }}
+      validators={[
+        {
+          run: z
+            .string()
+            .nullable()
+            .refine(value => value !== null, t('Select a platform')),
+          triggers: ['change'],
+        },
+      ]}
     >
       {field => {
-        const selectedPlatform = field.state.value;
+        const selectedPlatform = field.value;
         return (
           <field.Layout.Stack label={t('Platform')} required>
             <field.CompactSelect
-              value={field.state.value}
+              value={field.value}
               search
               options={platformOptions}
               trigger={triggerProps => (
@@ -310,38 +317,40 @@ export function WizardProjectSelection({
           </field.Layout.Stack>
         );
       }}
-    </form.AppField>
+    </form.Field>
   );
 
   const projectNameField = (
-    <form.AppField
+    <form.Field
       name="newProjectName"
-      validators={{onDynamic: z.string().min(1, t('Enter a project slug'))}}
+      validators={[
+        {run: z.string().min(1, t('Enter a project slug')), triggers: ['change']},
+      ]}
     >
       {field => (
         <field.Layout.Stack label={t('Project Slug')} required>
           <field.Input
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             placeholder={t('Enter a project slug')}
           />
         </field.Layout.Stack>
       )}
-    </form.AppField>
+    </form.Field>
   );
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="xl">
         <Heading as="h5" size="xl">
           {t('Select your Sentry project')}
         </Heading>
-        <form.AppField name="organizationId">
+        <form.Field name="organizationId">
           {field => (
             <field.Layout.Stack label={t('Organization')} required>
               <field.CompactSelect
                 autoFocus
-                value={field.state.value}
+                value={field.value}
                 search
                 options={orgOptions}
                 trigger={triggerProps => (
@@ -372,8 +381,8 @@ export function WizardProjectSelection({
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
-        <form.AppField name="projectId">
+        </form.Field>
+        <form.Field name="projectId">
           {field => (
             <field.Layout.Stack label={t('Project')} required>
               {orgProjectsRequest.error instanceof RequestError ? (
@@ -388,7 +397,7 @@ export function WizardProjectSelection({
                   search={{onChange: setSearch}}
                   onClose={() => setSearch('')}
                   disabled={!selectedOrgId}
-                  value={field.state.value}
+                  value={field.value}
                   options={sortedProjectOptions}
                   trigger={triggerProps => (
                     <OverlayTrigger.Button
@@ -435,7 +444,7 @@ export function WizardProjectSelection({
               )}
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
         {isCreateProjectSelected &&
           (isOrgMemberWithNoAccess ? (
             <Fragment>
@@ -447,23 +456,26 @@ export function WizardProjectSelection({
               {!platformParam && platformField}
               <Grid columns={{zero: '1fr', sm: '1fr 1fr'}} gap="xl">
                 {projectNameField}
-                <form.AppField
+                <form.Field
                   name="newProjectTeam"
-                  validators={{
-                    onDynamic: z
-                      .string()
-                      .nullable()
-                      .refine(value => value !== null, t('Select a team')),
-                  }}
+                  validators={[
+                    {
+                      run: z
+                        .string()
+                        .nullable()
+                        .refine(value => value !== null, t('Select a team')),
+                      triggers: ['change'],
+                    },
+                  ]}
                 >
                   {field => {
                     const selectedTeam = selectableTeams?.find(
-                      team => team.slug === field.state.value
+                      team => team.slug === field.value
                     );
                     return (
                       <field.Layout.Stack label={t('Team')} required>
                         <field.CompactSelect
-                          value={field.state.value}
+                          value={field.value}
                           options={
                             selectableTeams?.map(team => ({
                               value: team.slug,
@@ -491,7 +503,7 @@ export function WizardProjectSelection({
                       </field.Layout.Stack>
                     );
                   }}
-                </form.AppField>
+                </form.Field>
               </Grid>
             </Fragment>
           ))}
@@ -499,6 +511,6 @@ export function WizardProjectSelection({
           <form.SubmitButton>{t('Continue')}</form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }

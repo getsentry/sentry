@@ -6,13 +6,13 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useFieldId, useHintTextId, useLabelId} from './fieldIds';
-import {useFieldContext} from './formContext';
+import {getFieldId, getHintTextId, getLabelId} from './fieldIds';
+import {fieldComponent, type FieldWithValue} from './formHelpers';
 import {useGroupContext} from './groupContext';
 import {RequiredIndicator, Warning} from './icons';
 
-function HintText(props: {children: React.ReactNode}) {
-  const id = useHintTextId();
+function HintText(props: {children: React.ReactNode; field: FieldWithValue<unknown>}) {
+  const id = getHintTextId(props.field);
 
   return (
     <Container width="fit-content">
@@ -27,12 +27,13 @@ function HintText(props: {children: React.ReactNode}) {
 
 function Label(props: {
   children: React.ReactNode;
+  field: FieldWithValue<unknown>;
   description?: React.ReactNode;
   required?: boolean;
 }) {
-  const fieldId = useFieldId();
-  const hintTextId = useHintTextId();
-  const labelId = useLabelId();
+  const fieldId = getFieldId(props.field);
+  const hintTextId = getHintTextId(props.field);
+  const labelId = getLabelId(props.field);
   const isGroup = useGroupContext();
 
   const labelContent = props.description ? (
@@ -71,14 +72,18 @@ function Label(props: {
   );
 }
 
-function FieldStatus({disabled, error}: {disabled?: boolean | string; error?: string}) {
-  const field = useFieldContext();
-
+function FieldStatus({
+  disabled,
+  error,
+  field,
+}: {
+  field: FieldWithValue<unknown>;
+  disabled?: boolean | string;
+  error?: string;
+}) {
   const errorMessage =
     error ??
-    (field.state.meta.isValid
-      ? undefined
-      : field.state.meta.errors.map((e: Error | undefined) => e?.message).join(','));
+    (field.meta.isValid ? undefined : field.errors.map(e => e.message).join(','));
 
   if (errorMessage) {
     return (
@@ -101,6 +106,6 @@ export function FieldMeta() {
   return null;
 }
 
-FieldMeta.Label = Label;
-FieldMeta.HintText = HintText;
-FieldMeta.Status = FieldStatus;
+FieldMeta.Label = fieldComponent.loose(Label, 'field');
+FieldMeta.HintText = fieldComponent.loose(HintText, 'field');
+FieldMeta.Status = fieldComponent.loose(FieldStatus, 'field');

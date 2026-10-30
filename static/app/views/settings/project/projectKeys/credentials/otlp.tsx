@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {z} from 'zod';
 
 import {CodeBlock} from '@sentry/scraps/code';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -48,7 +48,6 @@ export function OtlpTab({
   ].join('\n');
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       otlpEndpoint: `${integrationEndpoint}otlp`,
       logsEndpoint,
@@ -56,13 +55,13 @@ export function OtlpTab({
       tracesEndpoint,
       tracesHeaders: headers,
     },
-    validators: {onChange: otlpSchema},
+    validators: defaultFormValidators(otlpSchema),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <FieldList>
-        <form.AppField name="otlpEndpoint">
+        <form.Field name="otlpEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Endpoint')}
@@ -71,15 +70,15 @@ export function OtlpTab({
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="logsEndpoint">
+        <form.Field name="logsEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Logs Endpoint')}
@@ -95,15 +94,15 @@ export function OtlpTab({
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="logsHeaders">
+        <form.Field name="logsHeaders">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Logs Endpoint Headers')}
@@ -114,15 +113,15 @@ export function OtlpTab({
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="tracesEndpoint">
+        <form.Field name="tracesEndpoint">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Traces Endpoint')}
@@ -138,15 +137,15 @@ export function OtlpTab({
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="tracesHeaders">
+        <form.Field name="tracesHeaders">
           {field => (
             <field.Layout.Stack
               label={t('OTLP Traces Endpoint Headers')}
@@ -157,13 +156,13 @@ export function OtlpTab({
               <field.Input
                 readOnly
                 dir="ltr"
-                value={field.state.value}
+                value={field.value}
                 onClick={event => selectText(event.currentTarget)}
-                trailingItems={<InputCopyButton text={field.state.value} />}
+                trailingItems={<InputCopyButton text={field.value} />}
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Stack
           gap="md"
@@ -181,7 +180,7 @@ export function OtlpTab({
           </Text>
         </Stack>
       </FieldList>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

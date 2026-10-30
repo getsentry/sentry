@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 interface TestFormProps {
   defaultValue?: string;
@@ -10,24 +10,23 @@ interface TestFormProps {
 
 function TestForm({defaultValue = '', disabled, label = 'Password'}: TestFormProps) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {password: defaultValue},
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="password">
+    <ScrapsForm form={form}>
+      <form.Field name="password">
         {field => (
           <field.Layout.Row label={label}>
             <field.Password
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               disabled={disabled}
             />
           </field.Layout.Row>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 

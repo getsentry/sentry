@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
@@ -10,10 +11,16 @@ import type {
   SelectValue,
 } from '@sentry/scraps/select';
 
-import {BaseField, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, useAutoSaveIndicator, type BaseFieldProps} from './baseField';
 
-function SelectIndicatorsContainer({children}: {children: React.ReactNode}) {
-  const indicator = useAutoSaveIndicator();
+function SelectIndicatorsContainer({
+  children,
+  field,
+}: {
+  children: React.ReactNode;
+  field: FieldWithValue<unknown>;
+}) {
+  const indicator = useAutoSaveIndicator(field);
   return (
     <Flex padding="0 sm" gap="sm" align="center">
       {indicator}
@@ -41,6 +48,7 @@ export function SelectField<
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
 >({
+  field,
   onChange,
   disabled,
   multiple,
@@ -48,7 +56,9 @@ export function SelectField<
   value,
   ref,
   ...props
-}: SelectFieldProps<TValue, TOption>) {
+}: SelectFieldProps<TValue, TOption> & {
+  field: FieldWithValue<unknown>;
+}) {
   const autoSaveContext = useAutoSaveContext();
   const selectVariantProps = multiple
     ? {multiple: true as const, clearable, value}
@@ -60,7 +70,7 @@ export function SelectField<
   const isMenuOpenRef = useRef(false);
 
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {({id, ref: fieldRef, ...fieldProps}) => (
         <Container flex={1} minWidth={0}>
           <Select
@@ -70,7 +80,12 @@ export function SelectField<
             id={id}
             inputRef={fieldRef}
             blurInputOnSelect={false}
-            components={{...props.components, Indicators: SelectIndicatorsContainer}}
+            components={{
+              ...props.components,
+              Indicators: indicatorProps => (
+                <SelectIndicatorsContainer {...indicatorProps} field={field} />
+              ),
+            }}
             onOpenChange={isOpen => {
               isMenuOpenRef.current = isOpen;
               props.onOpenChange?.(isOpen);
@@ -105,6 +120,17 @@ export function SelectField<
           />
         </Container>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }
+
+type SelectLooseField = <
+  TValue,
+  TOption extends SelectValue<TValue> = SelectValue<TValue>,
+>(
+  props: SelectFieldProps<TValue, TOption>
+) => React.ReactNode;
+export const SelectLooseField = fieldComponent.loose(
+  SelectField,
+  'field'
+) as SelectLooseField;

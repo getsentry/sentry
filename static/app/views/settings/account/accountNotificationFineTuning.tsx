@@ -84,7 +84,7 @@ function AccountNotificationsByProject({
                     }
                   >
                     <field.Select
-                      value={field.state.value}
+                      value={field.value}
                       onChange={field.handleChange}
                       options={emailChoices}
                     />

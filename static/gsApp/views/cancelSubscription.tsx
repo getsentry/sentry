@@ -6,7 +6,12 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
+import {
+  useScrapsForm,
+  useSelector,
+  defaultFormValidators,
+  ScrapsForm,
+} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
@@ -136,9 +141,8 @@ function CancelSubscriptionForm() {
     checkboxes: {},
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: cancellationSchema},
+    validators: defaultFormValidators(cancellationSchema),
     onSubmit: ({value}) =>
       mutation
         .mutateAsync({
@@ -148,8 +152,8 @@ function CancelSubscriptionForm() {
         })
         .catch(() => {}),
   });
-  const selectedReason = useStore(form.store, state => state.values.reason);
-  const checkboxes = useStore(form.store, state => state.values.checkboxes);
+  const selectedReason = useSelector(form.atom, state => state.values.reason);
+  const checkboxes = useSelector(form.atom, state => state.values.checkboxes);
 
   if (isPending || !subscription) {
     return <LoadingIndicator />;
@@ -217,16 +221,16 @@ function CancelSubscriptionForm() {
         <PanelHeader>{t('Cancellation Reason')}</PanelHeader>
 
         <PanelBody>
-          <form.AppForm form={form}>
+          <ScrapsForm form={form}>
             <Stack gap="xl" padding="xl" paddingBottom="2xl">
               <Text as="span">
                 {t('Please help us understand why you are cancelling')}
               </Text>
-              <form.AppField name="reason">
+              <form.Field name="reason">
                 {field => (
                   <Container width="fit-content" maxWidth="100%">
                     <field.Radio.Group
-                      value={field.state.value}
+                      value={field.value}
                       onChange={val => {
                         field.handleChange(val);
                         form.setFieldValue('followup', '');
@@ -273,23 +277,23 @@ function CancelSubscriptionForm() {
                     </field.Radio.Group>
                   </Container>
                 )}
-              </form.AppField>
+              </form.Field>
               {selectedReason && (
-                <form.AppField
+                <form.Field
                   name="followup"
-                  validators={{
-                    onDynamic: z.string().trim().min(1, t('Please provide more details')),
-                  }}
+                  validators={[
+                    {
+                      run: z.string().trim().min(1, t('Please provide more details')),
+                      triggers: ['change'],
+                    },
+                  ]}
                 >
                   {field => (
                     <field.Layout.Stack label={followup} required>
-                      <field.TextArea
-                        value={field.state.value}
-                        onChange={field.handleChange}
-                      />
+                      <field.TextArea value={field.value} onChange={field.handleChange} />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
             </Stack>
 
@@ -305,7 +309,7 @@ function CancelSubscriptionForm() {
                 {t('Cancel Subscription')}
               </form.SubmitButton>
             </Flex>
-          </form.AppForm>
+          </ScrapsForm>
         </PanelBody>
       </Panel>
     </Fragment>

@@ -87,7 +87,7 @@ export function SnapshotPrCommentsToggle() {
               'Sentry will post snapshot comparison results as comments on pull requests.'
             )}
           >
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -104,10 +104,7 @@ export function SnapshotPrCommentsToggle() {
             >
               {field => (
                 <field.Layout.Row label={label} hintText={hintText}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
             </AutoSaveForm>

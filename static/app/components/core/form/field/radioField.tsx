@@ -1,9 +1,9 @@
 import {useId} from 'react';
 
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {
   useAutoSaveContext,
-  useFieldContext,
-  useLabelId,
+  getLabelId,
   GroupProvider,
   useGroupItemContext,
   type GroupContextValue,
@@ -18,16 +18,16 @@ import {useAutoSaveIndicator} from './baseField';
 // Radio.Group component
 interface RadioGroupProps {
   children: React.ReactNode;
+  field: FieldWithValue<unknown>;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
-  const field = useFieldContext();
-  const labelId = useLabelId();
+function RadioGroup({children, value, onChange, disabled, field}: RadioGroupProps) {
+  const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
+  const indicator = useAutoSaveIndicator(field);
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
@@ -45,7 +45,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps) {
     },
     onBlur: field.handleBlur,
     disabled: isDisabled,
-    'aria-invalid': !field.state.meta.isValid,
+    'aria-invalid': !field.meta.isValid,
   };
 
   return (
@@ -96,5 +96,5 @@ export function RadioField() {
   return null;
 }
 
-RadioField.Group = RadioGroup;
+RadioField.Group = fieldComponent.loose(RadioGroup, 'field');
 RadioField.Item = RadioItem;

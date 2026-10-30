@@ -309,7 +309,7 @@
     "@rslib/core": "1.0.3",
     "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
-    "@tanstack/react-form": "1.28.6",
+    "@tanstack/react-form": "2.0.0-alpha.2",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
@@ -327,7 +327,7 @@
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
-    "@tanstack/react-form": "^1.28.6",
+    "@tanstack/react-form": "2.0.0-alpha.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

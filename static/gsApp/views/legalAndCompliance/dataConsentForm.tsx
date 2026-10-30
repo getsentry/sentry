@@ -82,7 +82,7 @@ export function DataConsentForm({subscription}: {subscription: Subscription}) {
             )}
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={disabled}
             />

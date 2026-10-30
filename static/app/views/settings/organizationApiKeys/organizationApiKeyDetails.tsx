@@ -2,7 +2,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -103,36 +103,31 @@ function OrganizationApiKeyForm({
     allowed_origins: apiKey.allowed_origins,
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: apiKeySchema},
+    validators: defaultFormValidators(apiKeySchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <form.FieldGroup title={t('API Key')}>
-        <form.AppField name="label">
+        <form.Field name="label">
           {field => (
             <field.Layout.Row label={t('Label')}>
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Row>
           )}
-        </form.AppField>
-        <form.AppField name="key">
+        </form.Field>
+        <form.Field name="key">
           {field => (
             <field.Layout.Row label={t('API Key')}>
-              <field.Input
-                value={field.state.value}
-                onChange={field.handleChange}
-                disabled
-              />
+              <field.Input value={field.value} onChange={field.handleChange} disabled />
             </field.Layout.Row>
           )}
-        </form.AppField>
-        <form.AppField name="scope_list">
+        </form.Field>
+        <form.Field name="scope_list">
           {field => (
-            <field.Checkbox.Group value={field.state.value} onChange={field.handleChange}>
+            <field.Checkbox.Group value={field.value} onChange={field.handleChange}>
               <field.Layout.Stack label={t('Scopes')} required>
                 <Grid
                   columns={{
@@ -152,27 +147,27 @@ function OrganizationApiKeyForm({
               </field.Layout.Stack>
             </field.Checkbox.Group>
           )}
-        </form.AppField>
-        <form.AppField name="allowed_origins">
+        </form.Field>
+        <form.Field name="allowed_origins">
           {field => (
             <field.Layout.Row
               label={t('Allowed Domains')}
               hintText={t('Separate multiple entries with a newline')}
             >
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder={t('e.g. example.com or https://example.com')}
               />
             </field.Layout.Row>
           )}
-        </form.AppField>
+        </form.Field>
         <Flex gap="sm" justify="end">
           <Button onClick={handleCancel}>{t('Cancel')}</Button>
           <form.SubmitButton>{t('Save Changes')}</form.SubmitButton>
         </Flex>
       </form.FieldGroup>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

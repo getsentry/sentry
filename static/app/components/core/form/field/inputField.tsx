@@ -1,7 +1,8 @@
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 
-import {BaseField, type BaseFieldProps} from './baseField';
+import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 interface SharedInputFieldProps
   extends
@@ -46,15 +47,16 @@ export type InputFieldProps = SharedInputFieldProps &
   );
 
 export function InputField({
+  field,
   onChange,
   disabled,
   leadingItems,
   trailingItems,
   ref,
   ...props
-}: InputFieldProps) {
+}: InputFieldProps & {field: FieldWithValue<unknown>}) {
   return (
-    <BaseField disabled={disabled} ref={ref}>
+    <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (
         <InputGroup style={{flex: 1}}>
           {leadingItems && (
@@ -71,6 +73,6 @@ export function InputField({
           </InputGroup.TrailingItems>
         </InputGroup>
       )}
-    </BaseField>
+    </BaseFieldImpl>
   );
 }

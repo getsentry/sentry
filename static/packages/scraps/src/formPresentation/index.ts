@@ -1,15 +1,9 @@
 export {AutoSaveContextProvider, useAutoSaveContext} from './autoSaveContext';
 export {DisplayField} from './displayField';
-export {useFieldId, useHintTextId, useLabelId} from './fieldIds';
+export {getFieldId, getHintTextId, getLabelId} from './fieldIds';
 export {GroupProvider, useGroupItemContext, type GroupContextValue} from './groupContext';
+export {fieldComponent, type FieldWithValue} from './formHelpers';
 export {FieldMeta} from './meta';
-export {
-  fieldContext,
-  formContext,
-  useFormContext,
-  useFieldContext,
-  FormElementContext,
-  useIsInsideFormElement,
-} from './formContext';
+export {FormElementContext, useIsInsideFormElement} from './formContext';
 export {Checkmark, Spinner} from './icons';
 export {FieldLayout} from './fieldLayout';
