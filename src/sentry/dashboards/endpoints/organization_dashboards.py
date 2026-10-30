@@ -41,6 +41,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.fields.text import CharField
 from sentry.locks import locks
@@ -479,12 +480,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             if has_dashboards_starred:
                 try:
                     favorite_lock = locks.get(
-                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{request.user.id}",
+                        f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{require_user(request).id}",
                         duration=10,
                         name="sync_prebuilt_dashboards_favorited",
                     )
                     with favorite_lock.acquire():
-                        sync_prebuilt_dashboards_favorited(organization, request.user.id)
+                        sync_prebuilt_dashboards_favorited(organization, require_user(request).id)
                 except UnableToAcquireLock:
                     pass
                 except Exception as err:
@@ -496,12 +497,12 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         for f in filters:
             if f == "onlyFavorites":
                 dashboards = dashboards.filter(
-                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__user_id=require_user(request).id,
                     dashboardfavoriteuser__favorited=True,
                 )
             elif f == "excludeFavorites":
                 dashboards = dashboards.exclude(
-                    dashboardfavoriteuser__user_id=request.user.id,
+                    dashboardfavoriteuser__user_id=require_user(request).id,
                     dashboardfavoriteuser__favorited=True,
                 )
             elif f == "owned":
@@ -556,7 +557,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             dashboards = dashboards.annotate(
                 user_last_visited=Subquery(
                     DashboardLastVisited.objects.filter(
-                        user_id=request.user.id,
+                        user_id=require_user(request).id,
                         dashboard_id=OuterRef("id"),
                     ).values("last_visited")[:1]
                 )
@@ -632,7 +633,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
         elif "onlyFavorites" in filters and has_dashboards_starred:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
-                organization, request.user.id
+                organization, require_user(request).id
             ).filter(dashboard_id=OuterRef("id"))
             dashboards = dashboards.annotate(
                 favorite_position=Subquery(favorite_dashboards.values("position")[:1])
@@ -649,7 +650,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         pin_by = request.query_params.get("pin")
         if pin_by == "favorites":
             favorited_by_subquery = DashboardFavoriteUser.objects.filter(
-                dashboard=OuterRef("pk"), user_id=request.user.id, favorited=True
+                dashboard=OuterRef("pk"), user_id=require_user(request).id, favorited=True
             )
 
             order_by_favorites = [

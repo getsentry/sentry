@@ -26,6 +26,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.explore_saved_query_examples import ExploreExamples
 from sentry.apidocs.parameters import ExploreSavedQueryParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import require_user
 from sentry.explore.endpoints.bases import ExploreSavedQueryPermission
 from sentry.explore.endpoints.serializers import ExploreSavedQuerySerializer
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryLastVisited
@@ -202,7 +203,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
         ExploreSavedQueryLastVisited.objects.update_or_create(
             organization=organization,
-            user_id=request.user.id,
+            user_id=require_user(request).id,
             explore_saved_query=query,
             defaults={"last_visited": timezone.now()},
         )

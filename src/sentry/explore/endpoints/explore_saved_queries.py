@@ -29,7 +29,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.explore.endpoints.bases import (
     ExploreSavedQueryPermission,
     filter_to_accessible_explore_queries,
@@ -362,7 +362,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         try:
             lock = locks.get(
-                f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                f"explore:sync_prebuilt_queries:{organization.id}:{require_user(request).id}",
                 duration=10,
                 name="sync_prebuilt_queries",
             )
@@ -406,7 +406,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         last_visited_query = Subquery(
             ExploreSavedQueryLastVisited.objects.filter(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 explore_saved_query_id=OuterRef("id"),
             ).values("last_visited")[:1]
         )
@@ -459,7 +459,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                         is_starred=Exists(
                             ExploreSavedQueryStarred.objects.filter(
                                 explore_saved_query_id=OuterRef("id"),
-                                user_id=request.user.id,
+                                user_id=require_user(request).id,
                                 starred=True,
                             )
                         )
@@ -485,14 +485,14 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             queryset = (
                 queryset.filter(
                     id__in=ExploreSavedQueryStarred.objects.filter(
-                        organization=organization, user_id=request.user.id, starred=True
+                        organization=organization, user_id=require_user(request).id, starred=True
                     ).values_list("explore_saved_query_id", flat=True)
                 )
                 .annotate(
                     position=Subquery(
                         ExploreSavedQueryStarred.objects.filter(
                             explore_saved_query_id=OuterRef("id"),
-                            user_id=request.user.id,
+                            user_id=require_user(request).id,
                             starred=True,
                         ).values("position")[:1]
                     )

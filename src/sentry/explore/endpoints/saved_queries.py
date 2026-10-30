@@ -46,6 +46,7 @@ from sentry.apidocs.parameters import (
     VisibilityParams,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.discover.endpoints.bases import filter_to_accessible_discover_queries
 from sentry.discover.models import (
     DiscoverSavedQuery,
@@ -386,7 +387,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
         # Explore has prebuilt queries that are created and starred lazily on read.
         try:
             lock = locks.get(
-                f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                f"explore:sync_prebuilt_queries:{organization.id}:{require_user(request).id}",
                 duration=10,
                 name="sync_prebuilt_queries",
             )
@@ -428,12 +429,12 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
         if starred_only:
             discover_queryset = discover_queryset.filter(
                 id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
+                    organization=organization, user_id=require_user(request).id, starred=True
                 ).values_list("discover_saved_query_id", flat=True)
             )
             explore_queryset = explore_queryset.filter(
                 id__in=ExploreSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
+                    organization=organization, user_id=require_user(request).id, starred=True
                 ).values_list("explore_saved_query_id", flat=True)
             )
 
@@ -443,7 +444,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
             request.query_params.getlist("sortBy"),
             starred_only=starred_only,
             organization=organization,
-            user_id=request.user.id,
+            user_id=require_user(request).id,
         )
 
         def data_fn(offset, limit):

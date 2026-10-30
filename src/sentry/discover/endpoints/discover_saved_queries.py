@@ -38,7 +38,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import acting_user_id, has_user, require_user
 from sentry.discover.endpoints.bases import (
     DiscoverSavedQueryPermission,
     filter_to_accessible_discover_queries,
@@ -130,7 +130,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             last_visited_query = Subquery(
                 DiscoverSavedQueryLastVisited.objects.filter(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     discover_saved_query_id=OuterRef("id"),
                 ).values("last_visited")[:1]
             )
@@ -264,7 +264,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         try:
             if request.user.is_authenticated and request.data.get("starred"):
                 DiscoverSavedQueryStarred.objects.insert_starred_query(
-                    organization, request.user.id, model, starred=True
+                    organization, require_user(request).id, model, starred=True
                 )
         except Exception as err:
             sentry_sdk.capture_exception(err)

@@ -35,6 +35,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import require_user
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import (
     Dashboard,
@@ -288,7 +289,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
             and request.user.is_authenticated
         ):
             DashboardLastVisited.objects.update_or_create(
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 dashboard=dashboard,
                 defaults={"last_visited": timezone.now()},
             )
@@ -332,23 +333,23 @@ class OrganizationDashboardFavoriteEndpoint(OrganizationDashboardBase):
             if should_favorite:
                 DashboardFavoriteUser.objects.insert_favorite_dashboard(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     dashboard=dashboard,
                 )
             else:
                 DashboardFavoriteUser.objects.unfavorite_dashboard(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     dashboard=dashboard,
                 )
             return Response(status=204)
 
         current_favorites = set(dashboard.favorited_by)
 
-        if should_favorite and request.user.id not in current_favorites:
-            current_favorites.add(request.user.id)
-        elif not should_favorite and request.user.id in current_favorites:
-            current_favorites.remove(request.user.id)
+        if should_favorite and require_user(request).id not in current_favorites:
+            current_favorites.add(require_user(request).id)
+        elif not should_favorite and require_user(request).id in current_favorites:
+            current_favorites.remove(require_user(request).id)
         else:
             return Response(status=204)
 
