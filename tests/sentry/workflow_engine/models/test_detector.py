@@ -14,6 +14,7 @@ from sentry.models.project import Project
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
@@ -299,16 +300,28 @@ def test_registry_only_detector_validates_config(
 def test_group_type_without_detector_registration_is_rejected(detector_type: str) -> None:
     detector = Detector(type=detector_type, config={})
 
-    with pytest.raises(ValueError, match=f"Detector type '{detector_type}' not registered"):
-        detector.enforce_config_schema()
+    with patch("sentry.workflow_engine.models.detector.logger") as logger:
+        with pytest.raises(
+            ValueError, match=f"Detector type '{detector_type}' not registered"
+        ) as error:
+            detector.enforce_config_schema()
+        assert type(error.value.__cause__) is ValueError
+        logger.exception.assert_not_called()
 
 
 def test_enum_member_without_settings_is_rejected() -> None:
-    with patch.dict(detector_settings_registry.registrations):
+    with (
+        patch.dict(detector_settings_registry.registrations),
+        patch("sentry.workflow_engine.models.detector.logger") as logger,
+    ):
         del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
         detector = Detector(type=DetectorType.METRIC_ISSUE, config={})
-        with pytest.raises(ValueError, match="Detector type 'metric_issue' not registered"):
+        with pytest.raises(
+            ValueError, match="Detector type 'metric_issue' not registered"
+        ) as error:
             detector.enforce_config_schema()
+        assert isinstance(error.value.__cause__, NoRegistrationExistsError)
+        logger.exception.assert_not_called()
 
 
 def test_type_outside_enum_is_rejected_even_if_settings_exist() -> None:
@@ -333,12 +346,37 @@ def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
         with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
             _ = detector.settings
         logger.exception.assert_called_once_with(
-            "Existing detector has a type outside DetectorType or missing settings",
+            "Existing detector has a type outside DetectorType",
             extra={"detector_id": detector.id, "detector_type": "legacy_unknown_type"},
         )
 
         with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
             detector.save()
+
+
+@django_db_all
+def test_stored_detector_with_missing_settings_is_reported(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
+
+    with (
+        patch.dict(detector_settings_registry.registrations),
+        patch("sentry.workflow_engine.models.detector.logger") as logger,
+    ):
+        del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
+        detector = Detector.objects.get(id=detector.id)
+        logger.exception.assert_not_called()
+
+        with pytest.raises(
+            ValueError, match="Detector type 'metric_issue' not registered"
+        ) as error:
+            _ = detector.settings
+        assert isinstance(error.value.__cause__, NoRegistrationExistsError)
+        logger.exception.assert_called_once_with(
+            "Existing detector's DetectorType has no registered settings",
+            extra={"detector_id": detector.id, "detector_type": "metric_issue"},
+        )
 
 
 @django_db_all

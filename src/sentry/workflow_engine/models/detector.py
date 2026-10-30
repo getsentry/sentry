@@ -21,6 +21,7 @@ from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupType
 from sentry.models.owner_base import OwnerModel
 from sentry.utils.cache import cache
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import DataCondition
 from sentry.workflow_engine.registry import detector_settings_registry, get_detector_type_filters
 from sentry.workflow_engine.types import DetectorSettings, DetectorType
@@ -203,12 +204,22 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
     @property
     def settings(self) -> builtins.type[DetectorSettings]:
         try:
-            return detector_settings_registry.get(DetectorType(self.type))
+            detector_type = DetectorType(self.type)
         except ValueError as exc:
             # Report unexpected types on existing detectors; new instances only raise.
             if not self._state.adding:
                 logger.exception(
-                    "Existing detector has a type outside DetectorType or missing settings",
+                    "Existing detector has a type outside DetectorType",
+                    extra={"detector_id": self.id, "detector_type": self.type},
+                )
+            raise ValueError(f"Detector type '{self.type}' not registered") from exc
+
+        try:
+            return detector_settings_registry.get(detector_type)
+        except NoRegistrationExistsError as exc:
+            if not self._state.adding:
+                logger.exception(
+                    "Existing detector's DetectorType has no registered settings",
                     extra={"detector_id": self.id, "detector_type": self.type},
                 )
             raise ValueError(f"Detector type '{self.type}' not registered") from exc
