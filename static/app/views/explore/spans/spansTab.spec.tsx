@@ -6,6 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   act,
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -198,7 +199,8 @@ describe('SpansTabContent', () => {
     localStorage.removeItem('explore-spans-toolbar');
   });
 
-  it('disables saving when a hidden sibling has transformations and restores it after clearing', async () => {
+  it('allows query saves when a hidden sibling has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: Wrapper});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [], meta: {fields: {}, units: {}, dataScanned: 'full'}},
@@ -226,16 +228,26 @@ describe('SpansTabContent', () => {
       }
     );
 
-    expect(await screen.findByRole('button', {name: 'Save as'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(await screen.findByRole('button', {name: 'Save as'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Chart actions'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitemradio', {name: 'Dashboard widget'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     act(() => {
       router.navigate('/organizations/org-slug/explore/traces/');
