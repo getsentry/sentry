@@ -47,21 +47,25 @@ type SaveMutationOptions = UseMutationOptions<
 const projectMappingsSchema = z.array(z.tuple([z.number(), z.string()]));
 
 const projectMappingsFieldSchema = z.object({
-  mappedDropdown: z.object({
-    items: z.array(
-      z.object({label: z.string(), value: z.string(), url: z.string().optional()})
-    ),
-  }),
-  sentryProjects: z.array(
-    z.object({
-      id: z.number(),
-      slug: z.string(),
-      platform: z
-        .custom<PlatformKey>(value => typeof value === 'string')
-        .nullish()
-        .transform(platform => platform ?? undefined),
+  mappedDropdown: z
+    .object({
+      items: z.array(
+        z.object({label: z.string(), value: z.string(), url: z.string().nullish()})
+      ),
     })
-  ),
+    .default({items: []}),
+  sentryProjects: z
+    .array(
+      z.object({
+        id: z.number(),
+        slug: z.string(),
+        platform: z
+          .custom<PlatformKey>(value => typeof value === 'string')
+          .nullish()
+          .transform(platform => platform ?? undefined),
+      })
+    )
+    .default([]),
 });
 
 type ProjectMappingsField = z.infer<typeof projectMappingsFieldSchema>;

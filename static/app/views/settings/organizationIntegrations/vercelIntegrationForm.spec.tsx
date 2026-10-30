@@ -28,6 +28,7 @@ const projectMappingsField = {
       {value: 'proj-1', label: 'my-vercel-project', url: 'https://vercel.com/proj-1'},
       {value: 'proj-2', label: 'another-project', url: 'https://vercel.com/proj-2'},
       {value: 'proj-3', label: 'third-project', url: 'https://vercel.com/proj-3'},
+      {value: 'proj-4', label: 'no-url-project', url: null},
     ],
   },
   sentryProjects: [
@@ -101,6 +102,15 @@ describe('VercelIntegrationForm', () => {
     expect(screen.getByText('sentry-backend')).toBeInTheDocument();
     expect(screen.getAllByRole('button', {name: 'Unlink'})).toHaveLength(2);
     expect(screen.queryByText('No linked projects')).not.toBeInTheDocument();
+  });
+
+  it('renders a Vercel project without a URL', () => {
+    renderForm([[101, 'proj-4']]);
+
+    expect(screen.getByText('no-url-project')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open no-url-project'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows "Not found" for an unknown Vercel project', () => {
