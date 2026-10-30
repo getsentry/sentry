@@ -48,8 +48,9 @@ class SearchAgentStartDocs(APIDocsTestCase):
 )
 class SearchAgentStateDocs(APIDocsTestCase):
     def setUp(self) -> None:
+        # The state endpoint only returns runs owned by the caller.
         self.seer_run = self.create_seer_run(
-            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=12345
+            type=SeerRunType.ASSISTED_QUERY, seer_run_state_id=12345, user_id=self.user.id
         )
         self.url = reverse(
             "sentry-api-0-search-agent-state",
