@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {useMemo, type ReactNode} from 'react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -13,8 +13,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
 import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {ScrubbedPlaceholdersProvider} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
+import {
+  getScrubbedPlaceholders,
+  NO_SCRUBBED_PLACEHOLDERS,
+} from 'sentry/views/insights/pages/agents/utils/scrubbedPlaceholders';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
 interface MessageToolCallsProps {
@@ -136,6 +141,11 @@ interface ToolCallRowProps {
 
 function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   const organization = useOrganization();
+  // The preview shows the tool span's own arguments, not the turn's messages.
+  const placeholders = useMemo(
+    () => (node ? getScrubbedPlaceholders(node) : NO_SCRUBBED_PLACEHOLDERS),
+    [node]
+  );
 
   const selectTool = () => {
     trackAnalytics('conversations.message.click-tool-call', {
@@ -147,24 +157,26 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   };
 
   return (
-    <TranscriptSpanRow
-      node={node}
-      isSelected={isSelected}
-      ariaLabel={t('Select tool call %s', tool.name)}
-      onSelect={selectTool}
-      tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
-      preview={node ? getToolInputPreview(node) : null}
-      meta={
-        <TurnMeta
-          metric={node ? <ToolOutputSize node={node} /> : null}
-          duration={
-            tool.duration === undefined || tool.duration <= 0 ? null : (
-              <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
-            )
-          }
-        />
-      }
-    />
+    <ScrubbedPlaceholdersProvider value={placeholders}>
+      <TranscriptSpanRow
+        node={node}
+        isSelected={isSelected}
+        ariaLabel={t('Select tool call %s', tool.name)}
+        onSelect={selectTool}
+        tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
+        preview={node ? getToolInputPreview(node) : null}
+        meta={
+          <TurnMeta
+            metric={node ? <ToolOutputSize node={node} /> : null}
+            duration={
+              tool.duration === undefined || tool.duration <= 0 ? null : (
+                <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
+              )
+            }
+          />
+        }
+      />
+    </ScrubbedPlaceholdersProvider>
   );
 }
 

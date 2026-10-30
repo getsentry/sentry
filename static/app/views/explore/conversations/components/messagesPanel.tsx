@@ -30,6 +30,10 @@ import {
   NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {
+  ScrubbedPlaceholdersProvider,
+  ScrubbedText,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getNumberAttr,
@@ -40,6 +44,11 @@ import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/u
 import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {getExtractionPreview} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getMemoryPreview} from 'sentry/views/insights/pages/agents/utils/memory';
+import {
+  getScrubbedPlaceholders,
+  NO_SCRUBBED_PLACEHOLDERS,
+  type ScrubbedPlaceholders,
+} from 'sentry/views/insights/pages/agents/utils/scrubbedPlaceholders';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
@@ -89,6 +98,15 @@ export function MessagesPanel({
     return map;
   }, [nodes]);
 
+  // Read from the nodes as stored, since the transcript moves messages between them.
+  const placeholdersByNodeId = useMemo(() => {
+    const map = new Map<string, ScrubbedPlaceholders>();
+    for (const node of nodes) {
+      map.set(node.id, getScrubbedPlaceholders(node));
+    }
+    return map;
+  }, [nodes]);
+
   if (isLoading) {
     return <MessagesPanelSkeleton />;
   }
@@ -114,13 +132,14 @@ export function MessagesPanel({
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
 
+          const placeholders =
+            placeholdersByNodeId.get(message.nodeId) ?? NO_SCRUBBED_PLACEHOLDERS;
+
           if (message.role === 'user') {
             return (
-              <UserTurn
-                key={message.id}
-                content={message.content}
-                hasXmlTags={hasXmlTags}
-              />
+              <ScrubbedPlaceholdersProvider key={message.id} value={placeholders}>
+                <UserTurn content={message.content} hasXmlTags={hasXmlTags} />
+              </ScrubbedPlaceholdersProvider>
             );
           }
 
@@ -182,15 +201,16 @@ export function MessagesPanel({
             : null;
 
           return (
-            <AssistantTurn
-              key={message.id}
-              message={message}
-              hasXmlTags={hasXmlTags}
-              isSelected={isSelected}
-              selectedToolCallId={selectedToolCallId}
-              nodeMap={nodeMap}
-              onSelectNode={onSelectNode}
-            />
+            <ScrubbedPlaceholdersProvider key={message.id} value={placeholders}>
+              <AssistantTurn
+                message={message}
+                hasXmlTags={hasXmlTags}
+                isSelected={isSelected}
+                selectedToolCallId={selectedToolCallId}
+                nodeMap={nodeMap}
+                onSelectNode={onSelectNode}
+              />
+            </ScrubbedPlaceholdersProvider>
           );
         })}
       </Stack>
@@ -579,7 +599,7 @@ function ReasoningSection({
       meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
-          {t('Thinking...')} {isOpen ? null : reasoning}
+          {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
       onToggle={open =>

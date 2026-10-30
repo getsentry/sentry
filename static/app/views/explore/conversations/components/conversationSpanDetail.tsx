@@ -38,6 +38,7 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
+import {ScrubbedPlaceholdersProvider} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
@@ -53,6 +54,10 @@ import {
   type Extraction,
 } from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getNodeMemory} from 'sentry/views/insights/pages/agents/utils/memory';
+import {
+  NO_SCRUBBED_PLACEHOLDERS,
+  resolveScrubbedPlaceholders,
+} from 'sentry/views/insights/pages/agents/utils/scrubbedPlaceholders';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
@@ -198,6 +203,17 @@ export function ConversationSpanDetail({
     [node, attributes, isAttributesLoading]
   );
 
+  const meta = data?.meta;
+  const placeholders = useMemo(
+    () =>
+      node
+        ? resolveScrubbedPlaceholders(meta, attribute =>
+            getTraceNodeAttribute(attribute, node, undefined, attributes)
+          )
+        : NO_SCRUBBED_PLACEHOLDERS,
+    [node, meta, attributes]
+  );
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
@@ -309,35 +325,37 @@ export function ConversationSpanDetail({
             // Gutter so the scroll container doesn't clip a focused input's focus ring.
             padding="xs"
           >
-            <TabPanels
-              css={css`
-                padding-top: 0;
-              `}
-            >
-              <TabPanels.Item key="input">
-                {memory ? (
-                  <MemoryInputTab memory={memory} />
-                ) : (
-                  <InputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="output">
-                {memory ? (
-                  <MemoryOutputTab memory={memory} />
-                ) : (
-                  <OutputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="decision">
-                {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="extraction">
-                {extraction ? <ExtractionTab extraction={extraction} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="attributes">
-                <AttributesTab node={node} attributes={attributes} />
-              </TabPanels.Item>
-            </TabPanels>
+            <ScrubbedPlaceholdersProvider value={placeholders}>
+              <TabPanels
+                css={css`
+                  padding-top: 0;
+                `}
+              >
+                <TabPanels.Item key="input">
+                  {memory ? (
+                    <MemoryInputTab memory={memory} />
+                  ) : (
+                    <InputTab node={node} attributes={attributes} />
+                  )}
+                </TabPanels.Item>
+                <TabPanels.Item key="output">
+                  {memory ? (
+                    <MemoryOutputTab memory={memory} />
+                  ) : (
+                    <OutputTab node={node} attributes={attributes} />
+                  )}
+                </TabPanels.Item>
+                <TabPanels.Item key="decision">
+                  {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+                </TabPanels.Item>
+                <TabPanels.Item key="extraction">
+                  {extraction ? <ExtractionTab extraction={extraction} /> : null}
+                </TabPanels.Item>
+                <TabPanels.Item key="attributes">
+                  <AttributesTab node={node} attributes={attributes} />
+                </TabPanels.Item>
+              </TabPanels>
+            </ScrubbedPlaceholdersProvider>
           </Container>
         </TabStateProvider>
       )}

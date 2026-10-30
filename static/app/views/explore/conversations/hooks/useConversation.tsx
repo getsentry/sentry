@@ -11,7 +11,9 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
+import {getMetaAttributes} from 'sentry/views/insights/pages/agents/utils/scrubbedPlaceholders';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -74,6 +76,8 @@ export interface ConversationApiSpan {
   'gen_ai.usage.output_tokens.reasoning'?: number;
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
+  /** How PII scrubbing changed the message attributes, keyed by attribute. */
+  meta?: TraceItemDetailsMeta;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
@@ -233,6 +237,7 @@ function createNodeFromApiSpan(
       [SpanFields.USER_ID]: apiSpan['user.id'] ?? '',
       [SpanFields.USER_IP]: apiSpan['user.ip'] ?? '',
       [SpanFields.USER_USERNAME]: apiSpan['user.username'] ?? '',
+      ...getMetaAttributes(apiSpan.meta),
     },
   };
 

@@ -56,6 +56,7 @@ from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, Organizati
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import META_ATTRIBUTE_PREFIX
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SnubaParams
@@ -172,6 +173,35 @@ AI_CONVERSATION_ATTRIBUTES = [
     "user.username",
     "user.ip",
 ]
+
+# Relay records how its PII scrubbing changed an attribute in a private meta
+# attribute. The transcript reads it to mark values that were scrubbed.
+SCRUBBED_MESSAGE_ATTRIBUTES = [
+    "gen_ai.input.messages",
+    "gen_ai.output.messages",
+    "gen_ai.tool.call.arguments",
+    "gen_ai.tool.call.result",
+]
+META_COLUMNS = {
+    f"tags[{META_ATTRIBUTE_PREFIX}.{attribute},string]": attribute
+    for attribute in SCRUBBED_MESSAGE_ATTRIBUTES
+}
+
+
+def _move_meta_columns(spans: Sequence[SpanRow]) -> None:
+    """Moves meta columns into a `meta` object shaped like the trace item details' one."""
+    for span in spans:
+        meta: dict[str, Any] = {}
+        for column, attribute in META_COLUMNS.items():
+            value = span.pop(column, None)
+            if not value:
+                continue
+            try:
+                meta[attribute] = json.loads(value)
+            except ValueError:
+                continue
+        if meta:
+            span["meta"] = meta
 
 
 class AIConversationModelUsage(TypedDict):
@@ -851,7 +881,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             TableQuery(
                 name="spans",
                 query_string=query_string,
-                selected_columns=AI_CONVERSATION_ATTRIBUTES,
+                selected_columns=[*AI_CONVERSATION_ATTRIBUTES, *META_COLUMNS],
                 orderby=["precise.start_ts"],
                 offset=offset,
                 limit=limit,
@@ -886,7 +916,9 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         stats: AIConversationStats | None = None
         if aggregate_result is not None:
             stats = _parse_grouped_stats(aggregate_result.get("data", []))
-        return {"data": results["spans"].get("data", []), "stats": stats}
+        spans = results["spans"].get("data", [])
+        _move_meta_columns(spans)
+        return {"data": spans, "stats": stats}
 
     @traces.trace
     def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:

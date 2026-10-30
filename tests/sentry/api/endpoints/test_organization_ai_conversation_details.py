@@ -958,6 +958,60 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.tool.call.result.size"] == 4096
         assert "gen_ai.tool.output" not in span
 
+    def test_returns_scrubbing_meta_of_message_attributes(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+        meta = {"meta": {"value": {"": {"rem": [["@email:replace", "s", 61, 68]], "len": 76}}}}
+
+        span = self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            input_messages=[{"role": "user", "content": "Find [email]"}],
+            store=False,
+        )
+        span["data"]["sentry._meta.fields.attributes.gen_ai.input.messages"] = json.dumps(meta)
+        self.store_spans([span])
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert span["meta"] == {"gen_ai.input.messages": meta}
+        assert [key for key in span if "sentry._meta" in key] == []
+
+    def test_omits_scrubbing_meta_when_nothing_was_scrubbed(self) -> None:
+        now = before_now(days=5).replace(microsecond=0)
+        conversation_id = uuid4().hex
+
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=now,
+            operation_type="ai_client",
+            input_messages=[{"role": "user", "content": "Hello"}],
+        )
+
+        query = {
+            "project": [self.project.id],
+            "start": (now - timedelta(hours=1)).isoformat(),
+            "end": (now + timedelta(hours=1)).isoformat(),
+        }
+
+        response = self.do_request(conversation_id, query)
+        assert response.status_code == 200
+        assert len(response.data["spans"]) == 1
+
+        span = response.data["spans"][0]
+        assert "meta" not in span
+        assert [key for key in span if "sentry._meta" in key] == []
+
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
         trace_id = uuid4().hex
