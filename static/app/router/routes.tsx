@@ -172,6 +172,10 @@ function buildRoutes(): RouteObject[] {
   };
   const rootChildren: SentryRouteObject[] = [
     {
+      path: '/account/settings/wizard/:wizardHash/',
+      component: make(() => import('sentry/views/setupWizard/route')),
+    },
+    {
       index: true,
       component: make(() => import('sentry/views/app/root')),
     },
