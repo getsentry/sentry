@@ -204,6 +204,15 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "service_accounts",
+        "Service accounts",
+        ("service_account:read", "service_account:write"),
+        access_descriptions={
+            "read": "View service accounts and their project access.",
+            "write": "Create, update, and delete service accounts.",
+        },
+    ),
+    OAuthPermissionResource(
         "openid",
         "Authentication",
         ("openid",),
@@ -231,6 +240,7 @@ _PERMISSION_ACTIONS = {
     # Granular write scopes do not imply read.
     "dashboard:write": ("write",),
     "saved_query:write": ("write",),
+    "service_account:write": ("write",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }

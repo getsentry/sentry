@@ -1933,6 +1933,8 @@ SENTRY_SCOPES = {
     "saved_query:write",
     "seer:read",
     "seer:write",
+    "service_account:read",
+    "service_account:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
     # https://auth0.com/docs/get-started/apis/scopes/openid-connect-scopes.
     "openid",
@@ -1950,6 +1952,7 @@ SENTRY_READONLY_SCOPES = {
     "dashboard:read",
     "saved_query:read",
     "seer:read",
+    "service_account:read",
 }
 
 SENTRY_SCOPE_HIERARCHY_MAPPING = {
@@ -1984,6 +1987,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
+    "service_account:read": {"service_account:read"},
+    # Explicit by design: holding write does not grant read.
+    "service_account:write": {"service_account:write"},
     "openid": {"openid"},
     "profile": {"profile"},
     "email": {"email"},
@@ -2109,6 +2115,10 @@ SENTRY_SCOPE_SETS = (
         ),
         ("seer:read", "Read access to Seer-generated work."),
     ),
+    (
+        ("service_account:write", "Write access to service accounts."),
+        ("service_account:read", "Read access to service accounts."),
+    ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (
         (
@@ -2209,6 +2219,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2245,6 +2257,8 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "alerts:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2397,6 +2411,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "saved_query:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
@@ -2437,6 +2453,8 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "saved_query:write",
             "seer:read",
             "seer:write",
+            "service_account:read",
+            "service_account:write",
         },
         "is_global": True,
     },
