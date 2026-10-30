@@ -11,6 +11,7 @@ import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMes
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     jest.clearAllMocks();
     MockApiClient.clearMockResponses();
 
@@ -26,7 +27,6 @@ describe('NoDataMessage', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
   });
 

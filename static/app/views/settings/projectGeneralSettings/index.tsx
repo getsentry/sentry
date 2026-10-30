@@ -2,6 +2,7 @@ import {useCallback, useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -42,7 +43,6 @@ import {consoles} from 'sentry/data/platformCategories';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {DetailedProject} from 'sentry/types/project';
@@ -557,7 +557,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const settingsV3 = useSettingsV3();
   const transferForm: Record<string, FieldValue> = {};
   const navigate = useNavigate();
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});

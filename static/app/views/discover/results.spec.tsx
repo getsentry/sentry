@@ -226,9 +226,12 @@ function renderMockRequests() {
 }
 
 describe('Results', () => {
+  beforeEach(() => {
+    ProjectsStore.reset();
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
   describe('Events', () => {
     const features = ['discover-basic'];

@@ -31,6 +31,7 @@ describe('NewWidgetBuilder', () => {
   const onSaveMock = jest.fn();
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     OrganizationStore.init();
 
     PageFiltersStore.init();
@@ -93,8 +94,6 @@ describe('NewWidgetBuilder', () => {
       body: [],
     });
   });
-
-  afterEach(() => PageFiltersStore.reset());
 
   it('renders', async () => {
     render(

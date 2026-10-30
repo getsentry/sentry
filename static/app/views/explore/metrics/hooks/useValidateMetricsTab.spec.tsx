@@ -28,6 +28,7 @@ const validationBody: EventValidationData = {
 
 describe('useValidateMetricsTab', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {period: '14d', start: null, end: null, utc: false},
@@ -38,7 +39,6 @@ describe('useValidateMetricsTab', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

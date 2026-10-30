@@ -13,6 +13,7 @@ describe('useFetchEventsTimeSeries', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {
@@ -28,7 +29,6 @@ describe('useFetchEventsTimeSeries', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.resetAllMocks();
   });
 

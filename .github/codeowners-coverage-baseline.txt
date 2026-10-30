@@ -1221,8 +1221,6 @@ static/app/stores/tagStore.tsx
 static/app/stores/teamStore.spec.tsx
 static/app/stores/teamStore.tsx
 static/app/stores/types.tsx
-static/app/stores/useLegacyStore.spec.tsx
-static/app/stores/useLegacyStore.tsx
 static/app/stores/useSentryAppComponentsData.tsx
 static/app/styles/animations.tsx
 static/app/styles/global.tsx
@@ -1248,7 +1246,6 @@ static/app/types/onboarding.tsx
 static/app/types/organization.tsx
 static/app/types/profiling/core.tsx
 static/app/types/reducerAction.tsx
-static/app/types/reflux.d.ts
 static/app/types/relay.tsx
 static/app/types/release.tsx
 static/app/types/sampling.tsx

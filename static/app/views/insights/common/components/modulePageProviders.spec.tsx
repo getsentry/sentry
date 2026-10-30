@@ -13,12 +13,12 @@ jest.mock('sentry/views/insights/common/utils/useHasDataTrackAnalytics');
 
 describe('ModulePageProviders', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   afterEach(() => {
     jest.resetAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('renders without module feature', async () => {

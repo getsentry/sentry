@@ -52,6 +52,8 @@ describe('useSaveAsItems', () => {
   }
 
   beforeEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
     jest.resetAllMocks();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([project]);
@@ -74,11 +76,6 @@ describe('useSaveAsItems', () => {
       method: 'POST',
       body: {id: 'new-query-id', name: 'Test Query'},
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('should open save query modal when save as new query is clicked', () => {

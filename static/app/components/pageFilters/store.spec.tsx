@@ -52,13 +52,15 @@ describe('PageFiltersStore', () => {
   });
 
   it('does not update if projects has same value', async () => {
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const triggerSpy = jest.fn();
+    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
     PageFiltersStore.updateProjects([1], []);
 
     await waitFor(() => PageFiltersStore.getState().selection.projects[0] === 1);
     PageFiltersStore.updateProjects([1], []);
     await tick();
     expect(triggerSpy).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('updateDateTime()', async () => {
@@ -111,7 +113,8 @@ describe('PageFiltersStore', () => {
     const start = new Date(now);
     const end = new Date(now + 1000);
 
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
+    const triggerSpy = jest.fn();
+    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
     PageFiltersStore.updateDateTime({end, start, period: null, utc: null});
 
     await waitFor(() => PageFiltersStore.getState().selection.datetime.start === start);
@@ -125,6 +128,7 @@ describe('PageFiltersStore', () => {
     await tick();
 
     expect(triggerSpy).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('updateEnvironments()', async () => {
@@ -135,8 +139,9 @@ describe('PageFiltersStore', () => {
   });
 
   it('does not update if environments has same value', async () => {
+    const triggerSpy = jest.fn();
+    const unsubscribe = PageFiltersStore.subscribe(triggerSpy);
     PageFiltersStore.updateEnvironments(['alpha']);
-    const triggerSpy = jest.spyOn(PageFiltersStore, 'trigger');
     await waitFor(
       () => PageFiltersStore.getState().selection.environments[0] === 'alpha'
     );
@@ -144,6 +149,7 @@ describe('PageFiltersStore', () => {
     PageFiltersStore.updateEnvironments(['alpha']);
     await tick();
     expect(triggerSpy).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('updatePersistence()', async () => {

@@ -48,6 +48,8 @@ describe('CronDetectorDetails - check-ins', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
 
     MockApiClient.addMockResponse({
@@ -167,8 +169,6 @@ describe('CronDetectorDetails - check-ins', () => {
 
     afterEach(() => {
       localStorageWrapper.removeItem('global-selection:org-slug');
-      PageFiltersStore.reset();
-      ProjectsStore.reset();
       jest.restoreAllMocks();
     });
 

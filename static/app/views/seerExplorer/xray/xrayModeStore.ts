@@ -5,7 +5,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 /**
  * Seer XRay Mode — on/off state.
  *
- * A minimal module-level store (not Reflux) so the cmd+K toggle action and
+ * A minimal module-level store so the cmd+K toggle action and
  * the overlay, which live in unrelated parts of the tree, can share one flag
  * without a dedicated context provider. Persisted to localStorage so the
  * mode survives a page reload.

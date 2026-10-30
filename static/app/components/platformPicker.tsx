@@ -5,6 +5,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconProject} from '@sentry/icons/project';
 import debounce from 'lodash/debounce';
 import {PlatformIcon} from 'platformicons';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
@@ -23,7 +24,6 @@ import {
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -80,7 +80,7 @@ export function PlatformPicker({
   visibleSelection = true,
   loading = false,
 }: PlatformPickerProps) {
-  const {isSelfHosted} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
 
   const [category, setCategory] = useState(defaultCategory ?? categoryList[0]!.id);
   const [filter, setFilter] = useState(

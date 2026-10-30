@@ -20,6 +20,7 @@ jest.mock('sentry/utils/analytics');
 
 describe('ConversationOnboarding', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     Object.assign(navigator, {
       clipboard: {writeText: jest.fn().mockResolvedValue(undefined)},
     });
@@ -57,7 +58,6 @@ describe('ConversationOnboarding', () => {
   }
 
   afterEach(() => {
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

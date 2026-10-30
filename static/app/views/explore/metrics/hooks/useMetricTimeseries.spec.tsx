@@ -59,12 +59,9 @@ function MockMetricQueryParamsContextWithMultiVisualize({
 
 describe('useMetricTimeseries', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it.each([true, false])(

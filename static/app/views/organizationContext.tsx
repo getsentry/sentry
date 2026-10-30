@@ -1,5 +1,6 @@
 import {useEffect, useRef, type ReactNode} from 'react';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {switchOrganization} from 'sentry/actionCreators/organizations';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
@@ -15,8 +16,6 @@ import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {User} from 'sentry/types/user';
 import {shutdownIntercom} from 'sentry/utils/intercom';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useParams} from 'sentry/utils/useParams';
@@ -47,11 +46,12 @@ function setRecentBootstrapTag(orgSlug: string) {
  * OrganizationStore if it is not already present.
  */
 export function OrganizationContextProvider({children}: Props) {
-  const configStore = useLegacyStore(ConfigStore);
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const {organization, error} = useLegacyStore(OrganizationStore);
-  const lastOrganizationSlug =
-    configStore.lastOrganization ?? organizations[0]?.slug ?? null;
+  const lastOrganization = useStore(ConfigStore, state => state.lastOrganization);
+  const user = useStore(ConfigStore, state => state.user);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organization = useStore(OrganizationStore, state => state.organization);
+  const error = useStore(OrganizationStore, state => state.error);
+  const lastOrganizationSlug = lastOrganization ?? organizations[0]?.slug ?? null;
   const params = useParams<{orgId?: string}>();
   const spanRef = useRef<Sentry.Span | null>(null);
 
@@ -100,7 +100,6 @@ export function OrganizationContextProvider({children}: Props) {
 
   // XXX(epurkhiser): User may be null in some scenarios at this point in app
   // boot. We should fix the types here in the future
-  const user: User | null = configStore.user;
 
   // It may be possible for the user to use the sudo modal to load the organization.
   useEffect(() => {

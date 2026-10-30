@@ -41,6 +41,10 @@ const roles: OrgRole[] = [
 ];
 
 describe('InviteRequestRow', () => {
+  beforeEach(() => {
+    TeamStore.reset();
+  });
+
   const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
@@ -221,8 +225,6 @@ describe('InviteRequestRow', () => {
       container: document.body,
     });
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});
-
-    TeamStore.reset();
   });
 
   it('cannot be approved when invitee role is not allowed', () => {

@@ -10,11 +10,8 @@ import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSorte
 
 describe('useSortedTimeSeries', () => {
   beforeEach(() => {
-    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
     PageFiltersStore.reset();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   it('selects raw and smoothed values separately for each group', async () => {

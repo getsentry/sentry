@@ -9,7 +9,8 @@ describe('TagStore', () => {
 
   describe('loadTagsSuccess()', () => {
     it('should add a new tag with empty values and trigger the new addition', () => {
-      jest.spyOn(TagStore, 'trigger');
+      const listener = jest.fn();
+      const unsubscribe = TagStore.subscribe(listener);
 
       TagStore.loadTagsSuccess([
         {
@@ -31,7 +32,8 @@ describe('TagStore', () => {
         values: [],
       });
 
-      expect(TagStore.trigger).toHaveBeenCalledTimes(1);
+      expect(listener).toHaveBeenCalledTimes(1);
+      unsubscribe();
     });
   });
 

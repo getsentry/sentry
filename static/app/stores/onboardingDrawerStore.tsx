@@ -1,15 +1,6 @@
-import {createStore} from 'reflux';
-
-import type {StrictStoreDefinition} from './types';
+import {createStore} from 'zustand';
 
 type ActivePanelType = Readonly<OnboardingDrawerKey | ''>;
-
-interface OnboardingDrawerStoreDefinition extends StrictStoreDefinition<ActivePanelType> {
-  close(): void;
-
-  open(panel: OnboardingDrawerKey): void;
-  toggle(panel: OnboardingDrawerKey): void;
-}
 
 export enum OnboardingDrawerKey {
   BROADCASTS = 'broadcasts',
@@ -22,39 +13,30 @@ export enum OnboardingDrawerKey {
   FEATURE_FLAG_ONBOARDING = 'flag_onboarding',
 }
 
-const storeConfig: OnboardingDrawerStoreDefinition = {
-  state: '',
-
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-  },
-
-  open(panel: OnboardingDrawerKey) {
-    this.state = panel;
-    this.trigger(this.state);
-  },
-
-  toggle(panel: OnboardingDrawerKey) {
-    if (this.state === panel) {
-      this.close();
-    } else {
-      this.open(panel);
-    }
-  },
-
-  close() {
-    this.state = '';
-    this.trigger(this.state);
-  },
-
-  getState() {
-    return this.state;
-  },
-};
+const store = createStore<ActivePanelType>()(() => '');
 
 /**
  * This store is used to hold local user preferences
  * Side-effects (like reading/writing to cookies) are done in associated actionCreators
  */
-export const OnboardingDrawerStore = createStore(storeConfig);
+export const OnboardingDrawerStore = {
+  ...store,
+
+  init() {},
+
+  open(panel: OnboardingDrawerKey) {
+    store.setState(panel, true);
+  },
+
+  toggle(panel: OnboardingDrawerKey) {
+    if (store.getState() === panel) {
+      OnboardingDrawerStore.close();
+    } else {
+      OnboardingDrawerStore.open(panel);
+    }
+  },
+
+  close() {
+    store.setState('', true);
+  },
+};

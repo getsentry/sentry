@@ -29,15 +29,14 @@
     "query-string": "7.0.1",
     "react": "19.3.0",
     "react-router": "8.4.0",
-    "reflux": "0.4.1",
     "sentry": "workspace:@sentry-internal/app@*",
-    "zod": "4.6.7"
+    "zod": "4.6.7",
+    "zustand": "5.0.16"
   },
   "devDependencies": {
     "@types/history": "^3.2.5",
     "@types/js-cookie": "3.0.6",
     "@types/lodash": "^4.17.24",
-    "@types/react": "19.3.0",
-    "@types/reflux": "0.4.1"
+    "@types/react": "19.3.0"
   }
 }

@@ -42,6 +42,7 @@ const validationBody: EventValidationData = {
 
 describe('useValidateLogsTab', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         datetime: {period: '14d', start: null, end: null, utc: false},
@@ -52,7 +53,6 @@ describe('useValidateLogsTab', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

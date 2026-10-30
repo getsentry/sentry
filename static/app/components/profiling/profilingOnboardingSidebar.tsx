@@ -1,6 +1,7 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -31,7 +32,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -59,7 +59,7 @@ const PROFILING_ONBOARDING_STEPS = [
 
 export function useProfilingOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const currentPanel = useStore(OnboardingDrawerStore);
   const isActive = currentPanel === OnboardingDrawerKey.PROFILING_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
@@ -273,7 +273,8 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
+  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
 
   if (isLoading) {
     return <LoadingIndicator />;

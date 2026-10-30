@@ -25,14 +25,11 @@ function initializePageFilters(projects: number[]) {
 describe('useCrossPlatformProject', () => {
   let mockProject: Project;
   beforeEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
     mockProject = ProjectFixture({platform: 'flutter'});
     PageFiltersStore.init();
     ProjectsStore.loadInitialData([mockProject]);
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('returns null for project if >1 project is selected', () => {

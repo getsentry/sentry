@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
+import {useStore} from 'zustand';
 
 import {ProjectAvatar, TeamAvatar} from '@sentry/scraps/avatar';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -25,7 +26,6 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Integration} from 'sentry/types/integrations';
 import type {OrganizationSummary, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -621,8 +621,8 @@ export function ContextPickerModalContainer({
   projectSlugs,
   ...sharedProps
 }: ContainerProps) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const [selectedOrgSlug, setSelectedOrgSlug] = useState(organization?.slug);
 
   if (configQueryKey) {

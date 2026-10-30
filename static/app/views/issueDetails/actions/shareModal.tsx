@@ -2,6 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -15,7 +16,6 @@ import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -60,7 +60,7 @@ export function ShareIssueModal({
   );
 
   const urlRef = useRef<UrlRef>(null);
-  const groups = useLegacyStore(GroupStore);
+  const groups = useStore(GroupStore);
   const group = (groups as Group[]).find(item => item.id === groupId);
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();

@@ -67,15 +67,12 @@ function mockTransportRequests() {
 
 describe('MCP Transport Distribution', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('counts standard transports together and preserves custom names in the existing chart', async () => {

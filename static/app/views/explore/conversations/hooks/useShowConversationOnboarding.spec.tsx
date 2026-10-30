@@ -45,6 +45,8 @@ function knownConversations(projects: number[]) {
 
 describe('useShowConversationOnboarding', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
+    ProjectsStore.reset();
     localStorage.clear();
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', hasInsightsAgentMonitoring: false}),
@@ -57,8 +59,6 @@ describe('useShowConversationOnboarding', () => {
 
   afterEach(() => {
     localStorage.clear();
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

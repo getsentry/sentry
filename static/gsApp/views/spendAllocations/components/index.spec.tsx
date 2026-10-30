@@ -10,11 +10,8 @@ describe('projectSelectControl', () => {
   const {projects} = initializeOrg();
 
   beforeEach(() => {
-    ProjectsStore.loadInitialData(projects);
-  });
-
-  afterEach(() => {
     ProjectsStore.reset();
+    ProjectsStore.loadInitialData(projects);
   });
 
   it('removes options that are filtered out', async () => {

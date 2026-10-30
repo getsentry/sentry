@@ -169,11 +169,8 @@ describe('Discover > ResultsChart', () => {
     });
 
     beforeEach(() => {
-      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
       PageFiltersStore.reset();
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     });
 
     function mockDroppedData() {

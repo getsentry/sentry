@@ -1,5 +1,6 @@
+import {useStore} from 'zustand';
+
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
 import {BadgeDisplayName} from './badgeDisplayName';
@@ -14,7 +15,7 @@ export interface TeamBadgeProps extends BaseBadgeProps {
 }
 
 function TeamBadge({hideOverflow = true, team, ...props}: TeamBadgeProps) {
-  const {teams} = useLegacyStore(TeamStore);
+  const teams = useStore(TeamStore, state => state.teams);
 
   // Get the most up-to-date team from the store
   const resolvedTeam = teams.find(t => t.id === team.id) ?? team;

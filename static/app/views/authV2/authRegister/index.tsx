@@ -1,4 +1,5 @@
 import {Fragment, useEffect} from 'react';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -7,7 +8,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {AuthCritter} from 'sentry/views/authV2/authCritter';
 import {useAuthConfig} from 'sentry/views/authV2/authLogin/hooks/useAuthConfig';
@@ -16,7 +16,8 @@ import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 import {RegistrationForm} from './registrationForm';
 
 export default function AuthRegister() {
-  const {termsUrl, privacyUrl} = useLegacyStore(ConfigStore);
+  const termsUrl = useStore(ConfigStore, state => state.termsUrl);
+  const privacyUrl = useStore(ConfigStore, state => state.privacyUrl);
   const {
     data: authConfig,
     isPending: isAuthConfigPending,

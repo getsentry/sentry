@@ -1,9 +1,9 @@
 import React from 'react';
 import {useTheme} from '@emotion/react';
 import {Elements} from '@stripe/react-stripe-js';
+import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {useStripeInstance} from 'getsentry/hooks/useStripeInstance';
 
@@ -18,7 +18,7 @@ export function StripeWrapper({
 }) {
   const stripe = useStripeInstance();
   const theme = useTheme();
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const prefersDarkMode = useStore(ConfigStore, state => state.theme) === 'dark';
 
   // NOTE: These need to match what we set in the backend
   // for payment and setup intents

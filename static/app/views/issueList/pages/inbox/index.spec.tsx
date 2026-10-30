@@ -138,6 +138,7 @@ describe('InboxPage', () => {
   });
 
   beforeEach(() => {
+    TeamStore.reset();
     Element.prototype.scrollIntoView = jest.fn();
     ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
@@ -164,7 +165,6 @@ describe('InboxPage', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
-    TeamStore.reset();
   });
 
   function mockSection(

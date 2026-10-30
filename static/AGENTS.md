@@ -8,7 +8,7 @@
 - **Framework**: React 19
 - **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
-- **State Management**: Reflux, React Query (TanStack Query)
+- **State Management**: Zustand, React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
@@ -45,7 +45,7 @@ Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecat
 
 ## General Frontend Rules
 
-1. NO new Reflux stores
+1. NO new stores in `static/app/stores` (use React Query for server data)
 2. NO class components
 3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
 4. ALWAYS use TypeScript

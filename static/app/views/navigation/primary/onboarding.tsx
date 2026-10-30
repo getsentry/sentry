@@ -2,6 +2,7 @@ import {useEffect} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
+import {useStore} from 'zustand';
 
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
@@ -13,7 +14,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -113,7 +113,7 @@ function OnboardingItem({
 }
 
 export function PrimaryNavigationOnboarding() {
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const currentPanel = useStore(OnboardingDrawerStore);
   const isActive = currentPanel === OnboardingDrawerKey.ONBOARDING_WIZARD;
   const organization = useOrganization();
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(

@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -29,7 +30,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {useApi} from 'sentry/utils/useApi';
@@ -54,7 +54,7 @@ function decodeProjectIds(projectIds: unknown): string[] | null {
 
 export function usePerformanceOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const currentPanel = useStore(OnboardingDrawerStore);
   const isActive = currentPanel === OnboardingDrawerKey.PERFORMANCE_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
   const initialPathname = useRef<string | null>(null);
@@ -91,7 +91,7 @@ function SidebarContent() {
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
 
-  const {selection} = useLegacyStore(PageFiltersStore);
+  const selection = useStore(PageFiltersStore, state => state.selection);
 
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
@@ -232,7 +232,8 @@ function SidebarContent() {
 function OnboardingContent({currentProject}: {currentProject: Project}) {
   const api = useApi();
   const organization = useOrganization();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
+  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
   const firstIssue = useEventWaiter({
     eventType: 'transaction',
     organization,

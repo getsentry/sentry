@@ -1,4 +1,4 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand';
 
 import {getGuidesContent} from 'sentry/components/assistant/getGuidesContent';
 import type {Guide, GuidesServerData} from 'sentry/components/assistant/types';
@@ -7,8 +7,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-
-import type {StrictStoreDefinition} from './types';
 
 function guidePrioritySort(a: Guide, b: Guide) {
   const a_priority = a.priority ?? Number.MAX_SAFE_INTEGER;
@@ -80,76 +78,55 @@ function isForceEnabled() {
   return window.location.hash === '#assistant';
 }
 
-interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
-  closeGuide(dismissed?: boolean): void;
+const store = createStore<GuideStoreState>()(() => ({...defaultState}));
 
-  fetchSucceeded(data: GuidesServerData): void;
-  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
-  nextStep(): void;
-  onURLChange(): void;
-  recordCue(guide: string): void;
-  registerAnchor(target: string): void;
-  setActiveOrganization(data: Organization): void;
-  setForceHide(forceHide: boolean): void;
-  teardown(): void;
-  unregisterAnchor(target: string): void;
-  updateCurrentGuide(dismissed?: boolean): void;
-  updatePrevGuide(nextGuide: Guide | null): void;
+let unsubscribeModalStore: (() => void) | null = null;
+
+function onURLChange() {
+  store.setState({forceShow: isForceEnabled()});
+  GuideStore.updateCurrentGuide();
 }
 
-const storeConfig: GuideStoreDefinition = {
-  state: {...defaultState},
-  modalStoreListener: null,
+export const GuideStore = {
+  ...store,
+
+  /**
+   * @deprecated Use `getState()`
+   */
+  get state() {
+    return store.getState();
+  },
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
+    store.setState({...defaultState, forceShow: isForceEnabled()}, true);
 
-    this.state = {...defaultState, forceShow: isForceEnabled()};
-
-    window.addEventListener('load', this.onURLChange, false);
+    window.addEventListener('load', onURLChange, false);
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
-    this.modalStoreListener = ModalStore.listen(() => {
-      const isOpen = typeof ModalStore.getState().renderer === 'function';
-
-      if (isOpen) {
-        this.setForceHide(true);
-      } else {
-        this.setForceHide(false);
-      }
-    }, undefined);
+    unsubscribeModalStore = ModalStore.subscribe(modalState => {
+      GuideStore.setForceHide(typeof modalState.renderer === 'function');
+    });
   },
 
   teardown() {
-    window.removeEventListener('load', this.onURLChange);
-
-    if (this.modalStoreListener) {
-      this.modalStoreListener();
-    }
+    window.removeEventListener('load', onURLChange);
+    unsubscribeModalStore?.();
+    unsubscribeModalStore = null;
   },
 
-  getState() {
-    return this.state;
-  },
-
-  onURLChange() {
-    this.state = {...this.state, forceShow: isForceEnabled()};
-    this.updateCurrentGuide();
-  },
+  onURLChange,
 
   setActiveOrganization(data: Organization) {
-    this.state = {
-      ...this.state,
+    store.setState({
       orgId: data ? data.id : null,
       orgSlug: data ? data.slug : null,
       organization: data ? data : null,
-    };
-    this.updateCurrentGuide();
+    });
+    GuideStore.updateCurrentGuide();
   },
 
-  fetchSucceeded(data) {
+  fetchSucceeded(data: GuidesServerData) {
     // It's possible we can get empty responses (seems to be Firefox specific)
     // Do nothing if `data` is empty
     // also, temporarily check data is in the correct format from the updated
@@ -171,12 +148,12 @@ const storeConfig: GuideStoreDefinition = {
       return acc;
     }, []);
 
-    this.state = {...this.state, guides};
-    this.updateCurrentGuide();
+    store.setState({guides});
+    GuideStore.updateCurrentGuide();
   },
 
   closeGuide(dismissed?: boolean) {
-    const {currentGuide, guides} = this.state;
+    const {currentGuide, guides} = store.getState();
 
     const newGuides = guides.map(guide => {
       // update the current guide seen to true or all guides
@@ -193,51 +170,49 @@ const storeConfig: GuideStoreDefinition = {
 
       return guide;
     });
-    this.state = {...this.state, guides: newGuides, forceShow: false};
-    this.updateCurrentGuide(dismissed);
+    store.setState({guides: newGuides, forceShow: false});
+    GuideStore.updateCurrentGuide(dismissed);
   },
 
   nextStep() {
-    this.state = {...this.state, currentStep: this.state.currentStep + 1};
-    this.trigger(this.state);
+    store.setState({currentStep: store.getState().currentStep + 1});
   },
 
-  registerAnchor(target) {
-    this.state.anchors.add(target);
-    this.updateCurrentGuide();
+  registerAnchor(target: string) {
+    store.getState().anchors.add(target);
+    GuideStore.updateCurrentGuide();
   },
 
-  unregisterAnchor(target) {
-    this.state.anchors.delete(target);
-    this.updateCurrentGuide();
+  unregisterAnchor(target: string) {
+    store.getState().anchors.delete(target);
+    GuideStore.updateCurrentGuide();
   },
 
-  setForceHide(forceHide) {
-    this.state = {...this.state, forceHide};
-    this.trigger(this.state);
+  setForceHide(forceHide: boolean) {
+    store.setState({forceHide});
   },
 
-  recordCue(guide) {
+  recordCue(guide: string) {
     const user = ConfigStore.get('user');
     if (!user) {
       return;
     }
 
     trackAnalytics('assistant.guide_cued', {
-      organization: this.state.orgId,
+      organization: store.getState().orgId,
       guide,
     });
   },
 
-  updatePrevGuide(nextGuide) {
-    const {prevGuide} = this.state;
+  updatePrevGuide(nextGuide: Guide | null) {
+    const {prevGuide} = store.getState();
     if (!nextGuide) {
       return;
     }
 
     if (prevGuide?.guide !== nextGuide.guide) {
-      this.recordCue(nextGuide.guide);
-      this.state = {...this.state, prevGuide: nextGuide};
+      GuideStore.recordCue(nextGuide.guide);
+      store.setState({prevGuide: nextGuide});
     }
   },
 
@@ -250,7 +225,7 @@ const storeConfig: GuideStoreDefinition = {
    *  - Otherwise show the guide
    */
   updateCurrentGuide(dismissed?: boolean) {
-    const {anchors, guides, forceShow} = this.state;
+    const {anchors, guides, forceShow} = store.getState();
 
     let guideOptions = guides
       .sort(guidePrioritySort)
@@ -290,16 +265,16 @@ const storeConfig: GuideStoreDefinition = {
           }
         : null;
 
-    this.updatePrevGuide(nextGuide);
-    const currentStep =
-      this.state.currentGuide && this.state.currentGuide.guide === nextGuide?.guide
-        ? this.state.currentStep
-        : 0;
-    this.state = {...this.state, currentGuide: nextGuide, currentStep};
+    GuideStore.updatePrevGuide(nextGuide);
+    const {currentGuide, currentStep} = store.getState();
+    store.setState({
+      currentGuide: nextGuide,
+      currentStep:
+        currentGuide && currentGuide.guide === nextGuide?.guide ? currentStep : 0,
+    });
 
-    this.trigger(this.state);
     getOverride('callback:on-guide-update')?.(nextGuide, {dismissed});
   },
 };
 
-export const GuideStore = createStore(storeConfig);
+GuideStore.init();

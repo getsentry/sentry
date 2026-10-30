@@ -320,10 +320,7 @@ const config: Config.InitialOptions = {
   // jest.mock() is decided by crawl order. Keep the module map to this checkout.
   modulePathIgnorePatterns: ['<rootDir>/\\.claude/'],
 
-  unmockedModulePathPatterns: [
-    '<rootDir>/node_modules/react',
-    '<rootDir>/node_modules/reflux',
-  ],
+  unmockedModulePathPatterns: ['<rootDir>/node_modules/react'],
   transform: {
     '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',

@@ -1,8 +1,7 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand';
 
 import type {PageFilterAdjustments} from 'sentry/components/pageFilters/adjustments';
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
-import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {PageFilters, PinnedPageFilter, PageFilterDatetime} from 'sentry/types/core';
 import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
@@ -82,7 +81,60 @@ interface PageFiltersState {
   shouldPersist: boolean;
 }
 
-interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersState> {
+const store = createStore<PageFiltersState>()(() => ({
+  isReady: false,
+  selection: getDefaultPageFilterSelection(),
+  pinnedFilters: new Set(),
+  shouldPersist: true,
+  adjustments: {},
+}));
+
+function getResetState(selection?: PageFilters): PageFiltersState {
+  return {
+    ...store.getState(),
+    isReady: false,
+    selection: selection || getDefaultPageFilterSelection(),
+    pinnedFilters: new Set(),
+    adjustments: {},
+  };
+}
+
+export const PageFiltersStore = {
+  ...store,
+
+  init() {
+    PageFiltersStore.reset(store.getState().selection);
+  },
+
+  reset(selection?: PageFilters) {
+    store.setState(getResetState(selection), true);
+  },
+
+  /**
+   * Initializes the page filters store data
+   */
+  onInitializeUrlState(
+    newSelection: PageFilters,
+    persist = true,
+    adjustments: PageFilterAdjustments = {}
+  ) {
+    store.setState({
+      isReady: true,
+      selection: newSelection,
+      pinnedFilters: new Set<PinnedPageFilter>(['projects', 'environments', 'datetime']),
+      shouldPersist: persist,
+      adjustments,
+    });
+  },
+
+  onReset() {
+    PageFiltersStore.reset();
+  },
+
+  updatePersistence(shouldPersist: boolean) {
+    store.setState({shouldPersist});
+  },
+
   /**
    * Call this *after* the update that caused the adjustment, since updating a
    * filter clears its adjustments.
@@ -90,154 +142,69 @@ interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersSt
   addAdjustment<F extends keyof PageFilterAdjustments>(
     filter: F,
     adjustment: NonNullable<PageFilterAdjustments[F]>
-  ): void;
-  onInitializeUrlState(
-    newSelection: PageFilters,
-    persist?: boolean,
-    adjustments?: PageFilterAdjustments
-  ): void;
-  onReset(): void;
-  pin(filter: PinnedPageFilter, pin: boolean): void;
-  reset(selection?: PageFilters): void;
-  updateDateTime(datetime: PageFilterDatetime): void;
-  updateEnvironments(environments: string[] | null): void;
-  updatePersistence(shouldPersist: boolean): void;
-  updateProjects(projects: PageFilters['projects'], environments: null | string[]): void;
-}
-
-const storeConfig: PageFiltersStoreDefinition = {
-  state: {
-    isReady: false,
-    selection: getDefaultPageFilterSelection(),
-    pinnedFilters: new Set(),
-    shouldPersist: true,
-    adjustments: {},
-  },
-
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset(this.state.selection);
-  },
-
-  reset(selection) {
-    this.state = {
-      ...this.state,
-      isReady: false,
-      selection: selection || getDefaultPageFilterSelection(),
-      pinnedFilters: new Set(),
-      adjustments: {},
-    };
-  },
-
-  /**
-   * Initializes the page filters store data
-   */
-  onInitializeUrlState(newSelection, persist = true, adjustments = {}) {
-    this.state = {
-      ...this.state,
-      isReady: true,
-      selection: newSelection,
-      pinnedFilters: new Set<PinnedPageFilter>(['projects', 'environments', 'datetime']),
-      shouldPersist: persist,
-      adjustments,
-    };
-    this.trigger(this.getState());
-  },
-
-  getState() {
-    return this.state;
-  },
-
-  onReset() {
-    this.reset();
-    this.trigger(this.getState());
-  },
-
-  updatePersistence(shouldPersist: boolean) {
-    this.state = {...this.state, shouldPersist};
-    this.trigger(this.getState());
-  },
-
-  addAdjustment(filter, adjustment) {
-    if (valueIsEqual(this.state.adjustments[filter], adjustment, true)) {
+  ) {
+    const {adjustments} = store.getState();
+    if (valueIsEqual(adjustments[filter], adjustment, true)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
-      adjustments: {...this.state.adjustments, [filter]: adjustment},
-    };
-    this.trigger(this.getState());
+    store.setState({adjustments: {...adjustments, [filter]: adjustment}});
   },
 
-  updateProjects(projects = [], environments = null) {
-    if (valueIsEqual(this.state.selection.projects, projects)) {
+  updateProjects(
+    projects: PageFilters['projects'] = [],
+    environments: null | string[] = null
+  ) {
+    const state = store.getState();
+    if (valueIsEqual(state.selection.projects, projects)) {
       return;
     }
 
-    const selection = {
-      ...this.state.selection,
-      projects,
-      environments:
-        environments === null ? this.state.selection.environments : environments,
-    };
-    this.state = {
-      ...this.state,
-      selection,
+    store.setState({
+      selection: {
+        ...state.selection,
+        projects,
+        environments: environments === null ? state.selection.environments : environments,
+      },
       adjustments: clearAdjustments(
-        this.state.adjustments,
+        state.adjustments,
         environments === null ? ['projects'] : ['projects', 'environments']
       ),
-    };
-    this.trigger(this.getState());
+    });
   },
 
-  updateDateTime(newDateTime) {
-    if (datetimeHasSameValue(this.state.selection.datetime, newDateTime)) {
+  updateDateTime(newDateTime: PageFilterDatetime) {
+    const state = store.getState();
+    if (datetimeHasSameValue(state.selection.datetime, newDateTime)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
-      selection: {
-        ...this.state.selection,
-        datetime: newDateTime,
-      },
-      adjustments: clearAdjustments(this.state.adjustments, ['datetime']),
-    };
-    this.trigger(this.getState());
+    store.setState({
+      selection: {...state.selection, datetime: newDateTime},
+      adjustments: clearAdjustments(state.adjustments, ['datetime']),
+    });
   },
 
-  updateEnvironments(environments) {
-    if (valueIsEqual(this.state.selection.environments, environments)) {
+  updateEnvironments(environments: string[] | null) {
+    const state = store.getState();
+    if (valueIsEqual(state.selection.environments, environments)) {
       return;
     }
 
-    this.state = {
-      ...this.state,
-      selection: {
-        ...this.state.selection,
-        environments: environments ?? [],
-      },
-      adjustments: clearAdjustments(this.state.adjustments, ['environments']),
-    };
-
-    this.trigger(this.getState());
+    store.setState({
+      selection: {...state.selection, environments: environments ?? []},
+      adjustments: clearAdjustments(state.adjustments, ['environments']),
+    });
   },
 
-  pin(filter, pin) {
-    const newPinnedFilters = new Set(this.state.pinnedFilters);
+  pin(filter: PinnedPageFilter, pin: boolean) {
+    const newPinnedFilters = new Set(store.getState().pinnedFilters);
     if (pin) {
       newPinnedFilters.add(filter);
     } else {
       newPinnedFilters.delete(filter);
     }
 
-    this.state = {...this.state, pinnedFilters: newPinnedFilters};
-    this.trigger(this.getState());
+    store.setState({pinnedFilters: newPinnedFilters});
   },
 };
-
-export const PageFiltersStore = createStore(storeConfig);

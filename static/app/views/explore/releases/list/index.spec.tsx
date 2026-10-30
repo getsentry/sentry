@@ -44,6 +44,7 @@ describe('ReleasesList', () => {
   let sdkVersionsMock: jest.Mock;
 
   beforeEach(() => {
+    ProjectsStore.reset();
     act(() => ProjectsStore.loadInitialData(projects));
     act(() =>
       PageFiltersStore.onInitializeUrlState({
@@ -108,7 +109,6 @@ describe('ReleasesList', () => {
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 

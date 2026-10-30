@@ -3,6 +3,7 @@ import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -12,7 +13,6 @@ import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 
@@ -22,7 +22,7 @@ interface RouteErrorProps {
 
 export function RouteError({error}: RouteErrorProps) {
   const matches = useMatches();
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const project = useContext(ProjectRouteContext);
 
   useEffect(() => {

@@ -258,9 +258,6 @@ importers:
       react:
         specifier: 19.3.0
         version: 19.3.0
-      reflux:
-        specifier: 0.4.1
-        version: 0.4.1(react@19.3.0)
       rehype-expressive-code:
         specifier: ^0.44.2
         version: 0.44.2
@@ -762,9 +759,6 @@ importers:
       react-select:
         specifier: 4.3.1
         version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
-      reflux:
-        specifier: 0.4.1
-        version: 0.4.1(react@19.3.0)
       screenfull:
         specifier: ^6.0.2
         version: 6.0.2
@@ -780,6 +774,9 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+      zustand:
+        specifier: 5.0.16
+        version: 5.0.16(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
       zxcvbn:
         specifier: ^4.4.2
         version: 4.4.2
@@ -838,9 +835,6 @@ importers:
       '@types/react-select':
         specifier: 4.0.18
         version: 4.0.18
-      '@types/reflux':
-        specifier: 0.4.1
-        version: 0.4.1
       expect-type:
         specifier: 1.4.0
         version: 1.4.0
@@ -1007,15 +1001,15 @@ importers:
       react-router:
         specifier: 8.4.0
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      reflux:
-        specifier: 0.4.1
-        version: 0.4.1(react@19.3.0)
       sentry:
         specifier: workspace:@sentry-internal/app@*
         version: link:../app
       zod:
         specifier: 4.6.7
         version: 4.6.7
+      zustand:
+        specifier: 5.0.16
+        version: 5.0.16(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0))
     devDependencies:
       '@types/history':
         specifier: ^3.2.5
@@ -1029,9 +1023,6 @@ importers:
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
-      '@types/reflux':
-        specifier: 0.4.1
-        version: 0.4.1
 
   static/oxlint/eslintPluginScraps:
     dependencies:
@@ -4776,9 +4767,6 @@ packages:
   '@types/readable-stream@4.0.18':
     resolution: {integrity: sha512-21jK/1j+Wg+7jVw1xnSwy/2Q1VgVjWuFssbYGTREPUBeZ+rqVFl2udq0IkxzPC0ZhOzVceUbyIACFZKLqKEBlA==}
 
-  '@types/reflux@0.4.1':
-    resolution: {integrity: sha512-XOavgwrJxBiSQufelsZ+ZAi6Xvrh/M/IlfKNrqnxHytK8WKkWF8G4QhZwwhLXk7NsgaUf3ZqcFFN9YhzBqmuNA==}
-
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
 
@@ -6184,9 +6172,6 @@ packages:
 
   event-emitter@0.3.5:
     resolution: {integrity: sha512-D9rRn9y7kLPnJ+hMq7S/nhvoKwwvVJahBi2BPmx3bvbsEdK3W9ii8cBSGjP+72/LnM4n6fo3+dkCX5FeTQruXA==}
-
-  eventemitter3@1.2.0:
-    resolution: {integrity: sha512-DOFqA1MF46fmZl2xtzXR3MPCRsXqgoFqdXcrCVYM3JNnfUeHTm/fh/v/iU7gBFpwkuBmoJPAm5GuhdDfSEJMJA==}
 
   exec-sh@0.3.6:
     resolution: {integrity: sha512-nQn+hI3yp+oD0huYhKwvYI32+JFeq+XkNcD1GAo3Y/MjxsfVGmrrzrnzjWiNY6f+pUCP440fThsFh5gZrRAU/w==}
@@ -8263,14 +8248,6 @@ packages:
     resolution: {integrity: sha512-r0Ay04Snci87djAsI4U+WNRcSw5S4pOH7qFjd/veA5gC7TbqESR3tcj28ia95L/fYUDw11JKP7uqUKUAfVvV5Q==}
     engines: {node: '>= 0.4'}
 
-  reflux-core@0.3.0:
-    resolution: {integrity: sha512-mOOxvUQcNE3HvYXHt2SoqlVso5OtQL82zl60PfR1An57UU4ho30h0hMO6fh5hsDcfxywo74+TdForH+pfCZGeQ==}
-
-  reflux@0.4.1:
-    resolution: {integrity: sha512-xrAUNOKzNegiYHpj9Vv5eCdV3HZ1H0f9T5TXcTVk1dbOSMBL4ppUM+3Gvw1HCiLRfe+IAtj7k4DXe/r7XcswlQ==}
-    peerDependencies:
-      react: '>=0.13.0 <16'
-
   regex-recursion@6.0.2:
     resolution: {integrity: sha512-0YCaSCq2VRIebiaUviZNs0cBz1kg5kVS2UKUfNIx8YVs1cN3AV7NTctO5FOKBA+UT2BPJIWZauYHPqJODG50cg==}
 
@@ -9283,6 +9260,24 @@ packages:
 
   zrender@6.1.0:
     resolution: {integrity: sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==}
+
+  zustand@5.0.16:
+    resolution: {integrity: sha512-Uv7e327ihlCfayfja3hDc0M64Upev1LWBKpRobdK4NyovDDPeeX4imWXc/wzC1yc6fkYPoAY/ncKVPAs2jrtQw==}
+    engines: {node: '>=12.20.0'}
+    peerDependencies:
+      '@types/react': '>=18.0.0'
+      immer: '>=9.0.6'
+      react: '>=18.0.0'
+      use-sync-external-store: '>=1.2.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      immer:
+        optional: true
+      react:
+        optional: true
+      use-sync-external-store:
+        optional: true
 
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
@@ -12399,8 +12394,6 @@ snapshots:
       '@types/node': 26.6.4
       safe-buffer: 5.1.2
 
-  '@types/reflux@0.4.1': {}
-
   '@types/stack-utils@2.0.3': {}
 
   '@types/tough-cookie@4.0.5': {}
@@ -13887,8 +13880,6 @@ snapshots:
     dependencies:
       d: 1.0.2
       es5-ext: 0.10.64
-
-  eventemitter3@1.2.0: {}
 
   exec-sh@0.3.6: {}
 
@@ -16699,16 +16690,6 @@ snapshots:
       gopd: 1.2.0
       which-builtin-type: 1.2.1
 
-  reflux-core@0.3.0:
-    dependencies:
-      eventemitter3: 1.2.0
-
-  reflux@0.4.1(react@19.3.0):
-    dependencies:
-      eventemitter3: 1.2.0
-      react: 19.3.0
-      reflux-core: 0.3.0
-
   regex-recursion@6.0.2:
     dependencies:
       regex-utilities: 2.3.0
@@ -17883,6 +17864,12 @@ snapshots:
   zrender@6.1.0(patch_hash=183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193):
     dependencies:
       tslib: 2.3.0
+
+  zustand@5.0.16(@types/react@19.3.0)(react@19.3.0)(use-sync-external-store@1.6.0(react@19.3.0)):
+    optionalDependencies:
+      '@types/react': 19.3.0
+      react: 19.3.0
+      use-sync-external-store: 1.6.0(react@19.3.0)
 
   zwitch@2.0.4: {}
 

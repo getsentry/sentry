@@ -24,6 +24,7 @@ const LLM_QUERY = 'gen_ai.operation.type:ai_client';
 
 describe('ConversationsOverviewPage', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     PageFiltersStore.init();
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', hasInsightsAgentMonitoring: true}),
@@ -109,7 +110,6 @@ describe('ConversationsOverviewPage', () => {
 
   afterEach(() => {
     localStorage.clear();
-    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });
 

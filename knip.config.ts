@@ -80,8 +80,6 @@ const config: KnipConfig = {
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
-        // Referenced by its node_modules path in tests/js/createJestConfig.ts.
-        'reflux',
       ],
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.

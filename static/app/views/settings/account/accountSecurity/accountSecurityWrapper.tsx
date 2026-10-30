@@ -1,13 +1,13 @@
 import {useCallback} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';
@@ -21,7 +21,7 @@ const ENDPOINT = getApiUrl('/users/$userId/authenticators/', {path: {userId: 'me
 export default function AccountSecurityWrapper() {
   const api = useApi();
   const {authId} = useParams<{authId?: string}>();
-  const {links} = useLegacyStore(ConfigStore);
+  const links = useStore(ConfigStore, state => state.links);
 
   const orgRequest = useQuery(
     apiOptions.as<OrganizationSummary[]>()('/organizations/', {

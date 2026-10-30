@@ -1,38 +1,24 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand';
 
 import type {OrganizationSummary} from 'sentry/types/organization';
-
-import type {StrictStoreDefinition} from './types';
 
 interface State {
   loaded: boolean;
   organizations: OrganizationSummary[];
 }
 
-interface OrganizationsStoreDefinition extends StrictStoreDefinition<State> {
-  addOrReplace(item: OrganizationSummary): void;
-  get(slug: string): OrganizationSummary | undefined;
-  getAll(): OrganizationSummary[];
-  load(items: OrganizationSummary[]): void;
-  onChangeSlug(prev: OrganizationSummary, next: Partial<OrganizationSummary>): void;
-  onRemoveSuccess(slug: string): void;
-  onUpdate(org: Partial<OrganizationSummary>): void;
-  remove(slug: string): void;
-}
+const store = createStore<State>()(() => ({organizations: [], loaded: false}));
 
-const storeConfig: OrganizationsStoreDefinition = {
-  state: {organizations: [], loaded: false},
+export const OrganizationsStore = {
+  ...store,
 
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.state = {organizations: [], loaded: false};
+    store.setState({organizations: [], loaded: false}, true);
   },
 
-  onUpdate(org) {
+  onUpdate(org: Partial<OrganizationSummary>) {
     let match = false;
-    const newOrgs = [...this.state.organizations];
+    const newOrgs = [...store.getState().organizations];
     newOrgs.forEach((existing, idx) => {
       if (existing.id === org.id) {
         newOrgs[idx] = {...existing, ...org};
@@ -44,46 +30,39 @@ const storeConfig: OrganizationsStoreDefinition = {
         'Cannot update an organization that is not in the OrganizationsStore'
       );
     }
-    this.state = {...this.state, organizations: newOrgs};
-    this.trigger(newOrgs);
+    store.setState({organizations: newOrgs});
   },
 
-  onChangeSlug(prev, next) {
+  onChangeSlug(prev: OrganizationSummary, next: Partial<OrganizationSummary>) {
     if (prev.slug === next.slug) {
       return;
     }
 
-    this.remove(prev.slug);
-    this.addOrReplace({...prev, ...next});
+    OrganizationsStore.remove(prev.slug);
+    OrganizationsStore.addOrReplace({...prev, ...next});
   },
 
-  onRemoveSuccess(slug) {
-    this.remove(slug);
+  onRemoveSuccess(slug: string) {
+    OrganizationsStore.remove(slug);
   },
 
-  get(slug) {
-    return this.state.organizations.find(item => item.slug === slug);
+  get(slug: string) {
+    return store.getState().organizations.find(item => item.slug === slug);
   },
 
   getAll() {
-    return this.state.organizations;
+    return store.getState().organizations;
   },
 
-  getState() {
-    return this.state;
+  remove(slug: string) {
+    store.setState({
+      organizations: store.getState().organizations.filter(item => slug !== item.slug),
+    });
   },
 
-  remove(slug) {
-    this.state = {
-      ...this.state,
-      organizations: this.state.organizations.filter(item => slug !== item.slug),
-    };
-    this.trigger(this.state.organizations);
-  },
-
-  addOrReplace(item) {
+  addOrReplace(item: OrganizationSummary) {
     let match = false;
-    const newOrgs = [...this.state.organizations];
+    const newOrgs = [...store.getState().organizations];
     newOrgs.forEach((existing, idx) => {
       if (existing.id === item.id) {
         newOrgs[idx] = {...existing, ...item};
@@ -93,15 +72,10 @@ const storeConfig: OrganizationsStoreDefinition = {
     if (!match) {
       newOrgs.push(item);
     }
-    this.state = {...this.state, organizations: newOrgs};
-    this.trigger(newOrgs);
+    store.setState({organizations: newOrgs});
   },
 
   load(items: OrganizationSummary[]) {
-    const newOrgs = [...items];
-    this.state = {organizations: newOrgs, loaded: true};
-    this.trigger(newOrgs);
+    store.setState({organizations: [...items], loaded: true}, true);
   },
 };
-
-export const OrganizationsStore = createStore(storeConfig);

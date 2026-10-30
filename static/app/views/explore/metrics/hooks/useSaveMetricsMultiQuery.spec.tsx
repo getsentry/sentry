@@ -79,12 +79,12 @@ function TestPage() {
 
 describe('useSaveMetricsMultiQuery', () => {
   beforeEach(() => {
+    PageFiltersStore.reset();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

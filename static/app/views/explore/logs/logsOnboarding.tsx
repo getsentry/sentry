@@ -1,6 +1,7 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
@@ -38,7 +39,6 @@ import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -264,7 +264,8 @@ function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const isSelfHosted = useStore(ConfigStore, state => state.isSelfHosted);
+  const urlPrefix = useStore(ConfigStore, state => state.urlPrefix);
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;

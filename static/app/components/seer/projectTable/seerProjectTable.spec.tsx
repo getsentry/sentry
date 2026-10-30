@@ -87,13 +87,13 @@ describe('SeerProjectTable', () => {
   }
 
   beforeEach(() => {
+    ProjectsStore.reset();
     ProjectsStore.loadInitialData([project]);
     mockBaseEndpoints();
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     jest.restoreAllMocks();
   });
 

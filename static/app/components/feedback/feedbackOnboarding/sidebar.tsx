@@ -3,6 +3,7 @@ import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {PlatformIcon} from 'platformicons';
+import {useStore} from 'zustand';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
@@ -40,7 +41,6 @@ import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -49,7 +49,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function useFeedbackOnboardingDrawer() {
   const organization = useOrganization();
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
+  const currentPanel = useStore(OnboardingDrawerStore);
   const isActive = currentPanel === OnboardingDrawerKey.FEEDBACK_ONBOARDING;
   const hasProjectAccess = organization.access.includes('project:read');
 

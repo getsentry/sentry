@@ -86,7 +86,6 @@
     "less-loader": "^13.0.0",
     "peggy": "5.1.1",
     "react": "19.3.0",
-    "reflux": "0.4.1",
     "rehype-expressive-code": "^0.44.2",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
