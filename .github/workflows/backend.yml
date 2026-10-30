@@ -224,7 +224,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '4'
+      XDIST_WORKERS: '5'
       # Set to '1' to sample pytest and its xdist workers with py-spy (adds ~0.4 cores of overhead).
       PROFILE_BACKEND_TESTS: '0'
 
