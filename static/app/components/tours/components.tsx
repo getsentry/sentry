@@ -8,7 +8,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text';
 import {useInvertedTheme} from '@sentry/scraps/theme';
@@ -387,6 +387,7 @@ export function TourElementContent<T extends TourEnumType>({
       position={position}
       handleDismiss={dismiss}
       onKeyDown={variant === 'subtle' ? handleKeyDown : undefined}
+      variant={variant}
       stepCount={stepCount}
       stepTotal={stepTotal}
       id={`${id}`}
@@ -426,6 +427,7 @@ interface TourGuideProps extends Omit<
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
+  variant?: TourVariant;
 }
 
 const zIndex = {
@@ -494,6 +496,7 @@ export function TourGuide({
   offset,
   margin,
   onKeyDown,
+  variant,
 }: TourGuideProps) {
   const theme = useTheme();
   const invertedTheme = useInvertedTheme();
@@ -551,7 +554,7 @@ export function TourGuide({
     <Fragment>
       <ClassNames>
         {({css, cx}) => {
-          const tourStyles = getTourElementStyles(theme, !!isOpen, margin);
+          const tourStyles = getTourElementStyles(theme, !!isOpen, margin, variant);
           const tourClassName = tourStyles ? css(tourStyles) : undefined;
 
           return children({
@@ -590,8 +593,7 @@ export function TourGuide({
                         radius="md"
                         width="395px"
                         maxWidth={TOUR_GUIDE_MAX_WIDTH}
-                        padding="lg xl xl"
-                        gap="md"
+                        padding="md xl"
                       >
                         {isTopRowVisible && (
                           <Flex
@@ -608,23 +610,32 @@ export function TourGuide({
                                 onClick={handleDismiss}
                                 icon={<IconClose />}
                                 aria-label={t('Close')}
-                                size="xs"
+                                size="zero"
+                                style={{
+                                  color:
+                                    invertedTheme.tokens.interactive.transparent.neutral
+                                      .content.headings,
+                                }}
                               />
                             )}
                           </Flex>
                         )}
                         {title && (
-                          <Text as="div" size="xl" bold density="comfortable">
-                            {title}
-                          </Text>
+                          <Container padding="xs 0">
+                            <Text as="div" size="xl" bold density="comfortable">
+                              {title}
+                            </Text>
+                          </Container>
                         )}
                         {description && (
-                          <Text as="div" size="md" density="comfortable">
-                            {description}
-                          </Text>
+                          <Container padding="xs 0">
+                            <Text as="div" size="md" density="comfortable">
+                              {description}
+                            </Text>
+                          </Container>
                         )}
                         {actions && (
-                          <Flex justify="end" paddingTop="xs">
+                          <Flex justify="end" padding="md 0">
                             {actions}
                           </Flex>
                         )}
@@ -672,9 +683,11 @@ const BlurWindow = styled('div')`
 function getTourElementStyles(
   theme: ReturnType<typeof useTheme>,
   isOpen: boolean,
-  margin?: number
+  margin?: number,
+  variant?: TourVariant
 ) {
-  if (!isOpen) {
+  // A subtle tour only points at its element with the guide's arrow.
+  if (!isOpen || variant === 'subtle') {
     return;
   }
 
