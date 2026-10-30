@@ -2104,6 +2104,27 @@ function buildRoutes(): RouteObject[] {
         },
       ],
     },
+    {
+      path: 'aws-lambda/',
+      children: [
+        {
+          index: true,
+          component: make(() => import('sentry/views/insights/awsLambda/views/overview')),
+        },
+        {
+          path: 'function/',
+          component: make(
+            () => import('sentry/views/insights/awsLambda/views/functionDetails')
+          ),
+        },
+        {
+          path: 'instrumentation/',
+          component: make(
+            () => import('sentry/views/insights/awsLambda/views/instrumentation')
+          ),
+        },
+      ],
+    },
   ];
 
   const domainViewRoutes: SentryRouteObject = {

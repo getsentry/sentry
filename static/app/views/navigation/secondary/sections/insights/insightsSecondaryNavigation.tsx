@@ -75,6 +75,20 @@ export function InsightsSecondaryNavigation() {
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <SecondaryNavigation.Separator />
+        <SecondaryNavigation.Section id="insights-serverless" title={t('Serverless')}>
+          <SecondaryNavigation.List>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/aws-lambda/`}
+                analyticsItemName="insights_aws_lambda"
+                trailingItems={<Badge variant="info">{t('Mock')}</Badge>}
+              >
+                {t('AWS Lambda')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
+          </SecondaryNavigation.List>
+        </SecondaryNavigation.Section>
+        <SecondaryNavigation.Separator />
         <SecondaryNavigation.Section id="insights-ai" title={t('AI')}>
           <SecondaryNavigation.List>
             <SecondaryNavigation.ListItem>
