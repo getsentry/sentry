@@ -15,7 +15,7 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
@@ -24,7 +24,7 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
             organization=self.organization, created_by=self.user, title="Star me"
         )
         favorite_url = reverse(
-            "sentry-api-0-organization-investigation-favorite",
+            "sentry-api-0-organization-notebook-favorite",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation.id,
@@ -58,7 +58,7 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
         self.create_member(organization=self.organization, user=viewer, role="member")
         self.login_as(viewer)
         favorite_url = reverse(
-            "sentry-api-0-organization-investigation-favorite",
+            "sentry-api-0-organization-notebook-favorite",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": investigation.id,

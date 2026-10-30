@@ -20,7 +20,7 @@ class OrganizationInvestigationCommentsTest(APITestCase):
         )
         self.block = self.create_notebook_block(notebook=self.investigation)
         self.url = reverse(
-            "sentry-api-0-organization-investigation-comments",
+            "sentry-api-0-organization-notebook-comments",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -134,7 +134,7 @@ class OrganizationInvestigationCommentsTest(APITestCase):
     def test_other_organization_cannot_read(self) -> None:
         other_org = self.create_organization()
         url = reverse(
-            "sentry-api-0-organization-investigation-comments",
+            "sentry-api-0-organization-notebook-comments",
             kwargs={
                 "organization_id_or_slug": other_org.slug,
                 "investigation_id": self.investigation.id,

@@ -37,7 +37,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
 
     def execution_url(self, execution: NotebookBlockExecution) -> str:
         return reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -166,7 +166,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             input_snapshot={"projectIds": [self.project.id]},
         )
         execution_url = reverse(
-            "sentry-api-0-organization-investigation-block-execution-details",
+            "sentry-api-0-organization-notebook-block-execution-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -175,7 +175,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             },
         )
         title_url = reverse(
-            "sentry-api-0-organization-investigation-title-generation",
+            "sentry-api-0-organization-notebook-title-generation",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
