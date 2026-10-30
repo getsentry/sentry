@@ -7,7 +7,7 @@ from requests import PreparedRequest, Request
 from sentry.exceptions import RestrictedIPAddress
 from sentry.net.http import Session
 from sentry.shared_integrations.client.base import BaseApiClient
-from sentry.shared_integrations.exceptions import ApiHostError
+from sentry.shared_integrations.exceptions import ApiRestrictedIPError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.socket import override_blocklist
 
@@ -69,7 +69,9 @@ class BaseApiClientTest(TestCase):
     @override_blocklist("172.16.0.0/12")
     def test_restricted_ip_address(self, mock_finalize_request, mock_session_send) -> None:
         assert not mock_finalize_request.called
-        with raises(ApiHostError):
+        # Our own egress allowlist refusing the destination is distinguishable from the
+        # host genuinely being unreachable, even though both answer 503.
+        with raises(ApiRestrictedIPError):
             self.api_client.get("https://172.31.255.255")
         assert mock_finalize_request.called
 
