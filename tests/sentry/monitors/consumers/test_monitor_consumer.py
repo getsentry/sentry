@@ -34,6 +34,7 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
+from sentry.monitors.utils import ensure_cron_detector
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -792,6 +793,7 @@ class MonitorConsumerTest(TestCase):
 
     def test_monitor_update_owner_to_team(self) -> None:
         monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
+        ensure_cron_detector(monitor)
         self.send_checkin(
             "my-monitor",
             monitor_config={
@@ -809,6 +811,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id == self.team.id
         assert "owner" not in monitor.config
+
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert detector.owner_user_id is None
+        assert detector.owner_team_id == self.team.id
 
     def test_monitor_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")

@@ -27,7 +27,11 @@ from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.monitors.constants import MAX_MARGIN, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
-from sentry.monitors.logic.monitor_status import sync_cron_detector_enabled
+from sentry.monitors.logic.monitor_status import (
+    sync_cron_detector_enabled,
+    sync_cron_detector_name_and_owner,
+    sync_monitor_owner_from_detector,
+)
 from sentry.monitors.models import (
     MONITOR_CONFIG,
     CheckInStatus,
@@ -516,6 +520,11 @@ class MonitorValidator(CamelSnakeSerializer):
             instance.update(**params)
             if "status" in params:
                 sync_cron_detector_enabled(instance)
+            # The detector flow sets these on the detector itself
+            if ("name" in params or "owner_user_id" in params) and not self.context.get(
+                "from_detector_flow"
+            ):
+                sync_cron_detector_name_and_owner(instance)
             create_audit_entry(
                 request=self.context["request"],
                 organization_id=instance.organization_id,
@@ -756,10 +765,14 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         return value
 
     def create(self, validated_data):
+        owner_provided = "owner" in validated_data
         detector = super().create(validated_data)
 
         with in_test_hide_transaction_boundary():
             monitor = get_cron_monitor(detector)
+
+        if owner_provided:
+            sync_monitor_owner_from_detector(monitor, detector)
 
         # Try to assign a seat for the monitor
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
@@ -771,6 +784,7 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
         return detector
 
     def update(self, instance: Detector, validated_data: dict[str, Any]) -> Detector:
+        owner_provided = "owner" in validated_data
         was_enabled = instance.enabled
         enabled = validated_data.get("enabled", was_enabled)
 
@@ -809,6 +823,11 @@ class MonitorIncidentDetectorValidator(BaseDetectorTypeValidator):
             if monitor_validator.is_valid(raise_exception=True):
                 with in_test_hide_transaction_boundary():
                     monitor_validator.save()
+
+        # The detector form sends owner on the detector, not the data source,
+        # so the monitor never sees it unless we copy it over.
+        if owner_provided:
+            sync_monitor_owner_from_detector(get_cron_monitor(instance), instance)
 
         return instance
 
