@@ -6,6 +6,7 @@ from django.urls import reverse
 
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
 from sentry.releases.endpoints.project_release_file_details import (
@@ -14,6 +15,36 @@ from sentry.releases.endpoints.project_release_file_details import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
+
+
+def release_file_shared_with_project_of_another_team(case: APITestCase) -> tuple[str, ReleaseFile]:
+    """Logs in a member of one team whose release is also attached to another team's project."""
+    org = case.organization
+    org.flags.allow_joinleave = False
+    org.save()
+    team = case.create_team(organization=org)
+    project = case.create_project(teams=[team], organization=org)
+    other_project: Project = case.create_project(
+        teams=[case.create_team(organization=org)], organization=org
+    )
+    release = case.create_release(project, additional_projects=[other_project])
+    releasefile = case.create_release_file(
+        release_id=release.id,
+        file=File.objects.create(name="application.js", type="release.file"),
+    )
+    user = case.create_user()
+    case.create_member(teams=[team], user=user, organization=org)
+    case.login_as(user=user)
+    url = reverse(
+        "sentry-api-0-project-release-file-details",
+        kwargs={
+            "organization_id_or_slug": org.slug,
+            "project_id_or_slug": project.slug,
+            "version": release.version,
+            "file_id": releasefile.id,
+        },
+    )
+    return url, releasefile
 
 
 def test_closes_depnedent_files_is_iterable() -> None:
@@ -116,6 +147,55 @@ class ReleaseFileDetailsTest(APITestCase):
         self.login_as(user=user_no_permission)
         response = self.client.get(url + "?download=1")
         assert response.status_code == 403, response.content
+
+    def test_file_download_as_sentry_app(self) -> None:
+        project = self.create_project(name="foo")
+        release = self.create_release(project)
+        f = self.create_file(name="application.js", type="release.file")
+        f.putfile(io.BytesIO(b"File contents here"))
+        releasefile = self.create_release_file(
+            release.id, file=f, name="http://example.com/application.js"
+        )
+        url = reverse(
+            "sentry-api-0-project-release-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        url = f"{url}?download=1"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The default debug files role requires write access
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+        # The member role only requires read access
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
 
     def _get(self, file_id, postfix=""):
         url = reverse(
@@ -239,6 +319,14 @@ class ReleaseFileUpdateTest(APITestCase):
         assert response.status_code == 400
         assert response.data == {"detail": INVALID_UPDATE_MESSAGE}  # TODO: document this in apidocs
 
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        url, releasefile = release_file_shared_with_project_of_another_team(self)
+
+        response = self.client.put(url, {"name": "foobar"})
+
+        assert response.status_code == 403, response.content
+        assert ReleaseFile.objects.get(id=releasefile.id).name == "application.js"
+
 
 class ReleaseFileDeleteTest(APITestCase):
     def test_simple(self) -> None:
@@ -306,3 +394,11 @@ class ReleaseFileDeleteTest(APITestCase):
         response = self.client.delete(url(urlsafe_b64encode(b"_~/does_not_exist.js").decode()))
         assert response.status_code == 404
         assert self.release.count_artifacts() == 1
+
+    def test_release_shared_with_project_of_another_team(self) -> None:
+        url, releasefile = release_file_shared_with_project_of_another_team(self)
+
+        response = self.client.delete(url)
+
+        assert response.status_code == 403, response.content
+        assert ReleaseFile.objects.filter(id=releasefile.id).exists()

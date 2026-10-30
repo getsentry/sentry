@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.source_code_management.metrics import (
@@ -59,6 +60,8 @@ def set_commits(release, commit_list):
         for c in commit_list
         if not IntegrationRepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
+    commit_list = _keep_newest_commits(release, commit_list)
+
     lock_key = Release.get_lock_key(release.organization_id, release.id)
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(lock_key, duration=10 * 60, name="release_set_commits")
@@ -84,6 +87,29 @@ def set_commits(release, commit_list):
 
     with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
         update_group_resolutions(release, commit_author_by_commit)
+
+
+def _keep_newest_commits(release, commit_list):
+    """
+    Each commit costs several queries, all issued while holding the release lock
+    and usually inside a web request, so the list has to be bounded. Expects
+    `commit_list` sorted newest first.
+    """
+    max_commits = options.get("releases.set-commits.max-commits")
+    if len(commit_list) <= max_commits:
+        return commit_list
+
+    logger.info(
+        "set_commits.truncated",
+        extra={
+            "organization_id": release.organization_id,
+            "release_id": release.id,
+            "original_count": len(commit_list),
+            "truncated_count": max_commits,
+        },
+    )
+    metrics.incr("set_commits.truncated")
+    return commit_list[:max_commits]
 
 
 @metrics.wraps("set_commits_on_release")

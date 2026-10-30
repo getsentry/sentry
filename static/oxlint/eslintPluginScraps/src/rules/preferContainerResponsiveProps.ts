@@ -132,7 +132,7 @@ export const preferContainerResponsiveProps = defineRule({
         }
       },
       CallExpression(node) {
-        if (!importTracker.is(node.callee, 'sentry/utils/useMedia', 'useMedia')) {
+        if (!importTracker.is(node.callee, '@sentry/scraps/useMedia', 'useMedia')) {
           return;
         }
         const query = node.arguments[0];

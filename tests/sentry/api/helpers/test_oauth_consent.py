@@ -220,13 +220,39 @@ def test_unknown_permission_group() -> None:
     "scope, expected",
     [
         ("dashboard:read", ["read"]),
-        ("dashboard:write", ["read", "write"]),
+        ("dashboard:write", ["write"]),
     ],
 )
 def test_dashboard_access_descriptions(scope: str, expected: list[str]) -> None:
     (group,) = get_permission_groups([scope])
     assert group["actions"] == expected
     assert group["accessDescriptions"]["write"] == "Create, update, and delete dashboards."
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["saved_query:read"], ["read"]),
+        (["saved_query:write"], ["write"]),
+        (["saved_query:read", "saved_query:write"], ["read", "write"]),
+    ],
+)
+def test_saved_query_write_does_not_imply_read(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
+
+
+@pytest.mark.parametrize(
+    "scopes, expected",
+    [
+        (["service_account:read"], ["read"]),
+        (["service_account:write"], ["write"]),
+        (["service_account:read", "service_account:write"], ["read", "write"]),
+    ],
+)
+def test_service_account_actions_are_explicit(scopes: list[str], expected: list[str]) -> None:
+    (group,) = get_permission_groups(scopes)
+    assert group["actions"] == expected
 
 
 def test_resource_access_descriptions() -> None:

@@ -7,7 +7,7 @@ from django.utils import timezone
 from redis.client import StrictRedis
 from sentry_redis_tools.clients import RedisCluster
 
-from sentry.investigations.models import Investigation, InvestigationSeen
+from sentry.notebooks.models import Notebook, NotebookSeen
 from sentry.utils.function_cache import cache_func_for_models
 from sentry.utils.redis import redis_clusters
 
@@ -72,20 +72,20 @@ def record_heartbeat(investigation_id: int, user_id: int, now: datetime | None =
 
 
 @cache_func_for_models(
-    [(InvestigationSeen, lambda seen: (seen.investigation_id,))],
+    [(NotebookSeen, lambda seen: (seen.notebook_id,))],
     cache_ttl=timedelta(hours=1),
 )
 def seen_by(investigation_id: int) -> list[tuple[int, datetime]]:
     """(user id, last seen) for an investigation, most recent first. Recalculated on every write."""
     return list(
-        InvestigationSeen.objects.filter(investigation_id=investigation_id)
+        NotebookSeen.objects.filter(notebook_id=investigation_id)
         .order_by("-last_seen")
         .values_list("user_id", "last_seen")[:SEEN_CACHE_LIMIT]
     )
 
 
 def record_visit(
-    investigation: Investigation, user_id: int, limit: int = DEFAULT_VIEWER_LIMIT
+    investigation: Notebook, user_id: int, limit: int = DEFAULT_VIEWER_LIMIT
 ) -> Viewers:
     """
     Record a heartbeat and list the investigation's other viewers: active ones first, then historical
@@ -98,13 +98,13 @@ def record_visit(
     own_last_seen = next((last_seen for uid, last_seen in seen if uid == user_id), None)
     if own_last_seen is None and heartbeat.was_present:
         own_last_seen = (
-            InvestigationSeen.objects.filter(investigation=investigation, user_id=user_id)
+            NotebookSeen.objects.filter(notebook=investigation, user_id=user_id)
             .values_list("last_seen", flat=True)
             .first()
         )
     if not heartbeat.was_present or own_last_seen is None or now - own_last_seen >= SEEN_REFRESH:
-        InvestigationSeen.objects.update_or_create(
-            investigation=investigation, user_id=user_id, defaults={"last_seen": now}
+        NotebookSeen.objects.update_or_create(
+            notebook=investigation, user_id=user_id, defaults={"last_seen": now}
         )
 
     viewers = [

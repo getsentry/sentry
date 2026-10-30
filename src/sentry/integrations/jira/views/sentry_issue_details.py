@@ -10,7 +10,6 @@ import sentry_sdk
 from django.db.models.query import QuerySet
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
-from jwt import ExpiredSignatureError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,6 +20,7 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
     AtlassianConnectValidationError,
     get_integration_from_request,
 )
@@ -133,6 +133,10 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
         try:
             integration = get_integration_from_request(request, "jira")
+        except AtlassianConnectTokenExpiredError:
+            scope.set_tag("failure", "ExpiredSignatureError")
+            scope.set_attribute("failure", "ExpiredSignatureError")
+            return self.get_response({"refresh_required": True})
         except AtlassianConnectValidationError as e:
             scope.set_tag("failure", "AtlassianConnectValidationError")
             scope.set_attribute("failure", "AtlassianConnectValidationError")
@@ -144,10 +148,6 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
                 },
             )
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
-        except ExpiredSignatureError:
-            scope.set_tag("failure", "ExpiredSignatureError")
-            scope.set_attribute("failure", "ExpiredSignatureError")
-            return self.get_response({"refresh_required": True})
 
         try:
             external_issue = ExternalIssue.objects.get(integration_id=integration.id, key=issue_key)
@@ -224,6 +224,10 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
 
         try:
             integration = get_integration_from_request(request, "jira")
+        except AtlassianConnectTokenExpiredError:
+            scope.set_tag("failure", "ExpiredSignatureError")
+            scope.set_attribute("failure", "ExpiredSignatureError")
+            return self.get_response({"refresh_required": True})
         except AtlassianConnectValidationError as e:
             scope.set_tag("failure", "AtlassianConnectValidationError")
             scope.set_attribute("failure", "AtlassianConnectValidationError")
@@ -235,10 +239,6 @@ class JiraSentryIssueDetailsControlView(JiraSentryUIBaseView):
                 },
             )
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
-        except ExpiredSignatureError:
-            scope.set_tag("failure", "ExpiredSignatureError")
-            scope.set_attribute("failure", "ExpiredSignatureError")
-            return self.get_response({"refresh_required": True})
 
         has_groups = False
         groups = []

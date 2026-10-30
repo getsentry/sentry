@@ -7,7 +7,7 @@ from typing import Any, TypedDict, override
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.investigations.models import InvestigationComment
+from sentry.notebooks.models import NotebookComment
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -29,15 +29,15 @@ class InvestigationCommentSerializerResponse(TypedDict):
     dateUpdated: datetime
 
 
-@register(InvestigationComment)
+@register(NotebookComment)
 class InvestigationCommentSerializer(Serializer[InvestigationCommentSerializerResponse]):
     @override
     def get_attrs(
         self,
-        item_list: Sequence[InvestigationComment],
+        item_list: Sequence[NotebookComment],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> MutableMapping[InvestigationComment, dict[str, Any]]:
+    ) -> MutableMapping[NotebookComment, dict[str, Any]]:
         author_ids = list({c.author_id for c in item_list if c.author_id is not None})
         authors = (
             {
@@ -54,7 +54,7 @@ class InvestigationCommentSerializer(Serializer[InvestigationCommentSerializerRe
     @override
     def serialize(
         self,
-        obj: InvestigationComment,
+        obj: NotebookComment,
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,

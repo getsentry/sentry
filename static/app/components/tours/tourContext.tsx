@@ -277,4 +277,20 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   previousStep: () => void;
   setStep: (stepId: T) => void;
   startTour: () => void;
+  /**
+   * Set by `TourContextProvider` for subtle tours. True while a guide hands its
+   * focus over to the guide of the next step.
+   */
+  focusHandoffRef?: React.RefObject<boolean>;
+  /**
+   * How the tour presents itself. Set by `TourContextProvider`.
+   */
+  variant?: TourVariant;
 }
+
+/**
+ * `spotlight` blurs the page around the highlighted element and handles the
+ * tour's keyboard shortcuts anywhere on the page. `subtle` leaves the page
+ * readable and usable, and only handles them while the guide has focus.
+ */
+export type TourVariant = 'spotlight' | 'subtle';

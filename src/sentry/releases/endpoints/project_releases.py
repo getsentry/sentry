@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.helpers.environments import get_environment
+from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import ReleaseWithVersionSerializer
@@ -191,9 +192,11 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
             else:
                 release_created.send_robust(release=release, sender=self.__class__)
 
-            if not created and new_status is not None and new_status != release.status:
-                release.status = new_status
-                release.save()
+            if not created:
+                ensure_access_to_release_projects(request, release)
+                if new_status is not None and new_status != release.status:
+                    release.status = new_status
+                    release.save()
 
             _, releaseproject_created = release.add_project(project)
 

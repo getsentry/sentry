@@ -14,7 +14,6 @@ from sentry.investigations.agent import (
     synchronize_title,
     title_generation_preview,
 )
-from sentry.investigations.models import InvestigationBlockExecutionStatus
 from sentry.investigations.services.investigations import (
     DEFAULT_INVESTIGATION_TITLE,
     default_investigation_title,
@@ -23,6 +22,7 @@ from sentry.investigations.telemetry import (
     record_execution_completed,
     record_investigation_completed,
 )
+from sentry.notebooks.models import NotebookBlockExecutionStatus
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -100,13 +100,13 @@ def test_completion_metadata_ignores_extra_keys() -> None:
 class InvestigationAgentTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Already titled",
         )
-        self.block = self.create_investigation_block(
-            investigation=self.investigation,
+        self.block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="query",
             prompt="Count errors",
         )
@@ -115,11 +115,11 @@ class InvestigationAgentTest(TestCase):
             type=SeerRunType.EXPLORER,
             seer_run_state_id=42,
         )
-        self.execution = self.create_investigation_block_execution(
+        self.execution = self.create_notebook_block_execution(
             block=self.block,
             seer_run=self.seer_run,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=self.block.version,
             input_snapshot={
                 "projectIds": [self.project.id],
@@ -186,7 +186,7 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         self.block.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
         params = self.execution.result["queryLinks"][0]["params"]
@@ -217,7 +217,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
 
     def test_completed_query_keeps_reused_result_projects(self) -> None:
@@ -258,7 +258,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
         assert self.execution.result["queryLinks"] == original_links
 
@@ -370,10 +370,10 @@ class InvestigationAgentTest(TestCase):
 
     @patch("sentry.investigations.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
-        pending_execution = self.create_investigation_block_execution(
+        pending_execution = self.create_notebook_block_execution(
             block=self.block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.PENDING,
+            status=NotebookBlockExecutionStatus.PENDING,
             block_version=self.block.version,
         )
         self.block.update(current_execution=pending_execution)
@@ -393,15 +393,15 @@ class InvestigationAgentTest(TestCase):
     def test_start_run_interrupts_seer_when_cancellation_wins_dispatch_race(
         self, interrupt_run: MagicMock
     ) -> None:
-        pending_execution = self.create_investigation_block_execution(
+        pending_execution = self.create_notebook_block_execution(
             block=self.block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.PENDING,
+            status=NotebookBlockExecutionStatus.PENDING,
             block_version=self.block.version,
         )
         self.block.current_execution = pending_execution
         self.block.save(update_fields=["current_execution"])
-        pending_execution.update(status=InvestigationBlockExecutionStatus.CANCELLED)
+        pending_execution.update(status=NotebookBlockExecutionStatus.CANCELLED)
         client = MagicMock()
 
         def start_run(*args: Any, **kwargs: Any) -> Any:
@@ -413,7 +413,7 @@ class InvestigationAgentTest(TestCase):
         start_execution_run(pending_execution, self.organization, self.user, client)
 
         pending_execution.refresh_from_db()
-        assert pending_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert pending_execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert pending_execution.seer_run is None
         interrupt_run.assert_called_once_with(self.organization, 42)
 
@@ -448,7 +448,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
 
     @patch("sentry.investigations.agent.record_execution_completed")
@@ -530,7 +530,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
         assert self.execution.error == {
             "code": "invalid_result",
             "message": "The agent returned malformed or unsupported result JSON.",
@@ -545,8 +545,8 @@ class InvestigationAgentTest(TestCase):
         record_cancelled: MagicMock,
         record_investigation_failed: MagicMock,
     ) -> None:
-        sibling_block = self.create_investigation_block(
-            investigation=self.investigation,
+        sibling_block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             prompt="Explain the spike",
             position=1,
@@ -556,11 +556,11 @@ class InvestigationAgentTest(TestCase):
             type=SeerRunType.EXPLORER,
             seer_run_state_id=43,
         )
-        sibling_execution = self.create_investigation_block_execution(
+        sibling_execution = self.create_notebook_block_execution(
             block=sibling_block,
             seer_run=sibling_run,
             executor="text_generation",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=sibling_block.version,
         )
         sibling_block.current_execution = sibling_execution
@@ -571,8 +571,8 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         sibling_execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
-        assert sibling_execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert sibling_execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert sibling_execution.error == {
             "code": "investigation_execution_failed",
             "message": "Cancelled because another cell in this investigation failed.",
@@ -663,11 +663,11 @@ class InvestigationAgentTest(TestCase):
             type=SeerRunType.EXPLORER,
             seer_run_state_id=43,
         )
-        current_execution = self.create_investigation_block_execution(
+        current_execution = self.create_notebook_block_execution(
             block=self.block,
             seer_run=current_run,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=self.block.version,
         )
         self.block.current_execution = current_execution
@@ -678,8 +678,8 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         current_execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
-        assert current_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert current_execution.status == NotebookBlockExecutionStatus.RUNNING
         record_investigation_failed.assert_not_called()
         interrupt_run.assert_not_called()
 
@@ -687,16 +687,16 @@ class InvestigationAgentTest(TestCase):
     def test_old_block_version_failure_does_not_cancel_other_runs(
         self, interrupt_run: MagicMock
     ) -> None:
-        sibling_block = self.create_investigation_block(
-            investigation=self.investigation,
+        sibling_block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="text",
             prompt="Explain the spike",
             position=1,
         )
-        sibling_execution = self.create_investigation_block_execution(
+        sibling_execution = self.create_notebook_block_execution(
             block=sibling_block,
             executor="text_generation",
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             block_version=sibling_block.version,
         )
         sibling_block.current_execution = sibling_execution
@@ -709,8 +709,8 @@ class InvestigationAgentTest(TestCase):
 
         self.execution.refresh_from_db()
         sibling_execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
-        assert sibling_execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
+        assert sibling_execution.status == NotebookBlockExecutionStatus.RUNNING
         interrupt_run.assert_not_called()
 
     @patch("sentry.investigations.agent.interrupt_run")
@@ -740,7 +740,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert self.execution.status == NotebookBlockExecutionStatus.RUNNING
         interrupt_run.assert_not_called()
 
     @patch("sentry.investigations.agent.interrupt_run")
@@ -779,7 +779,7 @@ class InvestigationAgentTest(TestCase):
         with self.captureOnCommitCallbacks(execute=True):
             synchronize_execution(self.execution, run_state)
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
 
@@ -811,7 +811,7 @@ class InvestigationAgentTest(TestCase):
             synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert self.execution.status == NotebookBlockExecutionStatus.FAILED
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once_with(self.organization, 42)
 
@@ -819,7 +819,7 @@ class InvestigationAgentTest(TestCase):
     def test_a_terminal_execution_is_never_rewritten(self, interrupt_run: MagicMock) -> None:
         # A cancelled run must keep the outcome the user asked for, even when Seer later
         # reports a still-processing state that breaks the tool policy.
-        self.execution.update(status=InvestigationBlockExecutionStatus.CANCELLED)
+        self.execution.update(status=NotebookBlockExecutionStatus.CANCELLED)
         run_state = state(
             status="processing",
             blocks=[
@@ -843,7 +843,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert self.execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert self.execution.error is None
         interrupt_run.assert_not_called()
 
@@ -1180,7 +1180,7 @@ class InvestigationAgentTest(TestCase):
         synchronize_execution(self.execution, run_state)
 
         self.execution.refresh_from_db()
-        assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert self.execution.status == NotebookBlockExecutionStatus.COMPLETED
         link = self.execution.result["queryLinks"][0]
         assert set(link) == {"kind", "params"}
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
@@ -1393,7 +1393,7 @@ class InvestigationAgentTest(TestCase):
         mock_client.return_value.start_run.assert_not_called()
 
         self.execution.update(
-            status=InvestigationBlockExecutionStatus.COMPLETED,
+            status=NotebookBlockExecutionStatus.COMPLETED,
             result={"schemaVersion": 1},
         )
         self.block.update(result_execution=self.execution, stale_at=None)

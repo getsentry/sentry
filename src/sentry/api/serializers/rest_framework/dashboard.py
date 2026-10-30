@@ -11,6 +11,7 @@ from rest_framework import serializers
 from sentry_sdk import traces
 
 from sentry import features, options
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.helpers.timeseries_transformations import parse_transformations
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
@@ -1224,7 +1225,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
-            created_by_id=self.context["request"].user.id,
+            **get_creator_reference(self.context["request"]),
         )
 
         assert self.instance is not None
