@@ -112,6 +112,7 @@ def test_large_rpc_growth_is_reported(distribution: mock.MagicMock, enabled: Non
             "rpc_method": "organization.get_organization",
             "concurrent": "false",
         },
+        sample_rate=1.0,
         unit="megabyte",
     )
     logger.info.assert_called_once()
