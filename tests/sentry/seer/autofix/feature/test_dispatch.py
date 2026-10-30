@@ -500,16 +500,17 @@ class TestTriggerAutofixFeature(TestCase):
             assert options["enable_bash_mode"] is coding, stopping_point
             assert options["enable_write_pull_request"] is write_pr, stopping_point
 
-    def test_single_run_without_stopping_point_goes_to_pr(self) -> None:
-        self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
-
+    def test_single_run_without_stopping_point_stops_at_root_cause(self) -> None:
         kwargs = self._start_single_run(None)
 
         options = kwargs["agent_run_options"]
-        assert options["enable_coding"] is True
-        assert options["enable_bash_mode"] is True
-        assert options["enable_write_pull_request"] is True
-        assert kwargs["extras"] == {"referrer": AutofixReferrer.AGENTIC_TRIAGE.value}
+        assert options["enable_coding"] is False
+        assert options["enable_bash_mode"] is False
+        assert options["enable_write_pull_request"] is False
+        assert kwargs["extras"] == {
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
+            "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+        }
 
     def test_single_run_flag_keeps_continuations_on_steps(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -538,7 +539,9 @@ class TestTriggerAutofixFeature(TestCase):
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     def test_single_run_without_publish_scope_codes_but_skips_pr(self) -> None:
-        options = self._start_single_run(None, can_open_pr=False)["agent_run_options"]
+        options = self._start_single_run(AutofixStoppingPoint.OPEN_PR, can_open_pr=False)[
+            "agent_run_options"
+        ]
 
         assert options["enable_coding"] is True
         assert options["enable_write_pull_request"] is False
@@ -549,7 +552,9 @@ class TestTriggerAutofixFeature(TestCase):
         assert payload["user_context"] == "try the other repo"
 
     def test_single_run_without_bash_mode_flag_gets_no_bash_mode(self) -> None:
-        options = self._start_single_run(None, bash_mode=False)["agent_run_options"]
+        options = self._start_single_run(AutofixStoppingPoint.OPEN_PR, bash_mode=False)[
+            "agent_run_options"
+        ]
 
         assert options["enable_coding"] is True
         assert options["enable_bash_mode"] is False
@@ -563,7 +568,7 @@ class TestTriggerAutofixFeature(TestCase):
     def test_single_run_stops_at_root_cause_when_coding_disabled(self) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        options = self._start_single_run(None)["agent_run_options"]
+        options = self._start_single_run(AutofixStoppingPoint.OPEN_PR)["agent_run_options"]
 
         assert options["enable_coding"] is False
         assert options["enable_bash_mode"] is False

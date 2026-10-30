@@ -231,7 +231,7 @@ def trigger_autofix_feature(
 
 def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) -> SeerRun:
     assert isinstance(args.step_args, RCAStepArgs)
-    stopping_point = args.stopping_point
+    stopping_point = args.stopping_point or AutofixStoppingPoint.ROOT_CAUSE
     enable_coding = group.organization.get_option(
         "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
     ) and stopping_point not in (AutofixStoppingPoint.ROOT_CAUSE, AutofixStoppingPoint.SOLUTION)
@@ -239,9 +239,7 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
         "organizations:seer-explorer-allow-bash-mode", group.organization, actor=args.user
     )
     enable_write_pull_request = (
-        args.can_open_pr
-        and enable_coding
-        and stopping_point in (None, AutofixStoppingPoint.OPEN_PR)
+        args.can_open_pr and enable_coding and stopping_point == AutofixStoppingPoint.OPEN_PR
     )
 
     payload = AutofixSingleRunPayload(
@@ -263,9 +261,10 @@ def _start_single_run(group: Group, args: AutofixFeatureArgs, skip_quota: bool) 
         enable_bash_mode=enable_bash_mode,
         enable_coding=enable_coding,
     )
-    extras: dict[str, Any] = {"referrer": args.referrer.value}
-    if stopping_point is not None:
-        extras["stopping_point"] = stopping_point.value
+    extras: dict[str, Any] = {
+        "referrer": args.referrer.value,
+        "stopping_point": stopping_point.value,
+    }
 
     run = client.start_feature_run(
         feature_id=AUTOFIX_SINGLE_RUN_FEATURE_ID,
