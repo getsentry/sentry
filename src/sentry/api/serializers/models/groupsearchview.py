@@ -4,6 +4,7 @@ from typing import Any, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
+from sentry.auth.principal import acting_user, owned_by_acting_user
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -46,14 +47,13 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         attrs: MutableMapping[Any, Any] = {}
 
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
+            owned_by_acting_user(user),
             organization=self.organization,
-            user_id=user.id,
             group_search_view_id__in=[item.id for item in item_list],
         )
         user_starred_view_ids = set(
             GroupSearchViewStarred.objects.filter(
-                organization=self.organization,
-                user_id=user.id,
+                owned_by_acting_user(user), organization=self.organization
             ).values_list("group_search_view_id", flat=True)
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}
@@ -62,7 +62,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             user["id"]: user
             for user in user_service.serialize_many(
                 filter={"user_ids": [view.user_id for view in item_list if view.user_id]},
-                as_user=user,
+                as_user=acting_user(user),
             )
             if user is not None
         }

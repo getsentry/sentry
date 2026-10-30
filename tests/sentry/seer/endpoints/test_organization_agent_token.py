@@ -626,7 +626,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
 # service account is denied with user-required instead of matching the oracle.
 SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
-        "OrganizationGroupSearchViews",
         "OrganizationGroupSearchViews_post",
         "OrganizationProjects_post",
         "OrganizationStarredServiceSpans_delete",

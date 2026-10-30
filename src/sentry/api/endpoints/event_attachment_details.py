@@ -29,7 +29,6 @@ from sentry.issues.action_log import (
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.objectstore import parse_accept_encoding
 from sentry.services import eventstore
@@ -76,13 +75,12 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             organization.get_option("sentry:attachments_role") or ATTACHMENTS_ROLE_DEFAULT
         )
 
-        try:
-            om = OrganizationMember.objects.get(organization=organization, user_id=request.user.id)
-        except OrganizationMember.DoesNotExist:
+        role = request.access.role
+        if role is None:
             return False
 
         required_role = roles.get(required_role)
-        om_role = roles.get(om.role)
+        om_role = roles.get(role)
         return om_role.priority >= required_role.priority
 
 

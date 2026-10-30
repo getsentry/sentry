@@ -1,6 +1,7 @@
 from django.db.models import Exists, OuterRef, Q, QuerySet
 
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.auth.principal import is_acting_user, owned_by_acting_user
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryProject
 from sentry.models.organization import Organization
 
@@ -39,7 +40,7 @@ class ExploreSavedQueryPermission(OrganizationPermission):
                 return True
 
             # allow for creator
-            if request.user.id == obj.created_by_id:
+            if is_acting_user(request.user, obj.created_by_id):
                 return True
 
             return False
@@ -91,7 +92,7 @@ def filter_to_accessible_explore_queries(
         explore_saved_query_id=OuterRef("id"),
     )
     queryset = queryset.filter(
-        Exists(has_any_project) | Q(created_by_id=request.user.id) | is_prebuilt
+        Exists(has_any_project) | owned_by_acting_user(request.user, "created_by_id") | is_prebuilt
     )
 
     return queryset
