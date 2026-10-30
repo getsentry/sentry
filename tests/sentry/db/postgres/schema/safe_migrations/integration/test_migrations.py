@@ -431,7 +431,9 @@ class DropNotNullWithLeftoverCheckTest(BaseSafeMigrationTest):
 
     def check_name(self) -> str:
         with connection.schema_editor() as schema_editor:
-            return schema_editor._create_index_name(self.table, ["field"], suffix="_notnull")
+            return schema_editor._create_index_name(  # type: ignore[attr-defined]
+                self.table, ["field"], suffix="_notnull"
+            )
 
     def constraint_exists(self, name: str) -> bool:
         with connection.cursor() as cursor:
