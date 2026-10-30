@@ -2229,7 +2229,7 @@ describe('ArtifactCard', () => {
       expect(screen.getByRole('button', {name: 'Retry PR in org/repo'})).toBeEnabled();
     });
 
-    it('does not offer Retry PR on a single run', () => {
+    it('offers Retry PR on a single run', () => {
       render(
         <PullRequestsCard
           autofix={{
@@ -2245,10 +2245,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(
-        screen.queryByRole('button', {name: 'Retry PR in org/repo'})
-      ).not.toBeInTheDocument();
-      expect(screen.getByText('Failed to create PR in org/repo')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Retry PR in org/repo'})).toBeEnabled();
     });
 
     it('copies markdown when copy button is clicked', async () => {
