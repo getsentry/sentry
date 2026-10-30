@@ -347,7 +347,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         # Cron and uptime detectors that lost their data source can't run and
         # can't be rendered, so hide them until they're cleaned up.
         queryset = queryset.exclude(
-            Q(type__in=[MonitorIncidentType.slug, UptimeDomainCheckFailure.slug])
+            Q(type__in=[DetectorType.MONITOR_CHECK_IN_FAILURE, DetectorType.UPTIME_DOMAIN_FAILURE])
             & ~Exists(DataSourceDetector.objects.filter(detector_id=OuterRef("pk")))
         )
 
