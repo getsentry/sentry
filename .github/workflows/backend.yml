@@ -224,7 +224,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '3'
+      XDIST_WORKERS: '4'
       # Set to '1' to sample pytest and its xdist workers with py-spy (adds ~0.4 cores of overhead).
       PROFILE_BACKEND_TESTS: '0'
 
@@ -302,9 +302,6 @@ jobs:
           docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
           time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
 
-      - name: Mark the start of the test phase
-        run: echo "TESTS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
-
       - name: Install py-spy
         if: env.PROFILE_BACKEND_TESTS == '1'
         run: |
@@ -346,11 +343,6 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 .github/workflows/scripts/monitor-resources.py --stop
-
-      - name: Service activity during tests
-        if: always() && env.TESTS_STARTED_AT != ''
-        continue-on-error: true
-        run: .github/workflows/scripts/service-activity.sh "$TESTS_STARTED_AT"
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
