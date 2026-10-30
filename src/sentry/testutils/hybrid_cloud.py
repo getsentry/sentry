@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import collections
 import contextlib
 import functools
 import ipaddress
 import os
 import threading
+import traceback
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Any, TypedDict
@@ -68,8 +70,55 @@ class HybridCloudTestMixin:
         ).exists()
 
 
+# DEBUG (do not merge): instrumentation for the test_slug_concurrency flake.
+# A thread that never assigns its own `state` reads and writes the class-level dict,
+# so this records every write to that shared dict.
+debug_current_test: list[str] = [""]
+_debug_shared_writes: collections.deque[str] = collections.deque(maxlen=200)
+_debug_last_flush = threading.local()
+
+
+class _RecordingDict(dict[str, int]):
+    def __setitem__(self, key: str, value: int) -> None:
+        frames = traceback.extract_stack(limit=8)[:-1]
+        where = " <- ".join(f"{f.name}:{f.lineno}" for f in reversed(frames))
+        _debug_shared_writes.append(
+            f"{debug_current_test[0]} | {threading.current_thread().name} | "
+            f"{key}: {self.get(key)} -> {value} | {where}"
+        )
+        super().__setitem__(key, value)
+
+
+def debug_describe_transaction_state() -> str:
+    w = simulated_transaction_watermarks
+    lines = [
+        f"thread={threading.current_thread().name} own_state={'state' in w.__dict__} "
+        f"state={dict(w.state)} shared_state={dict(SimulatedTransactionWatermarks.state)}"
+    ]
+    for conn in connections.all():
+        lines.append(
+            f"  {conn.alias}: id={id(conn)} in_atomic_block={conn.in_atomic_block} "
+            f"savepoints={len(conn.savepoint_ids)} depth={w.get_transaction_depth(conn)} "
+            f"above={w.connection_transaction_depth_above_watermark(connection=conn)}"
+        )
+    return "\n".join(lines)
+
+
+def debug_failure_report() -> str:
+    return "\n".join(
+        [
+            "--- slug flake debug: state now ---",
+            debug_describe_transaction_state(),
+            "--- slug flake debug: state when this thread last flushed commit hooks ---",
+            getattr(_debug_last_flush, "info", "(no flush recorded in this thread)"),
+            "--- slug flake debug: writes to the shared class-level state dict ---",
+            *(_debug_shared_writes or ["(none)"]),
+        ]
+    )
+
+
 class SimulatedTransactionWatermarks(threading.local):
-    state: dict[str, int] = {}
+    state: dict[str, int] = _RecordingDict()
 
     @staticmethod
     def get_transaction_depth(connection: BaseDatabaseWrapper) -> int:
@@ -213,6 +262,11 @@ def simulate_on_commit(request: Any):
             connection=connection
         ):
             return
+
+        # DEBUG (do not merge)
+        _debug_last_flush.info = (
+            f"flush triggered by {connection.alias}\n{debug_describe_transaction_state()}"
+        )
 
         old_validate = connection.validate_no_atomic_block
         connection.validate_no_atomic_block = lambda: None  # type: ignore[method-assign]
