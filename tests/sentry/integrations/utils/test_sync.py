@@ -4,6 +4,8 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
+from sentry.integrations.mixins.issues import where_should_sync
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.integrations.utils.sync import (
     AssigneeInboundSyncMethod,
@@ -1008,3 +1010,32 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         assert updated_assignee is not None
         assert updated_assignee.id == self.test_user.id
         mock_record_halt.assert_not_called()
+
+
+@cell_silo_test
+class TestWhereShouldSync(TestCase):
+    def test_reuses_fetched_org_integrations(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="jira:1",
+            provider="jira",
+            metadata={"base_url": "https://example.atlassian.net", "shared_secret": "secret"},
+            oi_params={"config": {"sync_status_reverse": True}},
+        )
+        other_org = self.create_organization()
+        self.create_organization_integration(
+            organization_id=other_org.id, integration=integration, config={}
+        )
+
+        with (
+            self.feature("organizations:integrations-issue-sync"),
+            mock.patch.object(
+                integration_service,
+                "get_organization_integration",
+                wraps=integration_service.get_organization_integration,
+            ) as mock_get,
+        ):
+            orgs = where_should_sync(integration, "inbound_status")
+
+        assert orgs == [self.organization]
+        assert mock_get.call_count == 0

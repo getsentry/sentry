@@ -390,11 +390,14 @@ def where_should_sync(
     else:
         ois = integration_service.get_organization_integrations(integration_id=integration.id)
 
-    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+    ois_by_org_id = {oi.organization_id: oi for oi in ois}
+    organizations = Organization.objects.filter(id__in=ois_by_org_id)
     ret = []
     for organization in organizations.filter(**kwargs):
         if features.has("organizations:integrations-issue-sync", organization):
             installation = integration.get_installation(organization_id=organization.id)
+            # Reuse the org integration fetched above instead of another RPC per org.
+            installation.org_integration = ois_by_org_id[organization.id]
             if isinstance(installation, IssueBasicIntegration) and installation.should_sync(key):
                 ret.append(organization)
     return ret
