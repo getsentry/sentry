@@ -139,3 +139,91 @@ class OrganizationPullRequestFilesTest(APITestCase):
     def test_provider_rate_limited_returns_429(self, mock_make_scm):
         self._set_scm(mock_make_scm, error=RateLimitExceeded())
         self.get_error_response(self.organization.slug, self.pull_request.id, status_code=429)
+
+
+class OrganizationRepositoryPullRequestFilesTest(APITestCase):
+    endpoint = "sentry-api-0-organization-repository-pull-request-files"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/sentry",
+            provider="integrations:github",
+            integration_id=123,
+            url="https://github.com/getsentry/sentry",
+        )
+
+    @mock.patch(_MAKE_SCM)
+    def test_returns_files_by_repo_name_and_number(self, mock_make_scm):
+        mock_make_scm.return_value = _FakeScm(
+            pages=[
+                _page(
+                    [
+                        {
+                            "filename": "src/new_name.py",
+                            "status": "renamed",
+                            "previous_filename": "src/old_name.py",
+                            "patch": "@@ -1 +1 @@\n-old\n+new",
+                        }
+                    ]
+                )
+            ]
+        )
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"repo": "getsentry/sentry", "number": "42"}
+        )
+        assert response.data == {
+            "files": [
+                {
+                    "path": "src/new_name.py",
+                    "patch": "@@ -1 +1 @@\n-old\n+new",
+                    "status": "renamed",
+                    "previousPath": "src/old_name.py",
+                }
+            ]
+        }
+        mock_make_scm.assert_called_once_with(
+            self.organization.id, self.repo.id, referrer="pull-request-files"
+        )
+        assert mock_make_scm.return_value.calls == ["42"]
+
+    def test_requires_repo_and_numeric_number(self):
+        self.get_error_response(self.organization.slug, status_code=400)
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "abc"},
+            status_code=400,
+        )
+
+    def test_repo_in_other_org_returns_404(self):
+        other_org = self.create_organization(owner=self.create_user())
+        self.create_repo(
+            project=self.create_project(organization=other_org),
+            name="other/repo",
+            provider="integrations:github",
+            integration_id=456,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "other/repo", "number": "1"},
+            status_code=404,
+        )
+
+    def test_repo_without_integration_returns_404(self):
+        self.create_repo(project=self.project, name="getsentry/plain", provider="github")
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/plain", "number": "1"},
+            status_code=404,
+        )
+
+    @mock.patch(_MAKE_SCM)
+    def test_provider_error_returns_502(self, mock_make_scm):
+        mock_make_scm.return_value = _FakeScm(error=SCMError("boom"))
+        self.get_error_response(
+            self.organization.slug,
+            qs_params={"repo": "getsentry/sentry", "number": "42"},
+            status_code=502,
+        )
