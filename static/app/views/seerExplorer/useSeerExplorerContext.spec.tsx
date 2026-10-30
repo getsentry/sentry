@@ -104,6 +104,35 @@ describe('openChatPrompt', () => {
     });
   });
 
+  it('opens Seer when Cmd+Shift+7 reports the digit on QWERTZ', async () => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key: '7',
+        code: 'Digit7',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        await screen.findByRole('combobox', {name: 'Ask Seer a question'})
+      ).toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(true);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
   it("shows the question as Seer's and sends it with the reply", async () => {
     render(tree(), {organization});
 
