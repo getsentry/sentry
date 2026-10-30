@@ -29,11 +29,35 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
-jest.mock('sentry/components/lazyRender', () => ({
-  LazyRender: ({children}: {children: React.ReactNode}) => children,
-}));
+// Widgets only render and fetch once they intersect the viewport
+class AlwaysIntersectingObserver {
+  callback: IntersectionObserverCallback;
+  constructor(callback: IntersectionObserverCallback) {
+    this.callback = callback;
+  }
+  observe(target: Element) {
+    this.callback(
+      [{isIntersecting: true, target} as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver
+    );
+  }
+  unobserve() {}
+  disconnect() {}
+  takeRecords() {
+    return [];
+  }
+}
 
 describe('Dashboards > Dashboard', () => {
+  const originalIntersectionObserver = window.IntersectionObserver;
+  beforeAll(() => {
+    window.IntersectionObserver =
+      AlwaysIntersectingObserver as unknown as typeof IntersectionObserver;
+  });
+  afterAll(() => {
+    window.IntersectionObserver = originalIntersectionObserver;
+  });
+
   const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit'],
   });

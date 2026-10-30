@@ -6,6 +6,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
+import {WidgetInViewportProvider} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
@@ -116,6 +117,33 @@ describe('Dashboards > WidgetQueries', () => {
     await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(defaultMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits until the widget is in the viewport before fetching', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    const renderTree = (isInViewport: boolean) => (
+      <WidgetQueryQueueProvider>
+        <WidgetInViewportProvider value={isInViewport}>
+          <WidgetQueries widget={singleQueryWidget}>
+            {() => <div data-test-id="child" />}
+          </WidgetQueries>
+        </WidgetInViewportProvider>
+      </WidgetQueryQueueProvider>
+    );
+
+    const {rerender} = render(renderTree(false), {
+      organization: initialData.organization,
+    });
+
+    await screen.findByTestId('child');
+    expect(mock).not.toHaveBeenCalled();
+
+    rerender(renderTree(true));
+
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
   });
 
   it('appends dashboard filters to events series request', async () => {
