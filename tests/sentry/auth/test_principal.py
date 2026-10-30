@@ -1,6 +1,7 @@
 import ast
 from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -8,17 +9,21 @@ from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from django.utils.functional import SimpleLazyObject
 from rest_framework.authentication import BaseAuthentication
+from rest_framework.exceptions import NotAuthenticated
 from rest_framework.request import Request
 
+from sentry.api.exceptions import UserRequired
 from sentry.auth import principal
 from sentry.auth.principal import (
     RequestPrincipal,
     acting_user_id,
     has_user,
+    require_user,
     resolve_actor,
     set_request_principal,
 )
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
 from sentry.users.models.user import User
@@ -75,6 +80,25 @@ class ResolveActorTest(TestCase):
         auth = AuthenticatedToken(kind="agent_token", user_id=self.user.id)
         actor = resolve_actor(serialize_rpc_user(self.user), auth)
         assert actor == Actor(type=ActorType.AGENT, delegated_user_id=self.user.id)
+
+
+class RequireUserTest(TestCase):
+    def test_user(self) -> None:
+        request = RequestFactory().get("/")
+        request.user = self.user
+        assert require_user(request) == self.user
+
+    def test_anonymous(self) -> None:
+        request = RequestFactory().get("/")
+        request.user = AnonymousUser()
+        with pytest.raises(NotAuthenticated):
+            require_user(request)
+
+    def test_service_account(self) -> None:
+        request: Any = RequestFactory().get("/")
+        request.user = ServiceAccountPrincipal(service_account_id=1, organization_id=1, name="sa")
+        with pytest.raises(UserRequired):
+            require_user(request)
 
 
 @all_silo_test
