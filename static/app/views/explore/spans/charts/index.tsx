@@ -49,7 +49,6 @@ import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   groupVisualizes,
-  isVisualizeFunction,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -189,7 +188,7 @@ function getChartInfo({
   const series = getTimeSeriesForQuery(
     timeseriesResult.data,
     visualize.yAxis,
-    isVisualizeFunction(visualize) ? visualize.transformations : []
+    visualize.transformations
   );
 
   let confidenceSeries = series;
@@ -295,7 +294,6 @@ function Chart({
   const organization = useOrganization();
   const showTransformationControls =
     visualize.visible &&
-    isVisualizeFunction(visualize) &&
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const {chartSelection, setChartSelection} = useChartSelection();

@@ -17,7 +17,6 @@ from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.models.group import Group
 from sentry.seer.autofix.autofix_agent import get_autofix_run_state
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -53,16 +52,10 @@ def handle_ui_feedback(
 
     Returns None once the feedback has been handed off, or the error response
     the endpoint should send back when the request cannot be acted on: 400 when
-    the feature is off, the feedback is empty, or the run has no pull request
-    yet, and 409 when iteration on the run is paused. Raises
-    ``PermissionDenied`` when Seer refuses to show us the run.
+    the feedback is empty or the run has no pull request yet, and 409 when
+    iteration on the run is paused. Raises ``PermissionDenied`` when Seer
+    refuses to show us the run.
     """
-    if not features.has("organizations:autofix-pr-iteration-manual", group.organization):
-        return Response(
-            {"detail": "PR iteration is not enabled for this organization"},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
-
     if not user_feedback:
         return Response(
             {"detail": "feedback is required for pr_iteration"},

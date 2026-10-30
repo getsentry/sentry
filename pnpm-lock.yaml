@@ -6,9 +6,6 @@ importers:
   .:
     configDependencies: {}
     packageManagerDependencies:
-      '@pnpm/exe':
-        specifier: 12.10.1
-        version: 12.10.1
       pnpm:
         specifier: 12.10.1
         version: 12.10.1
@@ -92,11 +89,6 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@pnpm/exe@12.10.1':
-    resolution: {integrity: sha512-q6RXJFGkDmECWt5gmvAozciaU9HU5FqCRsu3rRMQJX7z8EvtAsJ9BXpyVbkNrwe6mwjlM4avqm/XUyszTL1Htw==}
-    engines: {node: '>=18.*'}
-    hasBin: true
-
   pnpm@12.10.1:
     resolution: {integrity: sha512-ukCjfrGjcNYP6oxM8dNkwTvMzvUY6YrSvO6VT1OdONo3RY5YJho/pV4GUjRQ6g//+fSXsTW+QfLBXBZCusrObA==}
     engines: {node: '>=18.*'}
@@ -145,23 +137,6 @@ snapshots:
 
   '@pnpm/exe.win32-x64@12.10.1':
     optional: true
-
-  '@pnpm/exe@12.10.1':
-    optionalDependencies:
-      '@pnpm/exe.android-arm64': 12.10.1
-      '@pnpm/exe.android-x64': 12.10.1
-      '@pnpm/exe.darwin-arm64': 12.10.1
-      '@pnpm/exe.darwin-x64': 12.10.1
-      '@pnpm/exe.freebsd-x64': 12.10.1
-      '@pnpm/exe.linux-arm64': 12.10.1
-      '@pnpm/exe.linux-arm64-musl': 12.10.1
-      '@pnpm/exe.linux-ppc64': 12.10.1
-      '@pnpm/exe.linux-riscv64': 12.10.1
-      '@pnpm/exe.linux-s390x': 12.10.1
-      '@pnpm/exe.linux-x64': 12.10.1
-      '@pnpm/exe.linux-x64-musl': 12.10.1
-      '@pnpm/exe.win32-arm64': 12.10.1
-      '@pnpm/exe.win32-x64': 12.10.1
 
   pnpm@12.10.1:
     optionalDependencies:
@@ -230,8 +205,8 @@ importers:
         specifier: 2.0.2
         version: 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       '@sentry/conventions':
-        specifier: ^0.29.0
-        version: 0.29.0
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/sqlish':
         specifier: 1.0.1
         version: 1.0.1(react@19.3.0)
@@ -581,8 +556,8 @@ importers:
         specifier: 11.7.0
         version: 11.7.0
       '@sentry/conventions':
-        specifier: ^0.29.0
-        version: 0.29.0
+        specifier: ^0.30.0
+        version: 0.30.0
       '@sentry/core':
         specifier: 11.7.0
         version: 11.7.0
@@ -628,6 +603,9 @@ importers:
       '@tanstack/react-form-devtools':
         specifier: 0.2.20
         version: 0.2.20(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/react-hotkeys-devtools':
+        specifier: 0.11.1
+        version: 0.11.1(@tanstack/hotkeys@0.18.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(csstype@3.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)
       '@tanstack/react-pacer':
         specifier: ^0.22.1
         version: 0.22.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -716,8 +694,8 @@ importers:
         specifier: 3.0.7
         version: 3.0.7
       jsonrepair:
-        specifier: ^3.14.0
-        version: 3.14.0
+        specifier: ^3.15.0
+        version: 3.15.0
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -1240,6 +1218,9 @@ importers:
       '@sentry/react':
         specifier: 11.7.0
         version: 11.7.0(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-hotkeys':
+        specifier: 0.17.0
+        version: 0.17.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -4076,8 +4057,8 @@ packages:
     resolution: {integrity: sha512-Mrqd/o7n/z7qWSYfQQA7x4fFTA0IqOG6JNsbBpnC97khPwZk7n6DPtOO7YgaYplSl8R8QLRbBz9Xv2lVhToSAg==}
     engines: {node: '>=14'}
 
-  '@sentry/conventions@0.29.0':
-    resolution: {integrity: sha512-kYq9/HJ/l6MYP/srIc20dy1W4mWyJfCF0OWFF+RhBGZwyr/wCmtabRFKyw7kqM+DTwZXQOjSTSZUcJhDowcInQ==}
+  '@sentry/conventions@0.30.0':
+    resolution: {integrity: sha512-WTumd5A2iFmHTRubi6mc6gLHU8LswPQqoNaZu6T1cxiTUmy3WdEw0i8FAnVbcgxTlsumX5oh63/b4B9lY5wAPQ==}
     engines: {node: '>=14'}
 
   '@sentry/core@10.76.0':
@@ -4418,6 +4399,12 @@ packages:
     peerDependencies:
       solid-js: '>=1.9.7'
 
+  '@tanstack/devtools-ui@0.7.1':
+    resolution: {integrity: sha512-3xQ/ezZ2qVNszhjpCN2N3jn7uHc2J1PMgcyjHzH4XZBt9xAQyMMcPNoR2cd7rzReyxWoJpZUWiDBmOJiCtLj9A==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      solid-js: '>=1.9.7'
+
   '@tanstack/devtools-utils@0.4.0':
     resolution: {integrity: sha512-KsGzYhA8L/fCNgyyMyoUy+TKtx+DjNbzWwqH6wXL48Llzo7kvV9RynYJlaO8Qkzwm+NdHXSgsljQNjQ3CKPpZA==}
     engines: {node: '>=18'}
@@ -4465,6 +4452,34 @@ packages:
       vue:
         optional: true
 
+  '@tanstack/devtools-utils@0.7.1':
+    resolution: {integrity: sha512-puLUXJJRPXXU9AOclG5CqLt8hgs7ZdaE7JvJtxnQszEYN2Hja1zsyvGcdalkhdGhgekWTG1ev3oQ3jL/aeQAtw==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@angular/core': '>=19.0.0'
+      '@types/react': '>=17.0.0'
+      preact: '>=10.0.0'
+      react: '>=17.0.0'
+      solid-js: '>=1.9.7'
+      svelte: '>=5.0.0'
+      vue: '>=3.2.0'
+    peerDependenciesMeta:
+      '@angular/core':
+        optional: true
+      '@types/react':
+        optional: true
+      preact:
+        optional: true
+      react:
+        optional: true
+      solid-js:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+
   '@tanstack/devtools@0.10.10':
     resolution: {integrity: sha512-/SSJcyhZtq1+HB9UViz8e0Y7Io4JPIbyJ0Wns5ENwzSHsNOAheANA8QnEQBVXETY/osCcaGAVOyVfGgn5aBJKA==}
     engines: {node: '>=18'}
@@ -4487,6 +4502,16 @@ packages:
     resolution: {integrity: sha512-4cW/eU5DBTrWP53mxwHKp4NQWTIQ3XCA91pMWK7dFNNClIwFnxoSJoKwyUa6b8kRIO6uq1Sjk2mhkAtj5kB22A==}
     peerDependencies:
       solid-js: '>=1.9.9'
+
+  '@tanstack/hotkeys-devtools@1.6.0':
+    resolution: {integrity: sha512-NYwvmI01Kixa7ctwPgGruaOgpT+TVZpcI/l+gtPab+EYxHom6NKQaa86+96lT8Mugj8qHuNLjvRggMmT2LmNYA==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@tanstack/hotkeys': 0.18.0
+
+  '@tanstack/hotkeys@0.18.0':
+    resolution: {integrity: sha512-QQjRgnpz0xrTbhKiuia+ACGzO4PsxEsTVH2ls01fM2LJ8uISrWVq/9ILB3bd4eFdWzj9I6K7qZM6swoDDiKcRQ==}
+    engines: {node: '>=20'}
 
   '@tanstack/pacer-devtools@1.3.1':
     resolution: {integrity: sha512-Gx9xCv2QGZo0xIjFhv74Ass5iS21aTnCIHvAtgQEaK95s9HfcNB8GJlDwYt3lHbAFxpmiH8BN04Bd6TosDMUIQ==}
@@ -4537,6 +4562,22 @@ packages:
       '@tanstack/react-start':
         optional: true
 
+  '@tanstack/react-hotkeys-devtools@0.11.1':
+    resolution: {integrity: sha512-T3WJFf8v60cQ210GNUcRGEwPiRVanMKiQ/9gNQ25yO83sOljp27ArayZV3dX0TrFom6A4059+3rBshzxMqCa2Q==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@types/react': '>=16.8'
+      '@types/react-dom': '>=16.8'
+      react: '>=16.8'
+      react-dom: '>=16.8'
+
+  '@tanstack/react-hotkeys@0.17.0':
+    resolution: {integrity: sha512-uuWyA+2cNe4hGPFVbsP36pwguuW7eR1PfAaw+ClygOHxo9I2A3vRGGRB1PfxwH/FEtgsJC+hV3AHvgvEeiz0pg==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
+
   '@tanstack/react-pacer-devtools@0.7.1':
     resolution: {integrity: sha512-y1mjaZWvNVBZyWp+/rhf8LzmPqRTiKxszzTc2woFTNTNhl6CDjxZYtTxKQfYUKzeH4Qd136VjV05da/PdmLQVg==}
     engines: {node: '>=18'}
@@ -4576,6 +4617,12 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  '@tanstack/react-store@0.11.2':
+    resolution: {integrity: sha512-oj5O5DmiMWE+ih+SioX2ayC1kbK7d3fpLx0B75fPJr9nY3zU+hoW010yr64qXsY/9fyiLVE2bn5mGNV3owm8RQ==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   '@tanstack/react-store@0.9.3':
     resolution: {integrity: sha512-y2iHd/N9OkoQbFJLUX1T9vbc2O9tjH0pQRgTcx1/Nz4IlwLvkgpuglXUx+mXt0g5ZDFrEeDnONPqkbfxXJKwRg==}
     peerDependencies:
@@ -4595,6 +4642,9 @@ packages:
 
   '@tanstack/store@0.11.0':
     resolution: {integrity: sha512-WlzzCt3xi0G6pCAJu1U+2jiECwabETDpQDi3hfkFZvJii9AuZqEKbOiVarX1/bWhTNjU486yQtJCCasi/0q+Cw==}
+
+  '@tanstack/store@0.11.2':
+    resolution: {integrity: sha512-sJ4mjol8uQsHV0gOJzzjwXfh2Fwm+Sz0+8deqiTm4jGbMdjzNSW+xZCFm0kUa870uhd8yi+DpKnZb5Kc4apa0Q==}
 
   '@tanstack/store@0.9.3':
     resolution: {integrity: sha512-8reSzl/qGWGGVKhBoxXPMWzATSbZLZFWhwBAFO9NAyp0TxzfBP0mIrGb8CP8KrQTmvzXlR/vFPPUrHTLBGyFyw==}
@@ -7181,8 +7231,8 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  jsonrepair@3.14.0:
-    resolution: {integrity: sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==}
+  jsonrepair@3.15.0:
+    resolution: {integrity: sha512-wy8OTjwsJwQRnQJkKnMJJ9vcytRdBPAgIF/Hy6+s1dAj42BHMKiyL8JzEieIl3JY7idt8eyHwBWTO8mh/+mtwA==}
     hasBin: true
 
   jsx-ast-utils@3.3.5:
@@ -7326,6 +7376,9 @@ packages:
     resolution: {integrity: sha512-NsmlUYBS/Zg57rgDWMYdnre6OTj4e+qq/JS2ot3KrYLSoHLw+sDu0Nm1ZGpRgYAq6c+b1ekaY5NzVchMCQnzcg==}
     engines: {node: '>= 20'}
     hasBin: true
+
+  match-sorter@8.3.0:
+    resolution: {integrity: sha512-8Py1GbZi5zsclYSFcPAH4H5xfTbeD0bOREA7qP/t8bW4MbOSlPl8sbqHOedEV7O+Bxyvxm6xs/v6BXJGe+JDNA==}
 
   math-intrinsics@1.1.0:
     resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
@@ -8347,6 +8400,9 @@ packages:
 
   remark-stringify@11.0.0:
     resolution: {integrity: sha512-1OSmLd3awB/t8qdoEOMazZkNsfVTeY4fTsgzcQFdXNq8ToTN4ZGwrMnlda4K6smTFKD+GRV6O48i6Z4iKgPPpw==}
+
+  remove-accents@0.5.0:
+    resolution: {integrity: sha512-8g3/Otx1eJaVD12e31UbJj1YzdtVvzH85HV7t+9MJYk/u3XmkOUJ5Ys9wQrf9PCPK8+xn4ymzqYCiZl6QWKn+A==}
 
   renderkid@3.0.0:
     resolution: {integrity: sha512-q/7VIQA8lmM1hF+jn+sFSPWGlMkSAeNYcPLmDQx2zzuiDfaLrOmumR8iaUKlenFgh0XRPIUeSPlH3A+AW3Z5pg==}
@@ -11671,7 +11727,7 @@ snapshots:
 
   '@sentry/conventions@0.27.0': {}
 
-  '@sentry/conventions@0.29.0': {}
+  '@sentry/conventions@0.30.0': {}
 
   '@sentry/core@10.76.0':
     dependencies:
@@ -12009,6 +12065,15 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
+  '@tanstack/devtools-ui@0.7.1(csstype@3.2.3)(solid-js@1.9.16)':
+    dependencies:
+      clsx: 2.1.1
+      dayjs: 1.11.21
+      goober: 2.1.19(csstype@3.2.3)
+      solid-js: 1.9.16
+    transitivePeerDependencies:
+      - csstype
+
   '@tanstack/devtools-utils@0.4.0(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)':
     optionalDependencies:
       '@types/react': 19.3.0
@@ -12016,6 +12081,12 @@ snapshots:
       solid-js: 1.9.16
 
   '@tanstack/devtools-utils@0.5.1(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)':
+    optionalDependencies:
+      '@types/react': 19.3.0
+      react: 19.3.0
+      solid-js: 1.9.16
+
+  '@tanstack/devtools-utils@0.7.1(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)':
     optionalDependencies:
       '@types/react': 19.3.0
       react: 19.3.0
@@ -12068,6 +12139,28 @@ snapshots:
       - react
       - vue
 
+  '@tanstack/hotkeys-devtools@1.6.0(@tanstack/hotkeys@0.18.0)(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)':
+    dependencies:
+      '@tanstack/devtools-ui': 0.7.1(csstype@3.2.3)(solid-js@1.9.16)
+      '@tanstack/devtools-utils': 0.7.1(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/hotkeys': 0.18.0
+      clsx: 2.1.1
+      goober: 2.1.19(csstype@3.2.3)
+      match-sorter: 8.3.0
+      solid-js: 1.9.16
+    transitivePeerDependencies:
+      - '@angular/core'
+      - '@types/react'
+      - csstype
+      - preact
+      - react
+      - svelte
+      - vue
+
+  '@tanstack/hotkeys@0.18.0':
+    dependencies:
+      '@tanstack/store': 0.11.2
+
   '@tanstack/pacer-devtools@1.3.1(@tanstack/pacer@0.21.1)(@types/react@19.3.0)(react@19.3.0)':
     dependencies:
       '@tanstack/devtools-ui': 0.5.2(csstype@3.2.3)(solid-js@1.9.16)
@@ -12091,7 +12184,7 @@ snapshots:
   '@tanstack/pacer@0.21.1':
     dependencies:
       '@tanstack/devtools-event-client': 0.4.3
-      '@tanstack/store': 0.11.0
+      '@tanstack/store': 0.11.2
 
   '@tanstack/query-async-storage-persister@5.101.4':
     dependencies:
@@ -12139,6 +12232,30 @@ snapshots:
     transitivePeerDependencies:
       - react-dom
 
+  '@tanstack/react-hotkeys-devtools@0.11.1(@tanstack/hotkeys@0.18.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(csstype@3.2.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)':
+    dependencies:
+      '@tanstack/devtools-utils': 0.7.1(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)
+      '@tanstack/hotkeys-devtools': 1.6.0(@tanstack/hotkeys@0.18.0)(@types/react@19.3.0)(csstype@3.2.3)(react@19.3.0)
+      '@types/react': 19.3.0
+      '@types/react-dom': 19.3.0(@types/react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - '@angular/core'
+      - '@tanstack/hotkeys'
+      - csstype
+      - preact
+      - solid-js
+      - svelte
+      - vue
+
+  '@tanstack/react-hotkeys@0.17.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@tanstack/hotkeys': 0.18.0
+      '@tanstack/react-store': 0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
   '@tanstack/react-pacer-devtools@0.7.1(@tanstack/pacer@0.21.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(solid-js@1.9.16)':
     dependencies:
       '@tanstack/devtools-utils': 0.5.1(@types/react@19.3.0)(react@19.3.0)(solid-js@1.9.16)
@@ -12185,6 +12302,13 @@ snapshots:
       react-dom: 19.3.0(react@19.3.0)
       use-sync-external-store: 1.6.0(react@19.3.0)
 
+  '@tanstack/react-store@0.11.2(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@tanstack/store': 0.11.2
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      use-sync-external-store: 1.6.0(react@19.3.0)
+
   '@tanstack/react-store@0.9.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@tanstack/store': 0.9.3
@@ -12204,6 +12328,8 @@ snapshots:
       solid-js: 1.9.16
 
   '@tanstack/store@0.11.0': {}
+
+  '@tanstack/store@0.11.2': {}
 
   '@tanstack/store@0.9.3': {}
 
@@ -15176,7 +15302,7 @@ snapshots:
       '@jsep-plugin/regex': 1.0.4(jsep@1.4.0)
       jsep: 1.4.0
 
-  jsonrepair@3.14.0: {}
+  jsonrepair@3.15.0: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
@@ -15320,6 +15446,11 @@ snapshots:
       marked: 18.0.2
 
   marked@18.0.2: {}
+
+  match-sorter@8.3.0:
+    dependencies:
+      '@babel/runtime': 7.28.6
+      remove-accents: 0.5.0
 
   math-intrinsics@1.1.0: {}
 
@@ -16834,6 +16965,8 @@ snapshots:
       '@types/mdast': 4.0.4
       mdast-util-to-markdown: 2.1.2
       unified: 11.0.5
+
+  remove-accents@0.5.0: {}
 
   renderkid@3.0.0:
     dependencies:

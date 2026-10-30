@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.investigations.models import InvestigationFavoriteUser
+from sentry.notebooks.models import NotebookFavoriteUser
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -20,7 +20,7 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
         )
 
     def test_favorite_is_user_specific_and_returned_in_list(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Star me"
         )
         favorite_url = reverse(
@@ -33,8 +33,8 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
 
         response = self.client.put(favorite_url, data={"shouldFavorite": True}, format="json")
         assert response.status_code == 204
-        assert InvestigationFavoriteUser.objects.filter(
-            investigation=investigation, user_id=self.user.id
+        assert NotebookFavoriteUser.objects.filter(
+            notebook=investigation, user_id=self.user.id
         ).exists()
         assert self.client.get(self.collection_url).data[0]["isFavorited"] is True
 
@@ -46,12 +46,12 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
         self.login_as(self.user)
         response = self.client.put(favorite_url, data={"shouldFavorite": False}, format="json")
         assert response.status_code == 204
-        assert not InvestigationFavoriteUser.objects.filter(
-            investigation=investigation, user_id=self.user.id
+        assert not NotebookFavoriteUser.objects.filter(
+            notebook=investigation, user_id=self.user.id
         ).exists()
 
     def test_read_only_viewer_can_favorite_an_investigation(self) -> None:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Read only"
         )
         viewer = self.create_user()
@@ -68,6 +68,6 @@ class OrganizationInvestigationsFavoriteTest(APITestCase):
         response = self.client.put(favorite_url, data={"shouldFavorite": True}, format="json")
 
         assert response.status_code == 204
-        assert InvestigationFavoriteUser.objects.filter(
-            investigation=investigation, user_id=viewer.id
+        assert NotebookFavoriteUser.objects.filter(
+            notebook=investigation, user_id=viewer.id
         ).exists()

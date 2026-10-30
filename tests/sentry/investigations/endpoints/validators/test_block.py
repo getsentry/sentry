@@ -11,7 +11,7 @@ from sentry.investigations.endpoints.validators import (
     BlockUpdateValidator,
     validate_display,
 )
-from sentry.investigations.models import InvestigationBlockKind
+from sentry.notebooks.models import NotebookBlockKind
 
 
 def assert_valid(validator: serializers.Serializer[Any]) -> dict[str, Any]:
@@ -23,36 +23,36 @@ class TestValidateDisplay:
     def test_accepts_the_bare_markdown_display_for_text_blocks(self) -> None:
         display = {"type": "markdown"}
 
-        assert validate_display(InvestigationBlockKind.TEXT, display) == display
+        assert validate_display(NotebookBlockKind.TEXT, display) == display
 
     def test_accepts_a_versioned_markdown_display(self) -> None:
         display = {"version": 1, "type": "markdown", "promptCollapsed": True}
 
-        assert validate_display(InvestigationBlockKind.TEXT, display) == display
+        assert validate_display(NotebookBlockKind.TEXT, display) == display
 
     def test_rejects_a_non_boolean_prompt_collapsed(self) -> None:
         with pytest.raises(serializers.ValidationError):
             validate_display(
-                InvestigationBlockKind.TEXT,
+                NotebookBlockKind.TEXT,
                 {"version": 1, "type": "markdown", "promptCollapsed": "yes"},
             )
 
     def test_rejects_a_chart_display_on_a_text_block(self) -> None:
         with pytest.raises(serializers.ValidationError):
             validate_display(
-                InvestigationBlockKind.TEXT,
+                NotebookBlockKind.TEXT,
                 {"version": 1, "type": "line", "xAxis": "time", "yAxes": ["count()"]},
             )
 
     def test_accepts_the_bare_table_display_for_query_blocks(self) -> None:
         display = {"type": "table"}
 
-        assert validate_display(InvestigationBlockKind.QUERY, display) == display
+        assert validate_display(NotebookBlockKind.QUERY, display) == display
 
     def test_accepts_a_legacy_chart_display(self) -> None:
         display = {"type": "line", "xAxis": "time", "yAxes": ["count()"]}
 
-        assert validate_display(InvestigationBlockKind.QUERY, display) == display
+        assert validate_display(NotebookBlockKind.QUERY, display) == display
 
     @pytest.mark.parametrize(
         "display",
@@ -66,7 +66,7 @@ class TestValidateDisplay:
     )
     def test_rejects_malformed_legacy_chart_displays(self, display: dict[str, Any]) -> None:
         with pytest.raises(serializers.ValidationError):
-            validate_display(InvestigationBlockKind.QUERY, display)
+            validate_display(NotebookBlockKind.QUERY, display)
 
     def test_accepts_a_versioned_query_display(self) -> None:
         display = {
@@ -81,7 +81,7 @@ class TestValidateDisplay:
             "queryCollapsed": True,
         }
 
-        assert validate_display(InvestigationBlockKind.QUERY, display) == display
+        assert validate_display(NotebookBlockKind.QUERY, display) == display
 
     @pytest.mark.parametrize(
         "override",
@@ -107,12 +107,12 @@ class TestValidateDisplay:
         }
 
         with pytest.raises(serializers.ValidationError):
-            validate_display(InvestigationBlockKind.QUERY, display)
+            validate_display(NotebookBlockKind.QUERY, display)
 
     def test_versioned_table_display_does_not_require_axes(self) -> None:
         display = {"version": 1, "type": "table", "defaultView": "table"}
 
-        assert validate_display(InvestigationBlockKind.QUERY, display) == display
+        assert validate_display(NotebookBlockKind.QUERY, display) == display
 
 
 class TestBlockCreateValidator:
@@ -156,7 +156,7 @@ class TestBlockCreateValidator:
 class TestBlockUpdateValidator:
     def test_validates_the_display_against_the_existing_block_kind(self) -> None:
         class FakeBlock:
-            kind = InvestigationBlockKind.TEXT
+            kind = NotebookBlockKind.TEXT
 
         validator = BlockUpdateValidator(
             data={"investigationVersion": 1, "version": 1, "display": {"type": "markdown"}},
@@ -167,7 +167,7 @@ class TestBlockUpdateValidator:
 
     def test_rejects_a_display_that_does_not_match_the_block_kind(self) -> None:
         class FakeBlock:
-            kind = InvestigationBlockKind.TEXT
+            kind = NotebookBlockKind.TEXT
 
         validator = BlockUpdateValidator(
             data={

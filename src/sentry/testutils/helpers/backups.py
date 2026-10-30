@@ -564,7 +564,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         linked_dashboard = Dashboard.objects.create(
             title=f"Linked Dashboard 1 for {slug}",
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             organization=org,
         )
         DashboardFavoriteUser.objects.create(
@@ -950,6 +950,7 @@ class ExhaustiveFixtures(Fixtures):
         ApiDeviceCode.objects.create(
             application=app.application,
             scope_list=["openid", "profile"],
+            login_hint=owner.email,
         )
 
         # ServiceHook

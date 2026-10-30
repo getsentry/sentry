@@ -38,6 +38,8 @@ export type DragHandleProps = DragHandleNameProps & {
   onMove: (delta: number) => void;
   orientation: Orientation;
   value: number;
+  /** Makes the handle inert: it cannot be dragged, focused, or hovered. */
+  disabled?: boolean;
   onKeyDown?: React.KeyboardEventHandler<HTMLElement>;
   onMoveEnd?: () => void;
   onMoveStart?: () => void;
@@ -47,6 +49,7 @@ export type DragHandleProps = DragHandleNameProps & {
 export function DragHandle({
   'aria-label': ariaLabel,
   'aria-labelledby': ariaLabelledby,
+  disabled,
   variant = 'solid',
   isSizedFirst,
   max,
@@ -79,6 +82,7 @@ export function DragHandle({
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledby}
           data-variant={variant}
+          inert={disabled}
         />
       )}
     </Container>
@@ -90,11 +94,13 @@ const DragHandleLine = styled('div')<{$cursor: CSS['cursor']}>`
   touch-action: none;
   pointer-events: none;
 
-  /* Invisible wider hit area for dragging, and the only part that takes pointer events */
+  /* Invisible wider hit area for dragging, and the only part that takes pointer events.
+     One below the drawer z-index: above pane content, but below global drawers, which render
+     before the app in the DOM and so lose a z-index tie. */
   &::before {
     content: '';
     position: absolute;
-    z-index: ${p => p.theme.zIndex.drawer};
+    z-index: ${p => p.theme.zIndex.drawer - 1};
     pointer-events: auto;
     cursor: ${p => p.$cursor};
   }
@@ -103,7 +109,7 @@ const DragHandleLine = styled('div')<{$cursor: CSS['cursor']}>`
   &::after {
     content: '';
     position: absolute;
-    z-index: ${p => p.theme.zIndex.drawer};
+    z-index: ${p => p.theme.zIndex.drawer - 1};
     opacity: 0.8;
     background: transparent;
     transition: background ${p => p.theme.motion.smooth.slow};
