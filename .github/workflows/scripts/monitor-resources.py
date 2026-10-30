@@ -11,6 +11,10 @@ download the artifacts and compare peak CPU and memory against runner limits:
 
 Each shard writes `.artifacts/resource-usage.jsonl` (one sample per line) and
 `.artifacts/resource-usage-summary.json` (aggregates plus a headroom verdict).
+
+Each sample also attributes CPU to process groups: docker containers by name,
+xdist workers, the pytest controller, and other host processes by command name.
+CPU that exited between samples shows up as `unattributed`.
 """
 
 from __future__ import annotations
@@ -18,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import statistics
 import subprocess
 import sys
@@ -38,28 +43,145 @@ CPU_MARGINAL_P95 = 85.0
 MEM_HEADROOM_USED_PCT = 90.0
 MEM_HEADROOM_MIN_AVAIL_GB = 1.0
 
+CPU_MODES = ("user", "nice", "system", "idle", "iowait", "irq", "softirq", "steal")
+CLK_TCK = os.sysconf("SC_CLK_TCK")
+DOCKER_ID_RE = re.compile(r"docker[-/]([0-9a-f]{64})")
+# execnet starts xdist workers as `python -c "import sys;exec(eval(sys.stdin.readline()))"`.
+XDIST_WORKER_MARKER = "exec(eval(sys.stdin.readline()))"
+CONTAINER_REFRESH_S = 5.0
 
-def read_cpu_times() -> tuple[int, int] | None:
+
+def read_cpu_times() -> dict[str, int] | None:
     try:
         with open("/proc/stat") as f:
             parts = f.readline().split()
         if not parts or parts[0] != "cpu":
             return None
-        values = [int(v) for v in parts[1:]]
-        idle = values[3] + values[4]
-        return idle, sum(values)
-    except (OSError, ValueError, IndexError):
+        return dict(zip(CPU_MODES, (int(v) for v in parts[1:])))
+    except (OSError, ValueError):
         return None
 
 
-def cpu_percent(prev: tuple[int, int] | None, curr: tuple[int, int] | None) -> float | None:
+def cpu_percent(prev: dict[str, int] | None, curr: dict[str, int] | None) -> float | None:
     if prev is None or curr is None:
         return None
-    idle_delta = curr[0] - prev[0]
-    total_delta = curr[1] - prev[1]
+    total_delta = sum(curr.values()) - sum(prev.values())
     if total_delta <= 0:
         return None
+    idle_delta = curr["idle"] + curr["iowait"] - prev["idle"] - prev["iowait"]
     return round(100.0 * (1.0 - idle_delta / total_delta), 1)
+
+
+def cpu_mode_percents(prev: dict[str, int], curr: dict[str, int]) -> dict[str, float]:
+    total_delta = sum(curr.values()) - sum(prev.values())
+    if total_delta <= 0:
+        return {}
+    return {
+        mode: round(100.0 * (curr[mode] - prev[mode]) / total_delta, 1)
+        for mode in ("user", "system", "iowait", "softirq", "steal")
+    }
+
+
+def busy_ticks(prev: dict[str, int], curr: dict[str, int]) -> int:
+    return sum(curr[m] - prev[m] for m in CPU_MODES if m not in ("idle", "iowait"))
+
+
+def read_text(path: str) -> str:
+    try:
+        with open(path, "rb") as f:
+            return f.read().decode(errors="replace")
+    except OSError:
+        return ""
+
+
+def read_proc_stat(pid: str) -> tuple[str, int, int] | None:
+    """Returns (comm, cpu ticks, start time) for a pid."""
+    data = read_text(f"/proc/{pid}/stat")
+    if ")" not in data:
+        return None
+    comm = data[data.index("(") + 1 : data.rindex(")")]
+    fields = data[data.rindex(")") + 2 :].split()
+    try:
+        return comm, int(fields[11]) + int(fields[12]), int(fields[19])
+    except (IndexError, ValueError):
+        return None
+
+
+def docker_container_names() -> dict[str, str]:
+    try:
+        r = subprocess.run(
+            ["docker", "ps", "-a", "--no-trunc", "--format", "{{.ID}} {{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {}
+    return dict(line.split(" ", 1) for line in r.stdout.splitlines() if " " in line)
+
+
+def classify_process(cmdline: str, comm: str) -> str:
+    if not cmdline:
+        return "kernel"
+    if XDIST_WORKER_MARKER in cmdline:
+        return "pytest:worker"
+    if "pytest" in cmdline:
+        return "pytest:main"
+    if "monitor-resources.py" in cmdline:
+        return "monitor"
+    return comm
+
+
+class ProcessCpuTracker:
+    """Attributes CPU ticks between samples to process groups."""
+
+    def __init__(self) -> None:
+        self.prev: dict[tuple[str, int], int] = {}
+        self.labels: dict[tuple[str, int], str] = {}
+        self.containers: dict[str, str] = {}
+        self.containers_refreshed = float("-inf")
+        self.primed = False
+
+    def container_name(self, container_id: str) -> str | None:
+        name = self.containers.get(container_id)
+        if name is None and time.monotonic() - self.containers_refreshed > CONTAINER_REFRESH_S:
+            self.containers = docker_container_names()
+            self.containers_refreshed = time.monotonic()
+            name = self.containers.get(container_id)
+        return name
+
+    def label(self, pid: str, comm: str) -> tuple[str, bool]:
+        """Returns (label, final). Unresolved container ids are retried later."""
+        if m := DOCKER_ID_RE.search(read_text(f"/proc/{pid}/cgroup")):
+            name = self.container_name(m.group(1))
+            return f"docker:{name or m.group(1)[:12]}", name is not None
+        cmdline = read_text(f"/proc/{pid}/cmdline").replace("\0", " ").strip()
+        return classify_process(cmdline, comm), True
+
+    def sample(self) -> dict[str, int]:
+        """Returns cpu ticks per group since the previous call."""
+        current: dict[tuple[str, int], int] = {}
+        by_group: dict[str, int] = {}
+        for pid in os.listdir("/proc"):
+            if not pid.isdigit() or (stat := read_proc_stat(pid)) is None:
+                continue
+            comm, ticks, start = stat
+            key = (pid, start)
+            current[key] = ticks
+            if not self.primed:
+                continue
+            delta = ticks - self.prev.get(key, 0)
+            if delta <= 0:
+                continue
+            if (label := self.labels.get(key)) is None:
+                label, final = self.label(pid, comm)
+                if final:
+                    self.labels[key] = label
+            by_group[label] = by_group.get(label, 0) + delta
+        self.labels = {k: v for k, v in self.labels.items() if k in current}
+        self.prev = current
+        self.primed = True
+        return by_group
 
 
 def read_mem() -> dict[str, float] | None:
@@ -94,19 +216,21 @@ def read_load() -> list[float] | None:
 
 
 def read_pressure(path: str) -> dict[str, float] | None:
+    """Parses the `some` line of a PSI file. The `full` line is ignored."""
     try:
         with open(path) as f:
-            out: dict[str, float] = {}
-            for token in f.read().split():
-                if "=" in token:
-                    k, v = token.split("=", 1)
-                    out[k] = float(v)
-            return out or None
+            for line in f:
+                kind, *tokens = line.split()
+                if kind == "some":
+                    return {k: float(v) for k, v in (t.split("=", 1) for t in tokens)}
     except (OSError, ValueError):
-        return None
+        pass
+    return None
 
 
-def sample(prev_cpu: tuple[int, int] | None) -> tuple[dict, tuple[int, int] | None]:
+def sample(
+    prev_cpu: dict[str, int] | None, tracker: ProcessCpuTracker | None = None
+) -> tuple[dict, dict[str, int] | None]:
     curr_cpu = read_cpu_times()
     mem = read_mem()
     load = read_load()
@@ -125,6 +249,17 @@ def sample(prev_cpu: tuple[int, int] | None) -> tuple[dict, tuple[int, int] | No
     for name in ("cpu", "memory"):
         if (p := read_pressure(f"/proc/pressure/{name}")) is not None:
             entry[f"pressure_{name}_some_avg10"] = p.get("avg10")
+    if prev_cpu is not None and curr_cpu is not None:
+        entry["cpu_modes_pct"] = cpu_mode_percents(prev_cpu, curr_cpu)
+        if tracker is not None:
+            groups = tracker.sample()
+            unattributed = busy_ticks(prev_cpu, curr_cpu) - sum(groups.values())
+            if unattributed > 0:
+                groups["unattributed"] = unattributed
+            # CPU-seconds per group since the previous sample.
+            entry["cpu_s_by_group"] = {
+                k: round(v / CLK_TCK, 2) for k, v in sorted(groups.items(), key=lambda kv: -kv[1])
+            }
     return entry, curr_cpu
 
 
@@ -134,6 +269,14 @@ def percentile(values: list[float], pct: float) -> float:
     ordered = sorted(values)
     idx = min(len(ordered) - 1, int(pct / 100.0 * len(ordered)))
     return ordered[idx]
+
+
+def cpu_s_by_group(samples: list[dict]) -> dict[str, float]:
+    totals: dict[str, float] = {}
+    for s in samples:
+        for group, cpu_s in s.get("cpu_s_by_group", {}).items():
+            totals[group] = totals.get(group, 0.0) + cpu_s
+    return {k: round(v, 1) for k, v in sorted(totals.items(), key=lambda kv: -kv[1])}
 
 
 def summarize(samples: list[dict]) -> dict:
@@ -187,6 +330,11 @@ def summarize(samples: list[dict]) -> dict:
             "max_swap_used_mb": swap_max,
         },
         "load_1m_max": round(max(loads), 2) if loads else None,
+        "cpu_s_by_group": cpu_s_by_group(samples),
+        # Samples where xdist workers used CPU, i.e. the test run itself.
+        "cpu_s_by_group_during_tests": cpu_s_by_group(
+            [s for s in samples if "pytest:worker" in s.get("cpu_s_by_group", {})]
+        ),
         "headroom": {
             "cpu": cpu_verdict,
             "memory": mem_verdict,
@@ -198,11 +346,13 @@ def summarize(samples: list[dict]) -> dict:
 
 def run_sampler(output: Path, interval: float) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
+    tracker = ProcessCpuTracker()
+    tracker.sample()
     prev_cpu = read_cpu_times()
     with open(output, "a") as f:
         while not STOP_FILE.exists():
             time.sleep(interval)
-            entry, prev_cpu = sample(prev_cpu)
+            entry, prev_cpu = sample(prev_cpu, tracker)
             if len(entry) > 1:
                 f.write(json.dumps(entry) + "\n")
                 f.flush()
@@ -279,6 +429,8 @@ def stop_background(output: Path, summary_path: Path | None) -> int:
         f"verdict={summary['headroom']['one_more_worker']}"
     )
     print(line)
+    top = list(summary["cpu_s_by_group_during_tests"].items())[:10]
+    print("cpu-seconds during tests: " + ", ".join(f"{k}={v}" for k, v in top))
     if step_summary := os.environ.get("GITHUB_STEP_SUMMARY"):
         with open(step_summary, "a") as f:
             f.write(f"### Resource usage ({summary['samples']} samples)\n\n")

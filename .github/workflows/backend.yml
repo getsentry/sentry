@@ -225,6 +225,8 @@ jobs:
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
       XDIST_WORKERS: '4'
+      # Investigation only: sample pytest and its xdist workers with py-spy.
+      PROFILE_BACKEND_TESTS: '1'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -287,6 +289,15 @@ jobs:
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
+      - name: Install py-spy
+        if: env.PROFILE_BACKEND_TESTS == '1'
+        run: |
+          uv tool install py-spy==0.4.1
+          echo "PY_SPY=$(uv tool dir --bin)/py-spy" >> "$GITHUB_ENV"
+          echo "PY_SPY_OUTPUT=$PWD/.artifacts/py-spy.txt" >> "$GITHUB_ENV"
+          # py-spy attaches to the running pytest controller, which isn't its child.
+          sudo sysctl -w kernel.yama.ptrace_scope=0
+
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -300,7 +311,11 @@ jobs:
         run: |
           if [ -n "${XDIST_WORKERS}" ]; then
             export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout -k 30 1200 make test-python-ci || {
+            profile=()
+            if [ -n "${PY_SPY:-}" ]; then
+              profile=(.github/workflows/scripts/profile-backend-tests.sh)
+            fi
+            "${profile[@]}" timeout -k 30 1200 make test-python-ci || {
               rc=$?
               if [ "$rc" -eq 124 ]; then
                 echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
@@ -344,6 +359,7 @@ jobs:
           path: |
             .artifacts/resource-usage.jsonl
             .artifacts/resource-usage-summary.json
+            .artifacts/py-spy.txt
           retention-days: 30
 
       - name: Report failures
