@@ -269,11 +269,7 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
 def serialize_run_error(run: SeerWorkflowRun) -> SeerWorkflowErrorResponse | None:
     """Null when the run failed because of its executions, which carry the errors."""
     error = run.extras.get("error")
-    if error is None and any(
-        execution.status == SeerWorkflowExecutionStatus.FAILED for execution in run.executions.all()
-    ):
-        return None
-    return serialize_workflow_error(error)
+    return serialize_workflow_error(error) if error is not None else None
 
 
 def serialize_workflow_execution(

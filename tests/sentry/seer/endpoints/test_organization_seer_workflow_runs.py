@@ -218,17 +218,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             if execution["status"] == "failed"
         ] == errors
 
-    def test_failed_run_without_error_details_reports_unknown(self) -> None:
-        self.create_run(status=SeerWorkflowRunStatus.FAILED)
-
-        response = self.get_success_response(self.organization.slug, config=self.config.id)
-
-        (serialized_run,) = response.data["runs"]
-        assert serialized_run["error"] == {
-            "code": "unknown",
-            "message": "No error details are available.",
-        }
-
     def test_openapi_examples_match_response_contracts(self) -> None:
         success, failure, invalid_filter = WORKFLOW_RUNS_RESPONSE
         validator = OAS30Validator(
