@@ -15,6 +15,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -52,6 +53,21 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         )
 
         self.get_error_response(self.organization.slug, status_code=403)
+
+    def test_demo_org(self) -> None:
+        demo_user = self.create_user()
+        with override_options(
+            {
+                "demo-mode.enabled": True,
+                "demo-mode.users": [demo_user.id],
+                "demo-mode.orgs": [self.organization.id],
+            }
+        ):
+            self.get_error_response(self.organization.slug, email=self.email, status_code=403)
+
+        assert not OrganizationMember.objects.filter(
+            organization=self.organization, email=self.email
+        ).exists()
 
     @patch(
         "sentry.core.endpoints.organization_member_requests_join.ratelimiter.backend.is_limited",
