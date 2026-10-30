@@ -154,6 +154,20 @@ class EmitPrReadyForReviewTest(TestCase):
 
         assert [pr["repo_name"] for pr in payload] == ["owner/repo"]
 
+    def test_format_pull_requests_payload_excludes_pending_creations(self) -> None:
+        state = self._run_state()
+        state.repo_pr_states["owner/pending-repo"] = RepoPRState(
+            repo_name="owner/pending-repo",
+            pr_creation_status="creating",
+        )
+        state.repo_pr_states["owner/unstarted-repo"] = RepoPRState(
+            repo_name="owner/unstarted-repo",
+        )
+
+        payload = format_pull_requests_payload(state)
+
+        assert [pr["repo_name"] for pr in payload] == ["owner/repo"]
+
     @patch("sentry.sentry_apps.tasks.sentry_apps.broadcast_webhooks_for_organization.delay")
     def test_emit_skips_when_pr_creation_fails(self, mock_broadcast: MagicMock) -> None:
         state = self._run_state()
