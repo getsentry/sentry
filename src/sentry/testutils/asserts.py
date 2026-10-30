@@ -1,4 +1,7 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
 from functools import reduce
+from unittest import mock
 
 from django.db import models
 from django.db.models.functions import Cast
@@ -44,6 +47,24 @@ def assert_status_code(response, minimum: int, maximum: int | None = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, response
+
+
+@contextmanager
+def assert_no_organization_resource_hydration() -> Iterator[None]:
+    with (
+        mock.patch(
+            "sentry.organizations.services.organization.serial.serialize_project",
+            side_effect=AssertionError("Unexpected project hydration"),
+        ) as projects,
+        mock.patch(
+            "sentry.organizations.services.organization.serial.serialize_rpc_team",
+            side_effect=AssertionError("Unexpected team hydration"),
+        ) as teams,
+    ):
+        yield
+    # Catch hydration even when the caller handles the exception.
+    projects.assert_not_called()
+    teams.assert_not_called()
 
 
 def assert_existing_projects_status(

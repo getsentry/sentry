@@ -21,10 +21,10 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
 )
-from sentry.investigations.endpoints.validators import BlockOrderValidator
-from sentry.investigations.models import Investigation
-from sentry.investigations.services import reorder_blocks
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators import BlockOrderValidator
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services import reorder_blocks
 
 
 @extend_schema(tags=["Investigations"])
@@ -56,7 +56,7 @@ class OrganizationInvestigationBlockOrderEndpoint(OrganizationInvestigationEndpo
         ],
     )
     def put(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Set the order of all active blocks. Supply every active block ID exactly once and the

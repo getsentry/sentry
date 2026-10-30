@@ -27,6 +27,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.user_examples import UserExamples
 from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import has_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
@@ -197,7 +198,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:
@@ -311,7 +312,7 @@ class OrganizationIndexEndpoint(Endpoint):
 
         if agent_organization_id is not None:
             queryset = queryset.filter(organization_id=agent_organization_id)
-        elif request.auth and not request.user.is_authenticated:
+        elif request.auth and not has_user(request.user):
             if hasattr(request.auth, "project"):
                 queryset = queryset.filter(organization_id=request.auth.project.organization_id)
             elif request.auth.organization_id is not None:

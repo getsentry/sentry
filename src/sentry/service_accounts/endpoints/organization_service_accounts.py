@@ -14,10 +14,11 @@ from typing import Any, NotRequired, TypedDict, cast
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, features
+from sentry import audit_log, features, roles
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
@@ -52,6 +53,14 @@ from sentry.service_accounts.models import (
 FEATURE_FLAG = "organizations:service-accounts"
 
 DUPLICATE_NAME_ERROR = "A service account with this name already exists."
+ALL_PROJECTS_WITH_PROJECTS_ERROR = (
+    "A service account with access to all projects can't also list projects."
+    " Set allProjects to false to choose projects."
+)
+ALL_PROJECTS_ROLE_ERROR = (
+    "Only a role with access to all projects, such as Manager or Owner,"
+    " can give a service account access to all projects."
+)
 
 SERVICE_ACCOUNT_ID = OpenApiParameter(
     name="service_account_id",
@@ -67,6 +76,7 @@ class ServiceAccountResponse(TypedDict):
     name: str
     scopes: list[str]
     projectIds: list[str]
+    allProjects: bool
     isActive: bool
     dateCreated: datetime
 
@@ -75,6 +85,7 @@ class ServiceAccountCreateRequestData(TypedDict):
     name: str
     scopes: list[str]
     projectIds: NotRequired[list[int] | None]
+    allProjects: NotRequired[bool]
     isActive: NotRequired[bool]
 
 
@@ -82,6 +93,7 @@ class ServiceAccountUpdateRequestData(TypedDict, total=False):
     name: str
     scopes: list[str]
     projectIds: list[int] | None
+    allProjects: bool
     isActive: bool
 
 
@@ -104,6 +116,7 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "name": obj.name,
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
+            "allProjects": obj.all_projects,
             "isActive": obj.is_active,
             "dateCreated": obj.date_added,
         }
@@ -114,8 +127,17 @@ def _audit_log_data(response: ServiceAccountResponse) -> dict[str, Any]:
         "name": response["name"],
         "scopes": response["scopes"],
         "project_ids": response["projectIds"],
+        "all_projects": response["allProjects"],
         "is_active": response["isActive"],
     }
+
+
+def _check_can_grant_all_projects(request: Request) -> None:
+    # Callers without a role, like org API keys and superusers who aren't members, are
+    # refused too, since nothing shows they can reach every project themselves.
+    role = request.access.role
+    if role is None or not roles.get(role).is_global:
+        raise PermissionDenied(ALL_PROJECTS_ROLE_ERROR)
 
 
 def _replace_projects(service_account: ServiceAccount, project_ids: Sequence[int]) -> None:
@@ -147,8 +169,16 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
         required=False,
         allow_null=True,
         help_text=(
-            "Projects the service account can access when the organization doesn't have open"
-            " membership. Ignored while open membership is on, like team membership for people."
+            "Projects the service account can access. Must be empty when `allProjects` is true."
+        ),
+    )
+    allProjects = serializers.BooleanField(
+        required=False,
+        help_text=(
+            "Whether the service account can access every active project in the organization,"
+            " including projects created later. Defaults to false. Setting it to true removes"
+            " the account's listed projects and requires a role with access to all projects,"
+            " such as Manager or Owner."
         ),
     )
     isActive = serializers.BooleanField(
@@ -176,6 +206,15 @@ class ServiceAccountCreateSerializer(serializers.Serializer):
                 f"You can't grant scopes you don't have: {', '.join(sorted(ungrantable))}"
             )
         return sorted(set(scopes))
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        service_account: ServiceAccount | None = self.context.get("service_account")
+        all_projects = attrs.get(
+            "allProjects", service_account.all_projects if service_account else False
+        )
+        if all_projects and attrs.get("projectIds"):
+            raise serializers.ValidationError({"projectIds": [ALL_PROJECTS_WITH_PROJECTS_ERROR]})
+        return attrs
 
 
 class ServiceAccountUpdateSerializer(ServiceAccountCreateSerializer):
@@ -273,6 +312,9 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
         data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
+        all_projects = data.get("allProjects", False)
+        if all_projects:
+            _check_can_grant_all_projects(request)
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):
@@ -281,6 +323,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                     name=data["name"],
                     scope_list=data["scopes"],
                     is_active=data.get("isActive", True),
+                    all_projects=all_projects,
                     created_by_id=request.user.id,
                 )
                 ServiceAccountProject.objects.bulk_create(
@@ -370,7 +413,11 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
         serializer = ServiceAccountUpdateSerializer(
             data=request.data,
             partial=True,
-            context={"access": request.access, "organization": organization},
+            context={
+                "access": request.access,
+                "organization": organization,
+                "service_account": service_account,
+            },
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
@@ -387,7 +434,13 @@ class OrganizationServiceAccountDetailsEndpoint(OrganizationServiceAccountEndpoi
                     service_account.scope_list = data["scopes"]
                 if "isActive" in data:
                     service_account.is_active = data["isActive"]
-                if "projectIds" in data:
+                # Checked against the locked row, so keeping all projects on an account
+                # also needs the role, even when the request doesn't mention it.
+                service_account.all_projects = data.get("allProjects", service_account.all_projects)
+                if service_account.all_projects:
+                    _check_can_grant_all_projects(request)
+                    _replace_projects(service_account, [])
+                elif "projectIds" in data:
                     _replace_projects(service_account, data["projectIds"] or [])
                 service_account.save()
         except ServiceAccount.DoesNotExist:

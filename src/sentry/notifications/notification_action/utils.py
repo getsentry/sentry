@@ -10,9 +10,9 @@ from sentry.incidents.typings.metric_detector import (
     OpenPeriodContext,
 )
 from sentry.integrations.metric_alerts import build_workflow_link, incident_attachment_info
-from sentry.investigations.access import has_investigations_access
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.notebooks.access import has_investigations_access
 from sentry.notifications.notification_action.registry import (
     activity_handler_registry,
     group_type_notification_registry,

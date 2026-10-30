@@ -15,6 +15,7 @@ from sentry_sdk import traces
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
+from sentry.auth.principal import has_user
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -1174,7 +1175,7 @@ def from_request_org_and_scopes(
             scopes=superuser_scopes,
         )
 
-    if request.auth is not None and not request.user.is_authenticated:
+    if request.auth is not None and not has_user(request.user):
         return from_rpc_auth(request.auth, rpc_user_org_context)
 
     return from_user_and_rpc_user_org_context(
@@ -1201,7 +1202,7 @@ def organizationless_access(
 
 
 def normalize_valid_user(user: User | RpcUser | AnonymousUser | None) -> User | RpcUser | None:
-    if not user or user.is_anonymous or not user.is_active:
+    if not user or not has_user(user) or not user.is_active:
         return None
     return user
 
@@ -1290,7 +1291,7 @@ def from_request(
             permissions=access_service.get_permissions_for_user(request.user.id),
         )
 
-    if request.auth is not None and not request.user.is_authenticated:
+    if request.auth is not None and not has_user(request.user):
         return from_auth(request.auth, organization)
 
     return from_user(user=request.user, organization=organization, scopes=scopes, is_staff=is_staff)

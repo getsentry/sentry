@@ -11,6 +11,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckRunsSweep,
     CheckSuiteAutofixRun,
     confirm_green_check_suite,
+    green_review_side_effects_enabled,
     resolve_green_check_suite,
 )
 from sentry.seer.autofix.pr_iteration.constants import REVIEW_REQUEST_FLAG
@@ -88,7 +89,7 @@ def _pull_request_result(
 
 def _request_review(event: CheckSuiteEvent | None = None) -> None:
     resolved = resolve_green_check_suite(event or _green_event())
-    if resolved is None:
+    if resolved is None or not green_review_side_effects_enabled(resolved):
         return
     if (
         get_run_marker(resolved.seer_run, READY_FOR_REVIEW_EXTRA, resolved.repo_name) is not None
@@ -198,8 +199,8 @@ class RequestReviewFromContextTest(TestCase):
 
         _request_review(_green_event())
 
-        # The flag gate runs before any Seer lookup so disabled orgs cost nothing.
-        mock_resolve.assert_not_called()
+        # Resolving parked feedback is unconditional; review requests are not.
+        mock_resolve.assert_called_once()
         mock_actions.request_review.assert_not_called()
         assert self._marker() is None
 

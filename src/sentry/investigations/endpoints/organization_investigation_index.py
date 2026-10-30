@@ -28,18 +28,15 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationStatus,
-)
 from sentry.investigations.services import (
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
-    create_manual_investigation,
-    resolve_investigation_source,
 )
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services import create_manual_investigation
 from sentry.viewer_context import ActorId, ActorType
 
 
@@ -75,20 +72,20 @@ class OrganizationInvestigationsIndexEndpoint(OrganizationInvestigationsBaseEndp
         paginated array of summaries; follow the Link header for more results. Requires the
         organizations:investigations feature and open organization membership.
         """
-        requested_status = request.GET.get("status", InvestigationStatus.ACTIVE)
-        if requested_status not in InvestigationStatus.values:
+        requested_status = request.GET.get("status", NotebookStatus.ACTIVE)
+        if requested_status not in NotebookStatus.values:
             return Response(
                 {"detail": "Must be active or archived."}, status=status.HTTP_400_BAD_REQUEST
             )
         # A source-backed investigation supersedes earlier revisions of the same
         # lineage, so only the newest revision is listed.
-        newer_lineage_revision = Investigation.objects.filter(
+        newer_lineage_revision = Notebook.objects.filter(
             organization_id=OuterRef("organization_id"),
             source_key=OuterRef("source_key"),
             status=requested_status,
             source_revision__gt=OuterRef("source_revision"),
         )
-        investigations = Investigation.objects.filter(
+        investigations = Notebook.objects.filter(
             organization=organization, status=requested_status
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
         query = request.GET.get("query")

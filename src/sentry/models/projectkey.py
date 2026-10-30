@@ -26,6 +26,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.hybridcloud.outbox.base import CellOutboxProducingManager, ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -165,13 +166,13 @@ class ProjectKey(ReplicatedCellModel):
         public_key = urlparts.username
         project_id = urlparts.path.rsplit("/", 1)[-1]
 
-        try:
-            return ProjectKey.objects.get(public_key=public_key, project=project_id)
-        except ValueError:
-            # ValueError would come from a non-integer project_id,
-            # which is obviously a DoesNotExist. We catch and rethrow this
-            # so anything downstream expecting DoesNotExist works fine
+        # A non-integer or out-of-range project_id (e.g. a corrupted DSN with
+        # extra digits) can never match, and would otherwise fail the bounded
+        # field's assertion. Raise DoesNotExist so callers can return a 4xx.
+        if not project_id.isdecimal() or int(project_id) > I64_MAX:
             raise ProjectKey.DoesNotExist("ProjectKey matching query does not exist.")
+
+        return ProjectKey.objects.get(public_key=public_key, project=project_id)
 
     @classmethod
     def get_default(cls, project):

@@ -84,6 +84,16 @@ class AtlassianConnectTest(TestCase):
         )
         assert integration.id == self.integration.id
 
+    def test_get_integration_from_jwt_rejects_malformed_token(self) -> None:
+        with pytest.raises(AtlassianConnectValidationError, match="Malformed token"):
+            get_integration_from_jwt(
+                token="not-a-jwt",
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+
     def test_get_integration_from_jwt_rejects_non_hs256_algorithm(self) -> None:
         # JWT with alg=none and a valid issuer — must be rejected
         with pytest.raises(AtlassianConnectValidationError, match="Invalid algorithm"):

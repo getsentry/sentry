@@ -106,6 +106,33 @@ describe('Inbox', () => {
     ).toHaveAttribute('aria-current', 'true');
   });
 
+  it('selects items with checkboxes without opening them', async () => {
+    const {router} = render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    const checkbox = await screen.findByRole('checkbox', {
+      name: 'Select OperationalError: could not connect to server',
+    });
+    expect(checkbox).not.toBeChecked();
+
+    await userEvent.click(checkbox);
+
+    expect(checkbox).toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {name: 'Select Checkout latency regression'})
+    ).not.toBeChecked();
+    expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
+
+    await userEvent.click(checkbox);
+
+    expect(checkbox).not.toBeChecked();
+  });
+
   it('renders not found without the feature flag', () => {
     render(<Inbox />, {organization: OrganizationFixture()});
 

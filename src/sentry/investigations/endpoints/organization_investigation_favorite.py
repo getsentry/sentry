@@ -15,8 +15,8 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
 )
 from sentry.investigations.endpoints.validators import FavoriteUpdateValidator
-from sentry.investigations.models import Investigation, InvestigationFavoriteUser
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookFavoriteUser
 
 
 @extend_schema(tags=["Investigations"])
@@ -41,7 +41,7 @@ class OrganizationInvestigationsFavoriteEndpoint(OrganizationInvestigationEndpoi
         ],
     )
     def put(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Add or remove the investigation from the authenticated user's favorites. Returns no
@@ -53,11 +53,7 @@ class OrganizationInvestigationsFavoriteEndpoint(OrganizationInvestigationEndpoi
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         if validator.validated_data["should_favorite"]:
-            InvestigationFavoriteUser.objects.get_or_create(
-                investigation=investigation, user_id=viewer_id
-            )
+            NotebookFavoriteUser.objects.get_or_create(notebook=investigation, user_id=viewer_id)
         else:
-            InvestigationFavoriteUser.objects.filter(
-                investigation=investigation, user_id=viewer_id
-            ).delete()
+            NotebookFavoriteUser.objects.filter(notebook=investigation, user_id=viewer_id).delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

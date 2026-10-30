@@ -42,8 +42,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                 "name": "stacktrace",
                 "values": [
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (family:native function:main | [package:**/UnityPlayer.*] -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -73,8 +73,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:framework -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -104,8 +104,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:framework -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -135,8 +135,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:framework -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -166,8 +166,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:il2cpp -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -200,7 +200,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "hint": "marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -233,7 +233,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "hint": "marked in-app by built-in stacktrace rule (category:il2cpp path:**/Packages/** +app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -265,8 +265,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:il2cpp path:**/Library/PackageCache/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -298,8 +298,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:il2cpp path:**/unity/Modules/** -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -331,8 +331,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:il2cpp -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -364,8 +364,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": "marked in-app by built-in stacktrace rule (family:native package:/Users/** +app)",
+                    "contributes": false,
+                    "hint": "marked out of app by built-in stacktrace rule (category:telemetry -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -396,7 +396,7 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                   },
                   {
                     "contributes": false,
-                    "hint": "marked out of app by built-in stacktrace rule (family:native function:?[[]Sentry* -app)",
+                    "hint": "marked out of app by built-in stacktrace rule (category:telemetry -app)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -433,21 +433,21 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
       },
       "contributes": true,
       "description": "exception stacktrace — in-app frames",
-      "hash": "cd7247c52d95df0f046b9e8d86ca231f",
+      "hash": "f63a7669760e8a0c2dcecbc06dc16f93",
       "hint": null,
       "key": "app_exception_stacktrace",
       "type": "component"
     },
     "system_exception_stacktrace": {
       "component": {
-        "contributes": false,
-        "hint": "ignored because app exception takes precedence",
+        "contributes": true,
+        "hint": null,
         "id": "system",
         "name": null,
         "values": [
           {
-            "contributes": false,
-            "hint": "ignored because hash matches app variant",
+            "contributes": true,
+            "hint": null,
             "id": "exception",
             "name": "exception",
             "values": [
@@ -798,8 +798,8 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
                     ]
                   },
                   {
-                    "contributes": true,
-                    "hint": null,
+                    "contributes": false,
+                    "hint": "ignored by built-in stacktrace rule (category:telemetry -group)",
                     "id": "frame",
                     "name": null,
                     "values": [
@@ -865,10 +865,10 @@ source: tests/sentry/grouping/test_grouping_info.py::test_grouping_info
           }
         ]
       },
-      "contributes": false,
+      "contributes": true,
       "description": "exception stacktrace — all frames",
-      "hash": null,
-      "hint": "ignored because app exception takes precedence",
+      "hash": "aeca1dc80143ed497c670fd61b7d30a2",
+      "hint": null,
       "key": "system_exception_stacktrace",
       "type": "component"
     }
