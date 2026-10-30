@@ -597,14 +597,89 @@ SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRAN
 
 
 class ServiceAccountGap(StrEnum):
+    REQUIRES_USER = "should answer user-required, which needs requires_user / require_user"
+    USER_ID_FIX = "reads request.user.id; fixed by the per-team acting_user_id(request.user) PRs"
+    AUDIT_ACTOR = "the audit entry records request.user as its actor"
+    VIEWER_LOOKUP = "a serializer looks up the viewer's own state by request.user.id"
+    GENERIC_USER = "serialize_generic_user only takes a User or RpcUser"
     CONTROL_SILO = "service account auth is cell-only"
-    REQUIRES_USER = "rejects, or stores state for, an anonymous request.user"
-    USER_ACTOR_ERROR = "500s using an anonymous request.user as an actor"
-    NO_ORG_ROLE = "checks the caller's org role"
+    NO_MEMBERSHIP = "checks the caller's own membership or org role, which a service account lacks"
 
 
 # Rows that don't match the oracle yet. Strict, so a fixed row fails until removed here.
 SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
+    "OrganizationProjects_post": ServiceAccountGap.REQUIRES_USER,
+    "DiscoverSavedQueries": ServiceAccountGap.USER_ID_FIX,
+    "DiscoverSavedQueries_post": ServiceAccountGap.USER_ID_FIX,
+    "GroupExternalIssueDetails_delete": ServiceAccountGap.USER_ID_FIX,
+    "GroupIntegrationDetails_post": ServiceAccountGap.USER_ID_FIX,
+    "GroupIntegrationDetails_put": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationAIConversationDetails": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationAIConversations": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationEvents": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationEventsDropped": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationEventsTimeseries": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationIndex": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationProfilingChunks": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationProfilingFlamegraph": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationReplayCount": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationReplayDetails": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationTrace": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationTraceItemAttributes": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationTraceItemMetrics": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationTraceItemStats": ServiceAccountGap.USER_ID_FIX,
+    "OrganizationTraceMeta": ServiceAccountGap.USER_ID_FIX,
+    "CustomInboundFilterDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "CustomInboundFilterDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "CustomInboundFilters_post": ServiceAccountGap.AUDIT_ACTOR,
+    "GroupDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "NotificationActionsDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDashboardDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDashboardDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDashboards_post": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDetectorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDetectorDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationDetectorIndex_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationMonitorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationProjectDetectorIndex_post": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationRepositorySettings_put": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationWorkflowDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationWorkflowDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationWorkflowIndex_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "OrganizationWorkflowIndex_post": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectFilterDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectKeyDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectKeyDetails_put": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectKeys_post": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectMonitorDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectOwnership_put": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectReplayDeletionJobsIndex_post": ServiceAccountGap.AUDIT_ACTOR,
+    "ProjectSeerRepos_put": ServiceAccountGap.AUDIT_ACTOR,
+    "TeamDetails_delete": ServiceAccountGap.AUDIT_ACTOR,
+    "DiscoverSavedQueryDetail": ServiceAccountGap.VIEWER_LOOKUP,
+    "GroupDetails": ServiceAccountGap.VIEWER_LOOKUP,
+    "GroupDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationMonitorDetails": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationMonitorDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationMonitorIndex_post": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationProjects": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationTeams": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationTeams_post": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectDetails": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectMonitorDetails": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectMonitorDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectTeamDetails_delete": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectTeamDetails_post": ServiceAccountGap.VIEWER_LOOKUP,
+    "ProjectTeams": ServiceAccountGap.VIEWER_LOOKUP,
+    "ShortIdLookup": ServiceAccountGap.VIEWER_LOOKUP,
+    "TeamDetails": ServiceAccountGap.VIEWER_LOOKUP,
+    "TeamDetails_put": ServiceAccountGap.VIEWER_LOOKUP,
+    "TeamProjects": ServiceAccountGap.VIEWER_LOOKUP,
+    "TeamProjects_post": ServiceAccountGap.VIEWER_LOOKUP,
+    "OrganizationReleaseDetails_put": ServiceAccountGap.GENERIC_USER,
+    "ProjectReplayViewedBy": ServiceAccountGap.GENERIC_USER,
     "OrganizationIntegrationChannelValidate": ServiceAccountGap.CONTROL_SILO,
     "OrganizationIntegrationChannels": ServiceAccountGap.CONTROL_SILO,
     "OrganizationIntegrationDetails": ServiceAccountGap.CONTROL_SILO,
@@ -617,31 +692,24 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "SentryAppDetails_put": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalIssueActions_post": ServiceAccountGap.CONTROL_SILO,
     "SentryAppInstallationExternalRequests": ServiceAccountGap.CONTROL_SILO,
-    "GroupIntegrationDetails": ServiceAccountGap.REQUIRES_USER,
-    "GroupIntegrationDetails_post": ServiceAccountGap.REQUIRES_USER,
-    "GroupIntegrationDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDashboards": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDashboards_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationDetectorIndex_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationGroupSearchViews": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationGroupSearchViews_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationMemberTeamDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationProjects_post": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationStarredServiceSpans_delete": ServiceAccountGap.REQUIRES_USER,
-    "ProjectDetails_put": ServiceAccountGap.REQUIRES_USER,
-    "OrganizationStarredServiceSpans_post": ServiceAccountGap.USER_ACTOR_ERROR,
-    "ProjectDetails_delete": ServiceAccountGap.USER_ACTOR_ERROR,
-    "TeamDetails_delete": ServiceAccountGap.USER_ACTOR_ERROR,
-    "EventAttachmentDetails": ServiceAccountGap.NO_ORG_ROLE,
-    "OrganizationMemberIndex_post": ServiceAccountGap.NO_ORG_ROLE,
+    "EventAttachmentDetails": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberDetails_put": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberIndex_post": ServiceAccountGap.NO_MEMBERSHIP,
+    "OrganizationMemberTeamDetails_delete": ServiceAccountGap.NO_MEMBERSHIP,
 }
+
+# Rows that act on the caller as a person (saved views, stars, a personal team), so a
+# service account is denied with user-required instead of matching the oracle.
+SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
+    {
+        "OrganizationGroupSearchViews",
+        "OrganizationGroupSearchViews_post",
+        "OrganizationProjects_post",
+        "OrganizationStarredServiceSpans_delete",
+        "OrganizationStarredServiceSpans_post",
+    }
+)
 
 
 def _matrix_cases() -> tuple[tuple[PublicGetEndpoint, MatrixAuthentication], ...]:
@@ -2220,6 +2288,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         return payloads.get(key, {})
 
     def _create_matrix_service_account(self) -> None:
+        self.enterContext(self.feature("organizations:service-accounts"))
         # Before any control-silo override, so the cell replica is written.
         service_account = self.create_service_account(
             organization=self.org,
@@ -2242,6 +2311,10 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         authorization_oracle: Response,
         response: Response,
     ) -> None:
+        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED:
+            assert response.status_code == 403, (endpoint.path_template, response.content)
+            assert json.loads(response.content)["detail"]["code"] == "user-required"
+            return
         matches_oracle = response.status_code == authorization_oracle.status_code and (
             authorization_oracle.status_code < 400
             or response.content == authorization_oracle.content
@@ -2391,6 +2464,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         finally:
             with assume_test_silo_mode(SiloMode.MONOLITH):
                 for database, savepoint in reversed(savepoints.items()):
+                    # A save that raised (e.g. UserRequired) marks the test transaction
+                    # broken; returning to the pre-request savepoint recovers it.
+                    transaction.set_rollback(False, using=database)
                     transaction.savepoint_rollback(savepoint, using=database)
             # Model/option cache writes are not transactional. Remove the control
             # request's cached deletion/update so the replay observes the restored DB.
@@ -2708,9 +2784,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
 
 
 def _mark_service_account_gap[F: Callable[..., None]](test: F, test_id: str) -> F:
-    # Until service account auth lands (#128779), service account requests are anonymous.
-    if not hasattr(access, "ServiceAccountAccess"):
-        return pytest.mark.xfail(reason="service account auth isn't supported yet")(test)
     gap = SERVICE_ACCOUNT_KNOWN_GAPS.get(test_id)
     if gap is None:
         return test
