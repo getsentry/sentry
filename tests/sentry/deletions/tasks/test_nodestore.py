@@ -16,6 +16,7 @@ from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawne
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.utils.snuba import UnqualifiedQueryError
+from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 
 class NodestoreDeletionTaskTest(TestCase):
@@ -99,6 +100,25 @@ class NodestoreDeletionTaskTest(TestCase):
             [1],
             Dataset.Events,
         )
+
+    def test_transient_error_is_raised_for_retry(self) -> None:
+        error = SnubaRPCTimeout("timed out")
+        with (
+            patch(
+                "sentry.deletions.tasks.nodestore.fetch_events_from_eventstore",
+                side_effect=error,
+            ),
+            patch(
+                "sentry.deletions.tasks.nodestore.delete_events_from_eventstore"
+            ) as mock_delete_events,
+            pytest.raises(SnubaRPCTimeout),
+        ):
+            self.run_deletion_task()
+
+        mock_delete_events.assert_not_called()
+        retry = delete_events_for_groups_from_nodestore_and_eventstore.retry
+        assert retry is not None
+        assert retry.should_retry(retry.initial_state(), error)
 
     @patch("sentry.deletions.tasks.nodestore.current_task")
     def test_selfchain_skips_when_already_spawned(self, mock_current_task: MagicMock) -> None:

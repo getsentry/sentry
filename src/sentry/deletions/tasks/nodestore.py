@@ -46,10 +46,6 @@ ISSUE_PLATFORM_MAX_ROWS_TO_DELETE = 2000000
 DELETE_EVENTS_TASK_KEY = "delete_events_from_nodestore_and_eventstore"
 
 
-class RetryTask(Exception):
-    pass
-
-
 @instrumented_task(
     name="sentry.deletions.tasks.nodestore.delete_events_from_nodestore_and_eventstore",
     namespace=deletion_tasks,
@@ -182,13 +178,15 @@ def delete_events_for_groups_from_nodestore_and_eventstore(
             metrics.incr(f"{prefix}.warning", tags={"type": "all-projects-deleted"}, sample_rate=1)
         else:
             metrics.incr(f"{prefix}.error", tags={"type": "unqualified-query-error"}, sample_rate=1)
-            # Report to Sentry to investigate
+            # Not retryable, but DeleteAborted is silenced, so log it to reach Sentry.
+            logger.exception("deletions.nodestore.unqualified_query_error", extra=extra)
             raise DeleteAborted(f"{error.args[0]}. We won't retry this task.") from error
 
-    # TODO: Add specific error handling for retryable errors and raise RetryTask when appropriate
     except Exception:
+        # Re-raise so transient failures are retried from the same cursor and errors that
+        # outlast the retries reach Sentry, instead of ending the chain before end_delete_groups.
         metrics.incr(f"{prefix}.error", tags={"type": "unhandled-exception"}, sample_rate=1)
-        raise DeleteAborted("Failed to delete events from nodestore. We won't retry this task.")
+        raise
 
 
 def fetch_events_from_eventstore(
