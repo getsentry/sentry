@@ -588,10 +588,10 @@ export const LogRowContent = memo(function LogRowContentImpl({
   const viewInContextMenuItems: MenuItemProps[] = isFrozen
     ? []
     : [
+        ...(search.isEmpty() ? [] : [getViewInContextMenuItem('time', undefined)]),
         ...(traceContextQuery && search.formatString() !== traceContextQuery
           ? [getViewInContextMenuItem('trace', traceContextQuery)]
           : []),
-        ...(search.isEmpty() ? [] : [getViewInContextMenuItem('time', undefined)]),
       ];
 
   const buttonSize = 'xs';
