@@ -94,8 +94,8 @@ function SettingsNavigationTourController({
     }
   }, [canShow, isSeen, isIdle, startTour]);
 
-  // Something else took over the screen. Ending the tour doesn't mark it as
-  // seen, so it shows again on the next visit.
+  // Something else took over the screen. The tour was already marked as seen
+  // when it started, so it doesn't start again on its own.
   useEffect(() => {
     if (!canShow && isRunning) {
       endTour?.();
