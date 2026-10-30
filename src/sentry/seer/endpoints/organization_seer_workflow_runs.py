@@ -61,10 +61,6 @@ class SeerWorkflowErrorResponse(TypedDict):
     message: str
 
 
-class SeerWorkflowRunErrorItemResponse(SeerWorkflowErrorResponse):
-    executionId: str | None
-
-
 class SeerWorkflowExecutionResponseBase(TypedDict):
     id: str
     seerRunId: str | None
@@ -117,7 +113,7 @@ class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
 
 class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
     status: Literal[SeerWorkflowRunStatus.FAILED, SeerWorkflowRunStatus.REJECTED]
-    errors: list[SeerWorkflowRunErrorItemResponse]
+    error: SeerWorkflowErrorResponse | None
 
 
 SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorResponse
@@ -172,8 +168,16 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         ``status`` distinguishes failed/rejected records, which include an ``error``
         code and display-safe message, from other records, which omit ``error``.
-        Failed/rejected runs list ``errors`` instead: the run's own error, with a null
-        ``executionId``, then each failed execution's error with its ``executionId``. Missing error details use code ``unknown``. Historical rows without lifecycle
+        A run fails or is rejected in one of three ways:
+
+        - Rejected before starting (e.g. over quota): the run's ``error`` says why
+          and it has no executions.
+        - Failed before starting any execution: the run's ``error`` says why and it
+          has no executions.
+        - Failed because one or more executions failed: the run's ``error`` is null
+          and each failed execution carries its own ``error``.
+
+        Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
         Limited-access members must be able to access every project in the saved run
         snapshot; runs without a saved scope are hidden from them.
@@ -257,24 +261,19 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
         return {
             **result,
             "status": status,
-            "errors": serialize_run_errors(run),
+            "error": serialize_run_error(run),
         }
     return {**result, "status": status}
 
 
-def serialize_run_errors(run: SeerWorkflowRun) -> list[SeerWorkflowRunErrorItemResponse]:
-    errors: list[tuple[object, str | None]] = (
-        [(run.extras["error"], None)] if run.extras.get("error") is not None else []
-    )
-    errors.extend(
-        (execution.extras.get("error"), str(execution.id))
-        for execution in run.executions.all()
-        if execution.status == SeerWorkflowExecutionStatus.FAILED
-    )
-    return [
-        {**serialize_workflow_error(error), "executionId": execution_id}
-        for error, execution_id in errors or [(None, None)]
-    ]
+def serialize_run_error(run: SeerWorkflowRun) -> SeerWorkflowErrorResponse | None:
+    """Null when the run failed because of its executions, which carry the errors."""
+    error = run.extras.get("error")
+    if error is None and any(
+        execution.status == SeerWorkflowExecutionStatus.FAILED for execution in run.executions.all()
+    ):
+        return None
+    return serialize_workflow_error(error)
 
 
 def serialize_workflow_execution(

@@ -122,7 +122,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 "error": {**error, "debug": {"secret": private_value}},
             },
         )
-        execution = Factories.create_seer_workflow_run_execution(
+        Factories.create_seer_workflow_run_execution(
             run,
             status=SeerWorkflowExecutionStatus.FAILED,
             extras={
@@ -136,10 +136,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         (serialized_run,) = response.json()["runs"]
         (serialized_execution,) = serialized_run["executions"]
         assert serialized_run["status"] == serialized_execution["status"] == "failed"
-        assert serialized_run["errors"] == [
-            {**error, "executionId": None},
-            {**error, "executionId": str(execution.id)},
-        ]
+        assert serialized_run["error"] == error
         assert serialized_execution["error"] == error
         assert "extras" not in serialized_run
         assert "extras" not in serialized_execution
@@ -161,11 +158,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             response = self.get_success_response(self.organization.slug, config=self.config.id)
             (serialized_run,) = response.json()["runs"]
             unknown = {"code": "unknown", "message": "No error details are available."}
-            run_error = {**unknown, "executionId": None}
-            execution_error = {**unknown, "executionId": str(execution.id)}
-            assert serialized_run["errors"] == (
-                [execution_error] if error is None else [run_error, execution_error]
-            )
+            assert serialized_run["error"] == (None if error is None else unknown)
             assert serialized_run["executions"][0]["error"] == unknown
             assert "internal-error-canary" not in response.content.decode()
 
@@ -182,7 +175,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         (rejected,) = response.data["runs"]
         assert rejected["status"] == "rejected"
         assert rejected["dateCompleted"] == completed_at
-        assert rejected["errors"] == [{**error, "executionId": None}]
+        assert rejected["error"] == error
         assert rejected["executions"] == []
 
     def test_non_error_records_omit_stale_errors(self) -> None:
@@ -197,23 +190,20 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         runs = response.json()["runs"]
         assert [run["status"] for run in runs] == [None, "complete", "running", "queued"]
         for run_data in runs:
-            assert "errors" not in run_data
             assert "error" not in run_data
             assert "error" not in run_data["executions"][0]
             assert run_data["executions"][0]["status"] == run_data["status"]
 
-    def test_failed_run_collects_every_failed_execution_error(self) -> None:
+    def test_execution_failures_leave_the_run_error_null(self) -> None:
         run = self.create_run(status=SeerWorkflowRunStatus.FAILED)
         errors = [
             {"code": "dispatch_failed", "message": "Could not start the investigation."},
             {"code": "investigation_failed", "message": "The investigation did not finish."},
         ]
-        executions = [
+        for error in errors:
             Factories.create_seer_workflow_run_execution(
                 run, status=SeerWorkflowExecutionStatus.FAILED, extras={"error": error}
             )
-            for error in errors
-        ]
         Factories.create_seer_workflow_run_execution(
             run, status=SeerWorkflowExecutionStatus.COMPLETE, extras={"error": None}
         )
@@ -221,10 +211,12 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config=self.config.id)
 
         (serialized_run,) = response.data["runs"]
-        assert serialized_run["errors"] == [
-            {**error, "executionId": str(execution.id)}
-            for error, execution in zip(errors, executions)
-        ]
+        assert serialized_run["error"] is None
+        assert [
+            execution["error"]
+            for execution in serialized_run["executions"]
+            if execution["status"] == "failed"
+        ] == errors
 
     def test_failed_run_without_error_details_reports_unknown(self) -> None:
         self.create_run(status=SeerWorkflowRunStatus.FAILED)
@@ -232,13 +224,10 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         response = self.get_success_response(self.organization.slug, config=self.config.id)
 
         (serialized_run,) = response.data["runs"]
-        assert serialized_run["errors"] == [
-            {
-                "code": "unknown",
-                "message": "No error details are available.",
-                "executionId": None,
-            }
-        ]
+        assert serialized_run["error"] == {
+            "code": "unknown",
+            "message": "No error details are available.",
+        }
 
     def test_openapi_examples_match_response_contracts(self) -> None:
         success, failure, invalid_filter = WORKFLOW_RUNS_RESPONSE

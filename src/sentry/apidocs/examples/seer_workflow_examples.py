@@ -41,13 +41,7 @@ WORKFLOW_RUNS_RESPONSE = [
                     "dateAdded": "2025-01-02T10:00:00Z",
                     "dateUpdated": "2025-01-02T10:00:20Z",
                     "dateCompleted": "2025-01-02T10:00:20Z",
-                    "errors": [
-                        {
-                            "code": "dispatch_failed",
-                            "message": "Could not start execution.",
-                            "executionId": "202",
-                        }
-                    ],
+                    "error": None,
                     "executions": [
                         {
                             "id": "202",
