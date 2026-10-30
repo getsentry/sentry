@@ -151,7 +151,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             ),
         )
 
-    def get_project_summary(self, *, organization_id: int) -> RpcOrganizationProjectSummary:
+    def get_project_platform_summary(self, *, organization_id: int) -> RpcOrganizationProjectSummary:
         return RpcOrganizationProjectSummary(
             platforms=list(
                 Project.objects.filter(organization_id=organization_id)
