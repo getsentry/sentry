@@ -104,6 +104,34 @@ describe('openChatPrompt', () => {
     });
   });
 
+  it.each(['+', '='])('preserves browser zoom for Cmd+%s on AZERTY', key => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key,
+        code: 'Slash',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        screen.queryByRole('combobox', {name: 'Ask Seer a question'})
+      ).not.toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
   it('opens Seer when Cmd+Shift+7 reports the digit on QWERTZ', async () => {
     const platform = jest
       .spyOn(window.navigator, 'platform', 'get')
