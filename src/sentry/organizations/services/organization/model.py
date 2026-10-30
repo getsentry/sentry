@@ -415,7 +415,7 @@ class RpcOrganizationDeleteResponse(RpcModel):
 
 class RpcAuditLogEntryActor(RpcModel):
     actor_label: str | None
-    actor_id: int
+    actor_id: int | None
     actor_key: str | None
     ip_address: str | None
 
