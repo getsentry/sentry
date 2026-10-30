@@ -27,6 +27,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.staff import is_active_staff
 from sentry.constants import SentryAppStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
@@ -209,7 +210,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 name = "sentry_app.schema_validation_error"
                 log_info = {
                     "schema": orjson.dumps(request.data["schema"]).decode(),
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "sentry_app_id": sentry_app.id,
                     "sentry_app_name": sentry_app.name,
                     "organization_id": sentry_app.owner_id,
@@ -219,7 +220,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 analytics.record(
                     SentryAppSchemaValidationError(
                         schema=orjson.dumps(request.data["schema"]).decode(),
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         sentry_app_id=sentry_app.id,
                         sentry_app_name=sentry_app.name,
                         organization_id=sentry_app.owner_id,
@@ -276,7 +277,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
             if request.user.is_authenticated:
                 analytics.record(
                     SentryAppDeletedEvent(
-                        user_id=request.user.id,
+                        user_id=require_user(request).id,
                         organization_id=sentry_app.owner_id,
                         sentry_app=sentry_app.slug,
                     )

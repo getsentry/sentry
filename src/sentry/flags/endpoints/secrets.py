@@ -16,6 +16,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.principal import require_user
 from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.models.organization import Organization
 
@@ -105,7 +106,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 provider=validator.validated_data["provider"],
                 defaults={
-                    "created_by": request.user.id,
+                    "created_by": require_user(request).id,
                     "date_added": datetime.now(tz=timezone.utc),
                     "provider": validator.validated_data["provider"],
                     "secret": validator.validated_data["secret"],

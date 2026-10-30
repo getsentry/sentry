@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -120,7 +121,7 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
         if request.user.is_authenticated:
             analytics.record(
                 SentryAppUninstalledEvent(
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     organization_id=sentry_app_installation.organization_id,
                     sentry_app=sentry_app_installation.sentry_app.slug,
                 ),
