@@ -71,7 +71,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
       ? []
       : [
           {
-            match: 'mod+b',
+            hotkey: 'Mod+B',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
