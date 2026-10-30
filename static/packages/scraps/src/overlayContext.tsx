@@ -24,7 +24,6 @@ export interface OverlayContextValue {
     widthStorage?: DrawerWidthStorage;
   };
   headerHeight?: string;
-  isSmallScreen?: boolean;
 }
 
 const OverlayContext = createContext<OverlayContextValue>({});

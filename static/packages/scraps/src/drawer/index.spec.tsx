@@ -5,7 +5,6 @@ import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import {DrawerBody, DrawerHeader, DrawerPanel} from '@sentry/scraps/drawer';
-import {OverlayContextProvider} from '@sentry/scraps/overlayContext';
 import {lightTheme} from '@sentry/scraps/theme';
 
 const wrapper = ({children}: {children: React.ReactNode}) => (
@@ -13,6 +12,11 @@ const wrapper = ({children}: {children: React.ReactNode}) => (
 );
 
 describe('DrawerPanel', () => {
+  const originalMatchMedia = window.matchMedia;
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it('renders without app providers and connects its close button and ref', async () => {
     const onClose = jest.fn();
     const ref = createRef<HTMLDivElement>();
@@ -31,12 +35,20 @@ describe('DrawerPanel', () => {
   });
 
   it('uses full width on small screens', async () => {
+    window.matchMedia = jest.fn((query: string) => ({
+      matches: query === `(max-width: ${lightTheme.breakpoints.sm})`,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    }));
     render(
-      <OverlayContextProvider value={{isSmallScreen: true}}>
-        <DrawerPanel mode="blocking" ariaLabel="Details">
-          Content
-        </DrawerPanel>
-      </OverlayContextProvider>,
+      <DrawerPanel mode="blocking" ariaLabel="Details">
+        Content
+      </DrawerPanel>,
       {wrapper}
     );
     expect(await screen.findByText('Content')).toBeInTheDocument();

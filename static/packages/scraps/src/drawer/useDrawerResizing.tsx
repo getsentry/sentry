@@ -1,7 +1,8 @@
 import type * as React from 'react';
 import {useCallback, useLayoutEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 
-import {useOverlayContext} from '@sentry/scraps/overlayContext';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {useDrawerWidth} from './useDrawerWidth';
 
@@ -34,7 +35,9 @@ export function useDrawerResizing({
   drawerMaxWidth,
   enabled = true,
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
-  const {isSmallScreen = false} = useOverlayContext();
+  const theme = useTheme();
+  // The drawer is fixed to the viewport.
+  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const rafIdRef = useRef<number | null>(null);

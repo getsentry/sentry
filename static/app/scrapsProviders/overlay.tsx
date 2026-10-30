@@ -1,6 +1,5 @@
 import type {PropsWithChildren} from 'react';
 import {useMemo} from 'react';
-import {useTheme} from '@emotion/react';
 
 import {
   OverlayContextProvider,
@@ -11,7 +10,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
@@ -68,17 +66,12 @@ const drawerWidthStorage: DrawerWidthStorage = {
 };
 
 export function SentryOverlayProvider({children}: PropsWithChildren) {
-  const theme = useTheme();
   const location = useLocation();
   const {contentTop} = useTopOffset();
-  // These overlays are fixed to the viewport.
-  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
-  const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const value = useMemo(
     () => ({
       contentTop,
       headerHeight: `${PRIMARY_HEADER_HEIGHT}px`,
-      isSmallScreen,
       drawer: {
         location,
         boundaryComponent: DrawerErrorBoundary,
@@ -86,7 +79,7 @@ export function SentryOverlayProvider({children}: PropsWithChildren) {
         widthStorage: drawerWidthStorage,
       },
     }),
-    [contentTop, isSmallScreen, location]
+    [contentTop, location]
   );
 
   return <OverlayContextProvider value={value}>{children}</OverlayContextProvider>;

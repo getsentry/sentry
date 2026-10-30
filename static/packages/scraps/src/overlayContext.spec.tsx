@@ -11,9 +11,7 @@ it('shares layout defaults across drawers, headers, and slide-over panels', asyn
   const headerRef = createRef<HTMLHeadingElement>();
   render(
     <ThemeProvider theme={lightTheme}>
-      <OverlayContextProvider
-        value={{contentTop: '80px', headerHeight: '64px', isSmallScreen: true}}
-      >
+      <OverlayContextProvider value={{contentTop: '80px', headerHeight: '64px'}}>
         <DrawerHeader ref={headerRef} />
         <SlideOverPanel position="right" mode="passive" ariaLabel="Panel">
           Panel content
@@ -28,9 +26,6 @@ it('shares layout defaults across drawers, headers, and slide-over panels', asyn
   expect(await screen.findByText('Drawer content')).toBeInTheDocument();
   expect(headerRef.current).toHaveStyle({'--drawer-header-height': '64px'});
   expect(screen.getByRole('complementary', {name: 'Panel'})).toHaveStyle({top: '80px'});
-  expect(screen.getByRole('complementary', {name: 'Drawer'})).toHaveStyle({
-    '--drawer-width': '100%',
-  });
 });
 
 it('updates header and panel layout without replacing their DOM nodes', async () => {
