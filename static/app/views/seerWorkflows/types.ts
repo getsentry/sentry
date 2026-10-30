@@ -46,7 +46,14 @@ export type SeerAutomationRun = SeerAutomationRunBase &
          */
         status: 'queued' | 'running' | 'complete' | null;
       }
-    | {error: SeerWorkflowError; status: 'failed' | 'rejected'}
+    | {
+        /**
+         * Null when the run failed because its executions did; each failed
+         * execution carries its own error
+         */
+        error: SeerWorkflowError | null;
+        status: 'failed' | 'rejected';
+      }
   );
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];

@@ -66,7 +66,7 @@ export const PLACEHOLDER_RUNS: SeerAutomationRun[] = [
     configId: 'placeholder-agentic-triage',
     strategy: 'agentic_triage_v2',
     status: 'failed',
-    error: {code: 'seer_unavailable', message: 'Seer was unavailable. Try again later.'},
+    error: null,
     dateAdded: ago(60 * 5),
     dateUpdated: ago(60 * 5 - 2),
     dateCompleted: ago(60 * 5 - 2),
