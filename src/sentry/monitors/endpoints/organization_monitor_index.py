@@ -63,8 +63,6 @@ from sentry.utils.outcomes import Outcome
 
 def map_value_to_constant(constant, value):
     value = value.upper()
-    if value == "OK":
-        value = "ACTIVE"
     if not hasattr(constant, value):
         raise ValueError(value)
     return getattr(constant, value)
@@ -263,13 +261,15 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
                     queryset = queryset.filter(in_iexact("name", value))
                 elif key == "status":
                     try:
-                        queryset = queryset.filter(
-                            monitorenvironment__status__in=map_value_to_constant(
-                                MonitorStatus, value
-                            )
-                        )
+                        statuses = [
+                            map_value_to_constant(MonitorStatus, status) for status in value
+                        ]
                     except ValueError:
                         queryset = queryset.none()
+                    else:
+                        queryset = queryset.filter(
+                            Exists(monitor_environments_query.filter(status__in=statuses))
+                        )
                 else:
                     queryset = queryset.none()
 
