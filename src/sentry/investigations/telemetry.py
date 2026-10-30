@@ -5,7 +5,7 @@ import logging
 import sentry_sdk
 from django.utils import timezone
 
-from sentry.investigations.models import Investigation, InvestigationBlockExecution
+from sentry.notebooks.models import Notebook, NotebookBlockExecution
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -27,26 +27,26 @@ def _record_duration(name: str, value: float, attributes: dict[str, str]) -> Non
     )
 
 
-def _investigation_attributes(investigation: Investigation) -> dict[str, str]:
+def _investigation_attributes(investigation: Notebook) -> dict[str, str]:
     return {
         "source_type": str(investigation.source.get("type") or investigation.source_type),
-        "template": investigation.template_key or "manual",
+        "template": "manual",
     }
 
 
-def _execution_attributes(execution: InvestigationBlockExecution) -> dict[str, str]:
+def _execution_attributes(execution: NotebookBlockExecution) -> dict[str, str]:
     return {
-        **_investigation_attributes(execution.block.investigation),
+        **_investigation_attributes(execution.block.notebook),
         "block_kind": execution.block.kind,
         "executor": execution.executor,
     }
 
 
-def record_investigation_started(investigation: Investigation) -> None:
+def record_investigation_started(investigation: Notebook) -> None:
     _record_count("investigations.started", _investigation_attributes(investigation))
 
 
-def record_investigation_completed(investigation: Investigation) -> None:
+def record_investigation_completed(investigation: Notebook) -> None:
     attributes = _investigation_attributes(investigation)
     _record_count("investigations.completed", attributes)
     _record_duration(
@@ -56,18 +56,18 @@ def record_investigation_completed(investigation: Investigation) -> None:
     )
 
 
-def record_investigation_failed(investigation: Investigation, *, reason: str) -> None:
+def record_investigation_failed(investigation: Notebook, *, reason: str) -> None:
     _record_count(
         "investigations.failed",
         {**_investigation_attributes(investigation), "reason": reason},
     )
 
 
-def record_execution_started(execution: InvestigationBlockExecution) -> None:
+def record_execution_started(execution: NotebookBlockExecution) -> None:
     _record_count("investigations.execution.started", _execution_attributes(execution))
 
 
-def record_execution_completed(execution: InvestigationBlockExecution) -> None:
+def record_execution_completed(execution: NotebookBlockExecution) -> None:
     attributes = _execution_attributes(execution)
     _record_count("investigations.execution.completed", attributes)
     if execution.completed_at is not None:
@@ -79,7 +79,7 @@ def record_execution_completed(execution: InvestigationBlockExecution) -> None:
 
 
 def record_execution_failed(
-    execution: InvestigationBlockExecution, *, reason: str, seer_run_id: int | None
+    execution: NotebookBlockExecution, *, reason: str, seer_run_id: int | None
 ) -> None:
     attributes = _execution_attributes(execution)
     _record_count(
@@ -95,8 +95,8 @@ def record_execution_failed(
     logger.warning(
         "investigations.execution.failed",
         extra={
-            "organization_id": execution.block.investigation.organization_id,
-            "investigation_id": execution.block.investigation_id,
+            "organization_id": execution.block.notebook.organization_id,
+            "investigation_id": execution.block.notebook_id,
             "block_id": execution.block_id,
             "execution_id": execution.id,
             "seer_run_id": seer_run_id,
@@ -105,21 +105,21 @@ def record_execution_failed(
     )
 
 
-def record_execution_cancelled(execution: InvestigationBlockExecution, *, reason: str) -> None:
+def record_execution_cancelled(execution: NotebookBlockExecution, *, reason: str) -> None:
     _record_count(
         "investigations.execution.cancelled",
         {**_execution_attributes(execution), "reason": reason},
     )
 
 
-def record_title_generation_completed(investigation: Investigation) -> None:
+def record_title_generation_completed(investigation: Notebook) -> None:
     _record_count(
         "investigations.title_generation.completed", _investigation_attributes(investigation)
     )
 
 
 def record_title_generation_failed(
-    investigation: Investigation, *, reason: str, seer_run_id: int | None
+    investigation: Notebook, *, reason: str, seer_run_id: int | None
 ) -> None:
     _record_count(
         "investigations.title_generation.failed",

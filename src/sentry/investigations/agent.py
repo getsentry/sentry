@@ -15,16 +15,6 @@ from django.utils import timezone
 from urllib3.exceptions import HTTPError
 
 from sentry.investigations.contracts import validate_query_result, validate_text_result
-from sentry.investigations.models import (
-    TERMINAL_BLOCK_EXECUTION_STATUSES,
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionProject,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockKind,
-    InvestigationStatus,
-)
 from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.executions import (
     freeze_query_links,
@@ -45,6 +35,16 @@ from sentry.investigations.telemetry import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notebooks.models import (
+    TERMINAL_BLOCK_EXECUTION_STATUSES,
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionProject,
+    NotebookBlockExecutionStatus,
+    NotebookBlockKind,
+    NotebookStatus,
+)
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
 from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
@@ -71,7 +71,7 @@ PRIVATE_TRANSCRIPT_KEYS = {
 
 
 class TitleGenerationStatus(StrEnum):
-    """Values stored in `Investigation.title_generation_status`."""
+    """Values stored in `Notebook.title_generation_status`."""
 
     PENDING = "pending"
     RUNNING = "running"
@@ -93,10 +93,10 @@ SUMMARY_DESCRIPTION_MAX_CHARS = 2000
 TITLE_PREVIEW_PATTERN = re.compile(r'"title"\s*:\s*"((?:\\.|[^"\\])*)')
 
 ACTIVE_BLOCK_EXECUTION_STATUSES = (
-    InvestigationBlockExecutionStatus.PENDING,
-    InvestigationBlockExecutionStatus.RUNNING,
-    InvestigationBlockExecutionStatus.AWAITING_INPUT,
-    InvestigationBlockExecutionStatus.STOPPING,
+    NotebookBlockExecutionStatus.PENDING,
+    NotebookBlockExecutionStatus.RUNNING,
+    NotebookBlockExecutionStatus.AWAITING_INPUT,
+    NotebookBlockExecutionStatus.STOPPING,
 )
 
 
@@ -162,12 +162,10 @@ or save it.
 """
 
 
-def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
+def build_agent_prompt(execution: NotebookBlockExecution) -> str:
     snapshot = execution.input_snapshot
     instruction = (
-        QUERY_INSTRUCTIONS
-        if execution.block.kind == InvestigationBlockKind.QUERY
-        else TEXT_INSTRUCTIONS
+        QUERY_INSTRUCTIONS if execution.block.kind == NotebookBlockKind.QUERY else TEXT_INSTRUCTIONS
     )
     context = {
         "request": snapshot.get("prompt"),
@@ -186,18 +184,18 @@ def build_agent_prompt(execution: InvestigationBlockExecution) -> str:
 
 
 def start_execution_run(
-    execution: InvestigationBlockExecution,
+    execution: NotebookBlockExecution,
     organization: Organization,
     user: Any,
     client: SeerAgentClient | None = None,
     dispatch_claimed_at: datetime | None = None,
 ) -> None:
-    is_query = execution.block.kind == InvestigationBlockKind.QUERY
+    is_query = execution.block.kind == NotebookBlockKind.QUERY
     if client is None:
         client = SeerAgentClient(organization, user)
     client.on_completion_hook = InvestigationAgentCompletionHook
     client.category_key = SEER_CATEGORY_KEY
-    client.category_value = str(execution.block.investigation_id)
+    client.category_value = str(execution.block.notebook_id)
     client.is_interactive = is_query
     client.enable_code_mode_tools = "only" if is_query else "off"
     client.enable_coding = False
@@ -217,7 +215,7 @@ def start_execution_run(
         build_agent_prompt(execution),
         metadata={
             "referrer": "investigation-block",
-            "investigation_id": str(execution.block.investigation.id),
+            "investigation_id": str(execution.block.notebook.id),
             "block_id": str(execution.block.id),
             "execution_id": str(execution.id),
         },
@@ -606,7 +604,7 @@ def _result_from_final_message(state: SeerRunState, *, block_kind: str) -> dict[
         if block.message.role != "assistant" or not block.message.content:
             continue
         content = block.message.content
-        if block_kind == InvestigationBlockKind.TEXT:
+        if block_kind == NotebookBlockKind.TEXT:
             return {"schemaVersion": 1, "markdown": content}
         try:
             candidate = json.loads(content)
@@ -654,22 +652,22 @@ def _interrupt_execution_best_effort(organization: Organization, run_id: int) ->
 
 
 def cancel_investigation_executions_after_failure(
-    failed_execution: InvestigationBlockExecution,
+    failed_execution: NotebookBlockExecution,
 ) -> None:
-    database = router.db_for_write(InvestigationBlockExecution)
+    database = router.db_for_write(NotebookBlockExecution)
     with transaction.atomic(using=database):
         investigation = (
-            Investigation.objects.select_for_update()
+            Notebook.objects.select_for_update()
             .select_related("organization")
-            .get(id=failed_execution.block.investigation_id)
+            .get(id=failed_execution.block.notebook_id)
         )
         failed_execution = (
-            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            NotebookBlockExecution.objects.select_for_update(of=("self",))
             .select_related("block")
             .get(id=failed_execution.id)
         )
         if (
-            failed_execution.status != InvestigationBlockExecutionStatus.FAILED
+            failed_execution.status != NotebookBlockExecutionStatus.FAILED
             or failed_execution.block.current_execution_id != failed_execution.id
             or failed_execution.block.version != failed_execution.block_version
         ):
@@ -682,13 +680,13 @@ def cancel_investigation_executions_after_failure(
         )
 
         active_executions = list(
-            InvestigationBlockExecution.objects.select_for_update(of=("self",))
+            NotebookBlockExecution.objects.select_for_update(of=("self",))
             .filter(
-                block__investigation_id=investigation.id,
+                block__notebook_id=investigation.id,
                 status__in=ACTIVE_BLOCK_EXECUTION_STATUSES,
             )
             .exclude(id=failed_execution.id)
-            .select_related("block__investigation", "seer_run")
+            .select_related("block__notebook", "seer_run")
             .order_by("id")
         )
         completed_at = timezone.now()
@@ -697,10 +695,10 @@ def cancel_investigation_executions_after_failure(
             "message": "Cancelled because another cell in this investigation failed.",
         }
         for execution in active_executions:
-            execution.status = InvestigationBlockExecutionStatus.CANCELLED
+            execution.status = NotebookBlockExecutionStatus.CANCELLED
             execution.error = error
             execution.completed_at = completed_at
-        InvestigationBlockExecution.objects.bulk_update(
+        NotebookBlockExecution.objects.bulk_update(
             active_executions, ["status", "error", "completed_at"]
         )
 
@@ -726,15 +724,15 @@ def cancel_investigation_executions_after_failure(
 
 
 def _cancel_investigation_executions_after_commit(
-    failed_execution: InvestigationBlockExecution,
+    failed_execution: NotebookBlockExecution,
 ) -> None:
     transaction.on_commit(
         partial(cancel_investigation_executions_after_failure, failed_execution),
-        using=router.db_for_write(InvestigationBlockExecution),
+        using=router.db_for_write(NotebookBlockExecution),
     )
 
 
-def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRunState) -> None:
+def synchronize_execution(execution: NotebookBlockExecution, state: SeerRunState) -> None:
     # The branches below each guard their own writes against a terminal status, except the
     # off-policy one, which acts on the Seer state alone. Without this a late off-policy run
     # would overwrite a cancelled execution with a failure the user did not cause.
@@ -742,7 +740,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
         return
     blocks, transcript_truncated, off_policy = sanitize_state(
         state,
-        allow_query_tools=execution.block.kind == InvestigationBlockKind.QUERY,
+        allow_query_tools=execution.block.kind == NotebookBlockKind.QUERY,
         allowed_project_slugs=set(execution.input_snapshot.get("projectSlugs", [])),
     )
     pending_import_lint = off_policy and all(
@@ -764,14 +762,14 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             (str(block["policyError"]) for block in blocks if block.get("policyError")),
             "The agent attempted an unsupported operation.",
         )
-        database = router.db_for_write(InvestigationBlockExecution)
+        database = router.db_for_write(NotebookBlockExecution)
         with transaction.atomic(using=database):
             completed_at = timezone.now()
             updated = (
-                InvestigationBlockExecution.objects.filter(id=execution.id)
+                NotebookBlockExecution.objects.filter(id=execution.id)
                 .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
                 .update(
-                    status=InvestigationBlockExecutionStatus.FAILED,
+                    status=NotebookBlockExecutionStatus.FAILED,
                     transcript=blocks,
                     transcript_truncated=transcript_truncated,
                     error={
@@ -798,19 +796,19 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 transaction.on_commit(
                     partial(
                         _interrupt_execution_best_effort,
-                        execution.block.investigation.organization,
+                        execution.block.notebook.organization,
                         execution.seer_run.seer_run_state_id,
                     ),
                     using=database,
                 )
         return
     status = {
-        "processing": InvestigationBlockExecutionStatus.RUNNING,
-        "awaiting_user_input": InvestigationBlockExecutionStatus.AWAITING_INPUT,
+        "processing": NotebookBlockExecutionStatus.RUNNING,
+        "awaiting_user_input": NotebookBlockExecutionStatus.AWAITING_INPUT,
     }.get(state.status)
     if status:
         updated = (
-            InvestigationBlockExecution.objects.filter(id=execution.id)
+            NotebookBlockExecution.objects.filter(id=execution.id)
             .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
             .update(status=status, transcript=blocks, transcript_truncated=transcript_truncated)
         )
@@ -820,11 +818,11 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             execution.transcript_truncated = transcript_truncated
         return
 
-    database = router.db_for_write(InvestigationBlockExecution)
+    database = router.db_for_write(NotebookBlockExecution)
     with transaction.atomic(using=database):
         execution = (
-            InvestigationBlockExecution.objects.select_for_update()
-            .select_related("block__investigation")
+            NotebookBlockExecution.objects.select_for_update()
+            .select_related("block__notebook")
             .get(id=execution.id)
         )
         if execution.status in TERMINAL_BLOCK_EXECUTION_STATUSES:
@@ -837,7 +835,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 (str(block["policyError"]) for block in blocks if block.get("policyError")),
                 "The agent attempted an unsupported operation.",
             )
-            execution.status = InvestigationBlockExecutionStatus.FAILED
+            execution.status = NotebookBlockExecutionStatus.FAILED
             execution.error = {
                 "code": "unsupported_tool_use" if off_policy else "seer_execution_failed",
                 "message": policy_error if off_policy else "The agent run failed.",
@@ -857,7 +855,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
 
         raw_result = _result_from_final_message(state, block_kind=execution.block.kind)
         if raw_result is None:
-            execution.status = InvestigationBlockExecutionStatus.FAILED
+            execution.status = NotebookBlockExecutionStatus.FAILED
             final_content = next(
                 (
                     block.message.content
@@ -889,11 +887,11 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             _cancel_investigation_executions_after_commit(execution)
             return
         try:
-            if execution.block.kind == InvestigationBlockKind.QUERY:
+            if execution.block.kind == NotebookBlockKind.QUERY:
                 result = dict(raw_result)
                 result["chart"] = _normalize_chart(result.get("chart"))
                 links, projects = _successful_links_and_projects(
-                    state, execution.block.investigation.organization
+                    state, execution.block.notebook.organization
                 )
                 if links:
                     result["queryLinks"] = freeze_query_links(
@@ -919,7 +917,7 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 )
                 projects = list(
                     Project.objects.filter(
-                        organization=execution.block.investigation.organization,
+                        organization=execution.block.notebook.organization,
                         id__in=result_project_ids,
                     ).order_by("id")
                 )
@@ -927,13 +925,13 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
                 context_project_ids = execution.input_snapshot.get("contextDataProjectIds", [])
                 projects = list(
                     Project.objects.filter(
-                        organization=execution.block.investigation.organization,
+                        organization=execution.block.notebook.organization,
                         id__in=context_project_ids,
                     ).order_by("id")
                 )
                 result = validate_text_result(raw_result)
         except Exception as error:
-            execution.status = InvestigationBlockExecutionStatus.FAILED
+            execution.status = NotebookBlockExecutionStatus.FAILED
             execution.error = {"code": "invalid_result", "message": str(error)[:1000]}
             execution.save()
             transaction.on_commit(
@@ -949,24 +947,24 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             return
 
         execution.result = result
-        execution.status = InvestigationBlockExecutionStatus.COMPLETED
+        execution.status = NotebookBlockExecutionStatus.COMPLETED
         execution.error = None
         execution.save()
         transaction.on_commit(partial(record_execution_completed, execution), using=database)
-        InvestigationBlockExecutionProject.objects.bulk_create(
-            [InvestigationBlockExecutionProject(execution=execution, project=p) for p in projects],
+        NotebookBlockExecutionProject.objects.bulk_create(
+            [NotebookBlockExecutionProject(execution=execution, project=p) for p in projects],
             ignore_conflicts=True,
         )
         block = (
-            InvestigationBlock.objects.select_for_update()
-            .select_related("investigation")
+            NotebookBlock.objects.select_for_update()
+            .select_related("notebook")
             .get(id=execution.block_id)
         )
         if block.current_execution_id != execution.id or block.version != execution.block_version:
             return
-        if block.deleted_at is not None or block.investigation.status != InvestigationStatus.ACTIVE:
+        if block.deleted_at is not None or block.notebook.status != NotebookStatus.ACTIVE:
             return
-        if block.kind == InvestigationBlockKind.QUERY:
+        if block.kind == NotebookBlockKind.QUERY:
             block.result_execution = execution
             block.stale_at = None
             block.save(update_fields=["result_execution", "stale_at", "date_updated"])
@@ -979,21 +977,21 @@ def synchronize_execution(execution: InvestigationBlockExecution, state: SeerRun
             block.version += 1
             block.save()
         transaction.on_commit(
-            lambda: _maybe_start_title_generation(block.investigation, execution.triggered_by_id),
+            lambda: _maybe_start_title_generation(block.notebook, execution.triggered_by_id),
             using=database,
         )
         if execution.triggered_by_id is not None:
             transaction.on_commit(
                 partial(
                     schedule_eligible_auto_run_blocks,
-                    investigation_id=block.investigation_id,
+                    investigation_id=block.notebook_id,
                     user_id=execution.triggered_by_id,
                 ),
                 using=database,
             )
 
 
-def _maybe_start_title_generation(investigation: Investigation, user_id: int | None) -> None:
+def _maybe_start_title_generation(investigation: Notebook, user_id: int | None) -> None:
     if investigation.title_generation_status in NON_RETRYABLE_TITLE_STATUSES:
         return
     blocks = list(
@@ -1037,9 +1035,9 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         f"<block_context>\n{block_context}\n</block_context>"
     )
 
-    database = router.db_for_write(Investigation)
+    database = router.db_for_write(Notebook)
     with transaction.atomic(using=database):
-        locked = Investigation.objects.select_for_update().get(id=investigation.id)
+        locked = Notebook.objects.select_for_update().get(id=investigation.id)
         if locked.title_generation_status in NON_RETRYABLE_TITLE_STATUSES or (
             locked.summary is not None and locked.summary_description is not None
         ):
@@ -1051,7 +1049,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
     def link_title_run(run: Any) -> None:
         nonlocal title_seer_run_state_id
         title_seer_run_state_id = run.seer_run_state_id
-        Investigation.objects.filter(id=investigation.id).update(
+        Notebook.objects.filter(id=investigation.id).update(
             title_seer_run_id=run.id, title_generation_status=TitleGenerationStatus.RUNNING
         )
 
@@ -1066,7 +1064,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
             on_run_created=link_title_run,
         )
     except Exception:
-        Investigation.objects.filter(
+        Notebook.objects.filter(
             id=investigation.id, title_generation_status__in=IN_FLIGHT_TITLE_STATUSES
         ).update(title_generation_status=TitleGenerationStatus.FAILED)
         record_title_generation_failed(
@@ -1077,7 +1075,7 @@ def _maybe_start_title_generation(investigation: Investigation, user_id: int | N
         raise
 
 
-def synchronize_title(investigation: Investigation, state: SeerRunState) -> None:
+def synchronize_title(investigation: Notebook, state: SeerRunState) -> None:
     if investigation.title_generation_status not in IN_FLIGHT_TITLE_STATUSES:
         return
     if any(
@@ -1126,21 +1124,19 @@ def synchronize_title(investigation: Investigation, state: SeerRunState) -> None
         )
 
 
-def _block_has_current_result(block: InvestigationBlock) -> bool:
+def _block_has_current_result(block: NotebookBlock) -> bool:
     execution = (
-        block.result_execution
-        if block.kind == InvestigationBlockKind.QUERY
-        else block.content_execution
+        block.result_execution if block.kind == NotebookBlockKind.QUERY else block.content_execution
     )
     return (
         execution is not None
-        and execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        and execution.status == NotebookBlockExecutionStatus.COMPLETED
         and block.stale_at is None
     )
 
 
-def _completion_block_context(block: InvestigationBlock) -> str:
-    if block.kind == InvestigationBlockKind.QUERY and block.result_execution is not None:
+def _completion_block_context(block: NotebookBlock) -> str:
+    if block.kind == NotebookBlockKind.QUERY and block.result_execution is not None:
         output = json.dumps(block.result_execution.result)
     else:
         output = block.content
@@ -1225,14 +1221,14 @@ class InvestigationAgentCompletionHook(AgentOnCompletionHook):
     @classmethod
     def execute(cls, organization: Organization, run_id: int) -> None:
         state = SeerAgentClient(organization, None).get_run(run_id)
-        execution = InvestigationBlockExecution.objects.filter(
+        execution = NotebookBlockExecution.objects.filter(
             seer_run__seer_run_state_id=run_id,
-            block__investigation__organization=organization,
+            block__notebook__organization=organization,
         ).first()
         if execution is not None:
             synchronize_execution(execution, state)
             return
-        investigation = Investigation.objects.filter(
+        investigation = Notebook.objects.filter(
             organization=organization, title_seer_run__seer_run_state_id=run_id
         ).first()
         if investigation is not None:

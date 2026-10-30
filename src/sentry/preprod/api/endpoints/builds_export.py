@@ -25,18 +25,9 @@ logger = logging.getLogger(__name__)
 
 CSV_EXPORT_ROW_LIMIT = 10_000
 
-_FORMULA_PREFIXES = ("=", "+", "-", "@")
 
-
-def _escape_csv_value(value: object) -> str:
-    """Stringify a value, neutralizing spreadsheet formula injection."""
-    if value is None:
-        return ""
-    text = str(value)
-    stripped = text.lstrip()
-    if stripped and stripped[0] in _FORMULA_PREFIXES:
-        return "'" + text
-    return text
+def _to_csv_str(value: object) -> str:
+    return "" if value is None else str(value)
 
 
 class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
@@ -66,16 +57,16 @@ class BuildsCsvResponder(CsvResponder[PreprodArtifact]):
             raw_install_groups if isinstance(raw_install_groups, list) else []
         )
         return (
-            _escape_csv_value(mobile_app_info.app_name if mobile_app_info else None),
-            _escape_csv_value(item.project.slug),
-            _escape_csv_value(item.id),
-            _escape_csv_value(item.app_id),
-            _escape_csv_value(build_configuration.name if build_configuration else None),
-            _escape_csv_value(mobile_app_info.build_version if mobile_app_info else None),
-            _escape_csv_value(platform.value if platform else None),
+            _to_csv_str(mobile_app_info.app_name if mobile_app_info else None),
+            _to_csv_str(item.project.slug),
+            _to_csv_str(item.id),
+            _to_csv_str(item.app_id),
+            _to_csv_str(build_configuration.name if build_configuration else None),
+            _to_csv_str(mobile_app_info.build_version if mobile_app_info else None),
+            _to_csv_str(platform.value if platform else None),
             install_groups,
-            _escape_csv_value(item.date_added.isoformat() if item.date_added else None),
-            _escape_csv_value(download_count),
+            _to_csv_str(item.date_added.isoformat() if item.date_added else None),
+            _to_csv_str(download_count),
         )
 
 

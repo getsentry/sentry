@@ -33,7 +33,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
         from sentry.discover.models import DiscoverSavedQuery, TeamKeyTransaction
         from sentry.incidents.models.alert_rule import AlertRule
         from sentry.integrations.models.external_issue import ExternalIssue
-        from sentry.investigations.models import Investigation
         from sentry.models.artifactbundle import ArtifactBundle
         from sentry.models.commitauthor import CommitAuthor
         from sentry.models.dashboard import Dashboard
@@ -56,7 +55,6 @@ class OrganizationDeletionTask(ModelDeletionTask[Organization]):
             CommitAuthor,
             AlertRule,
             Release,
-            Investigation,
             Notebook,
             Project,
             Workflow,

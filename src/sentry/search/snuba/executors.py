@@ -1136,10 +1136,11 @@ def resolve_progress_signal(
     """Progress-cycle rank per group (identified=1 .. fix_applied=5), read from the
     materialized GroupDerivedData.progress column. Every group gets a rank."""
     states = _get_group_progress_states_from_derived_data(group_ids)
-    return {
-        group_id: PROGRESS_STATE_SORT_RANK[IssueProgressState(state)]
-        for group_id, state in states.items()
-    }
+    ranks = {state.value: rank for state, rank in PROGRESS_STATE_SORT_RANK.items()}
+    # Match the native SQL's ELSE rank. This is only a sort fallback; an unknown
+    # value must not become a known progress state in responses or filters.
+    fallback = PROGRESS_STATE_SORT_RANK[IssueProgressState.IDENTIFIED]
+    return {group_id: ranks.get(state, fallback) for group_id, state in states.items()}
 
 
 def _resolve_last_progressed_at(

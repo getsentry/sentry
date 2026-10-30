@@ -148,6 +148,55 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self.client.get(url + "?download=1")
         assert response.status_code == 403, response.content
 
+    def test_file_download_as_sentry_app(self) -> None:
+        project = self.create_project(name="foo")
+        release = self.create_release(project)
+        f = self.create_file(name="application.js", type="release.file")
+        f.putfile(io.BytesIO(b"File contents here"))
+        releasefile = self.create_release_file(
+            release.id, file=f, name="http://example.com/application.js"
+        )
+        url = reverse(
+            "sentry-api-0-project-release-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "version": release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        url = f"{url}?download=1"
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The default debug files role requires write access
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
+        # The member role only requires read access
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 200, response.content
+        assert b"File contents here" == close_streaming_response(response)
+
     def _get(self, file_id, postfix=""):
         url = reverse(
             "sentry-api-0-project-release-file-details",

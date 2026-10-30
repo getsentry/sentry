@@ -6,6 +6,7 @@ from collections.abc import Mapping, Sequence
 import requests
 from django.http import HttpRequest
 from jwt import (
+    DecodeError,
     ExpiredSignatureError,
     InvalidAlgorithmError,
     InvalidSignatureError,
@@ -80,8 +81,11 @@ def get_integration_from_jwt(
         raise AtlassianConnectValidationError("No token parameter")
     # Decode the JWT token, without verification. This gives
     # you a header JSON object, a claims JSON object, and a signature.
-    claims = jwt.peek_claims(token)
-    headers = jwt.peek_header(token)
+    try:
+        claims = jwt.peek_claims(token)
+        headers = jwt.peek_header(token)
+    except DecodeError as e:
+        raise AtlassianConnectValidationError("Malformed token") from e
 
     # Extract the issuer ('iss') claim from the decoded, unverified
     # claims object. This is the clientKey for the tenant - an identifier

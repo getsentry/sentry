@@ -313,17 +313,11 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
             "getsentry.billing.reserved_budgets.reserved_budget_subscription_lock.<locals>.get_decorator.<locals>.lock_wrapper",
             "getsentry.billing.reserved_budgets.recompute_all_reserved_budget_spends",
         ),
-        # INFRENG-812: subscription_lock during org provisioning (start_trial, and the legacy
-        # on-demand max spend upgrade from switch_performance_plan)
+        # INFRENG-812: subscription_lock in start_trial during org provisioning
         (
             "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
             "getsentry.billing.trial.start_trial",
             "getsentry.billing.provision_new_org_for_billing._finalize_channel_subscription",
-        ),
-        (
-            "getsentry.models.subscription.subscription_lock.<locals>.wrapper",
-            "getsentry.billing.ondemand_budgets.legacy_upgrade_ondemand_max_spend",
-            "getsentry.billing.switch_plan.switch_performance_plan",
         ),
         # INFRENG-813: platform trial locks in TrialService._create_product_trial and
         # _create_subscription_trial

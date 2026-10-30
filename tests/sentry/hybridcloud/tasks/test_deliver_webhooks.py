@@ -1011,6 +1011,20 @@ class DrainMailboxTest(MetricCallsMixin, TestCase):
 
     @responses.activate
     @override_cells(cell_config)
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_drain_records_cell_5xx_failure(self, mock_metrics: MagicMock) -> None:
+        responses.add(responses.POST, "http://us.testserver/extensions/github/webhook/", status=500)
+        records = create_payloads(1, "github:123", provider="github")
+        drain_mailbox(
+            records[0].id, claimed_count=1, valid_until=fresh_deadline(), mailbox="github:123"
+        )
+
+        assert self.tags_for(mock_metrics, "hybridcloud.deliver_webhooks.failure") == [
+            {"reason": "cell_5xx", "destination_region": "us", "provider": "github"}
+        ]
+
+    @responses.activate
+    @override_cells(cell_config)
     def test_drain_success_partial(self) -> None:
         url = "http://us.testserver/extensions/github/webhook/"
         responses.add(responses.POST, url, status=200, body="")

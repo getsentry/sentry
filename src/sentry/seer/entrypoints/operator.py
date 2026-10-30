@@ -6,7 +6,7 @@ from taskbroker_client.retry import Retry
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
 from sentry.investigations.access import has_investigations_access
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
 from sentry.investigations.telemetry import record_investigation_started
@@ -16,6 +16,7 @@ from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import CodingAgentState, SeerRunState
@@ -647,7 +648,7 @@ class SeerInvestigationOperator[CachePayloadT]:
         organization: Organization,
         user_id: int,
         resolved_source: BreachedMetricSource,
-    ) -> tuple[Investigation, bool] | None:
+    ) -> tuple[Notebook, bool] | None:
         """
         Gets or creates the investigation for a breached metric and returns it with a created flag.
         Only a new investigation runs the success callback and gets a cache entry.
