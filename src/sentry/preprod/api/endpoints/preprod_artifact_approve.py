@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.auth.principal import require_user
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
@@ -77,7 +78,7 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         already_approved = PreprodComparisonApproval.objects.filter(
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
-            approved_by_id=request.user.id,
+            approved_by_id=require_user(request).id,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 

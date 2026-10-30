@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
+from sentry.auth.principal import acting_user_id
 from sentry.models.files.file import File
 from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisCompareDownloadEvent
@@ -49,7 +50,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
             PreprodArtifactApiSizeAnalysisCompareDownloadEvent(
                 organization_id=project.organization_id,
                 project_id=project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 head_size_metric_id=str(head_size_metric_id),
                 base_size_metric_id=str(base_size_metric_id),
             )
