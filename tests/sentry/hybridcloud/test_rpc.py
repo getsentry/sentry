@@ -483,6 +483,26 @@ class RpcCircuitBreakerTest(TestCase):
             assert self._call(self.healthy_cell) == serial
 
     @responses.activate
+    @mock.patch("sentry.hybridcloud.rpc.circuit_breaker.traces.get_current_span")
+    def test_rejection_is_tagged_on_span(self, mock_get_span: mock.MagicMock) -> None:
+        with (
+            override_cells([self.failing_cell]),
+            override_options(
+                {
+                    "hybridcloud.rpc.circuit-breaker.force-open-destinations": [
+                        self.failing_cell.name
+                    ]
+                }
+            ),
+        ):
+            with pytest.raises(RpcCircuitBreakerOpenException):
+                self._call(self.failing_cell)
+
+        span = mock_get_span.return_value
+        span.set_attribute.assert_any_call("circuit_breaker.rejected", "forced")
+        span.set_attribute.assert_any_call("circuit_breaker.destination", self.failing_cell.name)
+
+    @responses.activate
     @override_options(
         {
             "hybridcloud.rpc.circuit-breaker.enabled": True,

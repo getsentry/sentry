@@ -17,8 +17,6 @@ from sentry.investigations.agent import (
     start_execution_run,
 )
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecution,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
@@ -60,6 +58,7 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookBlockExecution
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
@@ -87,7 +86,7 @@ def _is_last_dispatch_attempt() -> bool:
 
 def _lock_orchestration_run(run_id: int) -> InvestigationOrchestrationRun | None:
     investigation = (
-        Investigation.objects.select_for_update(of=("self",))
+        Notebook.objects.select_for_update(of=("self",))
         .filter(orchestration_run__id=run_id)
         .first()
     )
@@ -547,7 +546,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
 )
 def dispatch_investigation_execution(execution_id: int) -> None:
     execution = (
-        InvestigationBlockExecution.objects.select_related("block__investigation__organization")
+        NotebookBlockExecution.objects.select_related("block__notebook__organization")
         .filter(id=execution_id)
         .first()
     )
@@ -564,7 +563,7 @@ def dispatch_investigation_execution(execution_id: int) -> None:
     try:
         start_execution_run(
             execution,
-            execution.block.investigation.organization,
+            execution.block.notebook.organization,
             user,
             dispatch_claimed_at=dispatch_claimed_at,
         )

@@ -1889,8 +1889,6 @@ describe('ArtifactCard', () => {
         {organization: prIterationOrganization}
       );
 
-      // While processing, the row shows a spinner (there is also the card body
-      // "Iterating on PR…" loader, hence getAllByTestId) and no processed check.
       expect(screen.getByText('fix the CI failure')).toBeInTheDocument();
       expect(screen.getAllByTestId('loading-indicator').length).toBeGreaterThan(0);
       expect(screen.queryByTestId('feedback-processed')).not.toBeInTheDocument();

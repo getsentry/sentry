@@ -1,4 +1,9 @@
-from sentry.conf.server import SENTRY_READONLY_SCOPES, SENTRY_SCOPE_HIERARCHY_MAPPING, SENTRY_SCOPES
+from sentry.conf.server import (
+    GRANULAR_SCOPES,
+    SENTRY_READONLY_SCOPES,
+    SENTRY_SCOPE_HIERARCHY_MAPPING,
+    SENTRY_SCOPES,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -15,6 +20,11 @@ class ScopesTest(TestCase):
 
             # check that scope is in its own mapping
             assert scope in SENTRY_SCOPE_HIERARCHY_MAPPING[scope]
+
+            # granular scopes are explicit and imply nothing else
+            if scope in GRANULAR_SCOPES:
+                assert SENTRY_SCOPE_HIERARCHY_MAPPING[scope] == {scope}
+                continue
 
             # check that write grants read
             if access_level == "write":

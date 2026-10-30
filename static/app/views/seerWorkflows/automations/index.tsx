@@ -55,10 +55,6 @@ type AdditionalConfig = {
    */
   costPerRun?: number;
   /**
-   * When the automation last ran, in Unix seconds (UTC)
-   */
-  lastRun?: number;
-  /**
    * Estimated tokens used per month
    */
   tokensPerMonth?: number;
@@ -97,15 +93,17 @@ function makePlaceholderConfig(
  */
 export const PLACEHOLDER_CONFIGS: AutomationConfig[] = [
   makePlaceholderConfig('placeholder-agentic-triage', {
-    strategy: 'agentic_triage',
-    lastRun: Math.floor(Date.now() / 1000) - 4 * 60 * 60,
+    strategy: 'agentic_triage_v2',
+    dateLastRun: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
+    lastRunStatus: 'complete',
     schedule: 'daily',
     tokensPerMonth: 85_400_000,
     costPerRun: 2.5,
   }),
   makePlaceholderConfig('placeholder-breached-metrics', {
     strategy: 'breached_metrics',
-    lastRun: Math.floor(Date.now() / 1000) - 2 * 24 * 60 * 60,
+    dateLastRun: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    lastRunStatus: 'complete',
     trigger: 'Triggered by metric exceptions',
     tokensPerMonth: 341_000,
     costPerRun: 0.052,

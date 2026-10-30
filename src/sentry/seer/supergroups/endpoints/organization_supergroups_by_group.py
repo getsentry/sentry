@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Container
 from typing import Any
 
 from rest_framework import status as status_codes
@@ -15,7 +16,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.helpers.group_index import get_group_list
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
-from sentry.models.group import STATUS_QUERY_CHOICES
+from sentry.models.group import STATUS_QUERY_CHOICES, Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
 from sentry.models.team import Team
@@ -88,29 +89,50 @@ class OrganizationSupergroupsByGroupEndpoint(OrganizationEndpoint):
         except SeerApiError as exc:
             return Response({"detail": "Failed to fetch supergroups"}, status=exc.status)
 
-        # Seer returns every group_id in each supergroup regardless of request. We apply any
-        # filters from the request after we get the data from Seer.
-        all_response_group_ids = {gid for sg in data["data"] for gid in sg["group_ids"]}
-        if len(all_response_group_ids) > _MAX_GROUPS_FOR_FETCH:
-            return Response({"data": data["data"], "meta": {"estimated": True}})
+        # Seer returns every group_id in each supergroup regardless of request, including
+        # groups in projects the caller can't access. One lookup gives us both the access
+        # check and the statuses for the status filter.
+        project_ids = {p.id for p in projects}
+        status_by_group_id = dict(
+            Group.objects.filter(
+                id__in={gid for sg in data["data"] for gid in sg["group_ids"]},
+                project_id__in=project_ids,
+            ).values_list("id", "status")
+        )
+        supergroups = _filter_supergroups(data["data"], status_by_group_id.keys(), project_ids)
+        if len(status_by_group_id) > _MAX_GROUPS_FOR_FETCH:
+            return Response({"data": supergroups, "meta": {"estimated": True}})
 
         if status_param:
-            matching_ids = {
-                g.id
-                for g in get_group_list(organization.id, projects, list(all_response_group_ids))
-                if g.status == STATUS_QUERY_CHOICES[status_param]
-            }
-
-            for sg in data["data"]:
-                sg["group_ids"] = [gid for gid in sg["group_ids"] if gid in matching_ids]
-            data["data"] = [sg for sg in data["data"] if sg["group_ids"]]
+            wanted_status = STATUS_QUERY_CHOICES[status_param]
+            matching_ids = {gid for gid, s in status_by_group_id.items() if s == wanted_status}
+            supergroups = _filter_supergroups(supergroups, matching_ids, project_ids)
 
         return Response(
             {
-                "data": _add_assignees(organization, data["data"]),
+                "data": _add_assignees(organization, supergroups),
                 "meta": {"estimated": False},
             }
         )
+
+
+def _filter_supergroups(
+    supergroups: list[SupergroupDetailData],
+    keep_group_ids: Container[int],
+    project_ids: Container[int],
+) -> list[SupergroupDetailData]:
+    result: list[SupergroupDetailData] = []
+    for sg in supergroups:
+        group_ids = [gid for gid in sg["group_ids"] if gid in keep_group_ids]
+        if group_ids:
+            result.append(
+                {
+                    **sg,
+                    "group_ids": group_ids,
+                    "project_ids": [pid for pid in sg.get("project_ids", []) if pid in project_ids],
+                }
+            )
+    return result
 
 
 def _add_assignees(

@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
@@ -160,6 +161,47 @@ describe('Project Ownership', () => {
           })
         );
       });
+    });
+
+    it('keeps auto-assignment off after saving', async () => {
+      const savedOwnership = {
+        fallthrough: false,
+        autoAssignment: 'Turn off Auto-Assignment',
+        codeownersAutoSync: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        method: 'PUT',
+        body: savedOwnership,
+      });
+
+      render(<ProjectOwnership />, {organization, outletContext: {project}});
+
+      const select = await screen.findByRole('textbox', {
+        name: 'Prioritize Auto Assignment',
+      });
+      const refresh = Promise.withResolvers<void>();
+      const refetchOwnership = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/ownership/`,
+        method: 'GET',
+        body: savedOwnership,
+        asyncDelay: refresh.promise,
+      });
+      await userEvent.click(select);
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Turn off auto-assignment'})
+      );
+
+      await waitFor(() => expect(refetchOwnership).toHaveBeenCalled());
+      expect(select).toBeDisabled();
+
+      await act(() => {
+        refresh.resolve();
+        return refresh.promise;
+      });
+
+      await waitFor(() => expect(select).toBeEnabled());
+      expect(screen.getByText('Turn off auto-assignment')).toBeInTheDocument();
     });
 
     it('disables autoAssignment select when user lacks write access', async () => {

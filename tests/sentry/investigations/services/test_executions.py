@@ -10,14 +10,6 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
-    InvestigationBlockKind,
-    InvestigationSourceType,
-)
 from sentry.investigations.services.executions import (
     build_block_execution_snapshot,
     create_block_execution,
@@ -28,6 +20,14 @@ from sentry.investigations.services.executions import (
 from sentry.investigations.services.investigations import (
     InvestigationValidationError,
 )
+from sentry.notebooks.models import (
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
+    NotebookBlockKind,
+    NotebookSourceType,
+)
 from sentry.testutils.cases import TestCase
 
 
@@ -35,23 +35,21 @@ class InvestigationExecutionServiceTest(TestCase):
     def setUp(self) -> None:
         self.organization = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.organization, slug="alpha")
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Investigation",
         )
 
-    def create_block(self, **kwargs: Any) -> InvestigationBlock:
+    def create_block(self, **kwargs: Any) -> NotebookBlock:
         kwargs.setdefault("position", 0)
-        kwargs.setdefault("kind", InvestigationBlockKind.QUERY)
+        kwargs.setdefault("kind", NotebookBlockKind.QUERY)
         kwargs.setdefault("prompt", "What happened?")
-        return self.create_investigation_block(investigation=self.investigation, **kwargs)
+        return self.create_notebook_block(notebook=self.investigation, **kwargs)
 
-    def create_execution(
-        self, block: InvestigationBlock, **kwargs: Any
-    ) -> InvestigationBlockExecution:
-        kwargs.setdefault("executor", InvestigationBlockExecutor.CODE_MODE)
-        kwargs.setdefault("status", InvestigationBlockExecutionStatus.COMPLETED)
+    def create_execution(self, block: NotebookBlock, **kwargs: Any) -> NotebookBlockExecution:
+        kwargs.setdefault("executor", NotebookBlockExecutor.CODE_MODE)
+        kwargs.setdefault("status", NotebookBlockExecutionStatus.COMPLETED)
         kwargs.setdefault("block_version", block.version)
         kwargs.setdefault("input_fingerprint", "f" * 64)
         kwargs.setdefault(
@@ -63,16 +61,16 @@ class InvestigationExecutionServiceTest(TestCase):
                 "queryLinks": [],
             },
         )
-        return self.create_investigation_block_execution(block=block, **kwargs)
+        return self.create_notebook_block_execution(block=block, **kwargs)
 
     def run_block(
         self,
-        block: InvestigationBlock,
+        block: NotebookBlock,
         *,
         project_ids: list[int] | None = None,
         accessible_project_ids: set[int] | None = None,
         **kwargs: Any,
-    ) -> tuple[InvestigationBlockExecution, bool]:
+    ) -> tuple[NotebookBlockExecution, bool]:
         return create_block_execution(
             block=block,
             expected_investigation_version=self.investigation.version,
@@ -88,7 +86,7 @@ class InvestigationExecutionServiceTest(TestCase):
     def test_text_context_is_ordered_by_position_then_id(self) -> None:
         target = self.create_block(
             position=2,
-            kind=InvestigationBlockKind.TEXT,
+            kind=NotebookBlockKind.TEXT,
             prompt="Summarize this notebook",
             config={"datasetHint": "issues"},
         )
@@ -107,7 +105,7 @@ class InvestigationExecutionServiceTest(TestCase):
 
     def test_source_snapshot_is_captured_separately_from_mutable_filters(self) -> None:
         source = {
-            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "type": NotebookSourceType.METRIC_OPEN_PERIOD,
             "ref": {"groupId": "1", "openPeriodId": "2"},
             "snapshot": {
                 "monitor": {"name": "Checkout errors"},
@@ -116,11 +114,10 @@ class InvestigationExecutionServiceTest(TestCase):
         }
         self.investigation.update(
             source=source,
-            source_type=InvestigationSourceType.BREACHED_METRIC,
-            source_ref=source["ref"],
-            source_key="legacy-key",
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key="metric_open_period:1:2",
             source_revision=1,
-            filters={"environment": ["production"], "breachedMetric": source["snapshot"]},
+            filters={"environment": ["production"]},
         )
         block = self.create_block()
 
@@ -453,7 +450,7 @@ class InvestigationExecutionServiceTest(TestCase):
             replacement, replacement_created = self.run_block(block)
 
         failed_execution.refresh_from_db()
-        assert failed_execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert failed_execution.status == NotebookBlockExecutionStatus.FAILED
         assert replacement_created
         assert replacement.id != failed_execution.id
 
@@ -464,7 +461,7 @@ class InvestigationExecutionServiceTest(TestCase):
 
         assert mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.status == NotebookBlockExecutionStatus.FAILED
         assert execution.error == {
             "code": "dispatch_failed",
             "message": "The execution could not be started.",
@@ -472,7 +469,7 @@ class InvestigationExecutionServiceTest(TestCase):
 
         assert not mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.FAILED
+        assert execution.status == NotebookBlockExecutionStatus.FAILED
         assert execution.seer_run_id is None
 
     def test_dispatch_failure_does_not_overwrite_dispatched_or_terminal_execution(self) -> None:
@@ -482,15 +479,15 @@ class InvestigationExecutionServiceTest(TestCase):
         assert mark_block_execution_dispatched(execution, seer_run_id=seer_run.id)
         assert not mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert execution.status == NotebookBlockExecutionStatus.RUNNING
         assert execution.seer_run_id == seer_run.id
 
-        execution.status = InvestigationBlockExecutionStatus.COMPLETED
+        execution.status = NotebookBlockExecutionStatus.COMPLETED
         execution.error = None
         execution.save(update_fields=["status", "error"])
         assert not mark_block_execution_dispatch_failed(execution)
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
         assert execution.error is None
 
     def test_stale_dispatch_claim_fences_the_previous_worker(self) -> None:
@@ -523,33 +520,31 @@ class InvestigationExecutionServiceTest(TestCase):
         assert many_query_count == one_query_count
 
     def _snapshot_query_count(self, context_block_count: int) -> int:
-        investigation = self.create_investigation(
+        investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title=f"Notebook {context_block_count}",
         )
-        target = self.create_investigation_block(
-            investigation=investigation,
+        target = self.create_notebook_block(
+            notebook=investigation,
             position=context_block_count,
-            kind=InvestigationBlockKind.TEXT,
+            kind=NotebookBlockKind.TEXT,
             prompt="Summarize",
         )
         for position in range(context_block_count):
-            context_block = self.create_investigation_block(
-                investigation=investigation,
+            context_block = self.create_notebook_block(
+                notebook=investigation,
                 position=position,
-                kind=InvestigationBlockKind.TEXT,
+                kind=NotebookBlockKind.TEXT,
                 content=f"Context {position}",
             )
             execution = self.create_execution(context_block)
-            self.create_investigation_block_execution_project(
-                execution=execution, project=self.project
-            )
+            self.create_notebook_block_execution_project(execution=execution, project=self.project)
             context_block.current_execution = execution
             context_block.content_execution = execution
             context_block.save(update_fields=["current_execution", "content_execution"])
 
-        target = type(target).objects.select_related("investigation").get(id=target.id)
+        target = type(target).objects.select_related("notebook").get(id=target.id)
         with CaptureQueriesContext(connection) as queries:
             build_block_execution_snapshot(
                 block=target,
