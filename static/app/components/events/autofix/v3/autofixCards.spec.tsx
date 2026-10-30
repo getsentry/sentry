@@ -2214,6 +2214,46 @@ describe('ArtifactCard', () => {
       );
     });
 
+    it('keeps the PR link next to the retry when an update fails', async () => {
+      const createPR = jest.fn();
+      render(
+        <PullRequestsCard
+          autofix={{...mockAutofixWithRunState, createPR}}
+          section={makeSection('pull_request', 'completed', [
+            [
+              makePR({
+                pr_creation_status: 'error',
+                pr_creation_error: "We couldn't finish pushing your changes.",
+              }),
+            ],
+          ])}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'View org/repo#42'})).toHaveAttribute(
+        'href',
+        'https://github.com/org/repo/pull/42'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Retry PR in org/repo'}));
+      expect(createPR).toHaveBeenCalledWith(123, 'org/repo');
+    });
+
+    it('offers only a retry when the first create fails', () => {
+      render(
+        <PullRequestsCard
+          autofix={mockAutofixWithRunState}
+          section={makeSection('pull_request', 'completed', [
+            [makePR({pr_creation_status: 'error', pr_number: null, pr_url: null})],
+          ])}
+        />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Retry PR in org/repo'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /View/})).not.toBeInTheDocument();
+    });
+
     it('copies markdown when copy button is clicked', async () => {
       render(
         <PullRequestsCard

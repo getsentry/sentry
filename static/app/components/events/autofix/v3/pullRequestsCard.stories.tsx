@@ -62,6 +62,14 @@ function failedPR(repoName = REPO): RepoPRState {
   };
 }
 
+function failedUpdatePR(prNumber: number, repoName = REPO): RepoPRState {
+  return {
+    ...updatingPR(prNumber, repoName),
+    pr_creation_status: 'error',
+    pr_creation_error: "We couldn't finish pushing your changes. Please try again.",
+  };
+}
+
 function makeSection(pullRequests: RepoPRState[]): AutofixSection {
   return {
     step: 'pull_request',
@@ -136,6 +144,13 @@ export default Storybook.story('PullRequestsCard', story => {
           <PullRequestsCard
             autofix={makeAutofix()}
             section={makeSection([completedPR(4821)])}
+          />
+        </DrawerExample>
+
+        <DrawerExample label="5. Update failed — an iteration's push didn't land. The card offers a retry, and the PR it was pushing to stays one click away.">
+          <PullRequestsCard
+            autofix={makeAutofix()}
+            section={makeSection([failedUpdatePR(4821)])}
           />
         </DrawerExample>
       </Stack>
