@@ -24,7 +24,7 @@
     "platformicons": "^9.10.0",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "react-router": "8.4.0",
+    "react-router": "8.5.1",
     "sentry": "workspace:@sentry-internal/app@*",
     "zod": "4.6.7"
   },
