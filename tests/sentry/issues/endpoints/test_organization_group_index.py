@@ -424,7 +424,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         expected_detail = (
             'Error parsing search query: Boolean statements containing "OR" or "AND" are not '
-            "supported in this search"
+            "supported in this search. "
+            "To match any of several values, use a list: key:[value1, value2]"
         )
 
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
