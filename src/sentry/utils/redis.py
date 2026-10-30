@@ -327,11 +327,6 @@ _REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET = frozenset(
         (
             "getsentry.billing.platform.services.engagement.services.trial.service.TrialService._create_subscription_trial",
         ),
-        # INFRENG-814: customer model_lock in MissingCustomerRelation.repair
-        (
-            "getsentry.models.customer.model_lock.<locals>.inner.<locals>.wrapped",
-            "getsentry.accounts.repair.missing_data.MissingCustomerRelation.repair",
-        ),
         # INFRENG-804: platform charge lock in ChargeService.capture_charge (needs its own ticket)
         ("getsentry.billing.platform.services.charge.service.ChargeService.capture_charge",),
     }
