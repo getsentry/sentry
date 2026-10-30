@@ -24,10 +24,10 @@ export interface OverlayProps
   arrowProps?: OverlayArrowProps;
   children?: React.ReactNode;
   /**
-   * Shadow style. Defaults to `crisp`, the overlay's bottom-edge shadow.
-   * `soft` uses the theme's high shadow.
+   * Shadow depth. Defaults to `low`, the overlay's bottom-edge shadow.
+   * `high` uses the theme's high shadow.
    */
-  elevation?: 'crisp' | 'soft';
+  elevation?: 'low' | 'high';
   /**
    * The CSS styles for the "origin point" over the overlay. Typically this
    * would be the arrow (or tip).
@@ -98,7 +98,7 @@ export function Overlay({
   children,
   arrowProps,
   animated,
-  elevation = 'crisp',
+  elevation = 'low',
   placement,
   originPoint,
   style,
@@ -144,7 +144,7 @@ const OverlayInner = styled(motion.div, {
   border-radius: ${p => p.theme.radius.md};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   box-shadow: ${p =>
-    p.elevation === 'crisp'
+    p.elevation === 'low'
       ? // oxlint-disable-next-line @sentry/scraps/use-semantic-token
         `0 2px 0 ${p.theme.tokens.border.primary}`
       : p.theme.shadow.high};

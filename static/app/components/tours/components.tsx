@@ -561,7 +561,7 @@ export function TourGuide({
                   {({css, theme: currentTheme}) => (
                     <Overlay
                       animated
-                      elevation="soft"
+                      elevation="high"
                       arrowProps={{
                         ...arrowProps,
                         strokeWidth: 0,
