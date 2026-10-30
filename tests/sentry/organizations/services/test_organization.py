@@ -183,7 +183,7 @@ class ActiveOrganizationResourcesTest(TestCase):
         )
         assert organization_service.get_access_context(organization_id=0) is None
 
-    def test_project_summary_preserves_targeting_semantics(self) -> None:
+    def test_project_platform_summary_preserves_targeting_semantics(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org, platform="python")
         self.create_project(organization=org, platform="python")
@@ -196,7 +196,7 @@ class ActiveOrganizationResourcesTest(TestCase):
             project.flags.has_releases = True
             project.save()
 
-        summary = organization_service.get_project_summary(organization_id=org.id)
+        summary = organization_service.get_project_platform_summary(organization_id=org.id)
         assert set(summary.platforms) == {"python", "javascript", None}
         assert summary.flags.has_releases
         assert not summary.flags.has_sessions

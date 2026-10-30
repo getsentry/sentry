@@ -91,7 +91,9 @@ class OrganizationService(RpcService):
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
-    def get_project_summary(self, *, organization_id: int) -> RpcOrganizationProjectSummary:
+    def get_project_platform_summary(
+        self, *, organization_id: int
+    ) -> RpcOrganizationProjectSummary:
         """
         Return distinct platforms and aggregate flags for broadcast targeting.
 
