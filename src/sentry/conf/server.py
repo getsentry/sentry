@@ -2055,7 +2055,6 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
     ),
     # No granular replacements yet.
     "project:read": frozenset(["project:read"]),
-    "member:read": frozenset(["member:read"]),
 }
 
 # API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
