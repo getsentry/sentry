@@ -420,8 +420,6 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
                 "dashboard:write",
                 "saved_query:read",
                 "saved_query:write",
-                "user_preference:read",
-                "user_preference:write",
             }
 
     @with_feature("organizations:granular-permission-scopes")

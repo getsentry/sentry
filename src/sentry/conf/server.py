@@ -2021,6 +2021,7 @@ GRANULAR_SCOPES = frozenset(
         "dashboard:write",
         "saved_query:read",
         "saved_query:write",
+        # Accepted by endpoints, but not granted by any role yet.
         "user_preference:read",
         "user_preference:write",
     ]
@@ -2366,8 +2367,6 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "saved_query:write",
             "seer:read",
             "seer:write",
-            "user_preference:read",
-            "user_preference:write",
         },
     },
     {
@@ -2406,8 +2405,6 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "saved_query:write",
             "seer:read",
             "seer:write",
-            "user_preference:read",
-            "user_preference:write",
         },
         "is_retired": True,
     },
@@ -2443,8 +2440,6 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "seer:write",
             "service_account:read",
             "service_account:write",
-            "user_preference:read",
-            "user_preference:write",
         },
         "is_global": True,
     },
@@ -2487,8 +2482,6 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "seer:write",
             "service_account:read",
             "service_account:write",
-            "user_preference:read",
-            "user_preference:write",
         },
         "is_global": True,
     },

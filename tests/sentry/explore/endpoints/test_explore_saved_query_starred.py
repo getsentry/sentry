@@ -4,6 +4,7 @@ from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryStarred
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -61,6 +62,7 @@ class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_write_can_star(self) -> None:
         self._use_token(["user_preference:write"])
         with self.feature(self.feature_name):
@@ -71,6 +73,7 @@ class ExploreSavedQueryStarredTest(APITestCase, SnubaTestCase):
         ).exists()
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_read_cannot_star(self) -> None:
         self._use_token(["user_preference:read"])
         with self.feature(self.feature_name):

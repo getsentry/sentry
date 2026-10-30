@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -359,6 +360,7 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
 
 @with_feature("organizations:granular-permission-scopes")
+@granular_roles_granting("user_preference:read", "user_preference:write")
 class PromptsActivityScopeTest(PromptsActivityTestBase):
     def _use_token(self, scope_list: list[str]) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):

@@ -6,6 +6,7 @@ from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -190,6 +191,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_write_can_reorder(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id])
         self._use_token(["user_preference:write"])
@@ -199,6 +201,7 @@ class OrganizationGroupSearchViewStarredOrderEndpointTest(APITestCase):
         assert response.status_code == 204, response.content
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_read_cannot_reorder(self) -> None:
         self.star_views([self.views[0].id, self.views[1].id])
         self._use_token(["user_preference:read"])

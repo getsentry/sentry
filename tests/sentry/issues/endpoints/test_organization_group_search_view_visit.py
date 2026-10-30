@@ -5,6 +5,7 @@ from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 from tests.sentry.issues.endpoints.test_organization_group_search_views import (
@@ -146,6 +147,7 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_write_can_record_visit(self) -> None:
         self._use_token(["user_preference:write"])
         response = self.client.post(self.url)
@@ -155,6 +157,7 @@ class OrganizationGroupSearchViewVisitTest(GroupSearchViewAPITestCase):
         ).exists()
 
     @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("user_preference:read", "user_preference:write")
     def test_user_preference_read_cannot_record_visit(self) -> None:
         self._use_token(["user_preference:read"])
         assert self.client.post(self.url).status_code == 403

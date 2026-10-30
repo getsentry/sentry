@@ -13,6 +13,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -232,6 +233,7 @@ class RecentSearchesCreateTest(APITestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
+@granular_roles_granting("user_preference:read", "user_preference:write")
 class RecentSearchesScopeTest(APITestCase):
     endpoint = "sentry-api-0-organization-recent-searches"
 

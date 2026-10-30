@@ -5,6 +5,7 @@ from sentry.models.dashboard import DashboardFavoriteUser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -240,6 +241,7 @@ class OrganizationDashboardsStarredOrderTest(StarredDashboardTestCase):
 
 
 @with_feature("organizations:granular-permission-scopes")
+@granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardsStarredScopeTest(StarredDashboardTestCase):
     def setUp(self) -> None:
         super().setUp()
