@@ -8,6 +8,8 @@ const productionEntryPoints = [
   // Build entry points that are not package entry points.
   'utils/setupStatics.tsx',
   'serviceWorker/worker/worker.ts',
+  // Generated API schemas expose components for consumers to adopt incrementally.
+  'utils/api/apiContracts.generated.ts',
   // very dynamically imported
   'gettingStartedDocs/**/*.{js,ts,tsx}',
   // --- we should be able to get rid of those: ---
@@ -123,7 +125,12 @@ const config: KnipConfig = {
       jest: {
         config: ['jest.config.mjs', 'jest.config.ci.mjs', 'jest.config.snapshots.ts'],
       },
-      entry: ['**/*.spec.{js,ts,tsx}', 'test-balancer/*.ts'],
+      entry: [
+        '**/*.spec.{js,ts,tsx}',
+        'test-balancer/*.ts',
+        // Generated examples validate response contracts through TypeScript's satisfies.
+        'fixtures/generated/apiExamples.generated.ts',
+      ],
       project: ['**/*.{js,cjs,mjs,ts,tsx,mdx}'],
       includeEntryExports: true,
     },

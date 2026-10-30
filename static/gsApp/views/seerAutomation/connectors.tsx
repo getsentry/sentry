@@ -10,7 +10,7 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getProviderIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -24,7 +24,7 @@ const SEER_CONTEXT_FEATURE = 'seer-context';
 
 // Cheap query to get all providers available to the org, plus their integration features.
 function configIntegrationsQueryOptions(orgSlug: string) {
-  return apiOptions.as<{providers: IntegrationProvider[]}>()(
+  return apiOptions.contract(
     '/organizations/$organizationIdOrSlug/config/integrations/',
     {
       path: {organizationIdOrSlug: orgSlug},

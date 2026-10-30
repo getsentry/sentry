@@ -75,7 +75,7 @@ export function validateEventParamsOptions({
 }: ValidateEventParamsOptions) {
   const projectIds = explicitProjectIds ?? selection.projects;
 
-  const baseOptions = apiOptions.as<z.infer<typeof EventValidationSchema>>()(
+  const baseOptions = apiOptions.contract(
     '/organizations/$organizationIdOrSlug/events/validate/',
     {
       path: {organizationIdOrSlug: organization.slug},

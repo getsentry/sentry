@@ -101,7 +101,7 @@ export function useMessagingChannel({
     isPending,
     isLoadingError: isChannelsError,
   } = useQuery({
-    ...apiOptions.as<ChannelListResponse>()(
+    ...apiOptions.contract(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channels/',
       {
         path:

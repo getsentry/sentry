@@ -37,7 +37,7 @@ export function useProfileTopEventsStats<F extends string>({
   const {selection} = usePageFilters();
 
   const {data, isPending, isLoading, isError, error} = useQuery({
-    ...apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/events-stats/', {
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/events-stats/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         dataset,

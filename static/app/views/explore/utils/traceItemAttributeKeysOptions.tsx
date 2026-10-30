@@ -82,7 +82,7 @@ export function traceItemAttributeKeysOptions({
     ...(substringMatch === undefined ? {} : {substringMatch}),
   };
 
-  const baseOptions = apiOptions.as<TraceItemAttribute[]>()(
+  const baseOptions = apiOptions.contract(
     '/organizations/$organizationIdOrSlug/trace-items/attributes/',
     {
       path: {organizationIdOrSlug: organization.slug},

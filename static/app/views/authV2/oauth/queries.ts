@@ -2,14 +2,7 @@ import type {AuthConfigResponse} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeQueryKey} from 'sentry/utils/api/apiQueryKey';
 
-import type {
-  AuthorizationConsent,
-  AuthorizationParameters,
-  DeviceConsent,
-  DeviceContext,
-  OAuthContext,
-  OAuthRedirect,
-} from './types';
+import type {AuthorizationParameters} from './types';
 
 const preparationPolicy = {
   gcTime: 0,
@@ -43,7 +36,7 @@ export function oauthAuthConfigQueryOptions(returnTo: string, sessionKey: string
  */
 export function authorizationContextQueryOptions(query: AuthorizationParameters) {
   return {
-    ...apiOptions.as<OAuthContext | OAuthRedirect>()('/auth/oauth/authorize/context/', {
+    ...apiOptions.contract('/auth/oauth/authorize/context/', {
       query,
       staleTime: 0,
       allowAuthError: true,
@@ -60,10 +53,11 @@ export function authorizationConsentQueryOptions(
   query: AuthorizationParameters,
   sessionKey: string
 ) {
-  const options = apiOptions.as<AuthorizationConsent | OAuthRedirect>()(
-    '/auth/oauth/authorize/',
-    {query, staleTime: 0, allowAuthError: true}
-  );
+  const options = apiOptions.contract('/auth/oauth/authorize/', {
+    query,
+    staleTime: 0,
+    allowAuthError: true,
+  });
   const key = normalizeQueryKey(options.queryKey);
   return {
     ...options,
@@ -76,7 +70,7 @@ export function authorizationConsentQueryOptions(
 /** Validate the entered device code and identify its application before login. */
 export function deviceContextQueryOptions(userCode: string) {
   return {
-    ...apiOptions.as<DeviceContext>()('/auth/oauth/device/context/', {
+    ...apiOptions.contract('/auth/oauth/device/context/', {
       query: {user_code: userCode},
       staleTime: 0,
       allowAuthError: true,
@@ -90,7 +84,7 @@ export function deviceContextQueryOptions(userCode: string) {
  * Session isolation prevents reusing another account's prepared consent.
  */
 export function deviceConsentQueryOptions(userCode: string, sessionKey: string) {
-  const options = apiOptions.as<DeviceConsent>()('/auth/oauth/device/', {
+  const options = apiOptions.contract('/auth/oauth/device/', {
     query: {user_code: userCode},
     staleTime: 0,
     allowAuthError: true,

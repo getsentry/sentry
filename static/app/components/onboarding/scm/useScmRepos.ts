@@ -5,15 +5,11 @@ import type {IntegrationRepository, Repository} from 'sentry/types/integrations'
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface ScmReposResult {
-  repos: IntegrationRepository[];
-}
-
 export function useScmRepos(integrationId: string, selectedRepo?: Repository) {
   const organization = useOrganization();
 
   const reposQuery = useQuery({
-    ...apiOptions.as<ScmReposResult>()(
+    ...apiOptions.contract(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
       {
         path: {organizationIdOrSlug: organization.slug, integrationId},

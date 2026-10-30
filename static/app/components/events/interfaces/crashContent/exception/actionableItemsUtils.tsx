@@ -14,7 +14,6 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
-import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Image} from 'sentry/types/debugImage';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -214,7 +213,7 @@ export const useFetchProguardMappingFiles = ({
     isSuccess,
     isPending,
   } = useQuery({
-    ...apiOptions.as<DebugFile[]>()(
+    ...apiOptions.contract(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
         path: {

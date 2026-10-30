@@ -19,7 +19,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import type {Artifact, Release} from 'sentry/types/release';
+import type {Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -122,7 +122,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const isDebugIdBundle = isUUID(bundleId);
 
   const {data: artifactsResponse, isPending: artifactsLoading} = useQuery({
-    ...apiOptions.as<Artifact[]>()(
+    ...apiOptions.contract(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/releases/$version/files/',
       {
         path: {

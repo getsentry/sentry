@@ -7,6 +7,7 @@ from drf_spectacular.drainage import get_override
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.plumbing import force_instance, get_doc, is_basic_serializer
 from drf_spectacular.utils import OpenApiParameter
+from rest_framework.generics import GenericAPIView
 
 from sentry.apidocs.omission_apply import (
     OmissionError,
@@ -18,7 +19,13 @@ from sentry.apidocs.omission_apply import (
 from sentry.apidocs.omission_guard import in_operation, omissions_enabled, placed_at, record
 from sentry.apidocs.omission_paths import Resolved
 from sentry.apidocs.omissions import DEPRECATION_REASONS_OVERRIDE, OMISSION_REASONS_OVERRIDE
-from sentry.apidocs.utils import SentryApiBuildError
+from sentry.apidocs.response_annotations import (
+    UNDOCUMENTED_EXTENSION,
+    annotated_response,
+    inferred_response_serializer,
+    response_type,
+)
+from sentry.apidocs.utils import SentryApiBuildError, is_internal_build
 
 
 class SentrySchema(AutoSchema):
@@ -45,6 +52,33 @@ class SentrySchema(AutoSchema):
         if len(docstring.splitlines()) > 1:
             return docstring
         return super().get_description()
+
+    def get_response_serializers(self) -> Any:
+        """Without a declared response, internal builds read the handler's annotation.
+
+        `@extend_schema(responses=...)` takes precedence: it overrides this method on
+        the subclass it creates and only falls back here when it declares none."""
+        if not is_internal_build():
+            return super().get_response_serializers()
+        annotated = annotated_response(self.view_func, f"{self.method} {self.path}")
+        if annotated is not None:
+            if not annotated.types:
+                return {"204": None}
+            return inferred_response_serializer(response_type(annotated.types))
+        if _guesses_serializer(self.view):
+            return super().get_response_serializers()
+        if self.method == "DELETE":
+            return {"204": None}
+        return {"200": {UNDOCUMENTED_EXTENSION: True}}
+
+    def _get_serializer(self) -> Any:
+        """Skip drf-spectacular's serializer guess for views that give it nothing to go on.
+
+        It reports an error for each, which an internal build, describing every
+        undocumented endpoint, would otherwise report hundreds of times over."""
+        if is_internal_build() and not _guesses_serializer(self.view):
+            return None
+        return super()._get_serializer()
 
     def resolve_serializer(
         self, serializer: Any, direction: Any, bypass_extensions: bool = False
@@ -122,6 +156,16 @@ class SentrySchema(AutoSchema):
         except OmissionError as exc:
             raise SentryApiBuildError(str(exc)) from exc
         return result
+
+
+def _guesses_serializer(view: Any) -> bool:
+    """Whether drf-spectacular can derive a serializer from the view itself."""
+    return (
+        isinstance(view, GenericAPIView)
+        or callable(getattr(view, "get_serializer", None))
+        or callable(getattr(view, "get_serializer_class", None))
+        or hasattr(view, "serializer_class")
+    )
 
 
 def _choice_rules(serializer: Any) -> dict[str, Resolved]:

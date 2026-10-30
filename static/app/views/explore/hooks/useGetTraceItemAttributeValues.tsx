@@ -72,7 +72,7 @@ export function useGetTraceItemAttributeValues({
         ? normalizeDateTimeParams(datetime)
         : normalizeDateTimeParams(selection.datetime);
 
-      const options = apiOptions.as<TraceItemAttributeValue[]>()(
+      const options = apiOptions.contract(
         '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
         {
           path: {organizationIdOrSlug: organization.slug, key: tag.key},

@@ -144,22 +144,19 @@ export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
     isFetching,
     error,
   } = useQuery({
-    ...apiOptions.as<Conversation[]>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          cursor,
-          query: combinedQuery,
-          project: pageFilters.selection.projects,
-          environment: pageFilters.selection.environments,
-          per_page: CONVERSATION_LIST_PER_PAGE,
-          sort: [sort],
-          ...normalizeDateTimeParams(pageFilters.selection.datetime),
-        },
-        staleTime: 60_000,
-      }
-    ),
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/agents/conversations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        cursor,
+        query: combinedQuery,
+        project: pageFilters.selection.projects,
+        environment: pageFilters.selection.environments,
+        per_page: CONVERSATION_LIST_PER_PAGE,
+        sort: [sort],
+        ...normalizeDateTimeParams(pageFilters.selection.datetime),
+      },
+      staleTime: 60_000,
+    }),
     enabled,
     select: selectJsonWithHeaders,
   });

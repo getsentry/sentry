@@ -11,7 +11,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
 export function sentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
-  return apiOptions.as<SentryAppInstallation[]>()(
+  return apiOptions.contract(
     '/organizations/$organizationIdOrSlug/sentry-app-installations/',
     {
       path: {organizationIdOrSlug: orgSlug},

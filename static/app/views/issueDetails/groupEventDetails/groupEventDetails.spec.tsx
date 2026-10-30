@@ -17,7 +17,6 @@ import {
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -458,7 +457,7 @@ describe('groupEventDetails', () => {
           })
         );
         await queryClient.fetchQuery(
-          apiOptions.as<SourceMapDebugResponse>()(
+          apiOptions.contract(
             '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
             {
               path: {

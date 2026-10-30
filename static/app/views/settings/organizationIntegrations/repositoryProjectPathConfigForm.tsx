@@ -12,7 +12,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {t} from 'sentry/locale';
 import type {
   Integration,
-  IntegrationRepository,
   Repository,
   RepositoryProjectPathConfig,
 } from 'sentry/types/integrations';
@@ -36,7 +35,7 @@ const integrationReposOptions = (
   integrationId: string,
   search: string
 ) =>
-  apiOptions.as<{repos: IntegrationRepository[]}>()(
+  apiOptions.contract(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
     {
       path: {organizationIdOrSlug: orgSlug, integrationId},

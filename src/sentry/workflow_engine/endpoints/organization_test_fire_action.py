@@ -14,6 +14,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log import (
     action_context_scope,
@@ -81,7 +82,9 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
         ],
         responses={
             200: None,
-            400: TestFireActionErrorsResponse,
+            400: inline_sentry_response_serializer(
+                "TestFireActionErrorsResponse", TestFireActionErrorsResponse
+            ),
             401: RESPONSE_UNAUTHORIZED,
             404: RESPONSE_NOT_FOUND,
         },
