@@ -21,21 +21,28 @@ import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/typ
 import {SpanFields} from 'sentry/views/insights/types';
 
 /**
- * Pageloads. TTFB comes from navigation timing, so every pageload reports it,
- * while LCP and CLS depend on the browser and INP comes from interactions.
+ * Pageloads. TTFB comes from navigation timing, so every pageload reports it.
  */
 export const PAGELOADS_FIELD = webVitalCountField('ttfb');
 
 const INTERVAL = '5m';
 
-// TODO: Two gaps against the spans dashboards' global filters.
-// - `user.geo.subregion` is left out until Relay copies geo attributes onto the
-//   web vital metrics (getsentry/relay#6576).
-// - These filters are declared for trace metrics only, so they do not reach the
-//   widgets that still query spans. The navigation type switcher also writes a
-//   spans filter (`buildNavigationTypeGlobalFilter`), so the metrics widgets
-//   ignore it. Both resolve once every widget here is on trace metrics.
+// TODO: These filters are declared for trace metrics only, so they do not reach
+// the widgets that still query spans. The navigation type switcher also writes a
+// spans filter (`buildNavigationTypeGlobalFilter`), so the metrics widgets
+// ignore it. Both resolve once every widget here is on trace metrics. The geo
+// filter needs Relay to copy geo attributes onto the web vital metrics
+// (getsentry/relay#6576) before it matches anything.
 export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
+  {
+    dataset: WidgetType.TRACEMETRICS,
+    tag: {
+      key: 'user.geo.subregion',
+      name: 'user.geo.subregion',
+      kind: FieldKind.TAG,
+    },
+    value: '',
+  },
   {
     dataset: WidgetType.TRACEMETRICS,
     tag: {
@@ -56,10 +63,6 @@ export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
   },
 ];
 
-/**
- * The shared wheel template, reading each vital's average score and number of
- * scores from the score metrics. The ring computes the total on the frontend.
- */
 export function scoreBreakdownWheelWidget(layout: PrebuiltWidgetLayout): PrebuiltWidget {
   const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_SCORE_COUNT_FIELDS];
   return {
