@@ -392,3 +392,6 @@ class OrganizationProjectsCountTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, qs_params={"get_counts": "1"})
         assert response.data == {"allProjects": 6, "myProjects": 4}
+
+
+# ci experiment: selective-testing shard timing

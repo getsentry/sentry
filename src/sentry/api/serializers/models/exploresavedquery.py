@@ -208,3 +208,6 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
         return data
+
+
+# ci experiment: selective-testing shard timing

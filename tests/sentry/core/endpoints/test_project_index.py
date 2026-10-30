@@ -346,3 +346,6 @@ class ProjectsListTest(APITestCase):
             extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token}"},
             status_code=status.HTTP_401_UNAUTHORIZED,
         )
+
+
+# ci experiment: selective-testing shard timing

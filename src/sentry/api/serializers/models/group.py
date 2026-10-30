@@ -1283,3 +1283,6 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,
         )
+
+
+# ci experiment: selective-testing shard timing

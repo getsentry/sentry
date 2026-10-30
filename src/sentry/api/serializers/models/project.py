@@ -1341,3 +1341,6 @@ class SharedProjectSerializer(Serializer):
             "features": [],
             "organization": {"slug": obj.organization.slug, "name": obj.organization.name},
         }
+
+
+# ci experiment: selective-testing shard timing

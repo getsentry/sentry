@@ -382,3 +382,6 @@ class TeamSCIMSerializerTest(TestCase):
             "meta": {"resourceType": "Group"},
             "schemas": ["urn:ietf:params:scim:schemas:core:2.0:Group"],
         }
+
+
+# ci experiment: selective-testing shard timing

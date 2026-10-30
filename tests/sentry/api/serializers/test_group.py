@@ -593,3 +593,6 @@ class SimpleGroupSerializerTest(TestCase):
         assert serialized["numComments"] == group.num_comments
         assert serialized["firstSeen"] == group.first_seen
         assert serialized["lastSeen"] == group.last_seen
+
+
+# ci experiment: selective-testing shard timing

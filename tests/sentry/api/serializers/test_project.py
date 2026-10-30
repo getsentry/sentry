@@ -944,3 +944,6 @@ class BulkFetchProjectLatestReleases(TestCase):
             release_2,
             other_project_release,
         }
+
+
+# ci experiment: selective-testing shard timing

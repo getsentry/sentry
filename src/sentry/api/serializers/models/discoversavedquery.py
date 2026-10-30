@@ -235,3 +235,6 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             data["exploreQuery"] = attrs.get("explore_query")
 
         return data
+
+
+# ci experiment: selective-testing shard timing

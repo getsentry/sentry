@@ -2840,3 +2840,5 @@ def _install_service_account_user_global_matrix_tests() -> None:
 
 
 _install_service_account_user_global_matrix_tests()
+
+# ci experiment: selective-testing shard timing

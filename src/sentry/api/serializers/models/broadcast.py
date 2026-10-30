@@ -56,3 +56,6 @@ class AdminBroadcastSerializer(BroadcastSerializer):
         context["upstreamId"] = obj.upstream_id
         context["syncLocked"] = obj.sync_locked
         return context
+
+
+# ci experiment: selective-testing shard timing
