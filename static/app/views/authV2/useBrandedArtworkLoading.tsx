@@ -4,8 +4,9 @@ import {useTheme} from '@emotion/react';
 import critterImage from 'sentry-images/brandPageLayout/animated/critter.avif';
 import nebulaImage from 'sentry-images/brandPageLayout/animated/nebula.svg';
 
+import {useMedia} from '@sentry/scraps/useMedia';
+
 import {ARTWORK_LAYERS} from 'sentry/components/brandPageLayout/artworkLayers';
-import {useMedia} from 'sentry/utils/useMedia';
 
 const MOBILE_ASSETS = [critterImage];
 const DESKTOP_ASSETS = [...MOBILE_ASSETS, nebulaImage, ...ARTWORK_LAYERS.map(l => l.src)];

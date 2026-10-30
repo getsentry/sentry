@@ -6,10 +6,10 @@ import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
 import {Container} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   DisplayType,
   WidgetType,

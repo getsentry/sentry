@@ -6,9 +6,9 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   type DashboardDetails,
   type DashboardFilters,

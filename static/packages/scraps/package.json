@@ -107,6 +107,10 @@
       "types": "./dist/useScrollLock.d.ts",
       "import": "./dist/useScrollLock.js"
     },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
     "./useOnClickOutside": {
       "types": "./dist/useOnClickOutside.d.ts",
       "import": "./dist/useOnClickOutside.js"
