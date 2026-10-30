@@ -174,10 +174,6 @@ export function isSwitcherQuery(value: string): boolean {
   return QUERY_TO_BUCKETS.has(value);
 }
 
-// TODO: The filter is hardcoded to the spans dataset. The trace metrics web
-// vitals dashboards declare their navigation type filter for trace metrics, so
-// the switcher's selection does not reach their widgets. Pick the dataset from
-// the dashboard once those dashboards are fully on trace metrics.
 export function buildNavigationTypeGlobalFilter(
   buckets: NavigationTypeBucket[]
 ): GlobalFilter {
