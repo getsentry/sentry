@@ -649,6 +649,48 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.refresh_token != self.token.refresh_token
         assert token2.refresh_token
 
+    def test_outbox_flush_failure_returns_rotated_token(self) -> None:
+        self.login_as(self.user)
+        with outbox_runner():
+            pass
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=self.token.id).token == self.token.token
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            resp = self.client.post(
+                self.path,
+                {
+                    "grant_type": "refresh_token",
+                    "client_id": self.application.client_id,
+                    "refresh_token": self.token.refresh_token,
+                    "client_secret": self.client_secret,
+                },
+            )
+
+        mock_replication.assert_called()
+        assert resp.status_code == 200
+        data = json.loads(resp.content)
+        token = ApiToken.objects.get(id=self.token.id)
+        assert token.token != self.token.token
+        assert data["access_token"] == token.token
+        assert data["refresh_token"] == token.refresh_token
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so the replica should still hold the old token.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).token == self.token.token
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.get(apitoken_id=token.id).token == token.token
+
     def test_inactive_application_rejects_token_refresh(self) -> None:
         """Test that inactive applications cannot refresh tokens.
 

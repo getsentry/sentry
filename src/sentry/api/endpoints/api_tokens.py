@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.db import router, transaction
 from django.utils.decorators import method_decorator
@@ -19,10 +21,16 @@ from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAu
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user_id, require_user
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import (
+    OutboxDatabaseError,
+    OutboxFlushError,
+    outbox_context,
+)
 from sentry.models.apitoken import ApiToken
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
+
+logger = logging.getLogger(__name__)
 
 ALLOWED_FIELDS = ["name", "tokenId"]
 
@@ -88,13 +96,31 @@ class ApiTokensEndpoint(Endpoint):
             assert request.user.is_authenticated, "User must not be anonymous"
             user = require_user(request)
 
-            token = ApiToken.objects.create(
-                user_id=user.id,
-                name=result.get("name", None),
-                token_type=AuthTokenType.USER,
-                scope_list=result["scopes"],
-                expires_at=None,
-            )
+            token: ApiToken | None = None
+            try:
+                # This transaction is required to bind the token to a variable
+                # when replication fails. The outbox_context is just to flag
+                # that this is an outbox-producing operation.
+                with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+                    token = ApiToken.objects.create(
+                        user_id=user.id,
+                        name=result.get("name", None),
+                        token_type=AuthTokenType.USER,
+                        scope_list=result["scopes"],
+                        expires_at=None,
+                    )
+            except (OutboxDatabaseError, OutboxFlushError):
+                if token is None:
+                    raise
+
+                # Guard against replication fanout failures. The key has been
+                # minted, and its outbox has been committed alongside it,
+                # guaranteeing that it will eventually be valid in all regions.
+                logger.warning(
+                    "api_tokens.outbox-flush-failure",
+                    extra={"token_id": token.id, "user_id": request.user.id},
+                    exc_info=True,
+                )
 
             capture_security_activity(
                 account=user,

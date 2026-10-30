@@ -507,7 +507,23 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
                 new_token = generate_token(token_type=self.token_type)
                 new_refresh_token = generate_token(token_type=self.token_type)
 
-                self.update(token=new_token, refresh_token=new_refresh_token, expires_at=expires_at)
+                try:
+                    self.update(
+                        token=new_token, refresh_token=new_refresh_token, expires_at=expires_at
+                    )
+                except (OutboxDatabaseError, OutboxFlushError):
+                    # Guard against replication fanout failures. The token has been
+                    # rotated, and its outbox has been committed alongside it,
+                    # guaranteeing that it will eventually be valid in all regions.
+                    logger.warning(
+                        "api_token.refresh.outbox-flush-failure",
+                        extra={"token_id": self.id, "application_id": self.application_id},
+                        exc_info=True,
+                    )
+                    metrics.incr(
+                        "api_key.outbox_flush_deferred",
+                        tags={"category": "API_TOKEN_UPDATE", "callsite": "oauth_refresh_token"},
+                    )
         except UnableToAcquireLock:
             raise TokenRefreshError("token refresh already in progress")
 

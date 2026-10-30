@@ -1,5 +1,13 @@
+from unittest.mock import patch
+
+from sentry.hybridcloud.models import ApiKeyReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.apikey import ApiKey
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -26,3 +34,29 @@ class OrganizationApiKeyIndex(APITestCase):
 
         self.login_as(admin_user, superuser=True)
         self.get_success_response(self.organization.slug)
+
+    def test_outbox_flush_failure_returns_key(self) -> None:
+        with patch.object(
+            ApiKey, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            response = self.get_success_response(
+                self.organization.slug, method="post", status_code=201
+            )
+
+        mock_replication.assert_called()
+        key = ApiKey.objects.get(organization_id=self.organization.id)
+        assert response.data["id"] == str(key.id)
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_KEY_UPDATE, object_identifier=key.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiKeyReplica.objects.filter(apikey_id=key.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiKeyReplica.objects.filter(apikey_id=key.id).exists()
