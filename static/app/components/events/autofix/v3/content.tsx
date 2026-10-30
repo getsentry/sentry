@@ -26,7 +26,10 @@ import {SeerDrawerNextStep} from 'sentry/components/events/autofix/v3/nextStep';
 import {PullRequestsCard} from 'sentry/components/events/autofix/v3/pullRequestsCard';
 import {RootCauseCard} from 'sentry/components/events/autofix/v3/rootCauseCard';
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
-import {SingleRunChat} from 'sentry/components/events/autofix/v3/singleRunChat';
+import {
+  SingleRunChat,
+  SingleRunOpenPR,
+} from 'sentry/components/events/autofix/v3/singleRunChat';
 import {SolutionCard} from 'sentry/components/events/autofix/v3/solutionCard';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -83,6 +86,7 @@ export function SeerDrawerContent({
     return (
       <SingleRunChat autofix={autofix} groupId={group.id}>
         {artifacts}
+        <SingleRunOpenPR autofix={autofix} groupId={group.id} />
         {codingAgentErrors}
         {notifications}
       </SingleRunChat>

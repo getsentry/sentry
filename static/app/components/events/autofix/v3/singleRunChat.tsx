@@ -1,5 +1,6 @@
 import {useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 import {IconBot} from '@sentry/icons/bot';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -15,6 +16,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useAutoScroll} from 'sentry/utils/useAutoScroll';
@@ -70,6 +72,50 @@ export function SingleRunChat({autofix, children, groupId}: SingleRunChatProps) 
       {children}
     </SingleRunTranscript>
   );
+}
+
+export function SingleRunOpenPR({
+  autofix,
+  groupId,
+}: {
+  autofix: ReturnType<typeof useExplorerAutofix>;
+  groupId: string;
+}) {
+  const organization = useOrganization();
+  const {createPR, isPolling, runState} = autofix;
+  const runId = getAutofixRunId(runState);
+  const repoNames = useMemo(() => {
+    const changedRepos = (runState?.blocks ?? []).flatMap(
+      block => block.merged_file_patches?.map(patch => patch.repo_name) ?? []
+    );
+    return [...new Set(changedRepos)].filter(
+      repoName => !runState?.repo_pr_states?.[repoName]
+    );
+  }, [runState]);
+
+  if (!defined(runId) || runState?.status !== 'completed') {
+    return null;
+  }
+
+  return repoNames.map(repoName => (
+    <Flex key={repoName}>
+      <Button
+        variant="primary"
+        icon={<IconPullRequest />}
+        disabled={isPolling}
+        onClick={() => {
+          createPR(runId, repoName);
+          trackAnalytics('autofix.create_pr_clicked', {
+            organization,
+            group_id: groupId,
+            mode: 'explorer',
+          });
+        }}
+      >
+        {t('Open PR in %s', repoName)}
+      </Button>
+    </Flex>
+  ));
 }
 
 function SingleRunTranscript({

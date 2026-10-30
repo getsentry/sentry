@@ -4,6 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {DiffFileType} from 'sentry/components/events/autofix/types';
 import type {
   ExplorerAutofixState,
   useExplorerAutofix,
@@ -149,15 +150,50 @@ describe('SeerDrawerContent', () => {
       });
     }
 
-    function renderExplorerDrawer() {
+    function renderExplorerDrawer(
+      autofix: Parameters<typeof makeAutofix>[0] = {runState}
+    ) {
       return render(
         <SeerDrawerContent
           aiConfig={makeAiConfig()}
-          autofix={makeAutofix({runState})}
+          autofix={makeAutofix(autofix)}
           group={GroupFixture()}
         />,
         {organization: explorerOrganization}
       );
+    }
+
+    function makeRunWithCodeChanges(
+      overrides: Partial<ExplorerAutofixState> = {}
+    ): ExplorerAutofixState {
+      return {
+        ...runState,
+        repo_pr_states: {},
+        blocks: [
+          ...runState.blocks,
+          {
+            id: 'block-2',
+            timestamp: '2026-10-27T00:00:00Z',
+            message: {role: 'assistant', content: 'Added the zero check.'},
+            merged_file_patches: [
+              {
+                repo_name: 'owner/repo',
+                diff: '',
+                patch: {
+                  path: 'src/divide.py',
+                  type: DiffFileType.MODIFIED,
+                  added: 1,
+                  removed: 0,
+                  hunks: [],
+                  source_file: 'src/divide.py',
+                  target_file: 'src/divide.py',
+                },
+              },
+            ],
+          },
+        ],
+        ...overrides,
+      };
     }
 
     beforeEach(() => {
@@ -273,6 +309,46 @@ describe('SeerDrawerContent', () => {
       ).toBeDisabled();
       expect(
         screen.queryByRole('combobox', {name: 'Ask Seer a question'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('opens a pull request for code changes that have none', async () => {
+      mockExplorerChat(null);
+      const createPR = jest.fn().mockResolvedValue(undefined);
+      renderExplorerDrawer({runState: makeRunWithCodeChanges(), createPR});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Open PR in owner/repo'})
+      );
+
+      expect(createPR).toHaveBeenCalledWith(7, 'owner/repo');
+    });
+
+    it('offers no Open PR once the repo has a pull request', async () => {
+      mockExplorerChat(null);
+      renderExplorerDrawer({
+        runState: makeRunWithCodeChanges({repo_pr_states: runState.repo_pr_states}),
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'View owner/repo#42'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Open PR in owner/repo'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('offers no Open PR while the run is working', async () => {
+      mockExplorerChat(null);
+      renderExplorerDrawer({runState: makeRunWithCodeChanges({status: 'processing'})});
+
+      expect(
+        await screen.findByPlaceholderText(
+          'Only the person who started this run can reply.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Open PR in owner/repo'})
       ).not.toBeInTheDocument();
     });
 
