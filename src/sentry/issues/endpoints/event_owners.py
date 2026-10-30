@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
@@ -18,7 +18,7 @@ from sentry.types.actor import Actor
 @cell_silo_endpoint
 class EventOwnersEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

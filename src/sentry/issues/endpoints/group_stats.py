@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import StatsMixin, cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, StatsMixin, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_id
@@ -15,7 +15,7 @@ from sentry.tsdb.base import TSDBModel
 
 @cell_silo_endpoint
 class GroupStatsEndpoint(GroupEndpoint, StatsMixin):
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
 
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

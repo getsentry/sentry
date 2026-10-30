@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.analytics import GroupSimilarIssuesEmbeddingsCountEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -43,7 +43,7 @@ class FormattedSimilarIssuesEmbeddingsData(TypedDict):
 @cell_silo_endpoint
 class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

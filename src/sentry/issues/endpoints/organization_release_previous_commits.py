@@ -6,7 +6,7 @@ from sentry import analytics
 from sentry.analytics.events.release_get_previous_commits import ReleaseGetPreviousCommitsEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
@@ -22,7 +22,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization: Organization, version: str) -> Response:

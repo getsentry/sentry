@@ -4,7 +4,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
@@ -27,7 +27,7 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
 
     rate_limits = RateLimitConfig(
         limit_overrides={

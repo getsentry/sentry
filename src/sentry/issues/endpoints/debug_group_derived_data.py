@@ -5,7 +5,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.issues.derived.framework import Pipeline, State
 from sentry.issues.derived.processing import PIPELINE
 from sentry.issues.derived.store import GroupDerivedDataStore
@@ -25,7 +25,7 @@ def _state_to_dict(pipeline: Pipeline[Any], state: State) -> dict[str, Any]:
 @cell_silo_endpoint
 class DebugGroupDerivedDataEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

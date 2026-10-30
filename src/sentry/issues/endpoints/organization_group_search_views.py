@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
@@ -98,7 +98,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     permission_classes = (MemberPermission,)
 
     @extend_schema(

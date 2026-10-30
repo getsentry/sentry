@@ -4,7 +4,7 @@ from django.http import HttpRequest, HttpResponse
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import load_grouping_config
@@ -18,7 +18,7 @@ from sentry.users.services.user_option.service import get_option_from_list
 @cell_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
