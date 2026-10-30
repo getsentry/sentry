@@ -13,6 +13,7 @@ from urllib.parse import urlparse
 import pytest
 from selenium import webdriver
 from selenium.common.exceptions import (
+    NoAlertPresentException,
     NoSuchElementException,
     SessionNotCreatedException,
     WebDriverException,
@@ -504,12 +505,43 @@ def _take_prelaunched_chrome() -> webdriver.Chrome | None:
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     # A worker whose tests never use the browser still has to close the
     # prelaunched Chrome.
-    driver = _take_prelaunched_chrome()
-    if driver is not None:
+    for driver in (_take_prelaunched_chrome(), _reusable_chrome.pop("driver", None)):
+        if driver is not None:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+
+# Starting Chrome for every test costs the launch, and each test then loads the
+# app bundle into a cold cache. One Chrome per worker, reset between tests,
+# keeps the cache warm.
+_reusable_chrome: dict[str, WebDriver] = {}
+
+
+def _reset_chrome(driver: WebDriver, origin: str) -> bool:
+    """Clears what a test can leave behind. Returns False if Chrome is unusable."""
+    try:
         try:
-            driver.quit()
-        except Exception:
+            driver.switch_to.alert.dismiss()
+        except NoAlertPresentException:
             pass
+        handles = driver.window_handles
+        for handle in handles[1:]:
+            driver.switch_to.window(handle)
+            driver.close()
+        driver.switch_to.window(handles[0])
+        driver.get("about:blank")
+        driver.execute_cdp_cmd("Network.clearBrowserCookies", {})
+        driver.execute_cdp_cmd(
+            "Storage.clearDataForOrigin", {"origin": origin, "storageTypes": "all"}
+        )
+        driver.execute_cdp_cmd("Emulation.setTouchEmulationEnabled", {"enabled": False})
+        driver.execute_cdp_cmd("Emulation.clearDeviceMetricsOverride", {})
+    except Exception:
+        logger.warning("selenium.reset-chrome.failed", exc_info=True)
+        return False
+    return True
 
 
 @pytest.fixture(scope="function")
@@ -520,7 +552,11 @@ def browser(request, live_server):
     driver_type = request.config.getoption("selenium_driver")
     driver: WebDriver
     if driver_type == "chrome":
-        driver = _take_prelaunched_chrome() or _launch_chrome(request.config)
+        driver = (
+            _reusable_chrome.pop("driver", None)
+            or _take_prelaunched_chrome()
+            or _launch_chrome(request.config)
+        )
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     else:
@@ -555,6 +591,9 @@ def browser(request, live_server):
         sys.stderr.write("[browser console] ")
         sys.stderr.write(repr(entry))
         sys.stderr.write("\n")
+    if driver_type == "chrome" and _reset_chrome(driver, live_server.url):
+        _reusable_chrome["driver"] = driver
+        return
     # Teardown Selenium.
     try:
         driver.quit()
