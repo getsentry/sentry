@@ -2,6 +2,7 @@ from collections.abc import Generator
 from typing import Any
 
 import rapidjson
+import sentry_sdk
 from rest_framework import serializers
 
 from sentry import features
@@ -13,11 +14,18 @@ from sentry.attachments import (
 )
 from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.models.project import Project
+from sentry.utils import metrics
 
 # See: https://develop.sentry.dev/sdk/telemetry/attachments/#flame-graph-validation-and-limits
 MAX_FLAMEGRAPH_SIZE = 10 * 1024 * 1024
 MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
+# Bound node allocations independently of the serialized attachment size.
+MAX_EXPANDED_NODES = 100_000
+
+
+class FlamegraphExpansionLimitExceeded(Exception):
+    pass
 
 
 class _StringField(serializers.Field):
@@ -113,11 +121,15 @@ def _is_valid_flamegraph(payload: Any) -> bool:
 def expand_inline_frames(
     nodes: list[dict[str, Any]], chains: dict[int, list[int]]
 ) -> list[dict[str, Any]]:
+    if len(nodes) > MAX_EXPANDED_NODES:
+        raise FlamegraphExpansionLimitExceeded
     # Keep captured indices stable so roots and shared child references remain valid.
     output = [dict(node) for node in nodes]
     for index, original in enumerate(nodes):
         current = output[index]
         for frame_id in chains.get(original["frame_id"], [])[1:]:
+            if len(output) >= MAX_EXPANDED_NODES:
+                raise FlamegraphExpansionLimitExceeded
             child = {"frame_id": frame_id, "sample_count": original["sample_count"]}
             current["children"] = [len(output)]
             output.append(child)
@@ -141,27 +153,55 @@ class Flamegraphs:
         for index, attachment in enumerate(self._attachments):
             if attachment.type != "event.flamegraph":
                 continue
+            reason = "load_error"
             try:
-                raw = attachment.load_data(self._project)
-            except (MissingAttachmentChunks, FileNotFoundError):
+                try:
+                    raw = attachment.load_data(self._project)
+                except (MissingAttachmentChunks, FileNotFoundError):
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "load_error"})
+                    continue
+                if len(raw) > MAX_FLAMEGRAPH_SIZE:
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "raw_size"})
+                    continue
+                reason = "invalid_json"
+                try:
+                    payload = rapidjson.loads(raw, allow_nan=False)
+                except (rapidjson.JSONDecodeError, UnicodeDecodeError):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_json"}
+                    )
+                    continue
+                if not isinstance(payload, dict):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
+                    )
+                    continue
+                state = payload.get("_symbolication")
+                if isinstance(state, dict) and state.get("status") == "completed":
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "already_completed"}
+                    )
+                    continue
+                nodes = payload.get("nodes")
+                if isinstance(nodes, list) and len(nodes) > MAX_EXPANDED_NODES:
+                    metrics.incr("process.native.flamegraph.skipped", tags={"reason": "node_limit"})
+                    continue
+                reason = "invalid_schema"
+                if not _is_valid_flamegraph(payload):
+                    metrics.incr(
+                        "process.native.flamegraph.skipped", tags={"reason": "invalid_schema"}
+                    )
+                    continue
+            except Exception as error:
+                sentry_sdk.capture_exception(error)
+                metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})
                 continue
-            if len(raw) > MAX_FLAMEGRAPH_SIZE:
-                continue
-            try:
-                payload = rapidjson.loads(raw, allow_nan=False)
-            except (rapidjson.JSONDecodeError, UnicodeDecodeError):
-                continue
-            if not isinstance(payload, dict):
-                continue
-            state = payload.get("_symbolication")
-            if isinstance(state, dict) and state.get("status") == "completed":
-                continue
-            if _is_valid_flamegraph(payload):
-                yield index, payload
+            yield index, payload
 
     def save(self, attachment_index: int, payload: dict[str, Any]) -> bool:
         serialized = rapidjson.dumps(payload, ensure_ascii=False, allow_nan=False).encode()
         if len(serialized) > MAX_FLAMEGRAPH_SIZE:
+            metrics.incr("process.native.flamegraph.skipped", tags={"reason": "rewrite_size"})
             return False
         attachment = self._attachments[attachment_index]
         metadata = attachment.meta()
