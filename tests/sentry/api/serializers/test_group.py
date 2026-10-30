@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import call, patch
 
 from django.utils import timezone
@@ -524,17 +525,34 @@ class GroupSerializerDerivedDataTest(TestCase):
         assert "derivedData" not in result
 
     def test_malformed_derived_data_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(progress="invalid")
+
+    def test_malformed_blob_does_not_fail_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data=[])
+
+    def test_invalid_boolean_does_not_leak_into_bulk_serialization(self) -> None:
+        self._assert_corrupt_derived_data_is_omitted(data={"has_open_fix_pr": "false"})
+
+    def _assert_corrupt_derived_data_is_omitted(self, **values: Any) -> None:
         malformed_group = self.create_group()
-        self.create_group_derived_data(group=malformed_group, progress="invalid")
+        self.create_group_derived_data(
+            group=malformed_group, pipeline_hash=PIPELINE.pipeline_hash, **values
+        )
         valid_group = self.create_group(project=malformed_group.project)
         self.create_group_derived_data(
             group=valid_group,
+            pipeline_hash=PIPELINE.pipeline_hash,
             progress=IssueProgressState.DIAGNOSED.value,
         )
 
-        malformed_result, valid_result = serialize(
-            [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
-        )
+        with patch("sentry.issues.derived.serialization.metrics.incr") as incr:
+            malformed_result, valid_result = serialize(
+                [malformed_group, valid_group], self.user, GroupSerializer(expand=["derivedData"])
+            )
+        served = [call for call in incr.call_args_list if call.args[0] == "issues.derived.served"]
+        assert served == [
+            call("issues.derived.served", amount=1, sample_rate=1.0, tags={"status": "fresh"})
+        ]
 
         assert "derivedData" not in malformed_result
         assert valid_result["derivedData"]["progress"] == "diagnosed"

@@ -20,8 +20,6 @@ from sentry.investigations.agent import (
     start_execution_run,
 )
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlockExecution,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationPhase,
@@ -67,6 +65,7 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookBlockExecution
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.service_accounts.auth import authenticate_service_account
@@ -99,7 +98,7 @@ def _is_last_dispatch_attempt() -> bool:
 
 def _lock_orchestration_run(run_id: int) -> InvestigationOrchestrationRun | None:
     investigation = (
-        Investigation.objects.select_for_update(of=("self",))
+        Notebook.objects.select_for_update(of=("self",))
         .filter(orchestration_run__id=run_id)
         .first()
     )
@@ -321,7 +320,7 @@ def _mark_internal_command_rejected(command_id: int, code: CommandRejectionCode 
 
 
 def _dispatch_viewer_scope(
-    investigation: Investigation, *, command: InvestigationOrchestrationCommand | None = None
+    investigation: Notebook, *, command: InvestigationOrchestrationCommand | None = None
 ) -> AbstractContextManager[None]:
     try:
         actor = command.requested_by_actor if command is not None else investigation.creator_actor
@@ -604,7 +603,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
 )
 def dispatch_investigation_execution(execution_id: int) -> None:
     execution = (
-        InvestigationBlockExecution.objects.select_related("block__investigation__organization")
+        NotebookBlockExecution.objects.select_related("block__notebook__organization")
         .filter(id=execution_id)
         .first()
     )
@@ -621,7 +620,7 @@ def dispatch_investigation_execution(execution_id: int) -> None:
     try:
         start_execution_run(
             execution,
-            execution.block.investigation.organization,
+            execution.block.notebook.organization,
             user,
             dispatch_claimed_at=dispatch_claimed_at,
         )

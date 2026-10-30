@@ -13,8 +13,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.agent import synchronize_title, title_generation_preview
 from sentry.investigations.endpoints.base import OrganizationInvestigationEndpoint
 from sentry.investigations.endpoints.serializers.responses import InvestigationTitlePreviewResponse
-from sentry.investigations.models import Investigation
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 from sentry.seer.agent.client import SeerAgentClient
 
 
@@ -42,7 +42,7 @@ class OrganizationInvestigationTitleGenerationEndpoint(OrganizationInvestigation
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
     ) -> Response:
         """
         Internal UI polling. Synchronize automatic title generation and return its status and

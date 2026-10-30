@@ -40,6 +40,8 @@ class ApiScopes(Sequence[str]):
 
     dashboard = (("dashboard:read"), ("dashboard:write"))
 
+    saved_query = (("saved_query:read"), ("saved_query:write"))
+
     seer = (("seer:read"), ("seer:write"))
 
     def __init__(self) -> None:
@@ -51,6 +53,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.member
             + self.__class__.alerts
             + self.__class__.dashboard
+            + self.__class__.saved_query
             + self.__class__.seer
         )
 

@@ -24,10 +24,10 @@ from sentry.investigations.endpoints.serializers.responses import (
     InvestigationActionRequestRecheckResponse,
 )
 from sentry.investigations.endpoints.validators import ActionRequestRecheckValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services.action_kinds.base import ApplyFailed
 from sentry.investigations.services.action_requests import recheck_action_request
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 
 
 @extend_schema(tags=["Investigations"])
@@ -60,7 +60,7 @@ class OrganizationInvestigationActionRequestRecheckEndpoint(OrganizationInvestig
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
         action_request_id: str,
     ) -> Response:
         """

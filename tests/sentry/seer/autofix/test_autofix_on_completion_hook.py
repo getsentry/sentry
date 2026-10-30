@@ -104,10 +104,6 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
                     "headline": "Auth module dereferences a null user",
                     "one_line_description": "Null pointer in auth module",
                     "five_whys": ["Why 1"],
-                    "fixability": {
-                        "assessment": "fixable",
-                        "reason": "Can be fixed in code",
-                    },
                 },
                 reason="explorer",
             )
@@ -273,24 +269,6 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_get_next_step_pr_iteration_is_terminal(self) -> None:
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.PR_ITERATION)
-        assert result is None
-
-    def test_determine_fixability_returns_none_for_non_root_cause(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        group = self.create_group(project=project)
-        state = run_state(blocks=[pr_iteration_memory_block()])
-
-        result = AutofixOnCompletionHook.determine_fixability(
-            organization=organization,
-            group=group,
-            run_id=1,
-            state=state,
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            reached_stopping_point=False,
-        )
-
         assert result is None
 
 
@@ -1361,7 +1339,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
@@ -1435,7 +1413,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         )
         mock_metrics_incr.assert_any_call("ai.autofix.pr_iteration.completed", sample_rate=1.0)
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration_does_not_emit_pr_created(
         self, mock_broadcast, mock_analytics
@@ -1955,14 +1933,8 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         return state
 
-    def _run(
-        self,
-        state: SeerRunState,
-        *,
-        feature: str = "organizations:autofix-pr-iteration-manual",
-    ) -> None:
-        with self.feature(feature):
-            react_to_completed_iteration(self.organization, 123, state)
+    def _run(self, state: SeerRunState) -> None:
+        react_to_completed_iteration(self.organization, 123, state)
 
     def _reaction_outcomes(self, mock_incr: MagicMock) -> list[str]:
         return [
@@ -2008,8 +1980,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_fetch_run_status.return_value = run_state(
             blocks=[solution_memory_block()], metadata={"group_id": group.id}
         )
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            AutofixOnCompletionHook.execute(self.organization, 123)
+        AutofixOnCompletionHook.execute(self.organization, 123)
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
@@ -2024,15 +1995,6 @@ class TestMaybeReactToCompletedIteration(TestCase):
             },
         )
         self._run(state)
-        mock_react.assert_not_called()
-
-    @patch(f"{REACT_PATH}.make_scm")
-    @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_noop_when_manual_feature_disabled(self, mock_react, mock_make_scm):
-        state = self._state_with([self._top_level_source(), self._review_source()])
-        # Automated CI iteration on, manual off: only comment-triggered iterations have
-        # a comment to ack, so the automated flag must not enable the reaction.
-        self._run(state, feature="organizations:autofix-pr-iteration")
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")

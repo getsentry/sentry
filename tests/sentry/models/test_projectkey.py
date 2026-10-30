@@ -79,6 +79,9 @@ class ProjectKeyTest(TestCase):
         with pytest.raises(self.model.DoesNotExist):
             self.model.from_dsn("abc")
 
+        with pytest.raises(self.model.DoesNotExist):
+            self.model.from_dsn(f"http://abc@testserver/{2**63}")
+
     def test_get_default(self) -> None:
         key = self.projectkey
         self.model.objects.create(project=self.project, status=ProjectKeyStatus.INACTIVE)
