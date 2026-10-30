@@ -7,6 +7,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import require_user
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 
 
@@ -21,7 +22,7 @@ class ApiApplicationsEndpoint(Endpoint):
 
     def get(self, request: Request) -> Response:
         queryset = ApiApplication.objects.filter(
-            owner_id=request.user.id, status=ApiApplicationStatus.active
+            owner_id=require_user(request).id, status=ApiApplicationStatus.active
         )
 
         return self.paginate(
@@ -36,8 +37,10 @@ class ApiApplicationsEndpoint(Endpoint):
         is_public = request.data.get("isPublic", False)
 
         if is_public:
-            app = ApiApplication.objects.create(owner_id=request.user.id, client_secret=None)
+            app = ApiApplication.objects.create(
+                owner_id=require_user(request).id, client_secret=None
+            )
         else:
-            app = ApiApplication.objects.create(owner_id=request.user.id)
+            app = ApiApplication.objects.create(owner_id=require_user(request).id)
 
         return Response(serialize(app, request.user), status=201)

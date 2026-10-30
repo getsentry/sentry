@@ -28,6 +28,7 @@ from sentry.api.exceptions import InsufficientScope
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_locality_url
+from sentry.auth.principal import acting_user_id
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import (
@@ -160,7 +161,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             name=name,
             organization_id=organization.id,
             scope_list=sorted(set(scopes)),
-            created_by_id=request.user.id,
+            created_by_id=acting_user_id(request.user),
             token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
         )
@@ -196,7 +197,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
 
         analytics.record(
             OrgAuthTokenCreated(
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 organization_id=organization.id,
             )
         )

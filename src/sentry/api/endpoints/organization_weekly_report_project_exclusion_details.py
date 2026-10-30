@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.helpers.projects import parse_id_or_slug_params
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
 
@@ -28,7 +29,7 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
     def delete(
         self, request: Request, organization: Organization, project_id_or_slug: str
     ) -> Response:
-        assert request.user and request.user.id
+        assert request.user and require_user(request).id
 
         parsed = parse_id_or_slug_params([project_id_or_slug])
         if any(pid <= 0 for pid in parsed.ids):
@@ -43,7 +44,7 @@ class OrganizationWeeklyReportProjectExclusionDetailsEndpoint(OrganizationEndpoi
             return Response(status=status.HTTP_404_NOT_FOUND)
 
         deleted, _ = WeeklyReportProjectExclusion.objects.filter(
-            user_id=request.user.id,
+            user_id=require_user(request).id,
             project=projects[0],
         ).delete()
 

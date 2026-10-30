@@ -11,6 +11,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import OnboardingRunTerminal
 from sentry.onboarding.agentic_progress.service import (
@@ -27,7 +28,7 @@ class OrganizationAgenticOnboardingRunDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(responses={200: AgenticOnboardingRunSerializer})
     def get(self, request: Request, organization: Organization, run_id: str) -> Response:
-        user_id = request.user.id
+        user_id = require_user(request).id
         assert user_id is not None
         run = get_onboarding_progress_service().get(
             run_id=run_id, user_id=user_id, organization_id=organization.id
@@ -39,7 +40,7 @@ class OrganizationAgenticOnboardingRunDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(responses={200: AgenticOnboardingRunSerializer})
     def delete(self, request: Request, organization: Organization, run_id: str) -> Response:
-        user_id = request.user.id
+        user_id = require_user(request).id
         assert user_id is not None
         try:
             run = get_onboarding_progress_service().cancel(

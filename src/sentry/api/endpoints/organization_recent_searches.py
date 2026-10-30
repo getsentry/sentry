@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import require_user
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
 
@@ -54,7 +55,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         query_kwargs = {
             "organization": organization,
-            "user_id": request.user.id,
+            "user_id": require_user(request).id,
             "type": search_type,
         }
 
@@ -75,7 +76,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
             _, created = RecentSearch.objects.update_or_create(
                 organization_id=organization.id,
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 type=result["type"],
                 query=result["query"],
                 defaults={"last_seen": timezone.now()},

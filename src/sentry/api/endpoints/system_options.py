@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.auth.principal import acting_user_id
 from sentry.options.store import Key
 from sentry.utils.email import is_smtp_enabled
 
@@ -135,7 +136,7 @@ class SystemOptionsEndpoint(Endpoint):
                         "options.update",
                         extra={
                             "ip_address": request.META["REMOTE_ADDR"],
-                            "user_id": request.user.id,
+                            "user_id": acting_user_id(request.user),
                             "option_key": k,
                             "option_value": "[redacted]" if _is_secret(option) else v,
                         },

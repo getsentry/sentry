@@ -19,6 +19,7 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     MonitoringProviderPermission,
 )
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.principal import require_user
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
@@ -87,7 +88,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         org_identity = (
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__user_id=require_user(request).id,
                 identity__idp__type=provider_key,
             )
             .select_related("identity")
@@ -187,7 +188,7 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         org_identities: list[OrganizationIdentity] = list(
             OrganizationIdentity.objects.filter(
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
+                identity__user_id=require_user(request).id,
                 identity__idp__type=provider_key,
             ).select_related("identity")
         )

@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.assistant import manager
+from sentry.auth.principal import require_user
 from sentry.models.assistant import AssistantActivity
 
 VALID_STATUSES = frozenset(("viewed", "dismissed", "restart"))
@@ -69,7 +70,7 @@ class AssistantEndpoint(Endpoint):
             return Response(status=400)
 
         seen_ids = set(
-            AssistantActivity.objects.filter(user_id=request.user.id).values_list(
+            AssistantActivity.objects.filter(user_id=require_user(request).id).values_list(
                 "guide_id", flat=True
             )
         )
@@ -104,7 +105,9 @@ class AssistantEndpoint(Endpoint):
 
         fields = {}
         if status == Status.RESTART.value:
-            AssistantActivity.objects.filter(user_id=request.user.id, guide_id=guide_id).delete()
+            AssistantActivity.objects.filter(
+                user_id=require_user(request).id, guide_id=guide_id
+            ).delete()
         else:
             if useful is not None:
                 fields["useful"] = useful
@@ -115,7 +118,7 @@ class AssistantEndpoint(Endpoint):
 
             try:
                 AssistantActivity.objects.create(
-                    user_id=request.user.id, guide_id=guide_id, **fields
+                    user_id=require_user(request).id, guide_id=guide_id, **fields
                 )
             except IntegrityError:
                 pass
