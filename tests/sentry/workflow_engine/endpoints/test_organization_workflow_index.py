@@ -611,6 +611,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert str(hidden_workflow.id) not in {w["id"] for w in response.data}
+
         assert int(response["X-Hits"]) == 3
 
     def test_filter_by_visible_workflow_types(self) -> None:
@@ -2106,10 +2107,10 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         assert self.workflow_two.enabled is False
         assert self.workflow_three.enabled is False
 
-    def test_bulk_update_by_query_skips_inbox_workflow(self) -> None:
-        inbox_workflow = self.create_workflow(
+    def test_bulk_update_by_query_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
             organization_id=self.organization.id,
-            name="Inbox Workflow",
+            name="Hidden Workflow",
             enabled=False,
             type=Workflow.Type.INBOX,
         )
@@ -2118,28 +2119,31 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             self.organization.slug, qs_params={"query": "Workflow"}, raw_data={"enabled": True}
         )
 
-        inbox_workflow.refresh_from_db()
+        hidden_workflow.refresh_from_db()
         self.workflow.refresh_from_db()
-        assert inbox_workflow.enabled is False
+
+        assert hidden_workflow.enabled is False
         assert self.workflow.enabled is True
 
-    def test_bulk_update_by_id_skips_inbox_workflow(self) -> None:
-        inbox_workflow = self.create_workflow(
+    def test_bulk_update_by_id_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
             organization_id=self.organization.id,
-            name="Inbox Workflow",
+            name="Hidden Workflow",
             enabled=False,
             type=Workflow.Type.INBOX,
         )
 
         response = self.get_success_response(
             self.organization.slug,
-            qs_params={"id": str(inbox_workflow.id)},
+            qs_params={"id": str(hidden_workflow.id)},
             raw_data={"enabled": True},
         )
 
         assert response.data == {"detail": "No workflows found."}
-        inbox_workflow.refresh_from_db()
-        assert inbox_workflow.enabled is False
+
+        hidden_workflow.refresh_from_db()
+
+        assert hidden_workflow.enabled is False
 
 
 @cell_silo_test
@@ -2432,9 +2436,9 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
             actor=self.user,
         )
 
-    def test_bulk_delete_by_query_skips_inbox_workflow(self) -> None:
-        inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Inbox Workflow", type=Workflow.Type.INBOX
+    def test_bulk_delete_by_query_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
         )
 
         with outbox_runner():
@@ -2442,21 +2446,24 @@ class OrganizationWorkflowDeleteTest(OrganizationWorkflowAPITestCase):
                 self.organization.slug, qs_params={"query": "Workflow"}, status_code=204
             )
 
-        self.assert_unaffected_workflows([inbox_workflow])
+        self.assert_unaffected_workflows([hidden_workflow])
+
         self.workflow.refresh_from_db()
+
         assert self.workflow.status == ObjectStatus.PENDING_DELETION
 
-    def test_bulk_delete_by_id_skips_inbox_workflow(self) -> None:
-        inbox_workflow = self.create_workflow(
-            organization_id=self.organization.id, name="Inbox Workflow", type=Workflow.Type.INBOX
+    def test_bulk_delete_by_id_skips_hidden_workflow(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization_id=self.organization.id, name="Hidden Workflow", type=Workflow.Type.INBOX
         )
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"id": str(inbox_workflow.id)}, status_code=200
+            self.organization.slug, qs_params={"id": str(hidden_workflow.id)}, status_code=200
         )
 
         assert response.data == {"detail": "No workflows found."}
-        self.assert_unaffected_workflows([inbox_workflow])
+
+        self.assert_unaffected_workflows([hidden_workflow])
 
 
 @cell_silo_test
