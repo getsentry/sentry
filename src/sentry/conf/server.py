@@ -2630,7 +2630,7 @@ SENTRY_CONTINUOUS_PROFILING_ENABLED = os.environ.get("SENTRY_CONTINUOUS_PROFILIN
 
 # The sample rate to use for continuous profile sessions. This sample rate is
 # evaluated once per process and the decision is used for the remainer of the session.
-SENTRY_PROFILES_SAMPLE_RATE = 1 if DEBUG else 0
+SENTRY_PROFILE_SESSION_SAMPLE_RATE = 1 if DEBUG else 0
 
 # Tells the sentry sdk to run under the trace lifecycle mode which
 # ensures the profiler is running whenever there is an active trace.

@@ -344,7 +344,7 @@ def configure_sdk():
 
     if settings.SENTRY_CONTINUOUS_PROFILING_ENABLED:
         sdk_options["profile_session_sample_rate"] = float(
-            settings.SENTRY_PROFILES_SAMPLE_RATE or 0
+            settings.SENTRY_PROFILE_SESSION_SAMPLE_RATE or 0
         )
         sdk_options["profile_lifecycle"] = settings.SENTRY_PROFILE_LIFECYCLE
 
