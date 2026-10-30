@@ -10,11 +10,12 @@ from slack_sdk.web import SlackResponse
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -1272,7 +1273,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             provider="slack",
             metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",
@@ -1383,7 +1384,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         )
 
     def _set_summary(self, summary: str | None, description: str | None = None) -> None:
-        Investigation.objects.filter(id=self.investigation.id).update(
+        Notebook.objects.filter(id=self.investigation.id).update(
             summary=summary, summary_description=description
         )
 

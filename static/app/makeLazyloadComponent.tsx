@@ -1,4 +1,4 @@
-import {lazy} from 'react';
+import {lazy, useState} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
@@ -41,11 +41,16 @@ export function makeLazyloadComponent<C extends React.ComponentType<any>>(
 
   // XXX: Assign the component to a variable so it has a displayname
   function RouteLazyLoad(props: React.ComponentProps<C>) {
+    // If the component is already loaded, render it directly to avoid Suspense.
+    // The choice is pinned for the lifetime of this mount: switching from
+    // LazyComponent to loadedComponent on a later render changes the element
+    // type, which makes React remount the whole route and drop its state.
+    const [Component] = useState(() => loadedComponent ?? LazyComponent);
+
     return (
       <SafeLazyLoad
         {...props}
-        // If the component is already loaded, render it directly to avoid Suspense
-        LazyComponent={loadedComponent ?? LazyComponent}
+        LazyComponent={Component}
         loadingFallback={loadingFallback}
       />
     );

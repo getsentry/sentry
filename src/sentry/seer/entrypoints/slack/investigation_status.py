@@ -14,12 +14,13 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
 from sentry.issues.issue_search import issue_search_config
+from sentry.notebooks.models import Notebook
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
@@ -208,7 +209,7 @@ def _get_progress(
 
 def build_investigation_status(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     projection: Mapping[str, Any] | None,
     phase: str | None = None,
     status: str | None = None,

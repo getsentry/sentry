@@ -2006,6 +2006,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             ("OrganizationDashboardDetailsEndpoint", "PUT"): {
                 "title": "Updated permission matrix dashboard"
             },
+            # No chunks makes this a status poll, so no assemble task is started.
+            ("OrganizationArtifactBundleAssembleEndpoint", "POST"): {
+                "checksum": "a" * 40,
+                "chunks": [],
+                "projects": [self.project.slug],
+            },
             ("OrganizationDashboardsEndpoint", "POST"): {
                 "title": "Permission matrix dashboard mutation"
             },
@@ -2192,6 +2198,12 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 }
             },
             ("ProjectRepoEndpoint", "POST"): {"repositoryId": self._resource("repository").id},
+            ("ProjectSeerReposEndpoint", "POST"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
+            ("ProjectSeerReposEndpoint", "PUT"): {
+                "repos": [{"repositoryId": self._resource("scm_repository").id}],
+            },
             ("ProjectSymbolSourcesEndpoint", "POST"): {
                 "name": "Permission matrix new source",
                 "layout": {"type": "native"},
