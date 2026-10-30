@@ -189,6 +189,7 @@ function Graph({
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
+  const isDroppedDataLoaded = defined(droppedEvents);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
@@ -289,9 +290,10 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
+      {isDroppedDataLoaded ? (
         <DroppedDataLayerControl
           dataset={DiscoverDatasets.OURLOGS}
+          hasDroppedData={canShowDroppedData}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />

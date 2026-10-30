@@ -271,6 +271,7 @@ function Graph({
         chartInfo.dataScanned
       )
     : null;
+  const isDroppedDataLoaded = showChart && defined(droppedEvents);
   const canShowDroppedData = showChart && hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
@@ -296,9 +297,10 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {canShowDroppedData ? (
+            {isDroppedDataLoaded ? (
               <DroppedDataLayerControl
                 dataset={DiscoverDatasets.TRACEMETRICS}
+                hasDroppedData={canShowDroppedData}
                 showDroppedData={isDroppedDataLayerOn}
                 onChange={setIsDroppedDataLayerOn}
               />

@@ -302,6 +302,7 @@ function Chart({
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
+  const isDroppedDataLoaded = defined(droppedEvents);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
@@ -370,9 +371,10 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
+      {isDroppedDataLoaded ? (
         <DroppedDataLayerControl
           dataset={dataset}
+          hasDroppedData={canShowDroppedData}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />

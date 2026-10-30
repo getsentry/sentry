@@ -57,7 +57,7 @@ export function ChartFooter({
       <SectionValue key="total-value">{total.toLocaleString()}</SectionValue>
     )
   );
-  if (droppedDataLayer?.showDroppedData) {
+  if (droppedDataLayer?.hasDroppedData && droppedDataLayer.showDroppedData) {
     elements.push(
       <DroppedDataFilterNote
         key="dropped-data-filter-note"
