@@ -442,15 +442,10 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       ? []
       : (['Mod+/', 'Mod+.'] as const).map(hotkey => ({
           hotkey,
-          callback: event => {
-            // AZERTY produces + at the physical Slash position. Keep browser zoom.
-            if (event.key === '+') {
-              return;
-            }
-            event.preventDefault();
+          callback: () => {
             toggleSeerExplorer();
           },
-          options: {ignoreInputs: false, preventDefault: false},
+          options: {ignoreInputs: false},
         }))
   );
 

@@ -104,31 +104,6 @@ describe('openChatPrompt', () => {
     });
   });
 
-  it('keeps AZERTY browser zoom available and opens Seer with the slash shortcut', async () => {
-    render(tree(), {organization});
-    const zoomEvent = new KeyboardEvent('keydown', {
-      key: '+',
-      code: 'Slash',
-      ctrlKey: true,
-      bubbles: true,
-      cancelable: true,
-    });
-
-    act(() => {
-      document.dispatchEvent(zoomEvent);
-    });
-
-    expect(zoomEvent.defaultPrevented).toBe(false);
-    expect(
-      screen.queryByRole('combobox', {name: 'Ask Seer a question'})
-    ).not.toBeInTheDocument();
-
-    await userEvent.keyboard('{Control>}/{/Control}');
-    expect(
-      await screen.findByRole('combobox', {name: 'Ask Seer a question'})
-    ).toBeInTheDocument();
-  });
-
   it("shows the question as Seer's and sends it with the reply", async () => {
     render(tree(), {organization});
 
