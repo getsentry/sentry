@@ -9,7 +9,7 @@ from sentry import analytics
 from sentry.analytics.events.codeowners_created import CodeOwnersCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.projectcodeowners import (
     DEFAULT_CODEOWNERS_EXPAND,
@@ -39,7 +39,7 @@ from sentry.models.projectcodeowners import ProjectCodeOwners
 @extend_schema(tags=["Projects"])
 class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,

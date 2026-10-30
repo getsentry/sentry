@@ -5,7 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers.models.activity import (
@@ -30,7 +30,7 @@ from sentry.types.activity import ActivityType
 
 @cell_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
 
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

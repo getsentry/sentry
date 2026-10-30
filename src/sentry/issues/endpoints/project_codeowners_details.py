@@ -13,7 +13,7 @@ from sentry import analytics
 from sentry.analytics.events.codeowners_updated import CodeOwnersUpdated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.projectcodeowners import (
@@ -56,7 +56,7 @@ CODEOWNERS_ID_PARAM = OpenApiParameter(
 @extend_schema(tags=["Projects"])
 class ProjectCodeOwnersDetailsEndpoint(ProjectCodeOwnersBase):
     owner = ApiOwner.ISSUES
-    max_acceptable_duration = 3.0
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
         "GET": ApiPublishStatus.PUBLIC,
