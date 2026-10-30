@@ -14,10 +14,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -64,31 +61,24 @@ export function useLogsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) => {
-    const requestData = getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.OURLOGS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    );
-
-    if (samplingMode) {
-      requestData.sampling = samplingMode;
-    }
-    return requestData;
-  });
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData =>
+    queries: filteredWidget.queries.map((_, queryIndex) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.OURLOGS,
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
       })
     ),
     combine: combineWidgetQueryResults,

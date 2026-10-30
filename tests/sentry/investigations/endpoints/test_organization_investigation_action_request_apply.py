@@ -15,15 +15,26 @@ from sentry.incidents.metric_issue_detector import TRANSACTION_UPDATES_DISABLED
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.investigations.models import (
-    InvestigationActionRequest,
-    InvestigationActionRequestState,
-    InvestigationBlock,
-    InvestigationStatus,
+    InvestigationOrchestrationCommand,
+    InvestigationOrchestrationCommandStatus,
+    InvestigationOrchestrationPhase,
+    InvestigationOrchestrationRun,
 )
 from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import ActionInvalid, ActionStale
+from sentry.investigations.services.action_kinds.base import (
+    ActionInvalid,
+    ActionStale,
+    CannotApplyReason,
+)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
+from sentry.models.groupopenperiod import GroupOpenPeriod
+from sentry.notebooks.models import (
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookBlock,
+    NotebookStatus,
+)
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.silo.base import SiloMode
@@ -38,7 +49,11 @@ from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.workflow_engine.models import DataConditionGroup, Detector
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.investigations.services.test_orchestration import (
+    BreachedMetricInvestigationTestCase,
+)
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind
+from tests.sentry.investigations.test_seer_contract import fixture
 
 pytestmark = [requires_snuba, requires_kafka]
 
@@ -52,7 +67,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         self.login_as(self.user)
         self.environment = self.create_environment(project=self.project, name="production")
         self.detector = self.create_metric_detector()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Breach"
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
@@ -133,7 +148,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         changes: dict[str, Any] | None = None,
         detector_id: int | None = None,
         **values: Any,
-    ) -> InvestigationActionRequest:
+    ) -> NotebookActionRequest:
         values.setdefault("action_kind", "update_detector")
         values.setdefault(
             "action_payload",
@@ -144,8 +159,8 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
                 "changes": changes or {"timeWindowSeconds": 900},
             },
         )
-        return self.create_investigation_action_request(
-            investigation=self.investigation, key="widen-window", **values
+        return self.create_notebook_action_request(
+            notebook=self.investigation, key="widen-window", **values
         )
 
     def apply_url(self, action_request_id: int | str, investigation_id: int | None = None) -> str:
@@ -158,7 +173,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             },
         )
 
-    def apply(self, action_request: InvestigationActionRequest, **data: Any) -> Any:
+    def apply(self, action_request: NotebookActionRequest, **data: Any) -> Any:
         return self.client.post(self.apply_url(action_request.id), data=data, format="json")
 
     def snuba_query(self, detector: Detector | None = None) -> SnubaQuery:
@@ -194,7 +209,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             (DetectorPriorityLevel.HIGH, 800.0),
         ]
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.APPLIED
+        assert action_request.state == NotebookActionRequestState.APPLIED
         assert action_request.applied_by_id == self.user.id
         assert action_request.date_applied is not None
         assert self.snuba_query().time_window == 300
@@ -296,7 +311,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         )
 
     def test_requests_that_are_no_longer_suggested_conflict(self) -> None:
-        action_request = self.suggest(state=InvestigationActionRequestState.SUPERSEDED)
+        action_request = self.suggest(state=NotebookActionRequestState.SUPERSEDED)
 
         response = self.apply(action_request)
 
@@ -316,7 +331,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         }
 
     def test_a_dry_run_runs_the_same_checks(self) -> None:
-        action_request = self.suggest(state=InvestigationActionRequestState.SUPERSEDED)
+        action_request = self.suggest(state=NotebookActionRequestState.SUPERSEDED)
 
         response = self.apply(action_request, dryRun=True)
 
@@ -346,7 +361,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
                 "code": "action_changed",
             }
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
         assert self.snuba_query().time_window == 300
 
     def test_rejects_an_unknown_field(self) -> None:
@@ -379,7 +394,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             "current": {"timeWindowSeconds": 300},
         }
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUPERSEDED
+        assert action_request.state == NotebookActionRequestState.SUPERSEDED
         assert action_request.error == {"code": "stale", "current": {"timeWindowSeconds": 300}}
         assert self.snuba_query().time_window == 300
         assert self.apply(action_request).data["code"] == "not_suggested"
@@ -429,7 +444,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             "code": "detector_not_found",
         }
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_another_organizations_monitor_is_not_found(self) -> None:
         foreign = self.create_detector(
@@ -457,7 +472,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
         assert response.status_code == 403
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
         assert self.snuba_query().time_window == 300
 
     def test_an_invalid_change_is_rejected_and_can_be_tried_again(self) -> None:
@@ -475,7 +490,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.data["code"] == "validation_failed"
         assert any("Invalid Time Window" in message for message in response.data["messages"])
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
         assert action_request.error is None
         assert self.snuba_query().time_window == 300
         self.investigation.refresh_from_db()
@@ -503,7 +518,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.data["code"] == "validation_failed"
         assert any("Invalid Time Window" in message for message in response.data["messages"])
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
         assert action_request.error is None
 
     def test_a_dry_run_reports_a_stale_monitor_without_superseding_it(self) -> None:
@@ -514,11 +529,11 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 409
         assert response.data["code"] == "stale"
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_archived_investigations_are_read_only(self) -> None:
         action_request = self.suggest()
-        self.investigation.update(status=InvestigationStatus.ARCHIVED)
+        self.investigation.update(status=NotebookStatus.ARCHIVED)
 
         response = self.apply(action_request)
 
@@ -540,12 +555,12 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 403
         assert response.data["code"] == "permission_denied"
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_requests_without_a_supported_action_cannot_apply(self) -> None:
         for key, action in [("no-action", None), ("task", {"kind": "seer_task", "prompt": "Go"})]:
-            action_request = self.create_investigation_action_request(
-                investigation=self.investigation,
+            action_request = self.create_notebook_action_request(
+                notebook=self.investigation,
                 key=key,
                 action_kind=action["kind"] if action else None,
                 action_payload=action,
@@ -561,7 +576,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
 
     def test_a_withdrawn_request_is_no_longer_suggested(self) -> None:
         action_request = self.suggest(
-            state=InvestigationActionRequestState.WITHDRAWN, reason="The spikes are real."
+            state=NotebookActionRequestState.WITHDRAWN, reason="The spikes are real."
         )
 
         response = self.apply(action_request)
@@ -575,7 +590,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert self.snuba_query().time_window == 300
 
     def test_requests_from_other_investigations_are_not_found(self) -> None:
-        other = self.create_investigation(organization=self.organization, created_by=self.user)
+        other = self.create_notebook(organization=self.organization, created_by=self.user)
         self.create_investigation_orchestration_run(investigation=other)
         action_request = self.suggest()
 
@@ -685,7 +700,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             "code": "dynamic_detector",
         }
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
         assert self.snuba_query().time_window == 300
 
     def test_a_dataset_the_plan_no_longer_allows_is_not_found(self) -> None:
@@ -737,7 +752,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert self.conditions() == conditions
         assert self.snuba_query().time_window == 300
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     @override_settings(SEER_API_SHARED_SECRET="test-seer-api-shared-secret-thirty-two-bytes!")
     def test_an_agent_token_without_alerts_write_cannot_apply(self) -> None:
@@ -757,7 +772,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         assert response.status_code == 403, response.content
         assert response.data["code"] == "permission_denied"
         action_request.refresh_from_db()
-        assert action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_applying_records_activity_and_an_audit_entry(self) -> None:
         self.detector.update(name="Checkout [p95]")
@@ -765,9 +780,9 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             title="Widen the window",
             before={"timeWindowSeconds": 300, "highThreshold": 500},
             changes={"timeWindowSeconds": 3600, "highThreshold": 800.5},
-            report_revision=2,
+            producer_revision=2,
         )
-        blocks = InvestigationBlock.objects.filter(investigation=self.investigation).count()
+        blocks = NotebookBlock.objects.filter(notebook=self.investigation).count()
         version = self.investigation.version
 
         with outbox_runner():
@@ -797,7 +812,7 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
             "detectorName": "Checkout [p95]",
             "fields": ["timeWindowSeconds", "highThreshold"],
         }
-        assert InvestigationBlock.objects.filter(investigation=self.investigation).count() == blocks
+        assert NotebookBlock.objects.filter(notebook=self.investigation).count() == blocks
         self.investigation.refresh_from_db()
         assert self.investigation.version == version
 
@@ -832,13 +847,19 @@ class SharedApplyPathTest(APITestCase):
         recording = ACTION_KINDS["test_kind"]
         assert isinstance(recording, RecordingKind)
         self.kind = recording
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
-        self.create_investigation_orchestration_run(investigation=self.investigation)
-        self.action_request = self.create_investigation_action_request(
+        self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation,
-            key="test",
+            workflow_version=4,
+            phase=InvestigationOrchestrationPhase.COMPLETED,
+            projection={"workflowVersion": 4, "report": {"revision": 2, "status": "completed"}},
+        )
+        self.action_request = self.create_notebook_action_request(
+            notebook=self.investigation,
+            key="widen-time-window",
+            producer_revision=2,
             action_kind="test_kind",
             action_payload=fake_action(),
         )
@@ -854,13 +875,200 @@ class SharedApplyPathTest(APITestCase):
         )
         return self.client.post(url, data=data, format="json")
 
+    def recheck(self, **data: Any) -> Any:
+        url = reverse(
+            "sentry-api-0-organization-investigation-action-request-recheck",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": self.investigation.id,
+                "action_request_id": self.action_request.id,
+            },
+        )
+        return self.client.post(url, data=data, format="json")
+
+    def commands(self) -> list[InvestigationOrchestrationCommand]:
+        return list(
+            InvestigationOrchestrationCommand.objects.filter(
+                orchestration_run=self.orchestration_run
+            )
+        )
+
+    def test_a_recheck_of_a_stale_request_supersedes_it_and_asks_seer(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == ["check"]
+        [command] = self.commands()
+        assert command.type == "recheck_action_requests"
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 5)
+        read = response.data["actionRequest"]
+        assert read["state"] == "superseded"
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
+        self.action_request.refresh_from_db()
+        assert self.action_request.followup_request_id == command.request_id
+
+    def test_a_recheck_with_nothing_moved_is_not_stale(self) -> None:
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "Nothing changed since Seer suggested this.",
+            "code": "not_stale",
+        }
+        assert self.kind.calls == ["check"]
+        assert self.commands() == []
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == NotebookActionRequestState.SUGGESTED
+
+    def test_a_recheck_of_an_invalid_change_is_the_same_error_as_apply(self) -> None:
+        self.kind.raises = ActionInvalid(["Pick a supported window."])
+
+        response = self.recheck()
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "The change wasn't valid.",
+            "code": "validation_failed",
+            "messages": ["Pick a supported window."],
+        }
+        assert self.commands() == []
+
+    def test_a_recheck_keeps_nothing_a_check_writes(self) -> None:
+        title = self.action_request.title
+        self.kind.check_title = "Changed by the check"
+
+        assert self.recheck().data["code"] == "not_stale"
+
+        self.action_request.refresh_from_db()
+        assert self.action_request.title == title
+
+    def test_a_queued_recheck_is_not_sent_again(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_suggested"
+        assert len(self.commands()) == 1
+
+    def test_a_recheck_seer_never_got_goes_out_again_as_the_same_command(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "seer_command_dispatch_failed", "retryable": True},
+        )
+        self.kind.calls.clear()
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == []
+        [command] = self.commands()
+        assert command.request_id == failed.request_id
+        assert command.status == InvestigationOrchestrationCommandStatus.ACCEPTED
+        assert command.expected_workflow_version == 4
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 5
+        read = response.data["actionRequest"]
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
+
+    def test_a_recheck_behind_an_undelivered_command_waits_for_it(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={"code": "earlier_command_failed"},
+        )
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "not_retryable"
+        assert self.commands() == [failed]
+
+    def test_a_recheck_seer_turned_down_goes_out_as_a_new_command(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.recheck().status_code == 200
+        [failed] = self.commands()
+        failed.update(
+            status=InvestigationOrchestrationCommandStatus.FAILED,
+            error={
+                "code": "seer_command_dispatch_failed",
+                "reason": "workflow_version_conflict",
+                "retryable": False,
+            },
+        )
+        # The conflict reconcile moves Sentry back to Seer's version.
+        self.orchestration_run.update(workflow_version=4)
+        self.kind.calls.clear()
+
+        response = self.recheck()
+
+        assert response.status_code == 200, response.data
+        assert self.kind.calls == []
+        [command] = [command for command in self.commands() if command.id != failed.id]
+        assert command.type == "recheck_action_requests"
+        assert command.request_id != failed.request_id
+        assert command.expected_workflow_version == 4
+        read = response.data["actionRequest"]
+        assert read["error"] == {"code": "stale", "current": {"window": 600}}
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
+
+    def test_a_recheck_of_an_action_seer_changed_since_the_user_saw_it_conflicts(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.action_request.action_payload is not None
+        seen = {**self.action_request.action_payload, "seen": "an older suggestion"}
+
+        response = self.recheck(action=seen)
+
+        assert response.status_code == 409
+        assert response.data == {
+            "detail": "Seer changed this suggestion. Check the new one.",
+            "code": "action_changed",
+        }
+        assert self.kind.calls == []
+        assert self.commands() == []
+        assert self.recheck(action=self.action_request.action_payload).status_code == 200
+
+    def test_a_recheck_goes_through_the_apply_guard(self) -> None:
+        self.action_request.update(state=NotebookActionRequestState.APPLIED)
+
+        response = self.recheck()
+
+        assert response.status_code == 409
+        assert response.data["code"] == "already_applied"
+        assert self.kind.calls == []
+
     def test_a_dry_run_only_checks(self) -> None:
         response = self.post(dryRun=True)
 
         assert response.status_code == 200, response.data
-        assert self.kind.calls == ["check"]
+        assert self.kind.calls == ["check_remote", "check"]
         self.action_request.refresh_from_db()
-        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.action_request.state == NotebookActionRequestState.SUGGESTED
 
     def test_a_dry_run_keeps_nothing_a_check_writes(self) -> None:
         title = self.action_request.title
@@ -876,11 +1084,72 @@ class SharedApplyPathTest(APITestCase):
         response = self.post()
 
         assert response.status_code == 200, response.data
-        assert self.kind.calls == ["apply"]
+        assert self.kind.calls == ["check_remote", "apply"]
         self.action_request.refresh_from_db()
-        assert self.action_request.state == InvestigationActionRequestState.APPLIED
+        assert self.action_request.state == NotebookActionRequestState.APPLIED
         assert self.action_request.applied_by_id == self.user.id
         assert self.action_request.applied_details == {"target": "a"}
+
+    def test_applying_tells_seer_the_outcome(self) -> None:
+        response = self.post()
+
+        assert response.status_code == 200, response.data
+        [command] = self.commands()
+        assert {"type": command.type, **command.payload} == {
+            **fixture("command_record_action_outcome"),
+            "action": fake_action(),
+            "appliedBy": self.user.id,
+        }
+        assert command.actor_id == self.user.id
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 4)
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.workflow_version == 4
+
+    def test_the_outcome_goes_to_seer_as_the_user_who_applied_it(self) -> None:
+        applier = self.create_user()
+        self.create_member(user=applier, organization=self.organization, role="owner")
+        self.login_as(applier)
+
+        assert self.post().status_code == 200
+
+        [command] = self.commands()
+        assert command.actor_id == applier.id
+        assert command.payload["appliedBy"] == applier.id
+
+    def test_only_a_successful_apply_tells_seer(self) -> None:
+        assert self.post(dryRun=True).status_code == 200
+        self.kind.raises = ActionInvalid(["Pick a supported window."])
+        assert self.post().status_code == 400
+        self.kind.raises = ActionStale({"window": 600})
+        assert self.post().status_code == 409
+
+        assert [command.type for command in self.commands()] == ["recheck_action_requests"]
+
+    def test_a_failed_remote_check_stops_before_the_kind_applies(self) -> None:
+        self.kind.remote_raises = ActionInvalid(["Not connected."])
+
+        response = self.post()
+
+        assert response.status_code == 400
+        assert response.data["messages"] == ["Not connected."]
+        assert self.kind.calls == ["check_remote"]
+        self.action_request.refresh_from_db()
+        assert self.action_request.state == NotebookActionRequestState.SUGGESTED
+
+    def test_a_request_the_viewer_cannot_apply_skips_the_remote_check(self) -> None:
+        self.kind.reason = CannotApplyReason.PERMISSION_DENIED
+
+        response = self.post()
+
+        assert response.status_code == 403
+        assert response.data["code"] == "permission_denied"
+        assert self.kind.calls == []
+
+    def test_requests_that_are_not_suggested_skip_the_remote_check(self) -> None:
+        self.action_request.update(state=NotebookActionRequestState.APPLIED)
+
+        assert self.post().data["code"] == "already_applied"
+        assert self.kind.calls == []
 
     def test_a_stale_action_is_superseded_with_what_moved(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
@@ -894,8 +1163,68 @@ class SharedApplyPathTest(APITestCase):
             "current": {"window": 600},
         }
         self.action_request.refresh_from_db()
-        assert self.action_request.state == InvestigationActionRequestState.SUPERSEDED
+        assert self.action_request.state == NotebookActionRequestState.SUPERSEDED
         assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
+
+    def test_a_stale_action_asks_seer_to_check_again(self) -> None:
+        self.kind.raises = ActionStale({"window": 600})
+
+        assert self.post().status_code == 409
+
+        [command] = self.commands()
+        assert command.type == "recheck_action_requests"
+        assert {"type": command.type, **command.payload}.keys() == fixture(
+            "command_recheck_action_requests"
+        ).keys()
+        assert command.payload["reportRevision"] == 2
+        assert command.actor_id == self.user.id
+        assert (command.expected_workflow_version, command.resulting_workflow_version) == (4, 5)
+        self.action_request.refresh_from_db()
+        assert self.action_request.followup_request_id == command.request_id
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                },
+            )
+        )
+        [read] = details.data["actionRequests"]
+        assert read["followUp"] == {
+            "status": "accepted",
+            "reason": None,
+            "rerun": None,
+            "retryable": False,
+        }
+
+    def test_a_stale_action_seer_cant_recheck_stops_being_listed(self) -> None:
+        for phase, report in (
+            (InvestigationOrchestrationPhase.INVESTIGATING, {"revision": 2, "status": "completed"}),
+            (InvestigationOrchestrationPhase.COMPLETED, {"revision": 3, "status": "completed"}),
+            (InvestigationOrchestrationPhase.METADATA, {"revision": 2, "status": "composing"}),
+        ):
+            self.orchestration_run.update(phase=phase, projection={"report": report})
+            self.action_request.update(state=NotebookActionRequestState.SUGGESTED, error=None)
+            self.kind.raises = ActionStale({"window": 600})
+
+            assert self.post().status_code == 409
+
+            assert self.commands() == []
+            self.action_request.refresh_from_db()
+            assert self.action_request.state == NotebookActionRequestState.SUPERSEDED
+            assert self.action_request.error == {"code": "stale", "current": {"window": 600}}
+            assert self.action_request.followup_request_id is None
+            details = self.client.get(
+                reverse(
+                    "sentry-api-0-organization-investigation-details",
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "investigation_id": self.investigation.id,
+                    },
+                )
+            )
+            assert details.data["actionRequests"] == []
 
     def test_a_stale_dry_run_changes_nothing(self) -> None:
         self.kind.raises = ActionStale({"window": 600})
@@ -904,8 +1233,10 @@ class SharedApplyPathTest(APITestCase):
 
         assert response.status_code == 409
         self.action_request.refresh_from_db()
-        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.action_request.state == NotebookActionRequestState.SUGGESTED
         assert self.action_request.error is None
+        assert self.action_request.followup_request_id is None
+        assert self.commands() == []
 
     def test_an_invalid_action_stays_suggested(self) -> None:
         self.kind.raises = ActionInvalid(["Pick a supported window."])
@@ -919,4 +1250,86 @@ class SharedApplyPathTest(APITestCase):
             "messages": ["Pick a supported window."],
         }
         self.action_request.refresh_from_db()
-        assert self.action_request.state == InvestigationActionRequestState.SUGGESTED
+        assert self.action_request.state == NotebookActionRequestState.SUGGESTED
+
+
+@with_feature(FEATURE)
+class BreachedMetricRecheckTest(BreachedMetricInvestigationTestCase):
+    def test_the_recheck_sends_the_source_the_run_started_with(self) -> None:
+        self.login_as(self.user)
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
+        recording = ACTION_KINDS["test_kind"]
+        assert isinstance(recording, RecordingKind)
+        recording.raises = ActionStale({"window": 600})
+        InvestigationOrchestrationRun.objects.filter(investigation=self.investigation).update(
+            phase=InvestigationOrchestrationPhase.COMPLETED,
+            projection={"report": {"revision": 1, "status": "completed"}},
+        )
+        action_request = self.create_notebook_action_request(
+            notebook=self.investigation,
+            producer_revision=1,
+            key="widen-time-window",
+            action_kind="test_kind",
+            action_payload=fake_action(),
+        )
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-investigation-action-request-apply",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                    "action_request_id": action_request.id,
+                },
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 409
+        command = InvestigationOrchestrationCommand.objects.get(type="recheck_action_requests")
+        assert command.payload["source"] == self.started_source(self.investigation)
+
+    def test_a_stale_request_seer_cannot_be_asked_about_is_not_listed(self) -> None:
+        self.login_as(self.user)
+        kind = fake_action_kind()
+        kind.start()
+        self.addCleanup(kind.stop)
+        recording = ACTION_KINDS["test_kind"]
+        assert isinstance(recording, RecordingKind)
+        recording.raises = ActionStale({"window": 600})
+        action_request = self.create_notebook_action_request(
+            notebook=self.investigation,
+            key="widen-time-window",
+            action_kind="test_kind",
+            action_payload=fake_action(),
+        )
+        GroupOpenPeriod.objects.filter(id=self.investigation.source["ref"]["openPeriodId"]).delete()
+
+        response = self.client.post(
+            reverse(
+                "sentry-api-0-organization-investigation-action-request-recheck",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                    "action_request_id": action_request.id,
+                },
+            ),
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert not InvestigationOrchestrationCommand.objects.filter(
+            type="recheck_action_requests"
+        ).exists()
+        details = self.client.get(
+            reverse(
+                "sentry-api-0-organization-investigation-details",
+                kwargs={
+                    "organization_id_or_slug": self.organization.slug,
+                    "investigation_id": self.investigation.id,
+                },
+            )
+        )
+        assert details.json()["actionRequests"] == []

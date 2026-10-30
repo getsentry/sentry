@@ -3,7 +3,7 @@ import {IconStack} from '@sentry/icons/stack';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 
-import {droppedDataLabel} from 'sentry/components/droppedData/outcomes';
+import {datasetNoun, droppedDataLabel} from 'sentry/components/droppedData/outcomes';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 
@@ -31,6 +31,7 @@ function includesDroppedDataLayer(selected: Array<SelectOption<string>>): boolea
 
 interface DroppedDataLayerControlProps {
   dataset: DiscoverDatasets;
+  hasDroppedData: boolean;
   onChange: (showDroppedData: boolean) => void;
   showDroppedData: boolean;
 }
@@ -38,9 +39,12 @@ interface DroppedDataLayerControlProps {
 // TODO: refactor this component to also handle feature flags and releases
 export function DroppedDataLayerControl({
   dataset,
+  hasDroppedData,
   showDroppedData,
   onChange,
 }: DroppedDataLayerControlProps) {
+  const isLayerShown = hasDroppedData && showDroppedData;
+
   function handleChange(selected: Array<SelectOption<string>>) {
     onChange(includesDroppedDataLayer(selected));
   }
@@ -48,10 +52,19 @@ export function DroppedDataLayerControl({
   return (
     <CompactSelect
       multiple
-      value={showDroppedData ? [DROPPED_DATA_LAYER] : []}
-      options={[{value: DROPPED_DATA_LAYER, label: droppedDataLabel(dataset)}]}
+      value={isLayerShown ? [DROPPED_DATA_LAYER] : []}
+      options={[
+        {
+          value: DROPPED_DATA_LAYER,
+          label: droppedDataLabel(dataset),
+          disabled: !hasDroppedData,
+          tooltip: hasDroppedData
+            ? undefined
+            : t('No significant dropped %s in this time range', datasetNoun(dataset, 2)),
+        },
+      ]}
       menuTitle={t('Layers')}
-      trigger={triggerProps => layersTrigger(triggerProps, showDroppedData)}
+      trigger={triggerProps => layersTrigger(triggerProps, isLayerShown)}
       onChange={handleChange}
     />
   );

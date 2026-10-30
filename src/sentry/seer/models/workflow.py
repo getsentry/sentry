@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from pydantic import BaseModel
 
@@ -32,10 +34,15 @@ SEER_CONFIGURABLE_WORKFLOW_STRATEGIES = frozenset(
     {SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION}
 )
 
+# Soft bound on configs per organization. Actual count could go over a bit from concurrent writes.
+MAX_WORKFLOW_CONFIGS_PER_ORG = 50
+
 
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
+    # Optional user-supplied name
+    name: str | None = None
 
 
 class SeerWorkflowFilters(BaseModel):
@@ -64,6 +71,12 @@ class SeerWorkflowConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    backing_workflow = models.OneToOneField(
+        "workflow_engine.Workflow",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="seer_workflow_config",
+    )
     service_account_id = HybridCloudForeignKey(
         "service_accounts.ServiceAccount",
         on_delete="SET_NULL",
@@ -151,6 +164,61 @@ class SeerWorkflowTriggerBinding(DefaultFieldsModel):
     __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
 
 
+class SeerWorkflowRunStatus(models.TextChoices):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+    REJECTED = "rejected"
+
+
+class SeerWorkflowExecutionStatus(models.TextChoices):
+    QUEUED = "queued"
+    RUNNING = "running"
+    COMPLETE = "complete"
+    FAILED = "failed"
+
+
+class WorkflowSnapshotFilters(SeerWorkflowFilters):
+    class Config:
+        extra = "allow"
+
+
+class WorkflowRunSnapshot(BaseModel):
+    config_version: int
+    strategy: SeerWorkflowStrategy
+    filters: WorkflowSnapshotFilters
+    project_ids: tuple[int, ...]
+    output_policy: dict[str, Any]
+    inputs: dict[str, Any]
+
+    class Config:
+        allow_mutation = False
+
+
+class WorkflowRunError(BaseModel):
+    # Stable snake_case failure category chosen by the caller, e.g. "dispatch_failed".
+    code: str
+    # Explanation safe to display, e.g. "Could not start the execution."
+    message: str
+
+
+class SeerWorkflowRunExtras(BaseModel):
+    snapshot: WorkflowRunSnapshot
+    error: WorkflowRunError | None = None
+
+    class Config:
+        # Preserve strategy-specific metadata when updating shared fields.
+        extra = "allow"
+
+
+class SeerWorkflowExecutionExtras(BaseModel):
+    error: WorkflowRunError | None = None
+
+    class Config:
+        extra = "allow"
+
+
 @cell_silo_model
 class SeerWorkflowRun(DefaultFieldsModel):
     """Records each workflow invocation for an organization.
@@ -163,11 +231,14 @@ class SeerWorkflowRun(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     workflow_config = FlexibleForeignKey(
-        "seer.SeerWorkflowConfig", on_delete=models.SET_NULL, null=True
+        "seer.SeerWorkflowConfig", on_delete=models.CASCADE, null=True
     )
     # Cron window (e.g. 2024-07-22T22:00) or event identity (e.g. issue_created:123).
     trigger_key = models.CharField(max_length=256, null=True, db_column="schedule_id")
+    # Null for historical runs that have not adopted the shared lifecycle.
+    status = models.CharField(max_length=256, choices=SeerWorkflowRunStatus.choices, null=True)
     date_completed = models.DateTimeField(null=True)
+    # Shape: SeerWorkflowRunExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:
@@ -205,6 +276,11 @@ class SeerWorkflowRunExecution(DefaultFieldsModel):
     seer_run = models.OneToOneField(
         "seer.SeerRun", on_delete=models.SET_NULL, null=True, related_name="workflow_execution"
     )
+    status = models.CharField(
+        max_length=256, choices=SeerWorkflowExecutionStatus.choices, null=True
+    )
+    date_completed = models.DateTimeField(null=True)
+    # Shape: SeerWorkflowExecutionExtras.
     extras = models.JSONField(db_default={}, default=dict)
 
     class Meta:

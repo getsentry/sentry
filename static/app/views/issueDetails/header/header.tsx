@@ -40,10 +40,6 @@ import {
 } from 'sentry/views/issueDetails/issueDetailsTour';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
-import {
-  getGroupReprocessingStatus,
-  ReprocessingStatus,
-} from 'sentry/views/issueDetails/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 interface GroupHeaderProps {
@@ -67,11 +63,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
-  const groupReprocessingStatus = getGroupReprocessingStatus(group);
-  const disableActions = [
-    ReprocessingStatus.REPROCESSING,
-    ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT,
-  ].includes(groupReprocessingStatus);
 
   const hasErrorUpsampling = project.features.includes('error-upsampling');
 
@@ -229,12 +220,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 borderTop="primary"
                 pointerEvents="none"
               />
-              <GroupActions
-                group={group}
-                project={project}
-                disabled={disableActions}
-                event={event}
-              />
+              <GroupActions group={group} project={project} event={event} />
               <Flex justify={{zero: 'start', '4xl': 'end'}} gap="0 xl" wrap="wrap">
                 <Flex align="center" gap="xs">
                   <Text variant="muted">{t('Priority')}</Text>

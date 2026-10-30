@@ -4,11 +4,8 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
-from sentry.investigations.models import (
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-)
-from sentry.investigations.services import (
+from sentry.notebooks.models import NotebookBlockExecution, NotebookBlockExecutionStatus
+from sentry.notebooks.services import (
     mark_block_execution_cancelled,
     mark_block_execution_resumed,
     mark_block_execution_stopping,
@@ -25,20 +22,20 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Query execution",
         )
-        self.create_investigation_project(investigation=self.investigation, project=self.project)
-        self.block = self.create_investigation_block(
-            investigation=self.investigation,
+        self.create_notebook_project(notebook=self.investigation, project=self.project)
+        self.block = self.create_notebook_block(
+            notebook=self.investigation,
             kind="query",
             prompt="Show unresolved errors over the last day",
             display={"type": "table"},
         )
 
-    def execution_url(self, execution: InvestigationBlockExecution) -> str:
+    def execution_url(self, execution: NotebookBlockExecution) -> str:
         return reverse(
             "sentry-api-0-organization-investigation-block-execution-details",
             kwargs={
@@ -49,17 +46,17 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             },
         )
 
-    def awaiting_input_execution(self) -> InvestigationBlockExecution:
+    def awaiting_input_execution(self) -> NotebookBlockExecution:
         seer_run = self.create_seer_run(
             organization=self.organization,
             type=SeerRunType.EXPLORER,
             seer_run_state_id=77,
         )
-        return self.create_investigation_block_execution(
+        return self.create_notebook_block_execution(
             block=self.block,
             seer_run=seer_run,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.AWAITING_INPUT,
+            status=NotebookBlockExecutionStatus.AWAITING_INPUT,
             block_version=self.block.version,
             input_snapshot={"projectIds": [self.project.id]},
         )
@@ -88,7 +85,7 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
             "response_data": "the checkout project",
         }
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.RUNNING
+        assert execution.status == NotebookBlockExecutionStatus.RUNNING
 
     def test_resume_rejects_a_body_without_an_input_id(self) -> None:
         execution = self.awaiting_input_execution()
@@ -118,17 +115,17 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
         # The caller still sees the upstream failure, but the row is not left in flight.
         assert response.status_code == 500
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         assert execution.completed_at is not None
 
-    @patch("sentry.investigations.services.executions.record_execution_cancelled")
+    @patch("sentry.notebooks.services.executions.record_execution_cancelled")
     def test_stop_closes_a_pending_execution_that_never_reached_seer(
         self, record_cancelled: MagicMock
     ) -> None:
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=self.block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.PENDING,
+            status=NotebookBlockExecutionStatus.PENDING,
             block_version=self.block.version,
             input_snapshot={"projectIds": [self.project.id]},
         )
@@ -138,33 +135,33 @@ class InvestigationBlockExecutionDetailsEndpointTest(APITestCase):
 
         assert response.status_code == 204
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.CANCELLED
+        assert execution.status == NotebookBlockExecutionStatus.CANCELLED
         record_cancelled.assert_called_once_with(execution, reason="user_requested")
 
     def test_resume_does_not_revive_a_finished_execution(self) -> None:
         execution = self.awaiting_input_execution()
-        execution.update(status=InvestigationBlockExecutionStatus.COMPLETED)
+        execution.update(status=NotebookBlockExecutionStatus.COMPLETED)
 
         assert not mark_block_execution_resumed(execution)
 
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
 
     def test_stop_does_not_overwrite_a_concurrent_completion(self) -> None:
         execution = self.awaiting_input_execution()
-        execution.update(status=InvestigationBlockExecutionStatus.COMPLETED)
+        execution.update(status=NotebookBlockExecutionStatus.COMPLETED)
 
         assert not mark_block_execution_stopping(execution)
         assert not mark_block_execution_cancelled(execution)
 
         execution.refresh_from_db()
-        assert execution.status == InvestigationBlockExecutionStatus.COMPLETED
+        assert execution.status == NotebookBlockExecutionStatus.COMPLETED
 
     def test_investigations_feature_is_required_for_run_state_and_title(self) -> None:
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=self.block,
             executor="code_mode",
-            status=InvestigationBlockExecutionStatus.PENDING,
+            status=NotebookBlockExecutionStatus.PENDING,
             block_version=self.block.version,
             input_snapshot={"projectIds": [self.project.id]},
         )

@@ -15,25 +15,22 @@ from sentry.investigations.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
 )
-from sentry.investigations.endpoints.base import (
+from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
     organization_project_ids,
     require_authenticated_user,
     service_error,
 )
-from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
-from sentry.investigations.endpoints.validators import BlockExecutionStartValidator
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockKind,
+from sentry.notebooks.endpoints.validators import BlockExecutionStartValidator
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockKind,
 )
-from sentry.investigations.services import (
-    create_block_execution,
-    mark_block_execution_dispatch_failed,
-)
-from sentry.models.organization import Organization
+from sentry.notebooks.services import create_block_execution, mark_block_execution_dispatch_failed
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.utils import metrics
 
@@ -78,8 +75,8 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
     ) -> Response:
         """
         Start asynchronous text generation or query execution. Send notebook and block versions
@@ -104,7 +101,7 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                     status=status.HTTP_403_FORBIDDEN,
                 )
             project_ids = sorted(selected_project_ids)
-        elif block.kind == InvestigationBlockKind.QUERY:
+        elif block.kind == NotebookBlockKind.QUERY:
             project_ids = sorted(org_project_ids)
         else:
             project_ids = []
@@ -129,7 +126,7 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
         if created:
             metric_namespace = (
                 "investigations.query_execution"
-                if block.kind == InvestigationBlockKind.QUERY
+                if block.kind == NotebookBlockKind.QUERY
                 else "investigations.text_execution"
             )
             try:
@@ -144,7 +141,7 @@ class OrganizationInvestigationBlockExecutionsEndpoint(OrganizationInvestigation
                 metrics.incr(f"{metric_namespace}.dispatch_failed")
                 raise
 
-        execution = InvestigationBlockExecution.objects.get(id=execution.id)
+        execution = NotebookBlockExecution.objects.get(id=execution.id)
         response_data: InvestigationExecutionResponse = {
             "id": str(execution.id),
             "status": execution.status,

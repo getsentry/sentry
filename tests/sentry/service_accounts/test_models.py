@@ -169,16 +169,18 @@ class ServiceAccountReplicationTest(TestCase):
         assert replica.name == "seer-autofix"
         assert replica.scope_list == ["org:read", "project:read"]
         assert replica.is_active
+        assert not replica.all_projects
         assert self.get_replica_project_ids() == {project.id for project in self.projects}
 
     def test_update_replicates(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.service_account.update(is_active=False, scope_list=["org:read"])
+            self.service_account.update(is_active=False, scope_list=["org:read"], all_projects=True)
 
         replica = self.get_replica()
         assert replica is not None
         assert not replica.is_active
         assert replica.scope_list == ["org:read"]
+        assert replica.all_projects
 
     def test_project_link_changes_replicate(self) -> None:
         new_project = self.create_project(organization=self.organization)

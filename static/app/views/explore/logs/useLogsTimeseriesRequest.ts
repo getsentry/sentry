@@ -8,8 +8,8 @@ import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logs
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/logsIngestDelay';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,

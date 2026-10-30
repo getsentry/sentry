@@ -31,6 +31,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.api.utils import SortBy, parse_sort_by, to_valid_int_id
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.discover.arithmetic import (
     ArithmeticParseError,
     ArithmeticValidationError,
@@ -233,7 +234,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         if user_ids:
             service_serialized = user_service.serialize_many(
                 filter={"user_ids": list(user_ids)},
-                as_user=user if user.id else None,
+                as_user=user if has_user(user) else None,
             )
             serialized_users = {user["id"]: user for user in service_serialized}
         else:
@@ -687,7 +688,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
         with write_formula_to_db():
             formula = ExploreSavedFormula.objects.create(
                 organization=organization,
-                created_by_id=request.user.id,
+                created_by_id=acting_user_id(request.user),
                 formula=data["formula"],
                 description=data["description"],
                 name=data["name"],
@@ -802,7 +803,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
                 description=data["description"],
                 unit=data["unit"],
                 dataset=data["dataset"],
-                updated_by_id=request.user.id,
+                updated_by_id=acting_user_id(request.user),
             )
             ExploreSavedVariable.objects.filter(explore_saved_formula=formula).delete()
             for param in data["params"]:

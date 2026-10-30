@@ -86,12 +86,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "organization.provision-analytics-with-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Redis
 register(
@@ -318,6 +312,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Turns on the deprecated scope translation in sentry.auth.deprecated_scope_translation, which
+# grants tokens holding a deprecated scope (e.g. org:read) the granular scopes replacing it.
+# Turning this off is safe while endpoints still accept the deprecated scopes. Before any
+# endpoint stops accepting them regardless of this option, enable it everywhere and remove it.
+register(
+    "auth.deprecated-scope-translation.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # User Settings
@@ -1549,8 +1553,8 @@ register(
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
-# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
-# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+# on conversation id. 0.0 disables generation; 1.0 enables it for every
+# conversation in orgs that have not hidden AI features.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
     type=Float,
@@ -2760,6 +2764,47 @@ register(
 register(
     "hybridcloud.rpc.method_timeout_overrides",
     default={},
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Per-destination circuit breaker for outbound RPCs. `enabled` tracks outcomes and
+# records would-be rejections; `enforce` actually rejects calls while the breaker is open.
+register(
+    "hybridcloud.rpc.circuit-breaker.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.enforce",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.rpc.circuit-breaker.config",
+    type=Dict,
+    default={
+        "error_limit_window": 60,  # seconds
+        "broken_state_duration": 30,  # seconds
+        "threshold": 0.5,  # fraction of calls that must fail to trip
+        "floor": 50,  # minimum failures before the threshold applies
+    },
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Calls slower than this count as failures: a slow destination ties up workers the
+# same way a failing one does.
+register(
+    "hybridcloud.rpc.circuit-breaker.slow-call-seconds",
+    type=Float,
+    default=5.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Destinations (cell names, or "control") whose calls are rejected outright, whatever the
+# options above say. A manual switch for cutting off a cell during an outage.
+register(
+    "hybridcloud.rpc.circuit-breaker.force-open-destinations",
+    type=Sequence,
+    default=[],
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -4055,6 +4100,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum number of commits associated with a release in one set_commits call.
+# Longer lists keep only the newest commits.
+register(
+    "releases.set-commits.max-commits",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Secret Scanning. Allows to temporarily disable signature verification.
 register(
     "secret-scanning.github.enable-signature-verification",
@@ -4660,9 +4714,10 @@ register(
 # Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
 # of an event to the files of its release by URL. When set, it reads once per request the URLs of
 # the release's newest bundles, as many bundles as fit in this many rows and always the newest
-# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
-# index. Files only found in older bundles, or beyond the rows read, are then reported as not
-# found. 0 keeps the index lookups.
+# one, up to this many rows, instead of looking up each URL in all the release's bundles. Files
+# only found in older bundles, or beyond the rows read, are then reported as not found. 0 keeps
+# the per-URL lookups, which have no index on `url` since the `(url, artifact_bundle_id)` index
+# was dropped.
 register(
     "sourcemaps.source-map-debug.url-match-max-index-rows",
     default=0,
@@ -4708,14 +4763,5 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to query legacy debug/code IDS during debug file lookup.
-# This is a per-request rollout rate.
-register(
-    "debug-files.query-legacy-ids.rollout-rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

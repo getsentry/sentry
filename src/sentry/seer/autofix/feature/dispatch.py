@@ -151,8 +151,10 @@ def trigger_autofix_feature(
         enable_coding=enable_coding,
         enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
-    if features.has("organizations:seer-autofix-code-mode", group.organization):
-        agent_run_options["enable_code_mode_tools"] = "only"
+    if args.step == AutofixStep.PR_ITERATION and features.has(
+        "organizations:autofix-pr-iteration-pin-to-pr-head", group.organization
+    ):
+        agent_run_options["pin_to_pr_head"] = True
 
     extras: dict[str, Any] = {
         "referrer": args.referrer.value,

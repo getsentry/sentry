@@ -65,8 +65,8 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 class PromptsActivityPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "user_preference:read"],
+        "PUT": ["org:read", "org:write", "org:admin", "user_preference:write"],
     }
 
 

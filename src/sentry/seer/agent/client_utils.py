@@ -132,7 +132,7 @@ class AgentPrStateRequest(TypedDict):
 
 
 class AgentRunOptions(TypedDict):
-    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
+    enable_code_mode_tools: NotRequired[Literal["off", "only"]]
     enable_assisted_query_code_mode: NotRequired[bool]
     enable_frontend_code_search: NotRequired[bool | None]
     is_context_engine_enabled: NotRequired[bool]
@@ -144,6 +144,7 @@ class AgentRunOptions(TypedDict):
     enable_tool_summary: NotRequired[bool]
     embed_widgets: NotRequired[list[dict[str, Any]] | None]
     enable_streaming: NotRequired[bool]
+    pin_to_pr_head: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):

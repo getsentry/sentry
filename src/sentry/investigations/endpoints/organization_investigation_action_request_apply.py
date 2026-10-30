@@ -12,16 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-)
 from sentry.investigations.endpoints.serializers import InvestigationActionRequestSerializer
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationActionRequestApplyResponse,
 )
 from sentry.investigations.endpoints.validators import ActionRequestApplyValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
@@ -29,6 +24,11 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.investigations.services.action_requests import apply_action_request
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    require_authenticated_user,
+)
+from sentry.notebooks.models import Notebook
 
 _STATUS = {
     CannotApplyReason.INVESTIGATION_ARCHIVED: status.HTTP_400_BAD_REQUEST,
@@ -37,6 +37,10 @@ _STATUS = {
     CannotApplyReason.NO_ACCESS: status.HTTP_403_FORBIDDEN,
     CannotApplyReason.PERMISSION_DENIED: status.HTTP_403_FORBIDDEN,
 }
+
+
+def apply_error_response(failed: ApplyFailed) -> Response:
+    return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))
 
 
 @extend_schema(tags=["Investigations"])
@@ -69,7 +73,7 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
         action_request_id: str,
     ) -> Response:
         """
@@ -93,7 +97,7 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
                 expected_action=validator.validated_data.get("action"),
             )
         except ApplyFailed as failed:
-            return Response(failed.error, status=_STATUS.get(failed.error["code"], 409))
+            return apply_error_response(failed)
         body: InvestigationActionRequestApplyResponse = {
             "actionRequest": serialize(
                 action_request,

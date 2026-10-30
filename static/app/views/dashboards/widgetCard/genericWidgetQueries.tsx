@@ -10,7 +10,9 @@ import {isAggregateField} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useIsWidgetInViewport} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useDashboardSamplingMode} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DEFAULT_TABLE_LIMIT, DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -163,6 +165,9 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
   const organization = useOrganization();
   const hookPageFilters = usePageFilters();
+  const dashboardSamplingMode = useDashboardSamplingMode(samplingMode);
+  const isInViewport = useIsWidgetInViewport();
+  const canFetch = !propsLoading && isInViewport;
 
   // Use override selection if provided (for modal zoom), otherwise use hook
   const selection = propsSelection ?? hookPageFilters.selection;
@@ -170,10 +175,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const isHeatmap = widget.displayType === DisplayType.HEATMAP;
   const isTimeSeriesData = usesTimeSeriesData(widget.displayType);
 
-  const enableSeriesHook = isTimeSeriesData && !propsLoading;
+  const enableSeriesHook = isTimeSeriesData && canFetch;
   // Heat maps aren't time-series but fetch via the heat map hook, not the table
   // hook — so exclude them here to avoid firing a redundant table query.
-  const enableTableHook = !isTimeSeriesData && !isHeatmap && !propsLoading;
+  const enableTableHook = !isTimeSeriesData && !isHeatmap && canFetch;
   const needsBreakdownTable = isTimeSeriesData && widget.legendType === 'breakdown';
 
   const tableWidget = useMemo(
@@ -191,8 +196,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    samplingMode,
-    enabled: isTimeSeriesData && !propsLoading,
+    samplingMode: dashboardSamplingMode,
+    enabled: enableSeriesHook,
     limit,
     cursor,
     widgetInterval,
@@ -205,7 +210,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    samplingMode,
+    samplingMode: dashboardSamplingMode,
     enabled: enableTableHook || (enableSeriesHook && needsBreakdownTable),
     limit: limit ?? DEFAULT_TABLE_LIMIT,
     cursor,
@@ -219,7 +224,8 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     pageFilters: selection,
     dashboardFilters,
     skipDashboardFilterParens,
-    enabled: isHeatmap && !propsLoading,
+    enabled: isHeatmap && canFetch,
+    samplingMode: dashboardSamplingMode,
     widgetInterval,
     yBuckets,
   });

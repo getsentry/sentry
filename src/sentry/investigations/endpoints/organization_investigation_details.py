@@ -12,11 +12,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    organization_project_ids,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
@@ -25,12 +20,17 @@ from sentry.investigations.endpoints.validators import (
     InvestigationDeleteValidator,
     InvestigationUpdateValidator,
 )
-from sentry.investigations.models import Investigation, InvestigationStatus
 from sentry.investigations.services import (
     archive_investigation_with_orchestration,
     update_investigation_with_orchestration,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationInvestigationEndpoint,
+    organization_project_ids,
+    service_error,
+)
+from sentry.notebooks.models import Notebook, NotebookStatus
 
 
 @extend_schema(tags=["Investigations"])
@@ -58,7 +58,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         },
     )
     def get(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Return notebook metadata, source context, filters, project IDs, parameter definitions
@@ -97,7 +97,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         ],
     )
     def put(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Update title, filters, project selection, or status using investigationVersion. Archived
@@ -121,14 +121,14 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 status=status.HTTP_400_BAD_REQUEST,
             )
         restoring_only = (
-            values == {"status": InvestigationStatus.ACTIVE} and requested_project_ids is None
+            values == {"status": NotebookStatus.ACTIVE} and requested_project_ids is None
         )
-        if investigation.status == InvestigationStatus.ARCHIVED and not restoring_only:
+        if investigation.status == NotebookStatus.ARCHIVED and not restoring_only:
             return Response(
                 {"detail": "Archived investigations are read-only."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        if values.get("status") == InvestigationStatus.ARCHIVED:
+        if values.get("status") == NotebookStatus.ARCHIVED:
             if set(values) != {"status"} or requested_project_ids is not None:
                 return Response(
                     {"detail": "Archiving cannot be combined with other changes."},
@@ -189,7 +189,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         ],
     )
     def delete(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Archive rather than permanently delete the notebook. Send investigationVersion in the

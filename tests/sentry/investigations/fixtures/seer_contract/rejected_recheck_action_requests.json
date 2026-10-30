@@ -1,0 +1,4 @@
+{
+  "code": "action_requests_report_changed",
+  "detail": "The report changed since these action requests were made"
+}

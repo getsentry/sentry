@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 from unittest import mock
@@ -16,7 +16,10 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.exceptions import RestrictedIPAddress
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
-from sentry.integrations.gitlab.client import GitLabApiRequestType
+from sentry.integrations.gitlab.client import (
+    GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+    GitLabApiRequestType,
+)
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.source_code_management.commit_context import (
     CommitInfo,
@@ -119,6 +122,24 @@ class GitLabGetAccessTokenTest(GitLabClientTest):
         assert stored["access_token"] == "123432sfh29uhs29347"
         assert stored["refresh_token"] == "29f43sdfsk22fsj929"
         assert stored["expires"] == int(time()) + 3600
+
+    @responses.activate
+    def test_refreshes_a_token_within_the_requested_margin(self) -> None:
+        self.set_expires(int(time()) + 8 * 60)
+        responses.add(
+            responses.POST, self.refresh_url, json={**self.refresh_response, "expires_in": 3600}
+        )
+
+        result = self.gitlab_client.get_access_token(
+            token_minimum_validity_time=timedelta(minutes=10)
+        )
+
+        assert result == {
+            "access_token": "123432sfh29uhs29347",
+            "expires_at": "2025-01-01T06:12:00+00:00",
+            "permissions": None,
+        }
+        assert len(responses.calls) == 1
 
     @responses.activate
     def test_refreshes_a_token_with_no_recorded_expiry(self) -> None:
@@ -1042,9 +1063,20 @@ class GitLabProjectWebhookRequestTypeTest(GitLabClientTest):
         responses.add(responses.PUT, f"{hooks_url}/7", status=200, json={"id": 7})
         responses.add(responses.DELETE, f"{hooks_url}/7", status=204)
 
-        self.gitlab_client.create_project_webhook(self.gitlab_id)
-        self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
-        self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+        with (
+            mock.patch.object(self.gitlab_client, "post", wraps=self.gitlab_client.post) as post,
+            mock.patch.object(self.gitlab_client, "put", wraps=self.gitlab_client.put) as put,
+            mock.patch.object(
+                self.gitlab_client, "delete", wraps=self.gitlab_client.delete
+            ) as delete,
+        ):
+            self.gitlab_client.create_project_webhook(self.gitlab_id)
+            self.gitlab_client.update_project_webhook(self.gitlab_id, 7)
+            self.gitlab_client.delete_project_webhook(self.gitlab_id, 7)
+
+        assert post.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert put.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
+        assert delete.call_args.kwargs["timeout"] == GITLAB_WEBHOOK_REQUEST_TIMEOUT
 
         for status, request_type in (
             (201, GitLabApiRequestType.CREATE_PROJECT_WEBHOOK),

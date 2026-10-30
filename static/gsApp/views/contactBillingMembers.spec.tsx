@@ -11,6 +11,7 @@ describe('ContactBillingMembers', () => {
       url: '/organizations/org-slug/members/',
       method: 'GET',
       body: [member],
+      match: [MockApiClient.matchQuery({query: 'scope:"org:billing" isInvited:false'})],
     });
 
     render(<ContactBillingMembers />);

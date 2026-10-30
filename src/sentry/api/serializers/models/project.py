@@ -18,6 +18,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
+from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
@@ -104,7 +105,7 @@ def _get_team_memberships(
     team_list: Collection[int], user: User | RpcUser | AnonymousUser
 ) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
-    if not user.is_authenticated:
+    if not has_user(user):
         return []
 
     return list(
@@ -386,7 +387,7 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated and item_list:
+            if has_user(user) and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user_id=user.id, project_id__in=project_ids
@@ -1032,6 +1033,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
+    enableNativeSourceServerMapping: bool
     dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
@@ -1184,6 +1186,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
+            ),
+            "enableNativeSourceServerMapping": bool(
+                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"

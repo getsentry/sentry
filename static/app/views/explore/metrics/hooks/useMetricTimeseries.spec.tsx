@@ -76,7 +76,7 @@ describe('useMetricTimeseries', () => {
       });
       const visualizes = [
         new VisualizeFunction('p50(value,test_metric,distribution,none)'),
-        new VisualizeEquation('equation|1 + 2'),
+        new VisualizeEquation('equation|1 + 2', {transformations: ['fill(zero)']}),
         new VisualizeFunction('p50(value,test_metric,distribution,none)', {
           transformations: ['smooth(sma,5)'],
         }),
@@ -103,6 +103,9 @@ describe('useMetricTimeseries', () => {
         'equation|1 + 2',
         'p50(value,test_metric,distribution,none)',
       ]);
+      expect(query['transformations[1]']).toEqual(
+        featureEnabled ? ['fill(zero)'] : undefined
+      );
       expect(query['transformations[2]']).toEqual(
         featureEnabled ? ['smooth(sma,5)'] : undefined
       );

@@ -113,7 +113,7 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 class InvestigationRequestSerializerExtension(OpenApiSerializerExtension):
     """Expose the wire names without changing opaque JSON keys or runtime validation."""
 
-    target_class = "sentry.investigations.endpoints.validators.base.StrictCamelSnakeValidator"
+    target_class = "sentry.notebooks.endpoints.validators.base.StrictCamelSnakeValidator"
     match_subclasses = True
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, Any]:

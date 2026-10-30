@@ -4,14 +4,7 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -279,7 +272,7 @@ describe('ExploreCharts', () => {
       const addButtons = await screen.findAllByRole('button', {
         name: 'Add Transformation',
       });
-      expect(addButtons).toHaveLength(2);
+      expect(addButtons).toHaveLength(3);
       await userEvent.click(addButtons[0]!);
       await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
 
@@ -306,11 +299,40 @@ describe('ExploreCharts', () => {
       ]);
 
       await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[0]!);
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(1);
       await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
-      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(3);
       expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(2);
+    });
+
+    it('adds a transformation to an equation chart', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)']},
+            {yAxes: ['equation|$a + $b']},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      const addButtons = await screen.findAllByRole('button', {
+        name: 'Add Transformation',
+      });
+      await userEvent.click(addButtons[1]!);
+      await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {yAxes: ['p50(span.duration)']},
+        {yAxes: ['equation|$a + $b'], transformations: ['smooth(sma,3)']},
+      ]);
     });
 
     it('plots aggregates selected together on a single chart', async () => {
@@ -497,24 +519,35 @@ describe('ExploreCharts', () => {
       expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
     });
 
-    it('hides the Layers control when only accepted annotations are present', async () => {
-      const request = renderCharts({
+    it('disables the dropped-data layer when only accepted annotations are present', async () => {
+      renderCharts({
         acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 8000})],
       });
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
-      await act(async () => {});
-      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      const option = screen.getByRole('option', {name: 'Dropped Spans'});
+      expect(option).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(within(option).getByText('Dropped Spans'));
+      expect(
+        await screen.findByText('No significant dropped spans in this time range')
+      ).toBeInTheDocument();
     });
 
-    it('hides the Layers control when every drop is intentional', async () => {
-      const request = renderCharts({
+    it('disables the dropped-data layer when every drop is intentional', async () => {
+      renderCharts({
         droppedEvents: [OutcomeRowFixture({tags: ['intentional']})],
+        query: 'span.op:db',
       });
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
-      await act(async () => {});
-      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+      await userEvent.click(await screen.findByLabelText('Chart layers'));
+
+      expect(screen.getByRole('option', {name: 'Dropped Spans'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
     });
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {

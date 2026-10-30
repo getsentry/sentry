@@ -18,6 +18,7 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.autofix.autofix_agent import _group_and_referrer_from_run, get_current_step
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
@@ -25,6 +26,9 @@ from sentry.seer.autofix.on_completion_hook import (
     _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.completion import (
+    BRANCH_MOVED_RETRY_PROMPT,
+    MAX_BRANCH_MOVED_RETRIES,
+    Retrying,
     continue_pr_iteration,
     iteration_completed_webhook_fields,
     iteration_log_context,
@@ -59,6 +63,7 @@ from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRunMilestone, SeerRunMilestoneType
+from sentry.seer.models.seer_api_models import SeerApiError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -104,10 +109,6 @@ def root_cause_memory_block(referrer: str | None = None) -> MemoryBlock:
                     "headline": "Auth module dereferences a null user",
                     "one_line_description": "Null pointer in auth module",
                     "five_whys": ["Why 1"],
-                    "fixability": {
-                        "assessment": "fixable",
-                        "reason": "Can be fixed in code",
-                    },
                 },
                 reason="explorer",
             )
@@ -273,24 +274,6 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
 
     def test_get_next_step_pr_iteration_is_terminal(self) -> None:
         result = AutofixOnCompletionHook._get_next_step(AutofixStep.PR_ITERATION)
-        assert result is None
-
-    def test_determine_fixability_returns_none_for_non_root_cause(self) -> None:
-        organization = self.create_organization()
-        project = self.create_project(organization=organization)
-        group = self.create_group(project=project)
-        state = run_state(blocks=[pr_iteration_memory_block()])
-
-        result = AutofixOnCompletionHook.determine_fixability(
-            organization=organization,
-            group=group,
-            run_id=1,
-            state=state,
-            step=AutofixStep.PR_ITERATION,
-            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            reached_stopping_point=False,
-        )
-
         assert result is None
 
 
@@ -714,6 +697,7 @@ class TestPrIterationCompletionHook(TestCase):
             self.group,
             state,
             AutofixOnCompletionHook._format_code_changes_payload,
+            retrying=False,
         )
         if iteration_fields is not None:
             AutofixOnCompletionHook._send_step_webhook(
@@ -993,6 +977,204 @@ class TestPrIterationCompletionHook(TestCase):
             mock_complete.call_args.kwargs["outcome"]
             == PrIterationOutcome.PR_CREATION_ERRORED.value
         )
+
+    def _branch_moved(self, feedback: str = "[]", turns: int = 1) -> SeerRunState:
+        """The iteration's push was refused because the PR's branch moved, on its ``turns``-th
+        turn (each branch-moved retry adds one)."""
+        state = self._unsynced()
+        state.blocks[0].message.metadata = {
+            **(state.blocks[0].message.metadata or {}),
+            "iteration_id": "41",
+            "feedback": feedback,
+        }
+        state.blocks = [state.blocks[0].copy(deep=True) for _ in range(turns)]
+        pr_state = state.repo_pr_states["test-repo"]
+        pr_state.pr_creation_status = "error"
+        pr_state.pr_creation_error_code = "branch_moved"
+        return state
+
+    def _bot_feedback(self) -> str:
+        return serialize_feedback(
+            [
+                Feedback(
+                    source=GithubPrReviewCommentFeedbackSource(
+                        comment=GithubPullRequestReviewComment(id=222, body="inline feedback"),
+                        author_is_bot=True,
+                    )
+                )
+            ]
+        )
+
+    def _branch_moved_push(
+        self, state: SeerRunState
+    ) -> tuple[PrIterationOutcome | Retrying | None, bool]:
+        """The push outcome, and whether it asked Seer for another turn."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = run
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+        return outcome, mock_client_cls.return_value.continue_feature_run.called
+
+    def test_a_branch_moved_push_retries_up_to_the_retry_cap(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES)
+
+        assert self._branch_moved_push(state) == (Retrying.BRANCH_MOVED, True)
+
+    def test_a_branch_moved_push_past_the_retry_cap_ends_the_iteration_as_errored(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        assert self._branch_moved_push(state) == (PrIterationOutcome.PR_CREATION_ERRORED, False)
+
+    def _complete(
+        self, state: SeerRunState, seer_error: Exception | None = None
+    ) -> tuple[bool, bool]:
+        """Run the completion hook on ``state``: whether it asked Seer for another turn, and
+        whether it emitted iteration_completed."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch(f"{HOOK_PATH}.fetch_run_status", return_value=state),
+            patch(f"{HOOK_PATH}.broadcast_webhooks_for_organization.delay") as mock_broadcast,
+            patch(f"{COMPLETION_PATH}.complete_pr_iteration_details"),
+        ):
+            continue_feature_run = mock_client_cls.return_value.continue_feature_run
+            continue_feature_run.return_value = run
+            continue_feature_run.side_effect = seer_error
+            AutofixOnCompletionHook.execute(self.organization, 123)
+
+        events = [call.kwargs["event_name"] for call in mock_broadcast.call_args_list]
+        return continue_feature_run.called, SeerActionType.ITERATION_COMPLETED.value in events
+
+    def test_a_branch_moved_retry_holds_the_webhook(self):
+        """The retry turn finishes the iteration, and its completion emits the webhook."""
+        assert self._complete(self._branch_moved()) == (True, False)
+
+    def test_a_branch_moved_push_past_the_retry_cap_emits_the_webhook(self):
+        state = self._branch_moved(turns=MAX_BRANCH_MOVED_RETRIES + 1)
+
+        assert self._complete(state) == (False, True)
+
+    def test_a_branch_moved_retry_that_seer_refuses_emits_the_webhook(self):
+        state = self._branch_moved()
+
+        assert self._complete(state, seer_error=SeerApiError("unavailable", 503)) == (True, True)
+
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    def test_a_branch_moved_push_on_a_closed_pr_emits_the_webhook(
+        self, mock_make_scm, mock_get_pull_request
+    ):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+
+        assert self._complete(self._branch_moved()) == (False, True)
+
+    def test_an_automated_iteration_retries_with_pr_iteration_turned_off(self):
+        """A retry finishes the iteration already running, so the iteration gates don't apply."""
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        state = self._branch_moved(feedback=self._bot_feedback())
+
+        assert self._branch_moved_push(state) == (Retrying.BRANCH_MOVED, True)
+
+    def test_a_push_refused_because_the_branch_moved_retries_the_iteration_pinned(self):
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        state = self._branch_moved()
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch(f"{COMPLETION_PATH}.trigger_push_changes") as mock_push,
+        ):
+            mock_client_cls.return_value.continue_feature_run.return_value = run
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+        assert outcome == Retrying.BRANCH_MOVED
+        mock_push.assert_not_called()
+        kwargs = mock_client_cls.return_value.continue_feature_run.call_args.kwargs
+        assert kwargs["agent_run_options"]["pin_to_pr_head"] is True
+        payload = kwargs["payload"]
+        assert payload["step"] == AutofixStep.PR_ITERATION
+        assert payload["user_context"] == BRANCH_MOVED_RETRY_PROMPT
+        assert payload["step_args"]["iteration_index"] == 1
+        assert payload["step_args"]["iteration_id"] == 41
+        assert payload["step_args"]["feedback"] == "[]"
+
+    @patch(f"{COMPLETION_PATH}.pause_pr_iteration")
+    @patch(f"{PR_STATE_PATH}.GetPullRequestProtocol", object)
+    @patch(f"{PR_STATE_PATH}.scm_actions.get_pull_request")
+    @patch(f"{PR_STATE_PATH}.make_scm")
+    def test_a_closed_pr_stops_a_branch_moved_retry(
+        self, mock_make_scm, mock_get_pull_request, mock_pause
+    ):
+        self._github_repo()
+        mock_get_pull_request.return_value = {"data": {"state": "closed"}}
+        state = self._branch_moved()
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+        ):
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+        assert outcome == PrIterationOutcome.PR_CLOSED
+        assert mock_pause.call_args.kwargs["reason"] == PauseReason.PR_CLOSED
+        mock_client_cls.return_value.continue_feature_run.assert_not_called()
+
+    def test_a_branch_moved_retry_that_seer_refuses_ends_the_iteration_as_errored(self):
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        state = self._branch_moved()
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+        ):
+            mock_client_cls.return_value.continue_feature_run.side_effect = SeerApiError(
+                "unavailable", 503
+            )
+            outcome = pr_iteration_push_outcome(
+                iteration_log_context(self.organization, self.group, state),
+                self.group,
+                123,
+                state,
+                AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+        assert outcome == PrIterationOutcome.PR_CREATION_ERRORED
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
@@ -1361,7 +1543,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["added"] == 5
         assert call_kwargs["payload"]["code_changes"]["test-repo"][0]["removed"] == 2
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.analytics.metrics.incr")
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access")
@@ -1416,6 +1598,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 self.group,
                 state,
                 AutofixOnCompletionHook._format_code_changes_payload,
+                retrying=False,
             ),
         )
 
@@ -1435,7 +1618,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
         )
         mock_metrics_incr.assert_any_call("ai.autofix.pr_iteration.completed", sample_rate=1.0)
 
-    @patch("sentry.seer.autofix.on_completion_hook.analytics.record")
+    @patch("sentry.seer.autofix.analytics.analytics.record")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_send_step_webhook_pr_iteration_does_not_emit_pr_created(
         self, mock_broadcast, mock_analytics
@@ -1467,6 +1650,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 self.group,
                 state,
                 AutofixOnCompletionHook._format_code_changes_payload,
+                retrying=False,
             ),
         )
 
@@ -1955,14 +2139,8 @@ class TestMaybeReactToCompletedIteration(TestCase):
         )
         return state
 
-    def _run(
-        self,
-        state: SeerRunState,
-        *,
-        feature: str = "organizations:autofix-pr-iteration-manual",
-    ) -> None:
-        with self.feature(feature):
-            react_to_completed_iteration(self.organization, 123, state)
+    def _run(self, state: SeerRunState) -> None:
+        react_to_completed_iteration(self.organization, 123, state)
 
     def _reaction_outcomes(self, mock_incr: MagicMock) -> list[str]:
         return [
@@ -2008,8 +2186,7 @@ class TestMaybeReactToCompletedIteration(TestCase):
         mock_fetch_run_status.return_value = run_state(
             blocks=[solution_memory_block()], metadata={"group_id": group.id}
         )
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            AutofixOnCompletionHook.execute(self.organization, 123)
+        AutofixOnCompletionHook.execute(self.organization, 123)
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
@@ -2024,15 +2201,6 @@ class TestMaybeReactToCompletedIteration(TestCase):
             },
         )
         self._run(state)
-        mock_react.assert_not_called()
-
-    @patch(f"{REACT_PATH}.make_scm")
-    @patch(f"{REACT_PATH}._add_comment_reaction")
-    def test_noop_when_manual_feature_disabled(self, mock_react, mock_make_scm):
-        state = self._state_with([self._top_level_source(), self._review_source()])
-        # Automated CI iteration on, manual off: only comment-triggered iterations have
-        # a comment to ack, so the automated flag must not enable the reaction.
-        self._run(state, feature="organizations:autofix-pr-iteration")
         mock_react.assert_not_called()
 
     @patch(f"{REACT_PATH}.make_scm")
