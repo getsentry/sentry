@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -53,20 +55,52 @@ describe('Inbox', () => {
     ).toBeInTheDocument();
   });
 
-  it('selects the item for the issue in the url', async () => {
+  it('does not carry query params between items', async () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/inbox/issue/101/'},
+        location: {
+          pathname: '/organizations/org-slug/inbox/',
+          query: {project: '1', environment: 'production'},
+        },
         routes: INBOX_ROUTES,
       },
     });
 
     expect(
-      await screen.findByRole('heading', {
-        name: "TypeError: Cannot read properties of undefined (reading 'id')",
+      await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
       })
-    ).toBeInTheDocument();
+    ).toHaveAttribute('href', '/organizations/org-slug/inbox/notebook/203/');
+  });
+
+  it('selects the item for the issue in the url', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/7656018581/',
+      body: GroupFixture({id: '7656018581', metadata: {type: 'TypeError'}}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/7656018581/events/recommended/',
+      body: EventFixture({id: 'event-id'}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/users/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/event-id/owners/',
+      body: {owners: [], rules: []},
+    });
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/inbox/issue/7656018581/'},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByRole('heading', {name: 'TypeError'})).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).toHaveAttribute('aria-current', 'true');

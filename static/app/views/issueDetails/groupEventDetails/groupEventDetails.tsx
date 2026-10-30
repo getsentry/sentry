@@ -21,6 +21,7 @@ import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
@@ -36,7 +37,8 @@ function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const params = useParams<{groupId: string; orgId: string; eventId?: string}>();
+  const params = useParams<{eventId?: string}>();
+  const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
 
   const {
@@ -46,7 +48,7 @@ function GroupEventDetails() {
     error: eventError,
     refetch: refetchEvent,
   } = useGroupEvent({
-    groupId: params.groupId,
+    groupId,
     eventId: params.eventId,
   });
 
@@ -55,7 +57,7 @@ function GroupEventDetails() {
     isPending: isGroupPending,
     isError: isGroupError,
     refetch: refetchGroup,
-  } = useGroup({groupId: params.groupId});
+  } = useGroup({groupId});
 
   const eventWithMeta = useMemo(() => withMeta(event), [event]);
   const project = useProjectFromSlug({organization, projectSlug: group?.project?.slug});
@@ -89,7 +91,7 @@ function GroupEventDetails() {
       if (shouldRedirect) {
         navigate(
           {
-            pathname: `/organizations/${organization.slug}/issues/${params.groupId}/`,
+            pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
             query: location.query,
           },
           {replace: true}
@@ -100,6 +102,7 @@ function GroupEventDetails() {
   }, [
     prevEnvironment,
     environments,
+    groupId,
     location.query,
     organization.slug,
     params,
