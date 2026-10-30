@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -3161,6 +3162,71 @@ class OrganizationDashboardsScopeTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         self.dashboard.refresh_from_db()
         assert self.dashboard.title == "Old Title"
+
+
+@with_feature("organizations:granular-permission-scopes")
+class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCase):
+    """With granular scopes, dashboard endpoints require dashboard:* instead of org:read."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"auth.deprecated-scope-translation.enabled": True}))
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.url = reverse(
+            "sentry-api-0-organization-dashboards",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+        self.details_url = reverse(
+            "sentry-api-0-organization-dashboard-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": self.dashboard.id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_org_read_token_is_translated(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
+        response = self.client.put(self.details_url, data={"title": "Renamed"}, format="json")
+        assert response.status_code == 200, response.content
+        assert self.client.delete(self.details_url).status_code == 204
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    def test_org_read_not_accepted(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 403
+        assert self.client.delete(self.details_url).status_code == 403
+        assert Dashboard.objects.filter(id=self.dashboard.id).exists()
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @override_options({"auth.deprecated-scope-translation.enabled": False})
+    def test_org_read_accepted_when_translation_disabled(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    @override_settings(DEPRECATED_SCOPE_TRANSLATIONS={})
+    @with_feature({"organizations:granular-permission-scopes": False})
+    def test_org_read_accepted_without_granular_scopes(self) -> None:
+        self._use_token(["org:read"])
+        assert self.client.get(self.url).status_code == 200
+
+    def test_member_session_has_access(self) -> None:
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(member)
+        assert self.client.get(self.url).status_code == 200
+        with outbox_runner():
+            response = self.client.post(self.url, data={"title": "Created"})
+        assert response.status_code == 201, response.content
 
 
 @with_feature(
