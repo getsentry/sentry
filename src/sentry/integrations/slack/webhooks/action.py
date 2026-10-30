@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, MutableMapping, Sequence
@@ -11,6 +10,7 @@ import requests as requests_
 import sentry_sdk
 from django.urls import reverse
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -23,7 +23,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
-from sentry.auth.access import from_member
+from sentry.auth.access import from_member, from_user
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
@@ -47,7 +47,9 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvestigationUnavailableReason,
     handle_seer_investigation_start,
+    record_investigation_unavailable,
 )
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
@@ -55,7 +57,6 @@ from sentry.integrations.slack.webhooks.actions.seer_agent import (
 )
 from sentry.integrations.types import ExternalProviderEnum, IntegrationProviderSlug
 from sentry.integrations.utils.scope import bind_org_context_from_integration
-from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.issues.action_log import ActionSource, GroupActionActor, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
@@ -73,7 +74,6 @@ from sentry.users.models import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 _logger = logging.getLogger(__name__)
 
@@ -91,6 +91,7 @@ UNLINK_IDENTITY_MESSAGE = (
 )
 
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
+NO_PROJECT_ACCESS_MESSAGE = "You do not have access to this project."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
@@ -125,6 +126,8 @@ def update_group(
         raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
+    if not from_user(user, group.organization).has_project_access(group.project):
+        raise PermissionDenied(NO_PROJECT_ACCESS_MESSAGE)
 
     with action_context_scope(source=ActionSource.SLACK, actor=GroupActionActor.user(user.id)):
         resp = update_groups(request=request, groups=[group], user=user, data=data)
@@ -184,22 +187,6 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     Bot posted messages will not have the type at all.
     """
     return data.get("original_message", {}).get("type") == "message"
-
-
-# Slack requests carry no Sentry credential, so Seer calls made while handling them need a context.
-def _org_viewer_context(organization_id: int | None) -> contextlib.AbstractContextManager[None]:
-    if organization_id is None:
-        return contextlib.nullcontext()
-    return webhook_viewer_context(organization_id)
-
-
-def _user_viewer_context(user: RpcUser, group: Group) -> contextlib.AbstractContextManager[None]:
-    return viewer_context_scope(
-        ViewerContext(
-            actor=Actor(type=ActorType.USER, actor_id=user.id),
-            organization_id=group.project.organization_id,
-        )
-    )
 
 
 @all_silo_endpoint  # Only LINK_IDENTITY is handled at control
@@ -453,6 +440,9 @@ class SlackActionEndpoint(Endpoint):
 
                 try:
                     self.on_status(request, identity_user, group, status_action)
+                except PermissionDenied as error:
+                    lifecycle.record_halt(error)
+                    return self.respond_ephemeral(str(error.detail))
                 except client.ApiError as error:
                     lifecycle.record_failure(error)
                     return self.api_error(
@@ -541,6 +531,8 @@ class SlackActionEndpoint(Endpoint):
                             user=identity_user,
                         )
                     defer_attachment_update = True
+            except PermissionDenied as error:
+                return self.respond_ephemeral(str(error.detail))
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -679,7 +671,7 @@ class SlackActionEndpoint(Endpoint):
         )
         lock = locks.get(lock_key, duration=10, name="autofix_entrypoint_slack")
         try:
-            with lock.acquire(), _user_viewer_context(user, group):
+            with lock.acquire():
                 SeerAutofixOperator(entrypoint=entrypoint).trigger_autofix(
                     group=group,
                     user=user,
@@ -728,10 +720,7 @@ class SlackActionEndpoint(Endpoint):
                 },
             )
             return
-        with _user_viewer_context(user, group):
-            SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(
-                group=group, run_id=int(run_id)
-            )
+        SeerAutofixOperator(entrypoint=entrypoint).trigger_handoff(group=group, run_id=int(run_id))
 
     @classmethod
     def get_action_option(cls, slack_request: SlackActionRequest) -> tuple[str | None, str | None]:
@@ -826,24 +815,27 @@ class SlackActionEndpoint(Endpoint):
                 else ""
             )
             routing_data = decode_action_id(encoded_action_id)
-            with _org_viewer_context(routing_data.organization_id):
-                return handle_seer_agent_write_approval(
-                    slack_request=slack_request,
-                    action=SlackAction(action_id),
-                    organization_id=routing_data.organization_id,
-                )
+            return handle_seer_agent_write_approval(
+                slack_request=slack_request,
+                action=SlackAction(action_id),
+                organization_id=routing_data.organization_id,
+            )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             identity_user = slack_request.get_identity_user()
             if not identity_user:
-                return self._respond_link_identity(slack_request)
-            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
-            with _org_viewer_context(routing_data.organization_id):
-                return handle_seer_investigation_start(
-                    slack_request=slack_request,
+                record_investigation_unavailable(
+                    InvestigationUnavailableReason.IDENTITY_NOT_LINKED,
                     organization_id=routing_data.organization_id,
-                    identity_user=identity_user,
+                    integration_id=slack_request.integration.id,
                 )
+                return self._respond_link_identity(slack_request)
+            return handle_seer_investigation_start(
+                slack_request=slack_request,
+                organization_id=routing_data.organization_id,
+                identity_user=identity_user,
+            )
 
         # If a user is just clicking a button link we return a 200
         if action_option in (

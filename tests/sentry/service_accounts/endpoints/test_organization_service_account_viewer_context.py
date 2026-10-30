@@ -4,6 +4,8 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
+from sentry.models.project import Project
+from sentry.service_accounts.models import ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -51,14 +53,25 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
                 ),
             )
 
-    def test_returns_org_viewer_context_and_account_scopes(self) -> None:
+    def _issue(self) -> str:
+        response = self._post()
+        assert response.status_code == 200
+        return response.data["viewerContext"]
+
+    def _get_project(self, viewer_context: str, project: Project) -> Any:
+        url = reverse("sentry-api-0-project-details", args=[self.organization.slug, project.slug])
+        return self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+    def test_returns_service_account_viewer_context_and_scopes(self) -> None:
         response = self._post()
 
         assert response.status_code == 200
         assert response.data["scopes"] == ["event:read", "project:read"]
         returned = decode_viewer_context(response.data["viewerContext"])
         assert returned.organization_id == self.organization.id
-        assert returned.actor.actor_id is None
+        assert returned.actor == Actor(
+            type=ActorType.SERVICE_ACCOUNT, actor_id=self.service_account.id
+        )
 
     def test_missing_account_returns_404(self) -> None:
         response = self._post(service_account_id=self.service_account.id + 1)
@@ -109,7 +122,7 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         other_org = self.create_organization()
 
         response = self._post(
-            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=other_org.id)
+            ViewerContext(actor=Actor(type=ActorType.UNKNOWN), organization_id=other_org.id)
         )
 
         assert response.status_code == 403
@@ -121,6 +134,68 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
                 organization_id=self.organization.id,
             )
         )
+
+        assert response.status_code == 403
+
+    def test_rejects_service_account_viewer_context(self) -> None:
+        other = self.create_service_account(organization=self.organization, name="other")
+        service_account_context = decode_viewer_context(self._issue())
+
+        response = self._post(service_account_context, service_account_id=other.id)
+
+        assert response.status_code == 403
+
+    def test_issued_context_reaches_only_linked_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        linked = self.create_project(organization=self.organization)
+        unlinked = self.create_project(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountProject.objects.create(
+                service_account=self.service_account, project_id=linked.id
+            )
+        viewer_context = self._issue()
+
+        assert self._get_project(viewer_context, linked).status_code == 200
+        assert self._get_project(viewer_context, unlinked).status_code == 403
+
+    def test_issued_context_reaches_every_project_with_open_membership(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        project = self.create_project(organization=self.organization)
+
+        assert self._get_project(self._issue(), project).status_code == 200
+
+    def test_issued_context_needs_the_endpoint_scope(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        project = self.create_project(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(scope_list=["event:read"])
+
+        assert self._get_project(self._issue(), project).status_code == 403
+
+    def test_account_changes_apply_to_issued_context(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        project = self.create_project(organization=self.organization)
+        viewer_context = self._issue()
+        assert self._get_project(viewer_context, project).status_code == 200
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(scope_list=["event:read"])
+        assert self._get_project(viewer_context, project).status_code == 403
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(scope_list=["project:read"], is_active=False)
+        assert self._get_project(viewer_context, project).status_code == 401
+
+    def test_issued_context_has_no_access_to_other_org(self) -> None:
+        other_org = self.create_organization(owner=self.create_user())
+        other_project = self.create_project(organization=other_org)
+        url = reverse("sentry-api-0-project-details", args=[other_org.slug, other_project.slug])
+
+        response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=self._issue())
 
         assert response.status_code == 403
 

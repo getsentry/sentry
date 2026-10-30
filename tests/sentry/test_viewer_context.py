@@ -3,15 +3,18 @@ from __future__ import annotations
 import contextvars
 import dataclasses
 import threading
+from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.viewer_context import (
     Actor,
+    ActorId,
     ActorType,
     SuperuserAccess,
     ViewerContext,
+    actor_id_from_references,
     get_acting_user_id,
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -20,11 +23,30 @@ from sentry.viewer_context import (
 )
 
 
+def test_actor_id_from_references() -> None:
+    assert actor_id_from_references(user_id=7, service_account_id=None) == ActorId(
+        ActorType.USER, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=7) == ActorId(
+        ActorType.SERVICE_ACCOUNT, 7
+    )
+    assert actor_id_from_references(user_id=None, service_account_id=None) is None
+
+
+@pytest.mark.parametrize(("user_id", "service_account_id"), [(7, 7), (0, None), (None, True)])
+def test_actor_id_from_references_rejects_invalid_input(
+    user_id: Any, service_account_id: Any
+) -> None:
+    with pytest.raises(ValueError):
+        actor_id_from_references(user_id=user_id, service_account_id=service_account_id)
+
+
 class TestActorType:
     def test_values_are_strings(self):
         assert ActorType.USER == "user"
         assert ActorType.SYSTEM == "system"
         assert ActorType.INTEGRATION == "integration"
+        assert ActorType.UNKNOWN == "unknown"
 
 
 class TestViewerContext:
@@ -85,10 +107,10 @@ class TestViewerContext:
             assert changed.actor.superuser is None
 
     def test_defaults(self):
-        ctx = ViewerContext(actor=Actor(type=ActorType.SYSTEM))
+        ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         assert ctx.organization_id is None
         assert ctx.actor.actor_id is None
-        assert ctx.actor.type is ActorType.SYSTEM
+        assert ctx.actor.type is ActorType.UNKNOWN
 
     def test_frozen(self):
         ctx = ViewerContext(actor=Actor(type=ActorType.USER, actor_id=1))
@@ -258,7 +280,7 @@ class TestObserve:
 
     def test_explicit_ctx_none_treated_as_missing(self, patch_metrics):
         # Distinguishes "ctx wasn't passed" (sentinel) from "ctx is explicitly None"
-        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
+        with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))):
             observe_viewer_context_propagation("seer_rpc_out", ctx=None)
         tags = self._tags(patch_metrics)
         assert tags["actor_type"] == "none"

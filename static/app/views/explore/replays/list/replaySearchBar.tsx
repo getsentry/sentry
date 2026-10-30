@@ -190,7 +190,10 @@ export function ReplaySearchBar(props: Props) {
         includeReplays: true,
       }).then(
         tagValues =>
-          tagValues.filter(tagValue => tagValue.name !== '').map(({value}) => value),
+          // Events without the tag come back with an empty name or a null value
+          tagValues.flatMap(({name, value}) =>
+            name !== '' && value !== null ? [value] : []
+          ),
         () => {
           throw new Error('Unable to fetch event field values');
         }

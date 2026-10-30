@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from django.test import override_settings
 
+from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -18,15 +19,20 @@ from sentry.investigations.services.orchestration_events import (
     synchronize_orchestration_projection,
 )
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
+from sentry.service_accounts.models import ServiceAccountReplica
+from sentry.silo.base import SiloMode
 from sentry.tasks.seer.investigation import (
     _mark_command_dispatch_failed,
     _mark_command_version_conflicted,
     dispatch_investigation_orchestration_commands,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.utils import json
 from sentry.viewer_context import (
     Actor,
+    ActorId,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -43,12 +49,80 @@ OUTCOME = {
 }
 
 
+@cell_silo_test
+class CommandActorReferenceTest(TestCase):
+    def create_command(self, service_account_id: int) -> InvestigationOrchestrationCommand:
+        investigation = self.create_notebook(organization=self.organization, created_by=self.user)
+        run = self.create_investigation_orchestration_run(investigation=investigation)
+        return self.create_investigation_orchestration_command(
+            orchestration_run=run,
+            request_id=uuid4(),
+            expected_workflow_version=1,
+            type="cancel",
+            actor_id=None,
+            requested_by_service_account_id=service_account_id,
+        )
+
+    def test_creator_and_sender_are_independent(self) -> None:
+        command = self.create_command(self.user.id)
+        investigation = command.orchestration_run.investigation
+        command.refresh_from_db()
+
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.USER, self.user.id)
+        assert command.requested_by_actor == ActorId(ActorType.SERVICE_ACCOUNT, self.user.id)
+
+        investigation.update(created_by_id=None, created_by_service_account_id=self.user.id)
+        command.update(actor_id=self.user.id, requested_by_service_account_id=None)
+        command.refresh_from_db()
+
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.SERVICE_ACCOUNT, self.user.id)
+        assert command.requested_by_actor == ActorId(ActorType.USER, self.user.id)
+
+        investigation.update(created_by_service_account_id=None)
+        command.update(actor_id=None)
+        command.refresh_from_db()
+
+        creator = investigation.creator_actor
+        assert creator is None
+        assert command.requested_by_actor == ActorId(ActorType.SYSTEM, None)
+
+    def test_account_deletion_clears_creator_and_sender_references(self) -> None:
+        with outbox_runner():
+            account = self.create_service_account(organization=self.organization, id=910001)
+        account_id = account.id
+        assert ServiceAccountReplica.objects.get(service_account_id=account_id).id != account_id
+        command = self.create_command(account_id)
+        investigation = command.orchestration_run.investigation
+        investigation.update(created_by_id=None, created_by_service_account_id=account_id)
+        investigation.refresh_from_db()
+        command.refresh_from_db()
+
+        creator = investigation.creator_actor
+        assert creator == ActorId(ActorType.SERVICE_ACCOUNT, account_id)
+        assert command.requested_by_actor == ActorId(ActorType.SERVICE_ACCOUNT, account_id)
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            account.delete()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+        investigation.refresh_from_db()
+        command.refresh_from_db()
+
+        assert investigation.created_by_service_account_id is None
+        assert command.requested_by_service_account_id is None
+        creator = investigation.creator_actor
+        assert creator is None
+        assert command.requested_by_actor == ActorId(ActorType.SYSTEM, None)
+
+
 class QueuedCommandsTest(TestCase):
     seer_run_id = 4815
 
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
@@ -588,7 +662,7 @@ class QueuedCommandsTest(TestCase):
         )
         inherited: dict[str, AbstractContextManager[None]] = {
             "none": nullcontext(),
-            "system": viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))),
+            "unknown": viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.UNKNOWN))),
             "someone_else": viewer_context_scope(
                 ViewerContext(
                     actor=Actor(type=ActorType.USER, actor_id=self.create_user().id),

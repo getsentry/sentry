@@ -116,7 +116,6 @@ describe('buildRoutes()', () => {
             {
               type: 'project',
               to: '/settings/:orgId/projects/:projectId/',
-              switchTo: '/settings/:orgId/projects/:projectId/keys/',
             },
             {
               type: 'link',

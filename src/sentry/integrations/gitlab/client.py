@@ -49,6 +49,10 @@ REFRESH_LOCK_DURATION_S = 90
 REFRESH_LOCK_WAIT_S = 10
 
 
+# Leave enough room for the proxy's retry envelope to fail before the task's 60-second deadline.
+GITLAB_WEBHOOK_REQUEST_TIMEOUT = 5
+
+
 def _refresh_margin_s(identity_data: Mapping[str, Any], requested_margin_s: float) -> float:
     # An instance can shorten the token lifetime. Capping the margin at half of it still leaves
     # a usable token, where a fixed margin as long as the lifetime would refresh on every call.
@@ -650,6 +654,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         resp = self.post(
             path,
             data=self._project_webhook_data(),
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
         )
 
@@ -674,10 +679,15 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return self.put(
             path,
             data=self._project_webhook_data(),
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
         )
 
-    def ensure_project_webhook(self, project_id: int | str, hook_id: int | str | None) -> int | str:
+    def ensure_project_webhook(
+        self,
+        project_id: int | str,
+        hook_id: int | str | None,
+    ) -> int | str:
         """Refresh a stored hook, creating a replacement only when necessary."""
         outcome = "failure"
         try:
@@ -721,7 +731,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
+        return self.delete(
+            path,
+            timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
+            api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK,
+        )
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""

@@ -253,6 +253,11 @@ const iOSDeviceMapping: Record<string, string> = {
   'Watch7,18': 'Apple Watch Series 11',
   'Watch7,19': 'Apple Watch Series 11',
   'Watch7,20': 'Apple Watch Series 11',
+  'Watch8,1': 'Apple Watch Ultra 4',
+  'Watch8,2': 'Apple Watch Series 12',
+  'Watch8,3': 'Apple Watch Series 12',
+  'Watch8,4': 'Apple Watch Series 12',
+  'Watch8,5': 'Apple Watch Series 12',
   // Apple TV
   'AppleTV1,1': 'Apple TV (1st generation)',
   'AppleTV2,1': 'Apple TV (2nd generation)',
@@ -262,6 +267,7 @@ const iOSDeviceMapping: Record<string, string> = {
   'AppleTV6,2': 'Apple TV 4K',
   'AppleTV11,1': 'Apple TV 4K (2nd generation)',
   'AppleTV14,1': 'Apple TV 4K (3rd generation)',
+  'AppleTV18,1': 'Apple TV 4K (4th generation)',
   // Apple Vision Pro
   'RealityDevice14,1': 'Apple Vision Pro',
   'RealityDevice17,1': 'Apple Vision Pro (M5)',

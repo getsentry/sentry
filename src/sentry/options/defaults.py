@@ -86,12 +86,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "organization.provision-analytics-with-outbox",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Redis
 register(
@@ -318,6 +312,16 @@ register(
     default=False,
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Turns on the deprecated scope translation in sentry.auth.deprecated_scope_translation, which
+# grants tokens holding a deprecated scope (e.g. org:read) the granular scopes replacing it.
+# Turning this off is safe while endpoints still accept the deprecated scopes. Before any
+# endpoint stops accepting them regardless of this option, enable it everywhere and remove it.
+register(
+    "auth.deprecated-scope-translation.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # User Settings
@@ -1549,8 +1553,8 @@ register(
 )
 
 # Deterministic % of gen_ai conversations that get Seer title generation, keyed
-# on conversation id. Requires organizations:gen-ai-conversation-title-generation.
-# 0.0 disables generation; 1.0 enables it for every conversation in flagged orgs.
+# on conversation id. 0.0 disables generation; 1.0 enables it for every
+# conversation in orgs that have not hidden AI features.
 register(
     "ai-monitoring.conversation-title-generation.rollout-rate",
     type=Float,
@@ -4093,6 +4097,15 @@ register(
     "releases.no_snuba_for_release_creation",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Maximum number of commits associated with a release in one set_commits call.
+# Longer lists keep only the newest commits.
+register(
+    "releases.set-commits.max-commits",
+    type=Int,
+    default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
