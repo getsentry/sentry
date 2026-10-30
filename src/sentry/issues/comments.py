@@ -8,6 +8,8 @@ from uuid import uuid4
 from django.db import router, transaction
 from django.utils import timezone
 
+from sentry.inbox.issue import record_issue_team_mention, record_issue_user_mention
+from sentry.inbox.types import InboxActor
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
 from sentry.issues.action_log import GroupActionActor, action_context_scope, publish_action
@@ -19,6 +21,7 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
+from sentry.types.actor import ActorType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.safe import safe_execute
@@ -105,6 +108,25 @@ def create_comment(
         with action_context_scope(source=source, actor=GroupActionActor.user(user.id)):
             note = Activity.objects.create_group_activity(
                 group=group, type=ActivityType.NOTE, user_id=user.id, data=data
+            )
+            mentions = data.get("mentions", [])
+            safe_execute(
+                record_issue_user_mention,
+                group=group,
+                comment_id=note.id,
+                mentioned_user_ids=[
+                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.USER
+                ],
+                actor=InboxActor.user(user.id),
+            )
+            safe_execute(
+                record_issue_team_mention,
+                group=group,
+                comment_id=note.id,
+                mentioned_team_ids=[
+                    mention["id"] for mention in mentions if mention["actor_type"] == ActorType.TEAM
+                ],
+                actor=InboxActor.user(user.id),
             )
             if not from_email:
                 _after_commit(partial(_sync_comment, note, user.id, created=True))

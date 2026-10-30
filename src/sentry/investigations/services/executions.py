@@ -12,33 +12,25 @@ from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sentry.investigations.contracts import validate_query_result
-from sentry.investigations.models import (
-    TERMINAL_BLOCK_EXECUTION_STATUSES,
-    InvestigationBlock,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
-    InvestigationBlockKind,
-    InvestigationParameterType,
-    InvestigationStatus,
-)
 from sentry.investigations.services.investigations import (
     InvestigationConflictError,
     InvestigationValidationError,
-    investigation_filters,
-    investigation_source,
     lock_investigation,
-)
-from sentry.investigations.services.parameters import (
-    ParameterValidationError,
-    validate_parameter_value,
 )
 from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
+from sentry.notebooks.models import (
+    TERMINAL_BLOCK_EXECUTION_STATUSES,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
+    NotebookBlockKind,
+    NotebookStatus,
+)
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
-MAX_CONTEXT_BLOCKS = 20
 MAX_CONTEXT_TEXT_CHARS = 50_000
 MAX_CONTEXT_BYTES = 512 * 1024
 DISPATCH_CLAIM_TIMEOUT = timedelta(minutes=5)
@@ -109,13 +101,13 @@ def _has_usable_query_data(result: Any) -> bool:
 
 
 def _query_refinement_context_execution(
-    block: InvestigationBlock,
-) -> InvestigationBlockExecution | None:
+    block: NotebookBlock,
+) -> NotebookBlockExecution | None:
     current = block.result_execution
     if current is not None and _has_usable_query_data(current.result):
         return current
 
-    completed = block.executions.filter(status=InvestigationBlockExecutionStatus.COMPLETED)
+    completed = block.executions.filter(status=NotebookBlockExecutionStatus.COMPLETED)
     if current is not None:
         assert current.id is not None
         completed = completed.exclude(id=current.id)
@@ -125,84 +117,8 @@ def _query_refinement_context_execution(
     return current
 
 
-def _materialize_dependency_context(
-    block: InvestigationBlock, *, accessible_project_ids: set[int]
-) -> tuple[dict[str, str | None], list[dict[str, Any]], list[int]]:
-    links = list(
-        block.dependency_links.select_related(
-            "depends_on__content_execution",
-            "depends_on__result_execution",
-        )
-        .prefetch_related(
-            "depends_on__content_execution__data_projects",
-            "depends_on__result_execution__data_projects",
-        )
-        .order_by("depends_on__position", "depends_on__id")
-    )
-    if len(links) > MAX_CONTEXT_BLOCKS:
-        raise InvestigationValidationError(
-            {"context": f"A block can use at most {MAX_CONTEXT_BLOCKS} context blocks."}
-        )
-
-    dependencies: dict[str, str | None] = {}
-    context: list[dict[str, Any]] = []
-    context_project_ids: set[int] = set()
-    for link in links:
-        dependency = link.depends_on
-        if dependency.deleted_at is not None:
-            raise InvestigationValidationError(
-                {"context": "A selected context block has been deleted."}
-            )
-        dependency_execution = (
-            dependency.result_execution
-            if dependency.kind == InvestigationBlockKind.QUERY
-            else dependency.content_execution
-        )
-        dependencies[str(dependency.id)] = (
-            str(dependency_execution.id) if dependency_execution is not None else None
-        )
-        item: dict[str, Any] = {
-            "block_id": str(dependency.id),
-            "kind": dependency.kind,
-            "title": dependency.title,
-            "prompt": dependency.prompt,
-        }
-
-        if dependency.kind == InvestigationBlockKind.QUERY:
-            if (
-                dependency_execution is None
-                or dependency_execution.status != InvestigationBlockExecutionStatus.COMPLETED
-                or dependency.stale_at is not None
-            ):
-                raise InvestigationValidationError(
-                    {
-                        "context": f'Run the context block "{dependency.title or "Untitled query"}" first.'
-                    }
-                )
-            item["result"] = _compact_query_context(dependency_execution.result)
-        else:
-            item["content"] = dependency.content[:MAX_CONTEXT_TEXT_CHARS]
-
-        if dependency_execution is not None:
-            represented_project_ids = set(
-                project.id for project in dependency_execution.data_projects.all()
-            )
-            if not represented_project_ids.issubset(accessible_project_ids):
-                raise InvestigationValidationError(
-                    {"context": "One or more context blocks use inaccessible project data."}
-                )
-            context_project_ids.update(represented_project_ids)
-        context.append(item)
-
-    if len(json.dumps(context).encode()) > MAX_CONTEXT_BYTES:
-        raise InvestigationValidationError(
-            {"context": "The selected block context is too large to send to the agent."}
-        )
-    return dependencies, context, sorted(context_project_ids)
-
-
 def _materialize_notebook_context(
-    block: InvestigationBlock, *, accessible_project_ids: set[int]
+    block: NotebookBlock, *, accessible_project_ids: set[int]
 ) -> tuple[dict[str, str | None], list[dict[str, Any]], list[int]]:
     """Snapshot every other visible block for text generation.
 
@@ -210,7 +126,7 @@ def _materialize_notebook_context(
     supplies any content that remains visible during a rerun or after a failure.
     """
     blocks = list(
-        block.investigation.blocks.filter(deleted_at__isnull=True)
+        block.notebook.blocks.filter(deleted_at__isnull=True)
         .exclude(id=block.id)
         .select_related("content_execution", "current_execution", "result_execution")
         .prefetch_related(
@@ -231,7 +147,7 @@ def _materialize_notebook_context(
         current_execution = context_block.current_execution
         visible_execution = (
             context_block.result_execution
-            if context_block.kind == InvestigationBlockKind.QUERY
+            if context_block.kind == NotebookBlockKind.QUERY
             else context_block.content_execution
         )
         dependencies[str(context_block.id)] = (
@@ -254,10 +170,10 @@ def _materialize_notebook_context(
             ),
         }
 
-        if context_block.kind == InvestigationBlockKind.QUERY:
+        if context_block.kind == NotebookBlockKind.QUERY:
             if (
                 visible_execution is not None
-                and visible_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+                and visible_execution.status == NotebookBlockExecutionStatus.COMPLETED
             ):
                 item["result"] = _compact_query_context(
                     visible_execution.result, max_text_chars=max_text_chars
@@ -285,12 +201,12 @@ def _materialize_notebook_context(
 
 def build_block_execution_snapshot(
     *,
-    block: InvestigationBlock,
+    block: NotebookBlock,
     projects: list[Project],
     accessible_project_ids: set[int],
 ) -> tuple[dict[str, Any], str]:
     dataset_hint = None
-    if block.kind == InvestigationBlockKind.QUERY:
+    if block.kind == NotebookBlockKind.QUERY:
         dataset_hint = block.config.get("datasetHint")
         if dataset_hint is not None and dataset_hint not in {
             "errors",
@@ -302,40 +218,19 @@ def build_block_execution_snapshot(
             raise InvestigationValidationError({"detail": "The template dataset hint is invalid."})
 
     prompt = (block.prompt or block.content).strip()
-    source = investigation_source(block.investigation)
-    filters = investigation_filters(block.investigation)
-    parameters: dict[str, Any] = {}
-    for link in block.parameter_links.select_related("parameter").order_by("parameter__key"):
-        parameter = link.parameter
-        value = parameter.saved_value
-        if value is not None and parameter.type in {
-            InvestigationParameterType.PROJECT,
-            InvestigationParameterType.PROJECT_LIST,
-        }:
-            try:
-                value = validate_parameter_value(
-                    parameter_type=parameter.type,
-                    value=value,
-                    constraints=parameter.validation_constraints,
-                    accessible_project_ids=accessible_project_ids,
-                )
-            except ParameterValidationError as error:
-                raise InvestigationValidationError({"parameters": {parameter.key: str(error)}})
-        parameters[parameter.key] = value
-    query_context = {"source": source, "filters": filters, "parameters": parameters}
-    parameter_changes: dict[str, Any] = {}
-    if block.kind == InvestigationBlockKind.TEXT:
+    source = block.notebook.source
+    filters = block.notebook.filters
+    query_context = {"source": source, "filters": filters, "parameters": {}}
+    if block.kind == NotebookBlockKind.TEXT:
         dependencies, context, context_project_ids = _materialize_notebook_context(
             block, accessible_project_ids=accessible_project_ids
         )
     else:
-        dependencies, context, context_project_ids = _materialize_dependency_context(
-            block, accessible_project_ids=accessible_project_ids
-        )
+        dependencies, context, context_project_ids = {}, [], []
         previous_execution = _query_refinement_context_execution(block)
         if (
             previous_execution is not None
-            and previous_execution.status == InvestigationBlockExecutionStatus.COMPLETED
+            and previous_execution.status == NotebookBlockExecutionStatus.COMPLETED
         ):
             previous_project_ids = set(
                 previous_execution.data_projects.values_list("id", flat=True)
@@ -350,14 +245,6 @@ def build_block_execution_snapshot(
                 "source": previous_input.get("source", {}),
                 "filters": previous_input.get("filters", {}),
                 "parameters": previous_input.get("parameters", {}),
-            }
-            previous_parameters = previous_input.get(
-                "parameters", query_context.get("parameters", {})
-            )
-            parameter_changes = {
-                key: value
-                for key, value in parameters.items()
-                if key not in previous_parameters or value != previous_parameters[key]
             }
             query_context = {
                 **query_context,
@@ -388,44 +275,42 @@ def build_block_execution_snapshot(
                 )
     snapshot: dict[str, Any] = {
         "prompt": prompt,
-        "organizationSlug": block.investigation.organization.slug,
+        "organizationSlug": block.notebook.organization.slug,
         "source": source,
         "filters": filters,
-        "parameters": parameters,
+        "parameters": {},
         "dependencies": dependencies,
         "context": context,
         "contextDataProjectIds": context_project_ids,
         "projectIds": [project.id for project in projects],
         "projectSlugs": [project.slug for project in projects],
         "blockVersion": block.version,
-        "investigationVersion": block.investigation.version,
+        "investigationVersion": block.notebook.version,
     }
     if dataset_hint is not None:
         snapshot["datasetHint"] = dataset_hint
-    if block.kind == InvestigationBlockKind.QUERY:
-        snapshot["parameterChanges"] = parameter_changes
+    if block.kind == NotebookBlockKind.QUERY:
+        snapshot["parameterChanges"] = {}
         snapshot["queryContext"] = {
             **query_context,
-            "parameters": {**query_context.get("parameters", {}), **parameter_changes},
+            "parameters": query_context.get("parameters", {}),
         }
     return snapshot, _fingerprint(snapshot)
 
 
 def create_block_execution(
     *,
-    block: InvestigationBlock,
+    block: NotebookBlock,
     expected_investigation_version: int,
     expected_block_version: int,
     user_id: int,
     project_ids: list[int],
     accessible_project_ids: set[int],
     request_id: UUID | None = None,
-) -> tuple[InvestigationBlockExecution, bool]:
+) -> tuple[NotebookBlockExecution, bool]:
     """Create a new immutable execution, or return the same explicit request retry."""
     if request_id is not None:
-        requested_execution = InvestigationBlockExecution.objects.filter(
-            request_id=request_id
-        ).first()
+        requested_execution = NotebookBlockExecution.objects.filter(request_id=request_id).first()
         if requested_execution is not None:
             if requested_execution.block_id != block.id:
                 raise InvestigationValidationError(
@@ -433,33 +318,28 @@ def create_block_execution(
                 )
             return requested_execution, False
 
-    database = router.db_for_write(InvestigationBlockExecution)
+    database = router.db_for_write(NotebookBlockExecution)
     with transaction.atomic(using=database):
-        locked_investigation = lock_investigation(
-            block.investigation, expected_investigation_version
-        )
+        locked_investigation = lock_investigation(block.notebook, expected_investigation_version)
         locked = (
-            InvestigationBlock.objects.select_for_update(of=("self",))
+            NotebookBlock.objects.select_for_update(of=("self",))
             .select_related("current_execution")
-            .get(id=block.id, investigation=locked_investigation)
+            .get(id=block.id, notebook=locked_investigation)
         )
-        locked.investigation = locked_investigation
+        locked.notebook = locked_investigation
         if locked.version != expected_block_version:
             raise InvestigationConflictError("Block has changed.")
         if locked.deleted_at is not None:
             raise InvestigationValidationError({"detail": "The block has been deleted."})
-        if locked.investigation.status != InvestigationStatus.ACTIVE:
+        if locked.notebook.status != NotebookStatus.ACTIVE:
             raise InvestigationValidationError({"detail": "Archived investigations are read-only."})
-        if locked.kind == InvestigationBlockKind.TEXT and not locked.prompt.strip():
+        if locked.kind == NotebookBlockKind.TEXT and not locked.prompt.strip():
             raise InvestigationValidationError(
                 {"detail": "The text block needs a generation prompt."}
             )
-        if (
-            locked.kind == InvestigationBlockKind.QUERY
-            and not (locked.prompt or locked.content).strip()
-        ):
+        if locked.kind == NotebookBlockKind.QUERY and not (locked.prompt or locked.content).strip():
             raise InvestigationValidationError({"detail": "The query block needs a question."})
-        if locked.kind == InvestigationBlockKind.QUERY and not project_ids:
+        if locked.kind == NotebookBlockKind.QUERY and not project_ids:
             raise InvestigationValidationError(
                 {"detail": "Select at least one accessible project before running this query."}
             )
@@ -488,10 +368,10 @@ def create_block_execution(
                 and current.input_fingerprint == fingerprint
                 and current.status
                 in {
-                    InvestigationBlockExecutionStatus.PENDING,
-                    InvestigationBlockExecutionStatus.RUNNING,
-                    InvestigationBlockExecutionStatus.AWAITING_INPUT,
-                    InvestigationBlockExecutionStatus.STOPPING,
+                    NotebookBlockExecutionStatus.PENDING,
+                    NotebookBlockExecutionStatus.RUNNING,
+                    NotebookBlockExecutionStatus.AWAITING_INPUT,
+                    NotebookBlockExecutionStatus.STOPPING,
                 }
             ):
                 return current, False
@@ -499,20 +379,20 @@ def create_block_execution(
             "block": locked,
             "triggered_by_id": user_id,
             "executor": (
-                InvestigationBlockExecutor.TEXT_GENERATION
-                if locked.kind == InvestigationBlockKind.TEXT
-                else InvestigationBlockExecutor.CODE_MODE
+                NotebookBlockExecutor.TEXT_GENERATION
+                if locked.kind == NotebookBlockKind.TEXT
+                else NotebookBlockExecutor.CODE_MODE
             ),
-            "status": InvestigationBlockExecutionStatus.PENDING,
+            "status": NotebookBlockExecutionStatus.PENDING,
             "block_version": locked.version,
             "input_snapshot": snapshot,
             "input_fingerprint": fingerprint,
             "result_schema_version": 1,
         }
         if request_id is None:
-            execution = InvestigationBlockExecution.objects.create(**execution_values)
+            execution = NotebookBlockExecution.objects.create(**execution_values)
         else:
-            execution, created = InvestigationBlockExecution.objects.get_or_create(
+            execution, created = NotebookBlockExecution.objects.get_or_create(
                 request_id=request_id,
                 defaults=execution_values,
             )
@@ -528,61 +408,61 @@ def create_block_execution(
 
 
 def mark_block_execution_dispatched(
-    execution: InvestigationBlockExecution,
+    execution: NotebookBlockExecution,
     *,
     seer_run_id: int,
     dispatch_claimed_at: datetime | None = None,
 ) -> bool:
-    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    candidates = NotebookBlockExecution.objects.filter(id=execution.id)
     if dispatch_claimed_at is None:
-        candidates = candidates.filter(status=InvestigationBlockExecutionStatus.PENDING)
+        candidates = candidates.filter(status=NotebookBlockExecutionStatus.PENDING)
     else:
         candidates = candidates.filter(
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             seer_run_id__isnull=True,
             started_at=dispatch_claimed_at,
         )
     updated = candidates.update(
         seer_run_id=seer_run_id,
-        status=InvestigationBlockExecutionStatus.RUNNING,
+        status=NotebookBlockExecutionStatus.RUNNING,
         started_at=dispatch_claimed_at or timezone.now(),
     )
     return updated == 1
 
 
 def mark_block_execution_dispatch_started(
-    execution: InvestigationBlockExecution,
+    execution: NotebookBlockExecution,
 ) -> datetime | None:
     stale_before = timezone.now() - DISPATCH_CLAIM_TIMEOUT
     claimed_at = timezone.now()
     updated = (
-        InvestigationBlockExecution.objects.filter(id=execution.id)
+        NotebookBlockExecution.objects.filter(id=execution.id)
         .filter(
-            Q(status=InvestigationBlockExecutionStatus.PENDING)
+            Q(status=NotebookBlockExecutionStatus.PENDING)
             | Q(
-                status=InvestigationBlockExecutionStatus.RUNNING,
+                status=NotebookBlockExecutionStatus.RUNNING,
                 seer_run_id__isnull=True,
                 started_at__lte=stale_before,
             )
             | Q(
-                status=InvestigationBlockExecutionStatus.RUNNING,
+                status=NotebookBlockExecutionStatus.RUNNING,
                 seer_run_id__isnull=True,
                 started_at__isnull=True,
             )
         )
         .update(
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             started_at=claimed_at,
         )
     )
     return claimed_at if updated == 1 else None
 
 
-def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bool:
-    if execution.status == InvestigationBlockExecutionStatus.PENDING:
+def block_execution_needs_dispatch(execution: NotebookBlockExecution) -> bool:
+    if execution.status == NotebookBlockExecutionStatus.PENDING:
         return True
     return (
-        execution.status == InvestigationBlockExecutionStatus.RUNNING
+        execution.status == NotebookBlockExecutionStatus.RUNNING
         and execution.seer_run_id is None
         and (
             execution.started_at is None
@@ -591,58 +471,58 @@ def block_execution_needs_dispatch(execution: InvestigationBlockExecution) -> bo
     )
 
 
-def mark_block_execution_resumed(execution: InvestigationBlockExecution) -> bool:
-    updated = InvestigationBlockExecution.objects.filter(
-        id=execution.id, status=InvestigationBlockExecutionStatus.AWAITING_INPUT
-    ).update(status=InvestigationBlockExecutionStatus.RUNNING)
+def mark_block_execution_resumed(execution: NotebookBlockExecution) -> bool:
+    updated = NotebookBlockExecution.objects.filter(
+        id=execution.id, status=NotebookBlockExecutionStatus.AWAITING_INPUT
+    ).update(status=NotebookBlockExecutionStatus.RUNNING)
     return updated == 1
 
 
-def mark_block_execution_stopping(execution: InvestigationBlockExecution) -> bool:
+def mark_block_execution_stopping(execution: NotebookBlockExecution) -> bool:
     updated = (
-        InvestigationBlockExecution.objects.filter(id=execution.id)
+        NotebookBlockExecution.objects.filter(id=execution.id)
         .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
-        .update(status=InvestigationBlockExecutionStatus.STOPPING)
+        .update(status=NotebookBlockExecutionStatus.STOPPING)
     )
     return updated == 1
 
 
 def mark_block_execution_cancelled(
-    execution: InvestigationBlockExecution, *, reason: str = "user_requested"
+    execution: NotebookBlockExecution, *, reason: str = "user_requested"
 ) -> bool:
     updated = (
-        InvestigationBlockExecution.objects.filter(id=execution.id)
+        NotebookBlockExecution.objects.filter(id=execution.id)
         .exclude(status__in=TERMINAL_BLOCK_EXECUTION_STATUSES)
-        .update(status=InvestigationBlockExecutionStatus.CANCELLED, completed_at=timezone.now())
+        .update(status=NotebookBlockExecutionStatus.CANCELLED, completed_at=timezone.now())
     )
     if updated:
         transaction.on_commit(
             partial(record_execution_cancelled, execution, reason=reason),
-            using=router.db_for_write(InvestigationBlockExecution),
+            using=router.db_for_write(NotebookBlockExecution),
         )
     return updated == 1
 
 
 def mark_block_execution_dispatch_failed(
-    execution: InvestigationBlockExecution, *, dispatch_claimed_at: datetime | None = None
+    execution: NotebookBlockExecution, *, dispatch_claimed_at: datetime | None = None
 ) -> bool:
-    candidates = InvestigationBlockExecution.objects.filter(id=execution.id)
+    candidates = NotebookBlockExecution.objects.filter(id=execution.id)
     if dispatch_claimed_at is None:
         candidates = candidates.filter(
             status__in=[
-                InvestigationBlockExecutionStatus.PENDING,
-                InvestigationBlockExecutionStatus.RUNNING,
+                NotebookBlockExecutionStatus.PENDING,
+                NotebookBlockExecutionStatus.RUNNING,
             ],
             seer_run_id__isnull=True,
         )
     else:
         candidates = candidates.filter(
-            status=InvestigationBlockExecutionStatus.RUNNING,
+            status=NotebookBlockExecutionStatus.RUNNING,
             seer_run_id__isnull=True,
             started_at=dispatch_claimed_at,
         )
     updated = candidates.update(
-        status=InvestigationBlockExecutionStatus.FAILED,
+        status=NotebookBlockExecutionStatus.FAILED,
         error={
             "code": "dispatch_failed",
             "message": "The execution could not be started.",

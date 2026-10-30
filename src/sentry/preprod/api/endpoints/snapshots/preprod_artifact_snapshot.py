@@ -30,6 +30,7 @@ from sentry.apidocs.examples.preprod_examples import PreprodExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.staff import is_active_staff
 from sentry.constants import DataCategory
 from sentry.issues.action_log.request import resolve_action_source
@@ -269,9 +270,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiDeleteEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
             )
         )
@@ -496,9 +495,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             PreprodArtifactApiGetSnapshotDetailsEvent(
                 organization_id=organization.id,
                 project_id=artifact.project_id,
-                user_id=(
-                    request.user.id if request.user and request.user.is_authenticated else None
-                ),
+                user_id=acting_user_id(request.user),
                 artifact_id=str(artifact.id),
                 client=resolve_action_source(request),
             )

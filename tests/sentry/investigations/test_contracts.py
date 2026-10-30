@@ -32,13 +32,13 @@ from sentry.investigations.contracts import (
     validate_query_result,
     validate_text_result,
 )
-from sentry.investigations.models import Investigation, InvestigationActionRequest
 from sentry.investigations.services.action_kinds import ACTION_KINDS
 from sentry.investigations.services.action_kinds.base import (
     ActionKind,
     ApplyContext,
     CannotApplyReason,
 )
+from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json
@@ -687,7 +687,7 @@ class RecordingKind(ActionKind):
 
     def __init__(self) -> None:
         # The requests after_upsert ran for, in order.
-        self.upserted: list[InvestigationActionRequest] = []
+        self.upserted: list[NotebookActionRequest] = []
         # The arguments from each cannot_apply_reasons call.
         self.checked: list[tuple[list[int], list[int], Access, User | RpcUser | AnonymousUser]] = []
         # Which of check_remote, check and apply ran, in order.
@@ -701,14 +701,14 @@ class RecordingKind(ActionKind):
         # Why cannot_apply_reasons says the viewer can't apply, if they can't.
         self.reason: CannotApplyReason | None = None
 
-    def after_upsert(self, action_request: InvestigationActionRequest) -> None:
+    def after_upsert(self, action_request: NotebookActionRequest) -> None:
         self.upserted.append(action_request)
 
     def cannot_apply_reasons(
         self,
-        action_requests: Sequence[InvestigationActionRequest],
+        action_requests: Sequence[NotebookActionRequest],
         *,
-        investigations: dict[int, Investigation],
+        investigations: dict[int, Notebook],
         access: Access,
         user: User | RpcUser | AnonymousUser,
     ) -> dict[int, CannotApplyReason | None]:
@@ -717,9 +717,7 @@ class RecordingKind(ActionKind):
         )
         return {item.id: self.reason for item in action_requests}
 
-    def check_remote(
-        self, investigation: Investigation, action_request: InvestigationActionRequest
-    ) -> None:
+    def check_remote(self, investigation: Notebook, action_request: NotebookActionRequest) -> None:
         self.calls.append("check_remote")
         if self.remote_raises is not None:
             raise self.remote_raises

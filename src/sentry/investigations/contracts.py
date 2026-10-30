@@ -10,12 +10,12 @@ from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.investigations.models.block import InvestigationBlockKind
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationStatus,
 )
+from sentry.notebooks.models import NotebookBlockKind
 
 logger = logging.getLogger(__name__)
 
@@ -810,7 +810,7 @@ class ReportBlockRemovedPayloadSerializer(_BlockKeyMixin):
 
 
 class ReportBlockStartedPayloadSerializer(_BlockKeyMixin, ProjectScopedSerializer):
-    kind = serializers.ChoiceField(choices=InvestigationBlockKind.values)
+    kind = serializers.ChoiceField(choices=NotebookBlockKind.values)
     position = StrictIntegerField(min_value=0, max_value=I32_MAX)
     producingRunId = StrictIntegerField(
         required=False, allow_null=True, min_value=1, max_value=I64_MAX
@@ -972,7 +972,7 @@ class ReportFailedPayloadSerializer(_ReportRevisionMixin):
 
 
 class ReportBlockUpsertedPayloadSerializer(_BlockKeyMixin, ProjectScopedSerializer):
-    kind = serializers.ChoiceField(choices=InvestigationBlockKind.values)
+    kind = serializers.ChoiceField(choices=NotebookBlockKind.values)
     position = StrictIntegerField(required=False, min_value=0, max_value=I32_MAX)
     producingRunId = StrictIntegerField(
         required=False, allow_null=True, min_value=1, max_value=I64_MAX
@@ -1003,7 +1003,7 @@ class ReportBlockUpsertedPayloadSerializer(_BlockKeyMixin, ProjectScopedSerializ
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
-        if attrs.get("kind") != InvestigationBlockKind.QUERY:
+        if attrs.get("kind") != NotebookBlockKind.QUERY:
             return attrs
         if "result" not in attrs:
             raise serializers.ValidationError({"result": "A query result is required."})

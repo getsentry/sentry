@@ -4,9 +4,11 @@ from unittest.mock import Mock, patch
 from django.contrib.auth.models import AnonymousUser
 from django.test import override_settings
 from django.utils import timezone
+from rest_framework.request import Request
 
 from sentry.auth import access
 from sentry.auth.access import Access, NoAccess
+from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.dummy import DummyProvider
 from sentry.auth.scope_declaration import (
     bind_endpoint_scope_declaration,
@@ -21,6 +23,8 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.team import TeamStatus
 from sentry.organizations.services.organization import organization_service
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -1097,6 +1101,118 @@ class DefaultAccessTest(TestCase):
         assert not result.has_project_scope(Mock(), "project:read")
         assert not result.has_project_membership(Mock())
         assert not result.permissions
+
+
+@no_silo_test
+class ServiceAccountAccessTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization()
+        self.team = self.create_team(organization=self.org)
+        self.linked = self.create_project(organization=self.org, teams=[self.team])
+        self.unlinked = self.create_project(organization=self.org, teams=[self.team])
+        self.service_account = self.create_service_account(
+            organization=self.org, scope_list=["project:read"], project_ids=[self.linked.id]
+        )
+
+    def _access(
+        self, *, has_open_membership: bool, organization: Organization | None = None
+    ) -> Access:
+        auth = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=self.service_account.id,
+            organization_id=self.org.id,
+            scopes=["project:read"],
+        )
+        return access.from_service_account_auth(
+            auth, (organization or self.org).id, has_open_membership
+        )
+
+    def test_principal_gets_its_credential_access(self) -> None:
+        # Authenticated with no user_id: is_authenticated would send it to membership access.
+        principal = ServiceAccountPrincipal(
+            service_account_id=self.service_account.id,
+            organization_id=self.org.id,
+            name=self.service_account.name,
+        )
+        token = AuthenticatedToken(
+            kind=SERVICE_ACCOUNT_TOKEN_KIND,
+            entity_id=self.service_account.id,
+            organization_id=self.org.id,
+            scopes=["project:read"],
+        )
+        request = Request(self.make_request())
+        set_request_principal(request, principal, token)
+        user: object = request.user
+        assert user is principal
+        rpc_user_org_context = organization_service.get_organization_by_id(id=self.org.id)
+
+        assert isinstance(access.from_request(request, self.org), access.ServiceAccountAccess)
+        assert isinstance(
+            access.from_request_org_and_scopes(
+                request=request, rpc_user_org_context=rpc_user_org_context
+            ),
+            access.ServiceAccountAccess,
+        )
+
+    def test_principal_without_organization_gets_no_access(self) -> None:
+        request = Request(self.make_request())
+        set_request_principal(
+            request,
+            ServiceAccountPrincipal(
+                service_account_id=self.service_account.id,
+                organization_id=self.org.id,
+                name=self.service_account.name,
+            ),
+            AuthenticatedToken(
+                kind=SERVICE_ACCOUNT_TOKEN_KIND,
+                entity_id=self.service_account.id,
+                organization_id=self.org.id,
+                scopes=["project:read"],
+            ),
+        )
+        assert access.from_request(request) is access.DEFAULT
+
+    def test_closed_membership_reaches_only_linked_projects(self) -> None:
+        result = self._access(has_open_membership=False)
+
+        assert isinstance(result, access.ServiceAccountAccess)
+        assert not result.has_global_access
+        assert result.has_scope("project:read")
+        assert not result.has_scope("project:write")
+        assert result.has_project_access(self.linked)
+        assert not result.has_project_access(self.unlinked)
+        assert result.has_project_scope(self.linked, "project:read")
+        assert result.accessible_project_ids == {self.linked.id}
+        assert result.has_project_membership(self.linked)
+        assert not result.has_project_membership(self.unlinked)
+        assert not result.has_team_access(self.team)
+        assert result.accessible_team_ids == frozenset()
+        assert result.role is None
+
+    def test_closed_membership_skips_inactive_linked_project(self) -> None:
+        self.linked.update(status=ObjectStatus.PENDING_DELETION)
+
+        result = self._access(has_open_membership=False)
+
+        assert not result.has_project_access(self.linked)
+        assert result.accessible_project_ids == frozenset()
+
+    def test_open_membership_reaches_every_project_and_team(self) -> None:
+        result = self._access(has_open_membership=True)
+
+        assert result.has_global_access
+        assert result.has_project_access(self.unlinked)
+        assert result.accessible_project_ids == {self.linked.id, self.unlinked.id}
+        assert result.has_team_access(self.team)
+        assert result.accessible_team_ids == {self.team.id}
+
+    def test_no_access_to_other_org(self) -> None:
+        other_org = self.create_organization()
+        other_project = self.create_project(organization=other_org)
+
+        assert self._access(has_open_membership=True, organization=other_org) is access.DEFAULT
+        assert not self._access(has_open_membership=True).has_project_access(other_project)
 
 
 @no_silo_test

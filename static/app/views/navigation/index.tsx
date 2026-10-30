@@ -28,6 +28,7 @@ import {
   MobileSecondaryNavigationContextProvider,
   useSecondaryNavigation,
 } from 'sentry/views/navigation/secondaryNavigationContext';
+import {SettingsNavigationTourProvider} from 'sentry/views/navigation/settingsNavigationTour';
 import {useResetActiveNavigationGroup} from 'sentry/views/navigation/useResetActiveNavigationGroup';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
@@ -70,7 +71,7 @@ function UserAndOrganizationNavigation({pageBannerHeight}: NavigationProps) {
       ? []
       : [
           {
-            match: 'mod+b',
+            hotkey: 'Mod+B',
             callback: () => setView(view === 'expanded' ? 'collapsed' : 'expanded'),
           },
         ]
@@ -136,8 +137,10 @@ export function Navigation({pageBannerHeight = 0}: NavigationProps) {
   return (
     <HoverOverlayGroupProvider>
       <NavigationTourProvider>
-        <SkipLink />
-        <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
+        <SettingsNavigationTourProvider>
+          <SkipLink />
+          <UserAndOrganizationNavigation pageBannerHeight={pageBannerHeight} />
+        </SettingsNavigationTourProvider>
       </NavigationTourProvider>
     </HoverOverlayGroupProvider>
   );

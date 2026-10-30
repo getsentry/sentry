@@ -31,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -49,6 +50,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -372,7 +374,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
                 id=int(organization_id_or_slug),
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
@@ -380,7 +382,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             organization_context = organization_service.get_organization_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
@@ -877,10 +879,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         has_valid_agent_auth = (
             agent_auth is not None and agent_auth.organization_id == organization.id
         )
+        has_valid_service_account_auth = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == organization.id
+        )
 
         if not (
             has_valid_api_key
             or has_valid_agent_auth
+            or has_valid_service_account_auth
             or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
@@ -916,11 +923,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         Agent requests bypass the cache so every call rechecks live project membership.
+        Service accounts bypass it too. With no user, they'd fall into the
+        `apikey:<entity_id>` key below, where a service account ID can match an
+        API key ID.
         """
         actor_id = None
         has_perms = None
         key = None
-        if not is_agent_auth(request.auth):
+        if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
                 actor_id = "user:%s" % request.user.id
             elif request.auth is not None:

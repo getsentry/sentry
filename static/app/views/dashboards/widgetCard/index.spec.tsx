@@ -403,6 +403,38 @@ describe('Dashboards > WidgetCard', () => {
     expect(mock).toHaveBeenCalledTimes(1);
   });
 
+  it.each([
+    ['Edit Widget', 'Widgets on Sentry Built dashboards cannot be edited.'],
+    ['Duplicate Widget', 'Widgets on Sentry Built dashboards cannot be duplicated.'],
+    ['Delete Widget', 'Widgets on Sentry Built dashboards cannot be deleted.'],
+  ])('explains why %s is disabled on Sentry Built dashboards', async (name, message) => {
+    renderWithProviders(
+      <WidgetCard
+        api={api}
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.AREA,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={() => {}}
+        showContextMenu
+        hasEditAccess={false}
+        isPrebuiltDashboard
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    const action = screen.getByRole('menuitemradio', {name});
+    expect(action).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(action);
+    expect(await screen.findByText(message)).toBeInTheDocument();
+  });
+
   it('renders delete widget option', async () => {
     const mock = jest.fn();
     renderWithProviders(

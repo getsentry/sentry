@@ -38,6 +38,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.discover.endpoints.bases import (
     DiscoverSavedQueryPermission,
     filter_to_accessible_discover_queries,
@@ -125,7 +126,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                     queryset = queryset.none()
 
         last_visited_query: Subquery | Value = Value(None, output_field=DateTimeField(null=True))
-        if request.user.is_authenticated:
+        if has_user(request.user):
             last_visited_query = Subquery(
                 DiscoverSavedQueryLastVisited.objects.filter(
                     organization=organization,
@@ -255,7 +256,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id if request.user.is_authenticated else None,
+            created_by_id=acting_user_id(request.user),
         )
 
         model.set_projects(data["project_ids"])

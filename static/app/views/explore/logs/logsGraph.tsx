@@ -71,11 +71,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {
-  isVisualize,
-  isVisualizeFunction,
-  type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
+import {isVisualize, type Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -128,10 +124,7 @@ export function LogsGraph({rawLogCounts, timeseriesResult}: LogsGraphProps) {
   ) {
     setVisualizes(
       visualizes.map((visualize, i) =>
-        (i === index && isVisualizeFunction(visualize)
-          ? visualize.replace({transformations})
-          : visualize
-        ).serialize()
+        (i === index ? visualize.replace({transformations}) : visualize).serialize()
       )
     );
   }
@@ -178,7 +171,6 @@ function Graph({
   const organization = useOrganization();
   const showTransformationControls =
     visualize.visible &&
-    isVisualizeFunction(visualize) &&
     visualize.chartType !== ChartType.HEATMAP &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const isShortViewport = useIsShortViewport();
@@ -197,6 +189,7 @@ function Graph({
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer({dataset: DiscoverDatasets.OURLOGS});
+  const isDroppedDataLoaded = defined(droppedEvents);
   const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
@@ -218,7 +211,7 @@ function Graph({
         : getTimeSeriesForQuery(
             timeseriesResult.data,
             aggregate,
-            isVisualizeFunction(visualize) ? visualize.transformations : []
+            visualize.transformations
           );
     const isTopEvents = defined(topEventsLimit);
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
@@ -297,9 +290,10 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
+      {isDroppedDataLoaded ? (
         <DroppedDataLayerControl
           dataset={DiscoverDatasets.OURLOGS}
+          hasDroppedData={canShowDroppedData}
           showDroppedData={isDroppedDataLayerOn}
           onChange={setIsDroppedDataLayerOn}
         />
@@ -386,23 +380,34 @@ function Graph({
         }
         Footer={
           visualize.visible && (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              <ConfidenceFooter
-                chartInfo={chartInfo}
-                isLoading={chartInfo.timeseriesResult.isPending}
-                rawLogCounts={rawLogCounts}
-                hasUserQuery={!!userQuery}
-                disabled={
-                  !hasValidConditionalFilter || (tableIsPending ? false : tableIsEmpty)
-                }
-              />
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={DiscoverDatasets.OURLOGS}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  <ConfidenceFooter
+                    chartInfo={chartInfo}
+                    isLoading={chartInfo.timeseriesResult.isPending}
+                    rawLogCounts={rawLogCounts}
                     hasUserQuery={!!userQuery}
+                    disabled={
+                      !hasValidConditionalFilter ||
+                      (tableIsPending ? false : tableIsEmpty)
+                    }
                   />
-                ) : null}
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={DiscoverDatasets.OURLOGS}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {showTransformationControls ? (
                   <AddTransformationButton
                     traceItemDataset={TraceItemDataset.LOGS}
@@ -411,7 +416,7 @@ function Graph({
                   />
                 ) : null}
               </Flex>
-            </Flex>
+            </Container>
           )
         }
         height={visualize.visible ? (isShortViewport ? 175 : 200) : 50}

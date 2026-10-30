@@ -20,7 +20,7 @@ export const CRON_DEFAULT_SCHEDULE_INTERVAL_UNIT = 'day';
 export const CRON_DEFAULT_FAILURE_ISSUE_THRESHOLD = 1;
 export const CRON_DEFAULT_RECOVERY_THRESHOLD = 1;
 
-interface CronDetectorFormData {
+export interface CronDetectorFormData {
   checkinMargin: number | null;
   description: string | null;
   failureIssueThreshold: number;
@@ -92,7 +92,11 @@ export function cronFormDataToEndpointPayload(
         }
       : {
           ...commonConfig,
-          schedule: [data.scheduleIntervalValue, data.scheduleIntervalUnit] as const,
+          // Number inputs store typed values as strings, but the API requires an integer
+          schedule: [
+            Number(data.scheduleIntervalValue),
+            data.scheduleIntervalUnit,
+          ] as const,
           schedule_type: ScheduleType.INTERVAL,
         };
 

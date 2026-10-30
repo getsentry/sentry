@@ -359,7 +359,7 @@ export function ChoiceMapperTable({
                   onChange={(v: {value: string | number | null} | null) =>
                     setValue(itemKey, fieldKey, v ? v.value : null)
                   }
-                  value={value[itemKey]?.[fieldKey]}
+                  value={value[itemKey]?.[fieldKey] ?? null}
                 />
               </Stack>
               {i === mappedKeys.length - 1 && (

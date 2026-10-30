@@ -29,7 +29,9 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-granular_scopes = ["dashboard:read", "dashboard:write"]
+granular_scopes = ["dashboard:read", "dashboard:write", "saved_query:read", "saved_query:write"]
+# Accepted by endpoints, but no role grants them yet.
+ungranted_scopes = ["user_preference:read", "user_preference:write"]
 non_default_owner_scopes = [
     "org:ci",
     "org:tokens",
@@ -38,6 +40,7 @@ non_default_owner_scopes = [
     "profile",
     "project:distribution",
     *granular_scopes,
+    *ungranted_scopes,
 ]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)

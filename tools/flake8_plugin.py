@@ -3,7 +3,7 @@ from __future__ import annotations
 import ast
 import os
 from collections import Counter
-from collections.abc import Generator
+from collections.abc import Generator, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Literal, NamedTuple
@@ -182,6 +182,20 @@ _S030_MODULE_SCOPE = "<module>"
 S031_msg = (
     "S031 Do not assign to settings in tests; use override_settings(...) or "
     "override_options(...) so the change is undone in order"
+)
+
+S032_msg = (
+    "S032 acting_user_id() is None when no user is calling (e.g. a service account), "
+    "and a None lookup matches rows with no user; call require_user(request) or handle "
+    "None first"
+)
+# Lookups only: writing None, e.g. to created_by_id, is how a caller with no user is
+# recorded.
+_S032_query_methods = frozenset(("filter", "exclude", "get", "get_or_create", "update_or_create"))
+
+S033_msg = (
+    "S033 Don't assign request.user or request.auth directly; call "
+    "set_request_principal(request, user, auth)."
 )
 
 # Existing callers are pinned to their exact function and occurrence count. This is a
@@ -445,6 +459,41 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_acting_user_id(node: ast.expr) -> bool:
+    """A call to `acting_user_id(...)`."""
+    return (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "acting_user_id"
+    )
+
+
+def _is_named_request(node: ast.expr) -> bool:
+    """`request`, `self.request`, `drf_request`, ..."""
+    if isinstance(node, ast.Name):
+        return node.id.endswith("request")
+    return isinstance(node, ast.Attribute) and node.attr.endswith("request")
+
+
+def _is_request_principal_attr(node: ast.expr) -> bool:
+    """`request.user` / `request.auth` on anything named like a request."""
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr in ("user", "auth")
+        and _is_named_request(node.value)
+    )
+
+
+def _unpack_targets(targets: list[ast.expr]) -> Iterator[ast.expr]:
+    stack = list(targets)
+    while stack:
+        target = stack.pop()
+        if isinstance(target, (ast.Tuple, ast.List)):
+            stack.extend(target.elts)
+        else:
+            yield target
 
 
 def _is_seer_connection_pool_call(node: ast.expr) -> bool:
@@ -1031,14 +1080,17 @@ class SentryVisitor(ast.NodeVisitor):
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
         self._check_S031(node.targets)
+        self._check_S033(node.targets)
         self.generic_visit(node)
 
     def visit_AugAssign(self, node: ast.AugAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
         self._check_S031([node.target])
+        self._check_S033([node.target])
         self.generic_visit(node)
 
     def visit_Delete(self, node: ast.Delete) -> None:
@@ -1051,6 +1103,19 @@ class SentryVisitor(ast.NodeVisitor):
         for target in targets:
             if _is_settings_target(target):
                 self.errors.append((target.lineno, target.col_offset, S031_msg))
+
+    def _s033_applies(self) -> bool:
+        # set_request_principal is the one setter; tests may assign directly.
+        return not _is_tests_path(self.filename) and not self.filename.endswith(
+            "sentry/auth/principal.py"
+        )
+
+    def _check_S033(self, targets: list[ast.expr]) -> None:
+        if not self._s033_applies():
+            return
+        for target in _unpack_targets(targets):
+            if _is_request_principal_attr(target):
+                self.errors.append((target.lineno, target.col_offset, S033_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)
@@ -1311,6 +1376,28 @@ class SentryVisitor(ast.NodeVisitor):
             for keyword in node.keywords:
                 if keyword.arg == "SENTRY_OPTIONS":
                     self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
+
+        # S033: setattr(request, "user" | "auth", ...).
+        if (
+            isinstance(node.func, ast.Name)
+            and node.func.id == "setattr"
+            and len(node.args) >= 2
+            and isinstance(node.args[1], ast.Constant)
+            and node.args[1].value in ("user", "auth")
+            and self._s033_applies()
+            and _is_named_request(node.args[0])
+        ):
+            self.errors.append((node.lineno, node.col_offset, S033_msg))
+
+        # S032: a caller's possibly-None user_id used as a queryset lookup.
+        if (
+            isinstance(node.func, ast.Attribute)
+            and node.func.attr in _S032_query_methods
+            and ".objects" in _name_of(node.func.value)
+        ):
+            for keyword in node.keywords:
+                if _is_acting_user_id(keyword.value):
+                    self.errors.append((keyword.lineno, keyword.col_offset, S032_msg))
 
         if isinstance(node.func, ast.Attribute) and node.func.attr in S019_logging_methods:
             for keyword in node.keywords:

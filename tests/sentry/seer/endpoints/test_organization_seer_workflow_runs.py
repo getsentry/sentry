@@ -1,8 +1,8 @@
 from collections.abc import Sequence
-from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from django.db import connections, router
+from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -10,11 +10,9 @@ from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
 from sentry.apidocs.spectacular_ports import resolve_type_hint
-from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
-from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
     WorkflowRunListErrorResponse,
@@ -22,7 +20,6 @@ from sentry.seer.endpoints.organization_seer_workflow_runs import (
 )
 from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.models.workflow import (
-    SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -78,6 +75,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
+                    "strategy": "breached_metric_investigation",
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -378,12 +376,17 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["seerRunId"] is None
 
     def test_execution_serialization_batches_database_reads(self) -> None:
-        runs = [self.create_run() for _ in range(3)]
-        for run in runs:
+        created = [self.create_run() for _ in range(3)]
+        for run in created:
             Factories.create_seer_workflow_run_execution(
                 run, seer_run=Factories.create_seer_run(self.organization)
             )
             Factories.create_seer_workflow_run_execution(run)
+        runs = list(
+            SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
+            .annotate(strategy=F("workflow_config__strategy"))
+            .order_by("id")
+        )
         using = router.db_for_read(SeerWorkflowRunExecution)
         with CaptureQueriesContext(connections[using]) as queries:
             result = serialize_workflow_runs(runs)
@@ -556,225 +559,3 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
                 ],
             },
         }
-
-
-@override_settings(SENTRY_SELF_HOSTED=False)
-@with_feature("organizations:seer-automations")
-class OrganizationSeerWorkflowConfigsTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-workflow-configs"
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.login_as(user=self.user)
-
-    def test_feature_disabled_does_not_seed_defaults(self) -> None:
-        with self.feature({"organizations:seer-automations": False}):
-            self.get_error_response(self.organization.slug, status_code=404)
-
-        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
-
-    def test_empty_organization_does_not_seed_defaults(self) -> None:
-        response = self.get_success_response(self.organization.slug)
-
-        assert 'rel="next"' in response.headers["Link"]
-        assert response.data == {"configs": []}
-        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
-
-    def test_lists_saved_configs_for_organization(self) -> None:
-        project = self.create_project()
-        config = self.create_config(
-            enabled=False,
-            version=4,
-            filters={"environments": ["production"], "min_event_count": 10},
-            output_policy={"review_mode": "manual"},
-            extras={"seeded_default": "agentic_triage_v2"},
-        )
-        Factories.create_seer_workflow_config_project(config, project)
-        empty = self.create_config()
-        Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
-        )
-        Factories.create_seer_workflow_config(
-            self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-        )
-
-        response = self.get_success_response(self.organization.slug)
-
-        assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
-        assert response.data["configs"][0] == {
-            "id": str(config.id),
-            "strategy": "agentic_triage_v2",
-            "enabled": False,
-            "schedule": "daily",
-            "version": 4,
-            "projects": [project.id],
-            "environments": ["production"],
-            "filters": {"minEventCount": 10},
-            "outputPolicy": {"review_mode": "manual"},
-            "seededDefault": "agentic_triage_v2",
-            "dateAdded": config.date_added,
-            "dateUpdated": config.date_updated,
-        }
-        assert response.data["configs"][1]["projects"] == []
-
-    def test_id_filter_is_scoped_and_applies_before_pagination(self) -> None:
-        self.create_config()
-        first = self.create_config()
-        second = self.create_config()
-        foreign = Factories.create_seer_workflow_config(
-            self.create_organization(owner=self.user),
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
-        )
-        legacy = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE
-        )
-        response = self.get_success_response(
-            self.organization.slug,
-            id=[second.id, first.id, first.id, foreign.id, legacy.id, I64_MAX],
-            per_page=1,
-        )
-        assert [config["id"] for config in response.data["configs"]] == [str(first.id)]
-        next_url = next(
-            url
-            for url, link in parse_link_header(response.headers["Link"]).items()
-            if link["rel"] == "next"
-        )
-        next_page = self.client.get(next_url)
-        assert next_page.status_code == 200
-        assert [config["id"] for config in next_page.data["configs"]] == [str(second.id)]
-        assert (
-            next(
-                link
-                for link in parse_link_header(next_page.headers["Link"]).values()
-                if link["rel"] == "next"
-            )["results"]
-            == "false"
-        )
-
-        unavailable = self.get_success_response(
-            self.organization.slug, id=[foreign.id, legacy.id, I64_MAX]
-        )
-        assert unavailable.data == {"configs": []}
-
-    def test_invalid_config_ids(self) -> None:
-        config = self.create_config()
-        for invalid_id in ("invalid", "-1", str(I64_MAX + 1)):
-            response = self.get_error_response(
-                self.organization.slug, id=[config.id, invalid_id], status_code=400
-            )
-            assert "id" in response.data["detail"]
-
-    def test_last_run_uses_each_configs_latest_invocation(self) -> None:
-        config = self.create_config()
-        other_config = self.create_config()
-        empty_config = self.create_config()
-        now = timezone.now()
-        Factories.create_seer_workflow_run(
-            self.organization, workflow_config=config, date_added=now - timedelta(days=2)
-        )
-        latest = Factories.create_seer_workflow_run(
-            self.organization,
-            workflow_config=config,
-            date_added=now - timedelta(days=1),
-            status=SeerWorkflowRunStatus.RUNNING,
-        )
-        other_run = Factories.create_seer_workflow_run(
-            self.organization, workflow_config=other_config, date_added=now
-        )
-        Factories.create_seer_workflow_run(
-            self.create_organization(), workflow_config=config, date_added=now
-        )
-
-        response = self.get_success_response(self.organization.slug)
-        assert {item["id"]: item.get("dateLastRun") for item in response.data["configs"]} == {
-            str(config.id): latest.date_added,
-            str(other_config.id): other_run.date_added,
-            str(empty_config.id): None,
-        }
-        assert "dateLastRun" not in response.data["configs"][2]
-
-        assert (
-            datetime.fromisoformat(response.json()["configs"][0]["dateLastRun"])
-            == latest.date_added
-        )
-        filtered = self.get_success_response(self.organization.slug, id=config.id)
-        assert filtered.data["configs"] == [response.data["configs"][0]]
-
-    def test_last_run_only_includes_visible_history(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        team = self.create_team(organization=self.organization)
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
-        accessible = self.create_project(teams=[team])
-        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
-        config = self.create_config()
-        hidden_config = self.create_config()
-        visible_run = Factories.create_seer_workflow_run(
-            self.organization,
-            workflow_config=config,
-            date_added=timezone.now() - timedelta(hours=1),
-            extras={"snapshot": {"project_ids": [accessible.id]}},
-        )
-        for project_ids in ([hidden.id], [accessible.id, hidden.id]):
-            Factories.create_seer_workflow_run(
-                self.organization,
-                workflow_config=config,
-                extras={"snapshot": {"project_ids": project_ids}},
-            )
-        Factories.create_seer_workflow_run(self.organization, workflow_config=config)
-        Factories.create_seer_workflow_run(
-            self.organization,
-            workflow_config=hidden_config,
-            extras={"snapshot": {"project_ids": [hidden.id]}},
-        )
-        Factories.create_seer_workflow_config_project(config, hidden)
-        self.login_as(member)
-
-        response = self.get_success_response(self.organization.slug)
-        assert response.data["configs"][0]["dateLastRun"] == visible_run.date_added
-        assert "dateLastRun" not in response.data["configs"][1]
-
-    def test_serialization_batches_database_reads(self) -> None:
-        configs = [self.create_config() for _ in range(3)]
-        runs = [
-            Factories.create_seer_workflow_run(self.organization, workflow_config=config)
-            for config in configs
-        ]
-        project_id = self.project.id
-        using = router.db_for_read(SeerWorkflowConfig)
-        with CaptureQueriesContext(connections[using]) as queries:
-            result = serialize_workflow_configs(
-                configs, accessible_project_ids=[project_id], has_global_access=True
-            )
-
-        assert len(queries) == 2
-        assert [config["dateLastRun"] for config in result["configs"]] == [
-            run.date_added for run in runs
-        ]
-
-    def test_scope_only_includes_accessible_active_projects(self) -> None:
-        self.organization.flags.allow_joinleave = False
-        self.organization.save()
-        team = self.create_team(organization=self.organization)
-        member = self.create_user()
-        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
-        accessible = self.create_project(teams=[team])
-        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
-        inactive = self.create_project(teams=[team], status=ObjectStatus.PENDING_DELETION)
-        foreign = self.create_project(organization=self.create_organization())
-        selected = self.create_config()
-        for project in (accessible, hidden, inactive, foreign):
-            Factories.create_seer_workflow_config_project(selected, project)
-        self.login_as(member)
-
-        response = self.get_success_response(self.organization.slug)
-
-        assert len(response.data["configs"]) == 1
-        assert response.data["configs"][0]["projects"] == [accessible.id]
-
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
-        return Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
-        )

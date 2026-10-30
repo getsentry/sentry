@@ -19,11 +19,13 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0014_add_actor_references
+investigations: 0018_add_orchestration_run_notebook_fk
 
 monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
+
+notebooks: 0002_copy_from_investigations
 
 notifications: 0016_add_inboxitem_and_inboxitemevent
 
@@ -35,9 +37,11 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0045_workflow_run_lifecycle
 
-sentry: 1244_drop_incident
+seer_workflow_outputs: 0001_initial
 
-service_accounts: 0002_add_cell_replicas
+sentry: 1248_add_dashboard_non_user_creator
+
+service_accounts: 0003_add_all_projects
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
