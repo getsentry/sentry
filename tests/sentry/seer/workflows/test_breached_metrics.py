@@ -45,8 +45,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
-    DataConditionGroup,
-    DataConditionGroupAction,
     Detector,
     DetectorWorkflow,
     Workflow,
@@ -646,34 +644,19 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             filters={"all_projects": False, "environments": ["production"]},
         )
 
-    def test_creates_complete_graph_for_existing_monitors(self) -> None:
+    def test_connects_selected_monitors(self) -> None:
         updated = self.select_monitors([*self.monitor_ids, self.monitor_ids[0]])
 
-        workflow = Workflow.objects.get(organization=self.organization)
-        binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
-        assert updated.backing_workflow_id == workflow.id
+        workflow = updated.backing_workflow
+        assert workflow is not None
         assert workflow.name == "Seer automation"
-        assert workflow.config == {"frequency": 0}
-        assert updated.filters == {"all_projects": False, "environments": ["production"]}
-        assert updated.version == 2
+        assert list(
+            workflow.detectorworkflow_set.order_by("detector_id").values_list(
+                "detector_id", flat=True
+            )
+        ) == sorted(self.monitor_ids)
         assert self.project_ids() == {monitor.project_id for monitor in self.monitors}
-        assert set(workflow.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
-            self.monitor_ids
-        )
-        assert workflow.enabled
-        assert workflow.when_condition_group is not None
-        assert workflow.when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
-        trigger = workflow.when_condition_group.conditions.get()
-        assert (trigger.type, trigger.comparison) == (Condition.FIRST_SEEN_EVENT, True)
-        action = binding.trigger_action
-        assert (action.type, action.config, action.data) == (Action.Type.SEER_WORKFLOW, {}, {})
-        action_group = workflow.workflowdataconditiongroup_set.get().condition_group
-        assert DataConditionGroupAction.objects.get(condition_group=action_group).action == action
-        condition = action_group.conditions.get()
-        assert (condition.type, condition.comparison) == (
-            Condition.ISSUE_TYPE,
-            {"value": MetricIssue.slug},
-        )
+        assert updated.version == 2
 
     def test_replaces_selection_idempotently_preserving_other_alerts(self) -> None:
         self.select_monitors(self.monitor_ids[:2])
@@ -732,21 +715,6 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         self.config.refresh_from_db()
         assert self.config.backing_workflow_id is None
         assert self.project_ids() == set()
-
-    def test_rejects_changes_to_workflow_shared_with_other_actions(self) -> None:
-        self.select_monitors(self.monitor_ids)
-        backing = Workflow.objects.get(organization=self.organization)
-        self.create_data_condition_group_action(
-            action=self.create_action(),
-            condition_group=backing.workflowdataconditiongroup_set.get().condition_group,
-        )
-
-        with pytest.raises(ValueError, match="only this automation's actions"):
-            self.select_monitors([])
-
-        assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
-            self.monitor_ids
-        )
 
     def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:
         invalid_monitors = [

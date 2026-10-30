@@ -152,7 +152,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             if not created and existing == selected:
                 return
             if existing != selected:
-                self._replace_monitor_connections(config, workflow, existing, selected)
+                self._replace_monitor_connections(workflow, existing, selected)
             # TODO(telkins): Propagate the derived projects to the automation's dedicated
             # service account in a separate step.
 
@@ -329,21 +329,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
         return workflow, True
 
     def _replace_monitor_connections(
-        self,
-        config: SeerWorkflowConfig,
-        workflow: Workflow,
-        existing: set[int],
-        selected: set[int],
+        self, workflow: Workflow, existing: set[int], selected: set[int]
     ) -> None:
-        action_group_ids = workflow.workflowdataconditiongroup_set.values_list(
-            "condition_group_id", flat=True
-        )
-        if (
-            Action.objects.filter(dataconditiongroupaction__condition_group_id__in=action_group_ids)
-            .exclude(seer_workflow_binding__workflow_config=config)
-            .exists()
-        ):
-            raise ValueError("The backing workflow must contain only this automation's actions.")
         DetectorWorkflow.objects.filter(workflow=workflow).exclude(
             detector_id__in=selected
         ).delete()
