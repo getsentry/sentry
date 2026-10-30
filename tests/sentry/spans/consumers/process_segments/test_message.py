@@ -185,6 +185,18 @@ class TestSpansTask(TestCase):
             assert span["op"]
             assert span["hash"]
 
+    @mock.patch.object(message_module, "spawn_conversation_title_generation")
+    def test_title_generation_failure_keeps_segment(self, mock_spawn: mock.MagicMock) -> None:
+        mock_spawn.side_effect = UnicodeEncodeError("utf-8", "hi", 0, 1, "surrogates not allowed")
+        spans = self.generate_basic_spans()
+
+        with mock.patch.object(message_module.logger, "exception") as mock_log:
+            processed_spans = process_segment(spans)
+
+        assert len(processed_spans) == len(spans)
+        mock_spawn.assert_called_once()
+        mock_log.assert_any_call("spans.process_segments.title_generation.error")
+
     def test_build_shim_event_data_supports_legacy_profile_id(self) -> None:
         segment_span = build_mock_span(project_id=self.project.id, is_segment=True)
         segment_span["hash"] = "hashed-segment"
