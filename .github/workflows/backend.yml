@@ -264,7 +264,8 @@ jobs:
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
               -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
-              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+              -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
+              -c log_connections=on -c log_autovacuum_min_duration=0
           # docker run -d returns 0 even if postgres dies right after — bound the
           # wait so a crashing postgres surfaces fast instead of hitting the job
           # timeout silently.
@@ -289,6 +290,21 @@ jobs:
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
+
+      # sentry-shared-kafka's healthcheck runs `kafka-topics --list` every 5s, which starts
+      # a JVM each time: about 0.25 of the runner's 4 cores during tests. Everything that
+      # waits on Kafka's health is done by now, so answer that exact command with a TCP
+      # probe instead (kafka-topics-healthcheck.sh).
+      - name: Make the Kafka healthcheck cheap
+        continue-on-error: true
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+
+      - name: Mark the start of the test phase
+        run: echo "TESTS_STARTED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_ENV"
 
       - name: Install py-spy
         if: env.PROFILE_BACKEND_TESTS == '1'
@@ -331,6 +347,21 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      # Short-lived postgres processes use about 0.3 cores during tests. Count what they are.
+      - name: Postgres and Kafka activity during tests
+        if: always() && env.TESTS_STARTED_AT != ''
+        continue-on-error: true
+        run: |
+          pg_log=$(docker logs --since "$TESTS_STARTED_AT" postgres-postgres-1 2>&1)
+          echo "connections: $(grep -c 'connection authorized' <<<"$pg_log")"
+          echo "autovacuum runs: $(grep -c 'automatic vacuum' <<<"$pg_log")"
+          echo "autoanalyze runs: $(grep -c 'automatic analyze' <<<"$pg_log")"
+          echo "connections by database and application:"
+          grep 'connection authorized' <<<"$pg_log" |
+            sed -E 's/.*database=([^ ]+)( application_name=([^ ]+))?.*/\1 \3/' |
+            sort | uniq -c | sort -rn | head -20 || true
+          echo "kafka health: $(docker inspect kafka-kafka-1 --format '{{json .State.Health}}' | jq -c '{Status, FailingStreak, last: .Log[-1]}')"
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.

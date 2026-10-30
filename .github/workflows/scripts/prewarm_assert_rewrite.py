@@ -45,6 +45,10 @@ def rewrite_targets(files: list[str]) -> list[Path]:
 def prewarm(path: Path) -> None:
     if sys.dont_write_bytecode:
         return
+    # pytest compiles with the module's spec origin, an absolute (not resolved)
+    # path, and execs the cached code without fixing co_filename, so this has
+    # to match exactly or tracebacks show a different filename.
+    path = path.absolute()
     cache_dir = path.parent / "__pycache__"
     cache_dir.mkdir(exist_ok=True)
     pyc = cache_dir / (path.name[:-3] + PYC_TAIL)
