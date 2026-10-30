@@ -84,7 +84,7 @@ interface GuideStoreDefinition extends StrictStoreDefinition<GuideStoreState> {
   closeGuide(dismissed?: boolean): void;
 
   fetchSucceeded(data: GuidesServerData): void;
-  modalStoreListener: null | ReturnType<typeof ModalStore.listen>;
+  modalStoreListener: null | (() => void);
   nextStep(): void;
   onURLChange(): void;
   recordCue(guide: string): void;
@@ -111,15 +111,13 @@ const storeConfig: GuideStoreDefinition = {
 
     // Guides will show above modals, but are not interactable because
     // of the focus trap, so we force them to be hidden while a modal is open.
-    this.modalStoreListener = ModalStore.listen(() => {
-      const isOpen = typeof ModalStore.getState().renderer === 'function';
-
-      if (isOpen) {
-        this.setForceHide(true);
-      } else {
-        this.setForceHide(false);
+    this.modalStoreListener = ModalStore.subscribe((modalState, prevModalState) => {
+      if (modalState.renderer === prevModalState.renderer) {
+        return;
       }
-    }, undefined);
+
+      this.setForceHide(typeof modalState.renderer === 'function');
+    });
   },
 
   teardown() {

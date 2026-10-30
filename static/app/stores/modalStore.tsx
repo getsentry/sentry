@@ -1,9 +1,7 @@
 import type {FocusTrap} from 'focus-trap';
-import {createStore} from 'reflux';
+import {createStore} from 'zustand';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
-
-import type {StrictStoreDefinition} from './types';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -14,53 +12,30 @@ type State = {
   triggerElement?: HTMLElement | null;
 };
 
-interface ModalStoreDefinition extends StrictStoreDefinition<State> {
-  closeModal(): void;
-  init(): void;
-  openModal(renderer: Renderer, options: ModalOptions): void;
-  reset(): void;
-  setFocusTrap(focusTrap: FocusTrap): void;
-}
+const store = createStore<State>()(() => ({renderer: null, options: {}}));
 
-const storeConfig: ModalStoreDefinition = {
-  state: {renderer: null, options: {}},
+export const ModalStore = {
+  ...store,
+
   init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-
-    this.reset();
-  },
-
-  getState() {
-    return this.state;
+    ModalStore.reset();
   },
 
   reset() {
-    this.state = {
-      renderer: null,
-      options: {},
-      focusTrap: this.state.focusTrap,
-    };
+    store.setState({renderer: null, options: {}, triggerElement: undefined});
   },
 
   closeModal() {
-    this.reset();
-    this.trigger(this.state);
+    ModalStore.reset();
   },
 
   openModal(renderer: Renderer, options: ModalOptions) {
     const triggerElement =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    this.state = {renderer, options, focusTrap: this.state.focusTrap, triggerElement};
-    this.trigger(this.state);
+    store.setState({renderer, options, triggerElement});
   },
 
   setFocusTrap(focusTrap: FocusTrap) {
-    this.state = {
-      ...this.state,
-      focusTrap,
-    };
+    store.setState({focusTrap});
   },
 };
-
-export const ModalStore = createStore(storeConfig);
