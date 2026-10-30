@@ -207,7 +207,7 @@ class MonitorDetailsMixin(BaseEndpointMixin):
                         target_object=rule.id,
                         event=audit_log.get_event_id("RULE_REMOVE"),
                         data=rule.get_audit_log_data(),
-                        transaction_id=scheduled_rule,
+                        transaction_id=scheduled_rule.guid,
                     )
 
         return self.respond(status=202)
