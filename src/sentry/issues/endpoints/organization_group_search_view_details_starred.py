@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
@@ -66,16 +67,18 @@ class OrganizationGroupSearchViewDetailsStarredEndpoint(OrganizationEndpoint):
             insert_position = (
                 serializer.validated_data["position"]
                 if "position" in serializer.validated_data
-                else GroupSearchViewStarred.objects.num_starred_views(organization, request.user.id)
+                else GroupSearchViewStarred.objects.num_starred_views(
+                    organization, require_user(request).id
+                )
             )
 
             if GroupSearchViewStarred.objects.insert_starred_view(
-                organization, request.user.id, view, insert_position
+                organization, require_user(request).id, view, insert_position
             ):
                 return Response(status=status.HTTP_200_OK)
         else:
             if GroupSearchViewStarred.objects.delete_starred_view(
-                organization, request.user.id, view
+                organization, require_user(request).id, view
             ):
                 return Response(status=status.HTTP_200_OK)
 

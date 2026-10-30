@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.principal import require_user
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
@@ -44,7 +45,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         # too.
         should_reverse_stacktraces = (
             get_option_from_list(
-                user_option_service.get_many(filter={"user_ids": [request.user.id]}),
+                user_option_service.get_many(filter={"user_ids": [require_user(request).id]}),
                 key="stacktrace_order",
             )
             != StacktraceOrder.MOST_RECENT_LAST

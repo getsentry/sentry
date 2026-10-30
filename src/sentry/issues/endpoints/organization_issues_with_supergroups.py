@@ -16,6 +16,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import calculate_stats_period
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.auth.principal import acting_user_id
 from sentry.issues.endpoints.organization_group_index import (
     ERR_INVALID_STATS_PERIOD,
     search_and_serialize_issues,
@@ -94,7 +95,9 @@ class OrganizationIssuesWithSupergroupsEndpoint(OrganizationEndpoint):
                 # breaking the stream.
                 try:
                     supergroup_data = get_supergroups_by_group_ids(
-                        organization, [int(g["id"]) for g in groups], user_id=request.user.id
+                        organization,
+                        [int(g["id"]) for g in groups],
+                        user_id=acting_user_id(request.user),
                     )
                 except SeerApiError:
                     logger.exception("issues_with_supergroups.seer_fetch_failed")

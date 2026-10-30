@@ -29,6 +29,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -139,7 +140,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         starred_view_ids = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            organization=organization, user_id=require_user(request).id
         ).values_list("group_search_view_id", flat=True)
 
         createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
@@ -157,7 +158,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         last_visited_query = Subquery(
             GroupSearchViewLastVisited.objects.filter(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 group_search_view_id=OuterRef("id"),
             ).values("last_visited")[:1]
         )
@@ -166,7 +167,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if createdBy == "me":
             starred_query = (
                 base_queryset.filter(
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                     id__in=starred_view_ids,
                 )
                 .prefetch_related("projects")
@@ -175,7 +176,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             )
             non_starred_query = (
                 base_queryset.filter(
-                    user_id=request.user.id,
+                    user_id=require_user(request).id,
                 )
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
