@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from typing import Any, Final, Literal, Union, overload
 from urllib.parse import urlparse
 
+import orjson
 from taskbroker_client.scheduler.config import ScheduleConfigMap, crontab
 
 import sentry
@@ -382,6 +383,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "sentry.middleware.health.HealthCheck",
     "sentry.middleware.security.SecurityHeadersMiddleware",
     "sentry.middleware.env.SentryEnvMiddleware",
+    "sentry.middleware.request_memory.RequestMemoryMiddleware",
     "sentry.middleware.proxy.SetRemoteAddrFromForwardedFor",
     "sentry.middleware.stats.RequestTimingMiddleware",
     "sentry.middleware.access_log.access_log_middleware",
@@ -1440,6 +1442,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ("sentry.api.permissions.NoPermission",),
     "EXCEPTION_HANDLER": "sentry.api.handlers.custom_exception_handler",
     "DEFAULT_SCHEMA_CLASS": "sentry.apidocs.schema.SentrySchema",
+    "LIST_SERIALIZER_ERRORS_AS_DICT": False,
 }
 
 
@@ -1922,9 +1925,7 @@ SENTRY_SCOPES = {
     "alerts:read",
     "alerts:write",
     "dashboard:read",
-    "dashboard:create",
     "dashboard:write",
-    "dashboard:delete",
     "seer:read",
     "seer:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -1970,14 +1971,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "alerts:read": {"alerts:read"},
     "alerts:write": {"alerts:read", "alerts:write"},
     "dashboard:read": {"dashboard:read"},
-    "dashboard:create": {"dashboard:read", "dashboard:create"},
-    "dashboard:write": {"dashboard:read", "dashboard:create", "dashboard:write"},
-    "dashboard:delete": {
-        "dashboard:read",
-        "dashboard:create",
-        "dashboard:write",
-        "dashboard:delete",
-    },
+    "dashboard:write": {"dashboard:read", "dashboard:write"},
     "seer:read": {"seer:read"},
     "seer:write": {"seer:read", "seer:write"},
     "openid": {"openid"},
@@ -2003,9 +1997,7 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
 GRANULAR_SCOPES = frozenset(
     [
         "dashboard:read",
-        "dashboard:create",
         "dashboard:write",
-        "dashboard:delete",
     ]
 )
 
@@ -2018,6 +2010,20 @@ DEPRECATED_SCOPES = frozenset(
         "member:read",
     ]
 )
+
+# Scopes a deprecated scope is replaced with at request time (see
+# sentry.auth.deprecated_scope_translation). Stored token scopes are left unchanged.
+# Remove an entry once callers no longer rely on the translation.
+DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
+    "org:read": frozenset(
+        [
+            # Removed once org:read has a full 1:1 translation to granular scopes.
+            "org:read",
+            "dashboard:read",
+            "dashboard:write",
+        ]
+    ),
+}
 
 SENTRY_SCOPE_SETS = (
     (
@@ -2075,9 +2081,7 @@ SENTRY_SCOPE_SETS = (
         ("alerts:read", "Read alerts"),
     ),
     (
-        ("dashboard:delete", "Read, write, and delete access to dashboards."),
         ("dashboard:write", "Read and write access to dashboards."),
-        ("dashboard:create", "Read and create access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
     (
@@ -2299,9 +2303,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
             "dashboard:write",
-            "dashboard:delete",
             "seer:read",
             "seer:write",
         },
@@ -2337,9 +2339,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
             "dashboard:write",
-            "dashboard:delete",
             "seer:read",
             "seer:write",
         },
@@ -2370,9 +2370,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
             "dashboard:write",
-            "dashboard:delete",
             "seer:read",
             "seer:write",
         },
@@ -2410,9 +2408,7 @@ SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
             "alerts:read",
             "alerts:write",
             "dashboard:read",
-            "dashboard:create",
             "dashboard:write",
-            "dashboard:delete",
             "seer:read",
             "seer:write",
         },
@@ -2526,7 +2522,7 @@ SENTRY_SELF_HOSTED = SENTRY_MODE == SentryMode.SELF_HOSTED
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "26.10.0"
+SELF_HOSTED_STABLE_VERSION = "26.10.1"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3291,8 +3287,6 @@ SEER_FIXABILITY_TIMEOUT = 0.6  # 600 milliseconds
 
 SEER_GROUPING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 
-SEER_SCORING_URL = SEER_DEFAULT_URL  # for local development, these share a URL
-
 SEER_ANOMALY_DETECTION_MODEL_VERSION = "v1"
 SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these share a URL
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
@@ -3588,6 +3582,15 @@ MARKETO_CLIENT_SECRET = os.getenv("MARKETO_CLIENT_SECRET")
 MARKETO_FORM_ID = os.getenv("MARKETO_FORM_ID")
 
 # Devserver configuration overrides.
+# Prod flag values written by bin/sync-prod-flags, run by devenv sync.
+if IS_DEV:
+    _prod_flags = os.path.join(
+        os.path.expanduser(os.environ.get("SENTRY_CONF", "~/.sentry")), "prod-flags.json"
+    )
+    if os.path.exists(_prod_flags):
+        with open(_prod_flags, "rb") as f:
+            SENTRY_FEATURES.update(orjson.loads(f.read()))
+
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
 if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"

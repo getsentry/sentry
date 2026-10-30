@@ -1488,6 +1488,30 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
 
+    def test_projects_with_dict_entries(self) -> None:
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        # Non-scalar project entries must 400 at validation, not raise an
+        # unhashable-type TypeError in the handler.
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [{"slug": project.slug}]},
+        )
+
+        assert response.status_code == 400
+
     def test_duplicate(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()

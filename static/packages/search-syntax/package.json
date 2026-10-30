@@ -1,0 +1,58 @@
+{
+  "name": "@sentry/search-syntax",
+  "version": "1.0.0",
+  "description": "Grammar and structural parser for Sentry's search syntax",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getsentry/sentry.git",
+    "directory": "static/packages/search-syntax"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./grammar": {
+      "types": "./src/grammar.pegjs.d.ts",
+      "default": "./src/grammar.pegjs"
+    },
+    "./parser": "./src/parser.ts",
+    "./tokens": "./src/tokens.ts"
+  },
+  "publishConfig": {
+    "exports": {
+      "./grammar": {
+        "types": "./dist/grammar.pegjs.d.ts",
+        "import": "./dist/grammar.js"
+      },
+      "./parser": {
+        "types": "./dist/parser.d.ts",
+        "import": "./dist/parser.js"
+      },
+      "./tokens": {
+        "types": "./dist/tokens.d.ts",
+        "import": "./dist/tokens.js"
+      }
+    },
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rslib build",
+    "test": "NODE_ENV=test jest --config jest.config.mjs",
+    "typecheck": "tsc --build tsconfig.json",
+    "prepack": "pnpm run build",
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives"
+  },
+  "devDependencies": {
+    "@rslib/core": "1.0.3",
+    "@swc/core": "1.16.13",
+    "@swc/jest": "0.2.39",
+    "@types/jest": "30.0.0",
+    "@types/node": "26.6.4",
+    "jest": "30.5.1",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
+  }
+}

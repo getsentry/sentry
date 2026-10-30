@@ -1,12 +1,19 @@
 import {useMemo, useState} from 'react';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -96,6 +103,9 @@ describe('ExploreCharts', () => {
       '[[[1729796400000,10]]]',
       '[[[1729796400000,20]]]',
     ]);
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders the high accuracy message when the widget is loading more data', async () => {
@@ -248,6 +258,61 @@ describe('ExploreCharts', () => {
       );
     }
 
+    it('edits transformations for a chart group without changing another chart with the same aggregate', async () => {
+      const onSetVisualizes = jest.fn();
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[
+            {yAxes: ['p50(span.duration)', 'p75(span.duration)']},
+            {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+            {yAxes: ['equation|$a + $b']},
+          ]}
+          onSetVisualizes={onSetVisualizes}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+
+      const addButtons = await screen.findAllByRole('button', {
+        name: 'Add Transformation',
+      });
+      expect(addButtons).toHaveLength(2);
+      await userEvent.click(addButtons[0]!);
+      await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {
+          yAxes: ['p50(span.duration)', 'p75(span.duration)'],
+          transformations: ['smooth(sma,3)'],
+        },
+        {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+        {yAxes: ['equation|$a + $b']},
+      ]);
+
+      const rows = screen.getAllByRole('group', {name: 'Transformation 1'});
+      expect(rows).toHaveLength(2);
+      await userEvent.click(within(rows[0]!).getByRole('button', {name: 'Window Size'}));
+      await userEvent.click(screen.getByRole('option', {name: '5'}));
+      expect(onSetVisualizes).toHaveBeenLastCalledWith([
+        {
+          yAxes: ['p50(span.duration)', 'p75(span.duration)'],
+          transformations: ['smooth(sma,5)'],
+        },
+        {yAxes: ['p50(span.duration)'], transformations: ['fill(locf)']},
+        {yAxes: ['equation|$a + $b']},
+      ]);
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Collapse chart'})[0]!);
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(1);
+      expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(1);
+      await userEvent.click(screen.getByRole('button', {name: 'Expand chart'}));
+      expect(screen.getAllByRole('button', {name: 'Add Transformation'})).toHaveLength(2);
+      expect(screen.getAllByRole('group', {name: 'Transformation 1'})).toHaveLength(2);
+    });
+
     it('plots aggregates selected together on a single chart', async () => {
       render(
         <ControlledExploreCharts
@@ -361,10 +426,12 @@ describe('ExploreCharts', () => {
       acceptedEvents = [],
       droppedEvents = [],
       organizationFeatures = features,
+      query = '',
     }: {
-      acceptedEvents?: DroppedEventsBucket[];
-      droppedEvents?: DroppedEventsBucket[];
+      acceptedEvents?: OutcomeRow[];
+      droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
+      query?: string;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -380,7 +447,7 @@ describe('ExploreCharts', () => {
           <ChartSelectionProvider>
             <ExploreCharts
               extrapolate
-              query=""
+              query={query}
               timeseriesResult={timeseriesResultFixture()}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
@@ -397,10 +464,32 @@ describe('ExploreCharts', () => {
       return request;
     }
 
+    it('notes that dropped spans ignore the search while the layer is on', async () => {
+      renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});
+
+      expect(
+        await screen.findByText('Dropped spans are not filtered by search')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByLabelText('Chart layers'));
+      await userEvent.click(screen.getByRole('option', {name: 'Dropped Spans'}));
+
+      expect(
+        screen.queryByText('Dropped spans are not filtered by search')
+      ).not.toBeInTheDocument();
+    });
+
+    it('omits the filter note without a search or environment', async () => {
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+    });
+
     it('hides the Layers control without the feature flag', async () => {
       const request = renderCharts({
         organizationFeatures: [],
-        droppedEvents: [DroppedEventFixture()],
+        droppedEvents: [OutcomeRowFixture()],
       });
 
       expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
@@ -410,7 +499,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when only accepted annotations are present', async () => {
       const request = renderCharts({
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 8000})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 8000})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -420,7 +509,7 @@ describe('ExploreCharts', () => {
 
     it('hides the Layers control when every drop is intentional', async () => {
       const request = renderCharts({
-        droppedEvents: [DroppedEventFixture({tags: ['intentional']})],
+        droppedEvents: [OutcomeRowFixture({tags: ['intentional']})],
       });
 
       await waitFor(() => expect(request).toHaveBeenCalled());
@@ -430,15 +519,15 @@ describe('ExploreCharts', () => {
 
     it('shows the Layers control when a drop ratio is below 5%', async () => {
       renderCharts({
-        droppedEvents: [DroppedEventFixture({count: 4})],
-        acceptedEvents: [DroppedEventFixture({outcome: 'accepted', count: 96})],
+        droppedEvents: [OutcomeRowFixture({count: 4})],
+        acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 96})],
       });
 
       expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
     });
 
     it('shows the Layers control and toggles the dropped-data layer', async () => {
-      renderCharts({droppedEvents: [DroppedEventFixture()]});
+      renderCharts({droppedEvents: [OutcomeRowFixture()]});
 
       await userEvent.click(await screen.findByLabelText('Chart layers'));
 

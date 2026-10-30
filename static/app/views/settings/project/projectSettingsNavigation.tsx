@@ -7,6 +7,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {ProjectRouteContext} from 'sentry/views/projects/projectRouteContext';
 import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 interface ProjectSettingsNavigationProps {
   organization: Organization;
@@ -17,6 +18,7 @@ export function ProjectSettingsNavigation({
 }: ProjectSettingsNavigationProps) {
   const projectFromContext = useContext(ProjectRouteContext);
   const {projectId} = useParams<{projectId?: string}>();
+  const settingsV3 = useSettingsV3();
   const {projects} = useProjects({slugs: projectId ? [projectId] : []});
   const summaryProject = projects.find(({slug}) => slug === projectId);
   const {data: detailedProject} = useDetailedProject(
@@ -31,6 +33,7 @@ export function ProjectSettingsNavigation({
         project,
         organization,
         debugFilesNeedsReview: false,
+        settingsV3,
       })}
       access={new Set(organization.access)}
       features={new Set(organization.features)}

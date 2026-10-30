@@ -1,13 +1,17 @@
-import logging
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from datetime import timedelta
+from functools import partial
 from typing import Any
+from uuid import uuid4
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.integrations.tasks.create_comment import create_comment as create_external_comment
 from sentry.integrations.tasks.update_comment import update_comment as update_external_comment
 from sentry.issues.action_log import GroupActionActor, action_context_scope, publish_action
-from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction, SentryActorRef
+from sentry.issues.action_log.types import CommentDeleteAction, CommentEditAction
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -17,8 +21,29 @@ from sentry.signals import comment_created, comment_deleted, comment_updated
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.safe import safe_execute
 
-logger = logging.getLogger(__name__)
+
+@contextmanager
+def _comment_transaction(group: Group) -> Generator[Group]:
+    # Serialize creation/deduplication and last-comment subscription removal too.
+    # Always lock Group before Activity; Activity's counter hooks update Group.
+    with transaction.atomic(using=router.db_for_write(Activity)):
+        yield Group.objects.select_for_update(no_key=True).get(
+            id=group.id, project_id=group.project_id
+        )
+
+
+def _after_commit(callback: Callable[[], Any]) -> None:
+    transaction.on_commit(partial(safe_execute, callback), using=router.db_for_write(Activity))
+
+
+def _locked_note(note: Activity, group: Group, user: User | RpcUser) -> Activity:
+    locked = Activity.objects.select_for_update().get(
+        id=note.id, group_id=group.id, type=ActivityType.NOTE.value, user_id=user.id
+    )
+    locked.group = group
+    return locked
 
 
 def _webhook_data(note: Activity) -> dict[str, Any]:
@@ -61,33 +86,41 @@ def create_comment(
     Email deduplicates within the project without a time limit and skips subscriptions,
     integration sync, and the comment_created signal. Activity notifications still run.
     """
-    duplicates = Activity.objects.filter(
-        group=group, type=ActivityType.NOTE.value, user_id=user.id, data=data
-    )
-    if from_email:
-        duplicates = duplicates.filter(project_id=group.project_id)
-    else:
-        duplicates = duplicates.filter(datetime__gte=timezone.now() - timedelta(hours=1))
-    if duplicates.exists():
-        return None
-
-    if not from_email:
-        GroupSubscription.objects.subscribe(
-            group=group, subscriber=user, reason=GroupSubscriptionReason.comment
+    with _comment_transaction(group) as group:
+        duplicates = Activity.objects.filter(
+            group=group, type=ActivityType.NOTE.value, user_id=user.id, data=data
         )
+        if from_email:
+            duplicates = duplicates.filter(project_id=group.project_id)
+        else:
+            duplicates = duplicates.filter(datetime__gte=timezone.now() - timedelta(hours=1))
+        if duplicates.exists():
+            return None
 
-    with action_context_scope(source=source, actor=GroupActionActor.user(user.id)):
-        note = Activity.objects.create_group_activity(
-            group=group, type=ActivityType.NOTE, user_id=user.id, data=data
-        )
         if not from_email:
-            _sync_comment(note, user.id, created=True)
+            GroupSubscription.objects.subscribe(
+                group=group, subscriber=user, reason=GroupSubscriptionReason.comment
+            )
 
-    if not from_email:
-        comment_created.send_robust(
-            project=group.project, user=user, group=group, data=_webhook_data(note), sender="post"
-        )
-    return note
+        with action_context_scope(source=source, actor=GroupActionActor.user(user.id)):
+            note = Activity.objects.create_group_activity(
+                group=group, type=ActivityType.NOTE, user_id=user.id, data=data
+            )
+            if not from_email:
+                _after_commit(partial(_sync_comment, note, user.id, created=True))
+
+        if not from_email:
+            _after_commit(
+                partial(
+                    comment_created.send_robust,
+                    project=group.project,
+                    user=user,
+                    group=group,
+                    data=_webhook_data(note),
+                    sender="post",
+                )
+            )
+        return note
 
 
 def update_comment(
@@ -95,66 +128,84 @@ def update_comment(
     *,
     user: User | RpcUser,
     data: dict[str, Any],
-    mentions: list[SentryActorRef],
     source: str,
-    original_action_id: int | None,
 ) -> Activity:
     assert note.group is not None
-    note.data.update(data)
-    note.save()
-    if original_action_id is not None:
+    with _comment_transaction(note.group) as group:
+        note = _locked_note(note, group, user)
+        note.data.update(data)
+        note.save()
         publish_action(
-            CommentEditAction(
-                comment_id=original_action_id, text=data.get("text"), mentions=mentions
-            ),
-            source=source,
-            group_id=note.group_id,
-            project=note.group.project,
-            actor=GroupActionActor.user(user.id),
-        )
-    else:
-        logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": note.group_id})
-
-    if note.data.get("external_id"):
-        _sync_comment(note, user.id, created=False)
-    comment_updated.send_robust(
-        project=note.group.project,
-        user=user,
-        group=note.group,
-        data=_webhook_data(note),
-        sender="put",
-    )
-    return note
-
-
-def delete_comment(
-    note: Activity, *, user: User | RpcUser, source: str, original_action_id: int | None
-) -> None:
-    group = note.group
-    assert group is not None
-    notes_by_user = Activity.objects.filter(
-        group=group, type=ActivityType.NOTE.value, user_id=user.id
-    )
-    last_comment = notes_by_user.count() == 1
-    webhook_data = _webhook_data(note)
-    note.delete()
-    if original_action_id is not None:
-        publish_action(
-            CommentDeleteAction(comment_id=original_action_id),
+            CommentEditAction(comment_id=note.id, comment_id_kind="comment"),
             source=source,
             group_id=group.id,
             project=group.project,
             actor=GroupActionActor.user(user.id),
+            idempotency_key=f"comment-event:{uuid4()}",
         )
-    else:
-        logger.info("group_notes.groupactionlogentry.not_found", extra={"group_id": group.id})
-    comment_deleted.send_robust(
-        project=group.project, user=user, group=group, data=webhook_data, sender="delete"
-    )
-    if last_comment:
-        GroupSubscription.objects.filter(
-            user_id=user.id,
-            group=group,
+
+        if note.data.get("external_id"):
+            _after_commit(partial(_sync_comment, note, user.id, created=False))
+        _after_commit(
+            partial(
+                comment_updated.send_robust,
+                project=group.project,
+                user=user,
+                group=group,
+                data=_webhook_data(note),
+                sender="put",
+            )
+        )
+        return note
+
+
+def delete_comment(note: Activity, *, user: User | RpcUser, source: str) -> None:
+    assert note.group is not None
+    with _comment_transaction(note.group) as group:
+        note = _locked_note(note, group, user)
+        notes_by_user = Activity.objects.filter(
+            group=group, type=ActivityType.NOTE.value, user_id=user.id
+        )
+        last_comment = notes_by_user.count() == 1
+        webhook_data = _webhook_data(note)
+        comment_id = note.id
+        note.delete()
+        publish_action(
+            CommentDeleteAction(comment_id=comment_id, comment_id_kind="comment"),
+            source=source,
+            group_id=group.id,
             project=group.project,
-            reason=GroupSubscriptionReason.comment,
-        ).delete()
+            actor=GroupActionActor.user(user.id),
+            idempotency_key=f"comment-event:{uuid4()}",
+        )
+        _after_commit(
+            partial(
+                comment_deleted.send_robust,
+                project=group.project,
+                user=user,
+                group=group,
+                data=webhook_data,
+                sender="delete",
+            )
+        )
+        if last_comment:
+            GroupSubscription.objects.filter(
+                user_id=user.id,
+                group=group,
+                project=group.project,
+                reason=GroupSubscriptionReason.comment,
+            ).delete()
+
+
+def save_external_comment_id(*, note_id: int, project_id: int, external_id: str) -> None:
+    """Attach remote metadata without saving a pre-network snapshot of the note."""
+    with transaction.atomic(using=router.db_for_write(Activity)):
+        note = (
+            Activity.objects.select_for_update()
+            .filter(id=note_id, project_id=project_id, type=ActivityType.NOTE.value)
+            .first()
+        )
+        if note is None:
+            return
+        note.data = {**note.data, "external_id": external_id}
+        note.save(update_fields=["data"])

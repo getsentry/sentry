@@ -15,7 +15,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {useMEPSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {encodeSort} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,7 +26,6 @@ import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {GenericPerformanceWidgetDataType} from 'sentry/views/performance/landing/widgets/types';
 import {
   _setChartSetting,
-  filterAllowedChartsMetrics,
   getChartSetting,
 } from 'sentry/views/performance/landing/widgets/utils';
 import type {
@@ -35,7 +33,6 @@ import type {
   PerformanceWidgetSetting,
 } from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {HistogramWidget} from 'sentry/views/performance/landing/widgets/widgets/histogramWidget';
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
@@ -81,12 +78,7 @@ export function WidgetContainer(props: Props) {
     performanceType,
     rest.defaultChartSetting
   );
-  const mepSetting = useMEPSettingContext();
-  const allowedCharts = filterAllowedChartsMetrics(
-    organization,
-    props.allowedCharts,
-    mepSetting
-  );
+  const {allowedCharts} = props;
 
   if (!allowedCharts.includes(_chartSetting)) {
     _chartSetting = rest.defaultChartSetting;
@@ -149,8 +141,6 @@ export function WidgetContainer(props: Props) {
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.HISTOGRAM:
-      return <HistogramWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.STACKED_AREA:
       return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:

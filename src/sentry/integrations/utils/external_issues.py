@@ -5,28 +5,14 @@ from typing import Any, TypedDict
 
 from sentry import features
 from sentry.models.group import Group
+from sentry.seer.oneshot import run_oneshot
 from sentry.seer.seer_setup import has_seer_access
-from sentry.seer.signed_seer_api import (
-    LlmGenerateRequest,
-    SeerViewerContext,
-    make_llm_generate_request,
-)
 from sentry.services.eventstore.models import GroupEvent
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
-from sentry.utils import json
 from sentry.utils.safe import safe_execute
 
 logger = logging.getLogger(__name__)
-
-SYSTEM_PROMPT = """You are a helpful assistant that generates concise titles and descriptions for issue tickets in external project management tools like Jira, GitHub Issues, and Linear.
-
-Given information about a Sentry error (title and stack trace / error details), generate:
-1. A short, actionable title (3-8 words) suitable for a ticket. Describe the problem clearly.
-2. A brief description (1-3 sentences) summarizing the error, its likely cause, and potential impact.
-
-Do not include Sentry-specific formatting, links, or markdown. Keep the description in plain text.
-Return a JSON object with "title" and "description" keys. Return only the JSON, nothing else."""
 
 MAX_CONTEXT_LENGTH = 2000
 
@@ -64,58 +50,25 @@ class GeneratedExternalIssueDetails(TypedDict):
 
 
 def _make_generate_external_issue_details_request(
-    group: Group, event: Any | None = None, viewer_context: SeerViewerContext | None = None
+    group: Group, event: Any | None = None, user_id: int | None = None
 ) -> GeneratedExternalIssueDetails | None:
-    logging_ctx: dict[str, Any] = {"group_id": group.id, "viewer_context": viewer_context}
     context = _build_event_context(group, event=event)
-
-    body = LlmGenerateRequest(
-        provider="gemini",
-        model="flash",
-        referrer="sentry.external-issue.details-generate",
-        prompt=f"Generate a title and description for this Sentry error:\n\n{context}",
-        system_prompt=SYSTEM_PROMPT,
-        temperature=0.3,
-        max_tokens=750,
-        response_schema={
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"},
-                "description": {"type": "string"},
-            },
-            "required": ["title", "description"],
-        },
+    result = run_oneshot(
+        "external_issue_details",
+        {"context": context},
+        group.organization,
+        user_id=user_id,
+        timeout=10,
     )
-    response = make_llm_generate_request(body, timeout=10, viewer_context=viewer_context)
-    logging_ctx["status_code"] = response.status
-    if response.status >= 400:
-        logger.warning("external_issues.seer_request_failed", extra=logging_ctx)
-        return None
-
-    try:
-        data = response.json()
-    except (json.JSONDecodeError, ValueError):
-        logger.warning(
-            "external_issues.seer_response_json_failed", extra=logging_ctx, exc_info=True
-        )
-        return None
-    content = data.get("content")
-    try:
-        content = json.loads(content)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        logger.warning(
-            "external_issues.seer_response_parse_failed", extra=logging_ctx, exc_info=True
-        )
-        return None
-
-    title = content.get("title")
-    description = content.get("description")
-    if title and description:
+    title = result.get("title")
+    description = result.get("description")
+    if isinstance(title, str) and isinstance(description, str) and title and description:
         return {"title": title.strip(), "description": description.strip()}
 
-    logging_ctx["title"] = title
-    logging_ctx["description"] = description
-    logger.warning("external_issues.invalid_shape", extra=logging_ctx)
+    logger.warning(
+        "external_issues.invalid_shape",
+        extra={"group_id": group.id, "title": title, "description": description},
+    )
     return None
 
 
@@ -130,10 +83,7 @@ def maybe_generate_external_issue_details(
         return empty_result
 
     try:
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
-        result = _make_generate_external_issue_details_request(
-            group, event=event, viewer_context=viewer_context
-        )
+        result = _make_generate_external_issue_details_request(group, event=event, user_id=user.id)
     except Exception:
         logger.error("external_issues.generate_issue_details_failed", exc_info=True)
         return empty_result

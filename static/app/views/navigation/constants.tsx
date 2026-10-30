@@ -26,3 +26,11 @@ export const TOP_BAR_HEIGHT_CSS_VAR = '--top-bar-height';
 // To be passed as the `source` parameter in router navigation state
 // e.g. {pathname: '/issues/', state: {source: `sidebar`}}
 export const SIDEBAR_NAVIGATION_SOURCE = 'sidebar';
+
+// Settings has its own navigation, so "Back to app" returns to the last page
+// visited outside of this path prefix.
+export const SETTINGS_PATH_PREFIX = '/settings';
+
+// Scoped by organization so "Back to app" never returns to another organization.
+export const getSettingsReturnPathKey = (organizationSlug: string) =>
+  `settings-return-path:${organizationSlug}`;

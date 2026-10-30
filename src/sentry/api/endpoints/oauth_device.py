@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -40,6 +40,7 @@ from sentry.api.serializers.rest_framework.oauth_device import (
     OAuthUserCodeField,
 )
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
+from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
@@ -106,6 +107,15 @@ class OAuthDeviceCompleteSerializer(Serializer[OAuthDeviceCompleteResponse]):
         return {"stage": obj.status}
 
 
+def ensure_expected_account(device: ApiDeviceCode, user: User) -> None:
+    # The device asked for a specific account, so approving as anyone else would
+    # issue a token the device did not expect.
+    if not device.accepts_user_email(user.email):
+        raise PermissionDenied(
+            f"This request is for {device.login_hint}. Sign in as that account to continue."
+        )
+
+
 @extend_schema(tags=["Users"])
 @control_silo_endpoint
 @method_decorator(never_cache, name="dispatch")
@@ -140,6 +150,7 @@ class OAuthDeviceEndpoint(Endpoint):
         device = get_device_request(
             serializer.validated_data["user_code"], request.META.get("REMOTE_ADDR")
         )
+        ensure_expected_account(device, request.user)
         organizations = get_organization_options(device.application, request.user.id)
         if device.application.requires_org_level_access and not organizations:
             raise ValidationError(
@@ -170,6 +181,7 @@ class OAuthDeviceEndpoint(Endpoint):
         device = get_prepared_device_request(
             request.session, decision["user_code"], request.user.id
         )
+        ensure_expected_account(device, request.user)
         try:
             status = complete_device_request(
                 device.id, request.user.id, decision["op"], decision["selected_organization_id"]
