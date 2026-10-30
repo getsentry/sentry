@@ -335,9 +335,14 @@ class ScmGitEndpointTest(TestCase):
     ) -> None:
         response = self.fetch_refs(self.fetch_grant())
 
-        self.assert_refused(response, 500, b"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured")
+        self.assert_refused(response, 500, b"Sentry's git grant keys are misconfigured.")
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "grant_public_keys_invalid"}
+        )
+        self.assert_reported_message(
+            mock_sdk,
+            "SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured: "
+            "There are no git grant public keys, so no grant could verify.",
         )
         self.assert_reported(
             mock_sdk, "grant_public_keys_invalid", {"repository_id": str(self.repo.id)}
@@ -345,7 +350,7 @@ class ScmGitEndpointTest(TestCase):
 
     @responses.activate
     @mock.patch("sentry.scm.endpoints.scm_git.sentry_sdk")
-    def test_refuses_every_grant_without_quoting_a_misplaced_private_key(
+    def test_reports_a_misplaced_private_key_without_quoting_it(
         self, mock_sdk: mock.MagicMock
     ) -> None:
         private_pem = KEY.private.reveal()
@@ -353,12 +358,11 @@ class ScmGitEndpointTest(TestCase):
         with override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[private_pem]):
             response = self.fetch_refs(self.fetch_grant())
 
-        self.assert_refused(response, 500, b"public_keys[0] is a private key")
-        body = b"".join(response).decode()
+        # Only the report names the bad entry, and neither quotes it.
+        assert b"".join(response) == b"Sentry's git grant keys are misconfigured.\n"
         (detail,), _ = mock_sdk.capture_message.call_args
-        key_body = private_pem.splitlines()[1]
-        assert key_body not in body
-        assert key_body not in detail
+        assert "public_keys[0] is a private key" in detail
+        assert private_pem.splitlines()[1] not in detail
 
     @responses.activate
     def test_refuses_an_expired_grant(self) -> None:
