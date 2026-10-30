@@ -42,6 +42,7 @@ import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {ProjectEnvironmentSection} from 'sentry/views/detectors/components/forms/common/projectEnvironmentSection';
 import {EditDetectorLayout} from 'sentry/views/detectors/components/forms/editDetectorLayout';
+import {METRIC_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/metric/metricDraftConfig';
 import {
   metricDetectorFormDataToEndpointPayload,
   metricSavedDetectorToFormData,
@@ -118,6 +119,7 @@ export function NewMetricDetectorForm({
   return (
     <NewDetectorLayout
       detectorType="metric_issue"
+      draftSchema={METRIC_DETECTOR_DRAFT_SCHEMA}
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
       initialFormData={

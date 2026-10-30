@@ -15,7 +15,7 @@ singleton. Listeners run asynchronously on taskbroker, are isolated from one
 another, and take a single ``PullRequestReviewEvent`` argument.
 
 The listener filters to submitted reviews, resolves org/integration/repo context
-from the event, feature-gates, and hands off to ``trigger_pr_iteration_from_review``
+from the event, and hands off to ``trigger_pr_iteration_from_review``
 which fetches the review's inline comments and summary body and dispatches an
 Autofix PR iteration. The task gates human review authors on repo write access, so
 a human review only drives an iteration when its author could push the change
@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import logging
 
-from sentry import features
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.organization import Organization
@@ -148,11 +147,6 @@ def handle_pull_request_review_for_autofix_iteration(event: PullRequestReviewEve
             continue
 
         repo_log_extra = {**log_extra, "organization_id": organization.id, "repo_id": repo.id}
-        if not features.has("organizations:autofix-pr-iteration-manual", organization):
-            logger.info(
-                "autofix.pr_iteration.review_listener.feature_disabled", extra=repo_log_extra
-            )
-            continue
 
         from sentry.tasks.seer.pr_iteration import trigger_pr_iteration_from_review
 

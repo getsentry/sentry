@@ -113,7 +113,7 @@ describe('Discover > ChartFooter', () => {
       projects: [parseInt(project.id, 10)],
     });
 
-    function renderFooter(showDroppedData: boolean) {
+    function renderFooter(showDroppedData: boolean, hasDroppedData = true) {
       render(
         <ChartFooter
           total={100}
@@ -129,6 +129,7 @@ describe('Discover > ChartFooter', () => {
           eventView={queryEventView}
           droppedDataLayer={{
             dataset: DiscoverDatasets.ERRORS,
+            hasDroppedData,
             showDroppedData,
             onChange: () => {},
           }}
@@ -146,6 +147,12 @@ describe('Discover > ChartFooter', () => {
 
     it('omits the note while the layer is off', () => {
       renderFooter(false);
+
+      expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
+    });
+
+    it('omits the note when nothing was dropped', () => {
+      renderFooter(true, false);
 
       expect(screen.queryByText(/are not filtered by/)).not.toBeInTheDocument();
     });
