@@ -5,12 +5,14 @@ from functools import partial
 from typing import TypedDict
 
 from django.db import router, transaction
-from django.db.models import Value
+from django.db.models import QuerySet, Value
 from django.db.models.functions import Replace
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,23 +21,42 @@ from sentry.api.event_search import QueryToken, SearchConfig, SearchFilter
 from sentry.api.event_search import parse_search_query as base_parse_search_query
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.seer.autofix.utils import (
     add_seer_project_repos,
+    get_seer_project_repo,
+    get_token_based_billing_project_repos,
+    get_token_based_billing_repo_filter,
+    is_seer_token_based_billing_onboarding_enabled,
     replace_all_seer_project_repos,
+    update_seer_project_repo,
 )
-from sentry.seer.models.project_repository import (
-    SeerProjectRepository,
-    SeerProjectRepositoryBranchOverride,
-)
+from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.seer.seer_setup import get_supported_scm_providers
 
 SORT_FIELDS_MAPPING: dict[str, str] = {
-    "name": "project_repository__repository__name",
-    "-name": "-project_repository__repository__name",
+    "name": "repository__name",
+    "-name": "-repository__name",
     "provider": "provider_normalized",
     "-provider": "-provider_normalized",
 }
@@ -67,8 +88,10 @@ class ProjectRepoResponse(TypedDict):
     instructions: str | None
 
 
-def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoResponse:
-    repo = project_repo.project_repository.repository
+def _serialize_project_repo(
+    project_repo: ProjectRepository, seer_project_repo: SeerProjectRepository | None
+) -> ProjectRepoResponse:
+    repo = project_repo.repository
     name_parts = repo.name.split("/", 1)
     owner = name_parts[0] if len(name_parts) > 1 else ""
     name = name_parts[1] if len(name_parts) > 1 else repo.name
@@ -82,21 +105,26 @@ def _serialize_project_repo(project_repo: SeerProjectRepository) -> ProjectRepoR
         name=name,
         externalId=repo.external_id or "",
         integrationId=str(repo.integration_id) if repo.integration_id is not None else None,
-        branchName=project_repo.branch_name,
-        branchOverrides=[
-            BranchOverrideResponse(
-                id=str(bo.id),
-                tagName=bo.tag_name,
-                tagValue=bo.tag_value,
-                branchName=bo.branch_name,
-            )
-            for bo in project_repo.branch_overrides.all()
-        ],
-        instructions=project_repo.instructions,
+        branchName=seer_project_repo.branch_name if seer_project_repo else None,
+        branchOverrides=(
+            [
+                BranchOverrideResponse(
+                    id=str(bo.id),
+                    tagName=bo.tag_name,
+                    tagValue=bo.tag_value,
+                    branchName=bo.branch_name,
+                )
+                for bo in seer_project_repo.branch_overrides.all()
+            ]
+            if seer_project_repo
+            else []
+        ),
+        instructions=seer_project_repo.instructions if seer_project_repo else None,
     )
 
 
-def _valid_project_repos_queryset(project: Project):
+def _get_seat_based_billing_seer_project_repos(project: Project) -> QuerySet[SeerProjectRepository]:
+    """SeerProjectRepository Seer can use under seat-based billing."""
     return SeerProjectRepository.objects.filter(
         project_repository__project=project,
         project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -106,17 +134,43 @@ def _valid_project_repos_queryset(project: Project):
     ).select_related("project_repository", "project_repository__repository")
 
 
+def _get_seat_based_billing_project_repos(project: Project) -> QuerySet[ProjectRepository]:
+    """ProjectRepository Seer can use under seat-based billing."""
+    return (
+        ProjectRepository.objects.filter(
+            project=project,
+            seerprojectrepository__isnull=False,
+            repository__status=ObjectStatus.ACTIVE,
+            repository__provider__in=get_supported_scm_providers(project.organization),
+        )
+        .select_related("repository", "seerprojectrepository")
+        .prefetch_related("seerprojectrepository__branch_overrides")
+    )
+
+
+def _get_seat_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
+    """Repos Seer can use under seat-based billing."""
+    return Repository.objects.filter(
+        organization_id=organization.id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=get_supported_scm_providers(organization),
+    )
+
+
+def _get_token_based_billing_repos(organization: Organization) -> QuerySet[Repository]:
+    """Repos Seer can use under token-based billing."""
+    return Repository.objects.filter(get_token_based_billing_repo_filter(organization))
+
+
 def _validate_repo_ids(project: Project, repo_ids: list[int]) -> None:
     """Raise ValueError if any repo IDs are invalid, inactive, or have providers not supported by Seer."""
     organization = project.organization
-    valid_ids = set(
-        Repository.objects.filter(
-            id__in=repo_ids,
-            organization_id=organization.id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=get_supported_scm_providers(organization),
-        ).values_list("id", flat=True)
+    repos = (
+        _get_token_based_billing_repos(organization)
+        if is_seer_token_based_billing_onboarding_enabled(organization)
+        else _get_seat_based_billing_repos(organization)
     )
+    valid_ids = set(repos.filter(id__in=repo_ids).values_list("id", flat=True))
     invalid_ids = set(repo_ids) - valid_ids
     if invalid_ids:
         raise ValueError(sorted(invalid_ids))
@@ -135,9 +189,9 @@ def _apply_search_filters(queryset, filters: Sequence[QueryToken]):
             if op not in ("=", "!="):
                 raise InvalidSearchQuery(f"name does not support the {op} operator.")
             if op == "=":
-                queryset = queryset.filter(project_repository__repository__name__icontains=value)
+                queryset = queryset.filter(repository__name__icontains=value)
             elif op == "!=":
-                queryset = queryset.exclude(project_repository__repository__name__icontains=value)
+                queryset = queryset.exclude(repository__name__icontains=value)
 
         elif key == "provider":
             if op not in ("=", "!=", "IN", "NOT IN"):
@@ -170,15 +224,36 @@ def _validate_branch_overrides(value):
 
 
 class BranchOverrideSerializer(CamelSnakeSerializer):
-    tag_name = serializers.CharField(required=True)
-    tag_value = serializers.CharField(required=True)
-    branch_name = serializers.CharField(required=True)
+    tag_name = serializers.CharField(required=True, help_text="Event tag key to match.")
+    tag_value = serializers.CharField(required=True, help_text="Event tag value to match.")
+    branch_name = serializers.CharField(
+        required=True,
+        help_text="The repository branch Seer uses for issues whose events have this tag value.",
+    )
 
 
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
 class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=False)
+    branch_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Override the default branch for this repository.",
+    )
+    instructions = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Instructions Seer should follow when working with this repository.",
+    )
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=False,
+        help_text="Deprecated. Branch overrides selected by matching tags.",
+    )
 
     def validate_branch_overrides(self, value):
         return _validate_branch_overrides(value)
@@ -189,18 +264,43 @@ class SeerProjectRepoUpdateSerializer(CamelSnakeSerializer):
         return data
 
 
+@sentry_schema_serializer(
+    deprecate={"branch_overrides": "Tag-based branch overrides are deprecated."}
+)
 class SeerProjectRepoCreateSerializer(CamelSnakeSerializer):
-    repository_id = serializers.IntegerField(required=True)
-    branch_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    instructions = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    branch_overrides = BranchOverrideSerializer(many=True, required=False, allow_null=False)
+    repository_id = serializers.IntegerField(
+        required=True, help_text="The ID of an active, supported repository in the organization."
+    )
+    branch_name = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="The branch Seer works from in this repository. Leave empty to use the repository's default branch.",
+    )
+    instructions = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Extra context Seer should use when working with this repository.",
+    )
+    branch_overrides = BranchOverrideSerializer(
+        many=True,
+        required=False,
+        allow_null=False,
+        help_text="Deprecated. Branch overrides selected by matching tags.",
+    )
 
     def validate_branch_overrides(self, value):
         return _validate_branch_overrides(value)
 
 
 class SeerProjectReposBulkSerializer(CamelSnakeSerializer):
-    repos = SeerProjectRepoCreateSerializer(many=True, required=True, allow_empty=True)
+    repos = SeerProjectRepoCreateSerializer(
+        many=True,
+        required=True,
+        allow_empty=True,
+        help_text="Repositories to link and configure for Seer in this project.",
+    )
 
     def validate_repos(self, value):
         repo_ids = [r["repository_id"] for r in value]
@@ -219,16 +319,16 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
     }
 
     def get(self, request: Request, project: Project, repo_id: int) -> Response:
-        project_repo = (
-            _valid_project_repos_queryset(project)
-            .prefetch_related("branch_overrides")
-            .filter(project_repository__repository_id=repo_id)
-            .first()
+        project_repos_qs = (
+            get_token_based_billing_project_repos(project.organization, [project.id])
+            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            else _get_seat_based_billing_project_repos(project)
         )
+        project_repo = project_repos_qs.filter(repository_id=repo_id).first()
         if project_repo is None:
             return Response(status=404)
 
-        return Response(_serialize_project_repo(project_repo))
+        return Response(_serialize_project_repo(project_repo, get_seer_project_repo(project_repo)))
 
     def put(self, request: Request, project: Project, repo_id: int) -> Response:
         serializer = SeerProjectRepoUpdateSerializer(data=request.data)
@@ -237,49 +337,46 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
+        seer_project_repo: SeerProjectRepository | None
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
-            project_repo = (
-                _valid_project_repos_queryset(project)
-                .select_for_update()
-                .filter(project_repository__repository_id=repo_id)
-                .first()
-            )
-            if project_repo is None:
-                return Response(status=404)
+            if is_seer_token_based_billing_onboarding_enabled(project.organization):
+                project_repo = (
+                    get_token_based_billing_project_repos(project.organization, [project.id])
+                    .filter(repository_id=repo_id)
+                    .first()
+                )
+                if project_repo is None:
+                    return Response(status=404)
 
-            if "branch_name" in data:
-                project_repo.branch_name = data["branch_name"]
-            if "instructions" in data:
-                project_repo.instructions = data["instructions"]
-            if "branch_name" in data or "instructions" in data:
-                project_repo.save()
-
-            if "branch_overrides" in data:
-                SeerProjectRepositoryBranchOverride.objects.filter(
-                    seer_project_repository=project_repo
-                ).delete()
-                if data["branch_overrides"]:
-                    SeerProjectRepositoryBranchOverride.objects.bulk_create(
-                        [
-                            SeerProjectRepositoryBranchOverride(
-                                seer_project_repository=project_repo,
-                                tag_name=override["tag_name"],
-                                tag_value=override["tag_value"],
-                                branch_name=override["branch_name"],
-                            )
-                            for override in data["branch_overrides"]
-                        ],
-                        update_conflicts=True,
-                        update_fields=["branch_name", "date_updated"],
-                        unique_fields=["seer_project_repository", "tag_name", "tag_value"],
+                seer_project_repo, _ = (
+                    SeerProjectRepository.objects.select_for_update().get_or_create(
+                        project_repository=project_repo
                     )
+                )
+            else:
+                seer_project_repo = (
+                    _get_seat_based_billing_seer_project_repos(project)
+                    .select_for_update()
+                    .filter(project_repository__repository_id=repo_id)
+                    .first()
+                )
+                if seer_project_repo is None:
+                    return Response(status=404)
+                project_repo = seer_project_repo.project_repository
 
-        return Response(_serialize_project_repo(project_repo))
+            update_seer_project_repo(seer_project_repo, data)
+
+        return Response(_serialize_project_repo(project_repo, seer_project_repo))
 
     def delete(self, request: Request, project: Project, repo_id: int) -> Response:
+        if is_seer_token_based_billing_onboarding_enabled(project.organization):
+            # Under token-based billing Seer uses every linked project repo,
+            # so there's nothing to remove.
+            return Response({"detail": "Repositories can't be removed from Seer."}, status=400)
+
         with transaction.atomic(router.db_for_write(SeerProjectRepository)):
             deleted_count, _ = (
-                _valid_project_repos_queryset(project)
+                _get_seat_based_billing_seer_project_repos(project)
                 .filter(project_repository__repository_id=repo_id)
                 .delete()
             )
@@ -290,24 +387,62 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
         return Response(status=204)
 
 
+@extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectSeerReposEndpoint(ProjectEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
-    def get(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="listProjectSeerRepositories",
+        summary="List Repositories Configured for Seer",
+        description="List repositories connected to Seer for the project.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            OpenApiParameter(
+                "query",
+                type=str,
+                description=(
+                    "Filter repositories using Sentry search syntax. `name` supports substring "
+                    "matching and is also the free-text key. `provider` supports `=`, `!=`, `IN`, "
+                    "and `NOT IN` operators, and matches with or without the `integrations:` prefix."
+                ),
+            ),
+            OpenApiParameter(
+                "sortBy",
+                type=str,
+                enum=["name", "-name", "provider", "-provider"],
+                description="Sort by repository name or provider. Defaults to `name`.",
+            ),
+            CursorQueryParam,
+            OpenApiParameter(
+                "per_page", type=int, description="The maximum number of results per page."
+            ),
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ProjectSeerRepositoriesResponse", list[ProjectRepoResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectRepoResponse]] | Response[DetailResponse]:
         queryset = (
-            _valid_project_repos_queryset(project)
-            .prefetch_related("branch_overrides")
-            .annotate(
-                provider_normalized=Replace(
-                    "project_repository__repository__provider", Value("integrations:"), Value("")
-                )
-            )
+            get_token_based_billing_project_repos(project.organization, [project.id])
+            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            else _get_seat_based_billing_project_repos(project)
+        ).annotate(
+            provider_normalized=Replace("repository__provider", Value("integrations:"), Value(""))
         )
 
         search_query = request.GET.get("query", "")
@@ -327,14 +462,36 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
             request=request,
             queryset=queryset,
             order_by=order_by,
-            on_results=lambda results: [_serialize_project_repo(r) for r in results],
+            on_results=lambda results: [
+                _serialize_project_repo(r, get_seer_project_repo(r)) for r in results
+            ],
             paginator_cls=OffsetPaginator,
         )
 
-    def post(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="addProjectSeerRepositories",
+        summary="Add Repositories to Seer for a Project",
+        description=(
+            "Add the specified repositories to Seer without removing other repositories. "
+            "At least one repository is required. Re-submitting a repository replaces its "
+            "branchName, instructions, and branchOverrides; omitted values are cleared."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=SeerProjectReposBulkSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
         if not repos_data:
@@ -349,10 +506,31 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
 
         return Response(status=204)
 
-    def put(self, request: Request, project: Project) -> Response:
+    @extend_schema(
+        operation_id="replaceProjectSeerRepositories",
+        summary="Replace Repositories Configured for Seer",
+        description=(
+            "Replace the project's active Seer repository configurations with the submitted "
+            "repositories. An empty `repos` list removes all active Seer repository "
+            "configurations. Inactive repository configurations are retained and become "
+            "available again if the repositories are reactivated."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
+        request=SeerProjectReposBulkSerializer,
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def put(
+        self, request: Request, project: Project
+    ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         serializer = SeerProjectReposBulkSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         repos_data = serializer.validated_data["repos"]
 
@@ -363,5 +541,17 @@ class ProjectSeerReposEndpoint(ProjectEndpoint):
                 return Response({"detail": f"Invalid repository IDs: {e.args[0]}"}, status=400)
 
         replace_all_seer_project_repos(project, repos_data)
+
+        self.create_audit_entry(
+            request=request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id("SEER_PROJECT_REPOSITORIES_REPLACE"),
+            data={
+                "project_id": project.id,
+                "project_slug": project.slug,
+                "repos": repos_data,
+            },
+        )
 
         return Response(status=204)

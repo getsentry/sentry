@@ -36,7 +36,10 @@ class BaseActionValidator(CamelSnakeSerializer[Any]):
 
     def _get_action_handler(self) -> builtins.type[ActionHandler]:
         action_type = self.initial_data.get("type")
-        return action_handler_registry.get(action_type)
+        try:
+            return action_handler_registry.get(action_type)
+        except NoRegistrationExistsError:
+            raise serializers.ValidationError(f"Invalid action type: {action_type}") from None
 
     def validate_data(self, value: Any) -> ActionData:
         data_schema = self._get_action_handler().data_schema

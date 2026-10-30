@@ -548,14 +548,30 @@ def _trim_event_data_for_occurrence(event_data: dict[str, Any]) -> None:
                 extra={"initial_count": initial_tag_count, "final_count": final_tag_count},
             )
 
-    if "breadcrumbs" in event_data:
-        initial_breadcrumb_count = len(event_data["breadcrumbs"])
+    if "breadcrumbs" in event_data and event_data["breadcrumbs"].get("values"):
+        all_breadcrumbs = event_data["breadcrumbs"]["values"]
+        initial_breadcrumb_count = len(all_breadcrumbs)
 
-        event_data["breadcrumbs"] = strict_trim(
+        trimmed_breadcrumbs = strict_trim(
             event_data["breadcrumbs"], MAX_OCCURRENCE_BREADCRUMBS_BYTES
-        )
+        ).get("values", [])
 
-        final_breadcrumb_count = len(event_data["breadcrumbs"])
+        if trimmed_breadcrumbs:
+            # If trimming has altered key fields in the last included breadcrumb, it can cause UI
+            # elements to break and/or the overall event data to fail schema validation. To avoid
+            # this, check for changes in those fields and remove the breadcrumb entirely if trimming
+            # has made it invalid.
+            last_breadcrumb_index = len(trimmed_breadcrumbs) - 1
+            last_breadcrumb = trimmed_breadcrumbs[last_breadcrumb_index]
+            last_breadcrumb_orig_value = all_breadcrumbs[last_breadcrumb_index]
+            for field in ["event_id", "level", "timestamp"]:
+                if last_breadcrumb.get(field) != last_breadcrumb_orig_value.get(field):
+                    trimmed_breadcrumbs.pop()
+                    break
+
+        event_data["breadcrumbs"]["values"] = trimmed_breadcrumbs
+
+        final_breadcrumb_count = len(trimmed_breadcrumbs)
         if final_breadcrumb_count < initial_breadcrumb_count:
             logger.info(
                 "issue_detection.shim.breadcrumbs_dropped",

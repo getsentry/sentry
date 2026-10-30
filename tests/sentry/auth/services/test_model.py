@@ -15,7 +15,9 @@ class DeclaredScopePermission:
 
 @patch("sentry.auth.scope_declaration.capture_message")
 @patch("sentry.auth.scope_declaration.logger.warning")
-@override_options({"api.permission-scope-audit.enabled": True})
+@override_options(
+    {"api.permission-scope-audit.enabled": True, "auth.deprecated-scope-translation.enabled": True}
+)
 def test_authenticated_token_reports_undeclared_scope(warning: Mock, capture_message: Mock) -> None:
     token = AuthenticatedToken(kind="api_token", scopes=["org:read"])
 
@@ -28,6 +30,37 @@ def test_authenticated_token_reports_undeclared_scope(warning: Mock, capture_mes
     assert warning.call_count == 1
     assert warning.call_args.kwargs["extra"]["scope"] == "project:write"
     assert capture_message.call_count == 1
+
+
+@override_options({"auth.deprecated-scope-translation.enabled": True})
+def test_authenticated_token_translates_deprecated_scopes() -> None:
+    token = AuthenticatedToken(kind="api_token", scopes=["org:read"])
+
+    assert token.get_scopes() == [
+        "dashboard:read",
+        "dashboard:write",
+        "org:read",
+        "saved_query:read",
+        "saved_query:write",
+    ]
+    assert token.get_stored_scopes() == ["org:read"]
+    assert token.has_scope("dashboard:read")
+
+
+@override_options({"auth.deprecated-scope-translation.enabled": True})
+def test_authenticated_token_without_deprecated_scopes() -> None:
+    token = AuthenticatedToken(kind="api_token", scopes=["project:read"])
+
+    assert token.get_scopes() == ["project:read"]
+    assert not token.has_scope("dashboard:read")
+
+
+@override_options({"auth.deprecated-scope-translation.enabled": False})
+def test_authenticated_token_does_not_translate_when_disabled() -> None:
+    token = AuthenticatedToken(kind="api_token", scopes=["org:read"])
+
+    assert token.get_scopes() == ["org:read"]
+    assert not token.has_scope("dashboard:read")
 
 
 @control_silo_test

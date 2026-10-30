@@ -5,6 +5,7 @@ import trimStart from 'lodash/trimStart';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
+import {defined} from 'sentry/utils/defined';
 import type {
   EventsTableData,
   TableData,
@@ -20,10 +21,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {encodeSort} from 'sentry/utils/queryString';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {spansResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/spansResponseTransforms';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
@@ -41,6 +39,7 @@ import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {
@@ -106,7 +105,7 @@ function keepAlignedValues<T>(
 /**
  * Drop invalid Explore-style `_if` aggregates before building a series/table
  * request. Also retarget `orderby` when it pointed at a removed series so
- * getSeriesRequestData does not re-inject the invalid field.
+ * the request builder does not re-inject the invalid field.
  *
  * `fields`, `fieldAliases`, and `fieldMeta` are parallel arrays. Strip with the
  * same keep-mask so table/series transforms do not zip leftover meta onto the
@@ -200,25 +199,19 @@ export function useSpansSeriesQuery(
     const skippedForInvalidConditionalFilter = hasNoValidAggregatesForRequest(aggregates);
     const widgetForRequest = withValidConditionalAggregates(filteredWidget, queryIndex);
 
-    const requestData = getSeriesRequestData(
+    const query = getTimeseriesRequestQuery(
       widgetForRequest,
       queryIndex,
-      organization,
       pageFilters,
       DiscoverDatasets.SPANS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
+      {
+        referrer: getReferrer(filteredWidget.displayType),
+        widgetInterval,
+        sampling: samplingMode,
+      }
     );
 
-    // Add sampling mode if provided
-    if (samplingMode) {
-      requestData.sampling = samplingMode;
-    }
-
-    return {
-      requestData,
-      skippedForInvalidConditionalFilter,
-    };
+    return {query, skippedForInvalidConditionalFilter};
   });
 
   // Leave out skipped invalid-_if queries so raw data stays dense. React Query
@@ -238,13 +231,13 @@ export function useSpansSeriesQuery(
   );
 
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) =>
+    queries: seriesRequests.map(({query, skippedForInvalidConditionalFilter}) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled: enabled && !skippedForInvalidConditionalFilter,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query,
       })
     ),
     combine,
@@ -316,7 +309,15 @@ export function useSpansSeriesQuery(
     };
   })();
 
-  return transformedData;
+  // When a widget has several queries, the last response's confidence is shown
+  const confidenceInformation = useMemo(() => {
+    const lastResponse = rawData.findLast(defined);
+    return lastResponse
+      ? getSeriesConfidenceInformation(lastResponse, widget.queries[0])
+      : undefined;
+  }, [rawData, widget.queries]);
+
+  return {...transformedData, ...confidenceInformation};
 }
 
 /**

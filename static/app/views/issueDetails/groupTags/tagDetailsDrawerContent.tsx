@@ -45,6 +45,10 @@ import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 
 const DEFAULT_SORT: TagSort = 'count';
 
+// Rows treat a null value (e.g. events without a user) the same as '' and render
+// it as "(empty)".
+type TagValueRow = TagValue & {value: string};
+
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,7 +71,10 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
     }),
     select: selectJsonWithHeaders,
   });
-  const tagValues = tagValuesResponse?.json;
+  const tagValues = tagValuesResponse?.json.map((tv): TagValueRow => ({
+    ...tv,
+    value: tv.value ?? '',
+  }));
 
   const {
     data: tag,
@@ -141,7 +148,7 @@ function TagDetailsRow({
 }: {
   group: Group;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();
@@ -221,7 +228,7 @@ function TagDetailsValue({
   tagValue,
 }: {
   tagKey: string;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
   valueLocation: LocationDescriptor;
 }) {
   const theme = useTheme();
@@ -295,7 +302,7 @@ function TagValueActionsMenu({
 }: {
   group: Group;
   tag: Tag;
-  tagValue: TagValue;
+  tagValue: TagValueRow;
 }) {
   const organization = useOrganization();
   const location = useLocation();

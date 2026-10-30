@@ -17,6 +17,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {
   calculateMenuMinHeight,
   Header,
+  ReserveLeadingSlot,
   Search,
   SectionSeparator,
   Title,
@@ -225,6 +226,13 @@ function DropdownMenuList({
   const safetyTriangle = useSafetyTriangle();
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
+  const hasLeadingItems = useMemo(
+    () =>
+      stateCollection
+        .flatMap(node => (node.type === 'section' ? [...node.childNodes] : [node]))
+        .some(node => node.value?.leadingItems || node.value?.isSelected !== undefined),
+    [stateCollection]
+  );
 
   // Implement focus states, keyboard navigation, aria-label,...
   const menuRef = useRef<HTMLUListElement>(null);
@@ -342,6 +350,18 @@ function DropdownMenuList({
             {stackProps => (
               <Overlay
                 {...stackProps}
+                onKeyDownCapture={event => {
+                  // Handle Escape before React Aria closes the entire menu tree.
+                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                    event.stopPropagation();
+                    // Let the IME cancel composition without dismissing the submenu.
+                    if (event.nativeEvent.isComposing) {
+                      return;
+                    }
+                    event.preventDefault();
+                    parentMenuState.selectionManager.clearSelection();
+                  }
+                }}
                 style={{
                   // Cap the requested height by the space available to the overlay.
                   maxHeight: calculateMenuMinHeight(
@@ -368,15 +388,17 @@ function DropdownMenuList({
                   flexGrow={showEmptyMessage ? 1 : undefined}
                   {...mergeProps(modifiedMenuProps, keyboardProps)}
                 >
-                  <DropdownMenuCollection
-                    collection={stateCollection}
-                    closeOnSelect={closeOnSelect}
-                    disableTextSelection={disableTextSelection}
-                    onClose={onClose}
-                    separatorProps={separatorProps}
-                    size={size}
-                    state={state}
-                  />
+                  <ReserveLeadingSlot reserve={hasLeadingItems}>
+                    <DropdownMenuCollection
+                      collection={stateCollection}
+                      closeOnSelect={closeOnSelect}
+                      disableTextSelection={disableTextSelection}
+                      onClose={onClose}
+                      separatorProps={separatorProps}
+                      size={size}
+                      state={state}
+                    />
+                  </ReserveLeadingSlot>
                   {showEmptyMessage && (
                     <Stack
                       as="li"

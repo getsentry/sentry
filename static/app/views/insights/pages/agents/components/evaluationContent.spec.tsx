@@ -2,8 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   EvaluatedContent,
-  EvaluationAnswers,
-  EvaluationQuestions,
+  EvaluationResults,
   EvaluationResultSummary,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
 
@@ -35,10 +34,10 @@ describe('EvaluatedContent', () => {
   });
 });
 
-describe('EvaluationQuestions', () => {
-  it('renders each question with its options', () => {
+describe('EvaluationResults', () => {
+  it('pairs each question with its answer and type', () => {
     render(
-      <EvaluationQuestions
+      <EvaluationResults
         questions={[
           {
             key: 'authIssue',
@@ -46,102 +45,165 @@ describe('EvaluationQuestions', () => {
             type: 'noul',
             instructions: 'Is there a login problem?',
           },
+        ]}
+        answers={[{kind: 'boolean', key: 'authIssue', probability: 0.97}]}
+      />
+    );
+
+    expect(screen.getAllByText('authIssue')).toHaveLength(1);
+    expect(screen.getByText('noul')).toBeInTheDocument();
+    expect(screen.getByText('Is there a login problem?')).toBeInTheDocument();
+    expect(screen.getByText('Yes')).toBeInTheDocument();
+  });
+
+  it('types an answer without a question by its answer', () => {
+    render(
+      <EvaluationResults
+        answers={[{kind: 'choice', key: 'department', choice: 'billing'}]}
+      />
+    );
+
+    expect(screen.getByText('department')).toBeInTheDocument();
+    expect(screen.getByText('choice')).toBeInTheDocument();
+  });
+
+  it('shows the allowed answers of an unanswered question', () => {
+    render(
+      <EvaluationResults
+        questions={[
+          {
+            key: 'department',
+            kind: 'question',
+            type: 'choice',
+            criteria: {billing: 'Charges and refunds', technical: 'Bugs'},
+          },
+        ]}
+      />
+    );
+
+    expect(screen.getByText('No answer')).toBeInTheDocument();
+    expect(screen.getByText('billing')).toBeInTheDocument();
+    expect(screen.getByText('technical')).toBeInTheDocument();
+  });
+
+  it('shows option descriptions in a tooltip', async () => {
+    render(
+      <EvaluationResults
+        questions={[
+          {
+            key: 'urgency',
+            kind: 'question',
+            type: 'score',
+            criteria: ['low', 'medium', 'high'],
+            descriptions: {2: 'Blocks the customer'},
+          },
+        ]}
+        answers={[{kind: 'score', key: 'urgency', score: 2}]}
+      />
+    );
+
+    expect(screen.getByText('0 · low')).toBeInTheDocument();
+    expect(screen.queryByText('Blocks the customer')).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('2 · high'));
+
+    expect(await screen.findByText('Blocks the customer')).toBeInTheDocument();
+    expect(screen.getAllByText('2 · high')).toHaveLength(2);
+  });
+
+  it('names score values after the question criteria', () => {
+    render(
+      <EvaluationResults
+        questions={[
           {
             key: 'urgency',
             kind: 'question',
             type: 'score',
             criteria: ['low', 'medium', 'high'],
           },
+        ]}
+        answers={[
+          {kind: 'score', key: 'urgency', score: 1.6, probabilities: {2: 0.61, 1: 0.39}},
+        ]}
+      />
+    );
+
+    expect(screen.getByText('high')).toBeInTheDocument();
+    expect(screen.getByText('1.6')).toBeInTheDocument();
+    expect(screen.getByText('1 · medium')).toBeInTheDocument();
+    expect(screen.getByText('2 · high')).toBeInTheDocument();
+  });
+
+  it('shows the label and description of a probability row in its tooltip', async () => {
+    render(
+      <EvaluationResults
+        questions={[
           {
             key: 'department',
             kind: 'question',
             type: 'choice',
             criteria: {billing: 'Charges and refunds'},
           },
-          {kind: 'invalid', key: 'tone', value: {criteria: 'friendly'}},
         ]}
-      />
-    );
-
-    expect(screen.getByText('authIssue')).toBeInTheDocument();
-    expect(screen.getByText('noul')).toBeInTheDocument();
-    expect(screen.getByText('Is there a login problem?')).toBeInTheDocument();
-    expect(screen.getByText('0 · low')).toBeInTheDocument();
-    expect(screen.getByText('2 · high')).toBeInTheDocument();
-    expect(screen.getByText('billing')).toBeInTheDocument();
-    expect(screen.getByText('Charges and refunds')).toBeInTheDocument();
-    expect(screen.getByText('tone')).toBeInTheDocument();
-    expect(screen.getByText('Unrecognized')).toBeInTheDocument();
-    expect(screen.getByText(/friendly/)).toBeInTheDocument();
-  });
-
-  it('renders score level descriptions next to their levels', () => {
-    render(
-      <EvaluationQuestions
-        questions={[
-          {
-            key: 'urgency',
-            kind: 'question',
-            type: 'score',
-            criteria: ['low', 'medium', 'high'],
-            descriptions: {1: 'Needs a reply today', 2: 'Blocks the customer'},
-          },
-        ]}
-      />
-    );
-
-    expect(screen.getByText('0 · low')).toBeInTheDocument();
-    expect(screen.getByText('1 · medium')).toBeInTheDocument();
-    expect(screen.getByText('Needs a reply today')).toBeInTheDocument();
-    expect(screen.getByText('2 · high')).toBeInTheDocument();
-    expect(screen.getByText('Blocks the customer')).toBeInTheDocument();
-  });
-});
-
-describe('EvaluationAnswers', () => {
-  it('renders each answer with its question', () => {
-    render(
-      <EvaluationAnswers
         answers={[
-          {kind: 'boolean', key: 'authIssue', probability: 0.97},
-          {kind: 'boolean', key: 'wantsRefund', probability: 0.1},
           {
             kind: 'choice',
             key: 'department',
             choice: 'billing',
-            probabilities: {technical: 0.35, billing: 0.59},
-            confidence: 0.24,
-          },
-          {kind: 'invalid', key: 'custom', value: {stars: 4}},
-        ]}
-        questions={[
-          {
-            key: 'authIssue',
-            kind: 'question',
-            type: 'boolean',
-            instructions: 'Is there a login problem?',
+            probabilities: {billing: 0.8, technical: 0.2},
           },
         ]}
       />
     );
 
-    expect(screen.getByText('Is there a login problem?')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText('97%')).toBeInTheDocument();
-    expect(screen.getByText('No')).toBeInTheDocument();
-    expect(screen.getByText('90%')).toBeInTheDocument();
-    expect(screen.getByText('billing')).toBeInTheDocument();
-    expect(screen.getByText('59%')).toBeInTheDocument();
-    expect(screen.getByText('technical')).toBeInTheDocument();
-    expect(screen.getByText('Confidence: 24%')).toBeInTheDocument();
-    expect(screen.getByText('custom')).toBeInTheDocument();
-    expect(screen.getByText('Unrecognized')).toBeInTheDocument();
-    expect(screen.getByText(/stars/)).toBeInTheDocument();
+    await userEvent.hover(screen.getAllByText('billing')[1]!);
+
+    expect(await screen.findByText('Charges and refunds')).toBeInTheDocument();
+    expect(screen.getAllByText('billing')).toHaveLength(3);
+  });
+
+  it.each([
+    {
+      name: 'a boolean, from its probability',
+      answer: {kind: 'boolean' as const, key: 'authIssue', probability: 0.1},
+      expected: '90%',
+    },
+    {
+      name: 'a score',
+      answer: {kind: 'score' as const, key: 'urgency', score: 1, confidence: 0.24},
+      expected: '24%',
+    },
+    {
+      name: 'a choice',
+      answer: {
+        kind: 'choice' as const,
+        key: 'department',
+        choice: 'billing',
+        confidence: 0.5,
+      },
+      expected: '50%',
+    },
+  ])('shows the confidence of $name', async ({answer, expected}) => {
+    render(<EvaluationResults answers={[answer]} />);
+
+    await userEvent.hover(screen.getByText(expected));
+
+    expect(await screen.findByText('Confidence')).toBeInTheDocument();
+  });
+
+  it('shows no confidence when the answer has none', () => {
+    render(
+      <EvaluationResults
+        answers={[{kind: 'choice', key: 'department', choice: 'billing'}]}
+      />
+    );
+
+    expect(screen.queryByText(/%$/)).not.toBeInTheDocument();
   });
 
   it('orders score values ascending and choices by probability', () => {
     render(
-      <EvaluationAnswers
+      <EvaluationResults
         answers={[
           {
             kind: 'score',
@@ -168,37 +230,9 @@ describe('EvaluationAnswers', () => {
     ]);
   });
 
-  it('names score values after the question criteria', () => {
-    render(
-      <EvaluationAnswers
-        answers={[
-          {
-            kind: 'score',
-            key: 'urgency',
-            score: 1.6,
-            probabilities: {2: 0.61, 1: 0.39},
-          },
-        ]}
-        questions={[
-          {
-            key: 'urgency',
-            kind: 'question',
-            type: 'score',
-            criteria: ['low', 'medium', 'high'],
-          },
-        ]}
-      />
-    );
-
-    expect(screen.getByText('high')).toBeInTheDocument();
-    expect(screen.getByText('medium')).toBeInTheDocument();
-    expect(screen.getByText('1.6')).toBeInTheDocument();
-  });
-
   it('renders a refusal with a tooltip explaining it', async () => {
     render(
-      <EvaluationAnswers
-        answers={[{kind: 'refusal', key: 'urgency'}]}
+      <EvaluationResults
         questions={[
           {
             key: 'urgency',
@@ -207,6 +241,7 @@ describe('EvaluationAnswers', () => {
             instructions: 'How urgent is this ticket?',
           },
         ]}
+        answers={[{kind: 'refusal', key: 'urgency'}]}
       />
     );
 
@@ -215,19 +250,25 @@ describe('EvaluationAnswers', () => {
     expect(await screen.findByText('The model declined to answer.')).toBeInTheDocument();
   });
 
-  it('shows the answer in the header without a distribution', () => {
+  it('shows unrecognized questions and answers raw', () => {
     render(
-      <EvaluationAnswers
+      <EvaluationResults
+        questions={[
+          {kind: 'invalid', key: 'tone', value: {criteria: 'friendly'}},
+          {key: 'custom', kind: 'question', type: 'rating'},
+        ]}
         answers={[
-          {kind: 'score', key: 'urgency', score: 1.6, legend: {2: 'high'}},
-          {kind: 'choice', key: 'department', choice: 'billing'},
+          {kind: 'boolean', key: 'tone', probability: 0.8},
+          {kind: 'invalid', key: 'custom', value: {stars: 4}},
         ]}
       />
     );
 
-    expect(screen.getByText('high')).toBeInTheDocument();
-    expect(screen.getByText('1.6')).toBeInTheDocument();
-    expect(screen.getByText('billing')).toBeInTheDocument();
+    expect(screen.getAllByText('Unrecognized')).toHaveLength(2);
+    expect(screen.getByText(/friendly/)).toBeInTheDocument();
+    expect(screen.getByText('Yes')).toBeInTheDocument();
+    expect(screen.getByText('rating')).toBeInTheDocument();
+    expect(screen.getByText(/stars/)).toBeInTheDocument();
   });
 });
 

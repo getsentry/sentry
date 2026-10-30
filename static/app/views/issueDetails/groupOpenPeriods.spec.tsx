@@ -141,8 +141,6 @@ describe('GroupOpenPeriods', () => {
       expect.anything(),
       expect.objectContaining({
         data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
           sources: [
             {
               type: 'metric_open_period',

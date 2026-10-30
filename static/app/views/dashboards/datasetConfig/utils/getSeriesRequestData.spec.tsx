@@ -6,7 +6,7 @@ import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
+  getTimeseriesRequestQuery,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
@@ -353,8 +353,8 @@ describe('utils', () => {
     });
   });
 
-  describe('convertEventStatsRequestDataToEventTimeseriesQueryParams', () => {
-    it('maps request data to events-timeseries params', () => {
+  describe('getTimeseriesRequestQuery', () => {
+    it('builds events-timeseries params for a grouped query', () => {
       const widget = WidgetFixture({
         displayType: DisplayType.LINE,
         limit: 5,
@@ -367,27 +367,87 @@ describe('utils', () => {
           }),
         ],
       });
-      const requestData = getSeriesRequestData(
+
+      const params = getTimeseriesRequestQuery(
         widget,
         0,
-        OrganizationFixture(),
         PageFiltersFixture(),
-        DiscoverDatasets.SPANS
+        DiscoverDatasets.SPANS,
+        {referrer: 'test-referrer', sampling: 'NORMAL'}
       );
 
-      const params =
-        convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData);
+      expect(params).toEqual({
+        interval: '30m',
+        project: [],
+        environment: [],
+        query: 'tag:value',
+        yAxis: ['count()'],
+        groupBy: ['transaction', 'count()', 'count()'],
+        field: ['transaction', 'count()', 'count()'],
+        sort: '-count()',
+        topEvents: 5,
+        excludeOther: '1',
+        referrer: 'test-referrer',
+        dataset: DiscoverDatasets.SPANS,
+        sampling: 'NORMAL',
+      });
+    });
+
+    it('omits grouping params and the sort for an ungrouped query', () => {
+      const widget = WidgetFixture({
+        displayType: DisplayType.LINE,
+        queries: [
+          WidgetQueryFixture({
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+            orderby: '',
+          }),
+        ],
+      });
+
+      const params = getTimeseriesRequestQuery(
+        widget,
+        0,
+        PageFiltersFixture(),
+        DiscoverDatasets.ERRORS
+      );
+
+      expect(params.yAxis).toEqual(['count()']);
+      expect(params.groupBy).toBeUndefined();
+      expect(params.field).toBeUndefined();
+      expect(params.sort).toBeUndefined();
+      expect(params.topEvents).toBeUndefined();
+      expect(params.excludeOther).toBeUndefined();
+    });
+
+    it('formats absolute dates and uses the widget interval', () => {
+      const widget = WidgetFixture({displayType: DisplayType.LINE});
+      const pageFilters = PageFiltersFixture({
+        datetime: {
+          start: new Date('2024-01-01T00:00:00Z'),
+          end: new Date('2024-01-02T00:00:00Z'),
+          period: null,
+          utc: true,
+        },
+      });
+
+      const params = getTimeseriesRequestQuery(
+        widget,
+        0,
+        pageFilters,
+        DiscoverDatasets.ERRORS,
+        {widgetInterval: '1h'}
+      );
 
       expect(params).toEqual(
         expect.objectContaining({
-          yAxis: ['count()'],
-          groupBy: ['transaction', 'count()', 'count()'],
-          field: ['transaction', 'count()', 'count()'],
-          sort: '-count()',
-          topEvents: 5,
-          excludeOther: '1',
+          interval: '1h',
+          start: '2024-01-01T00:00:00',
+          end: '2024-01-02T00:00:00',
         })
       );
+      expect(params).not.toHaveProperty('statsPeriod');
     });
   });
 });

@@ -43,7 +43,7 @@ class RequestTimingMiddleware(MiddlewareMixin):
         path = get_path(view_func)
         if path and path.startswith(self.allowed_paths):
             setattr(request, "_view_path", path)
-            setattr(request, "_start_time", time.time())
+            setattr(request, "_start_time", time.monotonic())
         return None
 
     def process_response(self, request: Request, response: Response) -> Response:
@@ -80,10 +80,10 @@ class RequestTimingMiddleware(MiddlewareMixin):
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)
 
         start_time = getattr(request, "_start_time", None)
-        if not start_time:
+        if start_time is None:
             return
 
-        ms = int((time.time() - start_time) * 1000)
+        ms = int((time.monotonic() - start_time) * 1000)
         metrics.distribution(
             "view.duration",
             ms,

@@ -107,6 +107,50 @@ describe('Onboarding deployment target', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('checks the SDK version of the selected Pi Durable runtime', async () => {
+    const {organization, project} = setupProject('node-pi-durable');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {projectId: project.id, sdkName: 'sentry.javascript.bun', sdkVersion: '10.0.0'},
+      ],
+    });
+
+    render(<Onboarding />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Bun'}));
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          'Your @sentry/bun version is below the minimum required for agent monitoring. Update to 11.6.0 or later.'
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("keeps checking a framework project's own SDK when the integration pins another runtime", async () => {
+    const {organization, project} = setupProject('javascript-nextjs');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdk-updates/`,
+      body: [
+        {projectId: project.id, sdkName: 'sentry.javascript.nextjs', sdkVersion: '7.0.0'},
+      ],
+    });
+
+    render(<Onboarding />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Workers AI'}));
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Your @sentry\/nextjs version is below the minimum required for agent monitoring/
+        )
+      )
+    ).toBeInTheDocument();
+  });
+
   it('shows the unsupported platform setup for a browser project', async () => {
     const {organization} = setupProject('javascript');
 
@@ -246,6 +290,19 @@ describe('Onboarding deployment target', () => {
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
 
+  it('does not offer Cloudflare-only SDKs to Bun projects', async () => {
+    const {organization} = setupProject('bun');
+
+    render(<Onboarding />, {organization});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Vercel AI SDK'}));
+    expect(await screen.findByRole('option', {name: 'Mastra'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Workers AI'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Cloudflare Agents SDK'})
+    ).not.toBeInTheDocument();
+  });
+
   it('offers every SDK regardless of the selected runtime', async () => {
     const {organization} = setupProject('node');
 
@@ -345,6 +402,40 @@ describe('Onboarding deployment target', () => {
     expect(screen.queryByRole('button', {name: 'Node'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Cloudflare'})).not.toBeInTheDocument();
   });
+
+  it('offers the Node, Cloudflare, Deno, and Bun runtimes in Pi Durable projects', async () => {
+    const {organization} = setupProject('node-pi-durable');
+
+    render(<Onboarding />, {organization});
+
+    const runtimeSelector = await screen.findByRole('button', {name: 'Node'});
+    expect(runtimeSelector).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'Pi Durable'})).not.toBeInTheDocument();
+
+    await userEvent.click(runtimeSelector);
+    expect(
+      (await screen.findAllByRole('option')).map(option => option.textContent)
+    ).toEqual(['Node', 'Cloudflare', 'Deno', 'Bun']);
+  });
+
+  it.each([
+    ['Cloudflare', /Install the Sentry Cloudflare SDK in your Worker/],
+    ['Deno', /there is nothing to install/],
+    ['Bun', /Install the Sentry Bun SDK in your Pi Durable project/],
+  ])(
+    'switches the Pi Durable project instructions to %s',
+    async (runtime, installText) => {
+      const {organization} = setupProject('node-pi-durable');
+
+      render(<Onboarding />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Node'}));
+      await userEvent.click(await screen.findByRole('option', {name: runtime}));
+
+      expect(await screen.findByRole('button', {name: runtime})).toBeInTheDocument();
+      expect(await screen.findByText(installText)).toBeInTheDocument();
+    }
+  );
 
   it('shows the Cloudflare setup for Pi Durable in Cloudflare Workers projects', async () => {
     const {organization} = setupProject('node-cloudflare-workers');

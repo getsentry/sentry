@@ -55,6 +55,11 @@ build-investigation-api-docs: build-deprecated-docs
 	pnpm exec node api-docs/index.ts .artifacts/investigation-api-docs/openapi.json .artifacts/investigation-api-docs/openapi-derefed.json
 	pnpm --filter @sentry-internal/api-docs exec openapi-examples-validator ../.artifacts/investigation-api-docs/openapi-derefed.json --no-additional-properties
 
+api-owner-map:
+	@echo "--> Generating API endpoint owner map"
+	@mkdir -p .artifacts
+	@sentry django api_endpoint_owners --output .artifacts/api-endpoint-owners.json
+
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 

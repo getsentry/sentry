@@ -22,11 +22,11 @@ from sentry.investigations.endpoints.serializers.comment import (
     InvestigationCommentSerializerResponse,
 )
 from sentry.investigations.endpoints.validators.comment import CommentUpdateValidator
-from sentry.investigations.models import Investigation, InvestigationComment, InvestigationStatus
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookComment, NotebookStatus
 
 
-def check_is_author(request: Request, comment: InvestigationComment) -> Response | None:
+def check_is_author(request: Request, comment: NotebookComment) -> Response | None:
     if comment.author_id != require_authenticated_user(request):
         return Response(
             {"detail": "Only the author can change a comment."},
@@ -70,8 +70,8 @@ class OrganizationInvestigationCommentDetailsEndpoint(OrganizationInvestigationC
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        comment: InvestigationComment,
+        investigation: Notebook,
+        comment: NotebookComment,
     ) -> Response:
         """
         Replace the comment body. Only the author can edit it; the investigation must be active.
@@ -108,8 +108,8 @@ class OrganizationInvestigationCommentDetailsEndpoint(OrganizationInvestigationC
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        comment: InvestigationComment,
+        investigation: Notebook,
+        comment: NotebookComment,
     ) -> Response:
         """
         Delete a comment authored by the authenticated user. The investigation must be active.
@@ -118,7 +118,7 @@ class OrganizationInvestigationCommentDetailsEndpoint(OrganizationInvestigationC
         """
         if (error := check_is_author(request, comment)) is not None:
             return error
-        if investigation.status == InvestigationStatus.ARCHIVED:
+        if investigation.status == NotebookStatus.ARCHIVED:
             raise InvestigationArchivedError
         comment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

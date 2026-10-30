@@ -711,7 +711,6 @@ describe('DetectorEdit', () => {
             aggregate: 'count_unique(user)',
             query: 'event.type:error',
             environment: 'prod',
-            name: 'My Monitor',
           },
         },
       };
@@ -1368,6 +1367,26 @@ describe('DetectorEdit', () => {
       );
     });
 
+    it('prefills the first environment when the URL has several', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              environment: ['production', 'staging'],
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByLabelText('Select Environment')).toBeInTheDocument();
+      expect(screen.getByText('production')).toBeInTheDocument();
+      expect(screen.queryByText('staging')).not.toBeInTheDocument();
+    });
+
     it('submits custom thresholds when changed', async () => {
       const mockCreateDetector = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
@@ -1540,6 +1559,50 @@ describe('DetectorEdit', () => {
             type: 'monitor_check_in_failure',
             name: 'New Monitor',
             description: 'This is my cron monitor description',
+          }),
+        })
+      );
+    });
+
+    it('submits a typed interval schedule value as a number', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: /^Schedule/}),
+        'Interval'
+      );
+
+      const intervalValue = screen.getByRole('spinbutton', {name: 'Interval Frequency'});
+      await userEvent.clear(intervalValue);
+      await userEvent.type(intervalValue, '5');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            dataSources: [
+              expect.objectContaining({
+                config: expect.objectContaining({
+                  schedule: [5, 'day'],
+                  schedule_type: 'interval',
+                }),
+              }),
+            ],
           }),
         })
       );

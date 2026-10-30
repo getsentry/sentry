@@ -33,7 +33,6 @@ type Results = {
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
   timeseriesResults?: WidgetTimeSeries[];
-  totalIssuesCount?: string;
 };
 
 type Props = {
@@ -48,7 +47,6 @@ type Props = {
       | 'pageLinks'
       | 'tableResults'
       | 'timeseriesResults'
-      | 'totalIssuesCount'
       | 'confidence'
       | 'dataScanned'
       | 'isSampled'

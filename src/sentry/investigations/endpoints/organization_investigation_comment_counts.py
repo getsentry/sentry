@@ -12,8 +12,8 @@ from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.base import OrganizationInvestigationEndpoint
-from sentry.investigations.models import Investigation, InvestigationComment
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookComment
 
 
 @extend_schema(tags=["Investigations"])
@@ -36,7 +36,7 @@ class OrganizationInvestigationCommentCountsEndpoint(OrganizationInvestigationEn
         },
     )
     def get(
-        self, request: Request, organization: Organization, investigation: Investigation
+        self, request: Request, organization: Organization, investigation: Notebook
     ) -> Response:
         """
         Return an object mapping block IDs to integer comment counts. Only active blocks with
@@ -45,8 +45,8 @@ class OrganizationInvestigationCommentCountsEndpoint(OrganizationInvestigationEn
         organizations:investigations feature and open organization membership.
         """
         counts = (
-            InvestigationComment.objects.filter(
-                investigation=investigation,
+            NotebookComment.objects.filter(
+                notebook=investigation,
                 block__isnull=False,
                 block__deleted_at__isnull=True,
             )

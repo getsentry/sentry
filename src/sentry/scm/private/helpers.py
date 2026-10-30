@@ -16,6 +16,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
@@ -27,7 +28,7 @@ class Fetchers(NamedTuple):
     fetch_provider: Callable[[int, Repository], Provider | None]
 
 
-def make_fetchers() -> Fetchers:
+def make_fetchers(*, disable_proxy_retries: bool = False) -> Fetchers:
     """Return the repository and provider lookups to build one SourceCodeManager with.
 
     Both lookups can need the repository's integration, and fetching it is an RPC to the control silo,
@@ -37,7 +38,11 @@ def make_fetchers() -> Fetchers:
     get_integration = functools.cache(_get_integration)
     return Fetchers(
         fetch_repository=functools.partial(fetch_repository, get_integration=get_integration),
-        fetch_provider=functools.partial(fetch_service_provider, get_integration=get_integration),
+        fetch_provider=functools.partial(
+            fetch_service_provider,
+            get_integration=get_integration,
+            disable_proxy_retries=disable_proxy_retries,
+        ),
     )
 
 
@@ -53,6 +58,7 @@ def fetch_service_provider(
     repository: Repository,
     *,
     get_integration: IntegrationGetter = _get_integration,
+    disable_proxy_retries: bool = False,
 ) -> Provider | None:
     integration = get_integration(organization_id, repository["integration_id"])
     if not integration:
@@ -62,6 +68,9 @@ def fetch_service_provider(
         client = integration.get_installation(organization_id=organization_id).get_client()
     except (IntegrationError, OrganizationIntegrationNotFound):
         return None
+
+    if isinstance(client, IntegrationProxyClient):
+        client.disable_proxy_retries = disable_proxy_retries
 
     if integration.provider in ("github", "github_enterprise"):
         return GitHubProvider(client, organization_id, repository)

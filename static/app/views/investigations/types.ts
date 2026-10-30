@@ -1,7 +1,9 @@
 import type {AvatarUser} from 'sentry/types/user';
 import type {
   ActionRequestError,
+  ActionRequestFollowUp,
   CannotApplyReason,
+  InvestigationDetectorValues,
 } from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
@@ -79,11 +81,6 @@ export type InvestigationComment = {
   dateCreated: string;
   dateUpdated: string;
   id: string;
-};
-
-export type InvestigationBlockExecutionStart = {
-  id: string;
-  status: InvestigationExecutionStatus;
 };
 
 export type InvestigationExecutionStatus =
@@ -178,7 +175,6 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
-  template?: {key: string; version: number} | null;
 };
 
 export type InvestigationTitleGeneration = {
@@ -192,6 +188,16 @@ export type MetricOpenPeriodInvestigationSource = {
     openPeriodId: string;
   };
   type: 'metric_open_period';
+};
+
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+  /** Timezone-aware ISO-8601 range for the run to look at. */
+  timeRange?: {end: string; start: string};
 };
 
 export type InvestigationCandidate =
@@ -263,18 +269,7 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
-export type InvestigationDetectorChangeKey =
-  | 'query'
-  | 'aggregate'
-  | 'environment'
-  | 'timeWindowSeconds'
-  | 'highThreshold'
-  | 'mediumThreshold'
-  | 'resolutionThreshold';
-
-type InvestigationDetectorValues = Partial<
-  Record<InvestigationDetectorChangeKey, number | string | null>
->;
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
 
 export type InvestigationUpdateDetectorAction = {
   before: InvestigationDetectorValues;
@@ -283,11 +278,16 @@ export type InvestigationUpdateDetectorAction = {
   kind: 'update_detector';
 };
 
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
+
 export type InvestigationAction =
   | InvestigationUpdateDetectorAction
-  | {kind: 'connect_telemetry'; provider: 'datadog' | 'gcp'};
+  | InvestigationConnectTelemetryAction;
 
-type InvestigationActionRequestAnchor = {
+export type InvestigationActionRequestAnchor = {
   blockId: string | null;
   id: string;
   type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
@@ -303,6 +303,7 @@ export type InvestigationActionRequest = {
   dateApplied: string | null;
   dateCreated: string;
   error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
   id: string;
   impact: string | null;
   key: string;
@@ -336,6 +337,14 @@ export type InvestigationToolActivity = {
     'queued' | 'running' | 'completed' | 'failed'
   >;
   title: string;
+};
+
+/** The agent's reasoning before the calls that follow it in the same phase. */
+export type InvestigationThought = {
+  id: string;
+  text: string;
+  /** The tool activity entry this came before; null until a call follows it. */
+  beforeActivityId?: string | null;
 };
 
 type InvestigationOrchestrationEvidence = {
@@ -398,6 +407,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**
    * Absent, not empty, until the agent has planned any checks: the contract
@@ -434,6 +444,7 @@ type InvestigationOrchestrationReport = {
   >;
   automaticRetryCount?: number;
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockThoughts?: InvestigationThought[];
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
   nextStep?: {
@@ -458,6 +469,7 @@ export type InvestigationOrchestration = {
     automaticRetryCount?: number;
     heartbeatAt?: string | null;
     runId?: number | string | null;
+    thoughts?: InvestigationThought[];
     toolActivity?: InvestigationToolActivity[];
   };
   errors: InvestigationOrchestrationError[];

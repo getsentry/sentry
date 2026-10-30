@@ -462,6 +462,11 @@ def build_shim_event_data(
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
+    # Handle cases in which the legacy breadcrumb format is sent
+    if "breadcrumbs" in event and isinstance(event["breadcrumbs"], list):
+        breadcrumbs = event["breadcrumbs"]
+        event["breadcrumbs"] = {"values": breadcrumbs}
+
     # If the segment is one Relay has converted from a transaction, both its `contexts` and (in the
     # future) `tags` values will have been included as JSON blobs in the segment span's attributes,
     # and will have been added to the event as part of the `_extract_attribute_values` call on

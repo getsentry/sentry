@@ -8,7 +8,6 @@ import {useFeedbackSlug} from 'sentry/components/feedback/useFeedbackSlug';
 import {useFetchFeedbackData} from 'sentry/components/feedback/useFetchFeedbackData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsData';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -22,8 +21,6 @@ export function FeedbackItemLoader({onBackToList}: Props = {}) {
   const feedbackId = feedbackSlug?.feedbackId ?? '';
 
   const {issueResult, issueData, eventData} = useFetchFeedbackData({feedbackId});
-  const projectId = issueData?.project?.id ?? feedbackSlug?.projectSlug;
-  useSentryAppComponentsData({projectId});
 
   useEffect(() => {
     if (issueResult.isError) {

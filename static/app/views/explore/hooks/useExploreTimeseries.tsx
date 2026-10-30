@@ -20,7 +20,6 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {
-  isVisualizeFunction,
   type Visualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -172,11 +171,7 @@ export function shouldTriggerHighAccuracy(
 ) {
   const samplingInfo = visualizes.map(visualize =>
     determineSeriesSampleCountAndIsSampled(
-      getTimeSeriesForQuery(
-        data,
-        visualize.yAxis,
-        isVisualizeFunction(visualize) ? visualize.transformations : []
-      ),
+      getTimeSeriesForQuery(data, visualize.yAxis, visualize.transformations),
       isTopN
     )
   );
