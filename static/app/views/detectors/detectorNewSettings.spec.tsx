@@ -625,6 +625,59 @@ describe('DetectorEdit', () => {
       }
     );
 
+    it('keeps the draft project when reopening an uptime copy moved to another project', async () => {
+      const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+      ProjectsStore.loadInitialData([project, otherProject]);
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        projectId: project.id,
+      });
+      sourceDetector.dataSources[0].queryObj.headers = [
+        ['Authorization', 'Bearer secret'],
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        sourceDetector.type,
+        sourceDetector.id
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({name: 'Moved copy', projectId: otherProject.id}),
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              projectId: otherProject.id,
+              dataSources: [expect.objectContaining({headers: []})],
+            }),
+          })
+        );
+      });
+    });
+
     it('opens an uptime draft when its duplicated monitor cannot be loaded', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/missing-uptime/`,
