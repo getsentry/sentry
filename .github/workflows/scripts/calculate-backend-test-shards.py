@@ -24,7 +24,7 @@ DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
 # startup and collection take about 2.5 of those minutes, which leaves each
 # xdist worker about this many seconds of tests, as timed in the durations
 # file (Arm runs them about 25% faster than that).
-WORKER_SECONDS_PER_SHARD = 45
+WORKER_SECONDS_PER_SHARD = 40
 XDIST_WORKERS = 4
 TESTS_PER_SHARD = 300
 MIN_SHARDS = 1

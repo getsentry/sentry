@@ -136,13 +136,13 @@ class TestCalculateShardsByDuration:
         assert _mod.calculate_shards_by_duration([]) == 0
 
     def test_packs_workers_up_to_the_budget(self):
-        # 4 workers x 45s per shard = 180s of tests per shard.
-        assert _mod.calculate_shards_by_duration([60.0] * 6) == 2
+        # 4 workers x 40s per shard = 160s of tests per shard.
+        assert _mod.calculate_shards_by_duration([40.0] * 8) == 2
         assert _mod.calculate_shards_by_duration([1.0] * 10) == 1
 
     def test_slow_file_gets_a_shard_per_worker_budget(self):
         # Each piece of a split file runs on one worker.
-        assert _mod.calculate_shards_by_duration([450.0, 1.0]) == 10
+        assert _mod.calculate_shards_by_duration([450.0, 1.0]) == 12
 
     def test_capped_at_max_shards(self):
         assert _mod.calculate_shards_by_duration([100_000.0]) == 30
@@ -164,5 +164,5 @@ class TestCalculateShardsByDuration:
         monkeypatch.setenv("GITHUB_OUTPUT", str(output))
 
         assert _mod.main() == 0
-        # 200s + 2 new tests x 100s = 400s, the slowest file needs ceil(200 / 45) = 5.
+        # 200s + 2 new tests x 100s = 400s, the slowest file needs ceil(200 / 40) = 5.
         assert "shard-count=5\n" in output.read_text()
