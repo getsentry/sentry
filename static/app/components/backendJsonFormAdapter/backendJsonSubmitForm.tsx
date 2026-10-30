@@ -22,7 +22,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
-import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {JsonFormAdapterChoiceValue, JsonFormAdapterFieldConfig} from './types';
 import {
@@ -609,25 +608,6 @@ export function BackendJsonSubmitForm({
                             value={tableValue}
                             onUpdate={handleChange}
                             onSave={() => {}}
-                            disabled={!!disabledProp}
-                          />
-                        </Stack>
-                      );
-                    }
-                    case 'project_mapper': {
-                      const mapperValue = fieldApi.state.value as Array<[number, string]>;
-                      return (
-                        <Stack flexGrow={1} gap="xl">
-                          <ProjectMapperTable
-                            config={field}
-                            value={mapperValue}
-                            onDelete={handleChange}
-                            disabled={!!disabledProp}
-                          />
-                          <ProjectMapperAddRow
-                            config={field}
-                            value={mapperValue}
-                            onAdd={handleChange}
                             disabled={!!disabledProp}
                           />
                         </Stack>

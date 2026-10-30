@@ -1,5 +1,3 @@
-import type {PlatformKey} from 'sentry/types/platform';
-
 export type JsonFormAdapterChoiceValue = string | number;
 export type JsonFormAdapterChoice = readonly [
   value: JsonFormAdapterChoiceValue,
@@ -120,22 +118,6 @@ interface JsonFormAdapterTable extends JsonFormAdapterBase {
   confirmDeleteMessage?: string;
 }
 
-interface JsonFormAdapterProjectMapper extends JsonFormAdapterBase {
-  type: 'project_mapper';
-  iconType?: string;
-  mappedDropdown?: {
-    items: ReadonlyArray<{label: string; value: string; url?: string}>;
-    placeholder?: string;
-  };
-  nextButton?: {allowedDomain: string; description: string; text: string};
-  sentryProjects?: ReadonlyArray<{
-    id: number;
-    name: string;
-    slug: string;
-    platform?: PlatformKey;
-  }>;
-}
-
 /**
  * A blank field is used to signal errors in the form config.
  * It renders nothing but can be detected to disable form submission.
@@ -153,7 +135,6 @@ export type JsonFormAdapterFieldConfig =
   | JsonFormAdapterNumber
   | JsonFormAdapterChoiceMapper
   | JsonFormAdapterTable
-  | JsonFormAdapterProjectMapper
   | JsonFormAdapterBlank;
 
 /**
@@ -172,8 +153,6 @@ export type FieldValue<T extends JsonFormAdapterFieldConfig> =
             ? Record<string, Record<string, unknown>>
             : T extends JsonFormAdapterTable
               ? Array<Record<string, unknown>>
-              : T extends JsonFormAdapterProjectMapper
-                ? Array<[number, string]>
-                : T extends JsonFormAdapterBlank
-                  ? never
-                  : unknown;
+              : T extends JsonFormAdapterBlank
+                ? never
+                : unknown;
