@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
+from scm.errors import ResourceServiceUnavailable
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
@@ -551,12 +553,14 @@ class TestFetchAccessToken(TestCase):
         "sentry.scm.private.helpers.integration_service.get_access_token",
         side_effect=RpcRemoteException("integration", "get_access_token", "timed out"),
     )
-    def test_returns_none_when_control_cannot_be_reached(
+    def test_is_retryable_when_control_cannot_be_reached(
         self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
     ) -> None:
-        token = fetch_access_token(self.scm_repository(1), "fetch")
+        with pytest.raises(ResourceServiceUnavailable) as e:
+            fetch_access_token(self.scm_repository(1), "fetch")
 
-        assert token is None
+        # Not chained: the RPC exception's frames are reported once, by capture_exception.
+        assert e.value.__suppress_context__
         mock_capture_exception.assert_called_once_with()
 
     @patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
@@ -564,10 +568,12 @@ class TestFetchAccessToken(TestCase):
         "sentry.scm.private.helpers.integration_service.get_access_token",
         side_effect=RpcResponseException("integration", "get_access_token", "not JSON"),
     )
-    def test_returns_none_when_control_answers_with_something_else(
+    def test_is_retryable_when_control_answers_with_something_else(
         self, mock_get_access_token: MagicMock, mock_capture_exception: MagicMock
     ) -> None:
-        token = fetch_access_token(self.scm_repository(1), "fetch")
+        with pytest.raises(ResourceServiceUnavailable) as e:
+            fetch_access_token(self.scm_repository(1), "fetch")
 
-        assert token is None
+        # Not chained: the RPC exception's frames are reported once, by capture_exception.
+        assert e.value.__suppress_context__
         mock_capture_exception.assert_called_once_with()

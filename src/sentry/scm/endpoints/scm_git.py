@@ -99,14 +99,15 @@ class ScmGitEndpoint(Endpoint):
         context = {"repository_id": str(repository_id)}
         public_keys = _grant_public_keys()
         try:
-            # verify_grant and GitServer raise on a key list no grant could verify against, which
-            # is Sentry's misconfiguration rather than the grant's fault, so it isn't a 403.
+            # verify_grant and GitServer raise on a key list no grant could verify against. That's
+            # Sentry's misconfiguration, not the grant's fault, so it's a 500 rather than a 403,
+            # and not a 503, which Seer retries.
             require_public_keys(public_keys)
         except (ValueError, TypeError) as e:
             # scm-platform's messages name a key by its place in the list, never its contents.
             return _refuse(
                 "grant_public_keys_invalid",
-                503,
+                500,
                 f"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured: {e}",
                 context,
                 tags={},
