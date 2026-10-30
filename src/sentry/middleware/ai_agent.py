@@ -7,6 +7,8 @@ from typing import Any
 
 from django.http import HttpRequest, HttpResponse
 
+from sentry.agent_reports.guidance import AGENT_PROBLEM_REPORT_SECTION
+
 logger = logging.getLogger(__name__)
 
 PATH_PATTERN = re.compile(r"^/organizations/([^/]+)/(?:projects/([^/]+)/)?")
@@ -84,7 +86,8 @@ API reference: https://docs.sentry.io/api/
 - **Getting started**: https://docs.sentry.io/platforms/
 - **SDKs & setup**: https://docs.sentry.io/platforms/python/, https://docs.sentry.io/platforms/javascript/
 - **All docs**: https://docs.sentry.io
-"""
+
+{AGENT_PROBLEM_REPORT_SECTION}"""
 
 
 def _accepts_markdown(request: HttpRequest) -> bool:

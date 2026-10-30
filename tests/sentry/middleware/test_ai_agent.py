@@ -57,6 +57,7 @@ class AIAgentMiddlewareTest(TestCase):
         content = response.content.decode()
         assert "# Sentry" in content
         assert "https://mcp.sentry.dev/mcp/test-org" in content
+        assert "https://sentry.io/api/0/agent-problem-reports/" in content
 
     def test_includes_project_in_mcp_url(self) -> None:
         request = self.make_anonymous_request(

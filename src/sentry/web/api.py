@@ -5,6 +5,11 @@ from django.views.decorators.cache import cache_control
 from django.views.generic.base import View as BaseView
 from rest_framework.request import Request
 
+from sentry.agent_reports.guidance import (
+    AGENT_PROBLEM_REPORT_DOCUMENT,
+    AGENT_PROBLEM_REPORT_URL,
+    MCP_SERVER_CARD_INSTRUCTIONS,
+)
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.utils import json
 from sentry.web.client_config import get_client_config
@@ -105,6 +110,7 @@ API_CATALOG = {
             "anchor": "https://sentry.io",
             "item": [
                 {"href": "https://sentry.io/api/0/", "type": "application/json"},
+                {"href": AGENT_PROBLEM_REPORT_URL, "type": "application/json"},
                 {"href": "https://mcp.sentry.dev/mcp", "type": "application/json"},
             ],
         }
@@ -139,6 +145,7 @@ MCP_SERVER_CARD = {
         "type": "oauth2",
         "authorization_server": "https://sentry.io",
     },
+    "instructions": MCP_SERVER_CARD_INSTRUCTIONS,
 }
 
 AGENT_SKILLS_INDEX: dict[str, list[object]] = {"skills": []}
@@ -186,6 +193,18 @@ def mcp_server_card(request):
 @control_silo_view
 def agent_skills_index(request):
     return _saas_only_json_response(request, AGENT_SKILLS_INDEX)
+
+
+@control_silo_view
+def agent_problem_reports_doc(request):
+    if settings.SENTRY_MODE != SentryMode.SAAS or request.subdomain:
+        response = HttpResponse(status=404)
+        patch_cache_control(response, no_store=True)
+        return response
+    response = HttpResponse(AGENT_PROBLEM_REPORT_DOCUMENT, content_type="text/markdown")
+    response["Access-Control-Allow-Origin"] = "*"
+    patch_cache_control(response, max_age=3600, public=True)
+    return response
 
 
 @all_silo_view
