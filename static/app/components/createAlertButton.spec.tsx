@@ -3,10 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  CreateAlertButton,
-  CreateAlertFromViewButton,
-} from 'sentry/components/createAlertButton';
+import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
@@ -140,46 +137,6 @@ describe('CreateAlertFromViewButton', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
-  });
-
-  it('redirects to monitor creation with no project', async () => {
-    const {router} = render(
-      <CreateAlertButton aria-label="Create Monitor" organization={organization} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/alerts/wizard/',
-          },
-          route: '/organizations/:orgId/issues/alerts/wizard/',
-        },
-      }
-    );
-    await userEvent.click(screen.getByRole('button'));
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/monitors/new/',
-        query: {},
-      })
-    );
-  });
-
-  it('redirects to monitor creation with a project', () => {
-    render(
-      <CreateAlertButton
-        aria-label="Create Monitor"
-        organization={organization}
-        projectSlug="proj-slug"
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(screen.getByRole('button')).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/monitors/new/?project=proj-slug'
-    );
   });
 
   it('removes a duplicate project filter', async () => {
