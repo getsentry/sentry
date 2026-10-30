@@ -17,7 +17,6 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.models.group import Group
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigProject,
     SeerWorkflowExecutionExtras,
     SeerWorkflowFilters,
     SeerWorkflowRun,
@@ -27,7 +26,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow, matches_workflow_scope
+from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, matches_workflow_scope
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.models import (
     Action,
@@ -193,8 +192,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
 
             scope_changed = not config.filters.get("all_projects")
             if scope_changed:
-                config.filters = {**config.filters, "all_projects": True}
-                SeerWorkflowConfigProject.objects.filter(config=config).delete()
+                self._apply_project_selection(config, AllProjects())
             if created or existing != selected or scope_changed:
                 config.version += 1
                 config.save(

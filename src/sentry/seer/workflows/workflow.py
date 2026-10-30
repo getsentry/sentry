@@ -203,6 +203,14 @@ class SeerWorkflow:
         return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
+        with self._lock_config() as config:
+            self._apply_project_selection(config, selection)
+            config.version += 1
+            config.save(update_fields=["filters", "version", "date_updated"])
+
+    @staticmethod
+    def _apply_project_selection(config: SeerWorkflowConfig, selection: ProjectSelection) -> None:
+        """Apply to a locked config; the caller saves it and increments its version."""
         match selection:
             case AllProjects():
                 all_projects = True
@@ -213,32 +221,29 @@ class SeerWorkflow:
             case _:
                 assert_never(selection)
 
-        with self._lock_config() as config:
-            if (
-                config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-                and not all_projects
-            ):
-                raise ValueError("Breached metric projects are selected by connecting monitors")
-            valid_project_ids = set(
-                Project.objects.filter(
-                    organization_id=config.organization_id, id__in=project_ids
-                ).values_list("id", flat=True)
-            )
-            if project_ids != valid_project_ids:
-                raise ValueError("Selected projects must exist in the workflow's organization")
+        if (
+            config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+            and not all_projects
+        ):
+            raise ValueError("Breached metric projects are selected by connecting monitors")
+        valid_project_ids = set(
+            Project.objects.filter(
+                organization_id=config.organization_id, id__in=project_ids
+            ).values_list("id", flat=True)
+        )
+        if project_ids != valid_project_ids:
+            raise ValueError("Selected projects must exist in the workflow's organization")
 
-            SeerWorkflowConfigProject.objects.filter(config=config).delete()
-            SeerWorkflowConfigProject.objects.bulk_create(
-                [
-                    SeerWorkflowConfigProject(config=config, project_id=project_id)
-                    for project_id in sorted(project_ids)
-                ]
-            )
-            filters = SeerWorkflowFilters.parse_obj(config.filters)
-            filters.all_projects = all_projects
-            config.filters = config.filters | filters.dict()
-            config.version += 1
-            config.save(update_fields=["filters", "version", "date_updated"])
+        SeerWorkflowConfigProject.objects.filter(config=config).delete()
+        SeerWorkflowConfigProject.objects.bulk_create(
+            [
+                SeerWorkflowConfigProject(config=config, project_id=project_id)
+                for project_id in sorted(project_ids)
+            ]
+        )
+        filters = SeerWorkflowFilters.parse_obj(config.filters)
+        filters.all_projects = all_projects
+        config.filters = config.filters | filters.dict()
 
     @contextmanager
     def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
