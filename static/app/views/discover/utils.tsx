@@ -1,5 +1,4 @@
 import type {Location, LocationDescriptor} from 'history';
-import * as Papa from 'papaparse';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
@@ -35,6 +34,7 @@ import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {DISCOVER_FIELDS, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {unparseCsv} from 'sentry/utils/unparseCsv';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardRuleTemplates,
@@ -104,26 +104,16 @@ export function getPrebuiltQueries(organization: Organization) {
   return getAllViews(organization);
 }
 
-function disableMacros(value: string | null | boolean | number) {
-  const unsafeCharacterRegex = /^[=+\-@]/;
-
-  if (typeof value === 'string' && value.match(unsafeCharacterRegex)) {
-    return `'${value}`;
-  }
-
-  return value;
-}
-
 export function downloadAsCsv(tableData: any, columnOrder: any, filename: any) {
   const {data} = tableData;
   const headings = columnOrder.map((column: any) => column.name);
   const keys = columnOrder.map((column: any) => column.key);
 
-  const csvContent = Papa.unparse({
+  const csvContent = unparseCsv({
     fields: headings,
     data: data.map((row: any) =>
       keys.map((key: any) => {
-        return disableMacros(row[key]);
+        return row[key];
       })
     ),
   });

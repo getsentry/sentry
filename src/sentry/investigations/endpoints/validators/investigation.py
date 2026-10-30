@@ -9,7 +9,7 @@ from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationSourceField,
     validate_agentic_source,
 )
-from sentry.investigations.models import InvestigationStatus
+from sentry.notebooks.models import NotebookStatus
 
 
 class InvestigationCreateValidator(StrictCamelSnakeValidator):
@@ -72,7 +72,7 @@ class InvestigationUpdateValidator(StrictCamelSnakeValidator):
         help_text="New investigation title. A manual edit stops automatic title generation.",
     )
     status = serializers.ChoiceField(
-        choices=InvestigationStatus.choices,
+        choices=NotebookStatus.choices,
         required=False,
         help_text="Set active to restore a manual notebook, or archived to archive. Archiving must be the only changed field.",
     )

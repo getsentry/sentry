@@ -6,14 +6,10 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.db import router, transaction
 from django.utils import timezone
-from pydantic import ValidationError
 from sentry_sdk import traces
 
-from sentry import analytics, features
-from sentry.analytics.events.autofix_events import (
-    AiAutofixIntrospectionEvent,
-    AiAutofixPrCreatedCompletedEvent,
-)
+from sentry import features
+from sentry.analytics.events.autofix_events import AiAutofixPrCreatedCompletedEvent
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -21,7 +17,6 @@ from sentry.seer.agent.client_models import Artifact
 from sentry.seer.agent.client_utils import fetch_run_status
 from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.analytics import record_autofix_event
-from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
     fetch_run_group,
@@ -538,26 +533,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         # mirror for runs Seer started without it (the autofix feature).
         raw_stopping_point = get_run_stopping_point(organization, run_id, state)
         if raw_stopping_point is None:
-            stopping_point = None
-            reached_stopping_point = True
-        else:
-            # Check if we've reached the stopping point
-            stopping_point = AutofixStoppingPoint(raw_stopping_point)
-            stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-            reached_stopping_point = current_step == stopping_step
+            return
 
-        cls.determine_fixability(
-            organization=organization,
-            group=group,
-            run_id=run_id,
-            state=state,
-            step=current_step,
-            referrer=referrer,
-            reached_stopping_point=reached_stopping_point,
-        )
-
-        if stopping_point is None or reached_stopping_point:
-            # We've reached the stopping point
+        stopping_point = AutofixStoppingPoint(raw_stopping_point)
+        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
@@ -617,60 +596,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             referrer=referrer,
             run_id=run_id,
         )
-
-    @classmethod
-    def determine_fixability(
-        cls,
-        *,
-        organization: Organization,
-        group: Group,
-        run_id: int,
-        state: SeerRunState,
-        step: AutofixStep,
-        referrer: AutofixReferrer,
-        reached_stopping_point: bool,
-    ) -> FixabilityAssessment | None:
-        if step != AutofixStep.ROOT_CAUSE:
-            return None
-
-        try:
-            artifact = state.get_artifact("root_cause", RootCauseArtifact)
-        except ValidationError:
-            # The agent may produce artifacts that dont follow the schema
-            return None
-
-        if artifact is None:
-            return None
-
-        fixability = artifact.fixability
-
-        analytics.record(
-            AiAutofixIntrospectionEvent(
-                organization_id=organization.id,
-                project_id=group.project_id,
-                group_id=group.id,
-                run_id=run_id,
-                referrer=referrer.value,
-                step=step.value,
-                action=fixability.assessment,
-                reached_stopping_point=reached_stopping_point,
-            )
-        )
-        logger.info(
-            "autofix.on_completion_hook.introspection",
-            extra={
-                "organization_id": organization.id,
-                "project_id": group.project_id,
-                "group_id": group.id,
-                "referrer": referrer.value,
-                "step": step.value,
-                "action": fixability.assessment,
-                "reason": fixability.reason,
-                "reached_stopping_point": reached_stopping_point,
-            },
-        )
-
-        return fixability
 
     @classmethod
     def _push_changes(

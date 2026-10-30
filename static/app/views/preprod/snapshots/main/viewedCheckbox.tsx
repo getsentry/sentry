@@ -6,7 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
-export const TOGGLE_VIEWED_HOTKEY = 'v';
+export const TOGGLE_VIEWED_HOTKEY = 'V';
 
 export function ViewedCheckbox({
   checked,

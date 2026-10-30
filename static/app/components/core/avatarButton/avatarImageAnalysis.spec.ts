@@ -5,10 +5,52 @@ import {
   darkenUntilContrasts,
   dominantColor,
   MIN_EDGE_CONTRAST,
+  resolveImageAvatarColors,
   SAMPLE_SIZE,
   shouldPadImage,
   toPageOriginIfSameHost,
 } from './avatarImageAnalysis';
+
+describe('resolveImageAvatarColors', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('samples a cross-origin image with anonymous CORS without using fetch', async () => {
+    const image = document.createElement('img');
+    jest.spyOn(window, 'Image').mockImplementation(() => image);
+    const fetchSpy = jest.spyOn(window, 'fetch');
+    const context = document.createElement('canvas').getContext('2d')!;
+    jest.spyOn(context, 'getImageData').mockReturnValue({
+      data: makePixelData((col, row) =>
+        col === 0 || row === 0 ? [0, 0, 0, 0] : [100, 150, 50, 255]
+      ),
+    } as ImageData);
+    jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
+
+    const result = resolveImageAvatarColors('https://example.com/avatar/logo/', 'light');
+
+    expect(image.crossOrigin).toBe('anonymous');
+    expect(image.src).toBe('https://example.com/avatar/logo/');
+    image.dispatchEvent(new Event('load'));
+
+    await expect(result).resolves.toEqual({chonk: '#649632', style: 'padded'});
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns null when the image cannot be loaded', async () => {
+    const image = document.createElement('img');
+    jest.spyOn(window, 'Image').mockImplementation(() => image);
+
+    const result = resolveImageAvatarColors(
+      'https://example.com/avatar/missing/',
+      'light'
+    );
+    image.dispatchEvent(new Event('error'));
+
+    await expect(result).resolves.toBeNull();
+  });
+});
 
 function makePixelData(
   fill: (col: number, row: number) => [number, number, number, number]

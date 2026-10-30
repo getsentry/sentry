@@ -31,6 +31,7 @@ export abstract class Visualize {
   readonly chartType: ChartType;
   readonly visible: boolean;
   readonly chartGroup?: string;
+  readonly transformations: readonly string[];
   protected readonly selectedChartType?: ChartType;
   abstract readonly kind: 'function' | 'equation';
 
@@ -38,6 +39,7 @@ export abstract class Visualize {
     this.yAxis = yAxis;
     this.selectedChartType = options?.chartType;
     this.chartGroup = options?.chartGroup;
+    this.transformations = [...(options?.transformations ?? [])];
     // Several aggregates on one chart only read well as lines; stacked areas or
     // bars would add up values that don't sum. The selected chart type is kept
     // so it comes back once the visualize leaves its chart group.
@@ -54,10 +56,12 @@ export abstract class Visualize {
     yAxis,
     internalExpression,
     chartGroup,
+    transformations,
   }: {
     chartGroup?: string | null;
     chartType?: ChartType;
     internalExpression?: string;
+    transformations?: readonly string[];
     visible?: boolean;
     yAxis?: string;
   }): Visualize;
@@ -75,26 +79,32 @@ export abstract class Visualize {
       json.visible = this.visible;
     }
 
+    if (this.transformations.length) {
+      json.transformations = [...this.transformations];
+    }
+
     return json;
   }
 
   static fromJSON(json: BaseVisualize): Visualize[] {
+    const transformations =
+      Array.isArray(json.transformations) &&
+      json.transformations.every(value => typeof value === 'string')
+        ? json.transformations
+        : undefined;
     return json.yAxes.map(yAxis => {
       if (isEquation(yAxis)) {
         return new VisualizeEquation(yAxis, {
           chartType: json.chartType,
           visible: json.visible,
           internalExpression: json.internalExpression,
+          transformations,
         });
       }
       return new VisualizeFunction(yAxis, {
         chartType: json.chartType,
         visible: json.visible,
-        transformations:
-          Array.isArray(json.transformations) &&
-          json.transformations.every(value => typeof value === 'string')
-            ? json.transformations
-            : undefined,
+        transformations,
       });
     });
   }
@@ -160,12 +170,10 @@ export function serializeVisualizes(visualizes: readonly Visualize[]): BaseVisua
 export class VisualizeFunction extends Visualize {
   readonly kind = 'function';
   readonly parsedFunction: ParsedFunction | null;
-  readonly transformations: readonly string[];
 
   constructor(yAxis: string, options?: VisualizeOptions) {
     super(yAxis, options);
     this.parsedFunction = parseFunction(yAxis);
-    this.transformations = [...(options?.transformations ?? [])];
   }
 
   clone(): VisualizeFunction {
@@ -198,14 +206,6 @@ export class VisualizeFunction extends Visualize {
       transformations: transformations ?? this.transformations,
     });
   }
-
-  override serialize(): BaseVisualize {
-    const json = super.serialize();
-    if (this.transformations.length) {
-      json.transformations = [...this.transformations];
-    }
-    return json;
-  }
 }
 
 export class VisualizeEquation extends Visualize {
@@ -223,6 +223,7 @@ export class VisualizeEquation extends Visualize {
     return new VisualizeEquation(this.yAxis, {
       chartType: this.selectedChartType,
       internalExpression: this.internalExpression,
+      transformations: this.transformations,
     });
   }
 
@@ -231,11 +232,13 @@ export class VisualizeEquation extends Visualize {
     visible,
     yAxis,
     internalExpression,
+    transformations,
   }: {
     // Equations are never grouped with other visualizes.
     chartGroup?: string | null;
     chartType?: ChartType;
     internalExpression?: string;
+    transformations?: readonly string[];
     visible?: boolean;
     yAxis?: string;
   }): Visualize {
@@ -243,6 +246,7 @@ export class VisualizeEquation extends Visualize {
       chartType: chartType ?? this.selectedChartType,
       visible: visible ?? this.visible,
       internalExpression: internalExpression ?? this.internalExpression,
+      transformations: transformations ?? this.transformations,
     });
   }
 
@@ -305,9 +309,7 @@ export function isVisualizeFunction(
 }
 
 export function hasVisualizeTransformations(visualizes: readonly Visualize[]): boolean {
-  return visualizes.some(
-    visualize => isVisualizeFunction(visualize) && visualize.transformations.length > 0
-  );
+  return visualizes.some(visualize => visualize.transformations.length > 0);
 }
 
 export function isVisualizeEquation(

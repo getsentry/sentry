@@ -1,11 +1,5 @@
 from __future__ import annotations
 
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationActionRequestState,
-    InvestigationStatus,
-)
 from sentry.investigations.services.action_kinds.base import ActionKind, CannotApplyReason
 from sentry.investigations.services.action_kinds.connect_telemetry import (
     ConnectTelemetryAppliedDetails,
@@ -14,6 +8,12 @@ from sentry.investigations.services.action_kinds.connect_telemetry import (
 from sentry.investigations.services.action_kinds.update_detector import (
     UpdateDetectorAppliedDetails,
     UpdateDetectorKind,
+)
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookActionRequestState,
+    NotebookStatus,
 )
 
 AppliedDetails = UpdateDetectorAppliedDetails | ConnectTelemetryAppliedDetails
@@ -28,12 +28,12 @@ def get_action_kind(kind: str | None) -> ActionKind | None:
 
 
 def shared_cannot_apply_reason(
-    investigation: Investigation, action_request: InvestigationActionRequest
+    investigation: Notebook, action_request: NotebookActionRequest
 ) -> CannotApplyReason | None:
     """Why no one can apply this request, whatever its kind, or None if its kind decides."""
-    if investigation.status == InvestigationStatus.ARCHIVED:
+    if investigation.status == NotebookStatus.ARCHIVED:
         return CannotApplyReason.INVESTIGATION_ARCHIVED
-    if action_request.state != InvestigationActionRequestState.SUGGESTED:
+    if action_request.state != NotebookActionRequestState.SUGGESTED:
         return CannotApplyReason.NOT_SUGGESTED
     if get_action_kind(action_request.action_kind) is None:
         return CannotApplyReason.UNSUPPORTED_ACTION

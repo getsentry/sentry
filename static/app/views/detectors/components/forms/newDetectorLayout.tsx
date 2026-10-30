@@ -1,6 +1,5 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import omit from 'lodash/omit';
 import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
 
@@ -93,6 +92,9 @@ export function NewDetectorLayout<
 
   const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {
+    // Only keep the draft's project if it passed the write-access check above.
+    const draftProjectId =
+      draftFormData?.projectId === initialProjectId ? initialProjectId : undefined;
     return {
       projectId: initialProjectId,
       environment: initialEnvironment,
@@ -100,7 +102,10 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
-      ...omitBy(omit(draftFormData, 'projectId'), value => value === undefined),
+      ...omitBy(
+        {...draftFormData, projectId: draftProjectId},
+        value => value === undefined
+      ),
     };
   }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
