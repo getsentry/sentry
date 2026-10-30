@@ -1,11 +1,11 @@
 import {InputField} from '@sentry/scraps/form/field/inputField';
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 
 import type {InputFieldProps} from './inputField';
 
 export function NumberField(
   props: Omit<InputFieldProps, 'type' | 'value' | 'onChange'> & {
-    field: AnyFieldApi;
+    field: FieldWithValue<unknown>;
     onChange: (value: number | null) => void;
     value: number | null;
   }

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import type {DistributedOmit} from 'type-fest';
 
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useAutoSaveContext, getLabelId} from '@sentry/scraps/formPresentation';
 import {Flex} from '@sentry/scraps/layout';
 import {Slider, type SliderProps} from '@sentry/scraps/slider';
@@ -15,10 +15,9 @@ export function RangeField({
   value,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & DistributedOmit<
-    SliderProps,
-    'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'
-  > & {
+}: BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     onChange: (value: number) => void;
     value: number;
     disabled?: boolean | string;

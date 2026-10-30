@@ -1,4 +1,4 @@
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Flex} from '@sentry/scraps/layout';
 import {Switch, type SwitchProps} from '@sentry/scraps/switch';
@@ -11,10 +11,9 @@ export function SwitchField({
   disabled,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & Omit<
-    SwitchProps,
-    'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'
-  > & {
+}: BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
     checked: boolean;
     onChange: (value: boolean) => void;
     disabled?: boolean | string;

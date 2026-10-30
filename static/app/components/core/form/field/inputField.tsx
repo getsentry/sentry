@@ -1,4 +1,4 @@
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {type InputProps} from '@sentry/scraps/input';
 import {InputGroup} from '@sentry/scraps/input';
 
@@ -54,7 +54,7 @@ export function InputField({
   trailingItems,
   ref,
   ...props
-}: InputFieldProps & {field: AnyFieldApi}) {
+}: InputFieldProps & {field: FieldWithValue<unknown>}) {
   return (
     <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (

@@ -1,6 +1,6 @@
 import {useRef} from 'react';
 
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
@@ -18,7 +18,7 @@ function SelectIndicatorsContainer({
   field,
 }: {
   children: React.ReactNode;
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
 }) {
   const indicator = useAutoSaveIndicator(field);
   return (
@@ -56,7 +56,9 @@ export function SelectField<
   value,
   ref,
   ...props
-}: SelectFieldProps<TValue, TOption> & {field: AnyFieldApi}) {
+}: SelectFieldProps<TValue, TOption> & {
+  field: FieldWithValue<unknown>;
+}) {
   const autoSaveContext = useAutoSaveContext();
   const selectVariantProps = multiple
     ? {multiple: true as const, clearable, value}

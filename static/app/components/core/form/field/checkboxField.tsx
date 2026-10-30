@@ -1,15 +1,14 @@
 import {Checkbox, type CheckboxProps} from '@sentry/scraps/checkbox';
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {FieldMeta} from '@sentry/scraps/formPresentation';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 import {CheckboxGroup, CheckboxGroupItem} from './checkboxGroupField';
 
-type Props = BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & Omit<
-    CheckboxProps,
-    'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'
-  > & {
+type Props = BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & Omit<CheckboxProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'> & {
     checked: boolean;
     label: React.ReactNode;
     onChange: (checked: boolean) => void;

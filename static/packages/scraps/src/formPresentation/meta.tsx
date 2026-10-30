@@ -7,11 +7,11 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getFieldId, getHintTextId, getLabelId} from './fieldIds';
-import {fieldComponent, type AnyFieldApi} from './formHelpers';
+import {fieldComponent, type FieldWithValue} from './formHelpers';
 import {useGroupContext} from './groupContext';
 import {RequiredIndicator, Warning} from './icons';
 
-function HintText(props: {children: React.ReactNode; field: AnyFieldApi}) {
+function HintText(props: {children: React.ReactNode; field: FieldWithValue<unknown>}) {
   const id = getHintTextId(props.field);
 
   return (
@@ -27,7 +27,7 @@ function HintText(props: {children: React.ReactNode; field: AnyFieldApi}) {
 
 function Label(props: {
   children: React.ReactNode;
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
   description?: React.ReactNode;
   required?: boolean;
 }) {
@@ -77,7 +77,7 @@ function FieldStatus({
   error,
   field,
 }: {
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
   disabled?: boolean | string;
   error?: string;
 }) {

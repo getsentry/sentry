@@ -1,6 +1,6 @@
 import {useId} from 'react';
 
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {
   useAutoSaveContext,
   getLabelId,
@@ -18,7 +18,7 @@ import {useAutoSaveIndicator} from './baseField';
 // Radio.Group component
 interface RadioGroupProps {
   children: React.ReactNode;
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
   onChange: (value: string) => void;
   value: string;
   disabled?: boolean | string;

@@ -1,7 +1,7 @@
 import {useEffect, useRef, type Ref} from 'react';
 import {mergeRefs} from '@react-aria/utils';
 
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {
   useAutoSaveContext,
   Checkmark,
@@ -31,7 +31,7 @@ type FieldChildrenProps<T extends HTMLElement> = {
   ref: Ref<T>;
 };
 
-export const useAutoSaveIndicator = (field: AnyFieldApi) => {
+export const useAutoSaveIndicator = (field: FieldWithValue<unknown>) => {
   const status = useAutoSaveContext()?.status;
 
   if (status === 'pending') {
@@ -107,7 +107,7 @@ type FieldState = {indicator: React.ReactNode};
 function BaseFieldImpl<T extends HTMLElement>(
   props: BaseFieldProps<T> & {
     children: (props: FieldChildrenProps<T>, state: FieldState) => React.ReactNode;
-    field: AnyFieldApi;
+    field: FieldWithValue<unknown>;
   }
 ) {
   const autoSaveContext = useAutoSaveContext();

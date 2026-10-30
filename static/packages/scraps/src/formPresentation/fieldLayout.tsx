@@ -3,13 +3,13 @@ import type * as React from 'react';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 
 import {BaseLayout, LayoutLabel} from './base';
-import {fieldComponent, type AnyFieldApi} from './formHelpers';
+import {fieldComponent, type FieldWithValue} from './formHelpers';
 import {FieldMeta} from './meta';
 import {useStackedLayout} from './useStackedLayout';
 
 interface LayoutProps {
   children: React.ReactNode;
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
   label: React.ReactNode;
   hintText?: React.ReactNode;
   required?: boolean;

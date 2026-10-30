@@ -8,7 +8,7 @@ import {
   type SelectOption,
   type SingleSelectProps,
 } from '@sentry/scraps/compactSelect';
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useAutoSaveContext} from '@sentry/scraps/formPresentation';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -40,7 +40,9 @@ function CompactSelectField<TValue extends SelectKey>({
   ref,
   trigger,
   ...props
-}: CompactSelectFieldProps<TValue> & {field: AnyFieldApi}) {
+}: CompactSelectFieldProps<TValue> & {
+  field: FieldWithValue<unknown>;
+}) {
   const autoSaveContext = useAutoSaveContext();
   const selectProps = props.multiple
     ? {

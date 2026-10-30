@@ -13,7 +13,7 @@ import {
   getHintTextId,
   getLabelId,
   fieldComponent,
-  type AnyFieldApi,
+  type FieldWithValue,
   GroupProvider,
   type GroupContextValue,
   FieldMeta,
@@ -25,7 +25,13 @@ function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
 
-function Control({group = false, field}: {field: AnyFieldApi; group?: boolean}) {
+function Control({
+  group = false,
+  field,
+}: {
+  field: FieldWithValue<unknown>;
+  group?: boolean;
+}) {
   const id = getFieldId(field);
   const hintId = getHintTextId(field);
   const labelId = getLabelId(field);

@@ -1,1 +1,1 @@
-export {fieldComponent, type AnyFieldApi} from '@sentry/scraps/formPresentation';
+export {fieldComponent, type FieldWithValue} from '@sentry/scraps/formPresentation';

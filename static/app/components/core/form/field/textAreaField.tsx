@@ -1,4 +1,4 @@
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {InputGroup} from '@sentry/scraps/input/inputGroup';
 import {type TextAreaProps} from '@sentry/scraps/textarea';
 
@@ -10,10 +10,9 @@ export function TextAreaField({
   disabled,
   ref,
   ...props
-}: BaseFieldProps<HTMLTextAreaElement> & {field: AnyFieldApi} & Omit<
-    TextAreaProps,
-    'value' | 'onChange' | 'onBlur' | 'disabled'
-  > & {
+}: BaseFieldProps<HTMLTextAreaElement> & {
+  field: FieldWithValue<unknown>;
+} & Omit<TextAreaProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
     onChange: (value: string) => void;
     value: string;
     disabled?: boolean | string;

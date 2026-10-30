@@ -3,7 +3,7 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
 import type {DistributedOmit} from 'type-fest';
 
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {type BaseFieldProps} from './baseField';
@@ -13,7 +13,9 @@ type SelectAsyncFieldProps<
   TData,
   TValue,
   TOption extends SelectValue<TValue>,
-> = BaseFieldProps<HTMLInputElement> & {field: AnyFieldApi} & DistributedOmit<
+> = BaseFieldProps<HTMLInputElement> & {
+  field: FieldWithValue<unknown>;
+} & DistributedOmit<
     SelectFieldProps<TValue, TOption>,
     'options' | 'isLoading' | 'onInputChange'
   > & {

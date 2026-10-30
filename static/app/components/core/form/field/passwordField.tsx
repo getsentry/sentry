@@ -5,13 +5,15 @@ import type {DistributedOmit} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {InputField} from '@sentry/scraps/form/field/inputField';
-import type {AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import type {InputFieldProps} from './inputField';
 
 export function PasswordField(
-  props: DistributedOmit<InputFieldProps, 'type' | 'trailingItems'> & {field: AnyFieldApi}
+  props: DistributedOmit<InputFieldProps, 'type' | 'trailingItems'> & {
+    field: FieldWithValue<unknown>;
+  }
 ) {
   const [isFieldVisible, setisFieldVisible] = useState(false);
   const {t} = useTranslation();

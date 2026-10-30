@@ -1,7 +1,7 @@
 import {useId} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {fieldComponent, type AnyFieldApi} from '@sentry/scraps/form/formHelpers';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {
   useAutoSaveContext,
   getLabelId,
@@ -15,7 +15,7 @@ import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
 interface CheckboxGroupProps extends BaseFieldProps<HTMLDivElement> {
   children: React.ReactNode;
-  field: AnyFieldApi;
+  field: FieldWithValue<unknown>;
   onChange: (value: string[]) => void;
   value: string[];
 }
