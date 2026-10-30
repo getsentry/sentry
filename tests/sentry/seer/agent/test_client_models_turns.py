@@ -95,7 +95,7 @@ def test_turns_and_pr_states_without_push_log(push_log_fields: dict[str, Any]) -
 
 
 @pytest.mark.parametrize("pr_creation_status", [None, "creating", "completed", "error"])
-def test_created_pull_request_states_require_pr_number(pr_creation_status: str | None) -> None:
+def test_opened_pull_request_states_require_pr_number(pr_creation_status: str | None) -> None:
     state = SeerRunState.parse_obj(
         {
             "run_id": 1,
@@ -116,7 +116,28 @@ def test_created_pull_request_states_require_pr_number(pr_creation_status: str |
         }
     )
 
-    assert [pr.repo_name for pr in state.get_created_pull_request_states()] == ["acme/web"]
+    assert [pr.repo_name for pr in state.get_opened_pull_request_states()] == ["acme/web"]
+
+
+@pytest.mark.parametrize("pr_creation_status", [None, "creating"])
+def test_created_pull_request_states_keep_in_flight_placeholders(
+    pr_creation_status: str | None,
+) -> None:
+    state = SeerRunState.parse_obj(
+        {
+            "run_id": 1,
+            "blocks": [],
+            "status": "completed",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "repo_pr_states": {
+                "acme/api": {"repo_name": "acme/api", "pr_creation_status": pr_creation_status},
+            },
+        }
+    )
+
+    # A PR in flight still blocks a truncating re-run, but isn't reported as opened.
+    assert [pr.repo_name for pr in state.get_created_pull_request_states()] == ["acme/api"]
+    assert state.get_opened_pull_request_states() == []
 
 
 def test_push_log_index_links_each_call_to_its_push() -> None:

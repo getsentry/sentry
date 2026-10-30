@@ -29,7 +29,7 @@ def format_pull_requests_payload(state: SeerRunState) -> list[dict]:
                 "pr_url": pull_request.pr_url,
             },
         }
-        for pull_request in state.get_created_pull_request_states()
+        for pull_request in state.get_opened_pull_request_states()
     ]
 
 
