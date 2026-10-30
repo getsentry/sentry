@@ -36,7 +36,7 @@ done
 
 spy_pid=""
 if [ -n "$pytest_pid" ]; then
-  "$PY_SPY" record --pid "$pytest_pid" --subprocesses --nonblocking \
+  "$PY_SPY" record --pid "$pytest_pid" --subprocesses --nonblocking --full-filenames \
     --rate "${PY_SPY_RATE:-20}" --format raw --output "$PY_SPY_OUTPUT" \
     >"${RUNNER_TEMP:-/tmp}/py-spy.log" 2>&1 &
   spy_pid=$!
