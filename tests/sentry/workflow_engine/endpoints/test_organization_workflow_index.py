@@ -642,7 +642,7 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         response = self.get_success_response(
-            self.organization.slug, qs_params={"type": "alert,inbox"}
+            self.organization.slug, qs_params={"type": ["alert", "inbox"]}
         )
 
         assert {w["id"] for w in response.data} == {
