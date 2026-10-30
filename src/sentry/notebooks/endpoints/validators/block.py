@@ -6,8 +6,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from sentry.investigations.contracts import VisualizationSerializer, validate_query_result
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.contracts import VisualizationSerializer, validate_query_result
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookBlockKind
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})

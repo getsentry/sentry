@@ -11,14 +11,8 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sentry.investigations.contracts import validate_query_result
-from sentry.investigations.services.investigations import (
-    InvestigationConflictError,
-    InvestigationValidationError,
-    lock_investigation,
-)
-from sentry.investigations.telemetry import record_execution_cancelled
 from sentry.models.project import Project
+from sentry.notebooks.contracts import validate_query_result
 from sentry.notebooks.models import (
     TERMINAL_BLOCK_EXECUTION_STATUSES,
     NotebookBlock,
@@ -28,6 +22,12 @@ from sentry.notebooks.models import (
     NotebookBlockKind,
     NotebookStatus,
 )
+from sentry.notebooks.services.notebooks import (
+    InvestigationConflictError,
+    InvestigationValidationError,
+    lock_investigation,
+)
+from sentry.notebooks.telemetry import record_execution_cancelled
 from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 

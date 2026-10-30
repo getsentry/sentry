@@ -31,12 +31,12 @@ from sentry.investigations.endpoints.validators import InvestigationCreateValida
 from sentry.investigations.services import (
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
-    create_manual_investigation,
-    resolve_investigation_source,
 )
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.telemetry import record_investigation_started
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookStatus
+from sentry.notebooks.services import create_manual_investigation
 from sentry.viewer_context import ActorId, ActorType
 
 

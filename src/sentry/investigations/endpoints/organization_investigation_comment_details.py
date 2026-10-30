@@ -17,12 +17,12 @@ from sentry.investigations.endpoints.base import (
     OrganizationInvestigationCommentEndpoint,
     require_authenticated_user,
 )
-from sentry.investigations.endpoints.serializers.comment import (
+from sentry.investigations.endpoints.validators.comment import CommentUpdateValidator
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.serializers.comment import (
     InvestigationCommentSerializer,
     InvestigationCommentSerializerResponse,
 )
-from sentry.investigations.endpoints.validators.comment import CommentUpdateValidator
-from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookComment, NotebookStatus
 
 

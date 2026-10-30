@@ -10,16 +10,6 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
-from sentry.investigations.services.executions import (
-    build_block_execution_snapshot,
-    create_block_execution,
-    mark_block_execution_dispatch_failed,
-    mark_block_execution_dispatch_started,
-    mark_block_execution_dispatched,
-)
-from sentry.investigations.services.investigations import (
-    InvestigationValidationError,
-)
 from sentry.notebooks.models import (
     NotebookBlock,
     NotebookBlockExecution,
@@ -28,6 +18,14 @@ from sentry.notebooks.models import (
     NotebookBlockKind,
     NotebookSourceType,
 )
+from sentry.notebooks.services.executions import (
+    build_block_execution_snapshot,
+    create_block_execution,
+    mark_block_execution_dispatch_failed,
+    mark_block_execution_dispatch_started,
+    mark_block_execution_dispatched,
+)
+from sentry.notebooks.services.notebooks import InvestigationValidationError
 from sentry.testutils.cases import TestCase
 
 
@@ -316,14 +314,14 @@ class InvestigationExecutionServiceTest(TestCase):
         )
         block.update(result_execution=previous)
         with mock.patch(
-            "sentry.investigations.services.executions.timezone.now",
+            "sentry.notebooks.services.executions.timezone.now",
             return_value=started_at + timedelta(days=10),
         ):
             snapshot, first = build_block_execution_snapshot(
                 block=block, projects=[self.project], accessible_project_ids={self.project.id}
             )
         with mock.patch(
-            "sentry.investigations.services.executions.timezone.now",
+            "sentry.notebooks.services.executions.timezone.now",
             return_value=started_at + timedelta(days=20),
         ):
             retry_snapshot, retry = build_block_execution_snapshot(
@@ -444,7 +442,7 @@ class InvestigationExecutionServiceTest(TestCase):
             return original_build_snapshot(**kwargs)
 
         with mock.patch(
-            "sentry.investigations.services.executions.build_block_execution_snapshot",
+            "sentry.notebooks.services.executions.build_block_execution_snapshot",
             side_effect=fail_current_execution,
         ):
             replacement, replacement_created = self.run_block(block)

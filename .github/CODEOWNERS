@@ -727,6 +727,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/notebooks/                                      @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/notebooks/                                    @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 

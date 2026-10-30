@@ -4,11 +4,11 @@ from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
 from sentry.api.serializers import serialize
-from sentry.investigations.endpoints.serializers import (
+from sentry.models.project import Project
+from sentry.notebooks.endpoints.serializers import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
 )
-from sentry.models.project import Project
 from sentry.notebooks.models import (
     NotebookBlock,
     NotebookBlockExecution,

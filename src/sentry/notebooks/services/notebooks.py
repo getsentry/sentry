@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from typing import Any
 
@@ -10,11 +9,6 @@ from django.db.models import Max
 from django.utils import timezone
 
 from sentry.constants import ObjectStatus
-from sentry.db.models.fields.bounded import I64_MAX
-from sentry.investigations.services.breached_metrics import (
-    BreachedMetricSource,
-    resolve_breached_metric_sources,
-)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.models import (
@@ -163,63 +157,6 @@ def duplicate_investigation(*, investigation: Notebook, user_id: int) -> Noteboo
             )
 
     return duplicate
-
-
-def _metric_open_period_ref(source: dict[str, Any]) -> tuple[int, int]:
-    if source.get("type") != "metric_open_period":
-        raise InvestigationValidationError({"source": "Unsupported investigation source."})
-    source_ref = source.get("ref")
-    if not isinstance(source_ref, dict) or set(source_ref) != {"groupId", "openPeriodId"}:
-        raise InvestigationValidationError(
-            {"source": "metric_open_period requires groupId and openPeriodId."}
-        )
-    group_id = source_ref["groupId"]
-    open_period_id = source_ref["openPeriodId"]
-    if (
-        isinstance(group_id, bool)
-        or not isinstance(group_id, int | str)
-        or isinstance(open_period_id, bool)
-        or not isinstance(open_period_id, int | str)
-    ):
-        raise InvestigationValidationError({"source": "groupId and openPeriodId must be IDs."})
-    try:
-        normalized_ref = int(group_id), int(open_period_id)
-    except (TypeError, ValueError):
-        raise InvestigationSourceNotFound
-    if any(not 0 < value <= I64_MAX for value in normalized_ref):
-        raise InvestigationSourceNotFound
-    return normalized_ref
-
-
-def resolve_investigation_sources(
-    *,
-    organization: Organization,
-    sources: list[dict[str, Any]],
-    accessible_project_ids: AbstractSet[int],
-) -> list[BreachedMetricSource | None]:
-    refs = [_metric_open_period_ref(source) for source in sources]
-    resolved = resolve_breached_metric_sources(
-        organization=organization,
-        source_refs=refs,
-        accessible_project_ids=accessible_project_ids,
-    )
-    return [resolved.get(source_ref) for source_ref in refs]
-
-
-def resolve_investigation_source(
-    *,
-    organization: Organization,
-    source: dict[str, Any],
-    accessible_project_ids: AbstractSet[int],
-) -> BreachedMetricSource:
-    resolved = resolve_investigation_sources(
-        organization=organization,
-        sources=[source],
-        accessible_project_ids=accessible_project_ids,
-    )[0]
-    if resolved is None:
-        raise InvestigationSourceNotFound
-    return resolved
 
 
 def lock_investigation(investigation: Notebook, expected_version: int) -> Notebook:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from sentry.investigations.presence import DEFAULT_VIEWER_LIMIT, MAX_VIEWER_LIMIT
+from sentry.notebooks.presence import DEFAULT_VIEWER_LIMIT, MAX_VIEWER_LIMIT
 
 
 class PresenceValidator(serializers.Serializer[None]):

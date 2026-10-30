@@ -17,14 +17,14 @@ from sentry.investigations.endpoints.base import (
     require_authenticated_user,
     service_error,
 )
-from sentry.investigations.endpoints.serializers import (
+from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.serializers import (
     InvestigationBlockSerializer,
     InvestigationBlockSerializerResponse,
 )
-from sentry.investigations.endpoints.validators import BlockCreateValidator
-from sentry.investigations.services import create_block
-from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.validators import BlockCreateValidator
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.services import create_block
 
 
 @extend_schema(tags=["Investigations"])

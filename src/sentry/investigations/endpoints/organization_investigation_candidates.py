@@ -17,18 +17,14 @@ from sentry.investigations.endpoints.base import (
     organization_project_ids,
     service_error,
 )
-from sentry.investigations.endpoints.serializers import (
-    orchestration_summaries_by_investigation,
-)
+from sentry.investigations.endpoints.serializers import orchestration_summaries_by_investigation
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCandidateResponse,
     InvestigationCandidatesResponse,
 )
 from sentry.investigations.endpoints.validators import InvestigationCandidatesValidator
-from sentry.investigations.services import (
-    agentic_breached_metric_source_key,
-    resolve_investigation_sources,
-)
+from sentry.investigations.services import agentic_breached_metric_source_key
+from sentry.investigations.services.breached_metrics import resolve_investigation_sources
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 

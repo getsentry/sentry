@@ -255,7 +255,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         {"notifications.tracking.sources": [NotificationSource.SEER_INVESTIGATION_STARTED]}
     )
     @patch("sentry.seer.entrypoints.slack.messaging.record_sent")
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_creates_investigation(
         self, mock_count: MagicMock, mock_record_sent: MagicMock
     ) -> None:
@@ -312,7 +312,7 @@ class SeerInvestigationStartActionTest(BaseEventTest):
         )
 
     @with_feature(FEATURES)
-    @patch("sentry.investigations.telemetry.sentry_sdk.metrics.count")
+    @patch("sentry.notebooks.telemetry.sentry_sdk.metrics.count")
     def test_existing_investigation_replies_with_link(self, mock_count: MagicMock) -> None:
         self.click()
         response = self.click()

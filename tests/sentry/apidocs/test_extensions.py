@@ -26,11 +26,11 @@ from sentry.investigations.endpoints.organization_investigation_block_execution_
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
 )
 from sentry.investigations.endpoints.schema import InvestigationSchema
-from sentry.investigations.endpoints.validators.block import BlockExecutionResumeValidator
 from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
+from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
 
 

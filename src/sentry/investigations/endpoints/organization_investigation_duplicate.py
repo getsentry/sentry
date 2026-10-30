@@ -21,9 +21,9 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationDetailsSerializer,
     InvestigationDetailsSerializerResponse,
 )
-from sentry.investigations.services import duplicate_investigation
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.services import duplicate_investigation
 
 
 @extend_schema(tags=["Investigations"])
