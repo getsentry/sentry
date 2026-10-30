@@ -153,6 +153,55 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_invalid_query(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="issue:INVALID-1")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
+        self.metrics.incr.assert_any_call("snuba.subscriptions.create.invalid_query")
+
+    def test_already_created_invalid_query(self) -> None:
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING, subscription_id=uuid4().hex, query="status:400"
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            create_subscription_in_snuba(sub.id)
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call("snuba.subscriptions.create.old_entity_key_unresolved")
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
+
+    def test_invalid_query_clears_cached_subscription_id(self) -> None:
+        subscription_id = uuid4().hex
+        sub = self.create_subscription(
+            QuerySubscription.Status.CREATING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+        )
+        assert (
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id).id == sub.id
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba"):
+            create_subscription_in_snuba(sub.id)
+        with pytest.raises(QuerySubscription.DoesNotExist):
+            QuerySubscription.objects.get_from_cache(subscription_id=subscription_id)
+
+    def test_invalid_query_does_not_overwrite_concurrent_status(self) -> None:
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="issue:INVALID-1")
+
+        def delete_concurrently(subscription: QuerySubscription) -> str:
+            QuerySubscription.objects.filter(id=subscription.id).update(
+                status=QuerySubscription.Status.DELETING.value
+            )
+            raise SubscriptionError("invalid")
+
+        with patch("sentry.snuba.tasks._create_in_snuba", side_effect=delete_concurrently):
+            create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DELETING.value
+
     def test_status_join(self) -> None:
         sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
         create_subscription_in_snuba(sub.id)
@@ -344,6 +393,47 @@ class UpdateSubscriptionInSnubaTest(BaseSnubaTaskTest):
             )
             delete_subscription_from_snuba(sub.id)
             assert not QuerySubscription.objects.filter(id=sub.id).exists()
+
+    def test_invalid_old_subscription_query(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING, subscription_id=subscription_id
+        )
+        update_subscription_in_snuba(sub.id, old_query="issue:INVALID-1")
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        assert sub.subscription_id != subscription_id
+
+    def test_unresolvable_old_subscription_query(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING, subscription_id=subscription_id
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            update_subscription_in_snuba(sub.id, old_query="status:400")
+        delete_from_snuba.assert_not_called()
+        self.metrics.incr.assert_any_call("snuba.subscriptions.update.old_entity_key_unresolved")
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+        assert sub.subscription_id != subscription_id
+
+    def test_invalid_query(self) -> None:
+        subscription_id = f"1/{uuid4().hex}"
+        sub = self.create_subscription(
+            QuerySubscription.Status.UPDATING,
+            subscription_id=subscription_id,
+            query="issue:INVALID-1",
+        )
+        with patch("sentry.snuba.tasks._delete_from_snuba") as delete_from_snuba:
+            update_subscription_in_snuba(sub.id)
+        delete_from_snuba.assert_called_once()
+        assert delete_from_snuba.call_args[0][1] == subscription_id
+        self.metrics.incr.assert_any_call("snuba.subscriptions.update.invalid_query")
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.DISABLED.value
+        assert sub.subscription_id is None
 
 
 class DeleteSubscriptionFromSnubaTest(BaseSnubaTaskTest):
