@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
+import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -105,10 +106,10 @@ export function TagDistributionPanel({
                 <TagValue>{valueComponent}</TagValue>
               </Tooltip>
               <Tooltip title={formatCount(tagValue.count, totalValues)} skipWrapper>
-                <TooltipContainer>
+                <Grid align="center" column="2 / -1" columns="subgrid">
                   <TagBarValue>{displayPercentage}</TagBarValue>
                   <TagBar percentage={percentage} />
-                </TooltipContainer>
+                </Grid>
               </Tooltip>
             </TagValueRow>
           );
@@ -120,10 +121,10 @@ export function TagDistributionPanel({
               title={formatCount(totalValues - totalVisible, totalValues)}
               skipWrapper
             >
-              <TooltipContainer>
+              <Grid align="center" column="2 / -1" columns="subgrid">
                 <TagBarValue>{otherDisplayPercentage}</TagBarValue>
                 <TagBar percentage={otherPercentage} />
-              </TooltipContainer>
+              </Grid>
             </Tooltip>
           </TagValueRow>
         )}
@@ -137,8 +138,8 @@ export function TagDistributionPanel({
  * Returns nothing for every other key, and for a missing value, so the panel
  * falls back to the raw string and to its own "(empty)" marker.
  */
-function renderTagValue(tagKey: string, value: string): React.ReactNode {
-  if (value === '') {
+function renderTagValue(tagKey: string, value: string | null): React.ReactNode {
+  if (!value) {
     return undefined;
   }
   if (tagKey === 'release') {
@@ -163,7 +164,8 @@ export function TagDistribution({tag}: {tag: GroupTag}) {
       totalValues={tag.totalValues}
       values={tag.topValues.map(topValue => ({
         count: topValue.count,
-        value: topValue.value,
+        // A null value is a missing tag, same as ''
+        value: topValue.value ?? '',
         node: renderTagValue(tag.key, topValue.value),
       }))}
     />
@@ -240,7 +242,7 @@ const TagBarPlaceholder = styled('div')`
   height: ${p => p.theme.space.md};
   width: 100%;
   border-radius: 3px;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.border.transparent.neutral.muted};
   background: ${p => color(p.theme.colors.gray400).alpha(0.1).toString()};
   overflow: hidden;
@@ -264,11 +266,4 @@ const TagBarContainer = styled('div')`
 
 const TagBarValue = styled('div')`
   text-align: right;
-`;
-
-const TooltipContainer = styled('div')`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: 2 / -1;
-  align-items: center;
 `;

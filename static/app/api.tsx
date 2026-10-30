@@ -7,6 +7,7 @@ import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {EXPERIMENTAL_SPA} from 'sentry/constants';
 import {
   PROJECT_MOVED,
+  STAFF_REQUIRED,
   SUDO_REQUIRED,
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
@@ -359,16 +360,21 @@ export class Client {
     errorThrown: string
   ) {
     const code = response?.responseJSON?.detail?.code;
-    const isSudoRequired = code === SUDO_REQUIRED || code === SUPERUSER_REQUIRED;
+    const accessModes: Partial<Record<string, 'sudo' | 'staff' | 'superuser'>> = {
+      [SUDO_REQUIRED]: 'sudo',
+      [STAFF_REQUIRED]: 'staff',
+      [SUPERUSER_REQUIRED]: 'superuser',
+    };
+    const accessMode =
+      code && Object.hasOwn(accessModes, code) ? accessModes[code] : undefined;
 
     let didSuccessfullyRetry = false;
 
-    if (isSudoRequired) {
+    if (accessMode) {
       const extra = response?.responseJSON?.detail?.extra;
       openSudo({
-        isSuperuser: code === SUPERUSER_REQUIRED,
+        accessMode,
         orgSlug: extra?.orgSlug,
-        sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {
             // Forward the retry's own response rather than just its body, so
@@ -472,8 +478,6 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      recordRequestMetric('error', resp?.status);
-
       this.handleRequestError(
         {id, path, requestOptions: options},
         resp,
@@ -622,6 +626,10 @@ export class Client {
                 );
               });
             }
+
+            // Record before the global handlers, which may skip `errorHandler`
+            // (e.g. 401 redirects)
+            recordRequestMetric('error', status);
 
             const shouldSkipErrorHandler = Array.from(globalErrorHandlers, handler =>
               handler(responseMeta, options)

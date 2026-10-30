@@ -1,5 +1,7 @@
+import qs from 'query-string';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -7,12 +9,18 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import type {
+  DiscoverSavedQuery,
+  ReadableSavedQuery,
+} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQuery, SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
+  getFirstSamplingWarning,
   getSamplingWarningReason,
+  getSavedQueryTraceItemUrl,
   getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
   prettifyAggregation,
@@ -203,6 +211,31 @@ describe('viewSamplesTarget', () => {
         mode: 'samples',
         query: '',
         project: String(project.id),
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down with boolean group by value', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {
+        'tags[api_token_is_sentry_app,boolean]': false,
+        'count(span.duration)': 10,
+      },
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'tags[api_token_is_sentry_app,boolean]:false',
         sort: ['-span.duration'],
       },
     });
@@ -585,9 +618,10 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 describe('isSamplingSensitiveAggregate', () => {
   it.each([
     'count_unique(user)',
-    'failure_count()',
-    'failure_rate()',
+    'min(span.duration)',
+    'max(span.duration)',
     'count_unique_if(`span.op:db`,user)',
+    'max_if(`span.op:db`,span.duration)',
   ])('returns true for sampling-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
   });
@@ -596,6 +630,8 @@ describe('isSamplingSensitiveAggregate', () => {
     'count()',
     'avg(span.duration)',
     'p50(span.duration)',
+    'failure_count()',
+    'failure_rate()',
     'count_if(`span.op:db`,span.duration)',
   ])('returns false for non-sensitive aggregate %s', aggregate => {
     expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
@@ -692,6 +728,45 @@ describe('getSamplingWarningReason', () => {
   });
 });
 
+describe('getFirstSamplingWarning', () => {
+  it('returns the first sampling-sensitive yAxis that has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)', 'count_unique(user)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([0.05]),
+          'count_unique(user)': seriesWithSampleRates([0.05]),
+        },
+        'full'
+      )
+    ).toEqual({yAxis: 'max(span.duration)', reason: 'lowSampleRate'});
+  });
+
+  it('skips sensitive yAxes without plotted data', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['min(span.duration)', 'count_unique(user)'],
+        {'count_unique(user)': seriesWithSampleRates([1])},
+        'partial'
+      )
+    ).toEqual({yAxis: 'count_unique(user)', reason: 'partialData'});
+  });
+
+  it('returns null when no yAxis has a warning', () => {
+    expect(
+      getFirstSamplingWarning(
+        ['avg(span.duration)', 'max(span.duration)'],
+        {
+          'avg(span.duration)': seriesWithSampleRates([0.05]),
+          'max(span.duration)': seriesWithSampleRates([1]),
+        },
+        'full'
+      )
+    ).toBeNull();
+  });
+});
+
 describe('prettifyAggregation', () => {
   it('prettifies typed tag keys inside conditional filters', () => {
     expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
@@ -729,5 +804,121 @@ describe('getYAxisDiscoverSavedQuery', () => {
     expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
       {yAxes: ['count_unique(release)']},
     ]);
+  });
+});
+
+describe('getSavedQueryTraceItemUrl', () => {
+  const organization = OrganizationFixture();
+
+  const readableQuery = {
+    mode: Mode.SAMPLES,
+    query: 'span.op:DB',
+    fields: ['id', 'timestamp'],
+    orderby: '-timestamp',
+    aggregateField: [{yAxes: ['count(span.duration)']}],
+  };
+
+  function makeSavedQuery(
+    dataset: ReadableSavedQuery['dataset'],
+    query: ReadableSavedQuery['query']
+  ) {
+    return new SavedQuery({
+      id: 1,
+      interval: '5m',
+      name: 'test query',
+      projects: [],
+      dataset,
+      dateAdded: '2025-01-01T00:00:00.000000Z',
+      dateUpdated: '2025-01-01T00:00:00.000000Z',
+      lastVisited: '2025-01-01T00:00:00.000000Z',
+      starred: false,
+      position: null,
+      query,
+    });
+  }
+
+  function getCaseInsensitiveParam(savedQuery: SavedQuery) {
+    return qs.parseUrl(getSavedQueryTraceItemUrl({savedQuery, organization})).query
+      .caseInsensitive;
+  }
+
+  function getCompareCaseInsensitiveParams(savedQuery: SavedQuery) {
+    const {queries} = qs.parseUrl(
+      getSavedQueryTraceItemUrl({savedQuery, organization})
+    ).query;
+    return (queries as string[]).map(query => JSON.parse(query).caseInsensitive);
+  }
+
+  it('matches case when a spans query predates the case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a spans query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('matches case when a logs query was saved matching case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: false},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('0');
+  });
+
+  it('ignores case when a logs query was saved ignoring case', () => {
+    const savedQuery = makeSavedQuery('logs', [
+      {...readableQuery, query: 'message:Deleted', caseInsensitive: true},
+    ]);
+
+    expect(getCaseInsensitiveParam(savedQuery)).toBe('1');
+  });
+
+  it('keeps each compare query case setting', () => {
+    const savedQuery = makeSavedQuery('spans', [
+      readableQuery,
+      {...readableQuery, caseInsensitive: true},
+    ]);
+
+    expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
+    return new SavedQuery({
+      id: 1,
+      name: 'Conversations',
+      dataset: 'ai_conversations',
+      projects: [1],
+      starred: false,
+      position: null,
+      interval: '',
+      lastVisited: '',
+      dateAdded: '',
+      dateUpdated: '',
+      statsPeriod: '24h',
+      query: [{fields: [], mode: Mode.SAMPLES, orderby: '', query: ''}],
+      ...overrides,
+    });
+  }
+
+  it('restores the errors only filter for conversations', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery({errorsOnly: true}),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.get('errorsOnly')).toBe('true');
+  });
+
+  it('omits the errors only filter when it was not saved', () => {
+    const url = getSavedQueryTraceItemUrl({
+      organization,
+      savedQuery: conversationsSavedQuery(),
+    });
+    expect(new URL(url, 'https://sentry.io').searchParams.has('errorsOnly')).toBe(false);
   });
 });

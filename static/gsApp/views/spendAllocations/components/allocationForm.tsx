@@ -1,5 +1,7 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconChevron} from '@sentry/icons/chevron';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -11,9 +13,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {BooleanField as NewBooleanField} from 'sentry/components/forms/fields/booleanField';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
-import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {RequestMethod} from 'sentry/utils/api/apiQueryKey';
@@ -22,13 +22,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {AllocationTargetTypes, BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
 import type {Subscription} from 'getsentry/types';
+import {displayPrice} from 'getsentry/utils/billing';
 import {
   getCategoryInfoFromPlural,
   getPlanCategoryName,
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {displayPrice} from 'getsentry/views/amCheckout/utils';
-import {bigNumFormatter, BigNumUnits} from 'getsentry/views/spendAllocations/utils';
+import {
+  bigNumFormatter,
+  BigNumUnits,
+  getRequestErrorMessage,
+} from 'getsentry/views/spendAllocations/utils';
 
 import {ProjectSelectControl} from './projectSelectControl';
 import {HalvedGrid} from './styles';
@@ -203,8 +207,13 @@ export function AllocationForm({
           end_timestamp: new Date(end).getTime() / 1000,
         },
       });
-    } catch (err: any) {
-      addErrorMessage(err.responseJSON.detail);
+    } catch (err) {
+      addErrorMessage(
+        getRequestErrorMessage(
+          err,
+          t('Unable to save spend allocation. Please try again.')
+        )
+      );
       return;
     }
 
@@ -255,7 +264,15 @@ export function AllocationForm({
           </Tooltip>
         </Flex>
       </Header>
-      <OffsetBody>
+      <Container
+        css={theme => css`
+          margin: -${theme.space['2xl']};
+
+          @container (min-width: ${theme.container['3xl']}) {
+            margin-inline: -${theme.space['3xl']};
+          }
+        `}
+      >
         <Container padding="xl">
           <form>
             <HalvedGrid padding="md lg">
@@ -349,7 +366,7 @@ export function AllocationForm({
             </HalvedGrid>
           </form>
         </Container>
-      </OffsetBody>
+      </Container>
       <Container marginTop="xl">
         <SimpleTable
           header={
@@ -538,14 +555,6 @@ const FancyInput = styled('input')`
 const Toggle = styled(NewBooleanField)`
   margin: 0;
   padding: 0;
-`;
-
-const OffsetBody = styled(PanelBody)`
-  margin: -${p => p.theme.space['2xl']} -${p => p.theme.space['3xl']};
-
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    margin: -${p => p.theme.space['2xl']};
-  }
 `;
 
 const Select = styled(SelectField)`

@@ -650,6 +650,7 @@ export function SentryAppExternalForm({
     let isCancelled = false;
 
     const runPrefetch = async () => {
+      // oxlint-disable-next-line react/todo
       try {
         const cascadeResult = await cascadeFetchDependents({
           seedTriggers,
@@ -967,6 +968,7 @@ export function SentryAppExternalForm({
             impactedFields: [...allImpactedNames],
           },
         });
+        // oxlint-disable-next-line react/todo
       } finally {
         if (requestVersion === dependentFetchVersionRef.current) {
           setIsFetchingDependentFields(false);

@@ -2,11 +2,12 @@ from collections import defaultdict
 from typing import Any, TypedDict
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
+from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase, UnknownEnvironments
@@ -149,7 +150,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             VisibilityParams.DATASET,
             VisibilityParams.FIELD,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
         ],
         responses={
@@ -198,6 +199,10 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
                 Validation(valid=False, error="At least one valid project is required to query")
             )
             return self.serialize_response(response)
+        except PermissionDenied:
+            response["valid"] = False
+            response["projects"].append(Validation(valid=False, error="Invalid project"))
+            return self.serialize_response(response)
         except UnknownEnvironments as error:
             response["valid"] = False
             response["environment"].append(Validation(valid=False, error=str(error)))
@@ -226,7 +231,14 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             return self.serialize_response(response)
 
         config = (
-            SearchResolverConfig(fields_acl=FieldsACL(attributes={"sentry.links"}))
+            SearchResolverConfig(
+                fields_acl=FieldsACL(attributes={"sentry.links"}),
+                disable_deprecated_functions=features.has(
+                    "organizations:explore-disable-deprecated-if-functions",
+                    organization,
+                    actor=request.user,
+                ),
+            )
             if dataset == Spans
             else SearchResolverConfig()
         )

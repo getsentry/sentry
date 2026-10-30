@@ -11,12 +11,15 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import utils
 from sentry.search.eap.constants import SearchType
+from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import (
     attribute_name_exists,
     check_attribute_names_exist,
-    get_and_parse_formula,
+    resolve_and_parse_formula,
     serialize_search_type,
 )
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 
 
@@ -100,42 +103,43 @@ class TestParseFormula(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
         self.formula = self.create_explore_saved_formula(organization=self.org)
+        self.resolver = Spans.get_resolver(SnubaParams(), SearchResolverConfig())
 
     def test_parse_formula_wrong_args(self) -> None:
-        with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
-            get_and_parse_formula(
-                "formula.apdex(span.duration, 300, 300, 300, 300)", self.org, lambda x: x
+        with pytest.raises(
+            InvalidSearchQuery, match=f"{self.formula.name} expected 2 arguments got 5"
+        ):
+            resolve_and_parse_formula(
+                self.formula, ["300", "300", "300", "300", "300"], self.resolver
             )
 
     def test_parse_formula_wrong_arg_type(self) -> None:
         with pytest.raises(
             InvalidSearchQuery, match="threshold expected a number but got 'hello_world' instead"
         ):
-            get_and_parse_formula(
-                "formula.apdex(span.duration, hello_world)", self.org, lambda x: x
-            )
+            resolve_and_parse_formula(self.formula, ["span.duration", "hello_world"], self.resolver)
 
     def test_parse_formula_values_too_big(self) -> None:
         with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
-            get_and_parse_formula("formula.apdex(span.duration, inf)", self.org, lambda x: x)
+            resolve_and_parse_formula(self.formula, ["span.duration", "inf"], self.resolver)
         with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
-            get_and_parse_formula(
-                "formula.apdex(span.duration, 100000000000000000000)", self.org, lambda x: x
+            resolve_and_parse_formula(
+                self.formula, ["span.duration", "100000000000000000000"], self.resolver
             )
         with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
-            get_and_parse_formula(
-                "formula.apdex(span.duration, 0.000000000000000000001)", self.org, lambda x: x
+            resolve_and_parse_formula(
+                self.formula, ["span.duration", "0.000000000000000000001"], self.resolver
             )
 
     def test_parse_formula_simple(self) -> None:
-        equation = get_and_parse_formula("formula.apdex(span.duration, 300)", self.org, lambda x: x)
+        equation = resolve_and_parse_formula(self.formula, ["span.duration", "300"], self.resolver)
         assert (
             equation
             == "(count_if(`span.duration:<300.0`) + count_if(`span.duration:>=300.0 and span.duration:<=1200.0`) / 2) / count()"
         )
 
-        equation = get_and_parse_formula(
-            "formula.apdex(measurements.lcp, 400)", self.org, lambda x: x
+        equation = resolve_and_parse_formula(
+            self.formula, ["measurements.lcp", "400"], self.resolver
         )
         assert (
             equation

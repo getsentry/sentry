@@ -7,12 +7,18 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import {
-  SeerExplorerContextProvider,
-  useSeerExplorerContext,
-} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+async function getSeerExplorerInput() {
+  const editor = await screen.findByRole('combobox', {name: 'Ask Seer a question'});
+  // user-event does not yet recognize contenteditable="plaintext-only".
+  editor.setAttribute('contenteditable', 'true');
+  return editor;
+}
 
 /** An "Ask Seer" entry point somewhere in the app. */
 function AskSeerEntryPoint({label, prompt}: {label: string; prompt: string}) {
@@ -44,12 +50,14 @@ function tree() {
         <PictureInPictureProvider>
           <GlobalDrawer>
             <SeerExplorerContextProvider>
-              <OpenExplorer />
-              <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
-              <AskSeerEntryPoint
-                label="ask-dashboard"
-                prompt="What about this dashboard?"
-              />
+              <SeerExplorerSidebarLayout>
+                <OpenExplorer />
+                <AskSeerEntryPoint label="ask-widget" prompt="What about this widget?" />
+                <AskSeerEntryPoint
+                  label="ask-dashboard"
+                  prompt="What about this dashboard?"
+                />
+              </SeerExplorerSidebarLayout>
             </SeerExplorerContextProvider>
           </GlobalDrawer>
         </PictureInPictureProvider>
@@ -96,6 +104,63 @@ describe('openChatPrompt', () => {
     });
   });
 
+  it.each(['+', '='])('preserves browser zoom for Cmd+%s on AZERTY', key => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key,
+        code: 'Slash',
+        metaKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        screen.queryByRole('combobox', {name: 'Ask Seer a question'})
+      ).not.toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(false);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
+  it('opens Seer when Cmd+Shift+7 reports the digit on QWERTZ', async () => {
+    const platform = jest
+      .spyOn(window.navigator, 'platform', 'get')
+      .mockReturnValue('MacIntel');
+
+    try {
+      render(tree(), {organization});
+      const event = new KeyboardEvent('keydown', {
+        key: '7',
+        code: 'Digit7',
+        metaKey: true,
+        shiftKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
+
+      act(() => {
+        document.dispatchEvent(event);
+      });
+
+      expect(
+        await screen.findByRole('combobox', {name: 'Ask Seer a question'})
+      ).toBeInTheDocument();
+      expect(event.defaultPrevented).toBe(true);
+    } finally {
+      platform.mockRestore();
+    }
+  });
+
   it("shows the question as Seer's and sends it with the reply", async () => {
     render(tree(), {organization});
 
@@ -104,7 +169,7 @@ describe('openChatPrompt', () => {
     expect(await screen.findByText('What about this widget?')).toBeInTheDocument();
     expect(postChat).not.toHaveBeenCalled();
 
-    await userEvent.type(screen.getByTestId('seer-explorer-input'), 'why did it jump?');
+    await userEvent.type(await getSeerExplorerInput(), 'why did it jump?');
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => {
@@ -164,7 +229,7 @@ describe('openChatPrompt', () => {
       expect(await screen.findByText('What about this widget?')).toBeInTheDocument();
       expect(screen.queryByText('Earlier answer')).not.toBeInTheDocument();
 
-      await userEvent.type(screen.getByTestId('seer-explorer-input'), 'why?');
+      await userEvent.type(await getSeerExplorerInput(), 'why?');
       await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
@@ -188,7 +253,7 @@ describe('openChatPrompt', () => {
       expect(await screen.findByText('What about this widget?')).toBeInTheDocument();
       expect(screen.getByText('Earlier answer')).toBeInTheDocument();
 
-      await userEvent.type(screen.getByTestId('seer-explorer-input'), 'why?');
+      await userEvent.type(await getSeerExplorerInput(), 'why?');
       await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
@@ -213,7 +278,7 @@ describe('openChatPrompt', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
       expect(await screen.findByText('What about this widget?')).toBeInTheDocument();
 
-      await userEvent.type(screen.getByTestId('seer-explorer-input'), 'why?');
+      await userEvent.type(await getSeerExplorerInput(), 'why?');
       await userEvent.keyboard('{Enter}');
       await waitFor(() => {
         expect(postChat).toHaveBeenCalledWith(
@@ -267,12 +332,12 @@ describe('openChatPrompt', () => {
     render(tree(), {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
-    const textarea = await screen.findByTestId('seer-explorer-input');
-    await waitFor(() => expect(textarea).toHaveFocus());
+    const editor = await getSeerExplorerInput();
+    await waitFor(() => expect(editor).toHaveFocus());
 
     // Explorer is already open now; clicking elsewhere must still hand focus back.
     await userEvent.click(screen.getByRole('button', {name: 'ask-dashboard'}));
-    await waitFor(() => expect(textarea).toHaveFocus());
+    await waitFor(() => expect(editor).toHaveFocus());
   });
 
   it('keeps a question asked while the first reply is creating the run', async () => {
@@ -288,7 +353,7 @@ describe('openChatPrompt', () => {
     render(tree(), {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
-    await userEvent.type(await screen.findByTestId('seer-explorer-input'), 'why?');
+    await userEvent.type(await getSeerExplorerInput(), 'why?');
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(postDelayed).toHaveBeenCalled());
 
@@ -311,19 +376,19 @@ describe('openChatPrompt', () => {
     render(tree(), {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'ask-widget'}));
-    const textarea = await screen.findByTestId('seer-explorer-input');
-    await userEvent.type(textarea, 'why?');
+    const editor = await getSeerExplorerInput();
+    await userEvent.type(editor, 'why?');
     await userEvent.keyboard('{Enter}');
     await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(1));
 
     // The failed reply is back in the composer and the question is back above it.
-    await waitFor(() => expect(textarea).toHaveValue('why?'));
+    await waitFor(() => expect(editor).toHaveTextContent(/^why\?$/));
     expect(screen.getByText('What about this widget?')).toBeInTheDocument();
 
     // Every failure puts it back, not only the first.
     for (const attempt of [2, 3]) {
-      await waitFor(() => expect(textarea).toHaveValue('why?'));
-      await userEvent.click(textarea);
+      await waitFor(() => expect(editor).toHaveTextContent(/^why\?$/));
+      await userEvent.click(editor);
       await userEvent.keyboard('{Enter}');
       await waitFor(() => expect(postFailing).toHaveBeenCalledTimes(attempt));
       expect(postFailing).toHaveBeenLastCalledWith(

@@ -1,7 +1,7 @@
 import {createContext, use} from 'react';
+import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 
 import {
   type AutofixExplorerStep,
@@ -10,7 +10,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
-import {IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface RetryableAutofixSectionContextValue {
@@ -83,14 +82,12 @@ function ResetPrompt({
   const {handleReset, setShouldShowReset, shouldShowReset} = useRetryableAutofixSection();
 
   return shouldShowReset ? (
-    <Container paddingBottom="xl">
-      <AutofixResetPrompt
-        onClosePrompt={() => setShouldShowReset(false)}
-        onReset={handleReset}
-        placeholder={placeholder}
-        prompt={prompt}
-      />
-    </Container>
+    <AutofixResetPrompt
+      onClosePrompt={() => setShouldShowReset(false)}
+      onReset={handleReset}
+      placeholder={placeholder}
+      prompt={prompt}
+    />
   ) : null;
 }
 

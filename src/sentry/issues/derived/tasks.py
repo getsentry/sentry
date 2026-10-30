@@ -11,7 +11,9 @@ from django.db import router
 from django.db.models import Exists, OuterRef
 from django.db.utils import OperationalError
 
+from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.derived.heal_state import HealSchedulerState, load_state, save_state
+from sentry.issues.derived.reporting import report_derived_data_error
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
@@ -43,7 +45,10 @@ _MAX_CHECK_RUNS = 20
 _MAX_PROJECT_GROUPS = 10_000
 # Hard cap on distinct stale hashes discovered per scan.
 _MAX_STALE_HASHES = 5
-_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=25)
+# Total budget across all discovery lookups in one heal run. Leaves room within
+# _HEAL_PROCESSING_DEADLINE for range selection on a few hashes.
+_STALE_HASH_DISCOVERY_TIMEOUT = timedelta(seconds=90)
+_HEAL_PROCESSING_DEADLINE = timedelta(minutes=5)
 
 
 def _stale_pipeline_filter(qs: BaseQuerySet[Group], pipeline_hash: str) -> BaseQuerySet[Group]:
@@ -76,10 +81,14 @@ def _record_batch_metrics(
     processed: dict[PromotionResult, int],
     *,
     metric_name: str,
+    errors: int = 0,
     tag_extra: dict[str, str] | None = None,
 ) -> None:
-    for result, count in processed.items():
-        tags = {"result": result.value}
+    counts = {result.value: count for result, count in processed.items()}
+    if errors:
+        counts["error"] = errors
+    for result, count in counts.items():
+        tags = {"result": result}
         if tag_extra:
             tags.update(tag_extra)
         metrics.incr(metric_name, amount=count, sample_rate=1.0, tags=tags)
@@ -128,6 +137,9 @@ def process_group_log_task(group_id: int, incremental: bool = False, **kwargs: o
     derived_metrics = DerivedMetrics(mode=ProcessingStrategy.ASYNC, incremental=incremental)
     try:
         process_group_log(group_id, derived_metrics=derived_metrics)
+    except DerivedDataError:
+        # _process_batch reported the failure. Leave the cursor for an explicit retry.
+        return
     except Group.DoesNotExist:
         logger.info("process_group_log_task.group_not_found", extra={"group_id": group_id})
 
@@ -177,6 +189,9 @@ def generate_group_derived_data(
         )
     except Group.DoesNotExist:
         logger.info("generate_group_derived_data.group_not_found", extra={"group_id": group_id})
+        return
+    except DerivedDataError:
+        # Failed replay was reported by _process_batch; do not self-reschedule it.
         return
     except PromotionFailed:
         logger.exception("generate_group_derived_data.promotion_failed")
@@ -420,6 +435,7 @@ def generate_project_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.generate_project_groups_processed",
     )
     logger.info(
@@ -429,6 +445,7 @@ def generate_project_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,
@@ -457,8 +474,12 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     results: list[str] = []
     cursor: str | None = ""
     using = router.db_for_read(GroupDerivedData)
-    with statement_timeout(using, _STALE_HASH_DISCOVERY_TIMEOUT):
-        while len(results) < limit:
+    deadline = time.monotonic() + _STALE_HASH_DISCOVERY_TIMEOUT.total_seconds()
+    while len(results) < limit:
+        remaining_seconds = deadline - time.monotonic()
+        if remaining_seconds <= 0.001:
+            raise OperationalError("stale hash discovery budget exceeded")
+        with statement_timeout(using, timedelta(seconds=remaining_seconds)):
             cursor = (
                 GroupDerivedData.objects.using(using)
                 .filter(pipeline_hash__gt=cursor)
@@ -466,10 +487,10 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
                 .values_list("pipeline_hash", flat=True)
                 .first()
             )
-            if cursor is None:
-                break
-            if cursor != current_hash:
-                results.append(cursor)
+        if cursor is None:
+            break
+        if cursor != current_hash:
+            results.append(cursor)
     return results
 
 
@@ -477,7 +498,7 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     name="sentry.issues.derived.tasks.heal_stale_derived_data",
     namespace=issues_tasks,
     silo_mode=SiloMode.CELL,
-    processing_deadline_duration=120,
+    processing_deadline_duration=int(_HEAL_PROCESSING_DEADLINE.total_seconds()),
 )
 def heal_stale_derived_data(**kwargs: object) -> None:
     """Rebuild a chunk of GroupDerivedData rows whose ``pipeline_hash`` is stale/NULL."""
@@ -550,7 +571,6 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             metrics.incr("issues.derived.heal_stale_hash_discovery_failed", sample_rate=1.0)
             stale_hashes = []
         else:
-            # Keep a fixed epoch despite CacheMapping's sliding eviction TTL.
             state.discovered_at = state.discovered_at or datetime.now(timezone.utc)
             state.stale.update(dict.fromkeys(stale_hashes, 0))
             hash_state_changed = True
@@ -648,8 +668,8 @@ def heal_stale_derived_data(**kwargs: object) -> None:
             old_mark = state.stale[stale_hash]
             new_mark = ranges[-1][1]
             # Marks are optimistic. Dropped tasks and old workers can leave rows
-            # below them because pipeline_hash is promoted state. The fixed state
-            # age is the correctness backstop that forces a from-zero sweep.
+            # below them because pipeline_hash is promoted state. Once every known
+            # hash retires, rediscovery scans from the start and picks those up.
             state.stale[stale_hash] = new_mark
             save_state(state)
             logger.info(
@@ -865,7 +885,13 @@ def check_fresh_derived_data_batch(
                 mark_spawned(_CHECK_FRESH_BATCH_TASK_KEY, activation_id)
             return
 
-        _record_check_result(result)
+        except DerivedDataError as error:
+            report_derived_data_error(
+                error, derived=derived, operation="check", pipeline_hash=PIPELINE.pipeline_hash
+            )
+            _record_check_result(error)
+        else:
+            _record_check_result(result)
         if time.monotonic() - start >= timeout_seconds:
             check_fresh_derived_data_batch.delay(
                 group_id_start=derived.group_id + 1,
@@ -914,6 +940,7 @@ def regenerate_stale_derived_data_batch(
     from taskbroker_client.state import current_task
 
     from sentry import options
+    from sentry.issues.action_log.backfill import backfill_first_seen_actions
     from sentry.issues.derived.promote import build_and_promote_batch
     from sentry.issues.models.groupderiveddata import GroupDerivedData
     from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
@@ -952,6 +979,10 @@ def regenerate_stale_derived_data_batch(
     range_overflow = len(group_ids) > batch_size
     if range_overflow:
         group_ids = group_ids[:batch_size]
+
+    # Temporary: a pipeline hash bump sweeps every group with derived data, which gives
+    # older groups their FIRST_SEEN entry. Inserted before the rebuild so it's included.
+    backfill_first_seen_actions(group_ids)
 
     result = build_and_promote_batch(
         group_ids,
@@ -1013,6 +1044,7 @@ def regenerate_stale_derived_data_batch(
 
     _record_batch_metrics(
         result.processed,
+        errors=result.errors,
         metric_name="issues.derived.regenerate_stale_groups_processed",
     )
     logger.info(
@@ -1022,6 +1054,7 @@ def regenerate_stale_derived_data_batch(
             "group_id_start": group_id_start,
             "group_id_end": group_id_end,
             "processed": {r.value: c for r, c in result.processed.items()},
+            "errors": result.errors,
             "total": len(group_ids),
             "rescheduled": rescheduled,
             "elapsed": time.monotonic() - start,

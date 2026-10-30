@@ -29,9 +29,10 @@ from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-granular_scopes = ["dashboard:read", "dashboard:write", "dashboard:delete"]
+granular_scopes = ["dashboard:read", "dashboard:write", "saved_query:read", "saved_query:write"]
 non_default_owner_scopes = [
     "org:ci",
+    "org:tokens",
     "openid",
     "email",
     "profile",
@@ -87,6 +88,11 @@ class OrganizationSummarySerializerTest(TestCase):
             "team-roles",
             "uptime",
         ]
+
+    @with_feature("organizations:flamegraph-attachments")
+    def test_flamegraph_feature_is_exposed(self) -> None:
+        result = serialize(self.organization, self.user)
+        assert "flamegraph-attachments" in result["features"]
 
     @mock.patch("sentry.features.batch_has")
     def test_organization_batch_has(self, mock_batch: mock.MagicMock) -> None:

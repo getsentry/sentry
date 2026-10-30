@@ -74,6 +74,35 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
+      # devservices bind mounts this into chartcuterie. Create it up front so
+      # docker doesn't create it as root before the config module is built.
+      # chartcuterie polls for the config file until it shows up.
+      - name: Create chartcuterie config directory
+        run: mkdir -p "$CHARTCUTERIE_CONFIG_PATH"
+
+      # Must run before "Setup sentry env" starts in the background: it parses
+      # $GITHUB_EVENT_PATH, which the runner truncates whenever a step starts,
+      # including the background step's inner steps (getsentry/sentry#127566).
+      - uses: ./.github/actions/setup-node-toolchain
+
+      # Starts per-worker ClickHouse bootstrap as soon as its dependencies are
+      # healthy, instead of after snuba-snuba-1's own bootstrap.
+      - name: Start per-worker Snuba bootstrap in the background
+        if: env.XDIST_PER_WORKER_SNUBA == '1'
+        env:
+          DEVSERVICES_STATUS_FILE: ${{ runner.temp }}/devservices-ci/up.exit
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
+
+      # The python env and devservices don't depend on the frontend build, so
+      # bring them up in the background while webpack runs.
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        id: setup
+        background: true
+        with:
+          mode: acceptance-ci
+          early-devservices: 'true'
+
       - name: Step configurations
         id: config
         run: |
@@ -87,6 +116,22 @@ jobs:
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
       - uses: ./.github/actions/setup-node-pnpm
+        with:
+          setup-toolchain: 'false'
+
+      # Chrome's first launch on a fresh runner takes several seconds longer
+      # than later ones, which is consistent with a cold disk and font cache.
+      # Launch it once here, while webpack builds, so the test workers don't
+      # pay that.
+      - name: Warm up Chrome in the background
+        run: |
+          if command -v google-chrome && command -v chromedriver; then
+            setsid nohup timeout 60 google-chrome --headless --no-sandbox --disable-gpu \
+              --disable-dev-shm-usage --user-data-dir="$(mktemp -d)" --window-size=1680,1050 \
+              --screenshot="$RUNNER_TEMP/chrome-warmup.png" 'data:text/html,<p>warm</p>' \
+              >"$RUNNER_TEMP/chrome-warmup.log" 2>&1 &
+            setsid nohup chromedriver --version >/dev/null 2>&1 &
+          fi
 
       - name: webpack
         env:
@@ -99,19 +144,20 @@ jobs:
         run: |
           make build-chartcuterie-config
 
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          mode: acceptance-ci
+      - name: Wait for sentry env
+        wait: setup
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
-        run: python3 .github/workflows/scripts/bootstrap-snuba.py
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
+          # Skips the Selenium Manager lookup Selenium would run on every launch.
+          if chromedriver=$(command -v chromedriver); then
+            PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chromedriver-path=$chromedriver"
+          fi
           timeout -k 30 1200 make run-acceptance || rc=$?
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
@@ -129,18 +175,6 @@ jobs:
               docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
             done
           fi
-
-      - name: Collect test data
-        uses: ./.github/actions/collect-test-data
-        if: ${{ !cancelled() }}
-        continue-on-error: true
-        with:
-          artifact_path: .artifacts/pytest.acceptance.json
-          gcs_bucket: ${{ secrets.COLLECT_TEST_DATA_GCS_BUCKET }}
-          gcp_project_id: ${{ secrets.COLLECT_TEST_DATA_GCP_PROJECT_ID }}
-          workload_identity_provider: ${{ secrets.SENTRY_GCP_DEV_WORKLOAD_IDENTITY_POOL }}
-          service_account_email: ${{ secrets.COLLECT_TEST_DATA_SERVICE_ACCOUNT_EMAIL }}
-          matrix_instance_number: ${{ steps.setup.outputs.matrix-instance-number }}
 
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.

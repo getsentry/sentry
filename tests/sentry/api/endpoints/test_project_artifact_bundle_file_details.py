@@ -9,6 +9,7 @@ from django.urls import reverse
 from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.response import close_streaming_response
 
 
@@ -164,6 +165,56 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         response = self.client.get(url)
         assert response.status_code == 403, response.content
 
+    def test_archive_download_as_sentry_app(self) -> None:
+        project = self.create_project(name="foo")
+        artifact_bundle = self.create_artifact_bundle()
+        with open(get_fixture_path("artifact_bundle_debug_ids", "files/_/_/index.js"), "rb") as f:
+            index_js = f.read()
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "bundle_id": artifact_bundle.bundle_id,
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
+            },
+        )
+
+        read_app = self.create_internal_integration(
+            name="Read", organization=self.organization, scopes=("project:read",)
+        )
+        write_app = self.create_internal_integration(
+            name="Write",
+            organization=self.organization,
+            scopes=("project:read", "project:write"),
+        )
+        read_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=read_app
+        )
+        write_token = self.create_internal_integration_token(
+            user=self.user, internal_integration=write_app
+        )
+        read_auth = f"Bearer {read_token.token}"
+        write_auth = f"Bearer {write_token.token}"
+
+        # The default debug files role requires write access
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 403, response.content
+        response = self.client.get(url, HTTP_AUTHORIZATION=write_auth)
+        assert response.status_code == 200, response.content
+        assert index_js == close_streaming_response(response)
+
+        # The member role only requires read access
+        self.organization.update_option("sentry:debug_files_role", "member")
+        response = self.client.get(url, HTTP_AUTHORIZATION=read_auth)
+        assert response.status_code == 200, response.content
+        assert index_js == close_streaming_response(response)
+
     def test_archive_download_with_invalid_project(self) -> None:
         project = self.create_project(name="foo")
 
@@ -202,6 +253,23 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
                 "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+        assert response.status_code == 400, response.content
+
+    def test_archive_download_with_invalid_bundle_id(self) -> None:
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "bundle_id": "i",
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
             },
         )
 

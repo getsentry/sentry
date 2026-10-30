@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -36,6 +37,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.explore.models import ExploreSavedFormula, ExploreSavedQueryDataset
 from sentry.ingestion_delay.meta import IngestionMeta
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
@@ -75,7 +77,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaError
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +88,11 @@ SAVED_QUERY_DATASET_MAP = {
 # TODO: Adjust this once we make a decision in the DACI for global views restriction
 # Do not add more referrers to this list as it is a temporary solution
 GLOBAL_VIEW_ALLOWLIST = {Referrer.API_ISSUES_ISSUE_EVENTS.value}
+DATASET_TO_FORMULA_DATASET = {
+    Spans: ExploreSavedQueryDataset.SPANS,
+    OurLogs: ExploreSavedQueryDataset.OURLOGS,
+    TraceMetrics: ExploreSavedQueryDataset.METRICS,
+}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -184,7 +190,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
             VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
             VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
@@ -361,7 +367,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 query_source=query_source,
             )
 
-        @trace
+        @traces.trace
         def _dashboards_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -449,7 +455,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        @trace
+        @traces.trace
         def _discover_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -599,6 +605,20 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     actor=request.user,
                 )
 
+                if scoped_dataset in DATASET_TO_FORMULA_DATASET and features.has(
+                    "organizations:explore-saved-formulas", organization, actor=request.user
+                ):
+                    saved_formulas = {
+                        formula.name: formula
+                        for formula in ExploreSavedFormula.objects.filter(
+                            organization=organization,
+                            dataset=DATASET_TO_FORMULA_DATASET[scoped_dataset],
+                            prebuilt_deleted=False,
+                        ).prefetch_related("variables")
+                    }
+                else:
+                    saved_formulas = None
+
                 if scoped_dataset == Spans:
                     return SearchResolverConfig(
                         auto_fields=True,
@@ -609,6 +629,12 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        disable_deprecated_functions=features.has(
+                            "organizations:explore-disable-deprecated-if-functions",
+                            organization,
+                            actor=request.user,
+                        ),
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == OurLogs:
                     return SearchResolverConfig(
@@ -616,6 +642,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == TraceMetrics:
                     # tracemetrics uses aggregate conditions
@@ -628,6 +655,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
+                        saved_formulas=saved_formulas,
                     )
                 elif scoped_dataset == ProfileFunctions:
                     # profile_functions uses aggregate conditions
@@ -732,9 +760,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         # Only the EAP RPC datasets can measure ingestion delay, and only the item types the
         # outcomes lookup understands. The rest would just log an unsupported item type.
 
-        include_measured_ingestion_delay_metadata = request.GET.get(
-            "includeMeasuredIngestionDelayMetadata"
-        ) is not None and batch_features.get(
+        include_measured_ingestion_delay_metadata = batch_features.get(
             "organizations:measured-ingestion-delay-metadata", False
         )
 

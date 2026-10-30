@@ -1,13 +1,10 @@
-from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 
+from sentry.api.permissions import enforce_scope
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
     validate_detectors_exist_and_have_permissions,
-)
-from sentry.workflow_engine.endpoints.validators.utils import (
-    can_edit_workflows as can_edit_workflows,
 )
 from sentry.workflow_engine.types import DetectorId
 
@@ -25,6 +22,6 @@ def enforce_workflow_creation_permissions(
         return
 
     if not detector_ids:
-        raise PermissionDenied
+        return enforce_scope(request, "alerts:write")
 
     validate_detectors_exist_and_have_permissions(detector_ids, organization, request)

@@ -28,6 +28,7 @@ import {
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {useDispatchIssueEventCount} from 'sentry/views/issueDetails/hooks/useDispatchIssueEventCount';
 import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
 import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 
@@ -103,6 +104,8 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 500});
   const timeWindowConfig = useIssueTimeWindowConfig({timelineWidth, group});
+
+  useDispatchIssueEventCount(group);
 
   const cronAlertId = useCronIssueAlertId({groupId: group.id});
   const {data: stats, isPending} = useMonitorStats({

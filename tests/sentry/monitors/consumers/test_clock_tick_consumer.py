@@ -151,9 +151,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
             next_checkin_latest=ts,
         )
         checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
             monitor_environment=monitor_environment,
-            project_id=self.project.id,
             status=CheckInStatus.IN_PROGRESS,
             date_added=ts - timedelta(minutes=1),
             timeout_at=ts,

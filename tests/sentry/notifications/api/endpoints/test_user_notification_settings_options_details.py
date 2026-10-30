@@ -46,6 +46,14 @@ class UserNotificationSettingsOptionsDetailsDeleteTest(
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
+    def test_invalid_option_id(self) -> None:
+        for option_id in ("abc", "99999999999999999999"):
+            self.get_error_response(
+                "me",
+                option_id,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+
     def test_cannot_delete_other_users_setting(self) -> None:
         victim_user = self.create_user()
         victim_org = self.create_organization(owner=victim_user)

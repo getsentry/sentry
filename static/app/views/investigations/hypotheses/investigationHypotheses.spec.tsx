@@ -74,6 +74,21 @@ describe('InvestigationHypotheses', () => {
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
   });
 
+  it('tallies the verdicts in the panel header', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({phase: 'completed', status: 'completed'}),
+    });
+
+    renderHypotheses({phase: 'completed', status: 'completed'});
+
+    const toggle = await screen.findByRole('button', {name: /Hypotheses/});
+    expect(toggle).toHaveAccessibleName(
+      'Hypotheses 1 supported • 1 inconclusive • 1 refuted'
+    );
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  });
+
   it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -82,7 +97,7 @@ describe('InvestigationHypotheses', () => {
     const {queryClient} = renderHypotheses();
 
     await screen.findAllByTestId('investigation-hypothesis');
-    const toggle = screen.getByRole('button', {name: 'Hypotheses'});
+    const toggle = screen.getByRole('button', {name: /Hypotheses/});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     await userEvent.click(toggle);
@@ -216,6 +231,50 @@ describe('InvestigationHypotheses', () => {
     expect(request).not.toHaveBeenCalled();
   });
 
+  it('asks Seer about a hypothesis from its menu', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+    const onAskSeer = jest.fn();
+
+    renderHypotheses({onAskSeer});
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for An external SSO provider slowed the response',
+      })
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Ask Seer'}));
+
+    expect(onAskSeer).toHaveBeenCalledTimes(1);
+    expect(onAskSeer).toHaveBeenCalledWith(expect.objectContaining({id: 'hypothesis-2'}));
+  });
+
+  it('leaves Ask Seer out of the menu without a handler', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture(),
+    });
+
+    renderHypotheses();
+    await screen.findAllByTestId('investigation-hypothesis');
+    await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
+    await userEvent.click(
+      await screen.findByRole('button', {
+        name: 'Actions for Database or cache degradation delayed the response',
+      })
+    );
+
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Accept'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Ask Seer'})
+    ).not.toBeInTheDocument();
+  });
+
   it('sends a disposition command fenced on the workflow version', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
@@ -317,59 +376,71 @@ describe('InvestigationHypotheses', () => {
     expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
   });
 
-  it('keeps re-reading a settled run until Seer applies an accepted command', async () => {
-    // A finished run polls no more, which is the point of settling it. But
-    // Sentry only queues a command: the response echoes the projection it
-    // already had with nothing but `workflowVersion` moved on, and Seer
-    // rewrites the real one later. Without the command reopening the polling,
-    // the card would sit on its old disposition until someone reloaded.
-    const orchestrationRequest = MockApiClient.addMockResponse({
-      url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        status: 'completed',
-        workflowVersion: 7,
-      }),
+  describe('keeps re-reading a settled run until Seer applies an accepted command with fake timers', () => {
+    beforeEach(() => {
+      jest.useFakeTimers();
     });
-    const commandRequest = MockApiClient.addMockResponse({
-      url: commandsUrl,
-      method: 'POST',
-      body: {
-        accepted: true,
-        duplicate: false,
-        requestId: 'request-1',
-        workflowVersion: 8,
-        commandStatus: 'accepted',
-        commandError: null,
-        runId: '9001',
-        // Unchanged apart from the version, exactly as the endpoint returns it.
-        projection: InvestigationOrchestrationFixture({
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('keeps re-reading a settled run until Seer applies an accepted command', async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      // A finished run polls no more, which is the point of settling it. But
+      // Sentry only queues a command: the response echoes the projection it
+      // already had with nothing but `workflowVersion` moved on, and Seer
+      // rewrites the real one later. Without the command reopening the polling,
+      // the card would sit on its old disposition until someone reloaded.
+      const orchestrationRequest = MockApiClient.addMockResponse({
+        url: orchestrationUrl,
+        body: InvestigationOrchestrationFixture({
           status: 'completed',
-          workflowVersion: 8,
+          workflowVersion: 7,
         }),
-      },
-    });
+      });
+      const commandRequest = MockApiClient.addMockResponse({
+        url: commandsUrl,
+        method: 'POST',
+        body: {
+          accepted: true,
+          duplicate: false,
+          requestId: 'request-1',
+          workflowVersion: 8,
+          commandStatus: 'accepted',
+          commandError: null,
+          runId: '9001',
+          // Unchanged apart from the version, exactly as the endpoint returns it.
+          projection: InvestigationOrchestrationFixture({
+            status: 'completed',
+            workflowVersion: 8,
+          }),
+        },
+      });
 
-    renderHypotheses();
-    await screen.findAllByTestId('investigation-hypothesis');
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
-    const callsWhileSettled = orchestrationRequest.mock.calls.length;
+      renderHypotheses();
+      await screen.findAllByTestId('investigation-hypothesis');
+      await user.click(await screen.findByRole('button', {name: /Hypotheses/}));
+      const callsWhileSettled = orchestrationRequest.mock.calls.length;
 
-    await userEvent.click(
-      await screen.findByRole('button', {
-        name: 'Actions for Database or cache degradation delayed the response',
-      })
-    );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-    await waitFor(() => expect(commandRequest).toHaveBeenCalled());
+      await user.click(
+        await screen.findByRole('button', {
+          name: 'Actions for Database or cache degradation delayed the response',
+        })
+      );
+      await user.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
+      await waitFor(() => expect(commandRequest).toHaveBeenCalled());
 
-    // Nothing else would ask again: the run is completed, so this only grows
-    // because the command put the query back on its interval.
-    await waitFor(
-      () =>
-        expect(orchestrationRequest.mock.calls.length).toBeGreaterThan(callsWhileSettled),
-      {timeout: 6000}
-    );
-  }, 15_000);
+      // Nothing else would ask again: the run is completed, so this only grows
+      // because the command put the query back on its interval.
+      await act(() => jest.advanceTimersByTimeAsync(2000));
+      expect(orchestrationRequest.mock.calls.length).toBeGreaterThan(callsWhileSettled);
+    }, 15_000);
+  });
 
   it('renders hypotheses whose verification steps have not been planned yet', async () => {
     // `verificationSteps` is `required=False` with no default on the contract,

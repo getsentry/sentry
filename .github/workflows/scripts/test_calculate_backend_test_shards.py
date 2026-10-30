@@ -12,7 +12,7 @@ collect_test_count = _mod.collect_test_count
 
 class TestCalculateShards:
     def test_none_returns_default(self):
-        assert calculate_shards(None) == 22
+        assert calculate_shards(None) == 30
 
     def test_zero_returns_zero(self):
         assert calculate_shards(0) == 0
@@ -27,7 +27,7 @@ class TestCalculateShards:
         assert calculate_shards(301) == 2
 
     def test_large_count_capped(self):
-        assert calculate_shards(100_000) == 22
+        assert calculate_shards(100_000) == 30
 
     def test_mid_range(self):
         # 1500 / 300 = 5

@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import qs from 'query-string';
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -170,49 +170,135 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
-  it('renders the metric panel', async () => {
+  it('renders the metric chart with its label and refreshed controls', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-  });
-
-  it('renders the visualize label badge', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    // The visualize label badge "A" should be present
     expect(await screen.findByText('A')).toBeInTheDocument();
-  });
-
-  it('does not render orientation controls', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-
-    // Orientation controls should NOT be present in the refreshed UI
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  it('counts each top-N group once across transformation pipelines', async () => {
+    setupEventsMock(
+      createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+      [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [
+          {group: 'api', sampleCounts: [5, 10]},
+          {group: 'worker', sampleCounts: [10, 20]},
+          {group: null, sampleCounts: [100, 100]},
+        ].flatMap(({group, sampleCounts}) =>
+          sampleCounts.map(sampleCount =>
+            TimeSeriesFixture({
+              yAxis: 'sum(value)',
+              groupBy: group ? [{key: 'service.name', value: group}] : null,
+              meta: {
+                valueType: 'integer',
+                valueUnit: null,
+                interval: 1000,
+                isOther: group === null,
+              },
+              values: [{timestamp: Date.now(), value: 5, sampleCount, sampleRate: 1}],
+            })
+          )
+        ),
+      },
+    });
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        traceMetric,
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('sum(value)'),
+            new VisualizeFunction('sum(value)', {transformations: ['smooth(sma,5)']}),
+            {groupBy: 'service.name'},
+          ],
+        }),
+      }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('metric-panel')).toHaveTextContent(
+        '30 data points for top 2 groups'
+      )
+    );
+  });
+
+  it('keeps the chart visible without transformation controls for heat maps', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('count(value,bar,distribution,none)', {
+              chartType: ChartType.HEATMAP,
+            }),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows transformation controls for equations', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeEquation('equation|1 + 2', {transformations: ['fill(zero)']}),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Remove transformation'})
+    ).toBeInTheDocument();
   });
 
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
+          droppedEvents: [OutcomeRowFixture()],
+          acceptedEvents: [],
         },
       });
     }

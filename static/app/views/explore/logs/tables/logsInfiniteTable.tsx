@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react';
 import styled from '@emotion/styled';
+import {IconArrow} from '@sentry/icons/arrow';
 import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
@@ -15,16 +16,17 @@ import {Button} from '@sentry/scraps/button';
 import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -35,7 +37,11 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  useLogsAutoRefreshEnabled,
+  useSetLogsAutoRefresh,
+} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {logsTimestampDescendingSortBy} from 'sentry/views/explore/contexts/logs/sortBys';
@@ -56,7 +62,6 @@ import {
   LogTable,
   LogTableBody,
   LogTableHeadCell,
-  LogTableRow,
 } from 'sentry/views/explore/logs/styles';
 import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
 import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
@@ -164,6 +169,9 @@ export function LogsInfiniteTable({
     canResumeAutoFetch,
     resumeAutoFetch,
     totalPayloadBytes,
+    anchor,
+    anchorToLog,
+    clearAnchor,
   } = useLogsPageDataQueryResult();
   const meta = useMemo(
     () =>
@@ -507,6 +515,50 @@ export function LogsInfiniteTable({
     };
   }, []);
 
+  const organization = useOrganization();
+
+  const scrollToAnchor = useEffectEvent((anchorId: string) => {
+    const index = data.findIndex(row => row[OurLogKnownFieldKey.ID] === anchorId);
+    if (index === -1) {
+      trackAnalytics('logs.table.pinned_row_not_in_results', {
+        log_id: anchorId,
+        organization,
+      });
+      addErrorMessage(t('This log is not in the current results'));
+      clearAnchor();
+      return;
+    }
+    virtualizer.scrollToIndex(index, {align: 'center'});
+  });
+
+  useEffect(() => {
+    if (anchor && !isPending && !isError) {
+      scrollToAnchor(anchor.id);
+    }
+  }, [anchor, isPending, isError]);
+
+  const setAutoRefresh = useSetLogsAutoRefresh();
+
+  const handleScrollToLog = useCallback(
+    (dataRow: OurLogsResponseItem) => {
+      if (autoRefresh) {
+        setAutoRefresh('paused');
+        anchorToLog(dataRow);
+        return;
+      }
+
+      const index = data.findIndex(
+        row => row[OurLogKnownFieldKey.ID] === dataRow[OurLogKnownFieldKey.ID]
+      );
+      if (index === -1) {
+        anchorToLog(dataRow);
+      } else {
+        handleScrollToRow(index);
+      }
+    },
+    [anchorToLog, autoRefresh, data, handleScrollToRow, setAutoRefresh]
+  );
+
   const logsPinning = useLogsPinning();
   const pinnedLogsQuery = usePinnedLogsQuery({allRows: data, logsPinning});
 
@@ -547,6 +599,7 @@ export function LogsInfiniteTable({
           isHoverLinked={hoveredRowId === rowId}
           setHoveredRowId={setHoveredRowId}
           togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+          onScrollToLog={handleScrollToLog}
         />
       );
     },
@@ -556,6 +609,7 @@ export function LogsInfiniteTable({
       handleExpand,
       handleExpandHeight,
       handleTogglePinnedRow,
+      handleScrollToLog,
       highlightTerms,
       hoveredRowId,
       logEnd,
@@ -603,17 +657,22 @@ export function LogsInfiniteTable({
     <Fragment>
       <LogTable
         ref={tableRef}
-        fields={fields}
+        columns={fields.map(field => ({
+          key: field,
+          resizable: true,
+          width: staticColumnWidths?.[field],
+        }))}
+        customSections
+        flexibleLastColumn={false}
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
-        staticColumnWidths={staticColumnWidths}
+        prependColumnWidths={['min-content']}
         css={tableStaticCSS}
-        height="100%"
+        maxHeight="100%"
         hideBorder={embedded}
         data-test-id="logs-table"
         minWidth={calculateLogsTableMinWidth(fields.length)}
         timestampWidth={timestampWidth}
-        showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
+        scrollable={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
           <LogsTableHeader
@@ -638,11 +697,11 @@ export function LogsInfiniteTable({
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
         >
           {paddingTop > 0 && (
-            <DataTable.Row>
+            <SimpleTable.Row>
               {fields.map(field => (
-                <DataTable.Cell key={field} style={{height: paddingTop}} />
+                <SimpleTable.RowCell key={field} style={{height: paddingTop}} />
               ))}
-            </DataTable.Row>
+            </SimpleTable.Row>
           )}
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && (
@@ -715,11 +774,11 @@ export function LogsInfiniteTable({
             );
           })}
           {paddingBottom > 0 && (
-            <DataTable.Row>
+            <SimpleTable.Row>
               {fields.map(field => (
-                <DataTable.Cell key={field} style={{height: paddingBottom}} />
+                <SimpleTable.RowCell key={field} style={{height: paddingBottom}} />
               ))}
-            </DataTable.Row>
+            </SimpleTable.Row>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
@@ -777,9 +836,9 @@ function LogsTableHeader({
   );
   const pinningEnabled = !!useLogsPinning();
   return (
-    <DataTable.Head>
-      <LogTableRow>
-        <FirstTableHeadCell isFirst align="left" />
+    <SimpleTable.Head>
+      <SimpleTable.HeaderRow>
+        <FirstTableHeadCell align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -796,7 +855,6 @@ function LogsTableHeader({
             return (
               <LogTableHeadCell
                 key={index}
-                isFirst={index === 0}
                 reservePinGutter={pinningEnabled && index === fields.length - 1}
               />
             );
@@ -806,9 +864,8 @@ function LogsTableHeader({
               align={index === 0 ? 'left' : align}
               columnIndex={index}
               key={index}
-              isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
-              onSort={
+              handleSortClick={
                 isFrozen
                   ? undefined
                   : () => {
@@ -830,20 +887,20 @@ function LogsTableHeader({
             </LogTableHeadCell>
           );
         })}
-      </LogTableRow>
-    </DataTable.Head>
+      </SimpleTable.HeaderRow>
+    </SimpleTable.Head>
   );
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
   if (!isRateLimitError(error)) {
-    return <DataTable.Error onRetry={onRetry} />;
+    return <SimpleTable.Error onRetry={onRetry} />;
   }
 
   return (
-    <DataTable.Empty>
+    <SimpleTable.Empty>
       <LogsRateLimitError onRetry={onRetry} />
-    </DataTable.Empty>
+    </SimpleTable.Empty>
   );
 }
 
@@ -860,7 +917,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <DataTable.Empty>
+    <SimpleTable.Empty>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -882,7 +939,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </DataTable.Empty>
+    </SimpleTable.Empty>
   );
 }
 
@@ -933,7 +990,7 @@ function HoveringRowLoadingRenderer({
   return (
     <HoveringRowLoadingRendererContainer
       position={position}
-      headerHeight={isEmbedded ? 0 : 45}
+      headerHeight={isEmbedded ? 0 : 40}
       height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
       <LoadingIndicator

@@ -5,18 +5,12 @@ from unittest.mock import patch
 from django.core.cache import cache
 
 from sentry.api.serializers import serialize
-from sentry.incidents.endpoints.serializers.utils import OFFSET
+from sentry.incidents.endpoints.serializers.utils import OFFSET, get_fake_id_from_object_id
 from sentry.incidents.endpoints.serializers.workflow_engine_detector import (
     WorkflowEngineDetectorSerializer,
 )
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.workflow_engine.migration_helpers.alert_rule import (
-    migrate_alert_rule,
-    migrate_metric_action,
-    migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_condition,
-)
-from sentry.workflow_engine.models import AlertRuleDetector, DataConditionAlertRuleTrigger
+from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.workflow_engine.models import Action, AlertRuleDetector, DataConditionAlertRuleTrigger
 from sentry.workflow_engine.models.action_alertruletriggeraction import ActionAlertRuleTriggerAction
 from tests.sentry.incidents.serializers.test_workflow_engine_base import (
     TestWorkflowEngineSerializer,
@@ -47,17 +41,18 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         install = self.create_sentry_app_installation(
             slug=sentry_app.slug, organization=self.organization, user=self.user
         )
-        self.sentry_app_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.critical_trigger,
-            type=AlertRuleTriggerAction.Type.SENTRY_APP,
-            target_identifier=sentry_app.id,
-            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
-            sentry_app=sentry_app,
-            sentry_app_config=[
-                {"name": "title", "value": "An alert"},
-            ],
+        self.sentry_app_action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP,
+                "target_display": sentry_app.name,
+            },
+            data={"settings": [{"name": "title", "label": None, "value": "An alert"}]},
         )
-        self.sentry_app_action, _, _ = migrate_metric_action(self.sentry_app_trigger_action)
+        self.create_data_condition_group_action(
+            action=self.sentry_app_action, condition_group=self.critical_action_group
+        )
 
         other_sentry_app = self.create_sentry_app(
             organization=self.organization,
@@ -73,42 +68,33 @@ class TestDetectorSerializer(TestWorkflowEngineSerializer):
         cache.clear()
 
         # add some other workflow engine objects to ensure that our filtering is working properly
-        other_alert_rule = self.create_alert_rule()
-        critical_trigger = self.create_alert_rule_trigger(
-            alert_rule=other_alert_rule, label="critical"
+        other_detector, other_workflow, _ = self.create_metric_detector()
+        _, other_action_group = self.create_metric_trigger(other_detector, other_workflow)
+        self.create_email_action(other_action_group)
+        other_action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(other_sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP,
+                "target_display": other_sentry_app.name,
+            },
+            data={"settings": [{"name": "title", "label": None, "value": "An alert"}]},
         )
-        critical_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=critical_trigger
+        self.create_data_condition_group_action(
+            action=other_action, condition_group=other_action_group
         )
-        migrate_alert_rule(other_alert_rule)
-        migrate_metric_data_conditions(critical_trigger)
-
-        migrate_metric_action(critical_trigger_action)
-        migrate_resolve_threshold_data_condition(other_alert_rule)
-
-        other_sentry_app_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=critical_trigger,
-            type=AlertRuleTriggerAction.Type.SENTRY_APP,
-            target_identifier=other_sentry_app.id,
-            target_type=AlertRuleTriggerAction.TargetType.SENTRY_APP,
-            sentry_app=other_sentry_app,
-            sentry_app_config=[
-                {"name": "title", "value": "An alert"},
-            ],
-        )
-        migrate_metric_action(other_sentry_app_action)
 
         # add a sentry app action and update expected actions
         sentry_app_action_data = {
-            "id": str(self.sentry_app_trigger_action.id),
-            "alertRuleTriggerId": str(self.critical_trigger.id),
+            "id": str(get_fake_id_from_object_id(self.sentry_app_action.id)),
+            "alertRuleTriggerId": str(self.legacy_critical_trigger_id),
             "type": "sentry_app",
             "targetType": "sentry_app",
             "targetIdentifier": sentry_app.id,
             "inputChannelId": None,
             "integrationId": None,
             "sentryAppId": sentry_app.id,
-            "dateCreated": self.sentry_app_trigger_action.date_added,
+            "dateCreated": self.sentry_app_action.date_added,
             "desc": f"Send a notification via {sentry_app.name}",
             "priority": self.critical_action.data.get("priority"),
             "settings": [{"name": "title", "label": None, "value": "An alert"}],

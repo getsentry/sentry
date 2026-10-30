@@ -32,6 +32,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     ComparisonFilter,
     TraceItemFilter,
 )
+from sentry_sdk import traces
 from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Function, Op
 from urllib3.exceptions import ReadTimeoutError
 
@@ -68,7 +69,6 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.numbers import clip
-from sentry.utils.sdk import set_span_attribute
 from sentry.utils.snuba import bulk_snuba_queries_with_referrers
 from sentry.utils.snuba_rpc import get_traces_rpc
 
@@ -1057,7 +1057,9 @@ def process_rpc_user_queries(
         if where is not None:
             queries[user_query] = where
 
-    set_span_attribute("user_queries_count", len(queries))
+    span = traces.get_current_span()
+    if span:
+        span.set_attribute("user_queries_count", len(queries))
     sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
     sentry_sdk.set_attribute("user_queries.raw_queries", user_queries)
 

@@ -39,6 +39,14 @@ class OrganizationEventsValidateEndpointTest(
             {"error": "At least one valid project is required to query", "valid": False}
         ]
 
+    def test_invalid_project(self) -> None:
+        other_project = self.create_project(organization=self.create_organization())
+        response = self.do_request({"project": [other_project.id]})
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+        assert response.data["projects"] == [{"error": "Invalid project", "valid": False}]
+
     def test_invalid_dataset(self) -> None:
         response = self.do_request(
             {
@@ -868,3 +876,23 @@ class OrganizationEventsValidateEndpointTest(
                 "attrType": None,
             },
         ]
+
+    def test_llm_passes_replacement_attribute_wrong_type(self) -> None:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "dataset": "spans",
+                "field": ["device.memory.estimated_capacity", "transaction"],
+                "query": "device.memory.estimated_capacity:50GB",
+                "orderby": ["-device.memory.estimated_capacity"],
+            }
+        )
+
+        assert response.status_code == 400, response.content
+        assert not response.data["valid"]
+
+        assert response.data["query"] == {
+            "error": "device.memory.estimated_capacity: Invalid number: 50GB. Expected number then optional k, m, or b suffix (e.g. 500k).",
+            "valid": False,
+            "fields": [],
+        }

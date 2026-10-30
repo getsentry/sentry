@@ -4,7 +4,7 @@ import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -135,13 +135,13 @@ export function BreadcrumbsTimeline({
         key={virtualizedRow.key}
         ref={virtualizer.measureElement}
         title={
-          <Header>
+          <Grid align="end" columns="1fr auto">
             <div>
               <TextBreak>{title}</TextBreak>
               {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
             </div>
             {levelComponent}
-          </Header>
+          </Grid>
         }
         colorConfig={colorConfig}
         icon={iconComponent}
@@ -184,12 +184,6 @@ const VirtualOffset = styled('div')<{offset: number}>`
   left: 0;
   width: 100%;
   transform: translateY(${p => p.offset}px);
-`;
-
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: end;
 `;
 
 const TextBreak = styled('span')`

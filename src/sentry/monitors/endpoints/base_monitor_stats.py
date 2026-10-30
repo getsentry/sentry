@@ -5,12 +5,14 @@ from datetime import UTC, datetime, timedelta
 
 from django.db.models import Avg, Count, DateTimeField, Func
 from django.db.models.functions import Extract
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import BaseEndpointMixin, StatsMixin
 from sentry.api.helpers.environments import get_environments
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.monitors.utils import get_monitor_environment_ids
 
 
 def normalize_to_epoch(timestamp: datetime, seconds: int):
@@ -24,12 +26,26 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
     return epoch - (epoch % seconds)
 
 
+# The crons timeline UI requests at most 2016 buckets; leave headroom for
+# epoch normalization of the start and end timestamps.
+MAX_STATS_BUCKETS = 2500
+
+
+def validate_bucket_count(start: int, end: int, rollup: int) -> None:
+    if (end - start) // rollup + 1 > MAX_STATS_BUCKETS:
+        raise ParseError(
+            detail=f"Too many buckets requested. Maximum is {MAX_STATS_BUCKETS}, "
+            "increase the resolution or reduce the time range."
+        )
+
+
 class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
     def get_monitor_stats(self, request: Request, project, monitor) -> Response:
         args = self._parse_args(request)
 
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
+        validate_bucket_count(start, end, args["rollup"])
 
         tracked_statuses = [
             CheckInStatus.OK,
@@ -39,19 +55,13 @@ class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
             CheckInStatus.UNKNOWN,
         ]
 
+        environments = get_environments(request, project.organization)
         check_ins = MonitorCheckIn.objects.filter(
-            monitor=monitor,
+            monitor_environment_id__in=get_monitor_environment_ids(monitor, environments),
             status__in=tracked_statuses,
             date_added__gt=args["start"],
             date_added__lte=args["end"],
         )
-
-        environments = get_environments(request, project.organization)
-
-        if environments:
-            check_ins = check_ins.filter(
-                monitor_environment__environment_id__in=[e.id for e in environments]
-            )
 
         # Use postgres' `date_bin` to bucket rounded to our rollups
         bucket = Func(

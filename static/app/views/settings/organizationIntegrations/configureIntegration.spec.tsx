@@ -1,4 +1,5 @@
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {IntegrationProviderFixture} from 'sentry-fixture/integrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
@@ -64,7 +65,7 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  it('shows the integration name as a link in the header', async () => {
+  it('shows the external domain as a settings row even without other configuration', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
       domainName: 'github.com/sentry-demos',
@@ -75,11 +76,22 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
-      'href',
-      'https://github.com/sentry-demos'
+    const heading = await screen.findByRole('heading', {name: 'sentry-demos'});
+    expect(screen.getByRole('tab', {name: 'Settings'})).toHaveAttribute(
+      'aria-selected',
+      'true'
     );
-    expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
+    expect(screen.getByText('Organization Integration Settings')).toBeInTheDocument();
+    expect(screen.getByText('Integration URL')).toBeInTheDocument();
+    const link = screen.getByRole('link', {name: 'github.com/sentry-demos'});
+    expect(link).toHaveAttribute('href', 'https://github.com/sentry-demos');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(heading).not.toContainElement(link);
+    expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('tab', {name: 'Code Mappings'}));
+    expect(
+      screen.queryByRole('link', {name: 'github.com/sentry-demos'})
+    ).not.toBeInTheDocument();
   });
 
   it('links the configurations crumb to the provider configurations tab', async () => {
@@ -99,7 +111,7 @@ describe('ConfigureIntegration settings tab', () => {
     );
   });
 
-  it('uses a full domain URL without adding another protocol', async () => {
+  it('keeps the protocol when the external domain is a full URL', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
       domainName: 'https://example.visualstudio.com/',
@@ -113,10 +125,11 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure('vsts');
 
-    expect(await screen.findByRole('link', {name: 'Azure DevOps'})).toHaveAttribute(
-      'href',
-      'https://example.visualstudio.com/'
-    );
+    expect(await screen.findByText('Azure DevOps')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'https://example.visualstudio.com/'})
+    ).toHaveAttribute('href', 'https://example.visualstudio.com/');
+    expect(screen.queryByRole('link', {name: 'Azure DevOps'})).not.toBeInTheDocument();
   });
 
   it('shows the PagerDuty integration name without a link for a subdomain', async () => {
@@ -134,6 +147,7 @@ describe('ConfigureIntegration settings tab', () => {
     renderConfigure('pagerduty');
 
     expect(await screen.findByText('PagerDuty')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'example-account'})).not.toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'PagerDuty'})).not.toBeInTheDocument();
   });
 
@@ -160,6 +174,7 @@ describe('ConfigureIntegration settings tab', () => {
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
         configOrganization: [],
+        domainName: null,
       })
     );
 
@@ -187,6 +202,160 @@ describe('ConfigureIntegration settings tab', () => {
 
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+  });
+});
+
+describe('ConfigureIntegration Grafana settings', () => {
+  const organization = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+  });
+  const grafanaUrl = 'https://example-stack.grafana.net';
+  const newGrafanaUrl = 'https://other-stack.grafana.net';
+  const integrationUrl = `/organizations/${organization.slug}/integrations/1/`;
+  const initialRouterConfig = {
+    location: {pathname: `/settings/${organization.slug}/integrations/grafana/1/`},
+    route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+  };
+
+  function mockGrafanaRequests(savedUrl = grafanaUrl) {
+    const provider = IntegrationProviderFixture({
+      key: 'grafana',
+      slug: 'grafana',
+      name: 'Grafana for Seer',
+      features: ['seer-context'],
+    });
+    const integration = OrganizationIntegrationsFixture({
+      id: '1',
+      name: 'Grafana (example-stack.grafana.net)',
+      domainName: null,
+      provider: {...provider, aspects: {}},
+      configOrganization: [
+        {name: 'url', type: 'string', label: 'Grafana URL', required: true},
+        {name: 'token', type: 'secret', label: 'Service Account Token'},
+      ],
+    });
+    let storedUrl = grafanaUrl;
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [provider]},
+    });
+    const getRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      body: () => ({...integration, configData: {url: storedUrl}}),
+    });
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      body: () => {
+        storedUrl = savedUrl;
+        return {};
+      },
+    });
+    return {getRequest, saveRequest};
+  }
+
+  it('saves a new stack URL and token together instead of on blur', async () => {
+    const {getRequest, saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    expect(url).toHaveValue(grafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    expect(token).toHaveValue('');
+    await userEvent.clear(url);
+    await userEvent.type(url, '  https://Other-Stack.grafana.net/  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+    await userEvent.type(token, '  glsa_new  ');
+    await userEvent.tab();
+    expect(saveRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(saveRequest).toHaveBeenCalledTimes(1));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({
+        data: {url: 'https://Other-Stack.grafana.net/', token: 'glsa_new'},
+      })
+    );
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(getRequest).toHaveBeenCalledTimes(2);
+  });
+
+  it('re-tests the saved connection with a blank token', async () => {
+    const {saveRequest} = mockGrafanaRequests();
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() =>
+      expect(saveRequest).toHaveBeenCalledWith(
+        integrationUrl,
+        expect.objectContaining({data: {url: grafanaUrl, token: ''}})
+      )
+    );
+  });
+
+  it('preserves edits after a rejected token and allows a corrected save', async () => {
+    mockGrafanaRequests(newGrafanaUrl);
+    const message =
+      'Grafana rejected the token. Check that it is an active service account token.';
+    MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: message},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const url = await screen.findByRole('textbox', {name: 'Grafana URL'});
+    await userEvent.clear(url);
+    await userEvent.type(url, newGrafanaUrl);
+    const token = screen.getByLabelText('Service account token');
+    await userEvent.type(token, 'glsa_bad');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message);
+    expect(url).toHaveValue(newGrafanaUrl);
+    expect(token).toHaveValue('glsa_bad');
+
+    const {saveRequest} = mockGrafanaRequests(newGrafanaUrl);
+    await userEvent.clear(token);
+    await userEvent.type(token, 'glsa_corrected');
+    await userEvent.click(screen.getByRole('button', {name: 'Save and test'}));
+
+    await waitFor(() => expect(token).toHaveValue(''));
+    expect(saveRequest).toHaveBeenCalledWith(
+      integrationUrl,
+      expect.objectContaining({data: {url: newGrafanaUrl, token: 'glsa_corrected'}})
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('blocks duplicate submissions while checking the connection', async () => {
+    mockGrafanaRequests();
+    const save = Promise.withResolvers<void>();
+    const saveRequest = MockApiClient.addMockResponse({
+      url: integrationUrl,
+      method: 'POST',
+      asyncDelay: save.promise,
+      body: {},
+    });
+    render(<ConfigureIntegration />, {organization, initialRouterConfig});
+
+    const button = await screen.findByRole('button', {name: 'Save and test'});
+    await userEvent.click(button);
+
+    expect(button).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Grafana URL'})).toBeDisabled();
+    expect(screen.getByLabelText('Service account token')).toBeDisabled();
+    await userEvent.click(button);
+    expect(saveRequest).toHaveBeenCalledTimes(1);
+
+    save.resolve();
+    await waitFor(() => expect(button).toBeEnabled());
   });
 });
 

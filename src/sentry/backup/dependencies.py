@@ -516,7 +516,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     # least one of those nullable relations will be present on every model.
     model_dependencies_dict[NormalizedModelName("sentry.servicehook")].dangling = False
     model_dependencies_dict[NormalizedModelName("sentry.snubaqueryeventtype")].dangling = False
-    model_dependencies_dict[NormalizedModelName("sentry.rulesnooze")].dangling = False
 
     # Now that all `ModelRelations` have been added to the `model_dependencies_dict`, we can circle
     # back and figure out which ones are actually dangling. We do this by marking all of the root

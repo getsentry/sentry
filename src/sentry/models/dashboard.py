@@ -241,6 +241,20 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
             position: int
             if next_prebuilt is None or next_prebuilt.position is None:
                 position = self.get_last_position(organization, user_id) + 1
+                # get_last_position ignores unfavorited rows. One of those can still
+                # hold this slot, so append after the highest stored position instead.
+                highest_stored = (
+                    self.filter(
+                        organization=organization,
+                        user_id=user_id,
+                        position__isnull=False,
+                    )
+                    .order_by("-position")
+                    .values_list("position", flat=True)
+                    .first()
+                )
+                if highest_stored is not None and highest_stored >= position:
+                    position = highest_stored + 1
             else:
                 position = next_prebuilt.position
                 self.filter(
@@ -357,6 +371,14 @@ class Dashboard(Model):
     # SET_NULL: org dashboards must survive creator deletion. CASCADE previously wiped
     # every dashboard attributed to an internal-integration proxy user when that app was deleted.
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -386,6 +408,15 @@ class Dashboard(Model):
             CheckConstraint(
                 condition=Q(prebuilt_id__isnull=True) | Q(created_by_id__isnull=True),
                 name="sentry_dashboard_prebuilt_null_created_by",
+            ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_dashboard_single_creator",
             ),
         ]
 

@@ -5,53 +5,37 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.investigations.endpoints.validators.orchestration import validate_agentic_source
-from sentry.investigations.models import InvestigationStatus
+from sentry.investigations.endpoints.validators.orchestration import (
+    InvestigationSourceField,
+    validate_agentic_source,
+)
+from sentry.notebooks.models import NotebookStatus
 
 
 class InvestigationCreateValidator(StrictCamelSnakeValidator):
-    title = serializers.CharField(max_length=255, required=False)
-    template_key = serializers.CharField(max_length=128, required=False)
-    template_version = serializers.IntegerField(min_value=1, required=False)
-    source = serializers.JSONField(required=False)  # type: ignore[assignment]
-    parameters = serializers.JSONField(required=False)
-    project_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False)
-    filters = serializers.JSONField(required=False)
+    title = serializers.CharField(
+        max_length=255,
+        required=False,
+        help_text="Investigation title, required when source is omitted; otherwise generated when omitted.",
+    )
+    source = InvestigationSourceField(
+        required=False,
+        help_text="Manual prompt or metric open-period reference. Starts an agentic investigation. Omit to create a blank notebook. Agentic sources have a maximum serialized size of 200,000 bytes.",
+    )  # type: ignore[assignment]
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        help_text="Unique IDs of accessible projects to include. Defaults to an empty list.",
+    )
+    filters = serializers.JSONField(
+        required=False, help_text="Investigation filter object, stored with its original keys."
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        has_key = "template_key" in attrs
-        has_version = "template_version" in attrs
-        has_source = "source" in attrs
-        if has_key != has_version:
-            raise serializers.ValidationError(
-                {"template_key": "templateKey and templateVersion must be provided together."}
-            )
-        if has_key:
-            if "source" not in attrs:
-                raise serializers.ValidationError({"source": "This field is required."})
-            if not isinstance(attrs["source"], dict):
-                raise serializers.ValidationError({"source": "Must be an object."})
-            if not isinstance(attrs.get("parameters", {}), dict):
-                raise serializers.ValidationError({"parameters": "Must be an object."})
-            forbidden = set(attrs).intersection({"project_ids", "filters"})
-            if forbidden:
-                raise serializers.ValidationError(
-                    {field: "Template creation controls this field." for field in forbidden}
-                )
-        elif has_source:
+        if "source" in attrs:
             validate_agentic_source(attrs["source"])
-            if "parameters" in attrs:
-                raise serializers.ValidationError(
-                    {"parameters": "Agentic investigations do not use template parameters."}
-                )
-        else:
-            if "title" not in attrs:
-                raise serializers.ValidationError({"title": "This field is required."})
-            forbidden = set(attrs).intersection({"parameters"})
-            if forbidden:
-                raise serializers.ValidationError(
-                    {field: "Requires a template." for field in forbidden}
-                )
+        elif "title" not in attrs:
+            raise serializers.ValidationError({"title": "This field is required."})
         project_ids = attrs.get("project_ids", [])
         if len(project_ids) != len(set(project_ids)):
             raise serializers.ValidationError({"project_ids": "Project IDs must be unique."})
@@ -64,9 +48,12 @@ class InvestigationCreateValidator(StrictCamelSnakeValidator):
 
 
 class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
-    template_key = serializers.CharField(max_length=128)
-    template_version = serializers.IntegerField(min_value=1)
-    sources = serializers.ListField(child=serializers.JSONField(), min_length=1, max_length=100)
+    sources = serializers.ListField(
+        child=serializers.JSONField(),
+        min_length=1,
+        max_length=100,
+        help_text="Metric open-period sources to resolve, in input order. Between 1 and 100 sources.",
+    )
 
     def validate_sources(self, value: list[Any]) -> list[dict[str, Any]]:
         if not all(isinstance(source, dict) for source in value):
@@ -75,11 +62,28 @@ class InvestigationCandidatesValidator(StrictCamelSnakeValidator):
 
 
 class InvestigationUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    title = serializers.CharField(max_length=255, required=False)
-    status = serializers.ChoiceField(choices=InvestigationStatus.choices, required=False)
-    filters = serializers.JSONField(required=False)
-    project_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), required=False)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    title = serializers.CharField(
+        max_length=255,
+        required=False,
+        help_text="New investigation title. A manual edit stops automatic title generation.",
+    )
+    status = serializers.ChoiceField(
+        choices=NotebookStatus.choices,
+        required=False,
+        help_text="Set active to restore a manual notebook, or archived to archive. Archiving must be the only changed field.",
+    )
+    filters = serializers.JSONField(
+        required=False, help_text="Investigation filter object, stored with its original keys."
+    )
+    project_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        help_text="Unique IDs of accessible projects to include. Defaults to an empty list.",
+    )
 
     def validate_project_ids(self, value: list[int]) -> list[int]:
         if len(value) != len(set(value)):
@@ -93,7 +97,10 @@ class InvestigationUpdateValidator(StrictCamelSnakeValidator):
 
 
 class InvestigationDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
 
 
 class PermissionsUpdateValidator(StrictCamelSnakeValidator):
@@ -108,4 +115,6 @@ class PermissionsUpdateValidator(StrictCamelSnakeValidator):
 
 
 class FavoriteUpdateValidator(StrictCamelSnakeValidator):
-    should_favorite = serializers.BooleanField()
+    should_favorite = serializers.BooleanField(
+        help_text="Whether this investigation is a favorite for the authenticated user."
+    )

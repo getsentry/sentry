@@ -1,21 +1,47 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.issues.grouptype import (
+    AIDetectedHTTPGroupType,
+    FeedbackGroup,
+    GroupType,
+    PerformanceLargeHTTPPayloadGroupType,
+    PerformanceSlowDBQueryGroupType,
+    QueryInjectionVulnerabilityGroupType,
+)
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
     create_open_period,
+    should_record_open_period_activity,
     update_group_open_period,
 )
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
-from sentry.testutils.cases import APITestCase
+from sentry.models.project import Project
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.preprod.size_analysis.grouptype import PreprodSizeAnalysisGroupType
+from sentry.processing_errors.grouptype import SourcemapConfigurationType
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.endpoints.organization_open_periods import (
+    detector_opens_new_issue_per_activation,
+)
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 
 @freeze_time()
@@ -81,6 +107,13 @@ class OrganizationOpenPeriodsTest(APITestCase):
         )
         assert len(response.data) == 1
 
+    def test_open_periods_include_issue_short_id(self) -> None:
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"groupId": self.group.id}
+        )
+
+        assert response.data[0]["shortId"] == self.group.qualified_short_id
+
     def test_validation_error_when_missing_params(self) -> None:
         self.get_error_response(*self.get_url_args(), status_code=400)
 
@@ -145,6 +178,120 @@ class OrganizationOpenPeriodsTest(APITestCase):
             qs_params={"detectorId": restricted_detector.id},
             status_code=400,
         )
+
+    def create_detector_issue(
+        self, detector: Detector, first_seen: datetime, linked_at: datetime
+    ) -> Group:
+        group = self.create_group(type=MetricIssue.type_id, first_seen=first_seen)
+
+        self.create_detector_group(detector=detector, group=group, date_added=linked_at)
+
+        return group
+
+    def test_detector_id_returns_open_periods_across_issues(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        older_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            linked_at=timezone.now() - timedelta(minutes=30),
+        )
+
+        newer_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": metric_detector.id}
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [
+            str(newer_issue.id),
+            str(older_issue.id),
+        ]
+
+        assert [open_period["shortId"] for open_period in response.data] == [
+            newer_issue.qualified_short_id,
+            older_issue.qualified_short_id,
+        ]
+
+    def test_detector_id_limits_open_periods_across_issues(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            linked_at=timezone.now() - timedelta(minutes=30),
+        )
+
+        newer_issue = self.create_detector_issue(
+            metric_detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(),
+            qs_params={"detectorId": metric_detector.id, "per_page": 1},
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [str(newer_issue.id)]
+
+    def test_detector_id_returns_every_open_period_when_metric_issue_is_reused(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        issue = self.create_group(
+            type=MetricIssue.type_id,
+            first_seen=timezone.now() - timedelta(minutes=30),
+            status=GroupStatus.RESOLVED,
+            resolved_at=timezone.now() - timedelta(minutes=20),
+        )
+
+        self.create_detector_group(detector=metric_detector, group=issue)
+
+        create_open_period(issue, start_time=timezone.now() - timedelta(minutes=10))
+
+        first_open_period = GroupOpenPeriod.objects.get(group=issue, date_ended__isnull=False)
+
+        second_open_period = GroupOpenPeriod.objects.get(group=issue, date_ended__isnull=True)
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": metric_detector.id}
+        )
+
+        assert [open_period["id"] for open_period in response.data] == [
+            str(second_open_period.id),
+            str(first_open_period.id),
+        ]
+
+        assert [open_period["groupId"] for open_period in response.data] == [
+            str(issue.id),
+            str(issue.id),
+        ]
+
+        assert [open_period["shortId"] for open_period in response.data] == [
+            issue.qualified_short_id,
+            issue.qualified_short_id,
+        ]
+
+    def test_detector_id_returns_latest_issue_when_detector_reuses_issues(self) -> None:
+        DetectorGroup.objects.filter(detector=self.detector).update(
+            date_added=timezone.now() - timedelta(minutes=30)
+        )
+
+        newer_issue = self.create_detector_issue(
+            self.detector,
+            first_seen=timezone.now() - timedelta(minutes=10),
+            linked_at=timezone.now() - timedelta(minutes=10),
+        )
+
+        response = self.get_success_response(
+            *self.get_url_args(), qs_params={"detectorId": self.detector.id}
+        )
+
+        assert [open_period["groupId"] for open_period in response.data] == [str(newer_issue.id)]
 
     def test_open_periods_resolved_group(self) -> None:
         self.group.status = GroupStatus.RESOLVED
@@ -587,3 +734,103 @@ class OrganizationOpenPeriodsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(open_period_2.id)
+
+
+class DetectorOpensNewIssuePerActivationTest(TestCase):
+    def test_metric_detector_opens_new_issue_per_activation(self) -> None:
+        metric_detector = self.create_detector(type=MetricIssue.slug)
+
+        assert detector_opens_new_issue_per_activation(metric_detector) is True
+
+    def test_error_detector_does_not_open_new_issue_per_activation(self) -> None:
+        error_detector = self.create_detector(type=ErrorGroupType.slug)
+
+        assert detector_opens_new_issue_per_activation(error_detector) is False
+
+    def test_cron_detector_does_not_open_new_issue_per_activation(self) -> None:
+        cron_detector = self.create_detector(type=MonitorIncidentType.slug)
+
+        assert detector_opens_new_issue_per_activation(cron_detector) is False
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "issue_type",
+    [
+        ErrorGroupType,
+        MetricIssue,
+        MonitorIncidentType,
+        PreprodSizeAnalysisGroupType,
+        SourcemapConfigurationType,
+        UptimeDomainCheckFailure,
+    ],
+)
+def test_records_open_period_activities_without_detector_settings(
+    factories: Factories, default_project: Project, issue_type: type[GroupType]
+) -> None:
+    group = factories.create_group(
+        project=default_project,
+        type=issue_type.type_id,
+        priority=PriorityLevel.MEDIUM,
+        create_open_period=False,
+    )
+    start_time = timezone.now()
+    resolution_time = start_time + timedelta(minutes=1)
+    event_id = "a" * 32
+
+    with patch.dict(detector_settings_registry.registrations, clear=True):
+        create_open_period(group, start_time, event_id)
+
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        opened_activity = GroupOpenPeriodActivity.objects.get(
+            group_open_period=open_period, type=OpenPeriodActivityType.OPENED
+        )
+        assert open_period.date_started == start_time
+        assert opened_activity.value == PriorityLevel.MEDIUM
+        assert opened_activity.event_id == event_id
+
+        open_period.close_open_period(resolution_time)
+
+    open_period.refresh_from_db()
+    assert open_period.date_ended == resolution_time
+    assert GroupOpenPeriodActivity.objects.filter(
+        group_open_period=open_period, type=OpenPeriodActivityType.CLOSED
+    ).exists()
+
+
+def test_issue_stream_open_period_activity_policy_without_detector_settings() -> None:
+    # Issue stream is a synthetic type and cannot be stored as a Group row.
+    with patch.dict(detector_settings_registry.registrations, clear=True):
+        assert should_record_open_period_activity(IssueStreamGroupType.type_id)
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "issue_type",
+    [
+        PerformanceSlowDBQueryGroupType,
+        PerformanceLargeHTTPPayloadGroupType,
+        QueryInjectionVulnerabilityGroupType,
+        AIDetectedHTTPGroupType,
+        FeedbackGroup,
+    ],
+)
+def test_detector_registration_does_not_enable_open_period_activities(
+    factories: Factories, default_project: Project, issue_type: type[GroupType]
+) -> None:
+    group = factories.create_group(
+        project=default_project, type=issue_type.type_id, create_open_period=False
+    )
+    start_time = timezone.now()
+    resolution_time = start_time + timedelta(minutes=1)
+
+    with patch.dict(detector_settings_registry.registrations):
+        detector_settings_registry.register(issue_type.slug)(DetectorSettings)
+
+        create_open_period(group, start_time)
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        open_period.close_open_period(resolution_time)
+
+    open_period.refresh_from_db()
+    assert open_period.date_ended == resolution_time
+    assert not GroupOpenPeriodActivity.objects.filter(group_open_period=open_period).exists()

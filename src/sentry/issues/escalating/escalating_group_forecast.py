@@ -49,13 +49,7 @@ class EscalatingGroupForecast:
         )
 
     @classmethod
-    def _should_fetch_escalating(cls, group_id: int) -> bool:
-        group = Group.objects.get(id=group_id)
-
-        return group.issue_type.should_detect_escalation()
-
-    @classmethod
-    def fetch(cls, project_id: int, group_id: int) -> EscalatingGroupForecast | None:
+    def fetch(cls, group: Group) -> EscalatingGroupForecast | None:
         """
         Return the forecast from nodestore if it exists.
 
@@ -66,24 +60,24 @@ class EscalatingGroupForecast:
         """
         from sentry.issues.escalating.forecasts import generate_and_save_missing_forecasts
 
-        if not cls._should_fetch_escalating(group_id=group_id):
+        if not group.issue_type.should_detect_escalation():
             return None
 
-        results = nodestore.backend.get(cls.build_storage_identifier(project_id, group_id))
+        results = nodestore.backend.get(cls.build_storage_identifier(group.project_id, group.id))
         if results:
             return EscalatingGroupForecast.from_dict(results)
-        generate_and_save_missing_forecasts.delay(group_id=group_id)
+        generate_and_save_missing_forecasts.delay(group_id=group.id)
         return EscalatingGroupForecast(
-            project_id=project_id,
-            group_id=group_id,
+            project_id=group.project_id,
+            group_id=group.id,
             forecast=ONE_EVENT_FORECAST,
             date_added=datetime.now(),
         )
 
     @classmethod
-    def fetch_todays_forecast(cls, project_id: int, group_id: int) -> int | None:
+    def fetch_todays_forecast(cls, group: Group) -> int | None:
         date_now = datetime.now().date()
-        escalating_forecast = EscalatingGroupForecast.fetch(project_id, group_id)
+        escalating_forecast = EscalatingGroupForecast.fetch(group)
 
         if not escalating_forecast:
             return None

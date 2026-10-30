@@ -143,6 +143,20 @@ register(
 )
 
 register(
+    "outbox_replication.service_accounts_serviceaccount.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "outbox_replication.service_accounts_serviceaccountproject.replication_version",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "outbox_replication.sentry_apitoken.backfill.target_cells",
     type=Sequence,
     default=[],

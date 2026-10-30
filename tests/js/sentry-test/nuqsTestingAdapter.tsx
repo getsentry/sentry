@@ -1,11 +1,11 @@
 import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
-import {UNSAFE_DataRouterContext} from 'react-router-dom';
+import {UNSAFE_DataRouterContext} from 'react-router';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
 } from 'nuqs/adapters/custom';
 import type {unstable_AdapterInterface as AdapterInterface} from 'nuqs/adapters/custom';
-import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
+import {NuqsTestingAdapter, type OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -84,8 +84,14 @@ export function SentryNuqsTestingAdapter({
   onUrlUpdate,
 }: SentryNuqsTestingAdapterProps): ReactElement {
   return (
-    <UrlUpdateContext value={onUrlUpdate}>
-      <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>
-    </UrlUpdateContext>
+    // nuqs keeps its URL update queue in a global, and only its own testing
+    // adapter clears it on mount, so a previous test's pending write would
+    // otherwise become this test's initial state. The inner provider overrides
+    // its adapter.
+    <NuqsTestingAdapter>
+      <UrlUpdateContext value={onUrlUpdate}>
+        <AdapterProvider defaultOptions={defaultOptions}>{children}</AdapterProvider>
+      </UrlUpdateContext>
+    </NuqsTestingAdapter>
   );
 }

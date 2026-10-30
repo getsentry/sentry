@@ -90,6 +90,27 @@ describe('api', () => {
         );
       });
 
+      it('records the request duration when a global error handler skips the error handler', async () => {
+        fetchMock.mockResponse(() => ({status: 401, body: '{}'}));
+        const unregister = registerApiErrorHandler(() => true);
+        const error = jest.fn();
+        const complete = jest.fn();
+
+        new Client().request('/test/', {error, complete});
+
+        await waitFor(() => expect(complete).toHaveBeenCalled());
+        unregister();
+        expect(error).not.toHaveBeenCalled();
+        expect(Sentry.metrics.distribution).toHaveBeenCalledWith(
+          'ui.api-request',
+          expect.any(Number),
+          {
+            unit: 'millisecond',
+            attributes: {status: 401, outcome: 'error', url: '/test/', method: 'GET'},
+          }
+        );
+      });
+
       it('counts an abort once when a request is cancelled repeatedly', () => {
         const client = new Client();
         client.activeRequests = {1: new Request(new Promise(() => null))};

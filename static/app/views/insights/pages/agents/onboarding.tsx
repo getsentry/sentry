@@ -1,10 +1,10 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
+import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -29,7 +29,6 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -46,7 +45,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AI_AGENTS_GETTING_STARTED_DOCS_LINK,
@@ -62,49 +60,15 @@ import {
   PulsingIndicator,
   SubTitle,
   useOnboardingProject,
+  useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
-function useAiSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: getHasAiSpansFilter(),
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    Referrer.ONBOARDING
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
-
 function WaitingIndicator({project}: {project: Project}) {
-  const spanRequest = useAiSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: getHasAiSpansFilter(),
+    referrer: Referrer.ONBOARDING,
+  });
   const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);
 
@@ -164,7 +128,13 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
+              <Flex
+                containerType="inline-size"
+                justify="between"
+                gap="2xl"
+                radius="md"
+                padding="3xl"
+              >
                 <HeaderText>
                   <Title>{t('Monitor AI Agents')}</Title>
                   <SubTitle>
@@ -195,21 +165,31 @@ function OnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Container display={{zero: 'none', xl: 'block'}}>
-                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                <Container
+                  display={{zero: 'none', xl: 'block'}}
+                  alignSelf="center"
+                  pointerEvents="none"
+                  flexShrink={0}
+                >
+                  <Image
+                    src={agentTracingEmptyStateImg}
+                    alt=""
+                    height="180px"
+                    width="auto"
+                  />
                 </Container>
               </Flex>
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
-                <Preview>
+                <Container padding="3xl">
                   <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                   <Arcade
                     src="https://demo.arcade.software/0NzB6M1Wn8sDsFDAj4sE?embed"
                     loading="lazy"
                     allowFullScreen
                   />
-                </Preview>
+                </Container>
               </Body>
             </div>
           </TabSelectionScope>
@@ -243,6 +223,7 @@ export function Onboarding() {
     platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions,
   } = useAgentOnboardingOptions({
     platform: project?.platform,
     platformInfo: currentPlatform,
@@ -308,11 +289,13 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      {!projectAgentIntegration && (
+      {showPlatformOptions && (
         <OptionsWrapper>
           <PlatformOptionDropdown
             platformOptions={platformOptions}
-            connectors={{deploymentTarget: t('on')}}
+            // Framework projects only render the runtime selector, which then
+            // directly follows "with".
+            connectors={projectAgentIntegration ? undefined : {deploymentTarget: t('on')}}
             lockedValues={
               integrationDeploymentTarget
                 ? {deploymentTarget: integrationDeploymentTarget}
@@ -506,10 +489,6 @@ const Setup = styled('div')`
   }
 `;
 
-const Preview = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const Body = styled('div')`
   display: grid;
   position: relative;
@@ -529,16 +508,10 @@ const Arcade = styled('iframe')`
   border: 0;
 `;
 
-const Image = styled('img')`
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
-`;
-
 const Divider = styled('hr')`
   height: 1px;
   width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+  /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
   background: ${p => p.theme.tokens.border.primary};
   border: none;
   margin-top: 0;

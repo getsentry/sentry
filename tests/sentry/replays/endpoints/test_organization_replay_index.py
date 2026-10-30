@@ -14,9 +14,10 @@ from sentry.replays.testutils import (
 )
 from sentry.replays.usecases.query import QueryResponse
 from sentry.replays.validators import ReplaySelectorValidator, ReplayValidator
+from sentry.search.events.constants import RATE_LIMIT_ERROR_MESSAGE, TIMEOUT_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase
 from sentry.utils.cursors import Cursor
-from sentry.utils.snuba import QueryMemoryLimitExceeded
+from sentry.utils.snuba import QueryMemoryLimitExceeded, QueryTooManySimultaneous
 
 
 class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
@@ -1089,6 +1090,36 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url + f"?field=id&query={query}")
                 assert response.status_code == 400, query
 
+    def test_get_replays_filter_dangling_boolean_operator(self) -> None:
+        self.create_project(teams=[self.team])
+
+        queries = [
+            "AND user.email:a",
+            "OR user.email:a",
+            "user.email:a AND",
+            "user.email:a AND OR user.email:b",
+            "(OR user.email:a)",
+        ]
+
+        with self.feature(self.features):
+            for query in queries:
+                response = self.client.get(self.url, {"field": "id", "query": query})
+                assert response.status_code == 400, query
+
+    def test_get_replays_far_future_end_is_clamped(self) -> None:
+        project = self.create_project(teams=[self.team])
+        replay_id = uuid.uuid4().hex
+        timestamp = datetime.datetime.now() - datetime.timedelta(seconds=10)
+        self.store_replays(mock_replay(timestamp, project.id, replay_id))
+
+        start = (timestamp - datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, {"field": "id", "start": start, "end": "9999-12-31T23:59:59Z"}
+            )
+            assert response.status_code == 200
+            assert [r["id"] for r in response.json()["data"]] == [replay_id]
+
     def test_get_replays_filter_bad_value(self) -> None:
         """Test replays conform to the interchange format."""
         self.create_project(teams=[self.team])
@@ -1206,6 +1237,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "duration": None,
                     "is_archived": True,
                     "releases": [],
+                    "replay_type": "session",
                     "platform": None,
                     "dist": None,
                     "count_segments": None,
@@ -1271,6 +1303,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "duration": None,
                     "is_archived": True,
                     "releases": [],
+                    "replay_type": "session",
                     "platform": None,
                     "dist": None,
                     "count_segments": None,
@@ -1648,11 +1681,21 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
-                assert response.status_code == 400
-                assert (
-                    response.content
-                    == b'{"detail":"Query limits exceeded. Try narrowing your request."}'
-                )
+                assert response.status_code == 504
+                assert response.data["detail"] == TIMEOUT_ERROR_MESSAGE
+
+    def test_get_replays_too_many_simultaneous_queries(self) -> None:
+        """Assert Snuba concurrency limits are surfaced as a retryable 429."""
+        self.create_project(teams=[self.team])
+
+        with self.feature(self.features):
+            with mock.patch(
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_paginated",
+                side_effect=QueryTooManySimultaneous("mocked error"),
+            ):
+                response = self.client.get(self.url)
+                assert response.status_code == 429
+                assert response.data["detail"] == RATE_LIMIT_ERROR_MESSAGE
 
     def test_get_replays_filter_clicks_non_click_rows(self) -> None:
         project = self.create_project(teams=[self.team])

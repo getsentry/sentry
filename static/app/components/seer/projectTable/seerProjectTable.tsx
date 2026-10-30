@@ -1,5 +1,7 @@
 import {Fragment, useState} from 'react';
 import {css} from '@emotion/react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconSearch} from '@sentry/icons/search';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
@@ -31,8 +33,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {ProjectTableHeader} from 'sentry/components/seer/projectTable/seerProjectTableHeader';
-import {IconAdd} from 'sentry/icons/iconAdd';
-import {IconSearch} from 'sentry/icons/iconSearch';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -336,7 +336,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -367,7 +366,6 @@ export function SeerProjectTable() {
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={PR_ITERATION_OPTIONS}
-                              // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
                             />
@@ -422,7 +420,10 @@ function AgentSelectCell({
           disabled={disabled}
           menuPortalTarget={document.body}
           multiple={false}
-          onMenuOpen={() => {
+          onOpenChange={isOpen => {
+            if (!isOpen) {
+              return;
+            }
             // Warm the cache so the on-change check below usually resolves from
             // cache instead of blocking on a fetch.
             void prefetchAllSeerProjectRepos({
@@ -456,7 +457,6 @@ function AgentSelectCell({
             field.handleBlur();
           }}
           options={agentSelectOptions}
-          // @ts-expect-error: Select component does not have a size prop defined
           size="xs"
           value={field.state.value}
         />
@@ -476,6 +476,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
       size="md"
       onClick={async () => {
         setIsLoadingModal(true);
+        // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');

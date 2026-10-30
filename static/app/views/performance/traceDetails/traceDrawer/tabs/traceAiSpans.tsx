@@ -20,6 +20,7 @@ import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSp
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
@@ -142,16 +143,16 @@ export function TraceAiSpans({
           selectedNodeKey={selectedNode?.id ?? null}
         />
       </LeftPanel>
-      <RightPanel>
-        {selectedNode?.renderDetails({
-          node: selectedNode,
-          onTabScrollToNode: () => {},
-          organization,
-          traceId: traceSlug,
-          hideNodeActions: true,
-          initiallyCollapseAiIO: false,
-        })}
-      </RightPanel>
+      <Container
+        flex="1"
+        paddingTop="md"
+        minWidth="400px"
+        minHeight="0"
+        overflowX="hidden"
+        overflowY="auto"
+      >
+        {selectedNode ? <AiSpanDetails node={selectedNode} traceId={traceSlug} /> : null}
+      </Container>
     </Wrapper>
   );
 }
@@ -168,14 +169,6 @@ export function AiSpansSplitView({
   traceSlug: string;
 }) {
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
-
-  const nodeTraceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const node of nodes) {
-      map.set(node.id, traceSlug);
-    }
-    return map;
-  }, [nodes, traceSlug]);
 
   if (nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
@@ -197,11 +190,11 @@ export function AiSpansSplitView({
         </ConversationLeftPanel>
       }
       right={
-        <ConversationDetailPanel
-          selectedNode={selectedNode}
-          nodeTraceMap={nodeTraceMap}
-          initiallyCollapseAiIO={false}
-        />
+        <ConversationDetailPanel>
+          {selectedNode ? (
+            <AiSpanDetails node={selectedNode} traceId={traceSlug} />
+          ) : null}
+        </ConversationDetailPanel>
       }
     />
   );
@@ -245,13 +238,4 @@ const LeftPanel = styled('div')`
   overflow-y: auto;
   overflow-x: hidden;
   max-width: 400px;
-`;
-
-const RightPanel = styled('div')`
-  min-width: 400px;
-  padding-top: ${p => p.theme.space.md};
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
 `;

@@ -1,4 +1,3 @@
-from typing import Any, Mapping
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -6,7 +5,6 @@ from jsonschema import ValidationError
 
 from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType
 from sentry.models.group import Group
-from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.workflow_engine.handlers.condition.issue_category_handler import (
     IssueCategoryConditionHandler,
 )
@@ -19,10 +17,6 @@ from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionT
 
 class TestIssueCategoryCondition(ConditionTestCase):
     condition = Condition.ISSUE_CATEGORY
-    payload: Mapping[str, Any] = {
-        "id": IssueCategoryFilter.id,
-        "value": "1",
-    }
 
     def setUp(self) -> None:
         super().setUp()
@@ -34,31 +28,6 @@ class TestIssueCategoryCondition(ConditionTestCase):
             },
             condition_result=True,
         )
-
-    def test_dual_write(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(self.payload, dcg)
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "value": 1,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
-
-    def test_dual_write_exclude(self) -> None:
-        dcg = self.create_data_condition_group()
-        dc = self.translate_to_data_condition(
-            {"id": IssueCategoryFilter.id, "value": "1", "include": False}, dcg
-        )
-
-        assert dc.type == self.condition
-        assert dc.comparison == {
-            "value": 1,
-            "include": False,
-        }
-        assert dc.condition_result is True
-        assert dc.condition_group == dcg
 
     def test_json_schema(self) -> None:
         self.dc.comparison.update({"value": 2})

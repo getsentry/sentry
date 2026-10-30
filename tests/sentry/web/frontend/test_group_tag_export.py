@@ -72,6 +72,32 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         response = self.client.get(self.url)
         self.verify_test(response)
 
+    def test_formula_tag_value_escaped(self) -> None:
+        group = self.store_event(
+            data={
+                "fingerprint": ["formula"],
+                "tags": {self.key: "=1+1"},
+                "timestamp": before_now(seconds=1).isoformat(),
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        url = reverse(
+            "sentry-group-tag-export",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "group_id": group.id,
+                "key": self.key,
+            },
+        )
+
+        response = self.client.get(f"{url}?environment={self.environment.name}")
+
+        rows = response.getvalue().decode("utf-8").splitlines()
+        assert rows[1].startswith("'=1+1,1,")
+
     def test_simple_organization_prefix(self) -> None:
         url = reverse(
             "sentry-organization-group-tag-export",

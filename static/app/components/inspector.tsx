@@ -1,16 +1,22 @@
 import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import {css, useTheme} from '@emotion/react';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCopy} from '@sentry/icons/copy';
+import {IconDocs} from '@sentry/icons/docs';
+import {IconLink} from '@sentry/icons/link';
+import {IconOpen} from '@sentry/icons/open';
 
 import {Tag} from '@sentry/scraps/badge';
 import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Overlay} from 'sentry/components/overlay';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -18,10 +24,9 @@ import {
   ProfilingContextMenuItemButton,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
-import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
-import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
+import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -54,7 +59,7 @@ export function SentryComponentInspector() {
 
   useHotkeys([
     {
-      match: 'mod+i',
+      hotkey: 'Mod+I',
       callback: () => {
         if (NODE_ENV !== 'development') {
           return;
@@ -457,6 +462,12 @@ export function SentryComponentInspector() {
   );
 }
 
+const SUB_MENU_MIDDLEWARE = [
+  offset({crossAxis: -16, mainAxis: 0}),
+  flipOverlay(),
+  shiftOverlay(),
+];
+
 function MenuItem(props: {
   componentName: string;
   contextMenu: ReturnType<typeof useContextMenu>;
@@ -472,59 +483,46 @@ function MenuItem(props: {
     ? storyFrontmatterIndex[props.storybook]?.figma
     : undefined;
 
-  const [isOpen, _setIsOpen] = useState(false);
-  const triggerRef = useRef<HTMLButtonElement | null>(null);
-  // oxlint-disable-next-line react/refs
-  const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
+  const [isOpen, setIsOpen] = useState(false);
+  const {
+    refs: {reference: triggerRef, setReference: setTriggerElement},
+    floatingStyles,
+  } = useFloating<HTMLButtonElement>({
+    elements: {floating: props.subMenuPortalRef},
     placement: 'right-start',
-    modifiers: [
-      {
-        name: 'offset',
-        options: {
-          offset: [-16, 0],
-        },
-      },
-    ],
+    middleware: SUB_MENU_MIDDLEWARE,
+    whileElementsMounted: isOpen ? autoUpdate : undefined,
   });
 
-  const setIsOpen: typeof _setIsOpen = useCallback(
-    nextState => {
-      _setIsOpen(nextState);
-      popper.update?.();
-    },
-    [popper]
-  );
+  // Close the submenu once the pointer leaves both the item and the submenu
+  const subMenuRef = useCallback(
+    (subMenu: HTMLDivElement) => {
+      const listener = (e: MouseEvent) => {
+        window.requestAnimationFrame(() => {
+          const target = e.target;
+          if (
+            target instanceof Node &&
+            !triggerRef.current?.contains(target) &&
+            !subMenu.contains(target)
+          ) {
+            setIsOpen(false);
+          }
+        });
+      };
+      document.addEventListener('mouseover', listener);
 
-  const currentTarget = useRef<Node | null>(null);
-  useLayoutEffect(() => {
-    const listener = (e: MouseEvent) => {
-      window.requestAnimationFrame(() => {
-        currentTarget.current = e.target as Node;
-        if (!currentTarget.current) {
-          return;
-        }
-        if (
-          !triggerRef.current?.contains(currentTarget.current) &&
-          !props.subMenuPortalRef?.contains(currentTarget.current)
-        ) {
-          setIsOpen(false);
-        }
-      });
-    };
-    document.addEventListener('mouseover', listener);
-    return () => {
-      document.removeEventListener('mouseover', listener);
-    };
-  }, [props.subMenuPortalRef, setIsOpen]);
+      return () => {
+        document.removeEventListener('mouseover', listener);
+      };
+    },
+    [triggerRef]
+  );
 
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
-        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
-          ref: el => {
-            triggerRef.current = el;
-          },
+          ref: setTriggerElement,
           onClick: () => {
             setIsOpen(true);
           },
@@ -568,7 +566,8 @@ function MenuItem(props: {
         props.subMenuPortalRef &&
         createPortal(
           <ProfilingContextMenu
-            style={popper.styles.popper}
+            ref={subMenuRef}
+            style={floatingStyles}
             css={css`
               max-height: 250px;
               z-index: 1000000 !important;

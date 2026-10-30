@@ -1,28 +1,23 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
 
-import {BreakdownPanelItem} from './styles';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-describe('trace table panel items', () => {
-  it('preserves element selection and styles without forwarding styling props', () => {
+import {BreakdownCell} from './styles';
+
+describe('trace table cells', () => {
+  it('renders a table cell without forwarding highlightedSliceName', () => {
     render(
-      <BreakdownPanelItem
-        as="section"
-        aria-label="Span breakdown"
-        highlightedSliceName="database"
-        overflow
-      >
-        Breakdown
-      </BreakdownPanelItem>
+      <SimpleTable>
+        <SimpleTable.Row>
+          <BreakdownCell aria-label="Span breakdown" highlightedSliceName="database">
+            Breakdown
+          </BreakdownCell>
+        </SimpleTable.Row>
+      </SimpleTable>
     );
 
-    const panel = screen.getByRole('region', {name: 'Span breakdown'});
-    expect(panel.tagName).toBe('SECTION');
-    const styles = getEmotionRules(panel).join(' ');
-    expect(styles).toMatch(/overflow:\s*hidden/);
-    expect(styles).toMatch(/text-overflow:\s*ellipsis/);
-    expect(panel).not.toHaveAttribute('overflow');
-    expect(panel).not.toHaveAttribute('highlightedSliceName');
-    expect(panel).not.toHaveAttribute('as');
+    const cell = screen.getByRole('cell', {name: 'Span breakdown'});
+    expect(cell.tagName).toBe('TD');
+    expect(cell).not.toHaveAttribute('highlightedSliceName');
   });
 });

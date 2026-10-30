@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
+import {IconFire} from '@sentry/icons/fire';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {TextOverflow} from 'sentry/components/textOverflow';
-import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Thread} from 'sentry/types/event';
 import type {EntryData} from 'sentry/types/group';

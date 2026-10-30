@@ -2,12 +2,15 @@ import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
+
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
-import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import type {Organization} from 'sentry/types/organization';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
@@ -16,12 +19,14 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
 import {
+  canCreateAlerts,
   constructAddQueryToDashboardLink,
-  decodeColumnOrder,
   downloadAsCsv,
   eventViewToWidgetQuery,
   generateFieldOptions,
+  getCreateAlertFromViewUrl,
   getExpandedResults,
   handleAddQueryToDashboard,
 } from 'sentry/views/discover/utils';
@@ -697,7 +702,23 @@ describe('downloadAsCsv', () => {
       data: [{message: '=HYPERLINK(http://some-bad-website#)'}],
     };
     expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
-      encodeURIComponent("message\r\n'=HYPERLINK(http://some-bad-website#)")
+      encodeURIComponent('message\r\n"\'=HYPERLINK(http://some-bad-website#)"')
+    );
+  });
+  it('quotes unsafe strings after leading whitespace and newlines', () => {
+    const result = {
+      data: [{message: '\t=1+1'}, {message: ' @SUM(A1)'}, {message: '-1+1\nfoo'}],
+    };
+    expect(downloadAsCsv(result, [messageColumn], 'filename.csv')).toContain(
+      encodeURIComponent('message\r\n"\'\t=1+1"\r\n"\' @SUM(A1)"\r\n"\'-1+1\nfoo"')
+    );
+  });
+  it('does not quote numbers', () => {
+    const result = {
+      data: [{count: -3}],
+    };
+    expect(downloadAsCsv(result, [countColumn], 'filename.csv')).toContain(
+      encodeURIComponent('count\r\n-3')
     );
   });
   it('handles the user column', () => {
@@ -1235,5 +1256,39 @@ describe('handleAddQueryToDashboard', () => {
         })
       );
     });
+  });
+});
+
+describe('getCreateAlertFromViewUrl', () => {
+  it('builds the monitor url and removes a duplicate project filter', () => {
+    const organization = OrganizationFixture();
+    const projects = [ProjectFixture()];
+    const eventView = EventView.fromSavedQuery({
+      ...DEFAULT_EVENT_VIEW,
+      query: 'event.type:error project:project-slug',
+      projects: [2],
+    });
+
+    expect(getCreateAlertFromViewUrl({organization, projects, eventView})).toEqual(
+      expect.objectContaining({
+        pathname: '/organizations/org-slug/monitors/new/settings',
+        query: expect.objectContaining({
+          detectorType: 'metric_issue',
+          query: 'event.type:error ',
+          project: '2',
+        }),
+      })
+    );
+  });
+});
+
+describe('canCreateAlerts', () => {
+  it('requires alerts:write on the organization or a project', () => {
+    const projects = [{...ProjectFixture(), access: []}];
+
+    expect(canCreateAlerts(OrganizationFixture({access: []}), projects)).toBe(false);
+    expect(
+      canCreateAlerts(OrganizationFixture({access: ['alerts:write']}), projects)
+    ).toBe(true);
   });
 });

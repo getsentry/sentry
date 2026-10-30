@@ -5,6 +5,7 @@ import {TagsFixture} from 'sentry-fixture/tags';
 import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -18,6 +19,9 @@ import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
 const group = GroupFixture();
 const tags = TagsFixture();
+const pageLinks =
+  '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+  '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
 const makeInitialRouterConfig = (tagKey: string) => ({
   location: {
@@ -45,6 +49,7 @@ describe('TagDetailsDrawerContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    jest.restoreAllMocks();
   });
 
   it('renders a list of tag values', async () => {
@@ -84,11 +89,7 @@ describe('TagDetailsDrawerContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
-      headers: {
-        Link:
-          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
-          '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
-      },
+      headers: {Link: pageLinks},
     });
     const {router} = render(<TagDetailsDrawerContent group={group} />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
@@ -103,6 +104,54 @@ describe('TagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
+  });
+
+  it('sorts tag values by the clicked column header', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+    const dateSortRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      match: [MockApiClient.matchQuery({sort: 'date'})],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const countHeaderSort = screen
+      .getByRole('columnheader', {name: 'Count'})
+      .getAttribute('aria-sort');
+
+    await userEvent.click(screen.getByRole('link', {name: 'Last Seen'}));
+
+    expect(countHeaderSort).toBe('descending');
+    await waitFor(() => {
+      expect(router.location.query.tagDrawerSort).toBe('date');
+    });
+    expect(screen.getByRole('columnheader', {name: 'Last Seen'})).toHaveAttribute(
+      'aria-sort',
+      'descending'
+    );
+    expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
+      'aria-sort'
+    );
+    expect(dateSortRequest).toHaveBeenCalled();
+  });
+
+  it('renders an empty state when the tag has no values', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [],
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    expect(await screen.findByText('No tag values found')).toBeInTheDocument();
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
@@ -125,6 +174,72 @@ describe('TagDetailsDrawerContent', () => {
       'href',
       '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
     );
+  });
+
+  it('escapes reserved tag names when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/',
+      body: {...tags[0], key: 'project_id'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/values/',
+      body: [
+        {
+          ...TagValuesFixture()[0],
+          key: 'project_id',
+          value: 'custom-project',
+          query: undefined,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('project_id'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: 'custom-project'}));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/1/events/recommended/'
+    );
+    expect(router.location.query.query).toBe('tags[project_id]:"custom-project"');
+  });
+
+  it('escapes quotes in tag values when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {...TagValuesFixture()[0], name: 'say "hi"', value: 'say "hi"', query: undefined},
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: /say "hi"/}));
+
+    expect(router.location.query.query).toBe('user:"say \\"hi\\""');
+  });
+
+  it('renders null tag values as empty instead of crashing', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {
+          count: 5,
+          firstSeen: '2024-01-01T00:00:00Z',
+          lastSeen: '2024-01-01T00:00:00Z',
+          id: null,
+          value: null,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: '(empty)'}));
+
+    expect(router.location.query.query).toBe('user:""');
   });
 
   it('navigates to explore with issue + tag query', async () => {
@@ -180,6 +295,55 @@ describe('TagDetailsDrawerContent', () => {
     expect(
       await screen.findByText('There was an error loading tag details')
     ).toBeInTheDocument();
+  });
+
+  it('renders an error without pagination when the tag request fails', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      statusCode: 500,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    expect(
+      await screen.findByText('There was an error loading tag details')
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Next'})).not.toBeInTheDocument();
+  });
+
+  it('hides pagination while the tag request is pending', async () => {
+    let resolveTagRequest = () => {};
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/',
+      body: tags.find(({key}) => key === 'user'),
+      asyncDelay: new Promise<void>(resolve => {
+        resolveTagRequest = resolve;
+      }),
+    });
+    const valuesRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+    });
+
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await waitFor(() => expect(valuesRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    const nextButtonWhilePending = screen.queryByRole('button', {name: 'Next'});
+    resolveTagRequest();
+
+    expect(nextButtonWhilePending).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
 
   it('renders rounded percentages counts [996, 4], total 1000', async () => {

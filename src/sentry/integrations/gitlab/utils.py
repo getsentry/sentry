@@ -8,6 +8,10 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 API_VERSION = "/api/v4"
 
 
+def build_integration_external_id(hostname: str, group_id: int, organization_id: int) -> str:
+    return f"{hostname}:{group_id}-{organization_id}"
+
+
 class GitLabRateLimitInfo:
     def __init__(self, info: Mapping[str, int]) -> None:
         self.limit = info["limit"]

@@ -190,7 +190,7 @@ const Instruction = styled('div')`
 `;
 
 const modalCss = (theme: Theme) => css`
-  @container (min-width: ${theme.container['3xl']}) {
+  @media (min-width: ${theme.container['3xl']}) {
     width: auto;
     max-width: 900px;
   }

@@ -5,9 +5,11 @@ from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
@@ -16,7 +18,6 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_recording_filename
 from sentry.replays.usecases.reader import download_segment, fetch_segment_metadata
-from sentry.utils.tracing import start_span
 
 
 class _SegmentMetadataResponse(TypedDict):
@@ -62,7 +63,8 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
         """Return a replay recording segment."""
         self.check_replay_access(request, project)
 
-        segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
+        with handle_query_errors():
+            segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
         if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 
@@ -84,9 +86,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
             return self.respond(body)
 
     def download(self, segment: RecordingSegmentStorageMeta) -> StreamingHttpResponse:
-        with start_span(
-            op="download_segment",
+        with traces.start_span(
             name="ProjectReplayRecordingSegmentDetailsEndpoint.download_segment",
+            attributes={"sentry.op": "download_segment"},
         ) as child_span:
             segment_bytes = download_segment(segment, span=child_span)
             segment_reader = BytesIO(segment_bytes)

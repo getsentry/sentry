@@ -92,7 +92,6 @@ export type IssueEventParameters = {
   'integrations.integration_reinstall_clicked': {
     provider: string;
   };
-  'issue-details.android-tombstones-cta-dismiss': {type: string};
   'issue-details.replay-cta-dismiss': {type: string};
   'issue.engaged_view': {
     group_id: number;
@@ -206,6 +205,11 @@ export type IssueEventParameters = {
   };
   'issue_inbox.issue_viewed': IssueInboxItemParams;
   'issue_inbox.item_clicked': IssueInboxItemParams;
+  'issue_inbox.open_in_desktop_app_clicked': {
+    agent: 'cursor' | 'codex' | 'claude-code';
+    group_id: string;
+    event_id?: string;
+  };
   'issue_search.empty': {
     query: string;
     search_source: string;
@@ -374,6 +378,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.assignment_filter_changed': 'Issue Inbox: Assignment Filter Changed',
   'issue_inbox.issue_viewed': 'Issue Inbox: Issue Viewed',
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
+  'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
@@ -399,8 +404,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.event_dropdown_option_selected':
     'Issue Details: Event Dropdown Option Selected',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
-  'issue-details.android-tombstones-cta-dismiss':
-    'Issue Details Android Tombstones CTA Dismissed',
   'issue-details.replay-cta-dismiss': 'Issue Details Replay CTA Dismissed',
   'issue_group_details.anr_root_cause_detected': 'Detected ANR Root Cause',
   'issue_details.copy_issue_details_as_markdown':

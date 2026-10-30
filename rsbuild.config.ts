@@ -6,7 +6,7 @@ import path from 'node:path';
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
-import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import {RsdoctorRspackPlugin} from '@rsdoctor/core';
 import type {
   Configuration,
   OptimizationSplitChunksCacheGroup,
@@ -221,7 +221,24 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
               'component-attr': 'data-sentry-component',
               'element-attr': 'data-sentry-element',
               'source-file-attr': 'data-sentry-source-file',
-              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+              // Layout and interactive primitives report the component that renders
+              // them, like `IssueActions-Button`, instead of their own name
+              'transparent-components': [
+                'Flex',
+                'Grid',
+                'Container',
+                'Stack',
+                'Button',
+                'LinkButton',
+                'Link',
+                'LinkBase',
+                'ExternalLink',
+                'DropdownButton',
+                'Checkbox',
+                'Radio',
+                'Switch',
+                'Input',
+              ],
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
@@ -239,10 +256,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
       tsx: true,
     },
     transform: {
-      // TODO: Enable in production
-      reactCompiler:
-        options.reactCompiler &&
-        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      reactCompiler: options.reactCompiler,
       react: {
         runtime: 'automatic',
         development: DEV_MODE,
@@ -257,6 +271,14 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
 /**
  * Main Webpack config for Sentry React SPA.
  */
+
+// Resolve workspace imports from the importing package's declared dependencies.
+const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
+  include: path.join(staticPrefix, directory),
+  resolve: {
+    modules: [path.join(staticPrefix, directory, 'node_modules')],
+  },
+}));
 
 const appConfig: Configuration = {
   name: 'app',
@@ -296,7 +318,10 @@ const appConfig: Configuration = {
     futureDefaults: true,
     // https://rspack.rs/config/experiments#experimentsnativewatcher
     // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
-    nativeWatcher: true,
+    // On Linux the native (inotify) watcher confuses the
+    // static/app/node_modules/sentry -> .. self-link with the real directory,
+    // so edits under static/app never trigger a rebuild.
+    nativeWatcher: process.platform === 'darwin',
   },
   // https://rspack.rs/config/lazy-compilation
   lazyCompilation: {
@@ -318,6 +343,7 @@ const appConfig: Configuration = {
      * Please remember to test it.
      */
     rules: [
+      ...workspaceResolutionRules,
       {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
@@ -492,28 +518,17 @@ const appConfig: Configuration = {
 
   resolve: {
     alias: {
-      sentry: path.join(staticPrefix, 'app'),
       'sentry-images': path.join(staticPrefix, 'images'),
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      // Keep Prose available until the text barrel is fully isolated.
-      '@sentry/scraps/text$': path.join(
-        staticPrefix,
-        'app',
-        'components',
-        'core',
-        'text'
-      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),
       ],
 
-      getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
-      admin: path.join(staticPrefix, 'gsAdmin'),
 
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
@@ -566,7 +581,17 @@ const appConfig: Configuration = {
       chunks: 'async',
       maxInitialRequests: 10, // (default: 30)
       maxAsyncRequests: 10, // (default: 30)
-      cacheGroups: localeChunkGroups,
+      cacheGroups: {
+        ...localeChunkGroups,
+        // Keep charting in one chunk that only changes when echarts is
+        // upgraded, so it stays cached across deploys
+        echarts: {
+          chunks: 'async',
+          name: 'echarts',
+          test: /[\\/]node_modules[\\/](echarts|echarts-for-react|zrender)[\\/]/,
+          enforce: true,
+        },
+      },
     },
 
     // This only runs in production mode
@@ -594,6 +619,7 @@ const workerConfig: Configuration = {
   lazyCompilation: appConfig.lazyCompilation,
   module: {
     rules: [
+      ...workspaceResolutionRules,
       {
         test: /\.ts$/,
         // core-js: Avoids recompiling core-js based on usage imports
@@ -971,6 +997,9 @@ if (IS_PRODUCTION) {
       },
       release: {
         create: false,
+        // The SDK sets `release` itself. Injecting it puts the commit SHA in
+        // every chunk, which changes every chunk hash on every deploy.
+        inject: false,
       },
       reactComponentAnnotation: {
         // Using swc-plugin-react-component-annotate instead
@@ -986,16 +1015,21 @@ if (IS_PRODUCTION) {
   );
 }
 
-// Cache rspack builds
+// Cache rspack builds (CI and Vercel)
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
+  appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'persistent',
-    // https://rspack.rs/config/cache
-    storage: {
-      type: 'filesystem',
-      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
-    },
+    type: 'filesystem',
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    // Read entries from disk instead of holding the whole cache in memory
+    maxMemoryGenerations: 0,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
 }
 

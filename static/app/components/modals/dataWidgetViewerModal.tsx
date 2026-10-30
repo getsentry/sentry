@@ -1,4 +1,4 @@
-import {Fragment, memo, useEffect, useMemo, useState} from 'react';
+import {Fragment, memo, useCallback, useEffect, useMemo, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {truncate} from '@sentry/core';
@@ -13,8 +13,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Select, SelectOption, components} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 import type {SelectValue} from '@sentry/scraps/select';
+import type {Theme} from '@sentry/scraps/theme';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
@@ -28,6 +29,7 @@ import type {User} from 'sentry/types/user';
 import {CAN_MARK, trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
+import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -47,7 +49,6 @@ import {
   decodeScalar,
   decodeSorts,
 } from 'sentry/utils/queryString';
-import type {Theme} from 'sentry/utils/theme';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
@@ -82,7 +83,6 @@ import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHas
 import {
   getWidgetExploreUrl,
   getWidgetTableRowExploreUrlFunction,
-  widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
 import {widgetCanUseTimeSeriesVisualization} from 'sentry/views/dashboards/utils/widgetCanUseTimeSeriesVisualization';
@@ -90,7 +90,10 @@ import {
   SESSION_DURATION_ALERT,
   WidgetDescription,
 } from 'sentry/views/dashboards/widgetCard';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import type {
+  GenericWidgetQueriesResult,
+  OnDataFetchedProps,
+} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
@@ -106,10 +109,7 @@ import {
 } from 'sentry/views/dashboards/widgets/tableWidget/utils';
 import {Actions} from 'sentry/views/discover/table/cellAction';
 import {TransactionLink} from 'sentry/views/discover/table/tableView';
-import {
-  decodeColumnOrder,
-  getTargetForTransactionSummaryLink,
-} from 'sentry/views/discover/utils';
+import {getTargetForTransactionSummaryLink} from 'sentry/views/discover/utils';
 
 import {WidgetViewerQueryField} from './widgetViewerModal/utils';
 
@@ -156,6 +156,7 @@ type WidgetViewerTableProps = {
   cursor: string | undefined;
   dashboardFilters: DashboardFilters | undefined;
   modalSelection: PageFilters;
+  onIssuesDataFetched: (results: OnDataFetchedProps) => void;
   renderIssuesTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   renderTable: (result: GenericWidgetQueriesResult) => React.JSX.Element;
   tableWidget: Widget;
@@ -167,6 +168,7 @@ function WidgetViewerTable({
   cursor,
   dashboardFilters,
   modalSelection,
+  onIssuesDataFetched,
   renderIssuesTable,
   renderTable,
   tableWidget,
@@ -198,6 +200,7 @@ function WidgetViewerTable({
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           widgetInterval={widgetInterval}
+          onDataFetched={onIssuesDataFetched}
         >
           {renderIssuesTable}
         </IssueWidgetQueries>
@@ -231,6 +234,26 @@ function WidgetViewerTable({
         </WidgetQueries>
       );
   }
+}
+
+interface QueryOption extends SelectValue<number> {
+  getHighlightedQuery: (
+    props: React.ComponentProps<typeof HighlightContainer>
+  ) => React.ReactNode;
+}
+
+function QueryValue({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'block'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
+}
+
+function QueryOptionLabel({option}: {option: QueryOption}) {
+  return (
+    option.getHighlightedQuery({display: 'flex'}) ??
+    (option.label || <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>)
+  );
 }
 
 function DataWidgetViewerModal(props: Props) {
@@ -442,7 +465,7 @@ function DataWidgetViewerModal(props: Props) {
     modalSelection
   );
 
-  const queryOptions = sortedQueries.map((query, index) => {
+  const queryOptions: QueryOption[] = sortedQueries.map((query, index) => {
     const {name, conditions} = query;
     // Creates the highlighted query elements to be used in the Query Select
     const dashboardFiltersString = dashboardFiltersToString(
@@ -500,15 +523,19 @@ function DataWidgetViewerModal(props: Props) {
     );
   }
 
+  const onIssuesDataFetched = useCallback(({totalCount}: OnDataFetchedProps) => {
+    // onDataFetched also fires without a count while the next page loads, so keep
+    // showing the last known total until a new one arrives
+    if (totalCount !== undefined) {
+      setTotalResults(totalCount);
+    }
+  }, []);
+
   const renderIssuesTable = ({
     tableResults,
     loading,
     pageLinks,
-    totalCount,
   }: GenericWidgetQueriesResult) => {
-    if (totalResults === undefined && totalCount) {
-      setTotalResults(totalCount);
-    }
     return (
       <ViewerTableV2
         tableResults={tableResults}
@@ -667,60 +694,20 @@ function DataWidgetViewerModal(props: Props) {
               });
             }}
             components={{
-              // Replaces the displayed selected value
-              SingleValue: (containerProps: any) => {
-                return (
-                  <components.SingleValue
-                    {...containerProps}
-                    // Overwrites some of the default styling that interferes with highlighted query text
-                    getStyles={() => ({
-                      wordBreak: 'break-word',
-                      flex: 1,
-                      display: 'flex',
-                      padding: `0 ${theme.space.xs}`,
-                    })}
-                  >
-                    {queryOptions[selectedQueryIndex]!.getHighlightedQuery({
-                      display: 'block',
-                    }) ??
-                      (queryOptions[selectedQueryIndex]!.label || (
-                        <EmptyQueryContainer>{EMPTY_QUERY_NAME}</EmptyQueryContainer>
-                      ))}
-                  </components.SingleValue>
-                );
-              },
-              // Replaces the dropdown options
-              Option: (containerProps: any) => {
-                const highlightedQuery = containerProps.data.getHighlightedQuery({
-                  display: 'flex',
-                });
-                return (
-                  <SelectOption
-                    {...(highlightedQuery
-                      ? {
-                          ...containerProps,
-                          label: highlightedQuery,
-                        }
-                      : containerProps.label
-                        ? containerProps
-                        : {
-                            ...containerProps,
-                            label: (
-                              <EmptyQueryContainer>
-                                {EMPTY_QUERY_NAME}
-                              </EmptyQueryContainer>
-                            ),
-                          })}
-                  />
-                );
-              },
-              // Hide the dropdown indicator if there is only one option
-              ...(widget.queries.length < 2
-                ? {IndicatorsContainer: (_: any) => null}
-                : {}),
+              Value: QueryValue,
+              OptionLabel: QueryOptionLabel,
+              ...(widget.queries.length < 2 && {Indicators: null}),
             }}
-            isSearchable={false}
-            isDisabled={widget.queries.length < 2}
+            styles={{
+              singleValue: () => ({
+                wordBreak: 'break-word',
+                flex: 1,
+                display: 'flex',
+                padding: `0 ${theme.space.xs}`,
+              }),
+            }}
+            searchable={false}
+            disabled={widget.queries.length < 2}
           />
           {widget.queries.length === 1 && (
             <StyledQuestionTooltip
@@ -735,6 +722,7 @@ function DataWidgetViewerModal(props: Props) {
           cursor={cursor}
           dashboardFilters={dashboardFilters}
           modalSelection={modalSelection}
+          onIssuesDataFetched={onIssuesDataFetched}
           renderIssuesTable={renderIssuesTable}
           renderTable={renderTable}
           tableWidget={tableWidget}
@@ -847,9 +835,7 @@ function OpenButton({
     case WidgetType.SPANS:
     case WidgetType.LOGS: {
       openLabel = t('Open in Explore');
-      const multiQueryUnsupported =
-        widget.queries.length > 1 &&
-        !widgetTypeSupportsExploreMultiQuery(widget.widgetType);
+      const multiQueryUnsupported = widget.queries.length > 1;
       if (multiQueryUnsupported) {
         return (
           <Tooltip
@@ -1104,7 +1090,10 @@ function ViewerTableV2({
               dashboardFilters,
               selectedQueryIndex
             );
-            navigate(getExploreUrl(dataRow));
+            const exploreUrl = getExploreUrl(dataRow);
+            if (exploreUrl) {
+              navigate(exploreUrl);
+            }
           }
         }}
       />

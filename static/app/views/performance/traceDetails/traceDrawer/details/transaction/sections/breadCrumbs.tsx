@@ -1,9 +1,13 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconFilter} from '@sentry/icons/filter';
+import {IconSearch} from '@sentry/icons/search';
+import {IconSort} from '@sentry/icons/sort';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InputGroup} from '@sentry/scraps/input';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {BreadcrumbsTimeline} from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
@@ -19,7 +23,6 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -76,8 +79,8 @@ export function BreadCrumbs({
   }
 
   const actions = (
-    <ActionsWrapper>
-      <SearchWrapper>
+    <Flex gap="md" align="center" display={{zero: 'none', '2xs': 'flex'}}>
+      <Container display={{zero: 'none', sm: 'block'}}>
         <InputGroup>
           <SearchInput
             size="xs"
@@ -90,7 +93,7 @@ export function BreadCrumbs({
             <IconSearch size="xs" />
           </InputGroup.TrailingItems>
         </InputGroup>
-      </SearchWrapper>
+      </Container>
       <CompactSelect
         size="xs"
         multiple
@@ -130,7 +133,7 @@ export function BreadCrumbs({
         value={sort}
         options={BREADCRUMB_SORT_OPTIONS}
       />
-    </ActionsWrapper>
+    </Flex>
   );
 
   return (
@@ -161,22 +164,6 @@ export function BreadCrumbs({
 
 const BreadcrumbsContainer = styled('div')`
   container-type: inline-size;
-`;
-
-const ActionsWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.md};
-  align-items: center;
-
-  @container (max-width: 400px) {
-    display: none;
-  }
-`;
-
-const SearchWrapper = styled('div')`
-  @container (max-width: 500px) {
-    display: none;
-  }
 `;
 
 const SearchInput = styled(InputGroup.Input)`

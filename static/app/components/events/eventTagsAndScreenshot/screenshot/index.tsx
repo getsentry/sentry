@@ -1,10 +1,13 @@
 import type {ReactEventHandler} from 'react';
 import {useState} from 'react';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 
 import {useRole} from 'sentry/components/acl/useRole';
@@ -16,14 +19,12 @@ import {
 } from 'sentry/components/events/attachmentViewers/previewAttachmentTypes';
 import {VideoViewer} from 'sentry/components/events/attachmentViewers/videoViewer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type Props = {
   eventId: Event['id'];

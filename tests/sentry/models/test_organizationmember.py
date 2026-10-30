@@ -418,7 +418,8 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
             assert member.get_scopes() == role.scopes | {
                 "dashboard:read",
                 "dashboard:write",
-                "dashboard:delete",
+                "saved_query:read",
+                "saved_query:write",
             }
 
     @with_feature("organizations:granular-permission-scopes")

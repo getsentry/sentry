@@ -1,9 +1,21 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
+import {IconAdd} from '@sentry/icons/add';
+import {IconBug} from '@sentry/icons/bug';
+import {IconChevron} from '@sentry/icons/chevron';
+import {IconCode} from '@sentry/icons/code';
+import {IconList} from '@sentry/icons/list';
+import {IconOpen} from '@sentry/icons/open';
+import {IconPullRequest} from '@sentry/icons/pullRequest';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSeer} from '@sentry/icons/seer';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, ButtonBar, LinkButton, type ButtonProps} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
-import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
+import {Footer} from '@sentry/scraps/menu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixNextStep} from 'sentry/components/events/autofix/getAutofixNextStep';
@@ -11,6 +23,7 @@ import {findCodingAgentResultLink} from 'sentry/components/events/autofix/pullRe
 import {getCodingAgentName} from 'sentry/components/events/autofix/types';
 import {
   collectPatches,
+  explorerAutofixApiOptions,
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
@@ -19,17 +32,6 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  IconAdd,
-  IconBug,
-  IconChevron,
-  IconCode,
-  IconList,
-  IconOpen,
-  IconPullRequest,
-  IconRefresh,
-  IconSeer,
-} from 'sentry/icons';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -121,7 +123,21 @@ function RunSeerActionButton({
   waiting,
 }: RunSeerActionButtonProps) {
   const organization = useOrganization();
-  const [isStartingAction, setIsStartingAction] = useState(false);
+  const queryClient = useQueryClient();
+  const {mutate: startAction, isPending: isStartingAction} = useMutation({
+    mutationFn: async (variables: {
+      action: RunSeerActionButtonProps['action'];
+      groupId: string;
+      organizationSlug: string;
+    }) => {
+      await variables.action();
+    },
+    onSuccess: (_data, {groupId, organizationSlug}) =>
+      queryClient.invalidateQueries(
+        {queryKey: explorerAutofixApiOptions(organizationSlug, groupId).queryKey},
+        {cancelRefetch: false}
+      ),
+  });
   const runId = autofix.runState?.run_id;
   const isProcessing = autofix.isProcessing || isStartingAction;
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
@@ -134,17 +150,6 @@ function RunSeerActionButton({
       enabled: defined(codingAgentStep) && defined(runId),
       onHandoff: onContinueInSeer,
     });
-
-  const handleClick = async () => {
-    setIsStartingAction(true);
-    try {
-      await action();
-    } catch {
-      // Errors are handled in the caller and shown in the autofix panel
-    } finally {
-      setIsStartingAction(false);
-    }
-  };
 
   const codingAgentOptions = (codingAgentIntegrations ?? []).map(integration => {
     const actionLabel =
@@ -177,7 +182,9 @@ function RunSeerActionButton({
       icon={icon}
       busy={isStartingAction || waiting}
       disabled={disabled || isProcessing}
-      onClick={handleClick}
+      onClick={() =>
+        startAction({action, groupId: group.id, organizationSlug: organization.slug})
+      }
       tooltipProps={tooltip ? {title: tooltip} : undefined}
       variant={variant}
     >
@@ -196,7 +203,7 @@ function RunSeerActionButton({
         items={codingAgentOptions}
         isDisabled={defined(codingAgentDisabledReason)}
         trigger={(triggerProps, isOpen) => (
-          <Button
+          <OverlayTrigger.IconButton
             {...triggerProps}
             variant={variant}
             size="sm"
@@ -209,14 +216,14 @@ function RunSeerActionButton({
         position="bottom-end"
         shouldCloseOnBlur={false}
         menuFooter={
-          <DropdownMenuFooter>
+          <Footer>
             <MenuComponents.CTALinkButton
               icon={<IconAdd />}
               to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
             >
               {t('Add Integration')}
             </MenuComponents.CTALinkButton>
-          </DropdownMenuFooter>
+          </Footer>
         }
       />
     </ButtonBar>

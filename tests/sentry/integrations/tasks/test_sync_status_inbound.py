@@ -312,6 +312,24 @@ class TestSyncStatusInbound(TestCase):
         self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_uninstalled_after_queueing(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.filter(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).delete()
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        self._assert_group_unresolved(self.group.id)
+        mock_get_resolve_sync_action.assert_not_called()
+
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_resolve_next_release(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
 
@@ -355,6 +373,46 @@ class TestSyncStatusInbound(TestCase):
         )
         assert activity is not None
         assert activity.ident == str(resolution.id)
+
+    @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
+    def test_resolve_next_release_ignores_skipped_groups_projects(
+        self, mock_get_resolve_sync_action: mock.MagicMock
+    ) -> None:
+        mock_get_resolve_sync_action.return_value = ResolveSyncAction.RESOLVE
+        self.create_release(project=self.project, version="1.0.0")
+
+        # Already resolved, so it's skipped, and its project has no release.
+        skipped_group = self.create_group(
+            project=self.create_project(organization=self.organization),
+            status=GroupStatus.RESOLVED,
+        )
+        GroupLink.objects.create(
+            group_id=skipped_group.id,
+            project_id=skipped_group.project_id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+            relationship=GroupLink.Relationship.references,
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            ).update(
+                config={"sync_status_inbound": True, "resolution_strategy": "resolve_next_release"}
+            )
+
+        sync_status_inbound(
+            integration_id=self.integration.id,
+            organization_id=self.organization.id,
+            issue_key=TEST_ISSUE_KEY,
+            data=fake_data,
+        )
+
+        self._assert_group_resolved(self.group.id)
+        self._assert_resolve_in_release_activity_created(in_next_release=True)
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert not GroupResolution.objects.filter(group=skipped_group).exists()
 
     @with_feature("organizations:release-resolution-finalized-order")
     @mock.patch(

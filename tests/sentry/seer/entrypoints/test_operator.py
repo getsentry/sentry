@@ -7,7 +7,7 @@ import pytest
 from django.test import override_settings
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
-from sentry.integrations.types import ExternalProviders
+from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -15,6 +15,7 @@ from sentry.issues.action_log.types import (
     SeerIterationStartedAction,
     TriggerAutofixAction,
 )
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -31,28 +32,34 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
+from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.operator import (
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
+    SeerInvestigationOperator,
     SeerOperatorCompletionHook,
     get_autofix_explorer_status,
     process_autofix_updates,
+    process_investigation_updates,
+    refresh_agent_run,
 )
 from sentry.seer.entrypoints.registry import autofix_entrypoint_registry
 from sentry.seer.entrypoints.types import (
     SeerAgentEntrypoint,
     SeerAutofixEntrypoint,
     SeerEntrypointKey,
+    SeerInvestigationEntrypoint,
     SeerOperatorCacheResult,
 )
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.asserts import assert_failure_metric
+from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
+from sentry.utils.locking import UnableToAcquireLock
 
 
 class MockCachePayload(TypedDict):
@@ -920,12 +927,7 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return {"thread_id": self.thread_id}
 
     @staticmethod
-    def on_agent_update(
-        cache_payload: MockCachePayload,
-        summary: str | None,
-        run_id: int,
-        pending_user_input: PendingUserInput | None = None,
-    ) -> None:
+    def on_agent_update(cache_payload: MockCachePayload, run_id: int, state: SeerRunState) -> None:
         return None
 
 
@@ -970,6 +972,19 @@ class TestSeerAgentOperatorAccess(TestCase):
 
 
 class TestSeerOperatorCompletionHook(TestCase):
+    @patch("sentry.seer.entrypoints.operator.refresh_agent_run.apply_async")
+    def test_execute_only_queues_a_refresh(self, mock_apply_async):
+        SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+
+        mock_apply_async.assert_called_once_with(
+            kwargs={"organization_id": self.organization.id, "run_id": MOCK_RUN_ID}
+        )
+
+
+class TestRefreshAgentRun(TestCase):
+    def _refresh(self) -> None:
+        refresh_agent_run(organization_id=self.organization.id, run_id=MOCK_RUN_ID)
+
     def _make_state(
         self,
         blocks: list[MemoryBlock],
@@ -1023,28 +1038,18 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=True,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         return mock_entrypoint_cls
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_fetches_summary_from_last_assistant_block(self, mock_fetch):
+    def test_execute_passes_the_run_state(self, mock_fetch):
         state = self._make_state(
             blocks=[
                 MemoryBlock(
                     id="1",
-                    message=Message(role="user", content="user message"),
+                    message=Message(role="assistant", content="summary"),
                     timestamp="2024-01-01T00:00:00Z",
-                ),
-                MemoryBlock(
-                    id="2",
-                    message=Message(role="assistant", content="first assistant"),
-                    timestamp="2024-01-01T00:00:01Z",
-                ),
-                MemoryBlock(
-                    id="3",
-                    message=Message(role="assistant", content="last assistant"),
-                    timestamp="2024-01-01T00:00:02Z",
                 ),
             ]
         )
@@ -1052,76 +1057,8 @@ class TestSeerOperatorCompletionHook(TestCase):
 
         mock_entrypoint_cls.on_agent_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary="last assistant",
             run_id=MOCK_RUN_ID,
-            pending_user_input=None,
-        )
-
-    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_does_not_reuse_summary_from_previous_turn(self, mock_fetch):
-        pending_user_input = PendingUserInput(
-            id="approval-1",
-            input_type="agent_write_approval",
-            data={"required_scopes": ["org:write"], "session_id": str(MOCK_RUN_ID)},
-        )
-        state = self._make_state(
-            blocks=[
-                MemoryBlock(
-                    id="1",
-                    message=Message(role="user", content="first question"),
-                    timestamp="2024-01-01T00:00:00Z",
-                ),
-                MemoryBlock(
-                    id="2",
-                    message=Message(role="assistant", content="first answer"),
-                    timestamp="2024-01-01T00:00:01Z",
-                ),
-                MemoryBlock(
-                    id="3",
-                    message=Message(role="user", content="follow-up question"),
-                    timestamp="2024-01-01T00:00:02Z",
-                ),
-                MemoryBlock(
-                    id="4",
-                    message=Message(role="tool_use", content=None),
-                    timestamp="2024-01-01T00:00:03Z",
-                ),
-            ],
-            status="awaiting_user_input",
-            pending_user_input=pending_user_input,
-        )
-        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
-
-        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary=None,
-            run_id=MOCK_RUN_ID,
-            pending_user_input=pending_user_input,
-        )
-
-    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_uses_default_summary_when_no_assistant_content(self, mock_fetch):
-        state = self._make_state(
-            blocks=[
-                MemoryBlock(
-                    id="1",
-                    message=Message(role="user", content="hello"),
-                    timestamp="2024-01-01T00:00:00Z",
-                ),
-                MemoryBlock(
-                    id="2",
-                    message=Message(role="assistant", content=None),
-                    timestamp="2024-01-01T00:00:01Z",
-                ),
-            ]
-        )
-        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
-
-        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary=None,
-            run_id=MOCK_RUN_ID,
-            pending_user_input=None,
+            state=state,
         )
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
@@ -1135,7 +1072,7 @@ class TestSeerOperatorCompletionHook(TestCase):
             {MockAgentEntrypoint.key: mock_entrypoint_cls},
             clear=True,
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_entrypoint_cls.on_agent_update.assert_not_called()
 
@@ -1172,14 +1109,11 @@ class TestSeerOperatorCompletionHook(TestCase):
                 return_value=cache_payload,
             ),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
 
         mock_no_access.on_agent_update.assert_not_called()
         mock_has_access.on_agent_update.assert_called_once_with(
-            cache_payload=cache_payload,
-            summary="summary",
-            run_id=MOCK_RUN_ID,
-            pending_user_input=None,
+            cache_payload=cache_payload, run_id=MOCK_RUN_ID, state=state
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
@@ -1221,39 +1155,6 @@ class TestSeerOperatorCompletionHook(TestCase):
         mock_entrypoint_cls.on_agent_update.assert_not_called()
         assert_failure_metric(mock_record, "org_mismatch")
 
-    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_with_empty_blocks(self, mock_fetch):
-        state = self._make_state(blocks=[])
-        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
-
-        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary=None,
-            run_id=MOCK_RUN_ID,
-            pending_user_input=None,
-        )
-
-    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
-    def test_execute_passes_pending_user_input(self, mock_fetch):
-        pending_user_input = PendingUserInput(
-            id="approval-1",
-            input_type="agent_write_approval",
-            data={"required_scopes": ["org:write"], "session_id": str(MOCK_RUN_ID)},
-        )
-        state = self._make_state(
-            blocks=[],
-            status="awaiting_user_input",
-            pending_user_input=pending_user_input,
-        )
-        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
-
-        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
-            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
-            summary=None,
-            run_id=MOCK_RUN_ID,
-            pending_user_input=pending_user_input,
-        )
-
     @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_propagates_retryable_entrypoint_failure(self, mock_fetch, _mock_access):
@@ -1274,7 +1175,20 @@ class TestSeerOperatorCompletionHook(TestCase):
             ),
             pytest.raises(IntegrationError),
         ):
-            SeerOperatorCompletionHook.execute(self.organization, MOCK_RUN_ID)
+            self._refresh()
+
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_raises_when_another_refresh_holds_the_lock(self, mock_fetch):
+        lock = locks.get(
+            f"seer:operator:agent-refresh:{MOCK_RUN_ID}",
+            duration=10,
+            name="seer_operator_agent_refresh",
+        )
+
+        with lock.acquire(), pytest.raises(UnableToAcquireLock):
+            self._refresh()
+
+        mock_fetch.assert_not_called()
 
 
 class TestSeerAgentOperatorCodeMode(TestCase):
@@ -1338,3 +1252,270 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+
+    def _trigger_slack(self, mock_client_cls: Mock) -> None:
+        mock_client = Mock()
+        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
+        mock_client.latest_run.return_value = None
+        mock_client_cls.return_value = mock_client
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            category_key="slack_thread",
+            category_value="thread-123",
+        )
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_turns_on_pull_requests(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        with self.feature(
+            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
+        ):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is True
+        assert kwargs["enable_bash_mode"] is True
+        assert kwargs["enable_write_pull_request"] is True
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_defaults_coding_on_when_option_unset(self, mock_client_cls):
+        with self.feature(
+            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
+        ):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is True
+        assert kwargs["enable_write_pull_request"] is True
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_needs_the_coding_option(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with self.feature(
+            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
+        ):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_write_pull_request"] is False
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_slack_create_pr_needs_code_mode(self, mock_client_cls):
+        self.organization.update_option("sentry:enable_seer_coding", True)
+
+        with self.feature("organizations:ask-seer-create-pr"):
+            self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_write_pull_request"] is False
+
+
+class TestSeerInvestigationOperatorAccess(TestCase):
+    def _has_access(self) -> bool:
+        entrypoint_cls = Mock(spec=SeerInvestigationEntrypoint)
+        entrypoint_cls.has_access.return_value = True
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+            {SeerEntrypointKey.SLACK: entrypoint_cls},
+            clear=True,
+        ):
+            return SeerInvestigationOperator.has_access(
+                organization=self.organization, entrypoint_key=SeerEntrypointKey.SLACK
+            )
+
+    def set_open_membership(self, enabled: bool) -> None:
+        self.organization.flags.allow_joinleave = enabled
+        self.organization.save()
+
+    def test_has_access_with_the_feature_and_open_membership(self) -> None:
+        self.set_open_membership(True)
+
+        with self.feature("organizations:investigations"):
+            assert self._has_access()
+
+    def test_no_access_without_the_feature(self) -> None:
+        self.set_open_membership(True)
+
+        assert not self._has_access()
+
+    def test_no_access_without_open_membership(self) -> None:
+        self.set_open_membership(False)
+
+        with self.feature("organizations:investigations"):
+            assert not self._has_access()
+
+
+class TestProcessInvestigationUpdates(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.investigation = self.create_notebook(organization=self.organization)
+        self.orchestration_run = self.create_investigation_orchestration_run(
+            investigation=self.investigation
+        )
+        self.cache_payload = {"organization_id": self.organization.id}
+
+    def _make_entrypoint(self, *, has_access: bool = True) -> Mock:
+        entrypoint_cls = Mock(spec=SeerInvestigationEntrypoint)
+        entrypoint_cls.has_access.return_value = has_access
+        return entrypoint_cls
+
+    def _set_cache(self, entrypoint_key: str, cache_payload: dict[str, Any]) -> None:
+        SeerOperatorInvestigationCache.set(
+            entrypoint_key=entrypoint_key,
+            investigation_id=self.investigation.id,
+            cache_payload=cache_payload,
+        )
+
+    def _process(self, registrations: dict[str, Mock]) -> None:
+        with (
+            self.feature("organizations:investigations"),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+                registrations,
+                clear=True,
+            ),
+        ):
+            process_investigation_updates(investigation_id=self.investigation.id)
+
+    def test_calls_entrypoint_on_cache_hit(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+
+    def test_skips_on_cache_miss(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_without_operator_access(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        with patch.dict(
+            "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+            {"slack": entrypoint_cls},
+            clear=True,
+        ):
+            process_investigation_updates(investigation_id=self.investigation.id)
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_halt_metric(mock_record, "no_operator_access")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_halts_for_a_closed_membership_organization(self, mock_record: Mock) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_halt_metric(mock_record, "no_operator_access")
+
+    def test_skips_entrypoint_without_access(self) -> None:
+        entrypoint_cls = self._make_entrypoint(has_access=False)
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+
+    def test_cache_miss_does_not_stop_others(self) -> None:
+        missing_cls = self._make_entrypoint()
+        cached_cls = self._make_entrypoint()
+        self._set_cache("cached", self.cache_payload)
+
+        self._process({"missing": missing_cls, "cached": cached_cls})
+
+        missing_cls.on_investigation_update.assert_not_called()
+        cached_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_failure_on_org_mismatch(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        other_org = self.create_organization()
+        self._set_cache("slack", {"organization_id": other_org.id})
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "org_mismatch")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_records_failure_when_run_is_missing(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        investigation = self.create_notebook(organization=self.organization)
+
+        with (
+            self.feature("organizations:investigations"),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.investigation_entrypoint_registry.registrations",
+                {"slack": entrypoint_cls},
+                clear=True,
+            ),
+        ):
+            process_investigation_updates(investigation_id=investigation.id)
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "run_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch(
+        "sentry.seer.entrypoints.operator.Organization.objects.get_from_cache",
+        side_effect=Organization.DoesNotExist,
+    )
+    def test_records_failure_when_organization_is_missing(
+        self, mock_get_from_cache: Mock, mock_record: Mock
+    ) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self._set_cache("slack", self.cache_payload)
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "organization_not_found")
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_busy_lock_raises_for_task_retry(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        entrypoint_cls.on_investigation_update.side_effect = UnableToAcquireLock("locked")
+        self._set_cache("slack", self.cache_payload)
+
+        with pytest.raises(UnableToAcquireLock):
+            self._process({"slack": entrypoint_cls})
+
+        outcomes = [call.args[0] for call in mock_record.mock_calls]
+        assert outcomes.count(EventLifecycleOutcome.HALTED) == 2
+        assert EventLifecycleOutcome.FAILURE not in outcomes
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_entrypoint_failure_does_not_stop_others(self, mock_record: Mock) -> None:
+        failing_cls = self._make_entrypoint()
+        failing_cls.on_investigation_update.side_effect = Exception("boom")
+        other_cls = self._make_entrypoint()
+        self._set_cache("failing", self.cache_payload)
+        self._set_cache("other", self.cache_payload)
+
+        self._process({"failing": failing_cls, "other": other_cls})
+
+        other_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=self.cache_payload, run=self.orchestration_run
+        )
+        assert_failure_metric(mock_record, Exception("boom"))

@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from typing import Any
 
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.investigations.contracts import VisualizationSerializer, validate_query_result
 from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
-from sentry.investigations.models import InvestigationBlockKind
+from sentry.notebooks.models import NotebookBlockKind
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -107,7 +109,7 @@ def _validate_versioned_query_display(display: dict[str, Any]) -> dict[str, Any]
 
 
 def validate_display(kind: str, display: dict[str, Any]) -> dict[str, Any]:
-    if kind == InvestigationBlockKind.TEXT:
+    if kind == NotebookBlockKind.TEXT:
         return _validate_text_display(display)
 
     display_type = display.get("type")
@@ -126,13 +128,32 @@ def _validate_display_field(kind: str, display: dict[str, Any]) -> dict[str, Any
 
 
 class BlockCreateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    kind = serializers.ChoiceField(choices=InvestigationBlockKind.choices)
-    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    content = serializers.CharField(required=False, allow_blank=True)
-    generation_prompt = serializers.CharField(required=False, allow_blank=True)
-    config = serializers.JSONField(required=False)
-    display = serializers.JSONField(required=False)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    kind = serializers.ChoiceField(
+        choices=NotebookBlockKind.choices,
+        help_text="Block kind: text for Markdown or query for an agent-generated data query.",
+    )
+    title = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, help_text="Block title. May be empty."
+    )
+    content = serializers.CharField(
+        required=False, allow_blank=True, help_text="User-authored content. May be empty."
+    )
+    generation_prompt = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Instructions used when executing the block. May be empty.",
+    )
+    config = serializers.JSONField(
+        required=False, help_text="Block configuration object. Nested keys are preserved."
+    )
+    display = serializers.JSONField(
+        required=False,
+        help_text="Display settings. Text uses type markdown; query uses table, line, bar, or area. Versioned settings use version 1. Charts require xAxis and non-empty yAxes. Defaults to Markdown for text and table for query.",
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         kind = attrs["kind"]
@@ -140,7 +161,7 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
             "display",
             (
                 {"type": "markdown"}
-                if kind == InvestigationBlockKind.TEXT
+                if kind == NotebookBlockKind.TEXT
                 else {"version": 1, "type": "table", "defaultView": "table"}
             ),
         )
@@ -153,13 +174,32 @@ class BlockCreateValidator(StrictCamelSnakeValidator):
 
 
 class BlockUpdateValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    version = serializers.IntegerField(min_value=1)
-    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
-    content = serializers.CharField(required=False, allow_blank=True)
-    generation_prompt = serializers.CharField(required=False, allow_blank=True)
-    config = serializers.JSONField(required=False)
-    display = serializers.JSONField(required=False)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current block version from the latest block response. Stale versions return 409.",
+    )
+    title = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, help_text="Block title. May be empty."
+    )
+    content = serializers.CharField(
+        required=False, allow_blank=True, help_text="User-authored content. May be empty."
+    )
+    generation_prompt = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Instructions used when executing the block. May be empty.",
+    )
+    config = serializers.JSONField(
+        required=False, help_text="Block configuration object. Nested keys are preserved."
+    )
+    display = serializers.JSONField(
+        required=False,
+        help_text="Display settings. Text uses type markdown; query uses table, line, bar, or area. Versioned settings use version 1. Charts require xAxis and non-empty yAxes. Defaults to Markdown for text and table for query.",
+    )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if not BLOCK_UPDATE_FIELDS.intersection(attrs):
@@ -181,24 +221,55 @@ class BlockUpdateValidator(StrictCamelSnakeValidator):
 
 
 class BlockDeleteValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    version = serializers.IntegerField(min_value=1)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current block version from the latest block response. Stale versions return 409.",
+    )
 
 
 class BlockExecutionStartValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    version = serializers.IntegerField(min_value=1)
-    request_id = serializers.UUIDField(required=False)
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current block version from the latest block response. Stale versions return 409.",
+    )
+    request_id = serializers.UUIDField(
+        required=False,
+        help_text="Client-generated UUID for retry-safe submission. Reuse the same ID only for the same request.",
+    )
+
+
+@extend_schema_field(OpenApiTypes.ANY)
+class InvestigationInputResponseField(serializers.JSONField):
+    pass
 
 
 class BlockExecutionResumeValidator(StrictCamelSnakeValidator):
-    input_id = serializers.CharField()
-    response_data = serializers.JSONField(allow_null=True)
+    input_id = serializers.CharField(
+        help_text="ID of the pending user input returned by execution polling."
+    )
+    response_data = InvestigationInputResponseField(
+        allow_null=True,
+        help_text="Answer to the pending input. Any JSON value is accepted, including strings, arrays, objects, and null.",
+    )
 
 
 class BlockOrderValidator(StrictCamelSnakeValidator):
-    investigation_version = serializers.IntegerField(min_value=1)
-    block_ids = serializers.ListField(child=serializers.IntegerField(min_value=1))
+    investigation_version = serializers.IntegerField(
+        min_value=1,
+        help_text="Current investigation version from the latest detail response. Stale versions return 409.",
+    )
+    block_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        help_text="Every active block ID exactly once, in the desired order.",
+    )
 
 
 class VisualizationSuggestionValidator(StrictCamelSnakeValidator):

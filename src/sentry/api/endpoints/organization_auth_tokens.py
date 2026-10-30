@@ -1,11 +1,12 @@
 from datetime import UTC, datetime
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db.models import Value
 from django.db.models.functions import Coalesce
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -13,15 +14,29 @@ from sentry import analytics, audit_log, roles
 from sentry.analytics.events.org_auth_token_created import OrgAuthTokenCreated
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import SessionNoAuthTokenAuthentication
+from sentry.api.authentication import (
+    SessionNoAuthTokenAuthentication,
+    UserAuthTokenAuthentication,
+)
 from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrgAuthTokenPermission
+from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
+    OrgAuthTokenPermission,
+    get_issuing_token_audit_log_data,
+)
+from sentry.api.exceptions import InsufficientScope
 from sentry.api.permissions import DisallowImpersonatedTokenCreation
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_locality_url
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import MAX_NAME_LENGTH, OrgAuthToken
+from sentry.models.orgauthtoken import (
+    DEFAULT_ORG_AUTH_TOKEN_SCOPES,
+    MAX_NAME_LENGTH,
+    ORG_AUTH_TOKEN_ALLOWED_SCOPES,
+    ORG_AUTH_TOKEN_FORBIDDEN_SCOPES,
+    OrgAuthToken,
+)
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -36,6 +51,19 @@ from sentry.utils.security.orgauthtoken_token import (
 )
 
 
+class OrgAuthTokenCreateSerializer(serializers.Serializer[dict[str, Any]]):
+    # Name errors are reported by the endpoint with its existing specific messages.
+    name = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True, trim_whitespace=False
+    )
+    scopes = serializers.ListField(
+        child=serializers.CharField(),
+        required=False,
+        allow_empty=False,
+        default=lambda: list(DEFAULT_ORG_AUTH_TOKEN_SCOPES),
+    )
+
+
 @control_silo_endpoint
 class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
     publish_status = {
@@ -43,7 +71,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.FOUNDATIONS
-    authentication_classes = (SessionNoAuthTokenAuthentication,)
+    authentication_classes = (SessionNoAuthTokenAuthentication, UserAuthTokenAuthentication)
     permission_classes = (OrgAuthTokenPermission, DisallowImpersonatedTokenCreation)
 
     @method_decorator(never_cache)
@@ -91,7 +119,11 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
 
         token_hashed = hash_token(token_str)
 
-        name = request.data.get("name")
+        serializer = OrgAuthTokenCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
+        name = serializer.validated_data.get("name")
+        scopes = serializer.validated_data["scopes"]
 
         # Main validation cases with specific error messages
         if not name:
@@ -102,10 +134,32 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
                 {"detail": "The name cannot be longer than 255 characters."}, status=400
             )
 
+        disallowed_scopes = {
+            scope
+            for scope in scopes
+            if scope not in ORG_AUTH_TOKEN_ALLOWED_SCOPES
+            or scope in ORG_AUTH_TOKEN_FORBIDDEN_SCOPES
+        }
+        if disallowed_scopes:
+            return Response(
+                {
+                    "detail": "Org auth tokens cannot be granted: "
+                    + ", ".join(sorted(disallowed_scopes))
+                },
+                status=400,
+            )
+
+        # A token-authenticated caller (an OAuth app token, per OrgAuthTokenPermission) can
+        # only mint a token with a subset of its own scopes.
+        if request.auth is not None:
+            missing_scopes = {scope for scope in scopes if not request.auth.has_scope(scope)}
+            if missing_scopes:
+                raise InsufficientScope(missing_scopes)
+
         token = OrgAuthToken.objects.create(
             name=name,
             organization_id=organization.id,
-            scope_list=["org:ci"],
+            scope_list=sorted(set(scopes)),
             created_by_id=request.user.id,
             token_last_characters=token_str[-4:],
             token_hashed=token_hashed,
@@ -121,7 +175,7 @@ class OrganizationAuthTokensEndpoint(ControlSiloOrganizationEndpoint):
             organization=organization,
             target_object=token.id,
             event=audit_log.get_event_id("ORGAUTHTOKEN_ADD"),
-            data=token.get_audit_log_data(),
+            data={**token.get_audit_log_data(), **get_issuing_token_audit_log_data(request)},
         )
 
         # Notify all owners of org of new token

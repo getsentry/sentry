@@ -8,8 +8,11 @@ from typing import Any, TypedDict
 import sentry_sdk
 from django.db.models import Max
 from rest_framework import serializers
+from sentry_sdk import traces
 
 from sentry import features, options
+from sentry.api.helpers.creator import get_creator_reference
+from sentry.api.helpers.timeseries_transformations import parse_transformations
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -48,7 +51,6 @@ from sentry.tasks.on_demand_metrics import (
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
-from sentry.utils.tracing import set_span_data, start_span
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -251,12 +253,47 @@ class LinkedDashboardSerializer(CamelSnakeSerializer[Dashboard]):
     validate_dashboard_id = validate_id
 
 
+class TransformationField(serializers.CharField):
+    def to_internal_value(self, data):
+        if not isinstance(data, str):
+            self.fail("invalid")
+        return super().to_internal_value(data)
+
+
+class TransformationListField(serializers.ListField):
+    child = TransformationField(trim_whitespace=False)
+
+    def to_internal_value(self, data):
+        values = super().to_internal_value(data)
+        try:
+            parse_transformations(values)
+        except InvalidSearchQuery as error:
+            raise serializers.ValidationError(str(error))
+        return values
+
+
+def validate_transformation_indices(
+    transformations: dict[str, list[str]], aggregate_count: int
+) -> None:
+    if any(
+        len(index) > len(str(aggregate_count)) or int(index) >= aggregate_count
+        for index in transformations
+    ):
+        raise serializers.ValidationError(
+            {"transformations": ["Transformations index must match an aggregate position."]}
+        )
+
+
 class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
     id = serializers.CharField(required=False)
     fields = serializers.ListField(child=serializers.CharField(), required=False)  # type: ignore[assignment]  # XXX: clobbering Serializer.fields
     aggregates = serializers.ListField(
         child=serializers.CharField(), required=False, allow_null=True
+    )
+    transformations = serializers.DictField(
+        child=TransformationListField(),
+        required=False,
     )
     columns = serializers.ListField(child=serializers.CharField(), required=False, allow_null=True)
     field_aliases = serializers.ListField(
@@ -278,6 +315,22 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
 
     validate_id = validate_id
 
+    def validate_transformations(self, value: dict[str, list[str]]) -> dict[str, list[str]]:
+        if value and not features.has(
+            "organizations:explore-interpolation-and-smoothing",
+            self.context["organization"],
+            actor=self.context.get("user"),
+        ):
+            raise serializers.ValidationError(
+                "Transformations are not enabled for this organization."
+            )
+        if any(
+            not index.isascii() or not index.isdigit() or (len(index) > 1 and index.startswith("0"))
+            for index in value
+        ):
+            raise serializers.ValidationError("Invalid transformations index.")
+        return value
+
     def validate(self, data):
         if not data.get("id"):
             keys = set(data.keys())
@@ -288,6 +341,11 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
                         "conditions": "conditions are required during creation.",
                     }
                 )
+
+        if "aggregates" in data or not data.get("id"):
+            validate_transformation_indices(
+                data.get("transformations", {}), len(data.get("aggregates") or [])
+            )
 
         # Validate the query that would be created when run.
         conditions = self._get_attr(data, "conditions", "")
@@ -1001,6 +1059,43 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
 
         return validate_project_ids(projects, {project.id for project in self.context["projects"]})
 
+    def validate_query_transformation_updates(self, widgets: list[dict[str, Any]]) -> None:
+        query_ids = [
+            query["id"]
+            for widget in widgets
+            for query in widget.get("queries", [])
+            if "id" in query
+        ]
+        if len(query_ids) != len(set(query_ids)):
+            raise serializers.ValidationError({"widgets": "Query IDs must be unique."})
+        existing_queries = {}
+        if isinstance(self.instance, Dashboard) and query_ids:
+            existing_queries = {
+                (query.widget_id, query.id): query
+                for query in DashboardWidgetQuery.objects.filter(
+                    widget__dashboard=self.instance, id__in=query_ids
+                )
+            }
+        widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
+        for widget_index, widget in enumerate(widgets):
+            queries = widget.get("queries", [])
+            query_errors: list[dict[str, Any] | list[Any]] = [{} for _ in queries]
+            for query_index, data in enumerate(queries):
+                if "aggregates" not in data and "transformations" not in data:
+                    continue
+                query = existing_queries.get((widget.get("id"), data.get("id")))
+                try:
+                    validate_transformation_indices(
+                        data.get("transformations", query.transformations if query else None) or {},
+                        len(data.get("aggregates", query.aggregates if query else None) or []),
+                    )
+                except serializers.ValidationError as error:
+                    query_errors[query_index] = error.detail
+            if any(query_errors):
+                widget_errors[widget_index] = {"queries": query_errors}
+        if any(widget_errors):
+            raise serializers.ValidationError({"widgets": widget_errors})
+
     def validate_widget_layout_updates(self, widgets: list[dict[str, Any]]) -> None:
         if not isinstance(self.instance, Dashboard) or self.context.get(
             "allow_legacy_widget_heights", False
@@ -1055,6 +1150,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
             )
 
         self.validate_widget_layout_updates(data.get("widgets", []))
+        self.validate_query_transformation_updates(data.get("widgets", []))
 
         permissions = data.get("permissions")
         if permissions and self.instance:
@@ -1129,7 +1225,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         self.instance = Dashboard.objects.create(
             organization=self.context["organization"],
             title=validated_data["title"],
-            created_by_id=self.context["request"].user.id,
+            **get_creator_reference(self.context["request"]),
         )
 
         assert self.instance is not None
@@ -1167,7 +1263,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with start_span(op="function", name="dashboard.update_widgets"):
+        with traces.start_span(
+            name="dashboard.update_widgets", attributes={"sentry.op": "function"}
+        ):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -1252,6 +1350,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     widget=widget,
                     fields=query["fields"],
                     aggregates=query.get("aggregates"),
+                    transformations=query.get("transformations"),
                     columns=query.get("columns"),
                     field_aliases=query.get("field_aliases"),
                     conditions=query["conditions"],
@@ -1317,24 +1416,27 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with start_span(op="function", name="dashboard.update_or_create_field_links") as span:
+        with traces.start_span(
+            name="dashboard.update_or_create_field_links", attributes={"sentry.op": "function"}
+        ) as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
 
             widget_display_type = widget.display_type
             legend_type = widget.detail.get("legend_type") if widget.detail else None
-            set_span_data(
-                span,
+            span.set_attribute(
                 "linked_dashboards",
-                [
-                    {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                    for ld in linked_dashboards
-                ],
+                repr(
+                    [
+                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                        for ld in linked_dashboards
+                    ]
+                ),
             )
-            set_span_data(span, "widget_display_type", widget_display_type)
-            set_span_data(span, "query_id", query.id)
-            set_span_data(span, "widget_id", widget.id)
+            span.set_attribute("widget_display_type", widget_display_type)
+            span.set_attribute("query_id", query.id)
+            span.set_attribute("widget_id", widget.id)
 
             is_breakdown_chart = (
                 widget_display_type
@@ -1407,23 +1509,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with start_span(
-                op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
-            ) as span:
-                set_span_data(span, "new_fields", list(new_fields))
-                set_span_data(span, "query_id", query.id)
-                set_span_data(span, "widget_id", widget.id)
-                set_span_data(span, "widget_display_type", widget.display_type)
-                set_span_data(
-                    span,
-                    "linked_dashboards",
-                    [
-                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                        for ld in linked_dashboards
-                    ],
-                )
-                set_span_data(span, "field_links_count", len(field_links_to_create))
-
+            with traces.start_span(
+                name="dashboard.update_or_create_field_links.bulk_create",
+                attributes={
+                    "sentry.op": "db.bulk_create",
+                    "new_fields": list(new_fields),
+                    "query_id": query.id,
+                    "widget_id": widget.id,
+                    "widget_display_type": widget.display_type,
+                    "linked_dashboards": repr(
+                        [
+                            {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                            for ld in linked_dashboards
+                        ]
+                    ),
+                    "field_links_count": len(field_links_to_create),
+                },
+            ):
                 # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
                 if field_links_to_create:
                     DashboardFieldLink.objects.bulk_create(
@@ -1515,6 +1617,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     widget=widget,
                     fields=query_data["fields"],
                     aggregates=query_data.get("aggregates"),
+                    transformations=query_data.get("transformations"),
                     columns=query_data.get("columns"),
                     field_aliases=query_data.get("field_aliases"),
                     conditions=query_data["conditions"],
@@ -1550,6 +1653,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         query.conditions = data.get("conditions", query.conditions)
         query.orderby = data.get("orderby", query.orderby)
         query.aggregates = data.get("aggregates", query.aggregates)
+        query.transformations = data.get("transformations", query.transformations)
         query.columns = data.get("columns", query.columns)
         query.field_aliases = data.get("field_aliases", query.field_aliases)
         query.is_hidden = data.get("is_hidden", query.is_hidden)

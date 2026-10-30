@@ -809,7 +809,6 @@ function FlamegraphZoomView({
         tabIndex={1}
       />
       <Canvas ref={setFlamegraphOverlayCanvasRef} pointerEvents="none" />
-      {/* oxlint-disable-next-line react/refs */}
       {contextMenu({
         contextMenu: contextMenuState,
         profileGroup,

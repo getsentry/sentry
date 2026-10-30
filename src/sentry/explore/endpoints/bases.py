@@ -8,10 +8,10 @@ from sentry.models.organization import Organization
 class ExploreSavedQueryPermission(OrganizationPermission):
     # Relaxed permissions for saved queries in Explore
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "saved_query:read"],
+        "POST": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "saved_query:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "saved_query:write"],
     }
 
     def has_object_permission(self, request, view, obj):
@@ -44,6 +44,17 @@ class ExploreSavedQueryPermission(OrganizationPermission):
 
             return False
         return True
+
+
+class ExploreSavedFormulaPermission(OrganizationPermission):
+    # Any organization member can read and change any formula, including ones
+    # created by someone else.
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
 
 
 def filter_to_accessible_explore_queries(

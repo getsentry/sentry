@@ -1,9 +1,11 @@
 from datetime import timedelta
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
+import orjson
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from urllib3.response import HTTPResponse
 
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
@@ -23,20 +25,25 @@ from sentry.tasks.seer.autofix import (
     configure_seer_for_existing_org,
     generate_issue_summary_only,
     generate_summary_and_run_automation,
+    summarize_issue,
 )
 from sentry.tasks.seer.autofix_issue_data import (
     FEATURE_FLAG,
-    _parse_response,
     _select_candidates,
     judge_issue_data,
     schedule_judging,
     schedule_judging_for_org,
 )
 from sentry.testutils.cases import TestCase as SentryTestCase
-from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    Actor,
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
@@ -222,6 +229,33 @@ class TestGenerateSummaryAndRunAutomation(SentryTestCase):
         )
 
 
+class TestSummarizeIssue(SentryTestCase):
+    @patch("sentry.tasks.seer.autofix.run_automation")
+    @patch("sentry.tasks.seer.autofix.get_and_update_group_fixability_score")
+    @patch("sentry.tasks.seer.autofix.get_or_generate_issue_summary")
+    def test_forwards_source_without_scoring_or_automation(
+        self, mock_summary: MagicMock, mock_score: MagicMock, mock_automation: MagicMock
+    ) -> None:
+        summarize_issue(self.group.id, source=SeerAutomationSource.FIRST_ASSIGNMENT.value)
+
+        mock_summary.assert_called_once_with(
+            group=self.group, source=SeerAutomationSource.FIRST_ASSIGNMENT
+        )
+        mock_score.assert_not_called()
+        mock_automation.assert_not_called()
+
+    @patch(
+        "sentry.tasks.seer.autofix.get_or_generate_issue_summary",
+        side_effect=IssueSummaryUnavailable,
+    )
+    def test_summary_unavailable(self, mock_summary: MagicMock) -> None:
+        summarize_issue(self.group.id, source=SeerAutomationSource.ISSUE_DETAILS.value)
+
+        mock_summary.assert_called_once_with(
+            group=self.group, source=SeerAutomationSource.ISSUE_DETAILS
+        )
+
+
 class TestAutofixIssueDataJudge(SentryTestCase):
     def _create_agentic_triage_run(self, organization, **kwargs):
         config = SeerWorkflowConfig.get_or_create_for_strategy(
@@ -288,17 +322,11 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             10,
         ]
 
-    def test_accepts_all_verdicts(self) -> None:
-        for verdict in ("fixable", "not_fixable", "uncertain"):
-            response = _parse_response(
-                json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"})
-            )
-            assert response.verdict == verdict
-
-    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
     def test_judges_blinded_issue_data_and_records_verdict(
         self,
-        mock_request: MagicMock,
+        mock_urlopen: MagicMock,
     ) -> None:
         verdict = "not_fixable"
         event_id = "b" * 32
@@ -313,37 +341,43 @@ class TestAutofixIssueDataJudge(SentryTestCase):
                 "reason": "hidden",
             },
         )
-        response = Mock(status=200)
-        response.json.return_value = {
-            "content": json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"}),
-            "model": "claude-opus-4-8@default",
-        }
-        observed_contexts: list[ViewerContext | None] = []
-
-        def record_viewer_context(*_args: object, **_kwargs: object) -> Mock:
-            observed_contexts.append(get_viewer_context())
-            return response
-
-        mock_request.side_effect = record_viewer_context
+        mock_urlopen.return_value = HTTPResponse(
+            orjson.dumps(
+                {
+                    "result": {
+                        "verdict": verdict,
+                        "confidence": "high",
+                        "reason": "Evidence",
+                        "model": "claude-opus-4-8@default",
+                    }
+                }
+            ),
+            status=200,
+        )
 
         with self.feature(FEATURE_FLAG):
             judge_issue_data([(issue_data.id, event_id)])
 
-        assert observed_contexts == [
-            ViewerContext(
-                organization_id=self.organization.id,
-                actor_type=ActorType.SYSTEM,
-            )
-        ]
-        assert mock_request.call_args.kwargs["viewer_context"] == {
-            "organization_id": self.organization.id
-        }
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
+        )
         assert get_viewer_context() is None
-        prompt = json.loads(mock_request.call_args.args[0]["prompt"])
-        assert prompt == {
-            "event_id": event_id,
-            "event": {"entries": []},
-            "issue": {"title": "Example"},
+        request_body = orjson.loads(mock_urlopen.call_args.kwargs["body"])
+        assert request_body == {
+            "oneshot_id": "autofix_issue_data_judge",
+            "payload": {
+                "issue_data": {
+                    "event_id": event_id,
+                    "event": {"entries": []},
+                    "issue": {"title": "Example"},
+                    "status": "skip",
+                    "reason": "hidden",
+                }
+            },
         }
 
         issue_data.refresh_from_db()
@@ -354,7 +388,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
         assert issue_data.judge_review["prompt_version"] == "2"
 
-    @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
+    @patch("sentry.tasks.seer.autofix_issue_data.run_oneshot")
     def test_skips_stale_event(self, mock_request: MagicMock) -> None:
         group = self.create_group(project=self.project, seer_fixability_score=0.1)
         issue_data = self.create_seer_autofix_issue_data(group)

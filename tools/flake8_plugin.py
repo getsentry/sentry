@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import ast
 import os
+from collections import Counter
 from collections.abc import Generator
+from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Literal, NamedTuple
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
@@ -164,6 +166,28 @@ S029_msg = (
     "raw urlopen bypasses ViewerContext propagation"
 )
 
+S030_msg = (
+    "S030 Do not add new callers of the legacy Seer LLM generate API; "
+    "add a named Seer one-shot so prompts and model selection stay in Seer"
+)
+S030_stale_msg = (
+    "S030 stale legacy Seer LLM generate allowlist entry for {} in {}; "
+    "remove it from S030_allowlist"
+)
+_S030_LEGACY_MODULE = "sentry.seer.signed_seer_api"
+_S030_LEGACY_NAMES = frozenset(("LlmGenerateRequest", "make_llm_generate_request"))
+_S030_LEGACY_ROUTE = "/v1/llm/generate"
+_S030_MODULE_SCOPE = "<module>"
+
+S031_msg = (
+    "S031 Do not assign to settings in tests; use override_settings(...) or "
+    "override_options(...) so the change is undone in order"
+)
+
+# Existing callers are pinned to their exact function and occurrence count. This is a
+# shrink-only migration baseline: remove entries as callers move to named Seer one-shots.
+S030_allowlist: dict[str, dict[tuple[str, str], int]] = {}
+
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
 # gates every endpoint of that shape at once, with no baseline to maintain.
@@ -206,6 +230,18 @@ def _s015_msg() -> str:
 
 def _is_tests_path(filename: str) -> bool:
     return "tests/" in filename or "testutils/" in filename
+
+
+def _is_settings_target(node: ast.expr) -> bool:
+    """`settings.FOO`, `settings.FOO["x"]`, `settings.FOO["x"]["y"]`, ..."""
+    while isinstance(node, ast.Subscript):
+        node = node.value
+    return (
+        isinstance(node, ast.Attribute)
+        and node.attr.isupper()
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "settings"
+    )
 
 
 def _is_platform_path(filename: str) -> bool:
@@ -646,23 +682,66 @@ def _repo_relative(filename: str) -> str:
     return normalized.lstrip("./")
 
 
+class _StartEnd(NamedTuple):
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+
+
+def _start_and_end(node: ast.expr) -> _StartEnd:
+    """Where a node starts and ends, as ast reports it (columns are 0-based)"""
+    return _StartEnd(
+        line=node.lineno,
+        column=node.col_offset,
+        end_line=node.end_lineno or node.lineno,
+        end_column=node.end_col_offset or node.col_offset,
+    )
+
+
+# Short source names used in violation keys, so a query and a body read of the
+# same name stay separate violations.
+_SOURCE_PREFIX = {"query string": "query", "request body": "body"}
+
+
+@dataclass(frozen=True)
+class ApiInputViolation:
+    """Structured record of a single S025-S028 API input lint violation.
+
+    Preserves the `Class.method` scope, prefixed input `key`, and full start and end
+    position (`line` is 1-based, while `column` is 0-based to match Python's AST and LSP).
+    """
+
+    rule: str
+    message: str
+    line: int
+    column: int
+    end_line: int
+    end_column: int
+    severity: Literal["error", "warning"]
+    scope: str  # Class.method
+    key: str  # source and name, for example "query:id"
+    tool: str = "sentry-flake8"
+
+
 class _InputCtx:
     """One PUBLIC method's input sources, gathered during the single traversal."""
 
-    def __init__(self, declared_params: set[str], declared_body: set[str]) -> None:
+    def __init__(self, scope: str, declared_params: set[str], declared_body: set[str]) -> None:
+        self.scope = scope
         self.declared_params = declared_params
         self.declared_body = declared_body
         self.query_locals: set[str] = set()
         self.body_locals: set[str] = set()
-        # (line, col, serializer) for each serializer built from that source
-        self.query_validators: list[tuple[int, int, str]] = []
-        self.body_validators: list[tuple[int, int, str]] = []
-        # (line, col, key, source) reads with a literal key
-        self.literal_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, rendered key, source) reads whose key is computed
-        self.computed_reads: list[tuple[int, int, str, str]] = []
-        # (line, col, callee, source) the whole dict passed somewhere
-        self.hand_offs: list[tuple[int, int, str, str]] = []
+        # (start_end, serializer) for each serializer built from that source
+        self.query_validators: list[tuple[_StartEnd, str]] = []
+        self.body_validators: list[tuple[_StartEnd, str]] = []
+        # (start_end, key, source) reads with a literal key
+        self.literal_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, rendered key, source) reads whose key is computed
+        self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # (start_end, callee, source) the whole dict passed somewhere
+        self.hand_offs: list[tuple[_StartEnd, str, str]] = []
 
     def _is(self, node: ast.expr, attrs: frozenset[str], locals_: set[str]) -> bool:
         node = _unwrap_copy(node)
@@ -686,11 +765,11 @@ class _InputCtx:
             return "request body"
         return None
 
-    def record_read(self, key: ast.expr, source: str, line: int, col: int) -> None:
+    def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
-            self.literal_reads.append((line, col, key.value, source))
+            self.literal_reads.append((_start_and_end(node), key.value, source))
         else:
-            self.computed_reads.append((line, col, ast.unparse(key), source))
+            self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
 
 class SentryVisitor(ast.NodeVisitor):
@@ -702,6 +781,8 @@ class SentryVisitor(ast.NodeVisitor):
         eap_suite_classes: set[str] | None = None,
     ) -> None:
         self.errors: list[tuple[int, int, str]] = []
+        # Every S025-S028 violation, enforced or not; see get_api_violations
+        self.api_violations: list[ApiInputViolation] = []
         self.filename = filename
         self._s015_year = s015_year
         self._s015_msg = s015_msg
@@ -715,6 +796,10 @@ class SentryVisitor(ast.NodeVisitor):
         # S029: pools created from SEER_*_URL must not make raw requests.
         self._s029_seer_pool_names: set[str] = set()
         self._s029_urlopen_calls: list[tuple[int, int, str]] = []
+        # S030: legacy generic Seer LLM API imports, calls, and route bypasses.
+        self._s030_legacy_names: dict[str, str] = {}
+        self._s030_module_aliases: set[str] = set()
+        self._s030_uses: list[tuple[int, int, str, str]] = []
         # Module-level classes, indexed as encountered. A base is always defined
         # before its subclass at module level, so in-order indexing suffices.
         self._module_classes: dict[str, ast.ClassDef] = {}
@@ -727,6 +812,13 @@ class SentryVisitor(ast.NodeVisitor):
         self._function_stack: list[str] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+        if node.module == _S030_LEGACY_MODULE and not node.level:
+            for alias in node.names:
+                if alias.name in _S030_LEGACY_NAMES:
+                    local_name = alias.asname or alias.name
+                    self._s030_legacy_names[local_name] = alias.name
+                    self._s030_record(node, f"import {alias.name}")
+
         if node.module and not node.level:
             if node.module.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
@@ -776,6 +868,10 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node: ast.Import) -> None:
         for alias in node.names:
+            if alias.name == _S030_LEGACY_MODULE:
+                if alias.asname:
+                    self._s030_module_aliases.add(alias.asname)
+                self._s030_record(node, f"import {alias.name}")
             if alias.name.split(".")[0] in S003_modules:
                 self.errors.append((node.lineno, node.col_offset, S003_msg))
             elif (
@@ -818,6 +914,8 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> None:
         if isinstance(node.value, str) and node.value == S018_fqn:
             self.errors.append((node.lineno, node.col_offset, S018_msg))
+        elif isinstance(node.value, str) and node.value == _S030_LEGACY_ROUTE:
+            self._s030_record(node, f"use {_S030_LEGACY_ROUTE}")
 
         self.generic_visit(node)
 
@@ -932,7 +1030,27 @@ class SentryVisitor(ast.NodeVisitor):
             y = _wall_clock_year_from_datetime_call(node.value)
             if y is not None and y >= self._s015_year:
                 self.errors.append((node.lineno, node.col_offset, self._s015_msg))
+        self._check_S031(node.targets)
         self.generic_visit(node)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+        self._check_S031([node.target])
+        self.generic_visit(node)
+
+    def visit_Delete(self, node: ast.Delete) -> None:
+        self._check_S031(node.targets)
+        self.generic_visit(node)
+
+    def _check_S031(self, targets: list[ast.expr]) -> None:
+        if not _is_tests_path(self.filename):
+            return
+        for target in targets:
+            if _is_settings_target(target):
+                self.errors.append((target.lineno, target.col_offset, S031_msg))
 
     def _check_S021(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         annot = _extract_response_annotation_Ts(node.returns)
@@ -1032,6 +1150,22 @@ class SentryVisitor(ast.NodeVisitor):
             if self._s024_parses is None:
                 self._s024_parses = (node.lineno, node.col_offset)
 
+    def _s030_record(self, node: ast.stmt | ast.expr, kind: str) -> None:
+        function = self._function_stack[-1] if self._function_stack else _S030_MODULE_SCOPE
+        self._s030_uses.append((node.lineno, node.col_offset, function, kind))
+
+    def _s030_call_name(self, node: ast.expr) -> str | None:
+        if isinstance(node, ast.Name):
+            return self._s030_legacy_names.get(node.id)
+
+        qualified = _name_of(node)
+        for legacy_name in _S030_LEGACY_NAMES:
+            if qualified == f"{_S030_LEGACY_MODULE}.{legacy_name}":
+                return legacy_name
+            if any(qualified == f"{alias}.{legacy_name}" for alias in self._s030_module_aliases):
+                return legacy_name
+        return None
+
     def visit_Subscript(self, node: ast.Subscript) -> None:
         # Load only: `request.data["title"] = ...` writes a value, it does not
         # read a parameter the client sent.
@@ -1039,7 +1173,7 @@ class SentryVisitor(ast.NodeVisitor):
             ctx = self._input_stack[-1]
             source = ctx.source_of(node.value)
             if source is not None:
-                ctx.record_read(node.slice, source, node.lineno, node.col_offset)
+                ctx.record_read(node.slice, source, node)
         self.generic_visit(node)
 
     def _enter_input(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
@@ -1053,6 +1187,7 @@ class SentryVisitor(ast.NodeVisitor):
         decorators = self._class_decorators + node.decorator_list
         self._input_stack.append(
             _InputCtx(
+                f"{self._class_stack[-1]}.{node.name}",
                 _declared_names(decorators, "parameters"),
                 _declared_names(decorators, "request"),
             )
@@ -1066,7 +1201,7 @@ class SentryVisitor(ast.NodeVisitor):
         if isinstance(func, ast.Attribute) and func.attr in _READ_METHODS:
             source = ctx.source_of(func.value)
             if source is not None and node.args:
-                ctx.record_read(node.args[0], source, node.lineno, node.col_offset)
+                ctx.record_read(node.args[0], source, node)
             # On anything but the request this is an ordinary lookup, and
             # `options.get("k", request.GET)` passes a default, not the dict.
             return
@@ -1079,7 +1214,7 @@ class SentryVisitor(ast.NodeVisitor):
             if source is not None:
                 name = _name_of(func).rsplit(".", 1)[-1]
                 if name not in _CONTAINER_OPS:
-                    ctx.hand_offs.append((node.lineno, node.col_offset, name, source))
+                    ctx.hand_offs.append((_start_and_end(node), name, source))
                 return
 
     def _record_validator(self, node: ast.Call) -> None:
@@ -1094,32 +1229,56 @@ class SentryVisitor(ast.NodeVisitor):
                 continue
             name = _name_of(node.func).rsplit(".", 1)[-1]
             if ctx.is_query(keyword.value):
-                ctx.query_validators.append((node.lineno, node.col_offset, name))
+                ctx.query_validators.append((_start_and_end(node), name))
             elif ctx.is_body(keyword.value):
-                ctx.body_validators.append((node.lineno, node.col_offset, name))
+                ctx.body_validators.append((_start_and_end(node), name))
 
-    def _report_input(self, line: int, col: int, msg: str, rule: str) -> None:
-        """Fatal only for an enforced rule; otherwise recorded unless asked for."""
-        if rule in ENFORCED or os.environ.get(INPUT_LINT_ALL_ENV):
-            self.errors.append((line, col, msg))
+    def _report_input(
+        self, ctx: _InputCtx, start_end: _StartEnd, msg: str, group: str, key: str, source: str
+    ) -> None:
+        """Always recorded as a structured violation; fatal only for an enforced group."""
+        enforced = group in ENFORCED
+        self.api_violations.append(
+            ApiInputViolation(
+                # flake8 requires every message to start with its code
+                rule=msg.split(" ", 1)[0],
+                message=msg,
+                line=start_end.line,
+                column=start_end.column,
+                end_line=start_end.end_line,
+                end_column=start_end.end_column,
+                severity="error" if enforced else "warning",
+                scope=ctx.scope,
+                key=f"{_SOURCE_PREFIX[source]}:{key}",
+            )
+        )
+        if enforced or os.environ.get(INPUT_LINT_ALL_ENV):
+            self.errors.append((start_end.line, start_end.column, msg))
 
     def _exit_input(self) -> None:
         ctx = self._input_stack.pop()
-        for line, col, name in ctx.query_validators:
+        for start_end, name in ctx.query_validators:
             if name not in ctx.declared_params:
-                self._report_input(line, col, S025_query_msg.format(name), "declared")
-        for line, col, name in ctx.body_validators:
+                msg = S025_query_msg.format(name)
+                self._report_input(ctx, start_end, msg, "declared", name, "query string")
+        for start_end, name in ctx.body_validators:
             if name not in ctx.declared_body:
-                self._report_input(line, col, S025_body_msg.format(name), "declared")
-        for line, col, key, source in ctx.literal_reads:
-            self._report_input(line, col, S026_msg.format(repr(key), source), "shaped")
-        for line, col, key, source in ctx.computed_reads:
-            self._report_input(line, col, S027_msg.format(source, key), "shaped")
-        for line, col, callee, source in ctx.hand_offs:
-            self._report_input(line, col, S028_msg.format(source, callee), "shaped")
+                msg = S025_body_msg.format(name)
+                self._report_input(ctx, start_end, msg, "declared", name, "request body")
+        for start_end, key, source in ctx.literal_reads:
+            msg = S026_msg.format(repr(key), source)
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, key, source in ctx.computed_reads:
+            msg = S027_msg.format(source, key)
+            self._report_input(ctx, start_end, msg, "shaped", key, source)
+        for start_end, callee, source in ctx.hand_offs:
+            msg = S028_msg.format(source, callee)
+            self._report_input(ctx, start_end, msg, "shaped", callee, source)
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if legacy_name := self._s030_call_name(node.func):
+            self._s030_record(node, f"call {legacy_name}")
         if isinstance(node.func, ast.Attribute) and node.func.attr == "urlopen":
             self._s029_urlopen_calls.append(
                 (node.lineno, node.col_offset, _name_of(node.func.value))
@@ -1184,6 +1343,24 @@ class SentryVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
+def get_api_violations(
+    tree: ast.AST, filename: str, all_rules: bool = True
+) -> list[ApiInputViolation]:
+    """Scan a file's AST and keep structured records for S025-S028 violations.
+
+    Unlike flake8's plain text output, these records preserve the method scope
+    and parameter key needed for baseline tracking. By default `all_rules=True`,
+    this returns every violation even if the rule is currently disabled in flake8.
+    """
+    visitor = SentryVisitor(filename, datetime.now(timezone.utc).year, _s015_msg())
+    visitor.visit(tree)
+    violations = []
+    for violation in visitor.api_violations:
+        if all_rules or violation.severity == "error":
+            violations.append(violation)
+    return violations
+
+
 class SentryCheck:
     def __init__(self, tree: ast.AST, filename: str) -> None:
         self.tree = tree
@@ -1201,6 +1378,7 @@ class SentryCheck:
 
         yield from self._s024(visitor)
         yield from self._s029(visitor)
+        yield from self._s030(visitor)
 
         for e in visitor.errors:
             yield (*e, type(self))
@@ -1221,3 +1399,21 @@ class SentryCheck:
         for line, col, receiver in visitor._s029_urlopen_calls:
             if receiver in visitor._s029_seer_pool_names:
                 yield (line, col, S029_msg, type(self))
+
+    def _s030(self, visitor: SentryVisitor) -> Generator[tuple[int, int, str, type[Any]]]:
+        rel = _repo_relative(self.filename)
+        if not rel.startswith("src/sentry/") or rel == "src/sentry/seer/signed_seer_api.py":
+            return
+
+        allowed = S030_allowlist.get(rel, {})
+        seen: Counter[tuple[str, str]] = Counter()
+        for line, col, function, kind in visitor._s030_uses:
+            key = (function, kind)
+            seen[key] += 1
+            if seen[key] > allowed.get(key, 0):
+                yield (line, col, S030_msg, type(self))
+
+        for key, expected_count in allowed.items():
+            if seen[key] < expected_count:
+                function, kind = key
+                yield (1, 0, S030_stale_msg.format(kind, function), type(self))

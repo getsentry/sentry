@@ -21,6 +21,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationComparisonFilter,
     AggregationFilter,
     AggregationOrFilter,
+    Column,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -207,6 +208,31 @@ class SearchResolverQueryTest(TestCase):
         )
         assert having is None
 
+    def test_replacement_with_different_type_than_deprecated_attribute(self) -> None:
+        # `deviceMemory` is a string, but its replacement is an integer convention.
+        where, having, _ = self.resolver.resolve_query("device.memory.estimated_capacity:>4")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="device.memory.estimated_capacity", type=AttributeKey.Type.TYPE_INT
+                ),
+                op=ComparisonFilter.OP_GREATER_THAN,
+                value=AttributeValue(val_int=4),
+            )
+        )
+        assert having is None
+
+    def test_deprecated_attribute_with_different_type_than_replacement(self) -> None:
+        where, having, _ = self.resolver.resolve_query('deviceMemory:"8 GB"')
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(name="deviceMemory", type=AttributeKey.Type.TYPE_STRING),
+                op=ComparisonFilter.OP_EQUALS,
+                value=AttributeValue(val_str="8 GB"),
+            )
+        )
+        assert having is None
+
     def test_in_filter(self) -> None:
         where, having, _ = self.resolver.resolve_query("span.description:[foo,bar,baz]")
         assert where == TraceItemFilter(
@@ -333,7 +359,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_has_in_filter_multi_key(self) -> None:
-        """Multi-key has:[key1,key2] (event_search has_in_filter) resolves to OR of (exists + != '')."""
+        """Multi-key has:[key1,key2] resolves to an OR of existence checks."""
         where, having, _ = self.resolver.resolve_query("has:[span.description,span.op]")
         desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
         op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
@@ -341,36 +367,10 @@ class SearchResolverQueryTest(TestCase):
             or_filter=OrFilter(
                 filters=[
                     TraceItemFilter(
-                        and_filter=AndFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=desc_key),
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=desc_key,
-                                        op=ComparisonFilter.OP_NOT_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
-                            ]
-                        )
+                        exists_filter=ExistsFilter(key=desc_key),
                     ),
                     TraceItemFilter(
-                        and_filter=AndFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=op_key),
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=op_key,
-                                        op=ComparisonFilter.OP_NOT_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
-                            ]
-                        )
+                        exists_filter=ExistsFilter(key=op_key),
                     ),
                 ]
             )
@@ -378,7 +378,7 @@ class SearchResolverQueryTest(TestCase):
         assert having is None
 
     def test_not_has_in_filter_multi_key(self) -> None:
-        """Negated multi-key !has:[key1,key2] resolves to AND of (not-exists OR = '')."""
+        """Negated multi-key !has:[key1,key2] resolves to an AND of missing checks."""
         where, having, _ = self.resolver.resolve_query("!has:[span.description,span.op]")
         desc_key = AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING)
         op_key = AttributeKey(name="sentry.op", type=AttributeKey.Type.TYPE_STRING)
@@ -386,46 +386,20 @@ class SearchResolverQueryTest(TestCase):
             and_filter=AndFilter(
                 filters=[
                     TraceItemFilter(
-                        or_filter=OrFilter(
+                        not_filter=NotFilter(
                             filters=[
                                 TraceItemFilter(
-                                    not_filter=NotFilter(
-                                        filters=[
-                                            TraceItemFilter(
-                                                exists_filter=ExistsFilter(key=desc_key),
-                                            )
-                                        ]
-                                    )
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=desc_key,
-                                        op=ComparisonFilter.OP_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
+                                    exists_filter=ExistsFilter(key=desc_key),
+                                )
                             ]
                         )
                     ),
                     TraceItemFilter(
-                        or_filter=OrFilter(
+                        not_filter=NotFilter(
                             filters=[
                                 TraceItemFilter(
-                                    not_filter=NotFilter(
-                                        filters=[
-                                            TraceItemFilter(
-                                                exists_filter=ExistsFilter(key=op_key),
-                                            )
-                                        ]
-                                    )
-                                ),
-                                TraceItemFilter(
-                                    comparison_filter=ComparisonFilter(
-                                        key=op_key,
-                                        op=ComparisonFilter.OP_EQUALS,
-                                        value=AttributeValue(val_str=""),
-                                    )
-                                ),
+                                    exists_filter=ExistsFilter(key=op_key),
+                                )
                             ]
                         )
                     ),
@@ -873,13 +847,7 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=trace_key),
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=trace_key),
         )
         assert having is None
 
@@ -887,17 +855,11 @@ class SearchResolverQueryTest(TestCase):
         where, having, _ = self.resolver.resolve_query("!has:trace")
         trace_key = AttributeKey(name="sentry.trace_id", type=AttributeKey.Type.TYPE_STRING)
         assert where == TraceItemFilter(
-            or_filter=OrFilter(
+            not_filter=NotFilter(
                 filters=[
                     TraceItemFilter(
-                        not_filter=NotFilter(
-                            filters=[
-                                TraceItemFilter(
-                                    exists_filter=ExistsFilter(key=trace_key),
-                                )
-                            ]
-                        )
-                    ),
+                        exists_filter=ExistsFilter(key=trace_key),
+                    )
                 ]
             )
         )
@@ -909,20 +871,7 @@ class SearchResolverQueryTest(TestCase):
             name="sentry.parent_span_id", type=AttributeKey.Type.TYPE_STRING
         )
         assert where == TraceItemFilter(
-            and_filter=AndFilter(
-                filters=[
-                    TraceItemFilter(
-                        exists_filter=ExistsFilter(key=parent_span_key),
-                    ),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=parent_span_key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
-                ]
-            )
+            exists_filter=ExistsFilter(key=parent_span_key),
         )
         assert having is None
 
@@ -937,20 +886,35 @@ class SearchResolverColumnTest(TestCase):
             definitions=SPAN_DEFINITIONS,
         )
 
+    def test_tool_output_size_field(self) -> None:
+        resolved_column, virtual_context = self.resolver.resolve_column(
+            "gen_ai.tool.call.result.size"
+        )
+        assert resolved_column.search_type == "byte"
+        assert resolved_column.proto_definition == AttributeKey(
+            name="gen_ai.tool.call.result.size", type=AttributeKey.Type.TYPE_DOUBLE
+        )
+        assert virtual_context == [None]
+        assert (
+            SPAN_EAP_COLUMN_MAP["gen_ai.tool.call.result.size"]
+            == "attr_num[gen_ai.tool.call.result.size]"
+        )
+
     def test_simple_op_field(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("span.op")
         assert resolved_column.proto_definition == AttributeKey(
             name="sentry.op", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_project_field(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("project")
         assert resolved_column.proto_definition == AttributeKey(
             name="project", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is not None
-        assert virtual_context.constructor(
+        assert len(virtual_context) == 1
+        assert virtual_context[0] is not None
+        assert virtual_context[0].constructor(
             self.resolver.params, self.resolver
         ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -963,8 +927,9 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is not None
-        assert virtual_context.constructor(
+        assert len(virtual_context) == 1
+        assert virtual_context[0] is not None
+        assert virtual_context[0].constructor(
             self.resolver.params, self.resolver
         ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -977,21 +942,21 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_simple_string_tag(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, string]")
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_simple_number_tag(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_DOUBLE
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_resolve_columns_hides_internal_api_attributes(self) -> None:
         resolver = SearchResolver(
@@ -1044,7 +1009,7 @@ class SearchResolverColumnTest(TestCase):
         )
 
         assert [column.public_alias for column in resolved_equations] == ["equation|count() / 1"]
-        assert resolved_contexts == []
+        assert resolved_contexts == [None]
 
     def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
         resolver = SearchResolver(
@@ -1077,7 +1042,7 @@ class SearchResolverColumnTest(TestCase):
             label="sum(span.self_time)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_sum_default_argument(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
@@ -1087,7 +1052,7 @@ class SearchResolverColumnTest(TestCase):
             label="sum()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_function_alias(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
@@ -1097,7 +1062,7 @@ class SearchResolverColumnTest(TestCase):
             label="test",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
@@ -1107,7 +1072,7 @@ class SearchResolverColumnTest(TestCase):
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
@@ -1115,7 +1080,7 @@ class SearchResolverColumnTest(TestCase):
             label="count(span.duration)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_p50(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
@@ -1125,7 +1090,7 @@ class SearchResolverColumnTest(TestCase):
             label="p50()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count_unique(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count_unique(span.action)")
@@ -1135,7 +1100,7 @@ class SearchResolverColumnTest(TestCase):
             label="count_unique(span.action)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_max_timestamp(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
@@ -1145,7 +1110,7 @@ class SearchResolverColumnTest(TestCase):
             label="max(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_min_timestamp(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
@@ -1155,7 +1120,32 @@ class SearchResolverColumnTest(TestCase):
             label="min(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
+
+    def test_elapsed_if(self) -> None:
+        with pytest.raises(
+            InvalidSearchQuery, match="The function elapsed_if is not allowed for this query"
+        ):
+            self.resolver.resolve_column("elapsed_if(`span.description:foo`,timestamp)")
+
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"})),
+            definitions=SPAN_DEFINITIONS,
+        )
+        resolved_column, virtual_context = resolver.resolve_column(
+            "elapsed_if(`span.description:foo`,timestamp)"
+        )
+        formula = resolved_column.proto_definition
+        assert isinstance(formula, Column.BinaryFormula)
+        assert resolved_column.search_type == "number"
+        assert virtual_context == [None]
+        assert formula.op == Column.BinaryFormula.OP_SUBTRACT
+        assert formula.left.conditional_aggregation.aggregate == Function.FUNCTION_MAX
+        assert formula.right.conditional_aggregation.aggregate == Function.FUNCTION_MIN
+        assert formula.left.conditional_aggregation.filter == (
+            formula.right.conditional_aggregation.filter
+        )
 
     def test_max_string_field_raises(self) -> None:
         with pytest.raises(InvalidSearchQuery):
@@ -1605,3 +1595,57 @@ def test_normalize_deprecated_attribute_preserves_existing_definition() -> None:
     assert replacement_attr.public_alias == "gen_ai.input.messages"
     assert replacement_attr.internal_name == "gen_ai.input.messages"
     assert replacement_attr.search_type == "string"
+
+
+def test_deprecated_attribute_replacement_uses_replacement_convention_type() -> None:
+    attribute_definitions: dict[str, ResolvedAttribute] = {}
+
+    _update_attribute_definitions_with_deprecations(
+        attribute_definitions,
+        {
+            "deviceMemory": _make_deprecated_metadata(
+                AttributeType.STRING, "device.memory.estimated_capacity"
+            ),
+            "device.memory.estimated_capacity": AttributeMetadata(
+                brief="",
+                type=AttributeType.INTEGER,
+                keys=(),
+                apply_scrubbing=ApplyScrubbingInfo(key=ApplyScrubbing.NEVER),
+                is_in_otel=False,
+                visibility=Visibility.PUBLIC,
+            ),
+        },
+    )
+
+    deprecated_attr = attribute_definitions["deviceMemory"]
+    replacement_attr = attribute_definitions["device.memory.estimated_capacity"]
+
+    assert deprecated_attr.search_type == "string"
+    assert deprecated_attr.deprecation_status == "backfill"
+    assert deprecated_attr.replacement == "device.memory.estimated_capacity"
+    assert replacement_attr.public_alias == "device.memory.estimated_capacity"
+    assert replacement_attr.internal_name == "device.memory.estimated_capacity"
+    assert replacement_attr.search_type == "integer"
+    assert replacement_attr.deprecation_status is None
+    assert replacement_attr.replacement is None
+
+
+@pytest.mark.parametrize(
+    ("deprecated", "replacement"),
+    [
+        ("deviceMemory", "device.memory.estimated_capacity"),
+        ("hardwareConcurrency", "device.processor_count"),
+    ],
+)
+def test_loaded_replacement_with_different_type_than_deprecated_attribute(
+    deprecated: str, replacement: str
+) -> None:
+    deprecated_attr = SPAN_ATTRIBUTE_DEFINITIONS[deprecated]
+    replacement_attr = SPAN_ATTRIBUTE_DEFINITIONS[replacement]
+
+    assert deprecated_attr.search_type == "string"
+    assert deprecated_attr.replacement == replacement
+    assert replacement_attr.search_type == "integer"
+    # Number attributes returned by the attribute names RPC map to the public alias
+    # instead of `tags[<name>,number]`.
+    assert SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS["number"][replacement] == replacement

@@ -1,10 +1,10 @@
 import styled from '@emotion/styled';
+import {IconEllipsis} from '@sentry/icons/ellipsis';
 
-import {DropdownMenu, type DropdownMenuProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {openConfirmModal} from 'sentry/components/confirm';
-import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
@@ -15,12 +15,7 @@ type Props = {
   user?: User | null;
 };
 
-export function CommentActionsDropdown({
-  user,
-  onDelete,
-  onEdit,
-  ...props
-}: Props & Partial<DropdownMenuProps>) {
+export function CommentActionsDropdown({user, onDelete, onEdit}: Props) {
   const activeUser = useUser();
   const canEdit = activeUser && (activeUser.isSuperuser || user?.id === activeUser.id);
 
@@ -70,7 +65,6 @@ export function CommentActionsDropdown({
           tooltipOptions: {delay: 1000},
         },
       ]}
-      {...props}
     />
   );
 }

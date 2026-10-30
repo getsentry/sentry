@@ -1,4 +1,7 @@
 import styled from '@emotion/styled';
+import {IconAdd} from '@sentry/icons/add';
+import {IconRefresh} from '@sentry/icons/refresh';
+import {IconSubtract} from '@sentry/icons/subtract';
 import type {ZoomTransform} from 'd3-zoom';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -6,7 +9,6 @@ import {Hotkey, Kbd} from '@sentry/scraps/hotkey';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {IconAdd, IconRefresh, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 interface ZoomControlsProps {
@@ -19,7 +21,7 @@ function ScrollHint({label}: {label: string}) {
   return (
     <Flex align="center" gap="xs">
       {label}
-      <Hotkey value="command" />
+      <Hotkey value="Mod" />
       <Kbd>{t('Scroll')}</Kbd>
     </Flex>
   );

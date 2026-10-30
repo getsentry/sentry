@@ -4,11 +4,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t} from 'sentry/locale';
 import type {Measurement} from 'sentry/types/event';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {isBrowserRequestNode} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {EAPSpanNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceEAPSpanRow} from 'sentry/views/performance/traceDetails/traceRow/traceEAPSpanRow';
@@ -232,11 +228,21 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
   }
 
   get transactionId(): string | undefined {
-    // If the node represents a transaction, we use the transaction_id attached to the node,
-    // otherwise we use the transaction_id of the closest parent transaction.
     return this.value.is_transaction
       ? this.value.transaction_id
       : this.findParentEapTransaction()?.transactionId;
+  }
+
+  get transactionSpanId(): string | undefined {
+    const transactionSpanId = this.value.additional_attributes?.['transaction.span_id'];
+
+    if (typeof transactionSpanId === 'string' && transactionSpanId) {
+      return transactionSpanId;
+    }
+
+    return this.value.is_transaction
+      ? this.id
+      : this.findParentEapTransaction()?.transactionSpanId;
   }
 
   get traceHeaderTitle(): {
@@ -331,15 +337,6 @@ export class EapSpanNode extends BaseNode<TraceTree.EAPSpan> {
     props: TraceRowProps<T>
   ): React.ReactNode {
     return <TraceEAPSpanRow {...props} node={this} />;
-  }
-
-  renderDetails<T extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<T>
-  ): React.ReactNode {
-    if (getIsAiNode(this)) {
-      return <AiSpanDetails node={this} traceId={props.traceId} />;
-    }
-    return <EAPSpanNodeDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

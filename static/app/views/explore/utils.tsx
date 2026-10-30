@@ -14,7 +14,7 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort, EventView} from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -23,7 +23,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -55,6 +55,7 @@ import type {
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
 import {
+  encodeCompareCaseInsensitive,
   getFieldsForConstructedQuery,
   normalizeCompareQueryParts,
   type ReadableExploreQueryParts,
@@ -64,10 +65,8 @@ import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {
-  parseConditionalAggregate,
-  withReadableConditionalFilter,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+import {withReadableConditionalFilter} from 'sentry/views/explore/utils/conditionalAggregate';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
@@ -91,6 +90,13 @@ export interface GetExploreUrlArgs {
   table?: 'trace' | 'attribute_breakdowns';
   title?: string;
   visualize?: BaseVisualize[];
+}
+
+function encodeCaseInsensitive(caseInsensitive: CaseInsensitive | undefined) {
+  if (!defined(caseInsensitive)) {
+    return null;
+  }
+  return caseInsensitive ? '1' : '0';
 }
 
 export function getExploreUrl({
@@ -136,7 +142,7 @@ export function getExploreUrl({
     table,
     title,
     referrer,
-    caseInsensitive: caseInsensitive ? '1' : undefined,
+    caseInsensitive: encodeCaseInsensitive(caseInsensitive),
     chartSelection: chartSelection ? JSON.stringify(chartSelection) : undefined,
     crossEvents: crossEvents?.length ? JSON.stringify(crossEvents) : undefined,
   };
@@ -177,7 +183,7 @@ function getExploreUrlFromSavedQueryUrl({
           groupBys: groupBys ?? [],
           query: q.query ?? '',
           sortBys: decodeSorts(q.orderby),
-          caseInsensitive: q.caseInsensitive ? '1' : null,
+          caseInsensitive: q.caseInsensitive ? '1' : '0',
         });
         const yAxes = normalized.yAxes ?? [];
 
@@ -195,7 +201,7 @@ function getExploreUrlFromSavedQueryUrl({
       selection: {
         datetime: {
           end: savedQuery.end ?? null,
-          period: savedQuery.range ?? null,
+          period: savedQuery.statsPeriod ?? null,
           start: savedQuery.start ?? null,
           utc: null,
         },
@@ -215,13 +221,14 @@ function getExploreUrlFromSavedQueryUrl({
         : savedQuery.query[0].groupby,
     sort: savedQuery.query[0].orderby,
     query: savedQuery.query[0].query,
+    caseInsensitive: savedQuery.query[0].caseInsensitive ?? false,
     title: savedQuery.name,
     mode: savedQuery.query[0].mode,
     field: savedQuery.query[0].fields,
     selection: {
       datetime: {
         end: savedQuery.end ?? null,
-        period: savedQuery.range ?? null,
+        period: savedQuery.statsPeriod ?? null,
         start: savedQuery.start ?? null,
         utc: null,
       },
@@ -267,7 +274,7 @@ export function getExploreMultiQueryUrl({
           query,
           sortBys: sortBys[0] ? encodeSort(sortBys[0]) : undefined, // Explore only handles a single sort by
           yAxes,
-          caseInsensitive: caseInsensitive ? '1' : undefined,
+          caseInsensitive: encodeCompareCaseInsensitive(caseInsensitive),
         })
     ),
     title,
@@ -637,7 +644,8 @@ function getConversationsUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
+    errorsOnly: savedQuery.errorsOnly ? true : undefined,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -666,7 +674,7 @@ function getReplayUrlFromSavedQueryUrl({
     environment: savedQuery.environment,
     start: normalizeDateTimeString(savedQuery.start),
     end: normalizeDateTimeString(savedQuery.end),
-    statsPeriod: savedQuery.range,
+    statsPeriod: savedQuery.statsPeriod,
     id: savedQuery.id,
     title: savedQuery.name,
   };
@@ -708,6 +716,7 @@ export const ATTRIBUTE_VALUE_TYPES: Record<
   float: FieldValueType.NUMBER,
   int: FieldValueType.INTEGER,
   str: FieldValueType.STRING,
+  array: FieldValueType.ARRAY,
 };
 
 /**
@@ -793,11 +802,7 @@ export function hasScrubbedValue(
   return meta === undefined ? false : new TraceItemMetaInfo(meta).hasRemarks(attribute);
 }
 
-const SAMPLING_SENSITIVE_AGGREGATES = new Set([
-  'count_unique',
-  'failure_count',
-  'failure_rate',
-]);
+const SAMPLING_SENSITIVE_AGGREGATES = new Set(['count_unique', 'max', 'min']);
 const LOW_SAMPLE_RATE_THRESHOLD = 0.1;
 
 export type SamplingWarningReason = 'partialData' | 'lowSampleRate';
@@ -818,6 +823,24 @@ export function getSamplingWarningReason(
   }
   if (shouldWarnSamplingSensitive(yAxis, series)) {
     return 'lowSampleRate';
+  }
+  return null;
+}
+
+export function getFirstSamplingWarning(
+  yAxes: string[],
+  seriesByYAxis: Record<string, TimeSeries[]>,
+  dataScanned: 'full' | 'partial' | undefined
+): {reason: SamplingWarningReason; yAxis: string} | null {
+  for (const yAxis of yAxes) {
+    const reason = getSamplingWarningReason(
+      yAxis,
+      seriesByYAxis[yAxis] ?? [],
+      dataScanned
+    );
+    if (reason) {
+      return {reason, yAxis};
+    }
   }
   return null;
 }

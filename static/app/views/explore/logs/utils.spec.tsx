@@ -47,6 +47,29 @@ describe('viewLogsSamplesTarget', () => {
     expect(target.query.logsAggregateSortBys).toBe('-count(message)');
     expect(target.query.logsQuery).toBe('');
   });
+
+  it('adds a boolean group by value to the samples query', () => {
+    const location = LocationFixture({
+      query: {
+        logsQuery: 'message:resolver.deprecated_function_used',
+      },
+    });
+    const target = viewLogsSamplesTarget({
+      location,
+      search: new MutableSearch('message:resolver.deprecated_function_used'),
+      fields: ['trace', 'message', 'timestamp'],
+      groupBys: ['tags[api_token_is_sentry_app,boolean]'],
+      visualizes: [new VisualizeFunction('count(message)')],
+      sorts: [{field: 'timestamp', kind: 'desc'}],
+      row: {'tags[api_token_is_sentry_app,boolean]': true},
+      projects: [ProjectFixture()],
+    });
+
+    expect(target.query.mode).toBe('samples');
+    expect(target.query.logsQuery).toBe(
+      'message:resolver.deprecated_function_used tags[api_token_is_sentry_app,boolean]:true'
+    );
+  });
 });
 
 describe('getLogsUrlFromSavedQueryUrl', () => {
@@ -88,7 +111,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 
@@ -128,7 +151,7 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
       }),
     });
     expect(target).toBe(
-      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+      '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
     );
   });
 });

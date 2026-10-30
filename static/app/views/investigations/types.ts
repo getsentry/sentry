@@ -1,3 +1,10 @@
+import type {AvatarUser} from 'sentry/types/user';
+import type {
+  ActionRequestError,
+  ActionRequestFollowUp,
+  CannotApplyReason,
+  InvestigationDetectorValues,
+} from 'sentry/views/investigations/api';
 import type {ToolResult} from 'sentry/views/seerExplorer/types';
 
 /**
@@ -65,9 +72,15 @@ export type InvestigationViewer = {
   userId: string;
 };
 
-export type InvestigationBlockExecutionStart = {
+export type InvestigationComment = {
+  /** Null once the author's account is deleted. */
+  author: AvatarUser | null;
+  /** Null for a comment on the investigation as a whole. */
+  blockId: string | null;
+  body: string;
+  dateCreated: string;
+  dateUpdated: string;
   id: string;
-  status: InvestigationExecutionStatus;
 };
 
 export type InvestigationExecutionStatus =
@@ -151,12 +164,17 @@ export type InvestigationQueryOutput = {
 };
 
 export type InvestigationDetail = InvestigationListItem & {
+  actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
   filters?: Record<string, unknown>;
   parameters?: unknown[];
   projectIds?: number[];
-  source?: Record<string, unknown>;
-  template?: {key: string; version: number} | null;
+  source?: {
+    ref: Record<string, unknown>;
+    revision: number | null;
+    type: string;
+    snapshot?: Record<string, unknown>;
+  };
 };
 
 export type InvestigationTitleGeneration = {
@@ -170,6 +188,16 @@ export type MetricOpenPeriodInvestigationSource = {
     openPeriodId: string;
   };
   type: 'metric_open_period';
+};
+
+export type ManualInvestigationSource = {
+  type: 'manual';
+  /** Without a non-blank prompt, the run waits for input. */
+  prompt?: string;
+  /** Context forwarded to the investigation agent as evidence. */
+  seed?: Record<string, unknown>;
+  /** Timezone-aware ISO-8601 range for the run to look at. */
+  timeRange?: {end: string; start: string};
 };
 
 export type InvestigationCandidate =
@@ -241,6 +269,58 @@ export type InvestigationHypothesisStatus = InvestigationOrchestrationOpenString
   | 'cancelled'
 >;
 
+export type InvestigationDetectorChangeKey = keyof InvestigationDetectorValues;
+
+export type InvestigationUpdateDetectorAction = {
+  before: InvestigationDetectorValues;
+  changes: InvestigationDetectorValues;
+  detectorId: string;
+  kind: 'update_detector';
+};
+
+export type InvestigationConnectTelemetryAction = {
+  kind: 'connect_telemetry';
+  provider: 'datadog' | 'gcp';
+};
+
+export type InvestigationAction =
+  | InvestigationUpdateDetectorAction
+  | InvestigationConnectTelemetryAction;
+
+export type InvestigationActionRequestAnchor = {
+  blockId: string | null;
+  id: string;
+  type: InvestigationOrchestrationOpenString<'block' | 'hypothesis'>;
+};
+
+export type InvestigationActionRequest = {
+  action: InvestigationAction | null;
+  anchor: InvestigationActionRequestAnchor | null;
+  appliedBy: AvatarUser | null;
+  appliedDetails: Record<string, unknown> | null;
+  canApply: boolean;
+  cannotApplyReason: InvestigationOrchestrationOpenString<CannotApplyReason> | null;
+  dateApplied: string | null;
+  dateCreated: string;
+  error: ActionRequestError | null;
+  followUp: ActionRequestFollowUp | null;
+  id: string;
+  impact: string | null;
+  key: string;
+  primary: boolean;
+  rationale: string;
+  reason: string | null;
+  reportRevision: number;
+  state: InvestigationOrchestrationOpenString<
+    'suggested' | 'applied' | 'failed' | 'superseded' | 'withdrawn'
+  >;
+  title: string;
+};
+
+export type InvestigationActionRequestApplyResponse = {
+  actionRequest: InvestigationActionRequest;
+};
+
 type InvestigationOrchestrationError = {
   code: string;
   message: string;
@@ -250,13 +330,21 @@ type InvestigationOrchestrationError = {
   source?: string | null;
 };
 
-type InvestigationToolActivity = {
+export type InvestigationToolActivity = {
   id: string;
   kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
   status: InvestigationOrchestrationOpenString<
     'queued' | 'running' | 'completed' | 'failed'
   >;
   title: string;
+};
+
+/** The agent's reasoning before the calls that follow it in the same phase. */
+export type InvestigationThought = {
+  id: string;
+  text: string;
+  /** The tool activity entry this came before; null until a call follows it. */
+  beforeActivityId?: string | null;
 };
 
 type InvestigationOrchestrationEvidence = {
@@ -319,6 +407,7 @@ export type InvestigationHypothesis = {
   automaticRetryCount?: number;
   heartbeatAt?: string | null;
   investigatorRunId?: number | null;
+  thoughts?: InvestigationThought[];
   toolActivity?: InvestigationToolActivity[];
   /**
    * Absent, not empty, until the agent has planned any checks: the contract
@@ -355,8 +444,16 @@ type InvestigationOrchestrationReport = {
   >;
   automaticRetryCount?: number;
   currentBlockStatus?: InvestigationOrchestrationWorkStatus | null;
+  currentBlockThoughts?: InvestigationThought[];
   currentBlockToolActivity?: InvestigationToolActivity[];
   heartbeatAt?: string | null;
+  nextStep?: {
+    error: InvestigationOrchestrationError | null;
+    status: InvestigationOrchestrationOpenString<
+      'not_started' | 'generating' | 'completed' | 'failed'
+    >;
+    automaticRetryCount?: number;
+  } | null;
   suggestedHypotheses?: Array<{
     statement: string;
     rationale?: string | null;
@@ -372,6 +469,7 @@ export type InvestigationOrchestration = {
     automaticRetryCount?: number;
     heartbeatAt?: string | null;
     runId?: number | string | null;
+    thoughts?: InvestigationThought[];
     toolActivity?: InvestigationToolActivity[];
   };
   errors: InvestigationOrchestrationError[];

@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {useConversation, type ConversationStats} from './useConversation';
@@ -22,7 +23,11 @@ const BASE_SPAN = {
 };
 
 const STATS: ConversationStats = {
+  cacheReadTokens: 0,
+  cacheWriteTokens: 0,
   endTimestamp: 1_000_500,
+  errors: 0,
+  errorToolNames: [],
   generationDuration: 500,
   inputTokens: 70,
   llmCalls: 1,
@@ -42,6 +47,7 @@ const STATS: ConversationStats = {
     },
   ],
   outputTokens: 30,
+  reasoningTokens: 0,
   startTimestamp: 1_000_000,
   toolCalls: 0,
   toolErrors: 0,
@@ -162,6 +168,31 @@ describe('useConversation', () => {
     expect(result.current.nodes).toHaveLength(100);
   });
 
+  it.each([4096, 0, null, undefined])(
+    'preserves reported tool output size %p',
+    async size => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
+        body: envelope([
+          {
+            ...BASE_SPAN,
+            'gen_ai.operation.type': 'tool',
+            'gen_ai.tool.call.result': 'abc',
+            ...(size !== undefined && {'gen_ai.tool.call.result.size': size}),
+          },
+        ]),
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useConversation({conversationId: 'conv-123'}),
+        {organization}
+      );
+
+      await waitFor(() => expect(result.current.nodes).toHaveLength(1));
+      expect(getToolOutputBytes(result.current.nodes[0]!)).toBe(size ?? 3);
+    }
+  );
+
   it('maps gen_ai.input.messages to node attributes', async () => {
     const inputMessages = JSON.stringify([{role: 'user', content: 'Hello from input'}]);
 
@@ -181,9 +212,6 @@ describe('useConversation', () => {
           trace: 'trace-1',
           'gen_ai.operation.type': 'ai_client',
           'gen_ai.input.messages': inputMessages,
-          'gen_ai.request.messages': JSON.stringify([
-            {role: 'user', content: 'Fallback message'},
-          ]),
         },
       ]),
     });
@@ -283,6 +311,55 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_EMBEDDINGS_INPUT]).toBe('search query text');
   });
 
+  it('maps gen_ai.memory.* to node attributes', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-memory/`,
+      body: envelope([
+        {
+          'gen_ai.conversation.id': 'conv-memory',
+          parent_span: 'parent-1',
+          'precise.finish_ts': 1000.5,
+          'precise.start_ts': 1000,
+          project: 'test-project',
+          'project.id': 1,
+          'span.name': 'search_memory',
+          'span.op': 'gen_ai.search_memory',
+          'span.status': 'ok',
+          span_id: 'span-memory',
+          trace: 'trace-memory',
+          'gen_ai.operation.type': 'memory',
+          'gen_ai.operation.name': 'search_memory',
+          'gen_ai.memory.store.id': 'user-prefs',
+          'gen_ai.memory.query.text': 'dietary preferences',
+          'gen_ai.memory.record.id': 'mem_123',
+          'gen_ai.memory.record.count': 3,
+          'gen_ai.memory.records': '[{"content":"User prefers dark mode"}]',
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-memory'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes).toHaveLength(1);
+    const node = result.current.nodes[0];
+    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
+      .additional_attributes;
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_STORE_ID]).toBe('user-prefs');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_QUERY_TEXT]).toBe('dietary preferences');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_ID]).toBe('mem_123');
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORD_COUNT]).toBe(3);
+    expect(attrs?.[SpanFields.GEN_AI_MEMORY_RECORDS]).toBe(
+      '[{"content":"User prefers dark mode"}]'
+    );
+  });
+
   it('maps gen_ai.operation.name to node attributes', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-evaluation/`,
@@ -321,47 +398,6 @@ describe('useConversation', () => {
     expect(attrs?.[SpanFields.GEN_AI_OPERATION_NAME]).toBe('evaluate');
   });
 
-  it('maps gen_ai.request.messages to node attributes', async () => {
-    const requestMessages = JSON.stringify([
-      {role: 'user', content: 'Hello from request'},
-    ]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/conv-456/`,
-      body: envelope([
-        {
-          'gen_ai.conversation.id': 'conv-456',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'gen_ai.generate',
-          'span.status': 'ok',
-          span_id: 'span-2',
-          trace: 'trace-2',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.request.messages': requestMessages,
-        },
-      ]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-456'}),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.nodes).toHaveLength(1);
-    const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
-    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe(requestMessages);
-  });
-
   it('uses empty string for missing optional fields', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-789/`,
@@ -378,7 +414,7 @@ describe('useConversation', () => {
           span_id: 'span-3',
           trace: 'trace-3',
           'gen_ai.operation.type': 'ai_client',
-          // No input or request messages provided
+          // No input messages provided
         },
       ]),
     });
@@ -398,7 +434,6 @@ describe('useConversation', () => {
       .additional_attributes;
     // Should default to empty string for missing fields
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe('');
-    expect(attrs?.[SpanFields.GEN_AI_REQUEST_MESSAGES]).toBe('');
   });
 
   it('uses conversation timestamps when provided', async () => {

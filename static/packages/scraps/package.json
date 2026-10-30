@@ -1,6 +1,6 @@
 {
   "name": "@sentry/scraps",
-  "version": "0.0.0",
+  "version": "0.3.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/getsentry/sentry.git",
@@ -11,13 +11,21 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+    "./code/inlineCode": {
+      "types": "./dist/code/inlineCode.d.ts",
+      "import": "./dist/code/inlineCode.js"
+    },
+    "./hotkey/kbd": {
+      "types": "./dist/hotkey/kbd.d.ts",
+      "import": "./dist/hotkey/kbd.js"
     },
     "./theme": {
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
+    },
+    "./formPresentation": {
+      "types": "./dist/formPresentation/index.d.ts",
+      "import": "./dist/formPresentation/index.js"
     },
     "./tokens": {
       "types": "./dist/tokens/index.d.ts",
@@ -42,6 +50,210 @@
     "./loader": {
       "types": "./dist/loader/index.d.ts",
       "import": "./dist/loader/index.js"
+    },
+    "./backdrop": {
+      "types": "./dist/backdrop/index.d.ts",
+      "import": "./dist/backdrop/index.js"
+    },
+    "./emptyState": {
+      "types": "./dist/emptyState/index.d.ts",
+      "import": "./dist/emptyState/index.js"
+    },
+    "./revealOnHover": {
+      "types": "./dist/revealOnHover/index.d.ts",
+      "import": "./dist/revealOnHover/index.js"
+    },
+    "./slider": {
+      "types": "./dist/slider/index.d.ts",
+      "import": "./dist/slider/index.js"
+    },
+    "./input": {
+      "types": "./dist/input/index.d.ts",
+      "import": "./dist/input/index.js"
+    },
+    "./textarea": {
+      "types": "./dist/textarea/index.d.ts",
+      "import": "./dist/textarea/index.js"
+    },
+    "./slot": {
+      "types": "./dist/slot/index.d.ts",
+      "import": "./dist/slot/index.js"
+    },
+    "./switch": {
+      "types": "./dist/switch/index.d.ts",
+      "import": "./dist/switch/index.js"
+    },
+    "./translation": {
+      "types": "./dist/translation/index.d.ts",
+      "import": "./dist/translation/index.js"
+    },
+    "./boundaryContext": {
+      "types": "./dist/boundaryContext.d.ts",
+      "import": "./dist/boundaryContext.js"
+    },
+    "./datetime": {
+      "types": "./dist/datetime.d.ts",
+      "import": "./dist/datetime.js"
+    },
+    "./sizeContext": {
+      "types": "./dist/sizeContext.d.ts",
+      "import": "./dist/sizeContext.js"
+    },
+    "./renderToString": {
+      "types": "./dist/renderToString.d.ts",
+      "import": "./dist/renderToString.js"
+    },
+    "./useScrollLock": {
+      "types": "./dist/useScrollLock.d.ts",
+      "import": "./dist/useScrollLock.js"
+    },
+    "./useMedia": {
+      "types": "./dist/useMedia.d.ts",
+      "import": "./dist/useMedia.js"
+    },
+    "./useOnClickOutside": {
+      "types": "./dist/useOnClickOutside.d.ts",
+      "import": "./dist/useOnClickOutside.js"
+    },
+    "./link": {
+      "types": "./dist/link/index.d.ts",
+      "import": "./dist/link/index.js"
+    },
+    "./trackingContext": {
+      "types": "./dist/trackingContext.d.ts",
+      "import": "./dist/trackingContext.js"
+    },
+    "./image": {
+      "types": "./dist/image/index.d.ts",
+      "import": "./dist/image/index.js"
+    },
+    "./descriptionList": {
+      "types": "./dist/descriptionList/index.d.ts",
+      "import": "./dist/descriptionList/index.js"
+    },
+    "./interactionStateLayer": {
+      "types": "./dist/interactionStateLayer/index.d.ts",
+      "import": "./dist/interactionStateLayer/index.js"
+    },
+    "./radio": {
+      "types": "./dist/radio/index.d.ts",
+      "import": "./dist/radio/index.js"
+    },
+    "./toggleCard": {
+      "types": "./dist/toggleCard/index.d.ts",
+      "import": "./dist/toggleCard/index.js"
+    },
+    "./statusIndicator": {
+      "types": "./dist/statusIndicator/index.d.ts",
+      "import": "./dist/statusIndicator/index.js"
+    },
+    "./hotkey": {
+      "types": "./dist/hotkey/index.d.ts",
+      "import": "./dist/hotkey/index.js"
+    },
+    "./overlay": {
+      "types": "./dist/overlay.d.ts",
+      "import": "./dist/overlay.js"
+    },
+    "./overlayArrow": {
+      "types": "./dist/overlayArrow.d.ts",
+      "import": "./dist/overlayArrow.js"
+    },
+    "./panelProvider": {
+      "types": "./dist/panelProvider.d.ts",
+      "import": "./dist/panelProvider.js"
+    },
+    "./useStableMergeRef": {
+      "types": "./dist/useStableMergeRef.d.ts",
+      "import": "./dist/useStableMergeRef.js"
+    },
+    "./useOverlay": {
+      "types": "./dist/useOverlay.d.ts",
+      "import": "./dist/useOverlay.js"
+    },
+    "./useHoverOverlay": {
+      "types": "./dist/useHoverOverlay.d.ts",
+      "import": "./dist/useHoverOverlay.js"
+    },
+    "./tooltip": {
+      "types": "./dist/tooltip/index.d.ts",
+      "import": "./dist/tooltip/index.js"
+    },
+    "./overlayPositioning": {
+      "types": "./dist/overlayPositioning.d.ts",
+      "import": "./dist/overlayPositioning.js"
+    },
+    "./button": {
+      "types": "./dist/button/index.d.ts",
+      "import": "./dist/button/index.js"
+    },
+    "./info": {
+      "types": "./dist/info/index.d.ts",
+      "import": "./dist/info/index.js"
+    },
+    "./checkbox": {
+      "types": "./dist/checkbox/index.d.ts",
+      "import": "./dist/checkbox/index.js"
+    },
+    "./chip": {
+      "types": "./dist/chip/index.d.ts",
+      "import": "./dist/chip/index.js"
+    },
+    "./disclosure": {
+      "types": "./dist/disclosure/index.d.ts",
+      "import": "./dist/disclosure/index.js"
+    },
+    "./segmentedControl": {
+      "types": "./dist/segmentedControl/index.d.ts",
+      "import": "./dist/segmentedControl/index.js"
+    },
+    "./alert": {
+      "types": "./dist/alert/index.d.ts",
+      "import": "./dist/alert/index.js"
+    },
+    "./badge": {
+      "types": "./dist/badge/index.d.ts",
+      "import": "./dist/badge/index.js"
+    },
+    "./useIsInsideInteractiveElement": {
+      "types": "./dist/useIsInsideInteractiveElement.d.ts",
+      "import": "./dist/useIsInsideInteractiveElement.js"
+    },
+    "./table": {
+      "types": "./dist/table/index.d.ts",
+      "import": "./dist/table/index.js"
+    },
+    "./dragHandle": {
+      "types": "./dist/dragHandle/index.d.ts",
+      "import": "./dist/dragHandle/index.js"
+    },
+    "./spinner": {
+      "types": "./dist/spinner/index.d.ts",
+      "import": "./dist/spinner/index.js"
+    },
+    "./menu": {
+      "types": "./dist/menu/index.d.ts",
+      "import": "./dist/menu/index.js"
+    },
+    "./overlayTrigger": {
+      "types": "./dist/overlayTrigger.d.ts",
+      "import": "./dist/overlayTrigger.js"
+    },
+    "./splitPanel": {
+      "types": "./dist/splitPanel/index.d.ts",
+      "import": "./dist/splitPanel/index.js"
+    },
+    "./useDimensions": {
+      "types": "./dist/useDimensions.d.ts",
+      "import": "./dist/useDimensions.js"
+    },
+    "./useResizableDrawer": {
+      "types": "./dist/useResizableDrawer.d.ts",
+      "import": "./dist/useResizableDrawer.js"
+    },
+    "./toast": {
+      "types": "./dist/toast/index.d.ts",
+      "import": "./dist/toast/index.js"
     }
   },
   "publishConfig": {
@@ -49,35 +261,73 @@
   },
   "scripts": {
     "build": "rslib build",
-    "verify": "node scripts/verify.mjs",
-    "test": "jest --config jest.config.mjs",
-    "typecheck": "tsc --project tsconfig.test.json",
-    "prepack": "pnpm run build"
+    "test": "NODE_ENV=test jest --config jest.config.mjs",
+    "typecheck": "tsc --build tsconfig.test.json",
+    "prepack": "pnpm run build",
+    "lint": "pnpm run lint:js && pnpm run lint:css",
+    "lint:js": "oxlint --type-aware --report-unused-disable-directives",
+    "lint:css": "stylelint '**/*.[jt]sx' --allow-empty-input"
   },
   "dependencies": {
-    "@emotion/is-prop-valid": "1.4.0",
-    "@emotion/styled": "11.14.0",
+    "@emotion/is-prop-valid": "^1.4.0",
+    "@emotion/styled": "^11.14.0",
+    "@floating-ui/react-dom": "^2.1.9",
+    "@react-aria/button": "3.15.1",
+    "@react-aria/disclosure": "3.2.1",
+    "@react-aria/i18n": "3.13.1",
+    "@react-aria/interactions": "3.28.1",
+    "@react-aria/numberfield": "3.13.1",
+    "@react-aria/overlays": "3.32.1",
+    "@react-aria/radio": "3.13.1",
+    "@react-aria/slider": "3.9.1",
     "@react-aria/utils": "3.34.1",
-    "@types/react": "^19.0.0"
+    "@react-aria/visually-hidden": "3.9.1",
+    "@react-stately/collections": "3.13.1",
+    "@react-stately/disclosure": "3.1.1",
+    "@react-stately/list": "3.14.1",
+    "@react-stately/numberfield": "3.12.1",
+    "@react-stately/overlays": "3.7.1",
+    "@react-stately/radio": "3.12.1",
+    "@react-stately/slider": "3.8.1",
+    "@react-types/shared": "3.36.0",
+    "@sentry/icons": "workspace:*",
+    "@sentry/react": "11.7.0",
+    "@tanstack/react-hotkeys": "0.17.0",
+    "@types/react": "19.3.0",
+    "classnames": "2.3.1",
+    "framer-motion": "12.38.0",
+    "input-otp": "^1.5.0",
+    "query-string": "7.0.1",
+    "react-textarea-autosize": "8.5.7",
+    "sonner": "2.0.8",
+    "type-fest": "^5.10.0"
   },
   "devDependencies": {
+    "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
     "@rslib/core": "1.0.3",
-    "@swc/core": "1.16.2",
+    "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
+    "@tanstack/react-form": "1.28.6",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
     "@testing-library/react": "16.3.2",
+    "@testing-library/user-event": "14.6.7",
     "@types/jest": "30.0.0",
-    "@types/node": "24.13.2",
+    "@types/node": "26.6.4",
+    "@types/react-dom": "19.3.0",
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
+    "oxlint": "1.88.0",
+    "oxlint-tsgolint": "7.0.2004",
+    "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "peerDependencies": {
     "@emotion/react": "^11.14.0",
+    "@tanstack/react-form": "^1.28.6",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   }

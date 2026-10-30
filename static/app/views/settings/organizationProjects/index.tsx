@@ -1,7 +1,8 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useQuery} from '@tanstack/react-query';
-import debounce from 'lodash/debounce';
+import {useDebouncedCallback} from '@tanstack/react-pacer';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -20,10 +21,7 @@ import {t} from 'sentry/locale';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ProjectItem} from 'sentry/views/settings/components/settingsProjectItem';
@@ -36,9 +34,10 @@ type ProjectListItem = Project & {stats?: ProjectStats};
 
 function OrganizationProjects() {
   const organization = useOrganization();
-  const navigate = useNavigate();
-  const location = useLocation();
-  const query = decodeScalar(location.query.query, '');
+  const [{query, cursor}, setSearchParams] = useQueryStates({
+    query: parseAsString.withDefault(''),
+    cursor: parseAsString,
+  });
 
   const {
     data: projectListResponse,
@@ -50,8 +49,8 @@ function OrganizationProjects() {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          ...location.query,
           query,
+          cursor: cursor ?? undefined,
           per_page: ITEMS_PER_PAGE,
           statsPeriod: '24h',
           collapse: ['latestDeploys', 'unusedFeatures'],
@@ -60,25 +59,16 @@ function OrganizationProjects() {
       }
     ),
     select: selectJsonWithHeaders,
+    placeholderData: keepPreviousData,
   });
 
   const projectList = projectListResponse?.json;
   const projectListPageLinks = projectListResponse?.headers.Link;
   const action = <CreateProjectButton />;
 
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (searchQuery: string) =>
-          navigate(
-            {
-              query: {...location.query, query: searchQuery, cursor: undefined},
-            },
-            {replace: true}
-          ),
-        DEFAULT_DEBOUNCE_DURATION
-      ),
-    [location.query, navigate]
+  const onSearch = useDebouncedCallback(
+    (searchQuery: string) => setSearchParams({query: searchQuery, cursor: null}),
+    {wait: DEFAULT_DEBOUNCE_DURATION}
   );
 
   return (
@@ -94,7 +84,7 @@ function OrganizationProjects() {
               <SearchBar
                 {...containerProps}
                 placeholder={t('Search Projects')}
-                onChange={debouncedSearch}
+                onChange={onSearch}
                 query={query}
               />
             )}
@@ -123,7 +113,14 @@ function OrganizationProjects() {
           )}
         </PanelBody>
       </Panel>
-      {projectListPageLinks && <Pagination pageLinks={projectListPageLinks} />}
+      {projectListPageLinks && (
+        <Pagination
+          pageLinks={projectListPageLinks}
+          onCursor={nextCursor =>
+            setSearchParams({cursor: nextCursor ?? null}, {history: 'push'})
+          }
+        />
+      )}
     </Fragment>
   );
 }

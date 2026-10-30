@@ -9,6 +9,8 @@ from typing import Annotated, Any, Literal, Union
 
 from pydantic import BaseModel, Field
 
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
+
 
 class Transaction(BaseModel):
     name: str
@@ -114,6 +116,11 @@ class EmptyResponse(BaseModel):
 
 class OrganizationSlugResponse(BaseModel):
     slug: str
+
+
+class CommitAuthorResponse(BaseModel):
+    # None when the viewer has no github.com identity Sentry can credit.
+    author: SeerCommitAuthor | None = None
 
 
 class ReferencedFixStatementsResponse(BaseModel):
@@ -234,15 +241,6 @@ class AttributeNamesResponse(BaseModel):
     custom_fields: list[AttributeMeta] = []
 
 
-class AttributeBucket(BaseModel):
-    value: str
-    count: float
-
-
-class AttributesAndValuesResponse(BaseModel):
-    attributes_and_values: dict[str, list[AttributeBucket]]
-
-
 class MetricMetadataRow(BaseModel):
     name: str
     type: str
@@ -272,6 +270,7 @@ class GetDsnResponse(BaseModel):
 
 
 class RepositoryDefinitionResponse(BaseModel):
+    repository_id: int
     organization_id: int
     integration_id: str | None
     provider: str | None
@@ -417,11 +416,10 @@ class TraceItemEventsResponse(BaseModel):
 
 
 class ExecuteQuerySuccessResponse(BaseModel):
-    """Success shape for `execute_table_query`, `execute_trace_table_query`, and
-    `execute_replays_query`: `{"data": [...], "meta": {...}}`. `meta` is omitted
-    from the wire when the upstream call didn't return one (e.g. the no-projects
-    short-circuit in `execute_replays_query`), which is why we lean on
-    `exclude_unset` instead of emitting `"meta": None`."""
+    """Success shape for `execute_table_query` and `execute_trace_table_query`:
+    `{"data": [...], "meta": {...}}`. `meta` is omitted from the wire when the
+    upstream call didn't return one, which is why we lean on `exclude_unset`
+    instead of emitting `"meta": None`."""
 
     data: list[dict[str, Any]]
     meta: dict[str, Any] | None = None

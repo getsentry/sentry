@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest import mock
@@ -7,6 +8,8 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from requests import PreparedRequest, Request
 
 from sentry.constants import ObjectStatus
@@ -15,9 +18,11 @@ from sentry.integrations.cursor_origin.client import (
     CursorOriginSetupApiClient,
 )
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL
+from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, ApiPaginationTruncated
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.utils import json
 
 INSTALLATION_ID = "i_01example"
 JWT = "my_cool_jwt"
@@ -125,6 +130,14 @@ class AccessTokenTest(TestCase):
             responses.POST, TOKEN_URL, json={"token": token, "expiresAt": _iso(expires_in)}
         )
 
+    def _mint_while(self, change: Callable[[], object]) -> None:
+        def mint(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            change()
+            body = {"token": "oit_abc", "expiresAt": _iso(timedelta(minutes=15))}
+            return 200, {}, json.dumps(body)
+
+        responses.add_callback(responses.POST, TOKEN_URL, callback=mint)
+
     @responses.activate
     def test_mints_and_persists_the_token(self, mock_jwt: mock.MagicMock) -> None:
         self._mint()
@@ -185,6 +198,75 @@ class AccessTokenTest(TestCase):
         CursorOriginApiClient(integration=self.integration).get_access_token()
 
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
+    @responses.activate
+    def test_keeps_changes_made_to_the_integration_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        self._mint_while(
+            lambda: Integration.objects.filter(id=self.integration.id).update(
+                name="renamed", metadata={"domain_name": "renamed"}
+            )
+        )
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.name == "renamed"
+        assert self.integration.metadata["domain_name"] == "renamed"
+        assert self.integration.metadata["access_token"] == "oit_abc"
+
+    @responses.activate
+    def test_takes_no_row_lock(self, mock_jwt: mock.MagicMock) -> None:
+        self._mint()
+
+        with CaptureQueriesContext(connections[router.db_for_write(Integration)]) as queries:
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        assert not [q for q in queries.captured_queries if "FOR UPDATE" in q["sql"]]
+
+    @responses.activate
+    def test_keeps_an_uninstall_made_while_minting(self, mock_jwt: mock.MagicMock) -> None:
+        self._mint_while(
+            lambda: Integration.objects.filter(id=self.integration.id).update(
+                status=ObjectStatus.DISABLED
+            )
+        )
+
+        CursorOriginApiClient(integration=self.integration).get_access_token()
+
+        self.integration.refresh_from_db()
+        assert self.integration.status == ObjectStatus.DISABLED
+
+    @responses.activate
+    def test_stores_nothing_for_an_integration_deleted_while_minting(
+        self, mock_jwt: mock.MagicMock
+    ) -> None:
+        self._mint_while(lambda: Integration.objects.get(id=self.integration.id).delete())
+
+        assert CursorOriginApiClient(integration=self.integration).get_access_token() is None
+        assert not Integration.objects.filter(id=self.integration.id).exists()
+
+    @responses.activate
+    def test_rejects_a_response_without_a_token(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"expiresAt": _iso(timedelta(minutes=15))})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_without_an_expiry(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json={"token": "oit_abc", "expiresAt": None})
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
+
+    @responses.activate
+    def test_rejects_a_response_that_is_not_an_object(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(responses.POST, TOKEN_URL, json=["oit_abc"])
+
+        with pytest.raises(ApiError):
+            CursorOriginApiClient(integration=self.integration).get_access_token()
 
     @responses.activate
     def test_rejects_an_unparseable_expiry(self, mock_jwt: mock.MagicMock) -> None:

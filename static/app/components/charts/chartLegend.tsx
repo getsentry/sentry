@@ -8,9 +8,9 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
-import type {SpaceSize} from 'sentry/utils/theme';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 import {LegendCheckbox} from './components/legendCheckbox';

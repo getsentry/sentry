@@ -4,19 +4,30 @@ import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
+import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconChevron} from '@sentry/icons/chevron';
 import type {LocationDescriptor} from 'history';
 
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import type {MenuListItemProps} from '@sentry/scraps/menuListItem';
-import {MenuListItem} from '@sentry/scraps/menuListItem';
+import {
+  ListItem,
+  type ListItemProps,
+  type MenuItemTrailingAction,
+} from '@sentry/scraps/menu';
+import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 
-import {IconChevron} from 'sentry/icons';
-import type {UseOverlayProps} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 
-import {DropdownMenuContext} from './list';
+import {DropdownMenuContext} from './context';
 
-export interface MenuItemProps extends MenuListItemProps {
+export type DropdownMenuSearchOptions = {placeholder?: string};
+
+export type DropdownMenuContentSizeOptions = {
+  maxHeight?: string | number;
+  maxWidth?: string | number;
+};
+
+export interface MenuItemProps extends ListItemProps {
   /**
    * Item key. Must be unique across the entire menu, including sub-menus.
    */
@@ -45,23 +56,39 @@ export interface MenuItemProps extends MenuListItemProps {
    * from the selection manager.
    */
   hidden?: boolean;
+  /** Shows a selection checkmark and reserves its space when false. */
+  isSelected?: boolean;
   /**
    * Menu item label. Should preferably be a string. If not, provide a `textValue` prop
    * to enable search & keyboard select.
    */
-  label?: MenuListItemProps['label'];
+  label?: ListItemProps['label'];
   /**
    * Function to call when user selects/clicks/taps on the menu item. The
    * item's key is passed as an argument.
    */
   onAction?: () => void;
   /**
+   * Ref to the item's root element. For a section, this is the element that
+   * wraps its label and items.
+   */
+  ref?: React.Ref<HTMLLIElement>;
+  /**
    * Renders this item as a trigger for a nested sub-menu (only works when
    * `children` is also defined). Pass `true` for the defaults, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
+   * `maxHeight` and `maxWidth` cap its size without forcing smaller
+   * menus to fill those dimensions.
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?:
+    | boolean
+    | (DropdownMenuContentSizeOptions & {
+        emptyMessage?: React.ReactNode;
+        position?: UseOverlayProps['position'];
+        search?: DropdownMenuSearchOptions;
+        title?: string;
+      });
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
@@ -71,6 +98,10 @@ export interface MenuItemProps extends MenuListItemProps {
    * Destination if this menu item is a link.
    */
   to?: LocationDescriptor;
+  /**
+   * An icon-only button rendered beside, rather than inside, the focusable menu item.
+   */
+  trailingAction?: MenuItemTrailingAction;
 }
 
 interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
@@ -100,6 +131,7 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
+  submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -115,9 +147,12 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   renderAs,
   ref,
   menuItemRef,
+  submenuRef,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
+  const trailingActionRef = useRef<HTMLButtonElement>(null);
+  const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -125,15 +160,19 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     onAction,
     to,
     label,
+    isSelected,
+    leadingItems,
     submenu,
     trailingItems,
+    trailingAction,
     externalHref,
     closeOnSelect: itemCloseOnSelect,
+    ref: itemRef,
     ...itemProps
   } = node.value ?? {};
   const isSubmenu = !!submenu;
   const {size} = node.props;
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, safetyTriangle} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
@@ -180,12 +219,26 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     state.selectionManager,
   ]);
 
-  // Open submenu on arrow right key press
+  // ArrowRight opens a submenu or moves focus to an adjacent action.
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
       if (e.key === 'ArrowRight' && isSubmenu) {
         state.selectionManager.replaceSelection(node.key);
         return;
+      }
+
+      // The trailing action sits outside the focusable menu item. Move to it
+      // only when focus is still on the item itself and the button can take focus.
+      if (
+        e.key === 'ArrowRight' &&
+        document.activeElement === innerWrapRef.current &&
+        trailingActionRef.current
+      ) {
+        trailingActionRef.current.focus();
+        if (document.activeElement === trailingActionRef.current) {
+          e.preventDefault();
+          return;
+        }
       }
 
       e.continuePropagation();
@@ -231,7 +284,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       },
     };
   };
-  const mergedMenuItemContentProps = mergeProps(
+  const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
     hoverProps,
@@ -240,23 +293,80 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
+  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
   return (
-    <MenuListItem
-      ref={ref}
+    <ListItem
+      ref={mergeRefs(ref, itemRef)}
       as={renderAs}
       label={itemLabel}
+      leadingItems={
+        isSelected === undefined
+          ? leadingItems
+          : itemState => (
+              <Fragment>
+                <IconCheckmark
+                  size="md"
+                  variant="accent"
+                  aria-hidden
+                  visibility={isSelected ? 'visible' : 'hidden'}
+                />
+                {typeof leadingItems === 'function'
+                  ? leadingItems(itemState)
+                  : leadingItems}
+              </Fragment>
+            )
+      }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={mergedMenuItemContentProps}
+      innerWrapProps={{
+        ...mergedMenuItemContentProps,
+        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          // React clears currentTarget after dispatch, but hover may be deferred.
+          const savedEvent = {...event, currentTarget: event.currentTarget};
+          const enter = () => onPointerEnter?.(savedEvent);
+          if (safetyTriangle) {
+            safetyTriangle.defer(event, enter);
+          } else {
+            enter();
+          }
+        },
+        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          onPointerMove?.(event);
+        },
+        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+          safetyTriangle?.leave(event.currentTarget);
+          if (
+            event.pointerType === 'mouse' &&
+            submenuRef?.current &&
+            lastPointerPosition.current
+          ) {
+            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
+          }
+          onPointerLeave?.(event);
+        },
+      }}
       labelProps={labelProps}
       detailsProps={descriptionProps}
+      trailingAction={trailingAction}
+      trailingActionRef={trailingActionRef}
+      trailingActionWrapperProps={{
+        onKeyDown: event => {
+          if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            event.stopPropagation();
+            innerWrapRef.current?.focus();
+          }
+        },
+      }}
       trailingItems={
         isSubmenu ? (
           <Fragment>
             {trailingItems as React.ReactNode}
-            <IconChevron size="xs" direction="right" aria-hidden="true" />
+            <IconChevron size="md" direction="right" aria-hidden="true" />
           </Fragment>
         ) : (
           trailingItems

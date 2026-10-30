@@ -1,4 +1,4 @@
-import type {IconSize} from 'sentry/utils/theme';
+import type {IconSize} from '@sentry/scraps/theme';
 
 /**
  * Shared layout constants for SCM onboarding steps.

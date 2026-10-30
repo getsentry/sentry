@@ -1,3 +1,4 @@
+import re
 import uuid
 import zoneinfo
 from collections import Counter
@@ -7,6 +8,7 @@ from functools import cached_property
 from unittest import mock
 from unittest.mock import MagicMock
 
+import responses
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -44,11 +46,13 @@ from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
+    NotificationActionContext,
     RuleFuture,
 )
 from sentry.notifications.utils.digest import get_digest_subject
 from sentry.plugins.base import Notification
 from sentry.replays.testutils import mock_replay
+from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, ReplaysSnubaTestCase, TestCase
 from sentry.testutils.helpers.analytics import (
@@ -56,6 +60,10 @@ from sentry.testutils.helpers.analytics import (
     assert_last_analytics_event,
 )
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.notifications import (
+    create_notification_action_context,
+    create_workflow_notification_origin_for_rule,
+)
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -69,23 +77,33 @@ from tests.sentry.mail import make_event_data, mock_notify
 
 pytestmark = requires_snuba
 
+# Test addresses have no Gravatar, so the real lookup returns 404 and the email
+# falls back to a letter avatar.
+GRAVATAR_AVATAR_URL = re.compile(r"https://gravatar\.com/avatar/")
+
+
+def as_group_event(event: Event | GroupEvent) -> GroupEvent:
+    if isinstance(event, GroupEvent):
+        return event
+    return event.for_group(event.groups[0])
+
 
 def test_rule_future_import_compatibility() -> None:
     assert MailRuleFuture is RuleFuture
     assert LegacyRuleFuture is RuleFuture
 
-    rule = MagicMock(spec=Rule)
+    context = MagicMock(spec=NotificationActionContext)
     kwargs = {"key": "value"}
-    future = RuleFuture(rule=rule, kwargs=kwargs)
+    future = RuleFuture(context=context, kwargs=kwargs)
 
-    assert future._fields == ("rule", "kwargs")
-    assert future[0] is rule
+    assert future._fields == ("context", "kwargs")
+    assert future[0] is context
     assert future[1] == kwargs
     assert isinstance(future, tuple)
-    unpacked_rule, unpacked_kwargs = future
-    assert unpacked_rule is rule
+    unpacked_context, unpacked_kwargs = future
+    assert unpacked_context is context
     assert unpacked_kwargs == kwargs
-    assert future == (rule, kwargs)
+    assert future == (context, kwargs)
 
 
 class BaseMailAdapterTest(TestCase, PerformanceIssueTestCase):
@@ -199,7 +217,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule: Rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -261,7 +281,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -283,7 +305,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule", environment_id=environment.id)
         ProjectOwnership.objects.create(project_id=self.project.id)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -299,82 +323,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         assert "my rule" in msg.alternatives[0][0]
         assert f"&environment={environment.name}" in msg.body
         assert "notification_uuid" in msg.body
-
-    def test_simple_snooze(self) -> None:
-        """Test that notification for alert snoozed by user is not send to that user."""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=rule)
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
-
-    def test_snooze_for_all(self) -> None:
-        """Test that notification for alert snoozed for everyone is not send to user."""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        self.snooze_rule(owner_id=self.user.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=rule)
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
-
-    def test_someone_else_snoozes_themself(self) -> None:
-        """Test that notification for alert snoozed by user2 for themself is sent to user"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        user2 = self.create_user(email="otheruser@example.com")
-        self.snooze_rule(user_id=user2.id, owner_id=user2.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=rule)
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(
-                notification,
-                ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-
-        assert len(mail.outbox) == 1
-        msg = mail.outbox[0]
-        assert msg.subject == "[Sentry] BAR-1 - Hello world"
-
-    def test_someone_else_snoozes_everyone(self) -> None:
-        """Test that notification for alert snoozed by user2 for everyone is not sent to user"""
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
-        )
-
-        rule = self.create_project_rule(project=self.project)
-        user2 = self.create_user(email="otheruser@example.com")
-        self.snooze_rule(owner_id=user2.id, rule=rule)
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        notification = Notification(event=event, rule=rule)
-
-        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
-            self.adapter.notify(notification, ActionTargetType.ISSUE_OWNERS)
-
-        assert len(mail.outbox) == 0
 
     def test_simple_notification_generic(self) -> None:
         """Test that an issue that is neither error nor performance type renders a generic email template"""
@@ -409,7 +357,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -465,7 +415,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -485,7 +437,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -565,7 +519,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         rule = self.create_project_rule(project=self.project)
         with self.tasks():
             AlertRuleNotification(
-                Notification(event=event, rules=[rule]),
+                Notification(
+                    event=event, rules=[create_workflow_notification_origin_for_rule(rule)]
+                ),
                 ActionTargetType.ISSUE_OWNERS,
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             ).send()
@@ -581,10 +537,6 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
         assert notification.get_subject() == "BAR-1 - hello world"
-
-        # Because we are using the workflow engine, the snooze_alert context should be False
-        # This is because a user cannot snooze a workflow for themselves
-        assert notification.get_context()["snooze_alert"] is False
 
         assert group
         mock_logger.info.assert_called_with(
@@ -796,7 +748,9 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         recipient_context = notification.get_recipient_context(Actor.from_orm_user(self.user), {})
         assert recipient_context["clock_24_hours"] is False
 
+    @responses.activate
     def test_notify_with_suspect_commits(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         repo = Repository.objects.create(
             organization_id=self.organization.id, name=self.organization.id
         )
@@ -1176,7 +1130,9 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
             [],
         )
 
+    @responses.activate
     def test_notify_with_user_tag(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         owner = self.create_user(email="theboss@example.com", is_active=True)
         organization = self.create_organization(owner=owner)
         team = self.create_team(organization=organization, name="sentry")
@@ -1344,18 +1300,26 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         )
 
     def test_group_substatus_header(self) -> None:
+        self.assert_group_substatus_header(GroupSubStatus.REGRESSED, "Regressed issue")
+
+    def test_escalating_group_substatus_header(self) -> None:
+        self.assert_group_substatus_header(GroupSubStatus.ESCALATING, "Escalating issue")
+
+    def assert_group_substatus_header(self, substatus: int, header: str) -> None:
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
         # Header is based on the group substatus
         assert event.group is not None
-        event.group.substatus = GroupSubStatus.REGRESSED
+        event.group.substatus = substatus
         event.group.save()
 
         rule = self.create_project_rule(name="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        notification = Notification(event=event, rule=rule)
+        notification = Notification(
+            event=event, rule=create_workflow_notification_origin_for_rule(rule)
+        )
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(
@@ -1368,7 +1332,7 @@ class MailAdapterNotifyIssueOwnersTest(BaseMailAdapterTest):
         assert isinstance(msg, EmailMultiAlternatives)
         assert msg.subject == "[Sentry] BAR-1 - Hello world"
         assert isinstance(msg.alternatives[0][0], str)
-        assert "Regressed issue" in msg.alternatives[0][0]
+        assert header in msg.alternatives[0][0]
 
 
 class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
@@ -1398,9 +1362,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(as_group_event(event), (origin,)),
+                event_to_record(as_group_event(event2), (origin,)),
+            ),
         )
 
         with self.tasks():
@@ -1454,9 +1423,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=project)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(as_group_event(event), (origin,)),
+                event_to_record(as_group_event(event2), (origin,)),
+            ),
         )
 
         features = ["organizations:session-replay"]
@@ -1482,8 +1456,9 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
     def test_notify_digest_single_record(self, send_async: MagicMock, notify: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
+        origin = create_workflow_notification_origin_for_rule(rule)
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-        digest = build_digest(self.project, (event_to_record(event, (rule,)),))
+        digest = build_digest(self.project, (event_to_record(as_group_event(event), (origin,)),))
         self.adapter.notify_digest(
             self.project,
             digest,
@@ -1509,9 +1484,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
         )
 
         rule = self.create_project_rule(project=self.project)
+        origin = create_workflow_notification_origin_for_rule(rule)
 
         digest = build_digest(
-            self.project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            self.project,
+            (
+                event_to_record(as_group_event(event), (origin,)),
+                event_to_record(as_group_event(event2), (origin,)),
+            ),
         )
 
         with self.tasks():
@@ -1550,9 +1530,14 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             "targetIdentifier": str(444),
         }
         rule = self.create_project_rule(name="a rule", action_data=[action_data])
+        origin = create_workflow_notification_origin_for_rule(rule)
 
         digest = build_digest(
-            project, (event_to_record(event, (rule,)), event_to_record(event2, (rule,)))
+            project,
+            (
+                event_to_record(as_group_event(event), (origin,)),
+                event_to_record(as_group_event(event2), (origin,)),
+            ),
         )
 
         with self.tasks():
@@ -1567,9 +1552,9 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(name="my rule")
-        futures = [RuleFuture(rule, {})]
+        futures = [RuleFuture(create_notification_action_context(rule), {})]
         with mock.patch.object(self.adapter, "notify") as notify:
-            self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
+            self.adapter.rule_notify(as_group_event(event), futures, ActionTargetType.ISSUE_OWNERS)
             assert notify.call_count == 1
             assert event.group
             mock_logger.info.assert_called_with(
@@ -1596,9 +1581,13 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
 
-        futures = [RuleFuture(rule, {})]
-        self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
+        futures = [RuleFuture(create_notification_action_context(rule), {})]
+        self.adapter.rule_notify(as_group_event(event), futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
+        record = digests.backend.add.call_args.args[1]
+        workflow_id = futures[0].context.origin.workflow_id
+        assert workflow_id is not None
+        assert record.value.rules == [workflow_id]
         assert event.group
         mock_logger.info.assert_called_with(
             "mail.adapter.notification.%s",
@@ -1623,18 +1612,39 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         event = self.create_performance_issue()
         rule = self.create_project_rule(project=self.project)
 
-        futures = [RuleFuture(rule, {})]
-        self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
+        futures = [RuleFuture(create_notification_action_context(rule), {})]
+        self.adapter.rule_notify(as_group_event(event), futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
+
+    @mock.patch("sentry.mail.adapter.digests")
+    @mock.patch("sentry.mail.adapter.logger")
+    def test_digest_skips_rule_without_workflow_id(
+        self, mock_logger: MagicMock, digests: MagicMock
+    ) -> None:
+        digests.backend.enabled.return_value = True
+        event = self.store_event(data={}, project_id=self.project.id)
+        rule = self.create_project_rule(project=self.project)
+        future = RuleFuture(create_notification_action_context(rule, with_workflow=False), {})
+
+        self.adapter.rule_notify(as_group_event(event), [future], ActionTargetType.ISSUE_OWNERS)
+
+        digests.backend.add.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "mail.adapter.notification.missing_workflow_id",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
+        )
 
     def test_notify_includes_uuid(self) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(name="my rule")
-        futures = [RuleFuture(rule, {})]
+        futures = [RuleFuture(create_notification_action_context(rule), {})]
         notification_uuid = str(uuid.uuid4())
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(
-                event, futures, ActionTargetType.ISSUE_OWNERS, notification_uuid=notification_uuid
+                as_group_event(event),
+                futures,
+                ActionTargetType.ISSUE_OWNERS,
+                notification_uuid=notification_uuid,
             )
             notify.assert_called_once_with(
                 mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, notification_uuid
@@ -1749,7 +1759,9 @@ class MailAdapterHandleSignalTest(BaseMailAdapterTest):
             email="homer.simpson@example.com",
         )
 
+    @responses.activate
     def test_user_feedback(self) -> None:
+        responses.add(responses.GET, GRAVATAR_AVATAR_URL, status=404)
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.create(
                 user_id=self.user.id,

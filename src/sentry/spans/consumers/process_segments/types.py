@@ -7,6 +7,8 @@ from sentry_kafka_schemas.schema_types.ingest_spans_v1 import (
     _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue,
 )
 
+from sentry.utils.attributes import get_attribute
+
 Attribute = (
     _FileColonIngestSpansFullStopV1FullStopSchemaFullStopJsonNumberSignDefinitionsAttributevalue
 )
@@ -46,7 +48,7 @@ class CompatibleSpan(SpanEvent, total=True):
 
 def attribute_value(span: Mapping[str, Any], key: str, *, default: Any | None = None) -> Any:
     attributes = span.get("attributes") or {}
-    attr: dict[str, Any] = attributes.get(key) or {}
+    attr = get_attribute(attributes, key) or {}
     return attr.get("value", default)
 
 

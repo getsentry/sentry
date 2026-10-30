@@ -6,11 +6,14 @@ from __future__ import annotations
 
 import abc
 import dataclasses
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
+import orjson
 from pydantic import BaseModel
 
+# NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
 SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
@@ -56,7 +59,8 @@ class GroupActionType(IntEnum):
     Action kinds stored in GroupActionLogEntry.type.
 
     To add a new kind: add a value here, then add a corresponding
-    GroupAction subclass below. Values need not be contiguous.
+    GroupAction subclass below (read the GroupAction docstring first).
+    Values need not be contiguous, and must never be reused.
     """
 
     VIEW = 0
@@ -82,6 +86,7 @@ class GroupActionType(IntEnum):
     PULL_REQUEST_REOPENED = 31
     PULL_REQUEST_MERGED = 32
     PULL_REQUEST_UNLINKED = 33
+    FIRST_SEEN = 34
 
     # Certain GroupActions are mirrors of Activity records.
     # (See ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE for the mapping.)
@@ -141,6 +146,7 @@ class ActionSource(StrEnum):
     MSTEAMS = "msteams"
     GITHUB = "github"
     GITHUB_ENTERPRISE = "github_enterprise"
+    CURSOR_ORIGIN = "cursor_origin"
     GITLAB = "gitlab"
     JIRA = "jira"
     JIRA_SERVER = "jira_server"
@@ -166,7 +172,8 @@ ACTION_TYPES_WITH_COMMIT_DATA = {
     GroupActionType.SET_RESOLVED_IN_RELEASE.value,
 }
 
-COMMENT_MUTATION_ACTION_TYPES = {
+COMMENT_ACTION_TYPES = {
+    GroupActionType.COMMENT.value,
     GroupActionType.COMMENT_EDIT.value,
     GroupActionType.COMMENT_DELETE.value,
 }
@@ -181,7 +188,60 @@ PULL_REQUEST_ACTION_TYPES = {
 
 
 class GroupAction(BaseModel, abc.ABC):
-    """Typed payload for a group action log entry. Frozen after construction."""
+    """
+    Typed payload for a group action log entry. Frozen after construction.
+
+    Action log entries are retained effectively indefinitely and are never migrated. A
+    payload written today will be read back years from now with ``cls(**entry.data)``,
+    using whatever this subclass looks like at that point. The subclass, its types, and its
+    docs *are* the schema: anyone must be able to interpret any stored payload from those
+    alone, without knowing what code wrote it or when.
+
+    Defining a subclass:
+
+    - Payloads must never be implementation-defined. Avoid open-ended types such as
+      ``dict[str, Any]`` or ``list[dict[str, str | dict[str, str]]]``; it's impossible to
+      tell what those contain, or whether a value from two years ago means the same thing
+      as one written today. Use nested ``BaseModel`` types, ``Literal``, or enums. Existing
+      fields marked ``NOTE: Underspecified schema`` are debt, not precedent.
+    - When the source data is loosely shaped (an upstream API response, ``Activity.data``),
+      translate it into a fixed shape when publishing rather than storing it as-is.
+    - Document anything the type doesn't say: which model an ID refers to, units, and what
+      ``None`` means.
+
+    Avoid adding a second timestamp for when the action happened (``occurred_at``,
+    ``happened_at``, etc.):
+
+    - The log is ordered by ``date_added``, and that order is canonical. A second timestamp
+      can disagree with that order, and every consumer then has to special-case it instead of
+      just reading ``date_added``.
+    - ``date_added`` can lag the real event, especially when the outbox isn't flushed on
+      commit (see ``GroupActionLogEntry.date_added``). That lag is only visible when
+      compared against some other record of the event's time; out-of-order entries are
+      visible to every consumer. Prefer correct order over precise wall-clock time.
+    - Prefer publishing with the default flush on commit: it's cheap, keeps ``date_added``
+      accurate, and keeps derived data up to date. If the event already happened and its
+      true time matters, backfill the entry with that ``date_added`` (see ``backfill.py``)
+      instead of adding a separate timestamp. Backfill is cheap too; don't avoid it for
+      performance reasons.
+    - Timestamps that describe something other than when this action occurred are fine, e.g.
+      ``IgnoreAction.ignore_until``.
+
+    Evolving a subclass:
+
+    - Every payload already stored must still parse and must still mean the same thing.
+      Never change the meaning of an existing field, and never reuse a GroupActionType value.
+    - Add new fields as optional with a default. If a legacy shape needs reinterpreting,
+      translate it explicitly on read (e.g. with ``@root_validator(pre=True)``) rather than
+      leaving it ambiguous.
+    - Unknown keys are ignored when parsing, so removing or renaming a field silently drops
+      that data from old payloads. Changing a field's type can also silently coerce old
+      values (pydantic v1 tries ``Union`` members left to right).
+    - Add a test that parses a literal snapshot of a currently-stored payload and asserts how
+      it's interpreted, so later changes can't break old payloads unnoticed.
+    - If the change is significant, add a new GroupActionType and subclass instead, and keep
+      the old one registered so existing entries still parse.
+    """
 
     _registry: ClassVar[dict[GroupActionType, type[GroupAction]]] = {}
     _user_visible_types: ClassVar[set[GroupActionType]] = set()
@@ -217,11 +277,35 @@ class GroupAction(BaseModel, abc.ABC):
     def get_user_visible_types(cls) -> frozenset[GroupActionType]:
         return frozenset(cls._user_visible_types)
 
+    def json_dict(self) -> dict[str, Any]:
+        """The action as JSON-safe data for storage; unlike dict(), datetimes become ISO 8601."""
+        return orjson.loads(self.json())
+
 
 class ViewAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.VIEW
+
+
+class FirstSeenAction(GroupAction):
+    """The group was created. Published exactly once per group, keyed by first_seen_idempotency_key()."""
+
+    user_visible = True
+    # When this group was first seen; may be more accurate than the entry's date_added.
+    # Due to merges, a group can be first seen multiple times; consumers should usually
+    # ignore all but the first.
+    first_seen: datetime
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.FIRST_SEEN
+
+
+def first_seen_idempotency_key(group_id: int) -> str:
+    # Temporary convention so the backfill can't duplicate live entries. Once the backfill
+    # is finished, we can stop using this.
+    return f"first_seen:{group_id}"
 
 
 class ResolveAction(GroupAction):
@@ -329,8 +413,10 @@ class SentryActorRef(BaseModel):
 
 
 class CommentAction(GroupAction):
-    user_visible = True
-    comment_id: int
+    """Comment creation. Current content lives in the Activity NOTE row."""
+
+    comment_id: int  # Activity NOTE ID
+    # Historical payloads include content; new producers may omit it.
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -340,8 +426,12 @@ class CommentAction(GroupAction):
 
 
 class CommentEditAction(GroupAction):
-    user_visible = True
+    """Comment edit. The ID kind distinguishes historical GAL references from comments."""
+
     comment_id: int
+    # Missing in historical payloads: comment_id refers to the original COMMENT GAL row.
+    # "comment" means the comment's own ID (currently Activity NOTE), independent of any creation event.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
     text: Optional[str] = None
     mentions: Optional[list[SentryActorRef]] = None
 
@@ -351,8 +441,11 @@ class CommentEditAction(GroupAction):
 
 
 class CommentDeleteAction(GroupAction):
-    user_visible = True
+    """Comment deletion. The referenced comment may no longer exist."""
+
     comment_id: int
+    # Same reference semantics as CommentEditAction; omitted means the original GAL row.
+    comment_id_kind: Literal["group_action_log", "comment"] = "group_action_log"
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -458,6 +551,7 @@ class UnlinkPlatformExternalIssueAction(GroupAction):
 class AutofixPrCreatedAction(GroupAction):
     user_visible = True
     run_id: str | None = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     pull_requests: list[dict[str, object]]
 
     @classmethod
@@ -637,7 +731,7 @@ class DeployAction(GroupAction):
 class NewProcessingIssuesAction(GroupAction):
     user_visible = True
     reprocessing_active: bool
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     issues: list[dict[str, str | dict[str, str]]]
 
     @classmethod
@@ -689,6 +783,7 @@ class SetEscalatingAction(GroupAction):
     user_visible = True
     event_id: Optional[str] = None
     forecast: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     expired_snooze: Optional[dict[str, int | str | None]] = None
 
     @classmethod
@@ -727,7 +822,7 @@ class SeerRCACompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int | str] = None
     summary: Optional[str] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     root_cause: Optional[dict[str, str | list[str]]] = None
 
     @classmethod
@@ -747,7 +842,7 @@ class SeerSolutionStartedAction(GroupAction):
 class SeerSolutionCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     solution: Optional[dict[str, str | list[dict[str, str]]]] = None
     summary: Optional[str] = None
 
@@ -768,6 +863,7 @@ class SeerCodingStartedAction(GroupAction):
 class SeerCodingCompletedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
+    # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
     changes: Optional[list[dict[str, str | int]]] = None
 
     @classmethod
