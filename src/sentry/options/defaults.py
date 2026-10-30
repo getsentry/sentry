@@ -4714,9 +4714,10 @@ register(
 # Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
 # of an event to the files of its release by URL. When set, it reads once per request the URLs of
 # the release's newest bundles, as many bundles as fit in this many rows and always the newest
-# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
-# index. Files only found in older bundles, or beyond the rows read, are then reported as not
-# found. 0 keeps the index lookups.
+# one, up to this many rows, instead of looking up each URL in all the release's bundles. Files
+# only found in older bundles, or beyond the rows read, are then reported as not found. 0 keeps
+# the per-URL lookups, which have no index on `url` since the `(url, artifact_bundle_id)` index
+# was dropped.
 register(
     "sourcemaps.source-map-debug.url-match-max-index-rows",
     default=0,

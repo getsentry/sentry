@@ -39,7 +39,7 @@ seer: 0046_add_workflow_config_backing_workflow
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1248_add_dashboard_non_user_creator
+sentry: 1249_remove_artifactbundleindex_url_index
 
 service_accounts: 0003_add_all_projects
 
