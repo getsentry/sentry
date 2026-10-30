@@ -692,7 +692,8 @@ class GroupManager(BaseManager["Group"]):
             external_issues = external_issues.filter(key=external_issue_key)
 
         group_link_subquery = GroupLink.objects.filter(
-            linked_id__in=external_issues.values_list("id", flat=True)
+            linked_id__in=external_issues.values_list("id", flat=True),
+            linked_type=GroupLink.LinkedType.issue,
         ).values_list("group_id", flat=True)
 
         return self.filter(
