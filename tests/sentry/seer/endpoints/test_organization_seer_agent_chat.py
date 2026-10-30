@@ -367,13 +367,16 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_coding"] is False
 
-    def _continue_autofix_run(self, mock_client_class: MagicMock, **request_kwargs: Any) -> bool:
+    def _continue_autofix_run(
+        self,
+        mock_client_class: MagicMock,
+        source: str = "autofix_single_run",
+        **request_kwargs: Any,
+    ) -> dict[str, Any]:
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=790, user_id=self.user.id
         )
-        self.create_seer_agent_run(
-            run=run, group=self.group, project=self.project, source="autofix_single_run"
-        )
+        self.create_seer_agent_run(run=run, group=self.group, project=self.project, source=source)
         mock_client_class.return_value.continue_run.return_value = 790
 
         response = self.client.post(
@@ -381,7 +384,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         )
 
         assert response.status_code == 200, response.data
-        return mock_client_class.call_args.kwargs["enable_write_pull_request"]
+        return mock_client_class.call_args.kwargs
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -390,19 +393,51 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     ) -> None:
         token = self.create_user_auth_token(self.user, scope_list=["org:read"])
 
-        assert (
-            self._continue_autofix_run(
-                mock_client_class, HTTP_AUTHORIZATION=f"Bearer {token.token}"
-            )
-            is False
+        kwargs = self._continue_autofix_run(
+            mock_client_class, HTTP_AUTHORIZATION=f"Bearer {token.token}"
         )
+
+        assert kwargs["enable_write_pull_request"] is False
 
     @with_feature("organizations:ask-seer-create-pr")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_continue_autofix_run_with_publish_scope_gets_pr_tool(
         self, mock_client_class: MagicMock
     ) -> None:
-        assert self._continue_autofix_run(mock_client_class) is True
+        kwargs = self._continue_autofix_run(mock_client_class)
+
+        assert kwargs["enable_write_pull_request"] is True
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_continue_single_run_gets_code_and_pr_tools_without_ask_seer_flag(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        kwargs = self._continue_autofix_run(mock_client_class)
+
+        assert kwargs["enable_coding"] is True
+        assert kwargs["enable_bash_mode"] is True
+        assert kwargs["enable_write_pull_request"] is True
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_continue_single_run_respects_seer_coding_setting(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        kwargs = self._continue_autofix_run(mock_client_class)
+
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_bash_mode"] is False
+        assert kwargs["enable_write_pull_request"] is False
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_continue_step_run_needs_ask_seer_flag_for_code_tools(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        kwargs = self._continue_autofix_run(mock_client_class, source="autofix")
+
+        assert kwargs["enable_coding"] is False
+        assert kwargs["enable_write_pull_request"] is False
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_continue_conversation_calls_client(self, mock_client_class: MagicMock) -> None:

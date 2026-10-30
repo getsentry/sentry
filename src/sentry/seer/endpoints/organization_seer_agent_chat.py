@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -28,7 +29,7 @@ from sentry.seer.agent.client_utils import (
     snapshot_to_markdown,
 )
 from sentry.seer.autofix.constants import PUBLISH_SCOPES
-from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES
+from sentry.seer.autofix.feature.models import AUTOFIX_RUN_SOURCES, AUTOFIX_SINGLE_RUN_FEATURE_ID
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun
@@ -218,6 +219,14 @@ def _can_open_pr_on_run(
     return request.access.has_any_project_scope(autofix_run.group.project, PUBLISH_SCOPES)
 
 
+def _is_single_run_autofix(organization: Organization, resolved: ResolvedSeerRun) -> bool:
+    return SeerAgentRun.objects.filter(
+        run__organization_id=organization.id,
+        run__seer_run_state_id=resolved.seer_run_state_id,
+        source=AUTOFIX_SINGLE_RUN_FEATURE_ID,
+    ).exists()
+
+
 def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSeerRun) -> bool:
     """A run that may be read or continued without explorer access.
 
@@ -383,12 +392,17 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         try:
             # Seer only exposes write_pull_request when coding and bash mode are also on.
-            has_create_pr = features.has(
-                "organizations:ask-seer-create-pr", organization, actor=request.user
-            )
-            enable_coding = has_create_pr and organization.get_option(
-                "sentry:enable_seer_coding", False
-            )
+            if resolved is not None and _is_single_run_autofix(organization, resolved):
+                has_create_pr = enable_coding = organization.get_option(
+                    "sentry:enable_seer_coding", ENABLE_SEER_CODING_DEFAULT
+                )
+            else:
+                has_create_pr = features.has(
+                    "organizations:ask-seer-create-pr", organization, actor=request.user
+                )
+                enable_coding = has_create_pr and organization.get_option(
+                    "sentry:enable_seer_coding", False
+                )
 
             has_code_mode_feature = features.has(
                 "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
