@@ -2742,6 +2742,33 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
 
+    def test_update_dashboard_with_global_filters(self) -> None:
+        global_filter = {
+            "dataset": "spans",
+            "tag": {"key": "os.name", "name": "os.name", "kind": "tag"},
+            "value": "os.name:[Linux]",
+        }
+        data = {"title": "First dashboard", "filters": {"globalFilter": [global_filter]}}
+
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+        assert response.data["filters"]["globalFilter"] == [global_filter]
+
+    def test_update_dashboard_with_invalid_global_filters(self) -> None:
+        for global_filter in [
+            {"dataset": "spans", "value": ""},
+            {"dataset": "spans", "tag": None, "value": ""},
+            {"dataset": "spans", "tag": {"name": "os.name"}, "value": ""},
+            {"tag": {"key": "os.name"}, "value": ""},
+        ]:
+            data = {"title": "First dashboard", "filters": {"globalFilter": [global_filter]}}
+            response = self.do_request("put", self.url(self.dashboard.id), data=data)
+            assert response.status_code == 400, (global_filter, response.data)
+            assert "globalFilter" in response.data["filters"]
+
+        self.dashboard.refresh_from_db()
+        assert "global_filter" not in (self.dashboard.filters or {})
+
     def test_update_dashboard_with_invalid_project_filter(self) -> None:
         other_project = self.create_project(name="other", organization=self.create_organization())
         data = {
