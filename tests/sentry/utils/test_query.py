@@ -448,14 +448,15 @@ class BulkDeleteObjectsTest(TestCase):
     def test_bulk_delete_single_query(self) -> None:
         repo = self.create_repo()
         # Commit is chosen because there are foreign keys and a naive delete
-        # will attempt to cascade
+        # will attempt to cascade. We now issue two queries: a SELECT to
+        # materialize IDs (for consistent lock ordering) and the raw DELETE.
         Commit.objects.create(organization_id=repo.organization_id, repository_id=repo.id)
 
         assert len(Commit.objects.all()) == 1
         before = len(connections[Commit.objects.db].queries_log)
         assert bulk_delete_objects(Commit)
         after = len(connections[Commit.objects.db].queries_log)
-        assert after == before + 1
+        assert after == before + 2
         assert len(Commit.objects.all()) == 0
 
     def test_bulk_delete_empty_queryset(self) -> None:
