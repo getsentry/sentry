@@ -136,6 +136,7 @@ export function SortableWidget(props: Props) {
     onEdit,
     onDuplicate,
     showContextMenu: !isEmbedded || isPrebuiltDashboard,
+    isPrebuiltDashboard,
     isPreview,
     index,
     dashboardFilters,
