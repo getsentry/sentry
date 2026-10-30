@@ -9,6 +9,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -70,35 +71,41 @@ function InboxContent() {
     ) ?? null;
 
   return (
-    <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
-      <Stack
-        ref={listContainerRef}
-        position="relative"
-        // useResizable writes an inline width, so the initial width is also set inline.
-        style={{width: `${storedSize}px`}}
-        minWidth={0}
-        minHeight={0}
-        borderRight="primary"
-      >
-        <Container flex={1} overflowY="auto" minHeight={0}>
-          <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
+    <ListItemCheckboxProvider
+      hits={items.length}
+      knownIds={items.map(item => item.id)}
+      endpointOptions={undefined}
+    >
+      <Grid columns="max-content minmax(0, 1fr)" flex={1} minHeight={0}>
+        <Stack
+          ref={listContainerRef}
+          position="relative"
+          // useResizable writes an inline width, so the initial width is also set inline.
+          style={{width: `${storedSize}px`}}
+          minWidth={0}
+          minHeight={0}
+          borderRight="primary"
+        >
+          <Container flex={1} overflowY="auto" minHeight={0}>
+            <InboxItemList items={items} selectedItemId={selectedItem?.id ?? null} />
+          </Container>
+          <Container top="0" right="0" bottom="0" width="8px" position="absolute">
+            {props => (
+              <ResizeHandle
+                {...props}
+                onMouseDown={handleStartResize}
+                onDoubleClick={() => setStoredSize(INBOX_LIST_DEFAULT_SIZE)}
+                atMinWidth={size === INBOX_LIST_MIN_SIZE}
+                atMaxWidth={size === INBOX_LIST_MAX_SIZE}
+              />
+            )}
+          </Container>
+        </Stack>
+        <Container overflowY="auto" minHeight={0}>
+          <InboxItemPreview item={selectedItem} />
         </Container>
-        <Container top="0" right="0" bottom="0" width="8px" position="absolute">
-          {props => (
-            <ResizeHandle
-              {...props}
-              onMouseDown={handleStartResize}
-              onDoubleClick={() => setStoredSize(INBOX_LIST_DEFAULT_SIZE)}
-              atMinWidth={size === INBOX_LIST_MIN_SIZE}
-              atMaxWidth={size === INBOX_LIST_MAX_SIZE}
-            />
-          )}
-        </Container>
-      </Stack>
-      <Container overflowY="auto" minHeight={0}>
-        <InboxItemPreview item={selectedItem} />
-      </Container>
-    </Grid>
+      </Grid>
+    </ListItemCheckboxProvider>
   );
 }
 
