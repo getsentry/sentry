@@ -317,6 +317,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             IssueParams.GROUP_STATS_PERIOD,

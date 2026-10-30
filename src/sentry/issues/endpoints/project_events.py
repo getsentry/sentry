@@ -62,6 +62,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             CursorQueryParam,

@@ -87,6 +87,8 @@ class GroupEventsEndpoint(GroupEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.ENVIRONMENT,
             EventParams.FULL_PAYLOAD,
             EventParams.SAMPLE,
