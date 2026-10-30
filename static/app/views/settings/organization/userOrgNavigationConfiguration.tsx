@@ -151,6 +151,13 @@ function getOrganizationNavigationConfiguration({
           id: 'members',
         },
         {
+          path: `${organizationSettingsPathPrefix}/service-accounts/new/`,
+          title: t('Service Accounts'),
+          keywords: [t('service account'), t('bot'), t('automation')],
+          description: t('Create service accounts for automation'),
+          id: 'service-accounts',
+        },
+        {
           path: `${organizationSettingsPathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           keywords: [
