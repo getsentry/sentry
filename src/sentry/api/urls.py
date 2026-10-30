@@ -907,7 +907,7 @@ from .endpoints.relay import (
     RelayRegisterResponseEndpoint,
 )
 from .endpoints.seer_models import SeerModelsEndpoint
-from .endpoints.setup_wizard import SetupWizard
+from .endpoints.setup_wizard import SetupWizard, SetupWizardSession
 from .endpoints.system_health import SystemHealthEndpoint
 from .endpoints.system_options import SystemOptionsEndpoint
 from .endpoints.user_organizationintegrations import UserOrganizationIntegrationsEndpoint
@@ -3973,6 +3973,11 @@ urlpatterns = [
         name="sentry-api-0-integration-features",
     ),
     # Project Wizard
+    re_path(
+        r"^wizard/(?P<wizard_hash>[^/]+)/session/$",
+        SetupWizardSession.as_view(),
+        name="sentry-api-0-project-wizard-session",
+    ),
     re_path(
         r"^wizard/$",
         SetupWizard.as_view(),

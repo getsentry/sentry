@@ -664,4 +664,5 @@ export type KnownSentryApiUrls =
   | '/users/$userId/user-identities/'
   | '/users/$userId/user-identities/$category/$identityId/'
   | '/wizard/'
-  | '/wizard/$wizardHash/';
+  | '/wizard/$wizardHash/'
+  | '/wizard/$wizardHash/session/';
