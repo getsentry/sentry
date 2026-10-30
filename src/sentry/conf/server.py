@@ -2019,19 +2019,9 @@ GRANULAR_SCOPES = frozenset(
     ]
 )
 
-# Broad read scopes being retired in favour of granular ones. API attribution tags
-# whether a caller still holds one (see sentry.api.caller_scopes).
-DEPRECATED_SCOPES = frozenset(
-    [
-        "org:read",
-        "project:read",
-        "member:read",
-    ]
-)
-
-# Scopes a deprecated scope is replaced with at request time (see
-# sentry.auth.deprecated_scope_translation). Stored token scopes are left unchanged.
-# Remove an entry once callers no longer rely on the translation.
+# Broad read scopes being retired in favour of granular ones, mapped to the scopes they're
+# replaced with at request time (see sentry.auth.deprecated_scope_translation). Stored token
+# scopes are left unchanged. Remove an entry once callers no longer rely on the translation.
 DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
     "org:read": frozenset(
         [
@@ -2043,7 +2033,13 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "saved_query:write",
         ]
     ),
+    # No granular replacements yet.
+    "project:read": frozenset(["project:read"]),
+    "member:read": frozenset(["member:read"]),
 }
+
+# API attribution tags whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(DEPRECATED_SCOPE_TRANSLATIONS)
 
 SENTRY_SCOPE_SETS = (
     (
