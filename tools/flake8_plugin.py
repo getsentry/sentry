@@ -291,6 +291,95 @@ def _base_class_names(node: ast.ClassDef) -> list[str]:
     return names
 
 
+def _collect_literal_var_constants(tree: ast.AST) -> set[str]:
+    """Helper function for getting a file's top level constants that hold string literals.
+    This is used to check if top level constants are iterables when we iterate over request fields/params.
+    """
+    names: set[str] = set()
+
+    # check if the tree is an ast.Module
+    if not isinstance(tree, ast.Module):
+        return names
+
+    # loop over the tree.body
+    for node in tree.body:
+        # check for assign nodes
+        if isinstance(node, ast.Assign):
+            if len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+                if _is_literal_strings(node.value):
+                    names.add(node.targets[0].id)
+
+        # check for ann assign nodes
+        elif isinstance(node, ast.AnnAssign):
+            if isinstance(node.target, ast.Name):
+                if node.value and _is_literal_strings(node.value):
+                    names.add(node.target.id)
+
+    return names
+
+
+def _is_literal_strings(node: ast.expr) -> bool:
+    """Helper function for checking if a dict, list, or tuple are literal string constants.
+    This is used to check if the list of iterables in a for loop are constants
+    i.e, for key in ("a", "b") where "a" and "b" are literal strings"""
+
+    # check if its a dict
+    if isinstance(node, ast.Dict):
+        for key in node.keys:
+            # check if the keys in the dict are constants/strings
+            if key is None or not isinstance(key, ast.Constant) or not isinstance(key.value, str):
+                return False
+        return True
+
+    # check if its a tuple or list
+    if isinstance(node, (ast.Tuple, ast.List)):
+        # check if the elms are constant/strings
+        for elm in node.elts:
+            if not isinstance(elm, ast.Constant) or not isinstance(elm.value, str):
+                return False
+        return True
+
+    return False
+
+
+def _is_iterable_elms_literals(
+    node: ast.expr, file_lvl_constants: set[str], declared_serializers: set[str]
+) -> bool:
+    """Helper function for checking if the iterables in a for loop are a safe and known collection:
+    1. An inline literal list/tuple/dict of string literals
+    2. A file level constant variable name
+    3. A declared serializer's `.fields` attribute
+    """
+    if (
+        isinstance(node, ast.Call)
+        and not node.args
+        and not node.keywords
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in ("keys", "items")
+    ):
+        node = (
+            node.func.value
+        )  # the object the method was being called on so PARAMS.items() becomes PARAMS
+
+    # check if it's a file level constant
+    if isinstance(node, ast.Name) and node.id in file_lvl_constants:
+        return True
+
+    # check if it's a declared serializer's .fields attribute
+    if isinstance(node, ast.Attribute) and node.attr == "fields":
+        serializer = node.value
+        # check if its MySerializer().fields
+        if (
+            isinstance(serializer, ast.Call)
+            and isinstance(serializer.func, ast.Name)
+            and serializer.func.id in declared_serializers
+        ):
+            return True
+
+    # check if it's an inline literal dict/list/tuple of strings
+    return _is_literal_strings(node)
+
+
 def _collect_eap_suite_class_names(tree: ast.AST) -> set[str]:
     """Classes in this module that inherit an EAP events endpoint test base."""
     class_bases: dict[str, list[str]] = {}
@@ -756,6 +845,8 @@ class _InputCtx:
         self.literal_reads: list[tuple[_StartEnd, str, str]] = []
         # (start_end, rendered key, source) reads whose key is computed
         self.computed_reads: list[tuple[_StartEnd, str, str]] = []
+        # loop variable names currently marked safe (i.e, keys that aree known/fixed)
+        self.safe_loop_vars: set[str] = set()
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
 
@@ -784,6 +875,8 @@ class _InputCtx:
     def record_read(self, key: ast.expr, source: str, node: ast.expr) -> None:
         if isinstance(key, ast.Constant) and isinstance(key.value, str):
             self.literal_reads.append((_start_and_end(node), key.value, source))
+        elif isinstance(key, ast.Name) and key.id in self.safe_loop_vars:
+            return
         else:
             self.computed_reads.append((_start_and_end(node), ast.unparse(key), source))
 
@@ -823,6 +916,8 @@ class SentryVisitor(ast.NodeVisitor):
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
         self._input_stack: list[_InputCtx] = []
+        # list of constant varoables that holds iterable request fields, its filed in visit_Module()
+        self._literal_var_constants: set[str] = set()
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
         self._function_stack: list[str] = []
@@ -967,6 +1062,65 @@ class SentryVisitor(ast.NodeVisitor):
             self.errors.append((node.handlers[-1].lineno, node.handlers[-1].col_offset, S010_msg))
 
         self.generic_visit(node)
+
+    def visit_Module(self, node: ast.Module) -> None:
+        """Visitor for tracking top level constant variables that hold request fields to iterate over."""
+        self._literal_var_constants = _collect_literal_var_constants(tree=node)
+        self.generic_visit(node)
+
+    def visit_For(self, node: ast.For) -> None:
+        """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
+
+        # check if the stack of input ctx objs is empty
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        # check if if the method we're in is public
+        curr_method = self._input_stack[-1]  # inputctx obj is only created if the method is public
+
+        # loop variable X
+        self.visit(node.target)
+        # stuff that we're looping over (the 'my_iterables' during the 'for X in my_iterables' )
+        self.visit(node.iter)
+
+        loop_var = None
+        # check if the things we're looping over is fixed constant literals (if the iterables are string constants)
+        if _is_iterable_elms_literals(
+            node=node.iter,
+            file_lvl_constants=self._literal_var_constants,
+            declared_serializers=curr_method.declared_params | curr_method.declared_body,
+        ):
+            # check if its a single looping variable
+            if isinstance(node.target, ast.Name):
+                # if they are, then keep track of the looping variable(s), so X in our case
+                loop_var = node.target.id
+
+            # check if its double looping variables
+            elif isinstance(node.target, (ast.Tuple, ast.List)) and node.target.elts:
+                first_var = node.target.elts[0]
+                if isinstance(first_var, ast.Name):
+                    loop_var = first_var.id
+
+            # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
+            # the inner loop resuing the name keeps the outer name safe
+            if loop_var in curr_method.safe_loop_vars:
+                loop_var = None
+
+            # mark the loop variable safe while visiting the body
+            if loop_var is not None:
+                curr_method.safe_loop_vars.add(loop_var)
+
+        # visit the remaining for loop body
+        for statement in node.body:
+            self.visit(statement)
+
+        # after visiting each statement in the body remove the name from self.curr_loop
+        if loop_var is not None:
+            curr_method.safe_loop_vars.discard(loop_var)
+
+        for statement in node.orelse:
+            self.visit(statement)
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         top_level = not self._class_stack
