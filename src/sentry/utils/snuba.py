@@ -774,6 +774,7 @@ def _prepare_start_end(
     end: datetime | None,
     organization_id: int,
     group_ids: Sequence[int] | None,
+    group_first_seen: datetime | None = None,
 ) -> tuple[datetime, datetime]:
     if not start:
         start = datetime(2008, 5, 8)
@@ -794,7 +795,7 @@ def _prepare_start_end(
     # if `shrink_time_window` pushed `start` after `end` it means the user queried
     # a Group for T1 to T2 when the group was only active for T3 to T4, so the query
     # wouldn't return any results anyway
-    new_start = shrink_time_window(group_ids, start)
+    new_start = shrink_time_window(group_ids, start, group_first_seen)
 
     # TODO (alexh) this is a quick emergency fix for an occasion where a search
     # results in only 1 django candidate, which is then passed to snuba to
@@ -2126,21 +2127,25 @@ def get_related_project_ids(column, ids):
     return []
 
 
-def shrink_time_window(issues: Collection | None, start: datetime) -> datetime:
+def shrink_time_window(
+    issues: Collection | None, start: datetime, first_seen: datetime | None = None
+) -> datetime:
     """\
     If a single issue is passed in, shrink the `start` parameter to be briefly before
     the `first_seen` in order to hopefully eliminate a large percentage of rows scanned.
+    Callers that already have the issue can pass its `first_seen` to skip loading it.
 
     Note that we don't shrink `end` based on `last_seen` because that value is updated
     asynchronously by buffers, and will cause queries to skip recently seen data on
     stale groups.
     """
     if issues and len(issues) == 1:
-        try:
-            group = Group.objects.get(pk=list(issues)[0])
-            start = max(start, naiveify_datetime(group.first_seen) - timedelta(minutes=5))
-        except Group.DoesNotExist:
-            return start
+        if first_seen is None:
+            try:
+                first_seen = Group.objects.get(pk=list(issues)[0]).first_seen
+            except Group.DoesNotExist:
+                return start
+        start = max(start, naiveify_datetime(first_seen) - timedelta(minutes=5))
 
     return start
 

@@ -210,6 +210,7 @@ class EventStorage(Service):
         *,
         eager_load_bodies: bool = True,
         extra_columns: Sequence[str] = (),
+        group_first_seen: datetime | None = None,
     ) -> list[Event]:
         raise NotImplementedError
 

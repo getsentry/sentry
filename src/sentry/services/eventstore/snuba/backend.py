@@ -93,6 +93,7 @@ class SnubaEventStorage(EventStorage):
         *,
         eager_load_bodies: bool = True,
         extra_columns: Sequence[str] = (),
+        group_first_seen: datetime | None = None,
     ) -> list[Event]:
         cols = [*self.__get_columns(dataset), *extra_columns]
 
@@ -163,6 +164,7 @@ class SnubaEventStorage(EventStorage):
             end,
             organization_id,
             [group_id],
+            group_first_seen,
         )
 
         match_entity = Entity(dataset.value)

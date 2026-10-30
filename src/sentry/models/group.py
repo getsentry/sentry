@@ -364,6 +364,7 @@ def get_oldest_or_latest_event(
         referrer="Group.get_latest",
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
+        group_first_seen=group.first_seen,
     )
 
     if events:
@@ -435,6 +436,7 @@ def get_recommended_event(
         dataset=dataset,
         tenant_ids={"organization_id": group.project.organization_id},
         inner_limit=inner_limit,
+        group_first_seen=group.first_seen,
     )
 
     if not events:

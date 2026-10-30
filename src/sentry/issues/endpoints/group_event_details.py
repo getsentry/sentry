@@ -348,8 +348,12 @@ class GroupEventDetailsEndpoint(FormattableResponseMixin, GroupEndpoint):
                 event = eventstore.backend.get_event_by_id(
                     project_id=group.project.id, event_id=event_id, group_id=group.id
                 )
-            if isinstance(event, Event) and event.group:
-                event = event.for_group(event.group)
+            if isinstance(event, Event):
+                if event.group_id == group.id:
+                    # Looked up by `group`, so reuse it instead of loading the group again.
+                    event.group = group
+                if event.group:
+                    event = event.for_group(event.group)
 
         if event is None:
             error_text = (
