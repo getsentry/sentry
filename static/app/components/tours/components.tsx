@@ -349,13 +349,6 @@ export function TourElementContent<T extends TourEnumType>({
     endTour();
   };
 
-  const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') {
-      event.stopPropagation();
-      dismiss();
-    }
-  };
-
   return (
     <TourGuide
       title={title}
@@ -365,7 +358,16 @@ export function TourElementContent<T extends TourEnumType>({
       isOpen={isOpen}
       position={position}
       handleDismiss={dismiss}
-      onKeyDown={variant === 'subtle' ? handleKeyDown : undefined}
+      onKeyDown={
+        variant === 'subtle'
+          ? event => {
+              if (event.key === 'Escape') {
+                event.stopPropagation();
+                dismiss();
+              }
+            }
+          : undefined
+      }
       variant={variant}
       stepCount={stepCount}
       stepTotal={stepTotal}
@@ -604,7 +606,10 @@ function getTourElementStyles(
   margin?: number,
   variant?: TourVariant
 ) {
-  // A subtle tour only points at its element with the guide's arrow.
+  // Return no styles, which leaves the element as it is, when the step is closed.
+  // A subtle tour also leaves it alone: it has no outline, is not raised above the
+  // page and stays clickable, because the guide's arrow is the only thing that
+  // points at it.
   if (!isOpen || variant === 'subtle') {
     return;
   }
