@@ -5,7 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 
-const presenceUrl = '/organizations/org-slug/investigations/investigation-1/presence/';
+const presenceUrl = '/organizations/org-slug/notebooks/investigation-1/presence/';
 const active = UserFixture({id: '2', name: 'Alice Smith', email: 'alice@example.com'});
 const earlier = UserFixture({id: '3', name: 'Bob Jones', email: 'bob@example.com'});
 

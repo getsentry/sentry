@@ -240,11 +240,15 @@ const fixtureRequestPromise = (async (
 }) as RequestPromise;
 
 function createFixtureHandler(config: FixtureApiConfig): FixtureHandler {
-  const basePath = `/organizations/${config.organizationSlug}/investigations/`;
+  const basePaths = [
+    `/organizations/${config.organizationSlug}/notebooks/`,
+    `/organizations/${config.organizationSlug}/investigations/`,
+  ];
   const state = createFixtureState(config);
 
   return (path, options) => {
-    if (!path.startsWith(basePath)) {
+    const basePath = basePaths.find(base => path.startsWith(base));
+    if (!basePath) {
       return NO_MATCH;
     }
     if (config.mode === 'loading') {
