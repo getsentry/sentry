@@ -3567,6 +3567,45 @@ class OrganizationDashboardTransformationsTest(APITestCase):
         assert query.aggregates == ["count()", "count()"]
         assert query.transformations == {}
 
+    def test_duplicated_widget_can_copy_query_ids(self) -> None:
+        response = self.client.post(self.url, self.data)
+        assert response.status_code == 201, response.data
+        url = self.details_url(response.data["id"])
+        widget = response.data["widgets"][0]
+        query = widget["queries"][0]
+        duplicate = {
+            "title": widget["title"],
+            "displayType": widget["displayType"],
+            "widgetType": widget["widgetType"],
+            "queries": [
+                {
+                    "id": query["id"],
+                    "fields": query["fields"],
+                    "aggregates": query["aggregates"],
+                    "columns": query["columns"],
+                    "conditions": query["conditions"],
+                    "name": query["name"],
+                    "orderby": query["orderby"],
+                    "transformations": query["transformations"],
+                }
+            ],
+        }
+        response = self.client.put(
+            url,
+            {
+                "widgets": [
+                    {"id": widget["id"], "queries": [{"id": query["id"]}]},
+                    duplicate,
+                ]
+            },
+        )
+        assert response.status_code == 200, response.data
+        widgets = response.data["widgets"]
+        assert len(widgets) == 2
+        copied_query_ids = {widget["queries"][0]["id"] for widget in widgets}
+        assert query["id"] in copied_query_ids
+        assert len(copied_query_ids) == 2
+
     def test_query_from_another_dashboard_cannot_supply_aggregate_bounds(self) -> None:
         response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.data
