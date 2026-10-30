@@ -3623,6 +3623,13 @@ if ngrok_host:
 
 if SILO_DEVSERVER or IS_DEV:
     LAUNCHPAD_RPC_SHARED_SECRET = ["launchpad-also-very-long-value-haha"]
+    # Dev only: verifies the grants a local Seer signs. Its private half is committed to Seer's
+    # .envrc, in a public repository, so anyone can sign grants this key accepts.
+    SCM_GIT_GRANT_PUBLIC_KEYS = [
+        "-----BEGIN PUBLIC KEY-----\n"
+        "MCowBQYDK2VwAyEAq8SFj6uFiEB74zliRdruAG69shgf1FNJbj/UCnK0jFM=\n"
+        "-----END PUBLIC KEY-----\n"
+    ]
 
 if SILO_DEVSERVER:
     # Add connections for the region & control silo databases.
