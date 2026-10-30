@@ -31,6 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -373,7 +374,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
                 id=int(organization_id_or_slug),
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
@@ -381,7 +382,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             organization_context = organization_service.get_organization_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
