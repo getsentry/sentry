@@ -24,7 +24,11 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
-import type {CronDetector, Detector} from 'sentry/types/workflowEngine/detectors';
+import type {
+  CronDetector,
+  CronMonitorDataSource,
+  Detector,
+} from 'sentry/types/workflowEngine/detectors';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -55,16 +59,49 @@ import {
 import {selectCheckInData} from 'sentry/views/insights/crons/utils/selectCheckInData';
 import {useMonitorStats} from 'sentry/views/insights/crons/utils/useMonitorStats';
 
+type CronMonitorQueryObj = CronMonitorDataSource['queryObj'];
+
+/**
+ * The API may return a cron detector without a linked data source
+ * (`dataSources: null`, or an empty `queryObj`) when the detector has been
+ * orphaned from its monitor. Safely extract the monitor so a single bad
+ * detector does not crash the whole list.
+ */
+function getCronMonitor(detector: CronDetector): CronMonitorQueryObj | undefined {
+  const queryObj = (
+    detector.dataSources as CronDetector['dataSources'] | null | undefined
+  )?.[0]?.queryObj as CronMonitorQueryObj | undefined;
+  if (!queryObj || Array.isArray(queryObj) || !queryObj.id) {
+    return undefined;
+  }
+  return queryObj;
+}
+
 function VisualizationCell({detector}: {detector: CronDetector}) {
-  const cronId = detector.dataSources[0].queryObj.id;
-  const cronEnvironments = detector.dataSources[0].queryObj.environments;
+  const monitor = getCronMonitor(detector);
+  if (!monitor) {
+    return (
+      <SimpleTable.RowCell
+        column="-3 / -1"
+        padding="lg 0"
+        borderLeft="muted"
+        height="100%"
+      />
+    );
+  }
+  return <MonitorVisualizationCell monitor={monitor} />;
+}
+
+function MonitorVisualizationCell({monitor}: {monitor: CronMonitorQueryObj}) {
+  const cronId = monitor.id;
+  const cronEnvironments = monitor.environments ?? [];
 
   const elementRef = useRef<HTMLDivElement>(null);
   const {width: containerWidth} = useDimensions({elementRef});
   const [timelineWidth] = useDebouncedValue(containerWidth, {wait: 1000});
   const timeWindowConfig = useTimeWindowConfig({timelineWidth});
   const {data: monitorStats, isPending} = useMonitorStats({
-    monitors: [detector.dataSources[0].queryObj.id],
+    monitors: [cronId],
     timeWindowConfig,
   });
 
@@ -104,10 +141,14 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
       }
+      const monitor = getCronMonitor(detector);
+      if (!monitor) {
+        return <SimpleTable.RowCell alignSelf="start" />;
+      }
       return (
         <SimpleTable.RowCell alignSelf="start">
           <Stack gap="sm" width="100%">
-            {detector.dataSources[0].queryObj.environments.map(environment => {
+            {(monitor.environments ?? []).map(environment => {
               return (
                 <Text density="compressed" key={environment.name}>
                   <MonitorEnvironmentLabel
