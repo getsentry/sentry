@@ -1,5 +1,6 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
 
 import type {FormProps} from 'sentry/components/forms/form';
@@ -16,6 +17,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
+import {
+  useDetectorDraft,
+  type DetectorDraftSchema,
+} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
@@ -27,6 +32,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
+  draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -44,6 +50,7 @@ export function NewDetectorLayout<
   extraFooterButton,
   previewChart,
   detectorType,
+  draftSchema,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
   const location = useLocation();
   const theme = useTheme();
@@ -51,16 +58,22 @@ export function NewDetectorLayout<
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const [formModel] = useState(() => new FormModel());
+  const {initialValues: draftFormData, onFieldChange: syncDraftToUrl} = useDetectorDraft(
+    formModel,
+    draftSchema
+  );
+
   const initialProjectId = useMemo(() => {
     const writableProjects = projects.filter(project =>
       hasDetectorWriteAccess({organization, project})
     );
-    const queryProjectId = decodeScalar(location.query.project);
-    if (queryProjectId) {
-      const match = writableProjects.find(p => p.id === queryProjectId);
-      if (match) {
-        return match.id;
-      }
+    const requestedProjectId = [
+      draftFormData?.projectId,
+      decodeScalar(location.query.project),
+    ].find(id => writableProjects.some(p => p.id === id));
+    if (requestedProjectId) {
+      return requestedProjectId;
     }
     const sorted = orderBy(
       writableProjects,
@@ -68,18 +81,20 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, organization, projects]);
+  }, [draftFormData, location.query.project, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
     formDataToEndpointPayload,
   });
 
-  const [formModel] = useState(() => new FormModel());
-  const {onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
 
   const initialEnvironment = decodeScalar(location.query.environment, '');
   const initialData = useMemo(() => {
+    // Only keep the draft's project if it passed the write-access check above.
+    const draftProjectId =
+      draftFormData?.projectId === initialProjectId ? initialProjectId : undefined;
     return {
       projectId: initialProjectId,
       environment: initialEnvironment,
@@ -87,14 +102,21 @@ export function NewDetectorLayout<
       owner: '',
       workflowIds: [],
       ...initialFormData,
+      ...omitBy(
+        {...draftFormData, projectId: draftProjectId},
+        value => value === undefined
+      ),
     };
-  }, [initialProjectId, initialEnvironment, initialFormData]);
+  }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
   const formProps: FormProps = {
     model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
-    onFieldChange,
+    onFieldChange: id => {
+      validateEagerly();
+      syncDraftToUrl(id);
+    },
     mapFormErrors,
   };
 
