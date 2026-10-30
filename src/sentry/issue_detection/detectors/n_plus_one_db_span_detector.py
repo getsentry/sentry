@@ -8,6 +8,7 @@ from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
     get_span_description,
     get_span_evidence_value,
+    is_redis_span,
     total_span_time,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -80,7 +81,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         if not span_id or not op:
             return
 
-        if not self._is_db_op(op):
+        if not self._is_db_span(span):
             # This breaks up the N+1 we're currently tracking.
             self._maybe_store_problem()
             self._reset_detection()
@@ -119,12 +120,13 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
     def on_complete(self) -> None:
         self._maybe_store_problem()
 
-    def _is_db_op(self, op: str) -> bool:
+    def _is_db_span(self, span: Span) -> bool:
+        op = span.get("op") or ""
         return (
             op.startswith("db")
-            and not op.startswith("db.redis")
             and not op.startswith("db.connection")
             and not op.startswith("db.cursor")
+            and not is_redis_span(span)
         )
 
     def _maybe_use_as_source(self, span: Span) -> None:

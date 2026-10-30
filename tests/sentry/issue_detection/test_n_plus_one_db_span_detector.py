@@ -112,6 +112,19 @@ class NPlusOneDBSpanDetectorTest(unittest.TestCase):
         event = get_event("n-plus-one-db/n-plus-one-in-django-index-view-repeating-redis")
         assert self.find_problems(event) == []
 
+    def test_does_not_detect_n_plus_one_with_redis_db_query_spans(self) -> None:
+        # Newer SDKs report Redis commands with the generic `db.query` op
+        for event_name in (
+            "n-plus-one-db/n-plus-one-in-django-index-view-source-redis",
+            "n-plus-one-db/n-plus-one-in-django-index-view-repeating-redis",
+        ):
+            event = get_event(event_name)
+            for span in event["spans"]:
+                if span["op"] == "db.redis.command":
+                    span["op"] = "db.query"
+                    span["data"] = {"db.system.name": "redis"}
+            assert self.find_problems(event) == []
+
     def test_ignores_fast_n_plus_one(self) -> None:
         event = get_event("n-plus-one-db/fast-n-plus-one-in-django-new-view")
         assert self.find_problems(event) == []
