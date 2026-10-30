@@ -121,11 +121,14 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                 )
 
     def on_delete_repository(self, repo):
+        webhook_id = repo.config.get("webhook_id")
+        if not webhook_id:
+            return
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
 
         try:
-            client.delete_hook(repo.config["name"], repo.config["webhook_id"])
+            client.delete_hook(repo.config["name"], webhook_id)
         except ApiError as exc:
             if exc.code == 404:
                 return
