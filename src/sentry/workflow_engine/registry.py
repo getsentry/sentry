@@ -30,7 +30,14 @@ detector_settings_registry = DetectorSettingsRegistry(enable_reverse_lookup=Fals
 
 
 def get_detector_type_filters() -> Q:
-    """Apply registered filters and include detector types without a filter."""
+    """
+    Build a Q object that combines all detector type-specific filters.
+
+    For detector types without filters, they're included by default via a NOT IN clause.
+    For detector types with filters, we apply the specific filter condition.
+
+    This optimizes the query since most detector types won't have filters.
+    """
     types_with_filters = []
     filtered_type_conditions = Q()
 
@@ -39,4 +46,6 @@ def get_detector_type_filters() -> Q:
             types_with_filters.append(detector_type)
             filtered_type_conditions |= Q(type=detector_type) & settings.filter
 
+    # Include all types that don't have filters (type NOT IN types_with_filters)
+    # OR match the specific filter conditions for types that do have filters.
     return ~Q(type__in=types_with_filters) | filtered_type_conditions
