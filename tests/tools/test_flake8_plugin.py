@@ -1658,9 +1658,10 @@ class E(Endpoint):
 """
     errors = _run_input(src, SHAPED)
     assert errors == [
-        "t.py:5:15: S026 'truncate' is read straight off the query string, so the schema has "
-        "nothing to document and the value is an unchecked string. Read it through a "
-        "serializer declared in @extend_schema."
+        "t.py:5:15: S026 'truncate' is read straight off the query string instead of "
+        "through a serializer declared in @extend_schema, so nothing ties the schema to "
+        "what this endpoint accepts. Read it through a declared serializer, or declare "
+        "this endpoint's input as an exception."
     ]
 
 

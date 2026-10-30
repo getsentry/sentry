@@ -202,17 +202,19 @@ S025_query_msg = (
     "endpoint accepts. Add it to parameters=."
 )
 S026_msg = (
-    "S026 {} is read straight off the {}, so the schema has nothing to document and "
-    "the value is an unchecked string. Read it through a serializer declared in "
-    "@extend_schema."
+    "S026 {} is read straight off the {} instead of through a serializer declared in "
+    "@extend_schema, so nothing ties the schema to what this endpoint accepts. Read it "
+    "through a declared serializer, or declare this endpoint's input as an exception."
 )
 S027_msg = (
     "S027 the {} is read with the computed key {}, so no schema can document it. "
-    "Read a literal key, or declare this endpoint's input as an exception."
+    "Read it through a serializer declared in @extend_schema, or declare this "
+    "endpoint's input as an exception."
 )
 S028_msg = (
     "S028 the whole {} is handed to {}, so what this endpoint accepts cannot be "
-    "determined. Read the values here, or declare this endpoint's input as an exception."
+    "determined. Validate it with a serializer declared in @extend_schema, or declare "
+    "this endpoint's input as an exception."
 )
 S025_body_msg = (
     "S025 {} validates the request body but is not declared in "
@@ -845,7 +847,7 @@ class _InputCtx:
         self.literal_reads: list[tuple[_StartEnd, str, str]] = []
         # (start_end, rendered key, source) reads whose key is computed
         self.computed_reads: list[tuple[_StartEnd, str, str]] = []
-        # loop variable names currently marked safe (i.e, keys that aree known/fixed)
+        # loop variable names currently marked safe (i.e, keys that are known/fixed)
         self.safe_loop_vars: set[str] = set()
         # (start_end, callee, source) the whole dict passed somewhere
         self.hand_offs: list[tuple[_StartEnd, str, str]] = []
@@ -916,7 +918,7 @@ class SentryVisitor(ast.NodeVisitor):
         self._publish_status: dict[str, str] | None = None
         # Input rules: per-method accumulation, innermost last.
         self._input_stack: list[_InputCtx] = []
-        # list of constant varoables that holds iterable request fields, its filed in visit_Module()
+        # names of top level constants holding literal string keys, these keys are collected in visit_Module()
         self._literal_var_constants: set[str] = set()
         self._class_decorators: list[ast.expr] = []
         self._class_stack: list[str] = []
@@ -1071,21 +1073,16 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_For(self, node: ast.For) -> None:
         """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
 
-        # check if the stack of input ctx objs is empty
         if not self._input_stack:
             self.generic_visit(node)
             return
 
-        # check if if the method we're in is public
-        curr_method = self._input_stack[-1]  # inputctx obj is only created if the method is public
+        curr_method = self._input_stack[-1]
 
-        # loop variable X
         self.visit(node.target)
-        # stuff that we're looping over (the 'my_iterables' during the 'for X in my_iterables' )
         self.visit(node.iter)
 
         loop_var = None
-        # check if the things we're looping over is fixed constant literals (if the iterables are string constants)
         if _is_iterable_elms_literals(
             node=node.iter,
             file_lvl_constants=self._literal_var_constants,
@@ -1093,29 +1090,25 @@ class SentryVisitor(ast.NodeVisitor):
         ):
             # check if its a single looping variable
             if isinstance(node.target, ast.Name):
-                # if they are, then keep track of the looping variable(s), so X in our case
                 loop_var = node.target.id
 
-            # check if its double looping variables
+            # check if its multi looping variables
             elif isinstance(node.target, (ast.Tuple, ast.List)) and node.target.elts:
                 first_var = node.target.elts[0]
                 if isinstance(first_var, ast.Name):
                     loop_var = first_var.id
 
             # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
-            # the inner loop resuing the name keeps the outer name safe
+            # the inner loop reusing the name keeps the outer name safe
             if loop_var in curr_method.safe_loop_vars:
                 loop_var = None
 
-            # mark the loop variable safe while visiting the body
             if loop_var is not None:
                 curr_method.safe_loop_vars.add(loop_var)
 
-        # visit the remaining for loop body
         for statement in node.body:
             self.visit(statement)
 
-        # after visiting each statement in the body remove the name from self.curr_loop
         if loop_var is not None:
             curr_method.safe_loop_vars.discard(loop_var)
 
