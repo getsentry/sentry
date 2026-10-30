@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import NoReturn
+from typing import TYPE_CHECKING, NoReturn
 
 from sentry.api.exceptions import UserRequired
 
@@ -52,9 +52,12 @@ class ServiceAccountPrincipal:
     is_sentry_app = False
     is_suspended = False
 
-    @property
-    def id(self) -> ServiceAccountId:
-        return ServiceAccountId(self.service_account_id)
+    # Hidden from mypy so request.user.id needs narrowing; kept at runtime as a guard.
+    if not TYPE_CHECKING:
+
+        @property
+        def id(self) -> ServiceAccountId:
+            return ServiceAccountId(self.service_account_id)
 
     def get_display_name(self) -> str:
         return self.name
