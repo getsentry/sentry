@@ -252,7 +252,20 @@ export const RATE_UNIT_TITLE: Record<RateUnit, string> = {
   [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
-export type DataUnit = DurationUnit | SizeUnit | RateUnit | null;
+export enum FractionUnit {
+  /** Fraction of 1. A ratio of 1 is 100%. */
+  RATIO = 'ratio',
+  /** Fraction of 100. */
+  PERCENT = 'percent',
+}
+
+// Fractions normalized to a ratio of 1
+export const FRACTION_UNIT_MULTIPLIERS: Record<FractionUnit, number> = {
+  [FractionUnit.RATIO]: 1,
+  [FractionUnit.PERCENT]: 1 / 100,
+};
+
+export type DataUnit = DurationUnit | SizeUnit | RateUnit | FractionUnit | null;
 
 const getDocsAndOutputType = (key: AggregationKey) => {
   return {
