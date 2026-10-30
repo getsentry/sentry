@@ -9,6 +9,7 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
     get_span_description,
+    is_redis_span,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -230,12 +231,7 @@ class SQLInjectionDetector(PerformanceDetector):
         op = span.get("op", None)
 
         # If the span is not a database span, we can skip the detection. `db.sql.active_record` is known to cause false positives so it is excluded.
-        if (
-            not op
-            or not op.startswith("db")
-            or op.startswith("db.redis")
-            or op == "db.sql.active_record"
-        ):
+        if not op or not op.startswith("db") or is_redis_span(span) or op == "db.sql.active_record":
             return False
 
         # Auto-generated rails queries can contain interpolated values

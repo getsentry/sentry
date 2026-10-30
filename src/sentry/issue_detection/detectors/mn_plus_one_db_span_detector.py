@@ -12,6 +12,7 @@ from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
     get_span_description,
     get_span_evidence_value,
+    is_redis_span,
     total_span_time,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
@@ -158,7 +159,7 @@ class SearchingForMNPlusOne(MNPlusOneState):
             description = get_span_description(span)
             found_db_op = found_db_op or bool(
                 op.startswith("db")
-                and not op.startswith("db.redis")
+                and not is_redis_span(span)
                 and not _is_db_connection_span(span)
                 and description
                 and not description.endswith("...")

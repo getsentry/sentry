@@ -8,10 +8,12 @@ import pytest
 
 from sentry.issue_detection.detectors.utils import (
     get_numeric_value_from_span,
+    is_redis_span,
     parameterize_url_with_result,
     safer_urlparse,
     span_has_obfuscated_hostname,
 )
+from sentry.issue_detection.types import Span
 from sentry.testutils.issue_detection.event_generators import create_span
 
 
@@ -275,3 +277,20 @@ class TestGetNumericValueFromSpan:
 
         assert get_numeric_value_from_span(span, keys, "dog_detector", int) == 1121
         assert mock_log_invalid_data.call_count == 0
+
+
+@pytest.mark.parametrize(
+    ("span", "expected"),
+    [
+        ({"op": "db.redis"}, True),
+        ({"op": "db.redis.command"}, True),
+        ({"op": "db.query", "data": {"db.system.name": "redis"}}, True),
+        ({"op": "db.query", "data": {"db.system": "redis"}}, True),
+        ({"op": "db", "sentry_tags": {"system": "redis"}}, True),
+        ({"op": "db.query", "data": {"db.system.name": "postgresql"}}, False),
+        ({"op": "db.query"}, False),
+        ({"op": "db", "data": None}, False),
+    ],
+)
+def test_is_redis_span(span: Span, expected: bool) -> None:
+    assert is_redis_span(span) is expected
