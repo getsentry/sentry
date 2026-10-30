@@ -3355,7 +3355,7 @@ class KickOffLightweightRCAClusterTestMixin(BasePostProcessGroupMixin):
                 event=event,
             )
 
-        mock_task.assert_called_once_with(event.group.id)
+        mock_task.assert_called_once_with(event.group.id, event_id=event.event_id)
 
     @patch("sentry.tasks.seer.lightweight_rca_cluster.trigger_lightweight_rca_cluster_task.delay")
     def test_kick_off_lightweight_rca_cluster_skips_when_not_enabled(self, mock_task):
