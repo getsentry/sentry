@@ -24,6 +24,7 @@ from sentry.integrations.example.integration import ExampleIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.integrations.utils.metrics import IntegrationProxyEventType
 from sentry.metrics.base import Tags
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import (
@@ -193,6 +194,37 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         for call in matching_mock_calls:
             assert call.kwargs["sample_rate"] == 1.0
 
+    def assert_lifecycle_metric_tags(
+        self,
+        *,
+        interaction_type: IntegrationProxyEventType,
+        outcome: EventLifecycleOutcome,
+        provider: str,
+        mock_metrics: MagicMock,
+        count: int = 1,
+    ):
+        """
+        Asserts on the SLO lifecycle counters rather than the proxy's own counters.
+        EventLifecycle emits these through the same `sentry.utils.metrics.incr` the
+        other helpers watch, so they land in the same mock. Tests that also patch
+        `EventLifecycle.record_event` suppress the emission and cannot use this.
+        """
+        metric_name = f"integration_proxy.{interaction_type}.{outcome}"
+        expected_tags = {"interaction_type": interaction_type, "provider": provider}
+
+        matching_mock_calls = [
+            call
+            for call in mock_metrics.call_args_list
+            if call.args[0] == metric_name and call.kwargs.get("tags") == expected_tags
+        ]
+        logged_metrics = [
+            (call.args[0], call.kwargs.get("tags")) for call in mock_metrics.call_args_list
+        ]
+        assert len(matching_mock_calls) == count, (
+            f"Expected {count} {metric_name} metric(s) tagged {expected_tags}, "
+            f"found {len(matching_mock_calls)} in {logged_metrics}"
+        )
+
     @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
     @patch.object(ExampleIntegration, "get_client")
     @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
@@ -303,6 +335,34 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self.assert_metric_count(
             metric_name="proxy_failure",
             count=0,
+            mock_metrics=mock_metrics,
+        )
+
+        # SLO lifecycle tags. should_proxy opens before validation runs, so its started
+        # event is always the sentinel and will not sum to the terminal outcomes; every
+        # other event carries the resolved provider.
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY,
+            outcome=EventLifecycleOutcome.STARTED,
+            provider=UNKNOWN_PROVIDER,
+            mock_metrics=mock_metrics,
+        )
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY,
+            outcome=EventLifecycleOutcome.SUCCESS,
+            provider="example",
+            mock_metrics=mock_metrics,
+        )
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST,
+            outcome=EventLifecycleOutcome.STARTED,
+            provider="example",
+            mock_metrics=mock_metrics,
+        )
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST,
+            outcome=EventLifecycleOutcome.SUCCESS,
+            provider="example",
             mock_metrics=mock_metrics,
         )
 
@@ -551,6 +611,91 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         # SHOULD_PROXY (failure)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.STARTED, 1)
         assert_count_of_metric(mock_record_event, EventLifecycleOutcome.FAILURE, 1)
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_lifecycle_tags_when_failure_precedes_provider_resolution(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        """
+        The header never names an organization integration, so validation fails before the
+        row loads and the lifecycle failure can only carry the sentinel.
+        """
+        headers = create_request_headers(
+            self.secret,
+            signature_path=f"/{self.proxy_path}",
+            integration_id=None,
+        )
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock()
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 400
+        assert mock_client.request.call_count == 0
+
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY,
+            outcome=EventLifecycleOutcome.FAILURE,
+            provider=UNKNOWN_PROVIDER,
+            mock_metrics=mock_metrics,
+        )
+        # The request never got past validation, so the second lifecycle never opened.
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.PROXY_REQUEST,
+            outcome=EventLifecycleOutcome.STARTED,
+            provider=UNKNOWN_PROVIDER,
+            mock_metrics=mock_metrics,
+            count=0,
+        )
+
+    @override_settings(SENTRY_SUBNET_SECRET=SENTRY_SUBNET_SECRET, SILO_MODE=SiloMode.CONTROL)
+    @patch.object(ExampleIntegration, "get_client")
+    @patch.object(InternalIntegrationProxyEndpoint, "client", spec=IntegrationProxyClient)
+    @patch.object(metrics, "incr")
+    def test_lifecycle_tags_when_failure_follows_provider_resolution(
+        self, mock_metrics: MagicMock, mock_client: MagicMock, mock_get_client: MagicMock
+    ) -> None:
+        """
+        A disabled integration is rejected only after its row has loaded, so the lifecycle
+        failure must name the provider. Guards the ordering in the endpoint: the event's
+        provider is reassigned before record_failure reads the tags off it.
+        """
+        self.integration.update(status=ObjectStatus.DISABLED)
+        headers = create_request_headers(
+            self.secret,
+            signature_path=f"/{self.proxy_path}",
+            integration_id=self.org_integration.id,
+        )
+
+        mock_client.base_url = "https://example.com/api"
+        mock_client.authorize_request = MagicMock(side_effect=lambda req: req)
+        mock_client.request = MagicMock()
+        mock_get_client.return_value = mock_client
+
+        proxy_response = self.client.get(self.path, **headers)
+
+        assert proxy_response.status_code == 400
+        assert mock_client.request.call_count == 0
+
+        self.assert_failure_metric_count(
+            failure_type=IntegrationProxyFailureMetricType.INVALID_INTEGRATION,
+            internal_failure=True,
+            count=1,
+            mock_metrics=mock_metrics,
+            tags={"provider": "example"},
+        )
+        self.assert_lifecycle_metric_tags(
+            interaction_type=IntegrationProxyEventType.SHOULD_PROXY,
+            outcome=EventLifecycleOutcome.FAILURE,
+            provider="example",
+            mock_metrics=mock_metrics,
+        )
 
     def raise_exception(self, exc_type: type[Exception], *args, **kwargs):
         raise exc_type(*args)
