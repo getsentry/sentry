@@ -834,6 +834,7 @@ def trigger_push_changes(
     author: SeerCommitAuthor | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     allow_force_push: bool = True,
+    source: str = "autofix",
 ):
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -867,6 +868,7 @@ def trigger_push_changes(
         blocking=False,
         author=author,
         allow_force_push=allow_force_push,
+        source=source,
     )
 
     metrics.incr(

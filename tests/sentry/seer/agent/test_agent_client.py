@@ -1170,6 +1170,7 @@ class TestSeerAgentClientPushChanges(TestCase):
         body = mock_post.call_args[0][0]
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
+        assert body["payload"]["source"] is None
         assert body["payload"]["repo_name"] == "owner/repo"
         assert "author" not in body["payload"]
         assert body["payload"]["allow_force_push"] is True
@@ -1182,6 +1183,15 @@ class TestSeerAgentClientPushChanges(TestCase):
 
         client.push_changes(123, allow_force_push=False)
         assert mock_post.call_args[0][0]["payload"]["allow_force_push"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_push_changes_forwards_caller_source(self, mock_post, _mock_access):
+        mock_post.return_value = MagicMock(status=200)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
+
+        client.push_changes(123, blocking=False, source="custom_push_flow")
+        assert mock_post.call_args[0][0]["payload"]["source"] == "custom_push_flow"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")

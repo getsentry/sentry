@@ -1003,6 +1003,7 @@ class SeerAgentClient:
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
         allow_force_push: bool = True,
+        source: str | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1017,6 +1018,7 @@ class SeerAgentClient:
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
             allow_force_push: Overwrite the branch if it has commits Seer didn't push
+            source: Stable caller-flow label, or None when unspecified; not the commit author
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1034,6 +1036,7 @@ class SeerAgentClient:
         # Trigger PR creation
         payload: dict[str, Any] = {
             "type": "create_pr",
+            "source": source,
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
             "allow_force_push": allow_force_push,
