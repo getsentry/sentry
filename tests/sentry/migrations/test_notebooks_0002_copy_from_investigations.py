@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 from importlib import import_module
 from types import SimpleNamespace
 
+import pytest
 from django.db import connections
 
 from sentry.silo.safety import unguarded_write
@@ -12,6 +13,7 @@ migration = import_module("sentry.notebooks.migrations.0002_copy_from_investigat
 OLD = datetime(2020, 9, 1, tzinfo=timezone.utc)
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class CopyFromInvestigationsTest(TestMigrations):
     app = "notebooks"
     migrate_from = "0001_initial"

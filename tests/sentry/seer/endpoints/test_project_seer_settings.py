@@ -7,25 +7,41 @@ from sentry.models.options.project_option import ProjectOption
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.models import AutofixHandoffPoint
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 @patch(
     "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
     return_value=True,
 )
-class ProjectSeerSettingsEndpointTest(APITestCase):
+class ProjectSeerSettingsEndpointBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-project-seer-settings"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="ext123"
+        )
         self.url = reverse(
             self.endpoint,
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "project_id_or_slug": self.project.slug,
             },
+        )
+
+    def create_seer_eligible_repo(self, project, name):
+        """Create a repo that Seer can use under both seat-based and token-based billing."""
+        return self.create_repo(
+            project=project,
+            name=name,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=name,
         )
 
     def test_get_returns_defaults(self, mock_is_seat_based) -> None:
@@ -123,9 +139,9 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
         assert response.data["automationTuning"] == "medium"
 
     def test_get_repos_count(self, mock_is_seat_based) -> None:
-        """reposCount should reflect active SeerProjectRepository rows."""
-        repo1 = self.create_repo(project=self.project, name="owner/repo-1")
-        repo2 = self.create_repo(project=self.project, name="owner/repo-2")
+        """reposCount should reflect active repos Seer can use."""
+        repo1 = self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        repo2 = self.create_seer_eligible_repo(self.project, "owner/repo-2")
         self.create_seer_project_repository(project=self.project, repository=repo1)
         self.create_seer_project_repository(project=self.project, repository=repo2)
 
@@ -136,8 +152,8 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
 
     def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based) -> None:
         """Repos with non-active status should not be counted."""
-        active_repo = self.create_repo(project=self.project, name="owner/active")
-        disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
+        active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
+        disabled_repo = self.create_seer_eligible_repo(self.project, "owner/deleted")
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
         self.create_seer_project_repository(project=self.project, repository=active_repo)
@@ -372,20 +388,103 @@ class ProjectSeerSettingsEndpointTest(APITestCase):
             assert entry.data["project_id"] == self.project.id
 
 
+class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
+    __test__ = True
+
+    def test_get_repos_count_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["reposCount"] == 0
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
+    __test__ = True
+
+    def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        )
+        self.create_seer_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-2")
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["reposCount"] == 2
+
+    def test_get_repos_count_excludes_repos_seer_cannot_use(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/eligible")
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/no-integration", provider="integrations:github", external_id="1"
+            )
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/empty-external-id",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id="",
+            )
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/unsupported-provider",
+                provider="unsupported",
+                integration_id=self.integration.id,
+                external_id="2",
+            )
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["reposCount"] == 1
+
+
 @patch(
     "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
     return_value=True,
 )
-class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
+class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
+    __test__ = False
+
     endpoint = "sentry-api-0-organization-seer-project-settings"
 
     def setUp(self) -> None:
         super().setUp()
         self.login_as(user=self.user)
         self.project = self.create_project(organization=self.organization)
+        self.integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="ext123"
+        )
         self.url = reverse(
             self.endpoint,
             kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    def create_seer_eligible_repo(self, project, name):
+        """Create a repo that Seer can use under both seat-based and token-based billing."""
+        return self.create_repo(
+            project=project,
+            name=name,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=name,
         )
 
     def test_get_returns_defaults(self, mock_is_seat_based) -> None:
@@ -485,9 +584,9 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert response.data[0]["automationTuning"] == "medium"
 
     def test_get_repos_count(self, mock_is_seat_based) -> None:
-        """reposCount should reflect the number of active SeerProjectRepository rows."""
-        repo1 = self.create_repo(project=self.project, name="owner/repo-1")
-        repo2 = self.create_repo(project=self.project, name="owner/repo-2")
+        """reposCount should reflect the number of active repos Seer can use."""
+        repo1 = self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        repo2 = self.create_seer_eligible_repo(self.project, "owner/repo-2")
         self.create_seer_project_repository(project=self.project, repository=repo1)
         self.create_seer_project_repository(project=self.project, repository=repo2)
 
@@ -498,8 +597,8 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
 
     def test_get_repos_count_excludes_inactive_repos(self, mock_is_seat_based) -> None:
         """Repos with non-active status should not be counted."""
-        active_repo = self.create_repo(project=self.project, name="owner/active")
-        disabled_repo = self.create_repo(project=self.project, name="owner/deleted")
+        active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
+        disabled_repo = self.create_seer_eligible_repo(self.project, "owner/deleted")
         disabled_repo.status = ObjectStatus.DISABLED
         disabled_repo.save()
         self.create_seer_project_repository(project=self.project, repository=active_repo)
@@ -557,10 +656,10 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         assert slugs.index(project_a.slug) < slugs.index(project_b.slug)
 
     def test_get_sort_by_repos_count(self, mock_is_seat_based) -> None:
-        """sortBy=reposCount should order by SeerProjectRepository count."""
+        """sortBy=reposCount should order by the number of repos Seer can use."""
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
-            repo = self.create_repo(project=project1, name=f"owner/repo-{i}")
+            repo = self.create_seer_eligible_repo(project1, f"owner/repo-{i}")
             self.create_seer_project_repository(project=project1, repository=repo)
         project2 = self.create_project(organization=self.organization)
 
@@ -670,7 +769,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         """reposCount with numeric operators."""
         project1 = self.create_project(organization=self.organization)
         for i in range(2):
-            repo = self.create_repo(project=project1, name=f"owner/filter-repo-{i}")
+            repo = self.create_seer_eligible_repo(project1, f"owner/filter-repo-{i}")
             self.create_seer_project_repository(project=project1, repository=repo)
         project2 = self.create_project(organization=self.organization)
 
@@ -744,7 +843,7 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
         """Combining multiple filters should intersect the results."""
         project1 = self.create_project(organization=self.organization)
         project1.update_option("sentry:seer_automation_handoff_target", "cursor_background_agent")
-        repo = self.create_repo(project=project1, name="owner/repo-1")
+        repo = self.create_seer_eligible_repo(project1, "owner/repo-1")
         self.create_seer_project_repository(project=project1, repository=repo)
 
         project2 = self.create_project(organization=self.organization)
@@ -902,3 +1001,123 @@ class OrganizationSeerProjectSettingsEndpointTest(APITestCase):
             assert entry is not None
             assert entry.data["project_count"] == 2
             assert set(entry.data["project_ids"]) == {self.project.id, project2.id}
+
+
+class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
+    OrganizationSeerProjectSettingsEndpointBaseTest
+):
+    __test__ = True
+
+    def test_get_repos_count_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["reposCount"] == 0
+
+    def test_get_filter_by_repos_count_excludes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        )
+
+        response = self.client.get(self.url, {"query": "reposCount:>0"})
+
+        assert response.status_code == 200
+        assert response.data == []
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class OrganizationSeerProjectSettingsEndpointTokenBasedBillingTest(
+    OrganizationSeerProjectSettingsEndpointBaseTest
+):
+    __test__ = True
+
+    def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+        )
+        self.create_seer_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/repo-2")
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["reposCount"] == 2
+
+    def test_get_repos_count_excludes_repos_seer_cannot_use(self) -> None:
+        self.create_project_repository(
+            repository=self.create_seer_eligible_repo(self.project, "owner/eligible")
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/no-integration", provider="integrations:github", external_id="1"
+            )
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/empty-external-id",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id="",
+            )
+        )
+        self.create_project_repository(
+            repository=self.create_repo(
+                name="owner/unsupported-provider",
+                provider="unsupported",
+                integration_id=self.integration.id,
+                external_id="2",
+            )
+        )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data[0]["reposCount"] == 1
+
+    def test_get_filter_by_repos_count_includes_repos_without_seer_config(self) -> None:
+        project_linked = self.create_project(organization=self.organization)
+        self.create_project_repository(
+            project=project_linked,
+            repository=self.create_seer_eligible_repo(project_linked, "owner/linked"),
+        )
+        project_ineligible = self.create_project(organization=self.organization)
+        self.create_project_repository(
+            project=project_ineligible,
+            repository=self.create_repo(
+                project=project_ineligible,
+                name="owner/empty-external-id",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id="",
+            ),
+        )
+
+        response = self.client.get(self.url, {"query": "reposCount:>0"})
+
+        assert response.status_code == 200
+        assert [r["projectId"] for r in response.data] == [str(project_linked.id)]
+
+    def test_get_sort_by_repos_count_includes_repos_without_seer_config(self) -> None:
+        project1 = self.create_project(organization=self.organization)
+        for i in range(2):
+            self.create_project_repository(
+                project=project1,
+                repository=self.create_seer_eligible_repo(project1, f"owner/repo-{i}"),
+            )
+        project2 = self.create_project(organization=self.organization)
+
+        response = self.client.get(self.url, {"sortBy": "reposCount"})
+
+        assert response.status_code == 200
+        ids = [r["projectId"] for r in response.data]
+        assert ids.index(str(project2.id)) < ids.index(str(project1.id))

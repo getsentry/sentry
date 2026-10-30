@@ -3,15 +3,15 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
+  type SetStateAction,
 } from 'react';
-import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
+import {useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
@@ -22,16 +22,10 @@ import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
 } from 'sentry/views/explore/metrics/useMetricQueriesController';
-import {
-  applyQueryParamsUpdates,
-  loadQueryParamsFromLocation,
-  parseAsFieldList,
-} from 'sentry/views/explore/queryParams/parsers';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
 import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
 
 export const MAX_METRICS_ALLOWED = 8;
-
-const METRICS_QUERY_PARSERS = {metric: parseAsFieldList};
 
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries
@@ -58,25 +52,45 @@ interface MultiMetricsQueryParamsProviderProps {
   children: ReactNode;
 }
 
+const metricQueryParsers = {
+  metric: parseAsFieldList.withOptions({history: 'push'}),
+};
+
 export function MultiMetricsQueryParamsProvider({
   children,
 }: MultiMetricsQueryParamsProviderProps) {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{metric: rawQueries}, setRawQueries] = useQueryStates(metricQueryParsers);
 
-  const queries = useMemo(
-    () => getMultiMetricsQueryParamsFromLocation(location),
-    [location]
-  );
+  const queries = useMemo(() => decodeMetricQueries(rawQueries), [rawQueries]);
+
+  // nuqs only sees its own writes once this provider's effects subscribe, which
+  // is after children's mount effects. Until a write flushes, build on it here
+  // so a second write in the same mount doesn't start from the stale URL.
+  const pendingRawQueries = useRef<string[] | null>(null);
 
   const setQueries = useCallback(
-    (nextQueries: BaseMetricQuery[]) => {
-      const target = applyQueryParamsUpdates(METRICS_QUERY_PARSERS, location, {
-        metric: encodeMetricQueries(nextQueries),
+    (update: SetStateAction<BaseMetricQuery[]>) => {
+      let nextRawQueries: string[] | undefined;
+      const flushed = setRawQueries(({metric: stateRawQueries}) => {
+        const previousRawQueries = pendingRawQueries.current ?? stateRawQueries;
+        const nextQueries =
+          typeof update === 'function'
+            ? update(decodeMetricQueries(previousRawQueries))
+            : update;
+        nextRawQueries = encodeMetricQueries(nextQueries);
+        if (isEqual(nextRawQueries, previousRawQueries)) {
+          return {};
+        }
+        pendingRawQueries.current = nextRawQueries;
+        return {metric: nextRawQueries};
       });
-      navigateIfQueryChanged(navigate, location, target);
+      void flushed.finally(() => {
+        if (pendingRawQueries.current === nextRawQueries) {
+          pendingRawQueries.current = null;
+        }
+      });
     },
-    [location, navigate]
+    [setRawQueries]
   );
 
   const value = useMetricQueriesController({queries, setQueries});
@@ -88,19 +102,36 @@ export function MultiMetricsQueryParamsProvider({
   );
 }
 
-function getMultiMetricsQueryParamsFromLocation(location: Location): BaseMetricQuery[] {
-  const rawQueryParams = loadQueryParamsFromLocation(
-    METRICS_QUERY_PARSERS,
-    location
-  ).metric;
+const decodedMetricQueries = new Map<string, BaseMetricQuery | null>();
+const MAX_DECODED_METRIC_QUERIES = 100;
 
-  const metricQueries = rawQueryParams
-    .map(value => decodeMetricsQueryParams(value))
+function decodeMetricQueryParamsCached(
+  value: string,
+  occurrence: number
+): BaseMetricQuery | null {
+  const key = `${occurrence}:${value}`;
+  const cached = decodedMetricQueries.get(key);
+  const decoded = cached === undefined ? decodeMetricsQueryParams(value) : cached;
+  decodedMetricQueries.delete(key);
+  decodedMetricQueries.set(key, decoded);
+  if (decodedMetricQueries.size > MAX_DECODED_METRIC_QUERIES) {
+    decodedMetricQueries.delete(decodedMetricQueries.keys().next().value!);
+  }
+
+  return decoded;
+}
+
+function decodeMetricQueries(rawQueries: string[]): BaseMetricQuery[] {
+  const occurrences = new Map<string, number>();
+  const metricQueries = rawQueries
+    .map(value => {
+      const occurrence = occurrences.get(value) ?? 0;
+      occurrences.set(value, occurrence + 1);
+      return decodeMetricQueryParamsCached(value, occurrence);
+    })
     .filter(defined);
 
-  const queries = metricQueries.length ? metricQueries : [defaultMetricQuery()];
-
-  return queries;
+  return metricQueries.length ? metricQueries : [defaultMetricQuery()];
 }
 
 interface LocalMultiMetricsQueryParamsProviderProps {

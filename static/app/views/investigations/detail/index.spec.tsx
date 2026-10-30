@@ -3323,7 +3323,7 @@ describe('Investigation detail', () => {
         url: detailUrl,
         method: 'PUT',
         body: InvestigationDetailFixture({
-          title: 'Regional latency investigation',
+          title: 'Renamed',
           version: 2,
         }),
       });
@@ -3331,9 +3331,9 @@ describe('Investigation detail', () => {
       renderView();
       const titleInput = await screen.findByLabelText('Investigation title');
       await user.clear(titleInput);
-      await user.type(titleInput, 'Regional latency investigation');
+      await user.type(titleInput, 'Renamed');
 
-      expect(titleInput).toHaveValue('Regional latency investigation');
+      expect(titleInput).toHaveValue('Renamed');
       expect(renameRequest).not.toHaveBeenCalled();
 
       await act(() => jest.advanceTimersByTimeAsync(499));
@@ -3344,7 +3344,7 @@ describe('Investigation detail', () => {
           detailUrl,
           expect.objectContaining({
             data: {
-              title: 'Regional latency investigation',
+              title: 'Renamed',
               investigationVersion: 1,
             },
           })

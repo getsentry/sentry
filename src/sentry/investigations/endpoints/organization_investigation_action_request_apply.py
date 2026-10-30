@@ -21,7 +21,6 @@ from sentry.investigations.endpoints.serializers.responses import (
     InvestigationActionRequestApplyResponse,
 )
 from sentry.investigations.endpoints.validators import ActionRequestApplyValidator
-from sentry.investigations.models import Investigation
 from sentry.investigations.services.action_kinds.base import (
     ApplyErrorCode,
     ApplyFailed,
@@ -29,6 +28,7 @@ from sentry.investigations.services.action_kinds.base import (
 )
 from sentry.investigations.services.action_requests import apply_action_request
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 
 _STATUS = {
     CannotApplyReason.INVESTIGATION_ARCHIVED: status.HTTP_400_BAD_REQUEST,
@@ -73,7 +73,7 @@ class OrganizationInvestigationActionRequestApplyEndpoint(OrganizationInvestigat
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
+        investigation: Notebook,
         action_request_id: str,
     ) -> Response:
         """

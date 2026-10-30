@@ -6,10 +6,10 @@ import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 import omit from 'lodash/omit';
 
 import {Container} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   DisplayType,
   WidgetType,
@@ -113,6 +113,8 @@ export function WidgetPreviewContainer({
   }
   const location = useLocation();
   const theme = useTheme();
+  // The preview's mobile drag controls follow the viewport.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   // if small screen and draggable, enable dragging
   const isDragEnabled = isSmallScreen && isDraggable;

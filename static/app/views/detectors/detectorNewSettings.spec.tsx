@@ -625,6 +625,59 @@ describe('DetectorEdit', () => {
       }
     );
 
+    it('keeps the draft project when reopening an uptime copy moved to another project', async () => {
+      const otherProject = ProjectFixture({id: '3', slug: 'other-project'});
+      ProjectsStore.loadInitialData([project, otherProject]);
+      const sourceDetector = UptimeDetectorFixture({
+        id: 'source-uptime',
+        projectId: project.id,
+      });
+      sourceDetector.dataSources[0].queryObj.headers = [
+        ['Authorization', 'Bearer secret'],
+      ];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
+        body: sourceDetector,
+      });
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+        method: 'POST',
+        body: UptimeDetectorFixture({id: 'copied-uptime'}),
+      });
+      const duplicateRouterConfig = getDuplicateRouterConfig(
+        sourceDetector.type,
+        sourceDetector.id
+      );
+
+      render(<DetectorNewSettings />, {
+        organization: organizationWithMonitorDuplication,
+        initialRouterConfig: {
+          ...duplicateRouterConfig,
+          location: {
+            ...duplicateRouterConfig.location,
+            query: {
+              ...duplicateRouterConfig.location.query,
+              draft: JSON.stringify({name: 'Moved copy', projectId: otherProject.id}),
+            },
+          },
+        },
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/projects/${otherProject.id}/detectors/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              projectId: otherProject.id,
+              dataSources: [expect.objectContaining({headers: []})],
+            }),
+          })
+        );
+      });
+    });
+
     it('opens an uptime draft when its duplicated monitor cannot be loaded', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/missing-uptime/`,
@@ -2129,6 +2182,50 @@ describe('DetectorEdit', () => {
             type: 'monitor_check_in_failure',
             name: 'New Monitor',
             description: 'This is my cron monitor description',
+          }),
+        })
+      );
+    });
+
+    it('submits a typed interval schedule value as a number', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: /^Schedule/}),
+        'Interval'
+      );
+
+      const intervalValue = screen.getByRole('spinbutton', {name: 'Interval Frequency'});
+      await userEvent.clear(intervalValue);
+      await userEvent.type(intervalValue, '5');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            dataSources: [
+              expect.objectContaining({
+                config: expect.objectContaining({
+                  schedule: [5, 'day'],
+                  schedule_type: 'interval',
+                }),
+              }),
+            ],
           }),
         })
       );
