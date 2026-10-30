@@ -15,7 +15,7 @@ from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.models import Notebook, NotebookActionRequestState
 from sentry.notifications.platform.service import serialize_notification_data
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import (
@@ -56,7 +56,10 @@ from sentry.seer.entrypoints.slack.entrypoint import (
     SlackThreadDetails,
     prepare_slack_thread_for_autofix_updates,
 )
-from sentry.seer.entrypoints.slack.investigation_status import MAX_SUMMARY_DESCRIPTION_LENGTH
+from sentry.seer.entrypoints.slack.investigation_status import (
+    MAX_NEXT_STEP_RATIONALE_LENGTH,
+    MAX_SUMMARY_DESCRIPTION_LENGTH,
+)
 from sentry.seer.entrypoints.slack.messaging import (
     process_thread_update,
     schedule_all_thread_updates,
@@ -1388,16 +1391,16 @@ class SlackInvestigationEntrypointTest(TestCase):
             summary=summary, summary_description=description
         )
 
-    def _conclusion_text(self) -> str:
+    def _conclusion_sections(self) -> list[str]:
         (call,) = [
             call
             for call in self.mock_post_message.call_args_list
             if call.kwargs["text"] == "Seer finished the investigation"
         ]
         assert call.kwargs["thread_ts"] == self.message_ts
-        section, _divider, actions = call.kwargs["blocks"]
+        *sections, _divider, actions = call.kwargs["blocks"]
         assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
-        return section.text.text
+        return [section.text.text for section in sections]
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
@@ -1647,7 +1650,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_called_once()
-        assert self._conclusion_text() == "*A release added a slow font*\nPreload the font."
+        assert self._conclusion_sections() == ["*A release added a slow font*\nPreload the font."]
         cache_payload = self._get_cache()
         assert cache_payload is not None
         assert cache_payload["final_sent"] is True
@@ -1662,7 +1665,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._update([_hypothesis()])
 
         self.mock_update.assert_not_called()
-        assert self._conclusion_text() == "*A release added a slow font*"
+        assert self._conclusion_sections() == ["*A release added a slow font*"]
 
     def test_failed_or_cancelled_run_posts_no_conclusion(self) -> None:
         self._set_summary("A release added a slow font")
@@ -1684,8 +1687,59 @@ class SlackInvestigationEntrypointTest(TestCase):
 
         self._update([_hypothesis()])
 
-        assert self._conclusion_text() == (
+        assert self._conclusion_sections() == [
             "*&lt;!channel&gt; &amp; friends*\n" + "a" * (MAX_SUMMARY_DESCRIPTION_LENGTH - 1) + "…"
+        ]
+
+    def test_conclusion_includes_the_suggested_next_step(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            primary=True,
+            title="Preload the font",
+            rationale="It stops blocking the first paint.",
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == [
+            "*A release added a slow font*",
+            "*Suggested next step:* Preload the font\nIt stops blocking the first paint.",
+        ]
+
+    def test_conclusion_skips_next_steps_that_are_not_current(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(notebook=self.investigation, key="not-primary")
+        self.create_notebook_action_request(
+            notebook=self.investigation,
+            key="withdrawn",
+            primary=True,
+            state=NotebookActionRequestState.WITHDRAWN,
+        )
+        self.create_notebook_action_request(
+            notebook=self.investigation, key="other-report", primary=True, producer_revision=1
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections() == ["*A release added a slow font*"]
+
+    def test_conclusion_truncates_the_next_step_rationale(self) -> None:
+        self._set_cache()
+        self._set_summary("A release added a slow font")
+        self.create_notebook_action_request(
+            notebook=self.investigation, primary=True, title="Act", rationale="a" * 3000
+        )
+        self._set_status(InvestigationOrchestrationStatus.COMPLETED)
+
+        self._update([_hypothesis()])
+
+        assert self._conclusion_sections()[1] == (
+            "*Suggested next step:* Act\n" + "a" * (MAX_NEXT_STEP_RATIONALE_LENGTH - 1) + "…"
         )
 
     def test_no_summary_marks_final_sent(self) -> None:
