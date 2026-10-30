@@ -74,6 +74,7 @@ export function useLogsSeriesQuery(
           pageFilters,
           DiscoverDatasets.OURLOGS,
           {
+            organization,
             referrer: getReferrer(filteredWidget.displayType),
             widgetInterval,
             sampling: samplingMode,

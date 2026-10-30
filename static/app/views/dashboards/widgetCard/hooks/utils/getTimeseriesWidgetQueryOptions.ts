@@ -5,7 +5,10 @@ import type {Organization} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import type {TimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  type TimeseriesRequestQuery,
+  withRequestedTransformations,
+} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -34,16 +37,20 @@ export function getTimeseriesWidgetQueryOptions({
       }
     ),
     queryFn: (context): Promise<ApiResponse<EventsTimeSeriesResponse>> => {
+      const fetchTimeseries = () =>
+        apiFetch<EventsTimeSeriesResponse>(context).then(response => ({
+          ...response,
+          json: withRequestedTransformations(response.json, query),
+        }));
       if (queue) {
         return new Promise((resolve, reject) => {
           const fetchFnRef = {
-            current: () =>
-              apiFetch<EventsTimeSeriesResponse>(context).then(resolve, reject),
+            current: () => fetchTimeseries().then(resolve, reject),
           };
           queue.addItem({fetchDataRef: fetchFnRef});
         });
       }
-      return apiFetch<EventsTimeSeriesResponse>(context);
+      return fetchTimeseries();
     },
     enabled,
     retry: false,
