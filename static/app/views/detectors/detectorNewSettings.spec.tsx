@@ -711,7 +711,6 @@ describe('DetectorEdit', () => {
             aggregate: 'count_unique(user)',
             query: 'event.type:error',
             environment: 'prod',
-            name: 'My Monitor',
           },
         },
       };
@@ -1366,6 +1365,26 @@ describe('DetectorEdit', () => {
           }),
         })
       );
+    });
+
+    it('prefills the first environment when the URL has several', async () => {
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: {
+          ...uptimeRouterConfig,
+          location: {
+            ...uptimeRouterConfig.location,
+            query: {
+              ...uptimeRouterConfig.location.query,
+              environment: ['production', 'staging'],
+            },
+          },
+        },
+      });
+
+      expect(await screen.findByLabelText('Select Environment')).toBeInTheDocument();
+      expect(screen.getByText('production')).toBeInTheDocument();
+      expect(screen.queryByText('staging')).not.toBeInTheDocument();
     });
 
     it('submits custom thresholds when changed', async () => {
