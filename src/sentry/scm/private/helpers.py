@@ -5,7 +5,7 @@ from typing import NamedTuple, cast
 import sentry_sdk
 from django.db.models import Q
 from scm import Secret
-from scm.errors import SCMCodedError, UnhandledException
+from scm.errors import ResourceServiceUnavailable, SCMCodedError, UnhandledException
 from scm.git.types import GitOperation
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
@@ -94,6 +94,10 @@ def fetch_access_token(repository: Repository, operation: GitOperation) -> Secre
     token of the user who installed GitLab. It isn't scoped to the repository or the operation, so a
     fetch gets the same token as a push. It's wrapped in a Secret right away, so the frames an
     error report carries show it as [Filtered].
+
+    Raises ResourceServiceUnavailable if control can't be reached, which GitServer answers with a
+    503 that Seer retries. None, which GitServer answers with a 502, means control answered but
+    has no token for the repository.
     """
     try:
         access_token = integration_service.get_access_token(
@@ -102,10 +106,13 @@ def fetch_access_token(repository: Repository, operation: GitOperation) -> Secre
         )
     except (RpcRemoteException, RpcResponseException):
         # Control couldn't be reached, or answered with something other than an RPC response,
-        # such as a load balancer's error page. Answered as a 500, git would show only
-        # "HTTP 500"; GitServer turns None into a 502 that says why.
+        # such as a load balancer's error page. Both usually pass, so the request is worth
+        # retrying. Answered as an uncaught exception, it would be a 500 that git shows only as
+        # "HTTP 500".
         sentry_sdk.capture_exception()
-        return None
+        raise ResourceServiceUnavailable(
+            detail="Sentry could not reach its control silo for a provider token. The request can be retried."
+        ) from None
     return Secret(access_token.token) if access_token is not None else None
 
 

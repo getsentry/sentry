@@ -34,6 +34,7 @@ from sentry_sdk.data_collection import _apply_key_value_collection_filtering
 from sentry_sdk.integrations.wsgi import SentryWsgiMiddleware
 
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.service import RpcRemoteException
 from sentry.scm.endpoints.scm_git import report_git_error
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -343,7 +344,7 @@ class ScmGitEndpointTest(TestCase):
     ) -> None:
         response = self.fetch_refs(self.fetch_grant())
 
-        self.assert_refused(response, 503, b"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured")
+        self.assert_refused(response, 500, b"SCM_GIT_GRANT_PUBLIC_KEYS is misconfigured")
         mock_record_count.assert_called_once_with(
             "sentry.scm.git.request.failed", 1, {"code": "grant_public_keys_invalid"}
         )
@@ -361,7 +362,7 @@ class ScmGitEndpointTest(TestCase):
         with override_settings(SCM_GIT_GRANT_PUBLIC_KEYS=[private_pem]):
             response = self.fetch_refs(self.fetch_grant())
 
-        self.assert_refused(response, 503, b"public_keys[0] is a private key")
+        self.assert_refused(response, 500, b"public_keys[0] is a private key")
         body = b"".join(response).decode()
         (detail,), _ = mock_sdk.capture_message.call_args
         key_body = private_pem.splitlines()[1]
@@ -590,6 +591,19 @@ class ScmGitEndpointTest(TestCase):
         response = self.git("GET", "info/refs/", "service=git-upload-pack", self.fetch_grant())
 
         self.assert_refused(response, 404, b"is not a git fetch or push route.")
+
+    @responses.activate
+    @mock.patch("sentry.scm.private.helpers.sentry_sdk.capture_exception")
+    @mock.patch(
+        "sentry.scm.private.helpers.integration_service.get_access_token",
+        side_effect=RpcRemoteException("integration", "get_access_token", "timed out"),
+    )
+    def test_answers_with_a_retryable_503_when_control_cannot_be_reached(
+        self, mock_get_access_token: mock.MagicMock, mock_capture_exception: mock.MagicMock
+    ) -> None:
+        response = self.fetch_refs(self.fetch_grant())
+
+        self.assert_refused(response, 503, b"The request can be retried.")
 
     @responses.activate
     def test_refuses_an_inactive_repository(self) -> None:
