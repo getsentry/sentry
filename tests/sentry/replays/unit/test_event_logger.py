@@ -1,6 +1,5 @@
 import uuid
 from collections.abc import Callable
-from typing import Any
 from unittest import mock
 
 import pytest
@@ -21,6 +20,7 @@ from sentry.replays.usecases.ingest.event_logger import (
 from sentry.replays.usecases.ingest.event_parser import (
     ClickEvent,
     MultiClickEvent,
+    OptionsEvent,
     ParsedEventMeta,
     TapEvent,
 )
@@ -304,60 +304,13 @@ def test_log_rage_click_events(
 
 
 @mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_option_events_with_dict_payload(mock_logger: mock.MagicMock) -> None:
-    """Test that option events with a normal dict payload are logged correctly."""
-    option: dict[str, Any] = {"data": {"payload": {"tag": "input", "value": "test"}}}
+def test_log_option_events(mock_logger: mock.MagicMock) -> None:
+    option = OptionsEvent({"tag": "input", "value": "test"})
     meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
 
     log_option_events(meta, project_id=1, replay_id="test-replay-id")
 
-    mock_logger.info.assert_called_once()
-    call_args = mock_logger.info.call_args
-    assert call_args[0][0] == "sentry.replays.slow_click"
-    assert call_args[1]["extra"]["tag"] == "input"
-    assert call_args[1]["extra"]["value"] == "test"
-    assert call_args[1]["extra"]["project_id"] == 1
-    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
-
-
-@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_option_events_with_filtered_string_payload(mock_logger: mock.MagicMock) -> None:
-    """Test that option events with a string payload are still logged with the raw value."""
-    option: dict[str, Any] = {"data": {"payload": "[Filtered]"}}
-    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
-
-    log_option_events(meta, project_id=1, replay_id="test-replay-id")
-
-    mock_logger.info.assert_called_once()
-    call_args = mock_logger.info.call_args
-    assert call_args[0][0] == "sentry.replays.slow_click"
-    assert call_args[1]["extra"] == {
-        "payload": "[Filtered]",
-        "project_id": 1,
-        "replay_id": "test-replay-id",
-    }
-
-
-@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_option_events_truncates_long_string_payload(mock_logger: mock.MagicMock) -> None:
-    option: dict[str, Any] = {"data": {"payload": "x" * 1000}}
-    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
-
-    log_option_events(meta, project_id=1, replay_id="test-replay-id")
-
-    assert mock_logger.info.call_args[1]["extra"]["payload"] == "x" * 256
-
-
-@mock.patch("sentry.replays.usecases.ingest.event_logger.logger")
-def test_log_option_events_with_missing_payload(mock_logger: mock.MagicMock) -> None:
-    """Test that option events without a payload key are logged correctly."""
-    option: dict[str, Any] = {"data": {}}
-    meta = ParsedEventMeta([], [], [], [], [], [option], [], [])
-
-    log_option_events(meta, project_id=1, replay_id="test-replay-id")
-
-    mock_logger.info.assert_called_once()
-    call_args = mock_logger.info.call_args
-    assert call_args[0][0] == "sentry.replays.slow_click"
-    assert call_args[1]["extra"]["project_id"] == 1
-    assert call_args[1]["extra"]["replay_id"] == "test-replay-id"
+    mock_logger.info.assert_called_once_with(
+        "sentry.replays.slow_click",
+        extra={"tag": "input", "value": "test", "project_id": 1, "replay_id": "test-replay-id"},
+    )

@@ -217,13 +217,7 @@ def log_mutation_events(event_meta: ParsedEventMeta, project_id: int, replay_id:
 @traces.trace
 def log_option_events(event_meta: ParsedEventMeta, project_id: int, replay_id: str) -> None:
     for option in event_meta.options_events:
-        payload = option["data"].get("payload", {})
-        if isinstance(payload, dict):
-            log = payload.copy()
-        else:
-            # Clients can send a non-object payload (e.g. their own scrubbing replaced it with
-            # "[Filtered]"). Keep what arrived instead of dropping it; cap it since it's arbitrary.
-            log = {"payload": str(payload)[:256]}
+        log = option.payload.copy()
         log["project_id"] = project_id
         log["replay_id"] = replay_id
         logger.info("sentry.replays.slow_click", extra=log)
