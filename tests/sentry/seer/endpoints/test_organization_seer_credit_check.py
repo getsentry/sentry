@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_has_seer_credits_pb2 import (
-    HasSeerCreditsRequest,
-    HasSeerCreditsResponse,
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsRequest,
+    CheckSeerCreditsResponse,
 )
 
 from sentry.seer.credits import SEER_OPERATIONS, SeerOperation
@@ -22,7 +22,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
     @with_feature("organizations:seer-credit-checks")
     @patch(
         "sentry.quotas.backend.check_seer_credits",
-        return_value=HasSeerCreditsResponse(has_enough_credits=True),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
     )
     def test_get_returns_has_enough_credits_when_billing_has_credits(
         self, mock_check_seer_credits: MagicMock
@@ -31,7 +31,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
 
         assert response.data == {"hasEnoughCredits": True}
         mock_check_seer_credits.assert_called_once_with(
-            HasSeerCreditsRequest(
+            CheckSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
                 predicted_credit_usage=SEER_OPERATIONS[SeerOperation.AUTOFIX_ROOT_CAUSE].estimate(),
@@ -42,7 +42,7 @@ class OrganizationSeerCreditCheckTest(APITestCase):
     @with_feature("organizations:seer-credit-checks")
     @patch(
         "sentry.quotas.backend.check_seer_credits",
-        return_value=HasSeerCreditsResponse(has_enough_credits=False),
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
     )
     def test_get_returns_not_enough_credits_when_billing_has_no_credits(
         self, mock_check_seer_credits: MagicMock

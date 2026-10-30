@@ -4,8 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_has_seer_credits_pb2 import (
-    HasSeerCreditsRequest,
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsRequest,
 )
 
 from sentry import features, quotas
@@ -67,7 +67,7 @@ def can_run_seer_operation(organization: Organization, operation: SeerOperation)
 
     config = SEER_OPERATIONS[operation]
     response = quotas.backend.check_seer_credits(
-        HasSeerCreditsRequest(
+        CheckSeerCreditsRequest(
             organization_id=organization.id,
             feature_id=config.feature.value,
             predicted_credit_usage=config.estimate(),
