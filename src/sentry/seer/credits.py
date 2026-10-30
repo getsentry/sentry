@@ -60,21 +60,17 @@ SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
 }
 
 
-def estimate_credits(operation: SeerOperation) -> int:
-    """Estimated Seer credits needed to run the operation."""
-    return SEER_OPERATIONS[operation].estimate()
-
-
 def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
     """Whether the organization has enough Seer credits to run the operation."""
     if not features.has("organizations:seer-credit-checks", organization):
         return True
 
+    config = SEER_OPERATIONS[operation]
     response = quotas.backend.check_seer_credits(
         HasSeerCreditsRequest(
             organization_id=organization.id,
-            feature_id=SEER_OPERATIONS[operation].feature.value,
-            predicted_credit_usage=estimate_credits(operation),
+            feature_id=config.feature.value,
+            predicted_credit_usage=config.estimate(),
             take_lease=False,
         )
     )

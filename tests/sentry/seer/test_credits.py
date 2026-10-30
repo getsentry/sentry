@@ -7,15 +7,15 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_has_seer
     HasSeerCreditsResponse,
 )
 
-from sentry.seer.credits import SeerOperation, can_run_seer_operation, estimate_credits
+from sentry.seer.credits import SEER_OPERATIONS, SeerOperation, can_run_seer_operation
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
 
 class SeerCreditsTest(TestCase):
-    def test_estimate_credits_returns_estimate_for_every_operation(self) -> None:
+    def test_every_operation_has_a_credit_estimate(self) -> None:
         for operation in SeerOperation:
-            assert estimate_credits(operation) > 0
+            assert SEER_OPERATIONS[operation].estimate() > 0
 
     @patch(
         "sentry.quotas.backend.check_seer_credits",
@@ -40,7 +40,7 @@ class SeerCreditsTest(TestCase):
             HasSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
-                predicted_credit_usage=estimate_credits(SeerOperation.AUTOFIX_ROOT_CAUSE),
+                predicted_credit_usage=SEER_OPERATIONS[SeerOperation.AUTOFIX_ROOT_CAUSE].estimate(),
                 take_lease=False,
             )
         )
