@@ -30,6 +30,10 @@ describe('Exception Content', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sentry-app-components/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
     });
     MockApiClient.addMockResponse({
@@ -353,6 +357,10 @@ describe('Exception Content', () => {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
 
       const promptResponse = {
         dismissed_ts: undefined,
@@ -485,6 +493,10 @@ describe('Exception Content', () => {
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/sentry-app-components/',
+        body: [],
+      });
 
       const promptResponse = {
         dismissed_ts: undefined,

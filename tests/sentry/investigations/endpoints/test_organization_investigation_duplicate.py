@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from django.urls import reverse
 
-from sentry.investigations.models import (
-    InvestigationBlock,
-    InvestigationBlockExecutionStatus,
-    InvestigationBlockExecutor,
-    InvestigationOrchestrationRun,
+from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.notebooks.models import (
+    NotebookBlock,
+    NotebookBlockExecutionStatus,
+    NotebookBlockExecutor,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -21,39 +21,29 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
         self.login_as(self.user)
 
     def test_duplicate_copies_notebook_structure_without_collaboration_or_execution(self) -> None:
-        source = self.create_investigation(
+        source = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Original",
             filters={"environments": ["production"]},
         )
-        parameter = self.create_investigation_parameter(
-            investigation=source,
-            key="environment",
-            label="Environment",
-            type="string",
-            position=0,
-            saved_value="production",
-        )
-        first = self.create_investigation_block(
-            investigation=source,
+        first = self.create_notebook_block(
+            notebook=source,
             position=0,
             kind="text",
             content="Hypothesis",
         )
-        second = self.create_investigation_block(
-            investigation=source,
+        second = self.create_notebook_block(
+            notebook=source,
             position=1,
             kind="query",
             content="count errors",
             display={"type": "table"},
         )
-        self.create_investigation_block_parameter(block=second, parameter=parameter)
-        self.create_investigation_block_dependency(block=second, depends_on=first)
-        execution = self.create_investigation_block_execution(
+        execution = self.create_notebook_block_execution(
             block=second,
-            executor=InvestigationBlockExecutor.MANUAL,
-            status=InvestigationBlockExecutionStatus.COMPLETED,
+            executor=NotebookBlockExecutor.CODE_MODE,
+            status=NotebookBlockExecutionStatus.COMPLETED,
             block_version=1,
             input_fingerprint="b" * 64,
             result={"columns": ["count"], "rows": [[1]]},
@@ -65,8 +55,8 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             investigation=source, seer_run=seer_run, source={"type": "manual"}
         )
         first.update(
-            report_revision=1,
-            stable_agent_key="summary",
+            producer_revision=1,
+            producer_key="summary",
             producing_seer_run_id=seer_run.seer_run_state_id,
         )
         duplicate_url = reverse(
@@ -86,13 +76,11 @@ class OrganizationInvestigationsDuplicateTest(APITestCase):
             "Hypothesis",
             "count errors",
         ]
-        assert response.data["blocks"][1]["dependencies"] == [response.data["blocks"][0]["id"]]
-        assert response.data["blocks"][1]["parameterKeys"] == ["environment"]
         assert all(block["outputStatus"] == "notRun" for block in response.data["blocks"])
         assert not InvestigationOrchestrationRun.objects.filter(
             investigation_id=response.data["id"]
         ).exists()
-        copied_first = InvestigationBlock.objects.get(id=response.data["blocks"][0]["id"])
-        assert copied_first.report_revision is None
-        assert copied_first.stable_agent_key is None
+        copied_first = NotebookBlock.objects.get(id=response.data["blocks"][0]["id"])
+        assert copied_first.producer_revision is None
+        assert copied_first.producer_key is None
         assert copied_first.producing_seer_run_id is None

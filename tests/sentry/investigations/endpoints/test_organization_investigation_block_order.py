@@ -14,7 +14,7 @@ class InvestigationBlockOrderEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             created_by=self.user,
             title="Block tests",
@@ -31,9 +31,7 @@ class InvestigationBlockOrderEndpointTest(APITestCase):
 
     def test_drag_reorder_requires_exact_permutation(self) -> None:
         blocks = [
-            self.create_investigation_block(
-                investigation=self.investigation, position=position, kind="text"
-            )
+            self.create_notebook_block(notebook=self.investigation, position=position, kind="text")
             for position in range(3)
         ]
         url = self.order_url()
@@ -62,16 +60,12 @@ class InvestigationBlockOrderEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_drag_reorder_rejects_missing_deleted_and_foreign_blocks_without_changes(self) -> None:
-        first = self.create_investigation_block(
-            investigation=self.investigation, position=0, kind="text"
-        )
-        second = self.create_investigation_block(
-            investigation=self.investigation, position=1, kind="text"
-        )
-        foreign_investigation = self.create_investigation(
+        first = self.create_notebook_block(notebook=self.investigation, position=0, kind="text")
+        second = self.create_notebook_block(notebook=self.investigation, position=1, kind="text")
+        foreign_investigation = self.create_notebook(
             organization=self.organization, created_by=self.user, title="Foreign"
         )
-        foreign = self.create_investigation_block(investigation=foreign_investigation)
+        foreign = self.create_notebook_block(notebook=foreign_investigation)
         url = self.order_url()
 
         for block_ids in ([first.id], [first.id, foreign.id]):
@@ -101,12 +95,8 @@ class InvestigationBlockOrderEndpointTest(APITestCase):
         assert response.status_code == 400
 
     def test_sentry_app_cannot_reorder_blocks(self) -> None:
-        first = self.create_investigation_block(
-            investigation=self.investigation, position=0, kind="text"
-        )
-        second = self.create_investigation_block(
-            investigation=self.investigation, position=1, kind="text"
-        )
+        first = self.create_notebook_block(notebook=self.investigation, position=0, kind="text")
+        second = self.create_notebook_block(notebook=self.investigation, position=1, kind="text")
         sentry_app_user = self.create_user(is_sentry_app=True)
         self.create_member(
             organization=self.organization,

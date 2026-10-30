@@ -52,7 +52,7 @@ export function SentryMemberTeamSelectorField({
     <SelectField
       placeholder={placeholder}
       allowClear
-      onInputChange={(value: any) => {
+      onInputChange={value => {
         onMemberSearch(value);
         onTeamSearch(value);
       }}

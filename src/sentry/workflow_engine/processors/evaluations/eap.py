@@ -140,6 +140,7 @@ def _build_trace_item(
         received=timestamp,
         trace_id=trace_id,
         retention_days=EAP_RETENTION_DAYS,
+        downsampled_retention_days=0,  # Only store the full data, don't down-sample.
         # EAP persists scalars and primitive arrays, not nested protobuf key/value lists.
         attributes={
             key: anyvalue(
