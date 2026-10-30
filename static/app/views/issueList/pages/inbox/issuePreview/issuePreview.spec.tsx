@@ -746,15 +746,14 @@ describe('IssuePreview', () => {
       ).toBeInTheDocument();
     });
 
-    it('does not offer Retry PR on a single run', async () => {
+    it('offers Retry PR on a single run', async () => {
       mockFailedPullRequest('autofix_single_run');
 
       render(<IssuePreview groupId={group.id} />, {organization});
 
-      expect(await screen.findByText('Resolve')).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: 'Retry PR in org/repo'})
-      ).not.toBeInTheDocument();
+        await screen.findByRole('button', {name: 'Retry PR in org/repo'})
+      ).toBeInTheDocument();
     });
   });
 

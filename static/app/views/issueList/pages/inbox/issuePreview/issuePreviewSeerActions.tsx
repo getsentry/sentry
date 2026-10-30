@@ -27,7 +27,6 @@ import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesArtifact,
-  isSingleRunAutofix,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -292,7 +291,7 @@ function SeerActionButton({
     pullRequest => pullRequest.pr_creation_status === 'error'
   );
 
-  if (failedPullRequest && !isSingleRunAutofix(runState)) {
+  if (failedPullRequest) {
     return (
       <RunSeerActionButton
         action={() => autofix.createPR(runState.run_id, failedPullRequest.repo_name)}
