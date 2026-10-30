@@ -22,10 +22,15 @@ class ProjectKeyEndpoint(ProjectEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
         try:
-            kwargs["project_key"] = ProjectKey.objects.for_request(request).get(
+            project_key = ProjectKey.objects.for_request(request).get(
                 project=project, public_key=key_id, roles=F("roles").bitor(ProjectKey.roles.store)
             )
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
+
+        # The key was looked up by `project`, which already has its organization loaded.
+        # Reuse it so serializing the key's DSNs doesn't load both again.
+        project_key.set_cached_field_value("project", project)
+        kwargs["project_key"] = project_key
 
         return (args, kwargs)
