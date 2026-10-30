@@ -118,7 +118,9 @@ export function getFilterToken(
   const {tag, value} = globalFilter;
   let filterValue = value;
   if (value === '') {
-    filterValue = getInitialFilterText(tag.key, fieldDefinition);
+    filterValue = getInitialFilterText(tag.key, fieldDefinition, undefined, {
+      withNumericExampleValue: true,
+    });
   }
   const filterTokens = parseFilterValue(filterValue, globalFilter);
   return filterTokens[0] ?? null;

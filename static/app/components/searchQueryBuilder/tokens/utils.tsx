@@ -177,26 +177,52 @@ export function resolveFilterKey({
   return trimmedKey;
 }
 
+/**
+ * Number based filters start without a value so the user picks one, rather than
+ * filtering by a placeholder they didn't choose.
+ */
 export function getDefaultValueForValueType(valueType: FieldValueType | null): string {
   switch (valueType) {
     case FieldValueType.BOOLEAN:
       return 'true';
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.CURRENCY:
+    case FieldValueType.DURATION:
+    case FieldValueType.SIZE:
+    case FieldValueType.PERCENTAGE:
+      return '';
+    case FieldValueType.DATE:
+      return '-24h';
+    case FieldValueType.STRING:
+    default:
+      return '""';
+  }
+}
+
+/**
+ * Example values for number based filters, for callers that need a complete
+ * filter rather than one with an empty value.
+ */
+function getNumericExampleValue(fieldDefinition: FieldDefinition | null): string | null {
+  if (!fieldDefinition || defined(fieldDefinition.defaultValue)) {
+    return null;
+  }
+
+  switch (fieldDefinition.valueType) {
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
       return '100';
     case FieldValueType.CURRENCY:
       return '10';
-    case FieldValueType.DATE:
-      return '-24h';
     case FieldValueType.DURATION:
       return '10ms';
     case FieldValueType.SIZE:
       return '10bytes';
     case FieldValueType.PERCENTAGE:
       return '0.5';
-    case FieldValueType.STRING:
     default:
-      return '""';
+      return null;
   }
 }
 
@@ -250,12 +276,14 @@ function getInitialValueType(fieldDefinition: FieldDefinition | null) {
 export function getInitialFilterText(
   key: string,
   fieldDefinition: FieldDefinition | null,
-  operator: TermOperator = TermOperator.GREATER_THAN
+  operator: TermOperator = TermOperator.GREATER_THAN,
+  {withNumericExampleValue = false}: {withNumericExampleValue?: boolean} = {}
 ) {
-  const defaultValue = getDefaultFilterValue({fieldDefinition});
-
   const keyText = getInitialFilterKeyText(key, fieldDefinition);
   const valueType = getInitialValueType(fieldDefinition);
+  const defaultValue =
+    (withNumericExampleValue ? getNumericExampleValue(fieldDefinition) : null) ??
+    getDefaultFilterValue({fieldDefinition});
 
   // Array attributes filter by membership. `addArrayMembershipOperator` places
   // the `[*]` operator (inside the bracket for the tag form, trailing for the

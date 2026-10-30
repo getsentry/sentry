@@ -710,7 +710,7 @@ describe('ConversationsOverviewPage', () => {
     );
     expect(
       await screen.findByRole('row', {
-        name: 'conversation.generationDuration:>10ms',
+        name: 'conversation.generationDuration:>',
       })
     ).toBeInTheDocument();
   });

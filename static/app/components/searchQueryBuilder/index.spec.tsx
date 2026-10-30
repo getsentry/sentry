@@ -1723,11 +1723,11 @@ describe('SearchQueryBuilder', () => {
     });
 
     it.each([
-      ['>', 'timesSeen:>100'],
-      ['<', 'timesSeen:<100'],
-      ['=', 'timesSeen:=100'],
+      ['>', 'timesSeen:>'],
+      ['<', 'timesSeen:<'],
+      ['=', 'timesSeen:='],
     ])(
-      'adds default value for numeric filter when typing <filter>%s',
+      'creates an empty numeric filter when typing <filter>%s',
       async (operator, expectedQuery) => {
         render(<SearchQueryBuilder {...defaultProps} />, {
           organization: numberOperatorConversionOrganization,
@@ -1749,7 +1749,7 @@ describe('SearchQueryBuilder', () => {
       expect(getLastInput()).toHaveValue('timesSeen>');
     });
 
-    it('adds default value for numeric tag filters from filter key metadata', async () => {
+    it('creates empty numeric tag filters from filter key metadata', async () => {
       render(<SearchQueryBuilder {...defaultProps} />, {
         organization: numberOperatorConversionOrganization,
       });
@@ -1759,7 +1759,7 @@ describe('SearchQueryBuilder', () => {
       await userEvent.keyboard('{Escape}');
 
       expect(
-        await screen.findByRole('row', {name: 'tags[bar,number]:>100'})
+        await screen.findByRole('row', {name: 'tags[bar,number]:>'})
       ).toBeInTheDocument();
     });
 
@@ -2037,7 +2037,7 @@ describe('SearchQueryBuilder', () => {
 
     it.each([
       ['!has:', '!has:""'],
-      ['!timesSeen:', '!timesSeen:100'],
+      ['!timesSeen:', '!timesSeen:'],
     ])('uses the filter key definition when typing %s', async (typed, filter) => {
       render(<SearchQueryBuilder {...defaultProps} />);
       await userEvent.click(getLastInput());
@@ -5224,12 +5224,15 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('numeric', () => {
-      it('new numeric filters start with a value', async () => {
+      it('new numeric filters start with greater than operator and no value', async () => {
         render(<SearchQueryBuilder {...defaultProps} />);
         await userEvent.click(getLastInput());
         await userEvent.keyboard('time{ArrowDown}{Enter}');
 
-        // Should start with the > operator and a value of 100
+        expect(await screen.findByRole('row', {name: 'timesSeen:>'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue('');
+
+        await userEvent.keyboard('100{Enter}');
         expect(
           await screen.findByRole('row', {name: 'timesSeen:>100'})
         ).toBeInTheDocument();
@@ -5324,15 +5327,12 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new duration filters start with greater than operator and default value', async () => {
+      it('new duration filters start with greater than operator and no value', async () => {
         render(<SearchQueryBuilder {...durationProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
-        // Should start with the > operator and a value of 10ms
-        expect(
-          await screen.findByRole('row', {name: 'duration:>10ms'})
-        ).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'duration:>'})).toBeInTheDocument();
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5475,15 +5475,12 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new size filters start with greater than operator and default value', async () => {
+      it('new size filters start with greater than operator and no value', async () => {
         render(<SearchQueryBuilder {...sizeProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
-        // Should start with the > operator and a value of 10bytes
-        expect(
-          await screen.findByRole('row', {name: 'size:>10bytes'})
-        ).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'size:>'})).toBeInTheDocument();
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5624,13 +5621,12 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new percentage filters start with greater than operator and default value', async () => {
+      it('new percentage filters start with greater than operator and no value', async () => {
         render(<SearchQueryBuilder {...percentageProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
-        // Should start with the > operator and a value of 50%
-        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'rate:>'})).toBeInTheDocument();
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -5746,13 +5742,12 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new currency filters start with greater than operator and default value', async () => {
+      it('new currency filters start with greater than operator and no value', async () => {
         render(<SearchQueryBuilder {...currencyProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'cost'}));
 
-        // Should start with the > operator and a value of 10
-        expect(await screen.findByRole('row', {name: 'cost:>10'})).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'cost:>'})).toBeInTheDocument();
       });
 
       it('pre-fills input with current value when editing', async () => {
@@ -6303,14 +6298,14 @@ describe('SearchQueryBuilder', () => {
         filterKeySections: [],
       };
 
-      it('can add an aggregate filter with default values', async () => {
+      it('can add an aggregate filter with default parameters', async () => {
         render(<SearchQueryBuilder {...aggregateDefaultProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
 
         expect(
           await screen.findByRole('row', {
-            name: 'count_if(transaction.duration,greater,300ms):>100',
+            name: 'count_if(transaction.duration,greater,300ms):>',
           })
         ).toBeInTheDocument();
       });
@@ -6401,7 +6396,7 @@ describe('SearchQueryBuilder', () => {
         ).toBeInTheDocument();
       });
 
-      it('automatically changes the filter value if the type changes after editing parameters', async () => {
+      it('clears the filter value if the type changes after editing parameters', async () => {
         render(
           <SearchQueryBuilder
             {...aggregateDefaultProps}
@@ -6418,10 +6413,9 @@ describe('SearchQueryBuilder', () => {
         await userEvent.clear(input);
         await userEvent.keyboard('timesSeen{enter}');
 
-        // After selecting timesSeen, the value should change to a number
         expect(
           await screen.findByRole('row', {
-            name: 'p95(timesSeen):>100',
+            name: 'p95(timesSeen):>',
           })
         ).toBeInTheDocument();
       });
@@ -6464,7 +6458,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count');
         await userEvent.click(screen.getByRole('option', {name: 'count()'}));
-        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('count():>')).toBeInTheDocument();
 
         expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
@@ -6474,7 +6468,7 @@ describe('SearchQueryBuilder', () => {
 
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count(');
-        expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
+        expect(screen.getByLabelText('count():>')).toBeInTheDocument();
 
         expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
       });
@@ -6507,7 +6501,7 @@ describe('SearchQueryBuilder', () => {
         await userEvent.click(getLastInput());
         await userEvent.keyboard('count_if(');
         expect(
-          screen.getByLabelText('count_if(transaction.duration,greater,300ms):>100')
+          screen.getByLabelText('count_if(transaction.duration,greater,300ms):>')
         ).toBeInTheDocument();
         expect(screen.getByLabelText('Edit function parameters')).toHaveFocus();
         await userEvent.keyboard('transaction');
@@ -7232,9 +7226,7 @@ describe('SearchQueryBuilder', () => {
       expect(
         screen.getByRole('button', {name: 'Edit key for filter: tags[bar,number]'})
       ).toHaveTextContent('bar');
-      expect(
-        screen.getByRole('row', {name: 'tags[bar,number]:>100'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('row', {name: 'tags[bar,number]:>'})).toBeInTheDocument();
     });
 
     it('does not replace string key with suggestion when typing comparison operator', async () => {
@@ -9306,7 +9298,7 @@ describe('SearchQueryBuilder', () => {
       );
 
       expect(
-        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>100'})
+        await screen.findByRole('row', {name: 'app.vitals.start.warm.value:>'})
       ).toBeInTheDocument();
     });
 

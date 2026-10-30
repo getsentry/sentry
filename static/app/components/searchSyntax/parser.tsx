@@ -331,6 +331,25 @@ type FilterMap = {
 
 type TextFilter = FilterMap[FilterType.TEXT];
 type InFilter = FilterMap[FilterType.TEXT_IN] | FilterMap[FilterType.NUMERIC_IN];
+
+/**
+ * Filter types whose value can be left empty after a comparison operator,
+ * such as `span.duration:>`.
+ */
+const COMPARISON_FILTER_TYPES = new Set<FilterType>([
+  FilterType.NUMERIC,
+  FilterType.DURATION,
+  FilterType.SIZE,
+  FilterType.AGGREGATE_NUMERIC,
+  FilterType.AGGREGATE_DURATION,
+  FilterType.AGGREGATE_SIZE,
+  FilterType.AGGREGATE_PERCENTAGE,
+]);
+type ComparisonFilterValue = FilterMap[
+  | FilterType.NUMERIC
+  | FilterType.DURATION
+  | FilterType.SIZE
+  | FilterType.AGGREGATE_PERCENTAGE]['value'];
 type AggregateFilterType =
   | FilterMap[FilterType.AGGREGATE_DATE]
   | FilterMap[FilterType.AGGREGATE_DURATION]
@@ -678,7 +697,7 @@ export class TokenConverter {
 
     type: Token.VALUE_DURATION as const,
     value,
-    parsed: this.config.parse ? parseDuration(value, unit) : undefined,
+    parsed: this.config.parse && value !== '' ? parseDuration(value, unit) : undefined,
     unit,
   });
 
@@ -711,7 +730,7 @@ export class TokenConverter {
     value,
     // units are case insensitive, normalize them in their parsed representation
     // so that we dont have to compare all possible permutations.
-    parsed: this.config.parse ? parseSize(value, unit) : undefined,
+    parsed: this.config.parse && value !== '' ? parseSize(value, unit) : undefined,
     unit,
   });
 
@@ -719,7 +738,7 @@ export class TokenConverter {
     ...this.defaultTokenFields,
     type: Token.VALUE_PERCENTAGE as const,
     value,
-    parsed: this.config.parse ? parsePercentage(value) : undefined,
+    parsed: this.config.parse && value !== '' ? parsePercentage(value) : undefined,
   });
 
   tokenValueBoolean = (value: string) => ({
@@ -735,7 +754,7 @@ export class TokenConverter {
       type: Token.VALUE_NUMBER as const,
       value,
       unit,
-      parsed: this.config.parse ? parseNumber(value, unit) : undefined,
+      parsed: this.config.parse && value !== '' ? parseNumber(value, unit) : undefined,
     };
   };
 
@@ -972,6 +991,16 @@ export class TokenConverter {
 
     if ([FilterType.TEXT_IN, FilterType.NUMERIC_IN].includes(filter)) {
       return this.checkInvalidInFilter(value as InFilter['value']);
+    }
+
+    if (
+      COMPARISON_FILTER_TYPES.has(filter) &&
+      (value as ComparisonFilterValue).value === ''
+    ) {
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
     }
 
     if ('name' in key) {

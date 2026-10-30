@@ -183,7 +183,9 @@ export function AddFilter({
                       if (valueType && !IGNORE_DEFAULT_VALUES.includes(valueType)) {
                         defaultFilterValue = getInitialFilterText(
                           selectedFilterKey.key,
-                          fieldDefinition
+                          fieldDefinition,
+                          undefined,
+                          {withNumericExampleValue: true}
                         );
                       }
 

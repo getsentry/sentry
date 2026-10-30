@@ -649,7 +649,7 @@ describe('SpansTabContent', () => {
 
       const input = screen.getByRole('combobox');
       await userEvent.click(input);
-      await userEvent.type(input, 'span.duration:>10ms{enter}');
+      await userEvent.type(input, 'span.duration:10ms{enter}');
 
       // re-open the combobox
       await userEvent.click(input);
