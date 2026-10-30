@@ -158,6 +158,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^api/0/sentry-app-installations/[^/]+/service-hook-projects/$'),
   new RegExp('^api/0/auth/oauth/device/$'),
   new RegExp('^api/0/auth/oauth/device/context/$'),
+  new RegExp('^api/0/auth/oauth/setup-code/$'),
   new RegExp('^api/0/auth/oauth/authorize/$'),
   new RegExp('^api/0/auth/oauth/authorize/context/$'),
   new RegExp('^api/0/auth/$'),
