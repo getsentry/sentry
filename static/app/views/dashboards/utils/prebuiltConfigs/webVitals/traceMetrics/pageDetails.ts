@@ -13,8 +13,11 @@ import {
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
 
-// Sample rows need trace, replay and profile ids that the metrics do not carry,
-// and interactions are not a metric, so these widgets keep querying spans.
+// TODO: Move these to trace metrics once the metrics can back them. The samples
+// tables need `replay.id` and `profile.id` on the rows, which Relay does not
+// copy onto the web vital metrics yet (trace and span ids already are). The
+// interactions chart counts interaction spans; there is no interaction metric,
+// and the INP metric only covers interactions that reported INP.
 const SPANS_WIDGET_IDS = new Set([
   'lcp-samples-table',
   'inp-samples-table',

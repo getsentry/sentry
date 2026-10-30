@@ -17,9 +17,9 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
 
-// The total performance score and the opportunity score need the
-// `performance_score` and `opportunity_score` formulas, which only the spans
-// dataset has, so the pages table keeps querying spans.
+// TODO: Move the pages table to trace metrics once the dataset has the total
+// `performance_score` and `opportunity_score` formulas (#128922). Its p75 and
+// count columns already map to plain aggregates over `browser.web_vital.*`.
 const SPANS_PAGES_TABLE = WEB_VITALS_PREBUILT_CONFIG.widgets.find(
   widget => widget.id === 'pages-table'
 )!;
