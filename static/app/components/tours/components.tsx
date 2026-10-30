@@ -112,14 +112,11 @@ export function TourContextProvider<T extends TourEnumType>({
   // Set when the user steps through a subtle tour from a focused guide, so the
   // next guide can take focus over.
   const focusHandoffRef = useRef(false);
-  const variantTourContextValue = useMemo(
-    () => ({
-      ...tourContextValue,
-      variant,
-      focusHandoffRef: variant === 'subtle' ? focusHandoffRef : undefined,
-    }),
-    [tourContextValue, variant]
-  );
+  const variantTourContextValue = {
+    ...tourContextValue,
+    variant,
+    focusHandoffRef: variant === 'subtle' ? focusHandoffRef : undefined,
+  };
 
   useEffect(() => {
     if (!isTourActive) {
@@ -312,55 +309,42 @@ export function TourElementContent<T extends TourEnumType>({
     }
   }, [isOpen, id, organization, tourKey, stepCount]);
 
-  const defaultActions = useMemo(() => {
-    // Keyboard users keep their place when the step changes under them.
-    const withFocusHandoff = (changeStep: () => void) => (event: React.MouseEvent) => {
-      if (focusHandoffRef && event.currentTarget === document.activeElement) {
-        focusHandoffRef.current = true;
-      }
-      changeStep();
-    };
-    return (
-      <Grid flow="column" align="center" gap="md">
-        {hasPreviousStep && (
-          <TextTourAction size="xs" onClick={withFocusHandoff(previousStep)}>
-            {t('Previous')}
-          </TextTourAction>
-        )}
-        {hasNextStep ? (
-          <TourAction size="xs" onClick={withFocusHandoff(nextStep)}>
-            {t('Next')}
-          </TourAction>
-        ) : (
-          <TourAction
-            size="xs"
-            onClick={() => {
-              endTour();
-              trackAnalytics('tour-guide.finish', {
-                organization,
-                id: id.toString(),
-                step_count: stepCount,
-                tour_key: tourKey,
-              });
-            }}
-          >
-            {t('Done')}
-          </TourAction>
-        )}
-      </Grid>
-    );
-  }, [
-    focusHandoffRef,
-    hasPreviousStep,
-    hasNextStep,
-    previousStep,
-    nextStep,
-    endTour,
-    organization,
-    id,
-    stepCount,
-    tourKey,
-  ]);
+  // Keyboard users keep their place when the step changes under them.
+  const withFocusHandoff = (changeStep: () => void) => (event: React.MouseEvent) => {
+    if (focusHandoffRef && event.currentTarget === document.activeElement) {
+      focusHandoffRef.current = true;
+    }
+    changeStep();
+  };
+  const defaultActions = (
+    <Grid flow="column" align="center" gap="md">
+      {hasPreviousStep && (
+        <TextTourAction size="xs" onClick={withFocusHandoff(previousStep)}>
+          {t('Previous')}
+        </TextTourAction>
+      )}
+      {hasNextStep ? (
+        <TourAction size="xs" onClick={withFocusHandoff(nextStep)}>
+          {t('Next')}
+        </TourAction>
+      ) : (
+        <TourAction
+          size="xs"
+          onClick={() => {
+            endTour();
+            trackAnalytics('tour-guide.finish', {
+              organization,
+              id: id.toString(),
+              step_count: stepCount,
+              tour_key: tourKey,
+            });
+          }}
+        >
+          {t('Done')}
+        </TourAction>
+      )}
+    </Grid>
+  );
 
   const dismiss = () => {
     if (tourKey) {
