@@ -694,8 +694,8 @@ importers:
         specifier: 3.0.7
         version: 3.0.7
       jsonrepair:
-        specifier: ^3.14.0
-        version: 3.14.0
+        specifier: ^3.15.0
+        version: 3.15.0
       lodash:
         specifier: ^4.18.1
         version: 4.18.1
@@ -7231,8 +7231,8 @@ packages:
     engines: {node: '>=18.0.0'}
     hasBin: true
 
-  jsonrepair@3.14.0:
-    resolution: {integrity: sha512-tWPGKMZf/8UPim+fcW2EfcQ/d/7aKUrP6IECz9G3Tu6Q5dX0orSleqJ9z6sSw7qrQkjF8/Edo4DvsWBZ8H+HNg==}
+  jsonrepair@3.15.0:
+    resolution: {integrity: sha512-wy8OTjwsJwQRnQJkKnMJJ9vcytRdBPAgIF/Hy6+s1dAj42BHMKiyL8JzEieIl3JY7idt8eyHwBWTO8mh/+mtwA==}
     hasBin: true
 
   jsx-ast-utils@3.3.5:
@@ -12184,7 +12184,7 @@ snapshots:
   '@tanstack/pacer@0.21.1':
     dependencies:
       '@tanstack/devtools-event-client': 0.4.3
-      '@tanstack/store': 0.11.0
+      '@tanstack/store': 0.11.2
 
   '@tanstack/query-async-storage-persister@5.101.4':
     dependencies:
@@ -15302,7 +15302,7 @@ snapshots:
       '@jsep-plugin/regex': 1.0.4(jsep@1.4.0)
       jsep: 1.4.0
 
-  jsonrepair@3.14.0: {}
+  jsonrepair@3.15.0: {}
 
   jsx-ast-utils@3.3.5:
     dependencies:
