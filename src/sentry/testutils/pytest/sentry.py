@@ -467,6 +467,42 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
         del TaskNamespace._original_send_task
 
 
+# DEBUG (do not merge): instrumentation for the test_slug_concurrency flake.
+# Records the tests this worker ran, and prints them when the flake happens.
+_debug_test_history: list[str] = []
+
+
+def pytest_runtest_logstart(nodeid: str, location: tuple[str, int | None, str]) -> None:
+    from sentry.testutils import hybrid_cloud
+
+    _debug_test_history.append(nodeid)
+    hybrid_cloud.debug_current_test[0] = nodeid
+
+
+@pytest.hookimpl(wrapper=True)
+def pytest_runtest_makereport(item: pytest.Item, call: pytest.CallInfo[None]) -> Any:
+    report = yield
+    if (
+        report.failed
+        and call.excinfo is not None
+        and "drain_shard should only be called" in str(call.excinfo.value)
+    ):
+        files = list(dict.fromkeys(nodeid.split("::")[0] for nodeid in _debug_test_history))
+        report.sections.append(
+            (
+                f"slug flake debug: files this worker ran, in order ({os.environ.get('PYTEST_XDIST_WORKER')})",
+                "\n".join(files),
+            )
+        )
+        report.sections.append(
+            (
+                "slug flake debug: last 50 tests this worker ran",
+                "\n".join(_debug_test_history[-50:]),
+            )
+        )
+    return report
+
+
 def pytest_runtest_setup(item: pytest.Item) -> None:
     if item.config.getvalue("nomigrations") and any(
         mark for mark in item.iter_markers(name="migrations")

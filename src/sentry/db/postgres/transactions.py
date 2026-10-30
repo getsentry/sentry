@@ -99,9 +99,11 @@ def in_test_assert_no_transaction(msg: str) -> None:
     from sentry.testutils import hybrid_cloud  # NOQA:S007
 
     for conn in connections.all():
-        assert not hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
+        if hybrid_cloud.simulated_transaction_watermarks.connection_transaction_depth_above_watermark(
             connection=conn
-        ), msg
+        ):
+            # DEBUG (do not merge): add the slug flake report to the message.
+            raise AssertionError(f"{msg}\n{hybrid_cloud.debug_failure_report()}")
 
 
 @contextlib.contextmanager
