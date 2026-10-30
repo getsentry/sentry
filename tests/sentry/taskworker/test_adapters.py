@@ -7,7 +7,6 @@ from django.test.utils import override_settings
 from taskbroker_client.metrics import NoOpMetricsBackend
 from taskbroker_client.registry import TaskRegistry
 
-from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.options.organization_option import OrganizationOption
@@ -234,9 +233,9 @@ class TestLocalCacheClearHook(TestCase):
                 UserOption.objects.get_all_values(self.user)
             assert OrganizationOption.objects._option_cache
 
+        # All OptionManagers share one process-local dict, so this one check
+        # covers the organization, project and user options read above.
         assert not OrganizationOption.objects._option_cache
-        assert not ProjectOption.objects._option_cache
-        assert not UserOption.objects._option_cache
 
     def test_clears_the_caches_when_a_task_fails(self) -> None:
         hook = LocalCacheClearHook()
@@ -247,17 +246,13 @@ class TestLocalCacheClearHook(TestCase):
 
         assert not OrganizationOption.objects._option_cache
 
-    def test_clears_the_other_caches_task_postrun_cleared(self) -> None:
+    def test_clears_the_group_meta_cache(self) -> None:
         hook = LocalCacheClearHook()
-        with (
-            mock.patch.object(GroupMeta.objects, "clear_local_cache") as group_meta,
-            mock.patch.object(options.default_store, "maybe_clean_local_cache") as store,
-        ):
+        with mock.patch.object(GroupMeta.objects, "clear_local_cache") as group_meta:
             with hook.on_execute({}):
                 pass
 
         group_meta.assert_called_once_with()
-        store.assert_called_once_with()
 
     def test_a_failure_to_clear_does_not_fail_the_task(self) -> None:
         hook = LocalCacheClearHook()

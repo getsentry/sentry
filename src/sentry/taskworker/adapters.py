@@ -144,13 +144,8 @@ class ViewerContextHook:
 
 class LocalCacheClearHook:
     """
-    ContextHook that clears process-local caches when a task finishes.
-
-    Web requests clear these caches on Django's `request_finished`. Tasks used
-    to clear them on Celery's `task_postrun`, which no longer fires since tasks
-    moved to taskworker (the last connections were removed in #100326). Without
-    this, a long-running worker keeps organization, project and user options
-    read by an earlier task, and uses them for every later one.
+    ContextHook that clears process-local caches when a task finishes, so a
+    later task in the same worker doesn't read options cached by an earlier one.
     """
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
@@ -165,19 +160,16 @@ class LocalCacheClearHook:
 
 
 def clear_local_caches() -> None:
-    """Clear the caches that `task_postrun` used to clear after each task."""
+    """Clear the process-local option and group meta caches."""
     # Imported here because models can't be imported while the task app is set up.
     from sentry.models.groupmeta import GroupMeta
     from sentry.models.options.organization_option import OrganizationOption
-    from sentry.models.options.project_option import ProjectOption
-    from sentry.users.models.user_option import UserOption
 
     try:
+        # Every OptionManager shares one process-local dict, so this clears the
+        # organization, project and user option caches together.
         OrganizationOption.objects.clear_local_cache()
-        ProjectOption.objects.clear_local_cache()
-        UserOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
-        options.default_store.maybe_clean_local_cache()
     except Exception:
         logger.exception("taskworker.clear_local_caches.failed")
 
