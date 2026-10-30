@@ -18,25 +18,25 @@ class SeerCreditsTest(TestCase):
             assert estimate_credits(operation) > 0
 
     @patch(
-        "sentry.quotas.backend.has_seer_credits",
+        "sentry.quotas.backend.check_seer_credits",
         return_value=HasSeerCreditsResponse(has_enough_credits=False),
     )
     def test_can_run_seer_operation_skips_billing_when_credit_checks_disabled(
-        self, mock_has_seer_credits: MagicMock
+        self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
-        mock_has_seer_credits.assert_not_called()
+        mock_check_seer_credits.assert_not_called()
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.has_seer_credits",
+        "sentry.quotas.backend.check_seer_credits",
         return_value=HasSeerCreditsResponse(has_enough_credits=False),
     )
     def test_can_run_seer_operation_returns_false_when_billing_has_no_credits(
-        self, mock_has_seer_credits: MagicMock
+        self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert not can_run_seer_operation(self.organization, SeerOperation.AUTOFIX_ROOT_CAUSE)
-        mock_has_seer_credits.assert_called_once_with(
+        mock_check_seer_credits.assert_called_once_with(
             HasSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
@@ -47,10 +47,10 @@ class SeerCreditsTest(TestCase):
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.has_seer_credits",
+        "sentry.quotas.backend.check_seer_credits",
         return_value=HasSeerCreditsResponse(has_enough_credits=True),
     )
     def test_can_run_seer_operation_returns_true_when_billing_has_credits(
-        self, mock_has_seer_credits: MagicMock
+        self, mock_check_seer_credits: MagicMock
     ) -> None:
         assert can_run_seer_operation(self.organization, SeerOperation.AGENT_CHAT_MESSAGE)

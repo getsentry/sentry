@@ -70,7 +70,7 @@ def can_run_seer_operation(organization: Organization, operation: SeerOperation)
     if not features.has("organizations:seer-credit-checks", organization):
         return True
 
-    response = quotas.backend.has_seer_credits(
+    response = quotas.backend.check_seer_credits(
         HasSeerCreditsRequest(
             organization_id=organization.id,
             feature_id=SEER_OPERATIONS[operation].feature.value,

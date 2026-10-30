@@ -747,7 +747,7 @@ class Quota(Service):
         """
         return True
 
-    def has_seer_credits(self, request: HasSeerCreditsRequest) -> HasSeerCreditsResponse:
+    def check_seer_credits(self, request: HasSeerCreditsRequest) -> HasSeerCreditsResponse:
         """
         Checks if the organization has enough Seer credits for the predicted usage.
         """

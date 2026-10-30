@@ -21,16 +21,16 @@ class OrganizationSeerCreditCheckTest(APITestCase):
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.has_seer_credits",
+        "sentry.quotas.backend.check_seer_credits",
         return_value=HasSeerCreditsResponse(has_enough_credits=True),
     )
     def test_get_returns_has_enough_credits_when_billing_has_credits(
-        self, mock_has_seer_credits: MagicMock
+        self, mock_check_seer_credits: MagicMock
     ) -> None:
         response = self.get_success_response(self.organization.slug, operation="autofix_root_cause")
 
         assert response.data == {"hasEnoughCredits": True}
-        mock_has_seer_credits.assert_called_once_with(
+        mock_check_seer_credits.assert_called_once_with(
             HasSeerCreditsRequest(
                 organization_id=self.organization.id,
                 feature_id="autofix",
@@ -41,16 +41,16 @@ class OrganizationSeerCreditCheckTest(APITestCase):
 
     @with_feature("organizations:seer-credit-checks")
     @patch(
-        "sentry.quotas.backend.has_seer_credits",
+        "sentry.quotas.backend.check_seer_credits",
         return_value=HasSeerCreditsResponse(has_enough_credits=False),
     )
     def test_get_returns_not_enough_credits_when_billing_has_no_credits(
-        self, mock_has_seer_credits: MagicMock
+        self, mock_check_seer_credits: MagicMock
     ) -> None:
         response = self.get_success_response(self.organization.slug, operation="agent_chat_message")
 
         assert response.data == {"hasEnoughCredits": False}
-        assert mock_has_seer_credits.call_args.args[0].feature_id == "explorer"
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "explorer"
 
     def test_get_returns_has_enough_credits_when_credit_checks_disabled(self) -> None:
         response = self.get_success_response(self.organization.slug, operation="autofix_solution")
