@@ -30,7 +30,7 @@ from sentry.workflow_engine.models import DataPacket, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    APIGate,
+    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -274,9 +274,12 @@ class SourcemapConfigurationType(GroupType):
 
 @detector_settings_registry.register(DetectorType.SOURCEMAP_CONFIGURATION)
 class SourcemapConfigurationDetectorSettings(DetectorSettings):
-    type_visibility: ClassVar[APIGate] = FeatureGate(
-        "organizations:issue-sourcemap-configuration-visible"
-    )
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: FeatureGate(
+            "organizations:issue-sourcemap-configuration-visible"
+        ),
+    }
     handler = SourcemapDetectorHandler
 
 

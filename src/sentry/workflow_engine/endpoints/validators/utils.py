@@ -21,8 +21,9 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
-from sentry.workflow_engine.registry import detector_settings_registry, get_visible_detector_types
+from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorId, DetectorType, WorkflowId
 
 logger = logging.getLogger(__name__)

@@ -464,14 +464,13 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field              | Purpose                                                                                   |
-| ------------------ | ----------------------------------------------------------------------------------------- |
-| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default    |
-| `type_visibility`  | `bool` or `FeatureGate` for type discovery and suggested API choices; defaults to `False` |
-| `handler`          | Runtime `DetectorHandler` class                                                           |
-| `validator`        | Native detector API validator                                                             |
-| `config_schema`    | Save-time JSON schema for `Detector.config`                                               |
-| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                   |
+| Field              | Purpose                                                                                               |
+| ------------------ | ----------------------------------------------------------------------------------------------------- |
+| `api_availability` | Operation-to-`bool`/`FeatureGate` overrides; `DISCOVER` defaults to `False`, row operations to `True` |
+| `handler`          | Runtime `DetectorHandler` class                                                                       |
+| `validator`        | Native detector API validator                                                                         |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                                           |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                               |
 
 New handlers should provide a configuration schema. Legacy implementations can set
 `config_schema=None` when validation belongs to their existing pipeline. The detector
@@ -479,25 +478,34 @@ type must still belong to the enum and have registered settings. A settings regi
 can omit a handler or validator; it does not move execution into Workflow Engine or
 make the detector available for API creation.
 
-Set `type_visibility=True` to expose a type in discovery, or use a registered
-`FeatureGate` for a rollout. The discovery endpoint also requires a handler. Validation
-error suggestions use the same visibility setting but require a validator instead.
-Visibility does not restrict requests explicitly naming a type, or access to existing
-detector rows. Use `api_availability` for those restrictions.
+Set `api_availability[DetectorAPIOperation.DISCOVER]` to `True` to advertise a type,
+or use a registered `FeatureGate` for a rollout. The discovery endpoint also requires
+a handler and `GET` availability. Validation error suggestions use the `DISCOVER` gate
+and require a validator. `DISCOVER` does not restrict requests explicitly naming a type,
+or access to detector rows; those operations have their own gates.
 
 Only implementations provisioned by the default-detector path need a label in
 `DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../defaults/detectors.py).
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
-`api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`
-member to `True`, so ordinary detector implementations need no availability declaration.
-Missing entries in custom maps still default to `True`. The supported enum members are
-`LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+`api_availability`. This shared mapping is immutable. `DISCOVER` defaults to `False`;
+`LIST`, `GET`, `POST`, `PUT`, and `DELETE` default to `True`. Missing entries in custom
+maps inherit these defaults. Listing rows requires both `GET` and `LIST`; discovering
+types requires both `GET` and `DISCOVER`.
 
 Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
 `FeatureGate` checks a registered organization-scoped feature at request time using the
-authorized organization and actor. Feature names remain strings, but raw strings are not
-valid gate values.
+authorized organization and actor. `DISCOVER` uses organization visibility without an
+actor. Feature names remain strings, but raw strings are not valid gate values.
+
+To advertise a type behind a feature flag while allowing access to its rows:
+
+```python
+api_availability = {
+    **DetectorSettings.DEFAULT_API_AVAILABILITY,
+    DetectorAPIOperation.DISCOVER: FeatureGate("organizations:example-detector-visible"),
+}
+```
 
 To hide a type from the list and its counts without disabling other operations:
 
