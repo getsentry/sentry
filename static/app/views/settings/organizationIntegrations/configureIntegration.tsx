@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, lazy, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {IconArrow} from '@sentry/icons/arrow';
@@ -21,6 +21,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -59,6 +60,12 @@ import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings
 import {IntegrationExternalUserMappings} from './integrationExternalUserMappings';
 import {IntegrationIcon} from './integrationIcon';
 import {IntegrationServerlessFunctions} from './integrationServerlessFunctions';
+
+const LazyVercelIntegrationForm = lazy(() =>
+  import('./vercelIntegrationForm').then(module => ({
+    default: module.VercelIntegrationForm,
+  }))
+);
 
 type Tab = 'settings' | 'codeMappings' | 'userMappings' | 'teamMappings';
 
@@ -189,6 +196,12 @@ function IntegrationMainTab({
   const instructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
   const externalUrl = getIntegrationExternalUrl(integration);
+  const hasVercelProjectMappings =
+    provider.key === 'vercel' &&
+    integration.configOrganization?.some(field => field.name === 'project_mappings');
+  const hasSettings =
+    !hasVercelProjectMappings &&
+    (externalUrl || (integration.configOrganization?.length ?? 0) > 0);
 
   const integrationEndpoint = getApiUrl(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
@@ -285,7 +298,16 @@ function IntegrationMainTab({
         />
       )}
 
-      {(externalUrl || (integration.configOrganization?.length ?? 0) > 0) && (
+      {hasVercelProjectMappings && (
+        <LazyLoad
+          key={integration.id}
+          LazyComponent={LazyVercelIntegrationForm}
+          integration={integration}
+          mutationOptions={integrationMutationOptions}
+        />
+      )}
+
+      {hasSettings && (
         <FieldGroup
           title={
             integration.provider.aspects.configure_integration?.title ||
