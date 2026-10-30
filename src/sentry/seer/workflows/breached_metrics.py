@@ -153,6 +153,8 @@ class BreachedMetricWorkflow(SeerWorkflow):
                 return
             if existing != selected:
                 self._replace_monitor_connections(config, workflow, existing, selected)
+            # TODO(telkins): Propagate the derived projects to the automation's dedicated
+            # service account in a separate step.
 
             config.version += 1
             config.save(update_fields=["backing_workflow", "version", "date_updated"])
