@@ -516,10 +516,10 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 # Starting Chrome for every test costs the launch, and each test then loads the
 # app bundle into a cold cache. One Chrome per worker, reset between tests,
 # keeps the cache warm.
-_reusable_chrome: dict[str, WebDriver] = {}
+_reusable_chrome: dict[str, webdriver.Chrome] = {}
 
 
-def _reset_chrome(driver: WebDriver, origin: str) -> bool:
+def _reset_chrome(driver: webdriver.Chrome, origin: str) -> bool:
     """Clears what a test can leave behind. Returns False if Chrome is unusable."""
     try:
         try:
@@ -552,11 +552,8 @@ def browser(request, live_server):
     driver_type = request.config.getoption("selenium_driver")
     driver: WebDriver
     if driver_type == "chrome":
-        driver = (
-            _reusable_chrome.pop("driver", None)
-            or _take_prelaunched_chrome()
-            or _launch_chrome(request.config)
-        )
+        reused = _reusable_chrome.pop("driver", None)
+        driver = reused or _take_prelaunched_chrome() or _launch_chrome(request.config)
     elif driver_type == "firefox":
         driver = webdriver.Firefox()
     else:
@@ -591,7 +588,7 @@ def browser(request, live_server):
         sys.stderr.write("[browser console] ")
         sys.stderr.write(repr(entry))
         sys.stderr.write("\n")
-    if driver_type == "chrome" and _reset_chrome(driver, live_server.url):
+    if isinstance(driver, webdriver.Chrome) and _reset_chrome(driver, live_server.url):
         _reusable_chrome["driver"] = driver
         return
     # Teardown Selenium.
