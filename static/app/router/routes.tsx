@@ -1910,6 +1910,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
+      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
