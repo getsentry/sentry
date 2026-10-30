@@ -24,7 +24,6 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.jira.tasks import migrate_issues
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.mixins.issues import IntegrationSyncTargetNotFound, IssueSyncIntegration
@@ -1384,14 +1383,6 @@ class JiraServerIntegration(IssueSyncIntegration):
             comment = data.get("comment")
             if comment:
                 self.get_client().create_comment(external_issue.key, comment)
-
-    def migrate_issues(self):
-        migrate_issues.apply_async(
-            kwargs={
-                "integration_id": self.model.id,
-                "organization_id": self.organization_id,
-            }
-        )
 
     def _get_debug_metadata_keys(self) -> list[str]:
         return ["base_url", "domain_name", "verify_ssl"]

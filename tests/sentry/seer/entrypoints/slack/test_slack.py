@@ -1271,7 +1271,7 @@ class SlackInvestigationEntrypointTest(TestCase):
             provider="slack",
             metadata={"access_token": "xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization,
             source={
                 "type": "metric_open_period",
@@ -1382,8 +1382,8 @@ class SlackInvestigationEntrypointTest(TestCase):
         )
 
     def _report_cell(self, content: str, **kwargs: Any) -> None:
-        kwargs.setdefault("report_revision", 0)
-        self.create_investigation_block(investigation=self.investigation, content=content, **kwargs)
+        kwargs.setdefault("producer_revision", 0)
+        self.create_notebook_block(notebook=self.investigation, content=content, **kwargs)
 
     def _conclusion_sections(self) -> list[str]:
         (call,) = [
@@ -1685,7 +1685,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self._report_cell("Query", position=1, kind="query")
         self._report_cell("Deleted", position=3, deleted_at=datetime(2024, 8, 27, tzinfo=UTC))
         self._report_cell("  \n", position=4)
-        self._report_cell("Manual", position=5, report_revision=None)
+        self._report_cell("Manual", position=5, producer_revision=None)
         self._set_status(InvestigationOrchestrationStatus.COMPLETED)
 
         self._update([_hypothesis()])

@@ -2793,7 +2793,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },
@@ -3085,6 +3085,17 @@ function buildRoutes(): RouteObject[] {
     path: '/inbox/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
+    children: [
+      {
+        index: true,
+      },
+      {
+        path: 'issue/:id/',
+      },
+      {
+        path: 'notebook/:id/',
+      },
+    ],
   };
 
   const issueRoutes: SentryRouteObject = {

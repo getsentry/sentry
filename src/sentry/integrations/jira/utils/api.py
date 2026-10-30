@@ -158,16 +158,7 @@ def handle_status_change(integration: RpcIntegration, data: Mapping[str, Any]) -
             logger.info("jira.handle_status_change.unchanged", extra=log_context)
             return
 
-        try:
-            changelog = next(
-                item for item in changelog_items(data) if item.get("field") == "status"
-            )
-        except StopIteration:
-            lifecycle.record_halt(
-                ProjectManagementHaltReason.SYNC_INBOUND_MISSING_CHANGELOG_STATUS, extra=log_context
-            )
-            logger.info("jira.missing-changelog-status", extra=log_context)
-            return
+        changelog = next(item for item in changelog_items(data) if item.get("field") == "status")
 
         # Jira's own timestamp for the transition, used to drop out-of-order deliveries.
         updated = (data["issue"].get("fields") or {}).get("updated")
