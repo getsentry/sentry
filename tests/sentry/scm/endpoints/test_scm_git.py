@@ -9,13 +9,6 @@ from unittest import mock
 import pytest
 import responses
 import sentry_sdk
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.serialization import (
-    Encoding,
-    NoEncryption,
-    PrivateFormat,
-    PublicFormat,
-)
 from django.conf import settings
 from django.core.signals import request_finished
 from django.db import close_old_connections
@@ -26,7 +19,7 @@ from django.urls import resolve, reverse
 from requests import PreparedRequest
 from responses import matchers
 from scm import Secret
-from scm.git.grant import sign_grant
+from scm.git.grant import generate_private_key, public_key_of, sign_grant
 from scm.git.types import GRANT_HEADER, GitOperation, Grant
 from scm.types import RepositoryId
 from sentry_sdk import traces
@@ -58,10 +51,8 @@ class KeyPair(NamedTuple):
 
 def make_key_pair() -> KeyPair:
     # Generated, so no private key is committed.
-    key = Ed25519PrivateKey.generate()
-    private_pem = key.private_bytes(Encoding.PEM, PrivateFormat.PKCS8, NoEncryption())
-    public_pem = key.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
-    return KeyPair(private=Secret(private_pem.decode()), public=public_pem.decode())
+    private_key = generate_private_key()
+    return KeyPair(private=private_key, public=public_key_of(private_key))
 
 
 KEY = make_key_pair()
@@ -646,7 +637,7 @@ class ScmGitEndpointTest(TestCase):
         response = self.fetch_refs(grant, repo.id)
 
         detail = "The repository's git remote is at an address Sentry does not connect to."
-        assert response.status_code == 502
+        assert response.status_code == 500
         assert response["Content-Type"] == "text/plain; charset=utf-8"
         assert b"".join(response) == f"{detail}\n".encode()
         mock_record_count.assert_called_once_with(
