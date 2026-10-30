@@ -45,7 +45,7 @@ type SelectAsyncFieldProps<
 
 const DEBOUNCE_MS = 250;
 
-export function SelectAsyncField<
+function SelectAsyncField<
   TData,
   TValue,
   TOption extends SelectValue<TValue> = SelectValue<TValue>,
