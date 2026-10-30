@@ -85,7 +85,7 @@ START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ = datetime(2023, 11, 16, tzinfo=tim
 
 
 def get_owner_id(project: Project, user: RpcUser | None = None) -> int | None:
-    if user and user.is_authenticated:
+    if user and has_user(user):
         return user.id
 
     # this is either the organizations owners user id or None
