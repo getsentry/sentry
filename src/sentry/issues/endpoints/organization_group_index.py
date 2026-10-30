@@ -12,7 +12,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
 
-from sentry import analytics, features, search
+from sentry import analytics, search
 from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -188,16 +188,9 @@ def search_issues(
         query_kwargs["environments"] = environments if environments else None
 
         query_kwargs["actor"] = request.user
-        # Serve the v2 scorer behind the single "Recommended" sort; clients never
-        # see the recommended_v2 sort key, so the flag can flip scoring per-org
-        # without any client state changing. sort=recommended_v1 and
-        # sort=recommended_v2 remain explicit escape hatches for comparing the
-        # two scorers regardless of the flag.
-        if query_kwargs["sort_by"] == "recommended" and features.has(
-            "organizations:issue-stream-recommended-sort-experimental",
-            organization,
-            actor=request.user,
-        ):
+        # Recommended uses the v2 scorer; explicit v1/v2 sort keys remain
+        # available for comparing the two scorers.
+        if query_kwargs["sort_by"] == "recommended":
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
