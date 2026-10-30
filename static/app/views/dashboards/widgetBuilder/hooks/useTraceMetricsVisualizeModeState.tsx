@@ -48,6 +48,7 @@ interface SeriesModeSnapshot {
 export interface EquationModeSnapshot {
   queries: BaseMetricQuery[];
   selectedLabel: string | undefined;
+  transformations?: QueryTransformations[];
 }
 
 export interface TraceMetricsVisualizeModeState {
@@ -207,6 +208,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       snapshot.queries.find(q => q.label === snapshot.selectedLabel) ??
       snapshot.queries[0];
     if (!selected) {
+      dispatch({type: BuilderStateAction.SET_TRANSFORMATIONS, payload: undefined});
       return;
     }
     const yAxis = selected.queryParams.visualizes[0]?.yAxis;
@@ -227,7 +229,13 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       type: BuilderStateAction.SET_LEGEND_ALIAS,
       payload: [],
     });
-  }, [state.displayType, state.yAxis, state.fields, dispatch]);
+    dispatch({
+      type: BuilderStateAction.SET_TRANSFORMATIONS,
+      payload: supportsWidgetTransformations(state.dataset, state.displayType)
+        ? snapshot.transformations
+        : undefined,
+    });
+  }, [state.dataset, state.displayType, state.yAxis, state.fields, dispatch]);
 
   // Detect an equation yAxis and restore the cached equation mode if
   // the user was in equation mode when they left.
@@ -277,7 +285,6 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
           transformations: state.transformations,
         };
         restoreEquationState();
-        dispatch({type: BuilderStateAction.SET_TRANSFORMATIONS, payload: undefined});
       } else {
         restoreSeriesState();
       }
@@ -292,7 +299,6 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       state.query,
       state.legendAlias,
       state.transformations,
-      dispatch,
       restoreSeriesState,
       restoreEquationState,
     ]

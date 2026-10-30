@@ -1501,6 +1501,26 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
+    it('moves equation pipelines when equations are reordered', () => {
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.SPANS,
+        displayType: DisplayType.LINE,
+        yAxis: ['count()', 'equation|count() * 2'],
+        transformations: '[{"1":["smooth(sma,3)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_Y_AXIS,
+          payload: [
+            {kind: FieldValueKind.EQUATION, field: 'count() * 2'},
+            {kind: FieldValueKind.FUNCTION, function: ['count', '']},
+          ],
+          sourceIndices: [1, 0],
+        });
+      });
+      expect(result.current.state.transformations).toEqual([{0: ['smooth(sma,3)']}]);
+    });
+
     it('keeps pipelines aligned through duplicate-axis moves, edits, additions, and deletion', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,

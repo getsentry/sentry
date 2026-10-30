@@ -619,9 +619,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       fields[index]!.kind === FieldValueKind.FIELD;
 
                     const fieldTransformationDataset =
-                      field.kind === FieldValueKind.FUNCTION
-                        ? transformationDataset
-                        : undefined;
+                      field.kind === FieldValueKind.FIELD
+                        ? undefined
+                        : transformationDataset;
                     const baseField = withBaseConditionalAggregateField(field);
                     const hasSeriesFilter =
                       state.dataset === WidgetType.SPANS &&
