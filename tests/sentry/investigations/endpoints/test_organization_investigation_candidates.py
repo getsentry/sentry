@@ -38,7 +38,7 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 

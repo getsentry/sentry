@@ -42,7 +42,7 @@ class InvestigationQueryExecutionEndpointTest(APITestCase):
             display={"type": "table"},
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-block-executions",
+            "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -252,7 +252,7 @@ class InvestigationTextExecutionEndpointTest(APITestCase):
             prompt="Explain the most important change.",
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-block-executions",
+            "sentry-api-0-organization-notebook-block-executions",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,

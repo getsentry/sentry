@@ -18,7 +18,7 @@ class OrganizationInvestigationCommentCountsTest(APITestCase):
             organization=self.organization, created_by=self.user, title="Investigation"
         )
         self.url = reverse(
-            "sentry-api-0-organization-investigation-comment-counts",
+            "sentry-api-0-organization-notebook-comment-counts",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": self.investigation.id,
@@ -60,7 +60,7 @@ class OrganizationInvestigationCommentCountsTest(APITestCase):
             organization=self.create_organization(), created_by=self.user, title="Foreign"
         )
         url = reverse(
-            "sentry-api-0-organization-investigation-comment-counts",
+            "sentry-api-0-organization-notebook-comment-counts",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
                 "investigation_id": foreign.id,
