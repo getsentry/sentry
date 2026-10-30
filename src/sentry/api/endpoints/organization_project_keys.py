@@ -127,8 +127,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
         projects_by_id = {project.id: project for project in projects}
 
         def serialize_keys(keys: list[ProjectKey]) -> list[ProjectKeySerializerResponse]:
-            # The queryset is filtered to `projects`. Reuse them, along with `organization`,
-            # so building each key's DSNs doesn't load the project and its organization again.
+            # Prevent the project and organization from being fetched again for each key's DSNs.
             for key in keys:
                 project = projects_by_id[key.project_id]
                 project.set_cached_field_value("organization", organization)
