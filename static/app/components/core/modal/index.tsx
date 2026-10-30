@@ -5,6 +5,7 @@ import type {FocusTrap} from 'focus-trap';
 import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, ContainerQueryProvider, Flex, Surface} from '@sentry/scraps/layout';
@@ -99,7 +100,14 @@ export type ModalTypes = {
 };
 
 function useModalStore() {
-  const store = useStore(ModalStore);
+  const store = useStore(
+    ModalStore,
+    useShallow(state => ({
+      renderer: state.renderer,
+      options: state.options,
+      triggerElement: state.triggerElement,
+    }))
+  );
   return {
     ...store,
     visible: typeof store.renderer === 'function',

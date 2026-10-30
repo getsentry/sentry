@@ -17,10 +17,6 @@ const store = createStore<State>()(() => ({renderer: null, options: {}}));
 export const ModalStore = {
   ...store,
 
-  init() {
-    ModalStore.reset();
-  },
-
   reset() {
     store.setState({renderer: null, options: {}, triggerElement: undefined});
   },
