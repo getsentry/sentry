@@ -2133,6 +2133,8 @@ SENTRY_SCOPE_SETS = (
     (
         ("service_account:write", "Write access to service accounts."),
         ("service_account:read", "Read access to service accounts."),
+    ),
+    (
         (
             "user_preference:write",
             "Write access to your own stars, recent searches, and dismissed prompts.",
