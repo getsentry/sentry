@@ -196,10 +196,12 @@ def detect_broken_monitor_envs_for_org(org_id: int):
             lambda: {"environment_names": [], "earliest_start": django_timezone.now()}
         )
     )
+    # Filter on the org through the environment so unique_active_incident is
+    # used, rather than scanning every open incident
     orgs_open_incidents = (
         build_open_incidents_queryset()
         .select_related("monitor_environment")
-        .filter(monitor__organization_id=org_id)
+        .filter(monitor_environment__monitor__organization_id=org_id)
     )
     monitor_ids = set(orgs_open_incidents.values_list("monitor_id", flat=True))
     detector_ids_by_monitor_id = {
