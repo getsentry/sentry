@@ -44,6 +44,7 @@ from sentry.workflow_engine.registry import data_source_type_registry, detector_
 from sentry.workflow_engine.types import (
     DetectorAPIOperation,
     DetectorPriorityLevel,
+    DetectorSettings,
     DetectorType,
     FeatureGate,
 )
@@ -836,7 +837,10 @@ class DetectorImplementationIdentityTest(APITestCase):
         project = self.create_project()
 
         class RegistryOnlySettings(PreprodSizeAnalysisDetectorSettings):
-            type_visibility = True
+            api_availability = {
+                **DetectorSettings.DEFAULT_API_AVAILABILITY,
+                DetectorAPIOperation.DISCOVER: True,
+            }
 
         detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
         with (

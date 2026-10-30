@@ -116,10 +116,11 @@ accessing their settings or saving them raises and logs an error for existing de
 `config_schema=None` skips configuration validation for legacy pipelines that already
 validate their own configuration. It does not skip type validation.
 
-`type_visibility` defaults to `False`. Set it to `True` or a `FeatureGate` to include a
-type in discovery and suggested validation choices. Discovery also requires a handler;
-suggested choices require a validator. This setting does not restrict access to existing
-rows or explicit creation requests; `api_availability` controls API operations.
+`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+validation choices. It defaults to `False`; set it to `True` or a `FeatureGate` to
+advertise a type. Discovery also requires a handler and `GET` availability; suggested
+choices require a validator. `DISCOVER` does not restrict access to detector rows or
+explicit creation requests. Row operations have their own availability gates.
 
 Default provisioning uses explicit labels in `DEFAULT_DETECTOR_NAMES`, preserving
 existing names without borrowing issue descriptions. API validation, discovery, and

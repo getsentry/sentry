@@ -4,7 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime
 from datetime import timezone as dt_timezone
-from typing import TYPE_CHECKING, Any, ClassVar, NotRequired, TypeAlias, TypedDict, override
+from typing import TYPE_CHECKING, Any, NotRequired, TypeAlias, TypedDict, override
 from uuid import uuid4
 
 from sentry.exceptions import InvalidSearchQuery
@@ -23,7 +23,7 @@ from sentry.workflow_engine.models import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    APIGate,
+    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorSettings,
     DetectorType,
@@ -376,9 +376,12 @@ class PreprodSizeAnalysisGroupType(GroupType):
 
 @detector_settings_registry.register(DetectorType.PREPROD_SIZE_ANALYSIS)
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
-    type_visibility: ClassVar[APIGate] = FeatureGate(
-        "organizations:issue-preprod-size-analysis-visible"
-    )
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: FeatureGate(
+            "organizations:issue-preprod-size-analysis-visible"
+        ),
+    }
     handler = PreprodSizeAnalysisDetectorHandler
     validator = PreprodSizeAnalysisDetectorValidator
     config_schema = {

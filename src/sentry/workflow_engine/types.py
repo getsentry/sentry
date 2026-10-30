@@ -340,6 +340,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 class DetectorAPIOperation(StrEnum):
     LIST = "list"
+    DISCOVER = "discover"
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -356,12 +357,13 @@ APIGate: TypeAlias = bool | FeatureGate
 
 class DetectorSettings:
     DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
-        {operation: True for operation in DetectorAPIOperation}
+        {
+            operation: operation != DetectorAPIOperation.DISCOVER
+            for operation in DetectorAPIOperation
+        }
     )
 
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
-    # Controls type discovery and suggested API choices, not access to existing rows.
-    type_visibility: ClassVar[APIGate] = False
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     # None preserves legacy detectors whose configuration is validated outside this model.
