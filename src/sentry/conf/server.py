@@ -2136,8 +2136,14 @@ SENTRY_SCOPE_SETS = (
     (
         ("service_account:write", "Write access to service accounts."),
         ("service_account:read", "Read access to service accounts."),
-        ("user_preference:write", "Write access to your preferences, such as starred items."),
-        ("user_preference:read", "Read access to your preferences, such as starred items."),
+        (
+            "user_preference:write",
+            "Write access to your own stars, recent searches, and dismissed prompts.",
+        ),
+        (
+            "user_preference:read",
+            "Read access to your own stars, recent searches, and dismissed prompts.",
+        ),
     ),
     (("openid", "Confirms authentication status and provides basic information."),),
     (

@@ -217,8 +217,8 @@ _PERMISSION_RESOURCES = (
         "Your preferences",
         ("user_preference:read", "user_preference:write"),
         access_descriptions={
-            "read": "View your starred items, such as dashboards, saved queries, and issue views.",
-            "write": "Star, unstar, and reorder items such as dashboards, saved queries, and issue views.",
+            "read": "View your starred dashboards and issue views, recent searches, and dismissed prompts.",
+            "write": "Star and unstar dashboards, saved queries, issue views, and Insights segments, and reorder your starred items. Save recent searches, record issue view visits, and dismiss prompts.",
         },
     ),
     OAuthPermissionResource(
