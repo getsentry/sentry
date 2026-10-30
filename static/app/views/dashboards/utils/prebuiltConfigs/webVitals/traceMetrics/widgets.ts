@@ -27,12 +27,6 @@ export const PAGELOADS_FIELD = webVitalCountField('ttfb');
 
 const INTERVAL = '5m';
 
-// TODO: These filters are declared for trace metrics only, so they do not reach
-// the widgets that still query spans. The navigation type switcher also writes a
-// spans filter (`buildNavigationTypeGlobalFilter`), so the metrics widgets
-// ignore it. Both resolve once every widget here is on trace metrics. The geo
-// filter needs Relay to copy geo attributes onto the web vital metrics
-// (getsentry/relay#6576) before it matches anything.
 export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
   {
     dataset: WidgetType.TRACEMETRICS,

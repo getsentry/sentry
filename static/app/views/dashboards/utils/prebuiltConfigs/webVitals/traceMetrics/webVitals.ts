@@ -17,17 +17,13 @@ import {
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
 
-// TODO: Move the pages table to trace metrics once the dataset has the total
-// `performance_score` and `opportunity_score` formulas (#128922). Its p75 and
-// count columns already map to plain aggregates over `browser.web_vital.*`.
+// TODO: Move the pages table to trace metrics once total score and opportunity are queryable
 const SPANS_PAGES_TABLE = WEB_VITALS_PREBUILT_CONFIG.widgets.find(
   widget => widget.id === 'pages-table'
 )!;
 
 /**
- * Trace metrics variant of `WEB_VITALS_PREBUILT_CONFIG`. Same layout and
- * widgets, with the score and p75 queries reading `browser.web_vital.*`
- * metrics. The pages table stays on spans.
+ * Trace metrics variant of `WEB_VITALS_PREBUILT_CONFIG`
  */
 export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',

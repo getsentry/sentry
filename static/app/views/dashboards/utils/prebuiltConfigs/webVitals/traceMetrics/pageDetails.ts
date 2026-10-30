@@ -13,11 +13,7 @@ import {
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {ModuleName} from 'sentry/views/insights/types';
 
-// TODO: Move these to trace metrics once the metrics can back them. The samples
-// tables need `replay.id` and `profile.id` on the rows, which Relay does not
-// copy onto the web vital metrics yet (trace and span ids already are). The
-// interactions chart counts interaction spans; there is no interaction metric,
-// and the INP metric only covers interactions that reported INP.
+// TODO: Move these to trace metrics once the metrics can back them.
 const SPANS_WIDGET_IDS = new Set([
   'lcp-samples-table',
   'inp-samples-table',
@@ -30,8 +26,7 @@ const SPANS_WIDGETS = WEB_VITALS_DETAILS_PREBUILT_CONFIG.widgets.filter(
 );
 
 /**
- * Trace metrics variant of `WEB_VITALS_DETAILS_PREBUILT_CONFIG`. Score and
- * p75 widgets read the `browser.web_vital.*` metrics; samples stay on spans.
+ * Trace metrics variant of `WEB_VITALS_DETAILS_PREBUILT_CONFIG`
  */
 export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',

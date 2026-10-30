@@ -10,14 +10,6 @@ import {
 } from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 
-/**
- * Relay emits two distributions for every vital on a pageload or interaction
- * span: `browser.web_vital.<vital>` holds the raw vital and
- * `browser.web_vital.<vital>.score` holds its 0-1 performance score as a
- * ratio. The trace metrics dataset has no `performance_score` or
- * `count_scores` formulas, so the web vitals widgets read the scores with
- * plain aggregates over the score metric instead.
- */
 const WEB_VITAL_METRIC_UNITS: Record<WebVitals, DataUnit> = {
   lcp: DurationUnit.MILLISECOND,
   fcp: DurationUnit.MILLISECOND,
@@ -51,23 +43,14 @@ function webVitalScoreMetricField(
   );
 }
 
-/**
- * Average 0-1 score for a vital. Matches what
- * `performance_score(measurements.score.<vital>)` returns on spans.
- */
 export function webVitalScoreField(vital: WebVitals): string {
   return webVitalScoreMetricField('avg', vital);
 }
 
-/**
- * Number of scores recorded for a vital. Matches what
- * `count_scores(measurements.score.<vital>)` returns on spans.
- */
 export function webVitalScoreCountField(vital: WebVitals): string {
   return webVitalScoreMetricField('count', vital);
 }
 
-/** Number of pageloads or interactions that reported the vital. */
 export function webVitalCountField(vital: WebVitals): string {
   return webVitalMetricField('count', vital);
 }
@@ -75,17 +58,10 @@ export function webVitalCountField(vital: WebVitals): string {
 export const WEB_VITAL_SCORE_FIELDS = ORDER.map(webVitalScoreField);
 export const WEB_VITAL_SCORE_COUNT_FIELDS = ORDER.map(webVitalScoreCountField);
 
-/** Trace metrics counterpart of `isPerformanceScoreBreakdownChart`. */
 export function isWebVitalScoreBreakdownChart(widgetQuery: WidgetQuery): boolean {
   return isEqual(new Set(widgetQuery.aggregates), new Set(WEB_VITAL_SCORE_FIELDS));
 }
 
-/**
- * Builds the performance score ring's scores from a row of score and score
- * count fields. The total weights each vital's score the way the spans
- * `performance_score(measurements.score.total)` formula does: only vitals
- * with data count, and their weights are rescaled to add up to 100.
- */
 export function getWebVitalScoresFromTraceMetricsRow(
   row: Record<string, unknown>
 ): ProjectScore {
