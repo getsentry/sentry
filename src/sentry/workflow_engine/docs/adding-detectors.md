@@ -411,7 +411,7 @@ product's `grouptype.py`:
 @dataclass(frozen=True)
 class ExampleGroupType(GroupType):
     type_id = 12345  # Allocate the real Issue Platform type ID.
-    slug = "example_detector"
+    slug = "example_issue"
     description = "Example detector issue"
     category = GroupCategory.ERROR.value  # Choose the applicable category.
     released = False
@@ -423,10 +423,9 @@ category, release controls, priority, auto-resolution, escalation behavior, and
 notification configuration.
 
 These are separate identities: `DetectorType` selects the implementation, and `GroupType`
-classifies its output. Settings and handler lookup no longer require the issue type.
-However, API type validation, discovery, and default provisioning still use matching
-group-type slugs. Keep the detector value and issue-type slug aligned when using those
-paths until those callers are migrated.
+classifies its output. Their string values do not need to match. API validation and
+handler lookup use the detector settings registry; the handler chooses the occurrence's
+issue type.
 
 ### Register detector settings
 
@@ -465,19 +464,29 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field              | Purpose                                                                                |
-| ------------------ | -------------------------------------------------------------------------------------- |
-| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default |
-| `handler`          | Runtime `DetectorHandler` class                                                        |
-| `validator`        | Native detector API validator                                                          |
-| `config_schema`    | Save-time JSON schema for `Detector.config`                                            |
-| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                |
+| Field              | Purpose                                                                                   |
+| ------------------ | ----------------------------------------------------------------------------------------- |
+| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default    |
+| `type_visibility`  | `bool` or `FeatureGate` for type discovery and suggested API choices; defaults to `False` |
+| `handler`          | Runtime `DetectorHandler` class                                                           |
+| `validator`        | Native detector API validator                                                             |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                               |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                   |
 
 New handlers should provide a configuration schema. Legacy implementations can set
 `config_schema=None` when validation belongs to their existing pipeline. The detector
 type must still belong to the enum and have registered settings. A settings registration
 can omit a handler or validator; it does not move execution into Workflow Engine or
 make the detector available for API creation.
+
+Set `type_visibility=True` to expose a type in discovery, or use a registered
+`FeatureGate` for a rollout. The discovery endpoint also requires a handler. Validation
+error suggestions use the same visibility setting but require a validator instead.
+Visibility does not restrict requests explicitly naming a type, or access to existing
+detector rows. Use `api_availability` for those restrictions.
+
+Only implementations provisioned by the default-detector path need a label in
+`DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../defaults/detectors.py).
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
 `api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`

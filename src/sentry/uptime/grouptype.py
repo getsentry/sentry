@@ -282,6 +282,7 @@ class UptimeDomainCheckFailure(GroupType):
 
 @detector_settings_registry.register(DetectorType.UPTIME_DOMAIN_FAILURE)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
+    type_visibility = True
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator
     config_schema = {
