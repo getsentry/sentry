@@ -1681,11 +1681,6 @@
       "count": 2
     }
   },
-  "components/seer/markdown/embeds/components/traceWaterfall.spec.tsx": {
-    "@sentry/prefer-fake-timers": {
-      "count": 2
-    }
-  },
   "components/seer/repoTable/seerRepoTableHeader.tsx": {
     "@sentry/scraps/no-manual-table": {
       "count": 2
