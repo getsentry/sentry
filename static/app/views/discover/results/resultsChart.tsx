@@ -20,6 +20,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
+import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateArg, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {
@@ -211,6 +212,7 @@ export const ResultsChartContainer = memo(
       {dataset: DiscoverDatasets.ERRORS, interval: chartInterval},
       {enabled: isErrorsDataset}
     );
+    const isDroppedDataLoaded = isErrorsDataset && defined(droppedEvents);
     const canShowDroppedData =
       isErrorsDataset && hasDroppedData(droppedEvents, acceptedEvents);
     const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
@@ -274,9 +276,10 @@ export const ResultsChartContainer = memo(
         )) || <NoChartContainer>{t('No Y-Axis selected.')}</NoChartContainer>}
         <ChartFooter
           droppedDataLayer={
-            canShowDroppedData
+            isDroppedDataLoaded
               ? {
                   dataset: DiscoverDatasets.ERRORS,
+                  hasDroppedData: canShowDroppedData,
                   showDroppedData: isDroppedDataLayerOn,
                   onChange: setIsDroppedDataLayerOn,
                 }

@@ -21,6 +21,7 @@ from sentry import options
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
+from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -28,10 +29,13 @@ from sentry.issues.grouptype import (
     FeedbackGroup,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
+    PerformanceP95EndpointRegressionGroupType,
     PerformanceSlowDBQueryGroupType,
+    ProfileFunctionRegressionType,
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
@@ -57,6 +61,11 @@ from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.models.releaseprojectenvironment import ReleaseStages
+from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.processing_errors.grouptype import (
+    LowValueSpanConfigurationType,
+    SourcemapConfigurationType,
+)
 from sentry.search.events.constants import (
     RELEASE_STAGE_ALIAS,
     SEMVER_ALIAS,
@@ -75,8 +84,10 @@ from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
+from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -4360,6 +4371,42 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
         assert not bookmark4.exists()
 
+    def test_bookmark_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isBookmarked": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupBookmark.objects.filter(group=group).exists()
+
+    def test_subscribe_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isSubscribed": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupSubscription.objects.filter(group=group).exists()
+
     def test_subscription(self) -> None:
         group1 = self.create_group()
         group2 = self.create_group()
@@ -4733,6 +4780,126 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 400
         assert response.data["detail"] == "Cannot manually set priority of one or more issues."
+
+
+class GroupResolveCapabilityTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-resolve-capability"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+
+    def assert_resolution_capability(self, group_type: int, expected_status: int) -> None:
+        group = self.create_group(type=group_type)
+        response = self.get_success_response(self.organization.slug, id=[group.id])
+        assert response.data == {"canResolve": expected_status == 200}
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert not GroupResolution.objects.filter(group=group).exists()
+
+        update_url = reverse("sentry-api-0-organization-group-index", args=[self.organization.slug])
+        update = self.client.put(f"{update_url}?id={group.id}", {"status": "resolved"})
+        assert update.status_code == expected_status
+
+    def test_error(self) -> None:
+        self.assert_resolution_capability(ErrorGroupType.type_id, 200)
+
+    def test_cron(self) -> None:
+        self.assert_resolution_capability(MonitorIncidentType.type_id, 200)
+
+    def test_uptime(self) -> None:
+        self.assert_resolution_capability(UptimeDomainCheckFailure.type_id, 200)
+
+    def test_endpoint_regression(self) -> None:
+        self.assert_resolution_capability(PerformanceP95EndpointRegressionGroupType.type_id, 200)
+
+    def test_function_regression(self) -> None:
+        self.assert_resolution_capability(ProfileFunctionRegressionType.type_id, 200)
+
+    def test_metric_monitor(self) -> None:
+        self.assert_resolution_capability(MetricIssue.type_id, 400)
+
+    def test_sourcemap_configuration(self) -> None:
+        self.assert_resolution_capability(SourcemapConfigurationType.type_id, 400)
+
+    def test_low_value_span_configuration(self) -> None:
+        self.assert_resolution_capability(LowValueSpanConfigurationType.type_id, 400)
+
+    def test_mixed_selection(self) -> None:
+        error = self.create_group()
+        metric = self.create_group(type=MetricIssue.type_id)
+        response = self.get_success_response(self.organization.slug, id=[error.id, metric.id])
+        assert response.data == {"canResolve": False}
+
+    def test_ids_ignore_query_and_scope_to_projects(self) -> None:
+        error = self.create_group()
+        other_project = self.create_project()
+        metric = self.create_group(project=other_project, type=MetricIssue.type_id)
+        response = self.get_success_response(
+            self.organization.slug,
+            id=[error.id, metric.id],
+            project=[error.project_id],
+            query="invalid:query",
+        )
+        assert response.data == {"canResolve": True}
+
+    def test_other_organization_is_excluded(self) -> None:
+        metric = self.create_group(
+            project=self.create_project(organization=self.create_organization()),
+            type=MetricIssue.type_id,
+        )
+        response = self.get_success_response(self.organization.slug, id=[metric.id])
+        assert response.data == {"canResolve": True}
+
+    @patch(
+        "sentry.issues.endpoints.organization_group_index.OrganizationGroupIndexEndpoint._search"
+    )
+    def test_query_uses_mutation_selection(self, search: Mock) -> None:
+        error = self.create_group()
+        metric = self.create_group(type=MetricIssue.type_id)
+        search.return_value = (CursorResult([error, metric], next=Cursor(0), prev=Cursor(0)), {})
+        response = self.get_success_response(
+            self.organization.slug, query="", sort="freq", project=[self.project.id]
+        )
+        assert response.data == {"canResolve": False}
+        assert search.call_args.args[0].GET["query"] == ""
+        assert search.call_args.args[0].GET["sort"] == "freq"
+        assert search.call_args.args[-1] == {
+            "limit": 1000,
+            "paginator_options": {"max_limit": 1000},
+        }
+
+        update_url = reverse("sentry-api-0-organization-group-index", args=[self.organization.slug])
+        update = self.client.put(f"{update_url}?query=&sort=freq", {"status": "resolved"})
+        assert update.status_code == 400
+        assert update.data["detail"] == "Cannot manually resolve one or more issues."
+        assert search.call_count == 2
+        assert search.call_args.args[-1] == {
+            "limit": 1000,
+            "paginator_options": {"max_limit": 1000},
+        }
+
+    def test_read_only_token_cannot_check_write_capability(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        self.get_error_response(
+            self.organization.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=403,
+        )
+
+    def test_cannot_mutate_through_capability_endpoint(self) -> None:
+        group = self.create_group()
+        self.get_error_response(
+            self.organization.slug,
+            method="put",
+            qs_params={"id": [group.id]},
+            status="resolved",
+            status_code=405,
+        )
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

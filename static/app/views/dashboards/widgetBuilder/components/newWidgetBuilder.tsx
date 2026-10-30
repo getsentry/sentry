@@ -6,9 +6,9 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {useMedia} from '@sentry/scraps/useMedia';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {useMedia} from 'sentry/utils/useMedia';
 import {
   type DashboardDetails,
   type DashboardFilters,
@@ -55,7 +55,10 @@ export function WidgetBuilderV2({
   const [isPreviewDraggable, setIsPreviewDraggable] = useState(false);
   const [thresholdMetaState, setThresholdMetaState] = useState<ThresholdMetaState>({});
 
+  // Preserve viewport sizing for the widget builder during the hook move.
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
+  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isMediumScreen = useMedia(`(max-width: ${theme.breakpoints.md})`);
 
   const [translate, setTranslate] = useState(DEFAULT_WIDGET_DRAG_POSITIONING);

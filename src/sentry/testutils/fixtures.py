@@ -189,23 +189,32 @@ class Fixtures:
     def create_organization_avatar(self, *args, **kwargs):
         return Factories.create_organization_avatar(*args, **kwargs)
 
-    def create_investigation(self, *args, **kwargs):
-        return Factories.create_investigation(*args, **kwargs)
+    def create_notebook(self, *args, **kwargs):
+        return Factories.create_notebook(*args, **kwargs)
 
-    def create_investigation_project(self, *args, **kwargs):
-        return Factories.create_investigation_project(*args, **kwargs)
+    def create_notebook_project(self, *args, **kwargs):
+        return Factories.create_notebook_project(*args, **kwargs)
 
-    def create_investigation_favorite(self, *args, **kwargs):
-        return Factories.create_investigation_favorite(*args, **kwargs)
+    def create_notebook_favorite(self, *args, **kwargs):
+        return Factories.create_notebook_favorite(*args, **kwargs)
 
-    def create_investigation_seen(self, *args, **kwargs):
-        return Factories.create_investigation_seen(*args, **kwargs)
+    def create_notebook_seen(self, *args, **kwargs):
+        return Factories.create_notebook_seen(*args, **kwargs)
 
-    def create_investigation_comment(self, *args, **kwargs):
-        return Factories.create_investigation_comment(*args, **kwargs)
+    def create_notebook_comment(self, *args, **kwargs):
+        return Factories.create_notebook_comment(*args, **kwargs)
 
-    def create_investigation_action_request(self, *args, **kwargs):
-        return Factories.create_investigation_action_request(*args, **kwargs)
+    def create_notebook_action_request(self, *args, **kwargs):
+        return Factories.create_notebook_action_request(*args, **kwargs)
+
+    def create_notebook_block(self, *args, **kwargs):
+        return Factories.create_notebook_block(*args, **kwargs)
+
+    def create_notebook_block_execution(self, *args, **kwargs):
+        return Factories.create_notebook_block_execution(*args, **kwargs)
+
+    def create_notebook_block_execution_project(self, *args, **kwargs):
+        return Factories.create_notebook_block_execution_project(*args, **kwargs)
 
     def create_investigation_orchestration_run(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_run(*args, **kwargs)
@@ -215,24 +224,6 @@ class Fixtures:
 
     def create_investigation_orchestration_command(self, *args, **kwargs):
         return Factories.create_investigation_orchestration_command(*args, **kwargs)
-
-    def create_investigation_block(self, *args, **kwargs):
-        return Factories.create_investigation_block(*args, **kwargs)
-
-    def create_investigation_block_dependency(self, *args, **kwargs):
-        return Factories.create_investigation_block_dependency(*args, **kwargs)
-
-    def create_investigation_parameter(self, *args, **kwargs):
-        return Factories.create_investigation_parameter(*args, **kwargs)
-
-    def create_investigation_block_parameter(self, *args, **kwargs):
-        return Factories.create_investigation_block_parameter(*args, **kwargs)
-
-    def create_investigation_block_execution(self, *args, **kwargs):
-        return Factories.create_investigation_block_execution(*args, **kwargs)
-
-    def create_investigation_block_execution_project(self, *args, **kwargs):
-        return Factories.create_investigation_block_execution_project(*args, **kwargs)
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)

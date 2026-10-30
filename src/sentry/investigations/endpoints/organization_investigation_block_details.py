@@ -23,9 +23,9 @@ from sentry.investigations.endpoints.serializers import (
     InvestigationBlockSerializerResponse,
 )
 from sentry.investigations.endpoints.validators import BlockDeleteValidator, BlockUpdateValidator
-from sentry.investigations.models import Investigation, InvestigationBlock
 from sentry.investigations.services import delete_block, update_block
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook, NotebookBlock
 
 
 @extend_schema(tags=["Investigations"])
@@ -64,8 +64,8 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
     ) -> Response:
         """
         Update at least one of title, content, generationPrompt, config, or display. Send both
@@ -136,8 +136,8 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
         self,
         request: Request,
         organization: Organization,
-        investigation: Investigation,
-        block: InvestigationBlock,
+        investigation: Notebook,
+        block: NotebookBlock,
     ) -> Response:
         """
         Soft-delete an active block using notebook and block versions. Active executions and

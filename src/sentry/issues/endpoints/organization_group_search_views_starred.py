@@ -13,7 +13,7 @@ from sentry.models.organization import Organization
 
 class MemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["member:read"],
+        "GET": ["member:read", "user_preference:read"],
     }
 
 

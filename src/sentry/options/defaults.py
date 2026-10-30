@@ -4764,12 +4764,3 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Whether to query legacy debug/code IDS during debug file lookup.
-# This is a per-request rollout rate.
-register(
-    "debug-files.query-legacy-ids.rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)

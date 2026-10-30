@@ -28,11 +28,15 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.dashboard_widget import DatasetSourcesTypes as DashboardWidgetDatasetSourcesTypes
 from sentry.models.project import Project
+from sentry.silo.base import SiloMode
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 
@@ -5049,3 +5053,38 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
             )
             is None
         )
+
+
+@with_feature("organizations:granular-permission-scopes")
+@granular_roles_granting("user_preference:read", "user_preference:write")
+class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
+    def url(self, dashboard_id: int) -> str:
+        return reverse(
+            "sentry-api-0-organization-dashboard-favorite",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "dashboard_id": dashboard_id,
+            },
+        )
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    def test_user_preference_write_can_favorite(self) -> None:
+        self._use_token(["user_preference:write"])
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
+        assert response.status_code == 204, response.content
+        assert self.user.id in self.dashboard.favorited_by
+
+    def test_user_preference_read_cannot_favorite(self) -> None:
+        self._use_token(["user_preference:read"])
+        response = self.do_request(
+            "put", self.url(self.dashboard.id), data={"shouldFavorite": "true"}
+        )
+        assert response.status_code == 403
+        assert self.user.id not in self.dashboard.favorited_by

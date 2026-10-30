@@ -374,6 +374,7 @@ from sentry.issues.endpoints import (
     OrganizationDeriveCodeMappingsEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupIndexStatsEndpoint,
+    OrganizationGroupResolveCapabilityEndpoint,
     OrganizationGroupSearchViewDetailsEndpoint,
     OrganizationGroupSearchViewDetailsStarredEndpoint,
     OrganizationGroupSearchViewsEndpoint,
@@ -598,6 +599,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
+    OrganizationSeerWorkflowConfigDetailsEndpoint,
     OrganizationSeerWorkflowConfigsEndpoint,
 )
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
@@ -1956,6 +1958,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-group-index",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/issues-resolve-capability/$",
+        OrganizationGroupResolveCapabilityEndpoint.as_view(),
+        name="sentry-api-0-organization-group-resolve-capability",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issues-count/$",
         OrganizationIssuesCountEndpoint.as_view(),
         name="sentry-api-0-organization-issues-count",
@@ -2529,6 +2536,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/$",
         OrganizationSeerWorkflowConfigsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflow-configs",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/(?P<config_id>[^/]+)/$",
+        OrganizationSeerWorkflowConfigDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-workflow-config-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",

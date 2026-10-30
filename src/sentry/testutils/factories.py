@@ -88,21 +88,9 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.hostname import instance_hostname
 from sentry.investigations.models import (
-    Investigation,
-    InvestigationActionRequest,
-    InvestigationBlock,
-    InvestigationBlockDependency,
-    InvestigationBlockExecution,
-    InvestigationBlockExecutionProject,
-    InvestigationBlockParameter,
-    InvestigationComment,
-    InvestigationFavoriteUser,
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationEvent,
     InvestigationOrchestrationRun,
-    InvestigationParameter,
-    InvestigationProject,
-    InvestigationSeen,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
@@ -165,6 +153,17 @@ from sentry.models.rule import Rule
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
 from sentry.models.weeklyreportprojectexclusion import WeeklyReportProjectExclusion
+from sentry.notebooks.models import (
+    Notebook,
+    NotebookActionRequest,
+    NotebookBlock,
+    NotebookBlockExecution,
+    NotebookBlockExecutionProject,
+    NotebookComment,
+    NotebookFavoriteUser,
+    NotebookProject,
+    NotebookSeen,
+)
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.models.notificationaction import (
@@ -206,6 +205,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunExecution,
     SeerWorkflowTriggerBinding,
 )
+from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
@@ -454,8 +454,8 @@ def _set_sample_rate_from_error_sampling(normalized_data: MutableMapping[str, An
 class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation(organization, created_by=None, **kwargs):
-        return Investigation.objects.create(
+    def create_notebook(organization, created_by=None, **kwargs):
+        return Notebook.objects.create(
             organization=organization,
             created_by_id=created_by.id if created_by else None,
             **kwargs,
@@ -463,28 +463,24 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_project(investigation, project):
-        return InvestigationProject.objects.create(investigation=investigation, project=project)
+    def create_notebook_project(notebook, project):
+        return NotebookProject.objects.create(notebook=notebook, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_favorite(investigation, user):
-        return InvestigationFavoriteUser.objects.create(
-            investigation=investigation, user_id=user.id
-        )
+    def create_notebook_favorite(notebook, user):
+        return NotebookFavoriteUser.objects.create(notebook=notebook, user_id=user.id)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_seen(investigation, user, **kwargs):
-        return InvestigationSeen.objects.create(
-            investigation=investigation, user_id=user.id, **kwargs
-        )
+    def create_notebook_seen(notebook, user, **kwargs):
+        return NotebookSeen.objects.create(notebook=notebook, user_id=user.id, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_comment(investigation, author=None, block=None, body="A comment"):
-        return InvestigationComment.objects.create(
-            investigation=investigation,
+    def create_notebook_comment(notebook, author=None, block=None, body="A comment"):
+        return NotebookComment.objects.create(
+            notebook=notebook,
             block=block,
             author_id=author.id if author else None,
             body=body,
@@ -492,14 +488,31 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_action_request(
-        investigation, report_revision=0, key="action-request", **kwargs
+    def create_notebook_action_request(
+        notebook, producer_revision=0, key="action-request", **kwargs
     ):
         kwargs.setdefault("title", "An action request")
         kwargs.setdefault("rationale", "Because it helps.")
-        return InvestigationActionRequest.objects.create(
-            investigation=investigation, report_revision=report_revision, key=key, **kwargs
+        return NotebookActionRequest.objects.create(
+            notebook=notebook, producer_revision=producer_revision, key=key, **kwargs
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_notebook_block(notebook, position=0, kind="text", **kwargs):
+        return NotebookBlock.objects.create(
+            notebook=notebook, position=position, kind=kind, **kwargs
+        )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_notebook_block_execution(block, **kwargs):
+        return NotebookBlockExecution.objects.create(block=block, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_notebook_block_execution_project(execution, project):
+        return NotebookBlockExecutionProject.objects.create(execution=execution, project=project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
@@ -518,42 +531,6 @@ class Factories:
     def create_investigation_orchestration_command(orchestration_run, **kwargs):
         return InvestigationOrchestrationCommand.objects.create(
             orchestration_run=orchestration_run, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_block(investigation, position=0, kind="text", **kwargs):
-        return InvestigationBlock.objects.create(
-            investigation=investigation, position=position, kind=kind, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_block_dependency(block, depends_on):
-        return InvestigationBlockDependency.objects.create(block=block, depends_on=depends_on)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_parameter(investigation, **kwargs):
-        return InvestigationParameter.objects.create(investigation=investigation, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_block_parameter(block, parameter, **kwargs):
-        return InvestigationBlockParameter.objects.create(
-            block=block, parameter=parameter, **kwargs
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_block_execution(block, **kwargs):
-        return InvestigationBlockExecution.objects.create(block=block, **kwargs)
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_investigation_block_execution_project(execution, project):
-        return InvestigationBlockExecutionProject.objects.create(
-            execution=execution, project=project
         )
 
     @staticmethod
@@ -3436,11 +3413,20 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
     def create_seer_workflow_config(
-        organization, *, trigger_actions: Sequence[Action] = (), **kwargs
+        organization,
+        *,
+        trigger_actions: Sequence[Action] = (),
+        monitors: Sequence[Detector] = (),
+        **kwargs,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
+        if monitors:
+            BreachedMetricWorkflow(
+                config_id=config.id, organization_id=config.organization_id
+            ).set_monitor_selection([monitor.id for monitor in monitors])
+            config.refresh_from_db()
         return config
 
     @staticmethod
