@@ -512,29 +512,39 @@ function Chart({
         }
         Footer={
           visualize.visible && (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              <ConfidenceFooter
-                extrapolate={extrapolate}
-                sampleCount={chartInfo.sampleCount}
-                isLoading={chartInfo.timeseriesResult?.isPending || false}
-                isSampled={chartInfo.isSampled}
-                confidence={chartInfo.confidence}
-                topEvents={
-                  topEvents
-                    ? Math.min(topEvents, chartInfos[0]!.series.length)
-                    : undefined
-                }
-                dataScanned={chartInfo.dataScanned}
-                rawSpanCounts={rawSpanCounts}
-                userQuery={query.trim()}
-              />
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={dataset}
-                    hasUserQuery={!!query.trim()}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  <ConfidenceFooter
+                    extrapolate={extrapolate}
+                    sampleCount={chartInfo.sampleCount}
+                    isLoading={chartInfo.timeseriesResult?.isPending || false}
+                    isSampled={chartInfo.isSampled}
+                    confidence={chartInfo.confidence}
+                    topEvents={
+                      topEvents
+                        ? Math.min(topEvents, chartInfos[0]!.series.length)
+                        : undefined
+                    }
+                    dataScanned={chartInfo.dataScanned}
+                    rawSpanCounts={rawSpanCounts}
+                    userQuery={query.trim()}
                   />
-                ) : null}
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={dataset}
+                      hasUserQuery={!!query.trim()}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {showTransformationControls ? (
                   <AddTransformationButton
                     traceItemDataset={TraceItemDataset.SPANS}
@@ -543,7 +553,7 @@ function Chart({
                   />
                 ) : null}
               </Flex>
-            </Flex>
+            </Container>
           )
         }
         height={chartHeight}

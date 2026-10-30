@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {hasDroppedData} from 'sentry/components/droppedData/buckets';
@@ -346,25 +346,37 @@ function Graph({
         }
         Footer={
           showChart || footerActions ? (
-            <Flex align="center" justify="between" gap="sm" wrap="wrap">
-              {showChart ? (
-                <ConfidenceFooter
-                  chartInfo={chartInfo}
-                  isLoading={timeseriesResult.isPending || timeseriesResult.isFetching}
-                  hasUserQuery={!!userQuery}
-                  rawMetricCounts={rawMetricCounts}
-                />
-              ) : null}
-              <Flex align="center" gap="md">
-                {showDroppedDataBand ? (
-                  <DroppedDataFilterNote
-                    dataset={DiscoverDatasets.TRACEMETRICS}
-                    hasUserQuery={!!userQuery}
-                  />
-                ) : null}
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {showChart ? (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={
+                        timeseriesResult.isPending || timeseriesResult.isFetching
+                      }
+                      hasUserQuery={!!userQuery}
+                      rawMetricCounts={rawMetricCounts}
+                    />
+                  ) : null}
+                  {showDroppedDataBand ? (
+                    <DroppedDataFilterNote
+                      dataset={DiscoverDatasets.TRACEMETRICS}
+                      hasUserQuery={!!userQuery}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
                 {footerActions}
               </Flex>
-            </Flex>
+            </Container>
           ) : undefined
         }
         height={height}
