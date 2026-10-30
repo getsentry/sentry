@@ -11,7 +11,7 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import Direction
 
 from sentry.api.serializers.rest_framework.base import snake_to_camel_case
-from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.apidocs.spectacular_ports import resolve_type_hint, resolve_type_hint_lenient
 from sentry.conf.server import GRANULAR_SCOPES
 
 
@@ -27,7 +27,9 @@ class TokenAuthExtension(OpenApiAuthenticationExtension):
     def get_security_requirement(self, auto_schema: AutoSchema) -> dict[str, list[Any]]:
         scopes = set()
         for permission in auto_schema.view.get_permissions():
-            for s in permission.scope_map.get(auto_schema.method, []):
+            # Permissions such as `SentryIsAuthenticated` require no scope, and have
+            # no map. Only private endpoints use them, which internal builds include.
+            for s in getattr(permission, "scope_map", {}).get(auto_schema.method, []):
                 scopes.add(s)
 
         scope_list = sorted(scopes - GRANULAR_SCOPES)
@@ -75,7 +77,7 @@ class SentryInlineResponseSerializerExtension(OpenApiSerializerExtension):
         return self.target.__name__
 
     def map_serializer(self, auto_schema: AutoSchema, direction: Direction) -> Any:
-        return resolve_type_hint(self.target.typeSchema)
+        return resolve_type_hint_lenient(self.target.typeSchema, self.target.__name__)
 
 
 class SentryAppIssueActionSerializerExtension(OpenApiSerializerExtension):

@@ -176,7 +176,7 @@ class MonitorSerializerResponse(TypedDict):
     owner: ActorSerializerResponse
 
 
-class MonitorBulkEditResponse:
+class MonitorBulkEditResponse(TypedDict):
     updated: list[MonitorSerializerResponse]
     errored: list[MonitorSerializerResponse]
 

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+import os
+from collections.abc import Mapping, MutableSequence, Sequence
 from enum import Enum
+from types import SimpleNamespace
 from typing import Any, Literal, TypedDict
+from unittest import mock
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
+from drf_spectacular.plumbing import UnableToProceedError
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
@@ -16,8 +20,9 @@ from sentry.apidocs.extensions import (
     RestrictedJsonFieldExtension,
     SentryInlineResponseSerializerExtension,
     SentryResponseSerializerExtension,
+    TokenAuthExtension,
 )
-from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.apidocs.spectacular_ports import UNRESOLVED_EXTENSION, resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.organization_investigation_block_details import (
     OrganizationInvestigationBlockDetailsEndpoint,
@@ -36,6 +41,25 @@ from tests.sentry.apidocs import generate_schema
 
 class NestedDict(TypedDict):
     zz: str
+
+
+class UnionSuccess(TypedDict):
+    status: Literal["success"]
+    url: str
+
+
+class UnionFailure(TypedDict):
+    status: Literal["failure"]
+    reason: str
+
+
+class PlainClassResponse:
+    value: str
+
+
+class LenientResponse(TypedDict):
+    resolved: str
+    unresolved: PlainClassResponse
 
 
 class BasicSerializerOptional(TypedDict, total=False):
@@ -259,3 +283,125 @@ def test_investigation_polymorphic_requests_match_validation(serializer, payload
     validator = OAS30Validator({**request_schema, "components": schema["components"]})
     assert validator.is_valid(payload) is valid
     assert serializer(data=payload).is_valid() is valid
+
+
+class ScopedPermission:
+    scope_map = {"GET": ["org:read", "project:read"]}
+
+
+class ScopelessPermission:
+    pass
+
+
+def test_token_auth_tolerates_permissions_without_scope_map() -> None:
+    auto_schema = SimpleNamespace(
+        method="GET",
+        view=SimpleNamespace(get_permissions=lambda: [ScopelessPermission(), ScopedPermission()]),
+    )
+
+    requirement = TokenAuthExtension(None).get_security_requirement(auto_schema)  # type: ignore[arg-type]
+
+    assert requirement == {"auth_token": ["org:read", "project:read"]}
+
+
+@pytest.mark.parametrize(
+    "hint",
+    [Sequence[int], MutableSequence[int]],
+)
+def test_abstract_sequences_resolve_as_arrays(hint: Any) -> None:
+    assert resolve_type_hint(hint) == {"type": "array", "items": {"type": "integer"}}
+
+
+def test_abstract_mappings_resolve_as_objects() -> None:
+    assert resolve_type_hint(Mapping[str, int]) == {
+        "type": "object",
+        "additionalProperties": {"type": "integer"},
+    }
+
+
+def test_public_build_leaves_typed_dicts_open() -> None:
+    assert "additionalProperties" not in resolve_type_hint(NestedDict)
+
+
+@mock.patch.dict(os.environ, SENTRY_OPENAPI_INTERNAL="1")
+def test_internal_build_closes_typed_dicts() -> None:
+    assert resolve_type_hint(NestedDict) == {
+        "type": "object",
+        "properties": {"zz": {"type": "string"}},
+        "required": ["zz"],
+        "additionalProperties": False,
+    }
+
+
+def test_public_build_fails_on_unresolvable_field() -> None:
+    serializer = inline_sentry_response_serializer("LenientResponse", LenientResponse)
+
+    with pytest.raises(UnableToProceedError):
+        SentryInlineResponseSerializerExtension(serializer).map_serializer(AutoSchema(), "response")
+
+
+@mock.patch.dict(os.environ, SENTRY_OPENAPI_INTERNAL="1")
+def test_internal_build_marks_unresolvable_field() -> None:
+    serializer = inline_sentry_response_serializer("LenientResponse", LenientResponse)
+
+    schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+
+    assert schema["properties"]["resolved"] == {"type": "string"}
+    assert UNRESOLVED_EXTENSION in schema["properties"]["unresolved"]
+
+
+@pytest.mark.parametrize(
+    "value, valid",
+    [
+        (None, True),
+        ({"status": "success", "url": "https://example.com"}, True),
+        ({"status": "failure", "reason": "unavailable"}, True),
+        ({}, False),
+        ({"unexpected": True}, False),
+        ({"status": "success", "reason": "unavailable"}, False),
+        ({"status": "failure", "reason": "unavailable", "extra": True}, False),
+        ("success", False),
+    ],
+)
+@mock.patch.dict(os.environ, SENTRY_OPENAPI_INTERNAL="1")
+def test_internal_nullable_union(value: Any, valid: bool) -> None:
+    serializer = inline_sentry_response_serializer(
+        "NullableUnion", UnionSuccess | UnionFailure | None
+    )
+    schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+
+    assert schema["anyOf"][-1] == {"type": "object", "nullable": True, "enum": [None]}
+    OAS30Validator.check_schema(schema)
+    assert OAS30Validator(schema).is_valid(value) is valid
+
+
+@mock.patch.dict(os.environ, SENTRY_OPENAPI_INTERNAL="1")
+def test_internal_nullable_numeric_union() -> None:
+    serializer = inline_sentry_response_serializer("NullableNumber", int | float | None)
+    schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+
+    OAS30Validator.check_schema(schema)
+    validator = OAS30Validator(schema)
+    assert validator.is_valid(None)
+    assert validator.is_valid(1)
+    assert validator.is_valid(1.5)
+    assert not validator.is_valid({})
+
+
+@mock.patch.dict(os.environ, SENTRY_OPENAPI_INTERNAL="1")
+def test_internal_nullable_dictionary() -> None:
+    serializer = inline_sentry_response_serializer("NullableDictionary", dict[str, Any] | None)
+    schema = SentryInlineResponseSerializerExtension(serializer).map_serializer(
+        AutoSchema(), "response"
+    )
+
+    validator = OAS30Validator(schema)
+    assert validator.is_valid(None)
+    assert validator.is_valid({"arbitrary": True})
+    assert "enum" not in schema

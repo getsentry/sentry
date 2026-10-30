@@ -29,6 +29,9 @@ class _RawSchema:
     Used by `utils.inline_sentry_response_serializer`
     """
 
+    # Set on each class `inline_sentry_response_serializer` creates.
+    typeSchema: ResponseTypeHint
+
     def __init__(self, t: ResponseTypeHint) -> None:
         self.typeSchema = t
 
@@ -57,7 +60,29 @@ def inline_sentry_response_serializer(name: str, t: ResponseTypeHint) -> type:
         )
 
     serializer_class = type(name, (_RawSchema,), {"typeSchema": t})
+    _INLINE_SERIALIZERS.setdefault(name, serializer_class)
     return serializer_class
+
+
+# The first inline response serializer created under each name. Endpoints declare
+# these at import time, so the schema build can see every declared name.
+_INLINE_SERIALIZERS: dict[str, type[_RawSchema]] = {}
+
+
+def registered_inline_serializer(name: str) -> type[_RawSchema] | None:
+    return _INLINE_SERIALIZERS.get(name)
+
+
+def is_internal_build() -> bool:
+    """
+    True when the OpenAPI spec is being built for internal consumers (frontend
+    type generation) rather than for the published public API reference.
+
+    Internal builds describe every endpoint method, not just the published ones, read
+    undeclared response shapes from ``Response[T]`` annotations, and describe
+    TypedDict responses as closed objects. See ``make build-internal-api-docs``.
+    """
+    return bool(os.environ.get("SENTRY_OPENAPI_INTERNAL"))
 
 
 class SentryApiBuildError(UnableToProceedError):

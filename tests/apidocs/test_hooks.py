@@ -1,3 +1,4 @@
+import os
 from collections.abc import Iterator
 from typing import Any
 from unittest import TestCase
@@ -14,8 +15,13 @@ from sentry.apidocs.hooks import (
     _ENDPOINT_SERVERS,
     _EXPERIMENTAL_OPERATIONS,
     _IDEMPOTENT_OPERATIONS,
+    _OPERATION_PUBLISH_STATUS,
     _OPERATION_SILOS,
+    _PATH_ALIASES,
+    _PUBLIC_SPELLINGS,
     EXPERIMENTAL_NOTICE,
+    PATH_ALIASES_EXTENSION,
+    PUBLISH_STATUS_EXTENSION,
     CustomEndpointEnumerator,
     _fix_nullable_enums,
     custom_postprocessing_hook,
@@ -667,3 +673,214 @@ class FixNullableEnumsTest(TestCase):
                 {"type": "object", "nullable": True},
             ],
         }
+
+
+def _internal_build() -> Any:
+    return patch.dict(os.environ, {"SENTRY_OPENAPI_INTERNAL": "1"})
+
+
+def _documented_operation(operation_id: str) -> dict[str, Any]:
+    return {
+        "tags": ["Events"],
+        "description": "Documented",
+        "operationId": operation_id,
+        "parameters": [],
+    }
+
+
+@patch("sentry.apidocs.hooks.__write_ownership_data")
+class InternalBuildPreprocessingTest(TestCase):
+    """Internal builds describe every method, whatever its publish status."""
+
+    def setUp(self) -> None:
+        _OPERATION_PUBLISH_STATUS.clear()
+        _PUBLIC_SPELLINGS.clear()
+
+    def tearDown(self) -> None:
+        _ENDPOINT_SERVERS.clear()
+        _EXPERIMENTAL_OPERATIONS.clear()
+        _OPERATION_PUBLISH_STATUS.clear()
+        _OPERATION_SILOS.clear()
+        _PUBLIC_SPELLINGS.clear()
+
+    def _endpoint(self, path: str, status: ApiPublishStatus) -> tuple[Any, Any, str, Any]:
+        view_class = type(
+            "FakeEndpoint",
+            (),
+            {"owner": ApiOwner.CRONS, "publish_status": {"GET": status}, "servers": None},
+        )
+        callback = type("FakeCallback", (), {"view_class": view_class})
+        return (path, path, "GET", callback)
+
+    def _endpoints(self) -> list[tuple[Any, Any, str, Any]]:
+        return [
+            self._endpoint("/api/0/public/", ApiPublishStatus.PUBLIC),
+            self._endpoint("/api/0/public-experimental/", ApiPublishStatus.PUBLIC_EXPERIMENTAL),
+            self._endpoint("/api/0/experimental/", ApiPublishStatus.EXPERIMENTAL),
+            self._endpoint("/api/0/private/", ApiPublishStatus.PRIVATE),
+        ]
+
+    def test_public_build_records_no_publish_status(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(self._endpoints())
+
+        assert [path for path, *_ in filtered] == ["/api/0/public/", "/api/0/public-experimental/"]
+        assert _OPERATION_PUBLISH_STATUS == {}
+
+    def test_internal_build_admits_every_method(self, _write_ownership: Any) -> None:
+        with _internal_build():
+            filtered = custom_preprocessing_hook(self._endpoints())
+
+        assert [path for path, *_ in filtered] == [
+            "/api/0/public/",
+            "/api/0/public-experimental/",
+            "/api/0/experimental/",
+            "/api/0/private/",
+        ]
+        assert _OPERATION_PUBLISH_STATUS == {
+            ("/api/0/public/", "get"): ApiPublishStatus.PUBLIC,
+            ("/api/0/public-experimental/", "get"): ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+            ("/api/0/experimental/", "get"): ApiPublishStatus.EXPERIMENTAL,
+            ("/api/0/private/", "get"): ApiPublishStatus.PRIVATE,
+        }
+        assert _EXPERIMENTAL_OPERATIONS == {("/api/0/public-experimental/", "get")}
+
+    def test_internal_build_excludes_legacy_issue_routes_by_public_spelling(
+        self, _write_ownership: Any
+    ) -> None:
+        # Internal builds spell `(?:issues|groups)` as `issues`, so the exclusion,
+        # written against the public build's `{var}`, is matched on that spelling.
+        _PUBLIC_SPELLINGS["/api/0/issues/{issue_id}/"] = "/api/0/{var}/{issue_id}/"
+        endpoints = [
+            self._endpoint("/api/0/issues/{issue_id}/", ApiPublishStatus.PUBLIC),
+            self._endpoint(
+                "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/",
+                ApiPublishStatus.PUBLIC,
+            ),
+        ]
+
+        with _internal_build():
+            filtered = custom_preprocessing_hook(endpoints)
+
+        assert [path for path, *_ in filtered] == [
+            "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/"
+        ]
+
+
+class InternalBuildPostprocessingTest(TestCase):
+    def setUp(self) -> None:
+        _OPERATION_PUBLISH_STATUS.clear()
+        _PATH_ALIASES.clear()
+
+    def tearDown(self) -> None:
+        _OPERATION_PUBLISH_STATUS.clear()
+        _PATH_ALIASES.clear()
+
+    def test_stamps_status_and_skips_reference_checks_on_unpublished(self) -> None:
+        _OPERATION_PUBLISH_STATUS[("/api/0/public/", "get")] = ApiPublishStatus.PUBLIC
+        _OPERATION_PUBLISH_STATUS[("/api/0/private/", "get")] = ApiPublishStatus.PRIVATE
+        result = {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/public/": {"get": _documented_operation("public")},
+                # No tag and no description would fail the published checks.
+                "/api/0/private/": {"get": {"operationId": "private", "parameters": []}},
+            },
+        }
+
+        with _internal_build():
+            processed = custom_postprocessing_hook(result, None)
+
+        assert processed["paths"]["/api/0/public/"]["get"][PUBLISH_STATUS_EXTENSION] == "public"
+        assert processed["paths"]["/api/0/private/"]["get"][PUBLISH_STATUS_EXTENSION] == "private"
+
+    def test_still_checks_published_operations(self) -> None:
+        _OPERATION_PUBLISH_STATUS[("/api/0/public/", "get")] = ApiPublishStatus.PUBLIC
+        result = {
+            "components": {"schemas": {}},
+            "paths": {"/api/0/public/": {"get": {"operationId": "public", "parameters": []}}},
+        }
+
+        with _internal_build(), pytest.raises(SentryApiBuildError):
+            custom_postprocessing_hook(result, None)
+
+    def test_stamps_path_aliases(self) -> None:
+        notes = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/notes/"
+        comments = "/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/comments/"
+        _PATH_ALIASES[notes] = [notes, comments]
+        _OPERATION_PUBLISH_STATUS[(notes, "get")] = ApiPublishStatus.PRIVATE
+        result = {
+            "components": {"schemas": {}},
+            "paths": {notes: {"get": {"operationId": "notes", "parameters": []}}},
+        }
+
+        with _internal_build():
+            processed = custom_postprocessing_hook(result, None)
+
+        assert processed["paths"][notes]["get"][PATH_ALIASES_EXTENSION] == [notes, comments]
+
+    def test_public_build_stamps_nothing(self) -> None:
+        _OPERATION_PUBLISH_STATUS[("/api/0/public/", "get")] = ApiPublishStatus.PUBLIC
+        _PATH_ALIASES["/api/0/public/"] = ["/api/0/public/", "/api/0/alias/"]
+        result = {
+            "components": {"schemas": {}},
+            "paths": {"/api/0/public/": {"get": _documented_operation("public")}},
+        }
+
+        processed = custom_postprocessing_hook(result, None)
+
+        operation = processed["paths"]["/api/0/public/"]["get"]
+        assert PUBLISH_STATUS_EXTENSION not in operation
+        assert PATH_ALIASES_EXTENSION not in operation
+
+
+class InternalPathAliasesTest(TestCase):
+    """Internal builds keep routes that differ only by a literal alternation apart."""
+
+    REGEX = (
+        "^api/0/organizations/(?P<organization_id_or_slug>[^/]+)/"
+        "(?:issues|groups)/(?P<issue_id>[^/]+)/(?:notes|comments)/$"
+    )
+
+    def setUp(self) -> None:
+        _PATH_ALIASES.clear()
+        _PUBLIC_SPELLINGS.clear()
+
+    def tearDown(self) -> None:
+        _PATH_ALIASES.clear()
+        _PUBLIC_SPELLINGS.clear()
+
+    def test_public_build_renders_alternations_as_var(self) -> None:
+        path = CustomEndpointEnumerator().get_path_from_regex(self.REGEX)
+
+        assert path == "/api/0/organizations/{organization_id_or_slug}/{var}/{issue_id}/{var}/"
+        assert _PATH_ALIASES == {}
+
+    def test_internal_build_spells_first_branch_and_records_the_rest(self) -> None:
+        with _internal_build():
+            path = CustomEndpointEnumerator().get_path_from_regex(self.REGEX)
+
+        prefix = "/api/0/organizations/{organization_id_or_slug}"
+        assert path == f"{prefix}/issues/{{issue_id}}/notes/"
+        assert _PATH_ALIASES == {
+            path: [
+                f"{prefix}/issues/{{issue_id}}/notes/",
+                f"{prefix}/issues/{{issue_id}}/comments/",
+                f"{prefix}/groups/{{issue_id}}/notes/",
+                f"{prefix}/groups/{{issue_id}}/comments/",
+            ]
+        }
+        assert _PUBLIC_SPELLINGS == {path: f"{prefix}/{{var}}/{{issue_id}}/{{var}}/"}
+
+    def test_internal_build_leaves_alternations_inside_parameters(self) -> None:
+        regex = (
+            "^api/0/projects/(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/"
+            "events/(?P<event_id>(?:\\d+|[A-Fa-f0-9-]{32,36}|latest))/$"
+        )
+
+        with _internal_build():
+            path = CustomEndpointEnumerator().get_path_from_regex(regex)
+
+        assert path == (
+            "/api/0/projects/{organization_id_or_slug}/{project_id_or_slug}/events/{event_id}/"
+        )
+        assert _PATH_ALIASES == {}
