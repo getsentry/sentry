@@ -121,7 +121,8 @@ describe('Settings navigation tour', () => {
     await userEvent.keyboard('{Escape}');
     expect(screen.getByText('Tour entry')).toBeInTheDocument();
 
-    act(() => screen.getByRole('button', {name: 'Next'}).focus());
+    await userEvent.tab({shift: true});
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -143,7 +144,8 @@ describe('Settings navigation tour', () => {
   it('moves focus to the next guide when the tour changes step from the guide', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    act(() => screen.getByRole('button', {name: 'Next'}).focus());
+    await userEvent.tab({shift: true});
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
     await waitFor(() =>
@@ -157,7 +159,8 @@ describe('Settings navigation tour', () => {
   it('returns focus to the highlighted element when a focused guide closes', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
-    act(() => screen.getByRole('button', {name: 'Next'}).focus());
+    await userEvent.tab({shift: true});
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'entry'})).toHaveFocus();

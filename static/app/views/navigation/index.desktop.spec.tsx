@@ -6,7 +6,6 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
-  act,
   render,
   screen,
   userEvent,
@@ -312,7 +311,8 @@ describe('desktop navigation', () => {
         navigationContext({organization: settingsV3})
       );
       expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
-      act(() => screen.getByRole('button', {name: 'Next'}).focus());
+      await userEvent.tab({shift: true});
+      expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
       await userEvent.keyboard('{Enter}');
       const guide = await screen.findByText(
         'Quick settings-access for your important Projects'
