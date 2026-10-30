@@ -485,6 +485,13 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                     dispatch({
                       type: updateAction,
                       payload: arrayMove(fields ?? [], activeIndex, overIndex),
+                      ...(usesYAxisState && {
+                        sourceIndices: arrayMove(
+                          (fields ?? []).map((_, index) => index),
+                          activeIndex,
+                          overIndex
+                        ),
+                      }),
                     });
                   }
                 }

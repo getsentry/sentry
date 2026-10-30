@@ -214,17 +214,6 @@ export function WidgetBuilderTypeSelector({
                 type: BuilderStateAction.SET_DISPLAY_TYPE,
                 payload: newValue,
               });
-              if (
-                (newValue === DisplayType.TABLE ||
-                  newValue === DisplayType.BIG_NUMBER ||
-                  newValue === DisplayType.HEATMAP) &&
-                state.query?.length
-              ) {
-                dispatch({
-                  type: BuilderStateAction.SET_QUERY,
-                  payload: [state.query[0]!],
-                });
-              }
             }
             trackAnalytics('dashboards_views.widget_builder.change', {
               from: source,
