@@ -105,6 +105,7 @@ export type LogsAnalyticsEventParameters = {
     organization: Organization;
   };
   'logs.table.row_viewed_in_context': {
+    context: 'trace' | 'time';
     log_id: string;
     organization: Organization;
   };

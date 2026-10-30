@@ -34,6 +34,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FieldValueType} from 'sentry/utils/fields';
 import {encodeSort} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getPageUrlWithParams} from 'sentry/utils/url/getPageUrlWithParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -546,34 +547,52 @@ export const LogRowContent = memo(function LogRowContentImpl({
       ]
     : [];
 
-  const viewInContextMenuItems: MenuItemProps[] =
-    isFrozen || search.isEmpty()
-      ? []
-      : [
-          {
-            key: 'view-in-context',
-            label: t('View in context'),
-            externalHref: getLogsUrl({
-              organization,
-              selection,
-              field: fields.includes(OurLogKnownFieldKey.TIMESTAMP)
-                ? fields
-                : [OurLogKnownFieldKey.TIMESTAMP, ...fields],
-              sortBy: encodeSort(
-                getTimeBasedSortBy(sortBys) ?? logsTimestampDescendingSortBy
-              ),
-              pinnedRowIds: logsPinning?.getPinnedRowIds(),
-              rowId,
-              anchorTimestamp: String(dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]),
-            }),
-            onAction: () => {
-              trackAnalytics('logs.table.row_viewed_in_context', {
-                log_id: rowId,
-                organization,
-              });
-            },
-          },
-        ];
+  const traceId = dataRow[OurLogKnownFieldKey.TRACE_ID];
+  const traceContextQuery = traceId
+    ? MutableSearch.fromQueryObject({
+        [OurLogKnownFieldKey.TRACE_ID]: String(traceId),
+      }).formatString()
+    : undefined;
+
+  function getViewInContextMenuItem(
+    context: 'trace' | 'time',
+    query: string | undefined
+  ): MenuItemProps {
+    return {
+      key: `view-in-${context}-context`,
+      label: context === 'trace' ? t('View in trace context') : t('View in time context'),
+      externalHref: getLogsUrl({
+        organization,
+        selection,
+        query,
+        field: fields.includes(OurLogKnownFieldKey.TIMESTAMP)
+          ? fields
+          : [OurLogKnownFieldKey.TIMESTAMP, ...fields],
+        sortBy: encodeSort(getTimeBasedSortBy(sortBys) ?? logsTimestampDescendingSortBy),
+        pinnedRowIds: Array.from(
+          new Set([...(logsPinning?.getPinnedRowIds() ?? []), rowId])
+        ),
+        rowId,
+        anchorTimestamp: String(dataRow[OurLogKnownFieldKey.TIMESTAMP_PRECISE]),
+      }),
+      onAction: () => {
+        trackAnalytics('logs.table.row_viewed_in_context', {
+          context,
+          log_id: rowId,
+          organization,
+        });
+      },
+    };
+  }
+
+  const viewInContextMenuItems: MenuItemProps[] = isFrozen
+    ? []
+    : [
+        ...(traceContextQuery && search.formatString() !== traceContextQuery
+          ? [getViewInContextMenuItem('trace', traceContextQuery)]
+          : []),
+        ...(search.isEmpty() ? [] : [getViewInContextMenuItem('time', undefined)]),
+      ];
 
   const buttonSize = 'xs';
   const chevronIcon = (

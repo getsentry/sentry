@@ -1154,7 +1154,7 @@ describe('logsTableRow', () => {
 
     await userEvent.hover(await screen.findByTestId('log-table-row'));
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
-    const link = (await screen.findByText('View in context')).closest('a')!;
+    const link = (await screen.findByText('View in time context')).closest('a')!;
 
     const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
     expect(link).toHaveAttribute('target', '_blank');
@@ -1163,7 +1163,7 @@ describe('logsTableRow', () => {
       [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
       [LOGS_FIELDS_KEY, 'message'],
       [LOGS_FIELDS_KEY, 'timestamp'],
-      [LOGS_PINNED_KEY, 'abc,def'],
+      [LOGS_PINNED_KEY, 'abc,def,1'],
       [LOGS_ROW_ID_KEY, '1'],
       [LOGS_SORT_BYS_KEY, '-timestamp'],
       ['project', project.id],
@@ -1200,7 +1200,7 @@ describe('logsTableRow', () => {
 
     await userEvent.hover(await screen.findByTestId('log-table-row'));
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
-    const link = (await screen.findByText('View in context')).closest('a')!;
+    const link = (await screen.findByText('View in time context')).closest('a')!;
 
     expect(
       new URL(link.getAttribute('href')!, 'https://sentry.io').searchParams.get(
@@ -1238,7 +1238,7 @@ describe('logsTableRow', () => {
 
     await userEvent.hover(await screen.findByTestId('log-table-row'));
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
-    const link = (await screen.findByText('View in context')).closest('a')!;
+    const link = (await screen.findByText('View in time context')).closest('a')!;
 
     const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
     expect(url.searchParams.getAll(LOGS_FIELDS_KEY)).toEqual([
@@ -1249,7 +1249,7 @@ describe('logsTableRow', () => {
     expect(url.searchParams.get(LOGS_SORT_BYS_KEY)).toBe('-timestamp');
   });
 
-  it('does not offer to view the log in context when the search has no filters', async () => {
+  it('offers only the trace context when the search has no filters', async () => {
     render(
       <LogRowContent
         dataRow={rowData}
@@ -1266,7 +1266,86 @@ describe('logsTableRow', () => {
     await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
     await screen.findByText('Copy link');
 
-    expect(screen.queryByText('View in context')).not.toBeInTheDocument();
+    expect(screen.getByText('View in trace context')).toBeInTheDocument();
+    expect(screen.queryByText('View in time context')).not.toBeInTheDocument();
+  });
+
+  it('links to the log among its trace logs when viewing it in trace context', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_PINNED_KEY]: 'abc',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in trace context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+    expect(Array.from(url.searchParams).sort()).toEqual([
+      [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
+      [LOGS_FIELDS_KEY, 'message'],
+      [LOGS_FIELDS_KEY, 'timestamp'],
+      [LOGS_PINNED_KEY, 'abc,1'],
+      [LOGS_QUERY_KEY, 'trace:7b91699f'],
+      [LOGS_ROW_ID_KEY, '1'],
+      [LOGS_SORT_BYS_KEY, '-timestamp'],
+      ['project', project.id],
+      ['statsPeriod', '14d'],
+    ]);
+  });
+
+  it('does not offer the trace context when the search is already the log trace', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{
+          current: null,
+        }}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'trace:7b91699f',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await screen.findByText('View in time context');
+
+    expect(screen.queryByText('View in trace context')).not.toBeInTheDocument();
   });
 
   it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {
