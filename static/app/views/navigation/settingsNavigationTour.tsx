@@ -17,7 +17,7 @@ import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigati
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 // TODO: Set to the settings navigation GA date. Users who join after it don't see the tour.
-const TOUR_SETTINGS_NAV_DATE_THRESHOLD = new Date(2026, 11, 1);
+const TOUR_SETTINGS_NAV_DATE_THRESHOLD = new Date(2027, 11, 1);
 
 // Must match the guide key registered in `src/sentry/assistant/guides.py`.
 const SETTINGS_NAVIGATION_TOUR_GUIDE_KEY = 'tour.settings_navigation';
