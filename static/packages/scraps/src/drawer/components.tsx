@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {createContext, Fragment, useContext, useMemo, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -5,14 +6,13 @@ import {mergeRefs} from '@react-aria/utils';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
-import type {DrawerOptions} from '@sentry/scraps/drawer';
 import {ContainerQueryProvider} from '@sentry/scraps/layout';
+import {useOverlayContext} from '@sentry/scraps/overlayContext';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
-
+import type {DrawerOptions} from './globalDrawer';
 import {
   DEFAULT_WIDTH_PERCENT,
   MAX_WIDTH_PERCENT,
@@ -39,7 +39,7 @@ export function useDrawerContentContext() {
  * can't drift. GlobalDrawer-only options (shouldClose*, onClose
  * callback) are consumed before reaching this component.
  */
-interface DrawerPanelProps extends Pick<
+export interface DrawerPanelProps extends Pick<
   DrawerOptions,
   'ariaLabel' | 'drawerKey' | 'drawerWidth' | 'drawerMaxWidth' | 'resizable' | 'onClose'
 > {
@@ -53,7 +53,7 @@ interface DrawerPanelProps extends Pick<
   topOffset?: number;
 }
 
-function DrawerPanel({
+export function DrawerPanel({
   ref,
   mode,
   ariaLabel,
@@ -121,7 +121,7 @@ function DrawerPanel({
   );
 }
 
-interface DrawerHeaderProps {
+export interface DrawerHeaderProps {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -148,6 +148,7 @@ export function DrawerHeader({
   hideCloseButtonText = false,
 }: DrawerHeaderProps) {
   const {onClose} = useDrawerContentContext();
+  const {headerHeight} = useOverlayContext();
   const {t} = useTranslation();
 
   return (
@@ -156,7 +157,7 @@ export function DrawerHeader({
       className={className}
       hideCloseButton={hideCloseButton}
       hideBar={hideBar}
-      height={`${PRIMARY_HEADER_HEIGHT}px`}
+      height={headerHeight}
     >
       {!hideCloseButton && (
         <Fragment>

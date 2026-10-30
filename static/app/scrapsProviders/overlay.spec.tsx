@@ -1,22 +1,33 @@
-import {Fragment} from 'react';
+import {createRef, Fragment} from 'react';
 
 import {
   render,
   screen,
   userEvent,
   waitForDrawerToHide,
+  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 import {mockMatchMedia} from 'sentry-test/utils';
 
-import type {DrawerConfig} from '@sentry/scraps/drawer';
 import {
+  DrawerBody,
   useDrawer,
   useDrawerPlacement,
-  DrawerBody,
   DrawerHeader,
 } from '@sentry/scraps/drawer';
+import type {DrawerConfig} from '@sentry/scraps/drawer';
 
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
+
+function ExternalWidthControl() {
+  const [, setWidth] = useSyncedLocalStorageState(
+    'drawer-width:context-storage-sync',
+    50
+  );
+  return <button onClick={() => setWidth(70)}>Set saved width</button>;
+}
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
   return (
@@ -460,4 +471,71 @@ describe('GlobalDrawer', () => {
       ).not.toBeInTheDocument();
     }
   );
+  it('keeps the drawer open when a modal portal is clicked', async () => {
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: () => <DrawerBody>Drawer content</DrawerBody>,
+          options: {ariaLabel},
+        }}
+      />
+    );
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByText('Drawer content')).toBeInTheDocument();
+
+    const portal = document.createElement('div');
+    portal.id = 'modal-portal';
+    const button = document.createElement('button');
+    button.textContent = 'Modal action';
+    portal.append(button);
+    document.body.append(portal);
+    try {
+      await userEvent.click(button);
+      expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
+    } finally {
+      portal.remove();
+    }
+  });
+  it('supplies the app header height to the scraps header', () => {
+    const headerRef = createRef<HTMLHeadingElement>();
+    render(<DrawerHeader ref={headerRef} />);
+    // The app test environment stubs getComputedStyle to return inline styles.
+    const rules = Array.from(document.styleSheets).flatMap(sheet =>
+      Array.from(sheet.cssRules)
+    );
+    expect(
+      rules.some(
+        rule =>
+          rule instanceof CSSStyleRule &&
+          headerRef.current?.matches(rule.selectorText) &&
+          rule.style.getPropertyValue('--drawer-header-height') ===
+            PRIMARY_HEADER_HEIGHT + 'px'
+      )
+    ).toBe(true);
+  });
+  it('syncs drawer width with the existing app storage hook', async () => {
+    const storageKey = 'drawer-width:context-storage-sync';
+    localStorage.setItem(storageKey, '50');
+
+    render(
+      <Fragment>
+        <GlobalDrawerTestComponent
+          config={{
+            renderer: () => <DrawerBody>Synced content</DrawerBody>,
+            options: {ariaLabel, drawerKey: 'context-storage-sync', mode: 'passive'},
+          }}
+        />
+        <ExternalWidthControl />
+      </Fragment>
+    );
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+    expect(await screen.findByText('Synced content')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Set saved width'}));
+    await waitFor(() =>
+      expect(screen.getByRole('complementary', {name: ariaLabel})).toHaveStyle({
+        '--drawer-width': '70%',
+      })
+    );
+    localStorage.removeItem(storageKey);
+  });
 });

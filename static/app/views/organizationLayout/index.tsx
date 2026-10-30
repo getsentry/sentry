@@ -17,6 +17,7 @@ import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilin
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {getOverride} from 'sentry/overrideRegistry';
+import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -52,17 +53,19 @@ export function OrganizationLayout() {
     <SentryDocumentTitle noSuffix title={organization?.name ?? 'Sentry'}>
       <GlobalAnalytics />
       <OrganizationContainer>
-        <SeerExplorerSessionsProvider>
-          <SeerExplorerChatStateProvider>
-            <PictureInPictureProvider>
-              <GlobalDrawer>
-                <SeerExplorerContextProvider>
-                  <AppLayout organization={organization} />
-                </SeerExplorerContextProvider>
-              </GlobalDrawer>
-            </PictureInPictureProvider>
-          </SeerExplorerChatStateProvider>
-        </SeerExplorerSessionsProvider>
+        <SentryOverlayProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerChatStateProvider>
+              <PictureInPictureProvider>
+                <GlobalDrawer>
+                  <SeerExplorerContextProvider>
+                    <AppLayout organization={organization} />
+                  </SeerExplorerContextProvider>
+                </GlobalDrawer>
+              </PictureInPictureProvider>
+            </SeerExplorerChatStateProvider>
+          </SeerExplorerSessionsProvider>
+        </SentryOverlayProvider>
       </OrganizationContainer>
       <ScrollRestoration getKey={location => location.pathname} />
     </SentryDocumentTitle>

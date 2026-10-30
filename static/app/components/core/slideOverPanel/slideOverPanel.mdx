@@ -4,7 +4,7 @@ description: A multi-purpose panel that can be used to reveal more information i
 category: overlays
 source: '@sentry/scraps/slideOverPanel'
 resources:
-  js: https://github.com/getsentry/sentry/blob/master/static/app/components/slideOverPanel.tsx
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/slideOverPanel/slideOverPanel.tsx
 ---
 
 import * as Storybook from 'sentry/stories';
@@ -93,3 +93,7 @@ Generally, we recommend not animating the panel on close, and simply removing it
   )}
 </AnimatePresence>
 ```
+
+## Shared overlay configuration
+
+Import `SlideOverPanel` from `@sentry/scraps/slideOverPanel`. Its `contentTop` comes from `OverlayContextProvider` in `@sentry/scraps/overlayContext`, shared with drawers and drawer headers. It defaults to `0px`. The per-panel `topOffset` prop takes precedence. Sentry supplies its navigation offset through `ScrapsProviders`.

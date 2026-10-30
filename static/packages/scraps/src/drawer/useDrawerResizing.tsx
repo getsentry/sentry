@@ -1,9 +1,10 @@
+import type * as React from 'react';
 import {useCallback, useLayoutEffect, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {useMedia} from '@sentry/scraps/useMedia';
 
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+import {useDrawerWidth} from './useDrawerWidth';
 
 const MIN_WIDTH_PERCENT = 20;
 const MAX_WIDTH_PERCENT = 85;
@@ -36,7 +37,6 @@ export function useDrawerResizing({
 }: UseDrawerResizingOptions): UseDrawerResizingResult {
   const theme = useTheme();
   // The drawer is fixed to the viewport.
-  // oxlint-disable-next-line @sentry/scraps/prefer-container-responsive-props
   const isSmallScreen = useMedia(`(max-width: ${theme.breakpoints.sm})`);
   const resizeHandleRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
   const panelRef = useRef<HTMLDivElement>(null) as React.RefObject<HTMLDivElement>;
@@ -67,14 +67,13 @@ export function useDrawerResizing({
   };
 
   // Store persisted width in localStorage, but don't use it for rendering state
-  const [persistedWidthPercent, setPersistedWidthPercent] =
-    useSyncedLocalStorageState<number>(
-      drawerKey ? getDrawerWidthKey(drawerKey) : 'drawer-width:default',
-      (value?: unknown) => {
-        const savedWidth = typeof value === 'number' ? value : undefined;
-        return calculateInitialWidth(savedWidth);
-      }
-    );
+  const [persistedWidthPercent, setPersistedWidthPercent] = useDrawerWidth(
+    drawerKey ? getDrawerWidthKey(drawerKey) : 'drawer-width:default',
+    (value?: unknown) => {
+      const savedWidth = typeof value === 'number' ? value : undefined;
+      return calculateInitialWidth(savedWidth);
+    }
+  );
 
   useLayoutEffect(() => {
     if (isSmallScreen) {

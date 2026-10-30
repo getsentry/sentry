@@ -28,6 +28,7 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -150,11 +151,13 @@ function makeAllTheProviders(options: ProviderOptions) {
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
-            <GlobalAlertProvider>
-              <GlobalDrawer>
-                <AdditionalWrapper>{children}</AdditionalWrapper>
-              </GlobalDrawer>
-            </GlobalAlertProvider>
+            <SentryOverlayProvider>
+              <GlobalAlertProvider>
+                <GlobalDrawer>
+                  <AdditionalWrapper>{children}</AdditionalWrapper>
+                </GlobalDrawer>
+              </GlobalAlertProvider>
+            </SentryOverlayProvider>
           </OrganizationContext>
         </LLMContextProvider>
       </TopBarSlots.Provider>

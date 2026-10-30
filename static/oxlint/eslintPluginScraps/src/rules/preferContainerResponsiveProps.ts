@@ -78,7 +78,7 @@ function allowsViewportSizing(
     );
   }
   if (
-    filename.endsWith('/static/app/components/core/drawer/components.tsx') &&
+    filename.endsWith('/static/packages/scraps/src/drawer/components.tsx') &&
     (name === 'DrawerContainer' || name === 'DrawerSlidePanel')
   ) {
     return hasOnlyAllowedMediaDeclarations(
@@ -87,7 +87,7 @@ function allowsViewportSizing(
     );
   }
   return (
-    filename.endsWith('/static/app/components/core/slideOverPanel/slideOverPanel.tsx') &&
+    filename.endsWith('/static/packages/scraps/src/slideOverPanel/slideOverPanel.tsx') &&
     name === '_SlideOverPanel' &&
     hasOnlyAllowedMediaDeclarations(
       node,
