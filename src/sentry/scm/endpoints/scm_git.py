@@ -6,8 +6,8 @@ import sentry_sdk
 from django.conf import settings
 from django.http import HttpRequest, HttpResponse, HttpResponseBase, StreamingHttpResponse
 from rest_framework.request import Request
-from scm.errors import GitRemoteRefused, SCMCodedError
-from scm.git.grant import require_public_keys, verify_grant
+from scm.errors import GitGrantKeyError, GitRemoteRefused, SCMCodedError
+from scm.git.grant import verify_grant
 from scm.git.relay import GitRelay
 from scm.git.server import GitServer
 from scm.git.types import GRANT_HEADER, Readable
@@ -97,14 +97,13 @@ class ScmGitEndpoint(Endpoint):
         # the organization is looked up, so a request without a valid grant never reaches the
         # database. GitServer verifies the JWT again, which costs one Ed25519 signature check.
         context = {"repository_id": str(repository_id)}
-        public_keys = _grant_public_keys()
         try:
-            # verify_grant and GitServer raise on a key list no grant could verify against. That's
-            # Sentry's misconfiguration, not the grant's fault, so it's a 500 rather than a 403,
-            # and not a 503, which Seer retries.
-            require_public_keys(public_keys)
-        except (ValueError, TypeError) as e:
-            # scm-platform's messages name a key by its place in the list, never its contents.
+            grant = verify_grant(_grant_public_keys(), request.headers.get(GRANT_HEADER, ""))
+        except GitGrantKeyError as e:
+            # No grant could verify against the key list. That's Sentry's misconfiguration, not the
+            # grant's fault, so it's a 500 rather than a 403. Seer fails a checkout on a 500 at
+            # once, where it retries a 502 or 503, which no retry would fix. The message names a
+            # key by its place in the list, never its contents.
             return _refuse(
                 "grant_public_keys_invalid",
                 500,
@@ -112,8 +111,6 @@ class ScmGitEndpoint(Endpoint):
                 context,
                 tags={},
             )
-        try:
-            grant = verify_grant(public_keys, request.headers.get(GRANT_HEADER, ""))
         except SCMCodedError as e:
             return _refuse(e.code, 403, e.detail, context, tags={})
 
