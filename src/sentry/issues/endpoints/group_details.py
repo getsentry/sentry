@@ -572,3 +572,6 @@ def send_issue_view_attribution(request: Request, response: Response, group: Any
             cache.set(
                 cache_key_for_issue_view(group.id, "mcp"), client_family, ISSUE_VIEW_CACHE_KEY_TTL
             )
+
+
+# ci experiment: selective-testing shard timing

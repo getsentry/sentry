@@ -338,3 +338,6 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
         except Exception:
             logger.exception("Error deleting groups")
             return Response({"detail": "Error deleting groups"}, status=500)
+
+
+# ci experiment: selective-testing shard timing

@@ -165,3 +165,6 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
         formatted_results = self.get_formatted_results(results, request.user, group)
 
         return Response(formatted_results)
+
+
+# ci experiment: selective-testing shard timing
