@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, Protocol, TypeIs
 
 from django.contrib.auth.models import AnonymousUser
+from django.db.models import Q
 from django.http.request import HttpRequest
 from rest_framework.exceptions import NotAuthenticated
 from rest_framework.request import Request
@@ -55,6 +56,26 @@ def has_user(principal: RequestPrincipal) -> TypeIs[User | RpcUser]:
 def acting_user_id(principal: RequestPrincipal) -> int | None:
     """The user behind the caller: the user, or the one an agent acts for. None otherwise."""
     return principal.id if has_user(principal) else None
+
+
+def acting_user(principal: RequestPrincipal) -> User | RpcUser | None:
+    """The user behind the caller, for APIs that take a user object. None otherwise."""
+    return principal if has_user(principal) else None
+
+
+def is_acting_user(principal: RequestPrincipal, user_id: int | None) -> bool:
+    """Whether ``user_id`` is the user behind the caller. False when there is none."""
+    acting = acting_user_id(principal)
+    return acting is not None and acting == user_id
+
+
+def owned_by_acting_user(principal: RequestPrincipal, field: str = "user_id") -> Q:
+    """
+    Rows that belong to the user behind the caller: ``filter()`` it for "mine", ``exclude()``
+    it for "not mine". With no user it matches nothing, so None never reaches a lookup.
+    """
+    user_id = acting_user_id(principal)
+    return Q(**{field: user_id}) if user_id is not None else Q(pk__in=[])
 
 
 def resolve_actor(user: Any, auth: Any) -> Actor | None:
