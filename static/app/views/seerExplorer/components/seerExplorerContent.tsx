@@ -6,6 +6,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from 'react';
 import styled from '@emotion/styled';
@@ -60,13 +61,16 @@ import {
   PendingUserInputDock,
   PendingUserInputPicker,
 } from 'sentry/views/seerExplorer/components/pendingUserInputDock';
+import {RunChangesView} from 'sentry/views/seerExplorer/components/runChangesView';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {useChatSuggestions} from 'sentry/views/seerExplorer/hooks/useChatSuggestions';
 import {useCopySessionDataToClipboard} from 'sentry/views/seerExplorer/hooks/useCopySessionDataToClipboard';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
+import {usePullRequestDiffs} from 'sentry/views/seerExplorer/hooks/usePullRequestDiffs';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
 import {useStartInvestigation} from 'sentry/views/seerExplorer/hooks/useStartInvestigation';
+import {getRunChanges} from 'sentry/views/seerExplorer/runChanges';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
@@ -552,6 +556,25 @@ export function SeerExplorerContent({
     () => sessionData?.repo_pr_states ?? {},
     [sessionData?.repo_pr_states]
   );
+  const prDiffs = usePullRequestDiffs({
+    organizationSlug: organization?.slug ?? '',
+    repoPRStates,
+    // The PR bar that shows them only exists when Seer opens PRs.
+    enabled: !!organization?.features.includes('ask-seer-create-pr'),
+  });
+  const runChanges = useMemo(
+    () => getRunChanges(blocks, repoPRStates, prDiffs),
+    [blocks, repoPRStates, prDiffs]
+  );
+  // The repo whose diff takes over the panel. Tied to its run so switching runs closes it.
+  const [changesView, setChangesView] = useState<{
+    repoName: string;
+    runId: SeerExplorerRunId | null;
+  } | null>(null);
+  const openChanges =
+    changesView?.runId === runId
+      ? (runChanges.find(changes => changes.repoName === changesView.repoName) ?? null)
+      : null;
 
   // Menu component
   const {menu, closeMenu} = useExplorerMenu({
@@ -611,6 +634,17 @@ export function SeerExplorerContent({
     blocks.length,
     clearInput,
   ]);
+
+  const handlePushChanges = useCallback(
+    (message: string) => {
+      if (isPolling) {
+        return;
+      }
+      sendMessage(message, blocks.length);
+      userScrolledUpRef.current = false;
+    },
+    [isPolling, sendMessage, blocks.length]
+  );
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (e.defaultPrevented || e.nativeEvent.isComposing) {
@@ -814,112 +848,129 @@ export function SeerExplorerContent({
         {showSlackUpgradeAlert && (
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
-        <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-          {showEmptyState ? (
-            <EmptyState
-              isLoading={isPolling}
-              isError={showLoadError}
-              errorStatusCode={errorStatusCode}
-              onStartNewChat={showLoadError ? handleStartNewChat : undefined}
-              runId={runId}
-              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-              onSuggestionClick={readOnly ? undefined : handleSuggestionClick}
-              suggestions={suggestions}
-            />
-          ) : (
-            <Fragment>
-              <SeerExplorerTranscript
-                blocks={blocks}
-                runId={runId}
-                getPageReferrer={getPageReferrer}
-                interactionPending={
-                  isFileApprovalPending ||
-                  isAgentWriteApprovalPending ||
-                  isQuestionPending ||
-                  showReauth
-                }
-                pendingInput={pendingInput}
-                readOnly={readOnly}
-                showThinking={showThinking}
-              />
-              {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
-            </Fragment>
-          )}
-        </BlocksContainer>
-        {isTimedOut && (
-          <Container padding="0 xl">
-            <Alert
-              variant="warning"
-              trailingItems={
-                retryTarget &&
-                !readOnly && (
-                  <Alert.Button
-                    variant="secondary"
-                    icon={<IconRefresh />}
-                    onClick={handleRetry}
-                  >
-                    {t('Retry')}
-                  </Alert.Button>
-                )
+        <Stack flex="1" minHeight="0" position="relative">
+          {/* Kept mounted under the diff view so the scroll position and draft survive. */}
+          <Stack flex="1" minHeight="0" inert={openChanges ? true : undefined}>
+            <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
+              {showEmptyState ? (
+                <EmptyState
+                  isLoading={isPolling}
+                  isError={showLoadError}
+                  errorStatusCode={errorStatusCode}
+                  onStartNewChat={showLoadError ? handleStartNewChat : undefined}
+                  runId={runId}
+                  displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
+                  onSuggestionClick={readOnly ? undefined : handleSuggestionClick}
+                  suggestions={suggestions}
+                />
+              ) : (
+                <Fragment>
+                  <SeerExplorerTranscript
+                    blocks={blocks}
+                    runId={runId}
+                    getPageReferrer={getPageReferrer}
+                    interactionPending={
+                      isFileApprovalPending ||
+                      isAgentWriteApprovalPending ||
+                      isQuestionPending ||
+                      showReauth
+                    }
+                    pendingInput={pendingInput}
+                    readOnly={readOnly}
+                    showThinking={showThinking}
+                  />
+                  {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
+                </Fragment>
+              )}
+            </BlocksContainer>
+            {isTimedOut && (
+              <Container padding="0 xl">
+                <Alert
+                  variant="warning"
+                  trailingItems={
+                    retryTarget &&
+                    !readOnly && (
+                      <Alert.Button
+                        variant="secondary"
+                        icon={<IconRefresh />}
+                        onClick={handleRetry}
+                      >
+                        {t('Retry')}
+                      </Alert.Button>
+                    )
+                  }
+                >
+                  <Text>{t('Response timed out.')}</Text>
+                </Alert>
+              </Container>
+            )}
+            {requestErrorAlert}
+            {!showEmptyState && (
+              <PendingUserInputDock>
+                <PendingUserInputPicker
+                  isAwaitingUserInput={isAwaitingUserInput}
+                  pendingInput={pendingInput}
+                  pendingUserInputState={pendingUserInputState}
+                  readOnly={readOnly}
+                  respondToUserInput={respondToUserInput}
+                  runId={runId}
+                />
+              </PendingUserInputDock>
+            )}
+            <InputSection
+              enabled={!readOnly && !showLoadError}
+              disabledPlaceholder={
+                showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
               }
-            >
-              <Text>{t('Response timed out.')}</Text>
-            </Alert>
-          </Container>
-        )}
-        {requestErrorAlert}
-        {!showEmptyState && (
-          <PendingUserInputDock>
-            <PendingUserInputPicker
-              isAwaitingUserInput={isAwaitingUserInput}
-              pendingInput={pendingInput}
-              pendingUserInputState={pendingUserInputState}
-              readOnly={readOnly}
-              respondToUserInput={respondToUserInput}
+              inputValue={inputValue}
+              canSendMessage={canSendMessage}
+              interruptState={interruptState}
+              onInputChange={handleInputChange}
+              onInputClick={handleInputClick}
+              onInterrupt={interruptRun}
+              onKeyDown={handleInputKeyDown}
+              onSend={handleSend}
+              repoPRStates={repoPRStates}
+              runChanges={runChanges}
+              isAgentBusy={isPolling}
+              onPushChanges={readOnly || showLoadError ? undefined : handlePushChanges}
+              onOpenChanges={repoName => {
+                closeMenu();
+                setChangesView({repoName, runId});
+              }}
               runId={runId}
+              composerRef={composerRef}
+              fileApprovalActions={
+                isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+                  ? {
+                      currentIndex: fileApprovalIndex,
+                      totalPatches: fileApprovalTotalPatches,
+                      onApprove: handleFileApprovalApprove,
+                      onReject: handleFileApprovalReject,
+                    }
+                  : undefined
+              }
+              questionActions={
+                isQuestionPending && currentQuestion
+                  ? {
+                      currentIndex: questionIndex,
+                      totalQuestions,
+                      canSubmit: canSubmitQuestion,
+                      onNext: handleQuestionNext,
+                      onBack: handleQuestionBack,
+                      onMoveUp: handleQuestionMoveUp,
+                      onMoveDown: handleQuestionMoveDown,
+                    }
+                  : undefined
+              }
             />
-          </PendingUserInputDock>
-        )}
-        <InputSection
-          enabled={!readOnly && !showLoadError}
-          disabledPlaceholder={
-            showLoadError ? t('Start a new chat to keep talking to Seer') : undefined
-          }
-          inputValue={inputValue}
-          canSendMessage={canSendMessage}
-          interruptState={interruptState}
-          onInputChange={handleInputChange}
-          onInputClick={handleInputClick}
-          onInterrupt={interruptRun}
-          onKeyDown={handleInputKeyDown}
-          onSend={handleSend}
-          repoPRStates={repoPRStates}
-          runId={runId}
-          composerRef={composerRef}
-          fileApprovalActions={
-            isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
-              ? {
-                  currentIndex: fileApprovalIndex,
-                  totalPatches: fileApprovalTotalPatches,
-                  onApprove: handleFileApprovalApprove,
-                  onReject: handleFileApprovalReject,
-                }
-              : undefined
-          }
-          questionActions={
-            isQuestionPending && currentQuestion
-              ? {
-                  currentIndex: questionIndex,
-                  totalQuestions,
-                  canSubmit: canSubmitQuestion,
-                  onNext: handleQuestionNext,
-                  onBack: handleQuestionBack,
-                  onMoveUp: handleQuestionMoveUp,
-                  onMoveDown: handleQuestionMoveDown,
-                }
-              : undefined
-          }
-        />
+          </Stack>
+          {openChanges && (
+            <Container position="absolute" inset="0" background="primary">
+              <RunChangesView changes={openChanges} onBack={() => setChangesView(null)} />
+            </Container>
+          )}
+        </Stack>
       </Stack>
     </AutofixChatProvider>
   );
