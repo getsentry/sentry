@@ -133,7 +133,6 @@ export function ToolbarVisualizeDropdown({
             label: stripNamePrefix(savedFormula.name),
             value: savedFormula.name,
             textValue: savedFormula.name,
-            details: savedFormula.description,
             disabled: buildFormulaYAxis(savedFormula, formulaDefaultColumn) === null,
             trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,
           })),
