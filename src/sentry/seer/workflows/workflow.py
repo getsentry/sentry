@@ -26,6 +26,7 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.utils import json
+from sentry.workflow_engine.models import DetectorWorkflow
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -203,18 +204,6 @@ class SeerWorkflow:
         return replica
 
     def set_project_selection(self, selection: ProjectSelection) -> None:
-        with self._lock_config() as config:
-            if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and isinstance(
-                selection, SelectedProjects
-            ):
-                raise ValueError("Breached metric projects are selected by connecting monitors")
-            self._apply_project_selection(config, selection)
-            config.version += 1
-            config.save(update_fields=["filters", "version", "date_updated"])
-
-    @staticmethod
-    def _apply_project_selection(config: SeerWorkflowConfig, selection: ProjectSelection) -> None:
-        """Apply to a locked config; the caller saves it and increments its version."""
         match selection:
             case AllProjects():
                 all_projects = True
@@ -225,24 +214,29 @@ class SeerWorkflow:
             case _:
                 assert_never(selection)
 
-        valid_project_ids = set(
-            Project.objects.filter(
-                organization_id=config.organization_id, id__in=project_ids
-            ).values_list("id", flat=True)
-        )
-        if project_ids != valid_project_ids:
-            raise ValueError("Selected projects must exist in the workflow's organization")
+        with self._lock_config() as config:
+            if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                raise ValueError("Breached metric projects are selected by connecting monitors")
+            valid_project_ids = set(
+                Project.objects.filter(
+                    organization_id=config.organization_id, id__in=project_ids
+                ).values_list("id", flat=True)
+            )
+            if project_ids != valid_project_ids:
+                raise ValueError("Selected projects must exist in the workflow's organization")
 
-        SeerWorkflowConfigProject.objects.filter(config=config).delete()
-        SeerWorkflowConfigProject.objects.bulk_create(
-            [
-                SeerWorkflowConfigProject(config=config, project_id=project_id)
-                for project_id in sorted(project_ids)
-            ]
-        )
-        filters = SeerWorkflowFilters.parse_obj(config.filters)
-        filters.all_projects = all_projects
-        config.filters = config.filters | filters.dict()
+            SeerWorkflowConfigProject.objects.filter(config=config).delete()
+            SeerWorkflowConfigProject.objects.bulk_create(
+                [
+                    SeerWorkflowConfigProject(config=config, project_id=project_id)
+                    for project_id in sorted(project_ids)
+                ]
+            )
+            filters = SeerWorkflowFilters.parse_obj(config.filters)
+            filters.all_projects = all_projects
+            config.filters = config.filters | filters.dict()
+            config.version += 1
+            config.save(update_fields=["filters", "version", "date_updated"])
 
     @contextmanager
     def _lock_config(self) -> Iterator[SeerWorkflowConfig]:
@@ -281,6 +275,16 @@ def _get_projects(config: SeerWorkflowConfig) -> QuerySet[Project]:
     projects = Project.objects.filter(
         organization_id=config.organization_id, status=ObjectStatus.ACTIVE
     )
+    if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+        if config.backing_workflow_id is None:
+            return projects.none()
+        return projects.filter(
+            id__in=DetectorWorkflow.objects.filter(
+                workflow_id=config.backing_workflow_id,
+                workflow__status=ObjectStatus.ACTIVE,
+                detector__status=ObjectStatus.ACTIVE,
+            ).values("detector__project_id")
+        )
     if not SeerWorkflowFilters.parse_obj(config.filters).all_projects:
         projects = projects.filter(
             id__in=SeerWorkflowConfigProject.objects.filter(config=config).values("project_id")
