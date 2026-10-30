@@ -45,6 +45,7 @@ const defaultReaderResult = {
 
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
+    // The replay layout picks its default from the secondary nav's state
     <SecondaryNavigationContextProvider>
       <TopBar.Slot.Provider>
         <TopBar.Slot.Outlet name="title">
