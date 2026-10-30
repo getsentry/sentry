@@ -119,6 +119,7 @@ export interface DetailedProject extends ProjectSummary {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
+  enableNativeSourceServerMapping?: boolean;
   highlightContext?: Record<string, string[]>;
   highlightPreset?: {
     context: Record<string, string[]>;
