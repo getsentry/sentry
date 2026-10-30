@@ -333,20 +333,25 @@ function EditConnectedMonitorsContent({
   setConnectedIds,
 }: ContentProps) {
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
+  const specificMonitorIds = useRef<Automation['detectorIds']>([]);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
+      // Keep the selection outside the form while another source mode is active.
+      if (monitorMode === 'specific') {
+        specificMonitorIds.current = connectedIds;
+      }
       setMonitorMode(newMode);
-      setConnectedIds([]);
+      setConnectedIds(newMode === 'specific' ? specificMonitorIds.current : []);
       form?.setValue('projectIds', []);
       form?.setValue('allProjects', newMode === 'allProjects');
       if (newMode === 'allProjects') {
         errorContext?.removeError(CONNECTED_MONITORS_ERROR_ID);
       }
     },
-    [errorContext, form, setConnectedIds]
+    [connectedIds, errorContext, form, monitorMode, setConnectedIds]
   );
   const handleProjectChange = useCallback(
     (projectIds: string[]) => {
