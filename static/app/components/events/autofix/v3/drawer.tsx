@@ -1,5 +1,6 @@
 import {Stack} from '@sentry/scraps/layout';
 
+import {isSingleRunAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerDrawerBody} from 'sentry/components/events/autofix/v3/body';
 import {SeerDrawerContent} from 'sentry/components/events/autofix/v3/content';
 import {SeerDrawerHeader} from 'sentry/components/events/autofix/v3/header';
@@ -29,6 +30,7 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
     warnings,
   } = useSeerPanel({group, project});
   const {containerRef, onScrollHandler} = useAutoScroll({key: runState});
+  const isSingleRun = isSingleRunAutofix(runState) && !aiConfig.isAutofixSetupLoading;
 
   return (
     <Stack
@@ -48,17 +50,21 @@ export function SeerDrawer({group, project}: SeerDrawerProps) {
         referrer={referrer}
       />
       <AutofixWarnings warnings={warnings} groupId={group.id} />
-      <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
-        {aiConfig.isAutofixSetupLoading ? (
-          <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
-            <Placeholder height="10rem" />
-            <Placeholder height="15rem" />
-            <Placeholder height="15rem" />
-          </Stack>
-        ) : (
-          <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
-        )}
-      </SeerDrawerBody>
+      {isSingleRun ? (
+        <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
+      ) : (
+        <SeerDrawerBody ref={containerRef} onScroll={onScrollHandler}>
+          {aiConfig.isAutofixSetupLoading ? (
+            <Stack data-test-id="ai-setup-loading-indicator" gap="xl">
+              <Placeholder height="10rem" />
+              <Placeholder height="15rem" />
+              <Placeholder height="15rem" />
+            </Stack>
+          ) : (
+            <SeerDrawerContent group={group} autofix={autofix} aiConfig={aiConfig} />
+          )}
+        </SeerDrawerBody>
+      )}
     </Stack>
   );
 }
