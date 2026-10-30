@@ -224,7 +224,7 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '4'
+      XDIST_WORKERS: '3'
       # Set to '1' to sample pytest and its xdist workers with py-spy (adds ~0.4 cores of overhead).
       PROFILE_BACKEND_TESTS: '0'
 
@@ -264,10 +264,7 @@ jobs:
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
               -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
-              -c fsync=off -c synchronous_commit=off -c full_page_writes=off \
-              -c autovacuum=off -c log_connections=on -c log_autovacuum_min_duration=0
-          # autovacuum=off: it ran ~190 vacuums/analyzes per shard during tests, and
-          # rows from a few minutes of rolled-back tests don't need vacuuming.
+              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
           # docker run -d returns 0 even if postgres dies right after — bound the
           # wait so a crashing postgres surfaces fast instead of hitting the job
           # timeout silently.
