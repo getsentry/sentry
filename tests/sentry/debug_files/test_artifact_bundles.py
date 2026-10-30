@@ -16,6 +16,7 @@ from sentry.debug_files.artifact_bundles import (
     get_bundles_indexing_state,
     get_cached_bundles_indexing_state,
     get_redis_cluster_for_artifact_bundles,
+    index_artifact_bundles_for_release,
     index_urls_in_bundle,
     query_artifact_bundles_containing_file,
     renew_artifact_bundle,
@@ -30,6 +31,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
     SourceFileType,
 )
+from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
@@ -1170,3 +1172,24 @@ class RenewArtifactBundleTest(TestCase):
 
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
         assert self.linked_dates() == {self.old_date}
+
+
+class IndexArtifactBundlesForReleaseTest(TestCase):
+    def test_skips_bundle_whose_file_was_deleted(self) -> None:
+        artifact_bundle = self.create_artifact_bundle()
+        # Delete the backing File via queryset to simulate a race condition where
+        # cleanup removes the file before the indexing task runs. We deliberately
+        # avoid accessing `artifact_bundle.file` directly so that Django's FK
+        # cache is never populated; otherwise the cached in-memory object would
+        # be returned and File.DoesNotExist would never be raised.
+        File.objects.filter(id=artifact_bundle.file_id).delete()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.sentry_sdk") as mock_sdk,
+            patch("sentry.debug_files.artifact_bundles.metrics") as mock_metrics,
+        ):
+            # Should not raise; the deleted-file case must be handled gracefully.
+            index_artifact_bundles_for_release(self.organization.id, [(artifact_bundle, None)])
+
+        mock_sdk.capture_exception.assert_not_called()
+        mock_metrics.incr.assert_any_call("artifact_bundle_indexing.bundle_file_deleted")
