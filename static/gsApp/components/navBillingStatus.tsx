@@ -91,7 +91,11 @@ function getPaygIneligibleBodyCopy(
 const MAX_LISTED_RECIPIENTS = 3;
 
 function QuotaRequestRecipients() {
-  const {data: billingMembers = []} = useBillingMembers();
+  const {data: members = []} = useBillingMembers();
+  // The request email only reaches members who have joined the org
+  const billingMembers = members.filter(
+    member => !member.pending && member.inviteStatus === 'approved'
+  );
 
   if (billingMembers.length === 0) {
     return (
