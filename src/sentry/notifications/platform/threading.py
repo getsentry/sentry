@@ -168,7 +168,7 @@ class ThreadingService:
             return None
 
     @staticmethod
-    def _get_or_create_thread(
+    def _get_or_create_thread_with_key(
         threading_config: ThreadingConfig, thread_key: str
     ) -> NotificationThread:
         thread, _created = NotificationThread.objects.get_or_create(
@@ -186,24 +186,6 @@ class ThreadingService:
             },
         )
         return thread
-
-    @staticmethod
-    def _create_thread_and_record(
-        threading_config: ThreadingConfig,
-        external_message_id: str,
-        thread_key: str,
-    ) -> tuple[NotificationThread, NotificationRecord]:
-        with transaction.atomic(router.db_for_write(NotificationThread)):
-            thread = ThreadingService._get_or_create_thread(threading_config, thread_key)
-
-            record = NotificationRecord.objects.create(
-                thread=thread,
-                provider_key=threading_config["provider_key"],
-                target_id=threading_config["target_id"],
-                message_id=external_message_id,
-            )
-
-            return thread, record
 
     @staticmethod
     def store_new_thread(
@@ -224,9 +206,17 @@ class ThreadingService:
         thread_key = ThreadingService.compute_thread_key(
             threading_config["key_type"], threading_config["key_data"]
         )
-        return ThreadingService._create_thread_and_record(
-            threading_config, external_message_id, thread_key
-        )
+        with transaction.atomic(router.db_for_write(NotificationThread)):
+            thread = ThreadingService._get_or_create_thread_with_key(threading_config, thread_key)
+
+            record = NotificationRecord.objects.create(
+                thread=thread,
+                provider_key=threading_config["provider_key"],
+                target_id=threading_config["target_id"],
+                message_id=external_message_id,
+            )
+
+            return thread, record
 
     @staticmethod
     def get_or_create_thread(*, threading_config: ThreadingConfig) -> NotificationThread:
@@ -237,7 +227,7 @@ class ThreadingService:
         thread_key = ThreadingService.compute_thread_key(
             threading_config["key_type"], threading_config["key_data"]
         )
-        return ThreadingService._get_or_create_thread(threading_config, thread_key)
+        return ThreadingService._get_or_create_thread_with_key(threading_config, thread_key)
 
     @staticmethod
     def get_threads_for_object(
