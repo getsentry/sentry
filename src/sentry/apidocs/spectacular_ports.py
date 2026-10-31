@@ -129,6 +129,8 @@ def resolve_type_hint(hint) -> Any:
     origin, args = _get_type_hint_origin(hint)
     excluded_fields = get_override(hint, "exclude_fields", [])
 
+    if hint is object:
+        return build_basic_type(OpenApiTypes.OBJECT)
     if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):
@@ -140,7 +142,7 @@ def resolve_type_hint(hint) -> Any:
         else:
             properties = {k: build_basic_type(OpenApiTypes.ANY) for k in hint._fields}  # type: ignore[attr-defined]
         return build_object_type(properties=properties, required=properties.keys())
-    elif origin is list or hint is list:
+    elif origin is list or hint is list or origin is collections.abc.Sequence:
         return build_array_type(
             _resolve_at(args[0], "items") if args else build_basic_type(OpenApiTypes.ANY)
         )
@@ -150,7 +152,7 @@ def resolve_type_hint(hint) -> Any:
             max_length=len(args),
             min_length=len(args),
         )
-    elif origin is dict or origin is defaultdict:
+    elif origin is dict or origin is defaultdict or origin is collections.abc.Mapping:
         schema = build_basic_type(OpenApiTypes.OBJECT)
         if args and args[1] is not typing.Any and schema is not None:
             schema["additionalProperties"] = _resolve_at(args[1], "additionalProperties")
