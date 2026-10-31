@@ -130,7 +130,7 @@ def resolve_type_hint(hint) -> Any:
     excluded_fields = get_override(hint, "exclude_fields", [])
 
     if hint is object:
-        return build_basic_type(OpenApiTypes.OBJECT)
+        return build_basic_type(OpenApiTypes.ANY)
     if origin is None and is_basic_type(hint, allow_none=False):
         return build_basic_type(hint)
     elif origin is None and inspect.isclass(hint) and issubclass(hint, tuple):

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections.abc import Mapping
 from typing import Literal, NotRequired, Protocol, TypedDict, cast
 
