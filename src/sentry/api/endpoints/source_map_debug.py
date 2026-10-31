@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Annotated, Any, Literal, NamedTuple, TypedDict, cast
+from typing import Annotated, Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
