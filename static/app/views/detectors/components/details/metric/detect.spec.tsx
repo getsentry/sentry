@@ -4,7 +4,7 @@ import {
   SnubaQueryDataSourceFixture,
 } from 'sentry-fixture/detectors';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   DataConditionGroupLogicType,
@@ -76,20 +76,29 @@ describe('MetricDetectorDetailsDetect', () => {
 
     await userEvent.hover(screen.getByText('A + B'));
 
+    const table = await screen.findByRole('table', {name: 'Aggregate summary'});
+
     // Each aggregate is broken out under its own header
-    expect(await screen.findByText('Application Metric')).toBeInTheDocument();
-    expect(screen.getByText('Operation')).toBeInTheDocument();
-    expect(screen.getByText('Filter')).toBeInTheDocument();
-
-    // A: `_if` split into an operation and a filter
-    expect(screen.getByText('page.view')).toBeInTheDocument();
-    expect(screen.getByText('sum')).toBeInTheDocument();
-    expect(screen.getByText('user.id:bc')).toBeInTheDocument();
-
-    // B: unfiltered, so it reads as an em dash
-    expect(screen.getByText('checkout')).toBeInTheDocument();
-    expect(screen.getByText('per_minute')).toBeInTheDocument();
-    expect(screen.getByText('\u2014')).toBeInTheDocument();
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['', 'Application Metric', 'Operation', 'Filter']);
+    expect(
+      within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .map(row =>
+          within(row)
+            .getAllByRole('cell')
+            .map(cell => cell.textContent)
+        )
+    ).toEqual([
+      // A: `_if` split into an operation and a filter
+      ['A', 'page.view', 'sum', 'user.id:bc'],
+      // B: unfiltered, so it reads as an em dash
+      ['B', 'checkout', 'per_minute', '\u2014'],
+    ]);
   });
 
   it('tightens parentheses in the compact equation', () => {

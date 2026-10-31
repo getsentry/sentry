@@ -1,4 +1,8 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
+import {createRoot} from 'react-dom/client';
+import {
+  MetricDetectorFixture,
+  SnubaQueryDataSourceFixture,
+} from 'sentry-fixture/detectors';
 import {EventsStatsFixture} from 'sentry-fixture/events';
 import {
   GroupOpenPeriodActivityFixture,
@@ -7,10 +11,12 @@ import {
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
+  act,
   render,
   renderHookWithProviders,
   screen,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -21,11 +27,18 @@ import {
 import {
   AlertRuleSensitivity,
   AlertRuleThresholdType,
+  Dataset,
+  EventTypes,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   MetricDetectorDetailsChart,
   useMetricDetectorChart,
 } from 'sentry/views/detectors/components/details/metric/chart';
+
+jest.mock('react-dom/client', () => {
+  const actual = jest.requireActual('react-dom/client');
+  return {...actual, createRoot: jest.fn(actual.createRoot)};
+});
 
 describe('MetricDetectorDetailsChart', () => {
   const detector = MetricDetectorFixture();
@@ -181,5 +194,86 @@ describe('useMetricDetectorChart', () => {
         ]),
       });
     });
+  });
+
+  async function renderEquationChart() {
+    const equationDetector = MetricDetectorFixture({
+      dataSources: [
+        SnubaQueryDataSourceFixture({
+          queryObj: {
+            id: '1',
+            status: 1,
+            subscription: '1',
+            snubaQuery: {
+              aggregate:
+                'equation|sum_if(`user.id:bc`,value,page.view,counter,none) + per_minute(value,checkout,counter,none)',
+              dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+              eventTypes: [EventTypes.TRACE_ITEM_METRIC],
+              id: '',
+              query: '',
+              timeWindow: 3600,
+            },
+          },
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: EventsStatsFixture(),
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useMetricDetectorChart({detector: equationDetector, openPeriods: []})
+    );
+
+    await waitFor(() => expect(result.current.chartProps).not.toBeNull());
+
+    const seriesNames =
+      result.current.chartProps?.series.map(series => series.seriesName) ?? [];
+
+    return () =>
+      act(
+        () =>
+          result.current.chartProps?.tooltip?.renderSeriesDetails?.(seriesNames, 0) ?? ''
+      );
+  }
+
+  it('renders the equation summary table into the series tooltip', async () => {
+    const renderSeriesDetails = await renderEquationChart();
+
+    const tooltip = document.createElement('div');
+    tooltip.innerHTML = await renderSeriesDetails();
+    const table = within(tooltip).getByRole('table', {name: 'Aggregate summary'});
+
+    expect(
+      within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.textContent)
+    ).toEqual(['', 'Application Metric', 'Operation', 'Filter']);
+    expect(
+      within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .map(row =>
+          within(row)
+            .getAllByRole('cell')
+            .map(cell => cell.textContent)
+        )
+    ).toEqual([
+      ['A', 'page.view', 'sum', 'user.id:bc'],
+      ['B', 'checkout', 'per_minute', '\u2014'],
+    ]);
+  });
+
+  it('mounts the equation summary table once across tooltip updates', async () => {
+    const renderSeriesDetails = await renderEquationChart();
+
+    const first = await renderSeriesDetails();
+    const rootsAfterFirst = jest.mocked(createRoot).mock.calls.length;
+    const later = [await renderSeriesDetails(), await renderSeriesDetails()];
+
+    expect(later).toEqual([first, first]);
+    expect(jest.mocked(createRoot).mock.calls).toHaveLength(rootsAfterFirst);
   });
 });

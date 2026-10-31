@@ -25,7 +25,7 @@ function useMyTooltipFormatter() {
 }
 ```
 
-`useRenderToString` is a hook that returns a `(tree: ReactNode) => string` function. It automatically wraps the tree in a `ThemeProvider` so Emotion styles and theme tokens resolve correctly.
+`useRenderToString` is a hook that returns a `(tree: ReactNode) => string` function. It automatically wraps the tree in the caller's Emotion cache and a `ThemeProvider`, so Emotion styles and theme tokens resolve the same way they do in the app.
 
 ## When to use
 
