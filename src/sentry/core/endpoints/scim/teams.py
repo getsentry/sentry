@@ -33,6 +33,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.core.endpoints.organization_teams import CONFLICTING_SLUG_ERROR, TeamPostSerializer
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
@@ -295,7 +296,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
 
                 team_created.send_robust(
                     organization_id=organization.id,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                     team_id=team.id,
                     sender=None,
                 )

@@ -17,6 +17,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
+from sentry.auth.principal import acting_user_id
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -206,7 +207,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
                 "broadcasts.create",
                 extra={
                     "ip_address": request.META["REMOTE_ADDR"],
-                    "user_id": request.user.id,
+                    "user_id": acting_user_id(request.user),
                     "broadcast_id": broadcast.id,
                 },
             )
