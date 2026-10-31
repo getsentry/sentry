@@ -13,7 +13,7 @@ from sentry.taskworker.namespaces import integrations_tasks
     silo_mode=SiloMode.CELL,
 )
 @track_group_async_operation
-def kick_off_status_syncs(project_id: int, group_id: int) -> None:
+def kick_off_status_syncs(project_id: int, group_id: int, is_resolved: bool | None = None) -> None:
     """This is run async to avoid extra queries in the EventManager."""
     from sentry.integrations.tasks.sync_status_outbound import sync_status_outbound
 
@@ -22,6 +22,10 @@ def kick_off_status_syncs(project_id: int, group_id: int) -> None:
     ).values_list("linked_id", flat=True)
 
     for external_issue_id in external_issue_ids:
-        sync_status_outbound.apply_async(
-            kwargs={"group_id": group_id, "external_issue_id": external_issue_id}
-        )
+        kwargs: dict[str, int | bool] = {
+            "group_id": group_id,
+            "external_issue_id": external_issue_id,
+        }
+        if is_resolved is not None:
+            kwargs["is_resolved"] = is_resolved
+        sync_status_outbound.apply_async(kwargs=kwargs)
