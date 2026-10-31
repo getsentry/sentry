@@ -3,6 +3,7 @@ from hashlib import sha1
 from io import BytesIO
 from unittest.mock import patch
 
+from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -10,6 +11,8 @@ from sentry.data_export.base import ExportQueryType, ExportStatus
 from sentry.data_export.models import ExportedData
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DataExportDetailsTest(APITestCase):
@@ -130,6 +133,24 @@ class DataExportDetailsTest(APITestCase):
         url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
         response = self.client.get(f"{url}?download")
         assert response.status_code == 404
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_access_members_export(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["event:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        url = reverse(self.endpoint, args=[self.organization.slug, self.data_export.id])
+        response = self.client.get(url, HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 404, response.content
 
     def test_content_errors(self) -> None:
         self.data_export = ExportedData.objects.create(

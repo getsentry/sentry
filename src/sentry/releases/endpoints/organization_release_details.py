@@ -42,6 +42,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG
 from sentry.issues.action_log import (
     action_context_scope,
@@ -586,7 +587,7 @@ class OrganizationReleaseDetailsEndpoint(
                 )
             fetch_commits = not commit_list
             try:
-                release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                release.set_refs(refs, acting_user_id(request.user), fetch=fetch_commits)
             except InvalidRepository as e:
                 scope.set_tag("failure_reason", "InvalidRepository")
                 scope.set_attribute("failure_reason", "InvalidRepository")

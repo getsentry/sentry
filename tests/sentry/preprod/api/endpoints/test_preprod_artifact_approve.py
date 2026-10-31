@@ -1,5 +1,6 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
@@ -9,6 +10,8 @@ from sentry.testutils.helpers.analytics import (
     assert_any_analytics_event,
     assert_not_analytics_event,
 )
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationPreprodArtifactApproveTest(APITestCase):
@@ -71,6 +74,33 @@ class OrganizationPreprodArtifactApproveTest(APITestCase):
                 source="web",
             ),
         )
+
+    @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.create_preprod_status_check_task")
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_approves_with_no_approver(self, mock_task: MagicMock) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["project:releases"], project_ids=[self.project_b.id]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.post(
+            self._approve_url(self.artifact.id),
+            data={"feature_type": "size"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 201, response.content
+        approval = PreprodComparisonApproval.objects.get(preprod_artifact=self.artifact)
+        assert approval.approval_status == PreprodComparisonApproval.ApprovalStatus.APPROVED
+        assert approval.approved_by_id is None
 
     @patch("sentry.preprod.api.endpoints.preprod_artifact_approve.update_preprod_snapshot_vcs")
     @patch("sentry.analytics.record")

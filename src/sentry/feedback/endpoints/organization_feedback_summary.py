@@ -11,6 +11,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationUserReportsPermission
 from sentry.api.utils import get_date_range_from_stats_period
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidParams
 from sentry.feedback.lib.seer_api import SummarizeFeedbacksRequest, make_summarize_feedbacks_request
 from sentry.grouping.utils import hash_from_values
@@ -95,7 +96,9 @@ class OrganizationFeedbackSummaryEndpoint(OrganizationEndpoint):
                 {"detail": "AI summaries are not available for this organization."}, status=403
             )
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
 
         try:
             start, end = get_date_range_from_stats_period(
