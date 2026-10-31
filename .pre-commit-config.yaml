@@ -75,6 +75,12 @@ repos:
         entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
         files: ^pyproject\.toml$
         language: python
+      - id: check-typing-campaign
+        name: check typing campaign gates
+        entry: python3 -m tools.mypy_helpers.check_typing_campaign
+        language: python
+        types: [python]
+        require_serial: true
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
