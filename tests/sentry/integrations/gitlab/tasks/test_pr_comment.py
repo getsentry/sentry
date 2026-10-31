@@ -13,18 +13,21 @@ from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
     PullRequestComment,
     PullRequestCommit,
 )
+from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -61,10 +64,10 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.commit_sha = 1
         self.fingerprint = 1
 
-    def add_commit_to_repo(self, repo, user, project):
+    def add_commit_to_repo(self, repo: Repository, user: User, project: Project) -> Commit:
         if user not in self.user_to_commit_author_map:
             self.user_to_commit_author_map[user] = self.create_commit_author(
-                project=repo.project, user=user
+                project=project, user=user
             )
         commit = self.create_commit(
             project=project,
@@ -76,7 +79,7 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.commit_sha += 1
         return commit
 
-    def add_pr_to_commit(self, commit: Commit, date_added=None):
+    def add_pr_to_commit(self, commit: Commit, date_added: datetime | None = None) -> PullRequest:
         if date_added is None:
             date_added = before_now(minutes=1)
         pr = PullRequest.objects.create(
@@ -93,11 +96,11 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.add_branch_commit_to_pr(commit, pr)
         return pr
 
-    def add_branch_commit_to_pr(self, commit: Commit, pr: PullRequest):
+    def add_branch_commit_to_pr(self, commit: Commit, pr: PullRequest) -> PullRequestCommit:
         pr_commit = PullRequestCommit.objects.create(pull_request=pr, commit=commit)
         return pr_commit
 
-    def add_groupowner_to_commit(self, commit: Commit, project, user):
+    def add_groupowner_to_commit(self, commit: Commit, project: Project, user: User) -> GroupOwner:
         event = self.store_event(
             data={
                 "message": f"issue {self.fingerprint}",
@@ -118,7 +121,7 @@ class GitlabCommentTestCase(GitLabTestCase):
         )
         return groupowner
 
-    def create_pr_issues(self, repo=None):
+    def create_pr_issues(self, repo: Repository | None = None) -> PullRequest:
         if repo is None:
             repo = self.repo
 

@@ -1,9 +1,16 @@
+from collections.abc import Callable
 from functools import wraps
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 from .helpers import can_reconnect
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def auto_reconnect_cursor(func):
+
+def auto_reconnect_cursor(
+    func: Callable[Concatenate[Any, P], R],
+) -> Callable[Concatenate[Any, P], R]:
     """
     Attempt to safely reconnect when an error is hit that resembles the
     bouncer disconnecting the client due to a timeout/etc during a cursor
@@ -11,7 +18,7 @@ def auto_reconnect_cursor(func):
     """
 
     @wraps(func)
-    def inner(self, *args, **kwargs):
+    def inner(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return func(self, *args, **kwargs)
         except Exception as e:
@@ -26,14 +33,16 @@ def auto_reconnect_cursor(func):
     return inner
 
 
-def auto_reconnect_connection(func):
+def auto_reconnect_connection(
+    func: Callable[Concatenate[Any, P], R],
+) -> Callable[Concatenate[Any, P], R]:
     """
     Attempt to safely reconnect when an error is hit that resembles the
     bouncer disconnecting the client due to a timeout/etc.
     """
 
     @wraps(func)
-    def inner(self, *args, **kwargs):
+    def inner(self: Any, *args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return func(self, *args, **kwargs)
         except Exception as e:

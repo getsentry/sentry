@@ -1,5 +1,6 @@
 import unittest
 from datetime import datetime, timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -493,11 +494,13 @@ class QuantizeTimeTest(unittest.TestCase):
 
 
 class FakeConnectionPool(HTTPConnectionPool):
-    def __init__(self, connection, **kwargs):
+    def __init__(
+        self, connection: object, **kwargs: Any
+    ) -> None:  # justification: urllib3 pool kwargs.
         self.connection = connection
         super().__init__(**kwargs)
 
-    def _new_conn(self):
+    def _new_conn(self) -> Any:
         return self.connection
 
 
@@ -548,7 +551,7 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    def test_rate_limit_error_handling(self, mock_snuba_query) -> None:
+    def test_rate_limit_error_handling(self, mock_snuba_query: mock.MagicMock) -> None:
         """
         Test error handling for rate limit errors creates a RateLimitExceeded exception
         with the correct quota used and rejection threshold
@@ -587,7 +590,9 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    def test_rate_limit_error_handling_without_quota_details(self, mock_snuba_query) -> None:
+    def test_rate_limit_error_handling_without_quota_details(
+        self, mock_snuba_query: mock.MagicMock
+    ) -> None:
         """
         Test that error handling gracefully handles malformed message
         """
@@ -614,7 +619,7 @@ class SnubaQueryRateLimitTest(TestCase):
 
     @mock.patch("sentry.utils.snuba._snuba_query")
     def test_rate_limit_error_handling_with_stats_but_no_quota_details(
-        self, mock_snuba_query
+        self, mock_snuba_query: mock.MagicMock
     ) -> None:
         """
         Test that error handling gracefully handles empty quota_allowance
@@ -642,7 +647,9 @@ class SnubaQueryRateLimitTest(TestCase):
         )
 
     @mock.patch("sentry.utils.snuba._snuba_query")
-    def test_rate_limit_error_handling_throttle_only(self, mock_snuba_query) -> None:
+    def test_rate_limit_error_handling_throttle_only(
+        self, mock_snuba_query: mock.MagicMock
+    ) -> None:
         """
         Test that policy metadata propagates when the 429 came from a throttle:
         rejected_by is empty and throttled_by carries throttle_threshold, with no rejection_threshold
@@ -683,7 +690,9 @@ class SnubaQueryRateLimitTest(TestCase):
 
     @mock.patch("sentry_sdk.set_tag")
     @mock.patch("sentry.utils.snuba._snuba_query")
-    def test_allocation_policy_tags_set_on_rejection(self, mock_snuba_query, mock_set_tag) -> None:
+    def test_allocation_policy_tags_set_on_rejection(
+        self, mock_snuba_query: mock.MagicMock, mock_set_tag: mock.MagicMock
+    ) -> None:
         """A rejected query stamps its allocation_policy.* quota state onto the scope."""
         mock_response = mock.Mock(spec=HTTPResponse)
         mock_response.status = 429
@@ -712,7 +721,7 @@ class SnubaQueryRateLimitTest(TestCase):
     @mock.patch("sentry_sdk.set_tag")
     @mock.patch("sentry.utils.snuba._snuba_query")
     def test_allocation_policy_tags_not_set_when_not_rejected(
-        self, mock_snuba_query, mock_set_tag
+        self, mock_snuba_query: mock.MagicMock, mock_set_tag: mock.MagicMock
     ) -> None:
         mock_response = mock.Mock(spec=HTTPResponse)
         mock_response.status = 200
@@ -736,7 +745,7 @@ class SnubaQueryRateLimitTest(TestCase):
     @mock.patch("sentry_sdk.set_tag")
     @mock.patch("sentry.utils.snuba._snuba_query")
     def test_successful_query_does_not_leak_tags_onto_rate_limited_sibling(
-        self, mock_snuba_query, mock_set_tag
+        self, mock_snuba_query: mock.MagicMock, mock_set_tag: mock.MagicMock
     ) -> None:
         ok_response = mock.Mock(spec=HTTPResponse)
         ok_response.status = 200
@@ -747,14 +756,16 @@ class SnubaQueryRateLimitTest(TestCase):
         rate_limited_response.status = 429
         rate_limited_response.data = json.dumps({"error": {"message": "rate limited"}}).encode()
 
-        def snuba_query(params):
+        def snuba_query(
+            params: Any,
+        ) -> Any:  # justification: mirrors _snuba_query's untyped call shape.
             snuba_request = params[2]
             response = ok_response if snuba_request.referrer == "ok" else rate_limited_response
             return (snuba_request.referrer, response, lambda x: x, lambda x: x)
 
         mock_snuba_query.side_effect = snuba_query
 
-        def make_request(referrer):
+        def make_request(referrer: str) -> SnubaRequest:
             return SnubaRequest(
                 request=self.snuba_request.request,
                 referrer=referrer,
@@ -774,7 +785,7 @@ class SnubaResponseCompressionTest(unittest.TestCase):
         self.addCleanup(mock.patch.stopall)
         self.mock_pool.urlopen.return_value = mock.Mock(status=200, data=b'{"data": []}')
 
-    def _run_query(self, query) -> None:
+    def _run_query(self, query: object) -> None:
         req = mock.Mock(dataset="events", query=query)
         req.serialize.return_value = b"{}"
         _snuba_query(

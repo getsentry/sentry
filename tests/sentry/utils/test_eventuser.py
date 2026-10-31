@@ -238,8 +238,8 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.analytics.record")
     def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_username(
-        self, mock_record
-    ):
+        self, mock_record: mock.MagicMock
+    ) -> None:
         for i in range(10):
             self.store_event(
                 data={
@@ -312,7 +312,7 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
 
     @mock.patch("sentry.utils.eventuser.OVERFETCH_FACTOR", new=2)
     @mock.patch("sentry.analytics.record")
-    def test_for_projects_multiple_query(self, mock_record) -> None:
+    def test_for_projects_multiple_query(self, mock_record: mock.MagicMock) -> None:
         id_1 = "test1"
         email_1 = "test@sentry.io"
         for i in range(6):

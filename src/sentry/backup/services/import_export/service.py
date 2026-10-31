@@ -5,6 +5,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable
+from typing import Any
 
 from django.db.models.base import Model
 
@@ -71,7 +72,9 @@ class ImportExportService(RpcService):
     @staticmethod
     def get_importer_for_model(
         model: type[Model],
-    ) -> Callable:
+    ) -> Callable[
+        ..., Any
+    ]:  # justification: importer implementations have heterogeneous call shapes.
         """
         Called should resolve their implementation of `export_by_model` by calling this method
         first, rather than calling `export_by_model` directly. See this class' comment for more
@@ -103,7 +106,9 @@ class ImportExportService(RpcService):
     @staticmethod
     def get_exporter_for_model(
         model: type[Model],
-    ) -> Callable:
+    ) -> Callable[
+        ..., Any
+    ]:  # justification: importer implementations have heterogeneous call shapes.
         """
         Called should resolve their implementation of `export_by_model` by calling this method
         first, rather than calling `export_by_model` directly. See this class' comment for more

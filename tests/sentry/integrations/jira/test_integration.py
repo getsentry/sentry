@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
@@ -7,10 +7,12 @@ import pytest
 import responses
 from django.test.utils import override_settings
 from django.urls import reverse
+from requests import PreparedRequest
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.stub_service import StubService
 from sentry.constants import ObjectStatus
+from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.jira.integration import (
     JiraIntegrationProvider,
     _build_project_mapping_audit_data,
@@ -45,7 +47,7 @@ pytestmark = [requires_snuba]
 EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
-def get_client():
+def get_client() -> StubJiraApiClient:
     return StubJiraApiClient()
 
 
@@ -649,8 +651,8 @@ class RegionJiraIntegrationTest(APITestCase):
 
     @patch("sentry.integrations.jira.integration.JiraIntegration.fetch_issue_create_meta")
     def test_get_create_issue_config_with_default_project_deleted(
-        self, mock_fetch_issue_create_meta
-    ):
+        self, mock_fetch_issue_create_meta: mock.MagicMock
+    ) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,
@@ -948,8 +950,8 @@ class RegionJiraIntegrationTest(APITestCase):
             content_type="json",
         )
 
-        def responder(request):
-            body = json.loads(request.body)
+        def responder(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            body = json.loads(cast("str | bytes", request.body))
             assert body["fields"]["labels"] == ["fuzzy", "bunnies"]
             assert body["fields"]["customfield_10200"] == {"value": "sad"}
             assert body["fields"]["customfield_10300"] == [
@@ -1041,8 +1043,8 @@ class RegionJiraIntegrationTest(APITestCase):
         )
         search_url = "https://example.atlassian.net/rest/api/2/user/assignable/search"
 
-        def search(request):
-            email = parse_qs(urlparse(request.url).query)["query"][0]
+        def search(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            email = parse_qs(urlparse(cast(str, request.url)).query)["query"][0]
             return 200, {}, json.dumps([{"accountId": email, "emailAddress": email}])
 
         responses.add_callback(responses.GET, search_url, callback=search)
@@ -1507,7 +1509,9 @@ class JiraIntegrationTest(APITestCase):
             )
         }
 
-    def _jira_installation_with_mappings(self, *external_ids: str):
+    def _jira_installation_with_mappings(
+        self, *external_ids: str
+    ) -> tuple[IntegrationInstallation, OrganizationIntegration]:
         integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
         for external_id in external_ids:

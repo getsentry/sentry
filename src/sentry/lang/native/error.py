@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Protocol, TypedDict
+from collections.abc import MutableMapping
+from typing import Any, Protocol
 
 from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventErrorType
@@ -38,11 +39,6 @@ class _NativeDebugImage(Protocol):
     debug_id: object
     name: str | None
     arch: str | None
-
-
-class _NativeErrorEventData(TypedDict, total=False):
-    errors: list[object]
-    _metrics: dict[str, object]
 
 
 class SymbolicationFailed(Exception):
@@ -105,7 +101,7 @@ class SymbolicationFailed(Exception):
         return "".join(rv)
 
 
-def write_error(e: SymbolicationFailed, data: _NativeErrorEventData) -> None:
+def write_error(e: SymbolicationFailed, data: MutableMapping[str, Any]) -> None:
     if e.is_user_fixable or e.is_sdk_failure:
         errors = data.setdefault("errors", [])
         errors.append(e.get_data())

@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.conf import settings
 from django.core.cache.backends.base import BaseCache
@@ -18,6 +18,8 @@ from sentry.utils.types import Type
 
 if TYPE_CHECKING:
     from django.utils.connection import ConnectionProxy
+
+    from sentry.models.options import ControlOption, Option
 
 CACHE_FETCH_ERR = "Unable to fetch option cache for %s"
 CACHE_UPDATE_ERR = "Unable to update option cache for %s"
@@ -82,17 +84,19 @@ class OptionsStore:
     OptionsManager instead, unless you need raw access to something.
     """
 
-    def __init__(self, cache=None, ttl=None):
+    def __init__(
+        self, cache: BaseCache | ConnectionProxy[BaseCache] | None = None, ttl: int | None = None
+    ) -> None:
         self.cache = cache
         self.ttl = ttl
         self.flush_local_cache()
 
     @property
-    def model(self):
+    def model(self) -> type[Option] | type[ControlOption]:
         return self.model_cls()
 
     @classmethod
-    def model_cls(cls):
+    def model_cls(cls) -> type[Option] | type[ControlOption]:
         from sentry.models.options import ControlOption, Option
         from sentry.silo.base import SiloMode
 
@@ -139,12 +143,13 @@ class OptionsStore:
         if value is not None:
             return value
 
-        if self.cache is None:
+        cache: BaseCache | ConnectionProxy[BaseCache] | None = self.cache
+        if cache is None:
             return None
 
         cache_key = key.cache_key
         try:
-            value = self.cache.get(cache_key)
+            value = cache.get(cache_key)
         except Exception:
             if not silent:
                 logger.warning(CACHE_FETCH_ERR, key.name, extra={"key": key.name}, exc_info=True)
@@ -252,7 +257,7 @@ class OptionsStore:
 
         return UpdateChannel(option.last_updated_by)
 
-    def set(self, key, value, channel: UpdateChannel):
+    def set(self, key: Key, value: object, channel: UpdateChannel) -> bool | None:
         """
         Store a value in the option store. Value must get persisted to database first,
         then attempt caches. If it fails database, the entire operation blows up.
@@ -264,7 +269,7 @@ class OptionsStore:
         self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
-    def set_store(self, key, value, channel: UpdateChannel):
+    def set_store(self, key: Key, value: object, channel: UpdateChannel) -> None:
         self.model.objects.update_or_create(
             key=key.name,
             defaults={
@@ -274,7 +279,7 @@ class OptionsStore:
             },
         )
 
-    def set_cache(self, key, value):
+    def set_cache(self, key: Key, value: object) -> bool | None:
         if self.cache is None:
             return None
 
@@ -313,7 +318,7 @@ class OptionsStore:
             pass
 
         try:
-            self.cache.delete(cache_key)
+            cast(BaseCache, self.cache).delete(cache_key)
             return True
         except Exception:
             logger.warning(CACHE_UPDATE_ERR, key.name, extra={"key": key.name}, exc_info=True)

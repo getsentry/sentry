@@ -48,7 +48,8 @@ def is_native_image(image: Mapping[str, object]) -> bool:
     )
 
 
-def native_images_from_data(data):
+def native_images_from_data(data: Mapping[str, object]) -> list[dict[str, Any]]:
+    # justification: debug images are decoded event JSON
     return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
 
 
@@ -71,7 +72,15 @@ def has_native_stacktraces(stacktraces: list[StacktraceInfo]) -> bool:
     return False
 
 
-def image_name(pkg: str) -> str:
+@overload
+def image_name(pkg: str) -> str: ...
+
+
+@overload
+def image_name(pkg: None) -> None: ...
+
+
+def image_name(pkg: str | None) -> str | None:
     if not pkg:
         return pkg
     split = "\\" if WINDOWS_PATH_RE.match(pkg) else "/"

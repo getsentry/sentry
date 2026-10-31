@@ -308,7 +308,7 @@ class TestProjectTransfer(TestCase):
         assert Project.objects.filter(organization=self.from_org).count() == 0
 
     def test_transfer_to_organization_releases(self) -> None:
-        def project_props(proj: Project):
+        def project_props(proj: Project) -> dict[str, object]:
             return {
                 "id": proj.id,
                 "slug": proj.slug,
@@ -1025,11 +1025,11 @@ class CopyProjectSettingsTest(TestCase):
         # there is a default rule added to project
         self.rules = Rule.objects.filter(project_id=self.other_project.id).order_by("label")
 
-    def assert_other_project_settings_not_changed(self):
+    def assert_other_project_settings_not_changed(self) -> None:
         # other_project should not have changed. This should check that.
         self.assert_settings_copied(self.other_project)
 
-    def assert_settings_copied(self, project):
+    def assert_settings_copied(self, project: Project) -> None:
         for key, value in self.options_dict.items():
             assert project.get_option(key) == value
 
@@ -1100,7 +1100,7 @@ class CopyProjectSettingsTest(TestCase):
 
 @control_silo_test
 class FilterToSubscribedUsersTest(TestCase):
-    def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
+    def run_test(self, users: Iterable[User], expected_users: Iterable[User]) -> None:
         recipients = get_notification_recipients(
             recipients=Actor.many_from_object(users),
             type=NotificationSettingEnum.ISSUE_ALERTS,

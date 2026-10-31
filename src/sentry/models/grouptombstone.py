@@ -46,18 +46,18 @@ class GroupTombstone(Model):
         app_label = "sentry"
         db_table = "sentry_grouptombstone"
 
-    def get_event_type(self):
+    def get_event_type(self) -> str:
         """
         Return the type of this issue.
 
         See ``sentry.eventtypes``.
         """
-        return cast(dict[str, object], self.data).get("type", "default")
+        return cast(dict[str, str], self.data).get("type", "default")
 
-    def get_event_metadata(self):
+    def get_event_metadata(self) -> dict[str, object]:
         """
         Return the metadata of this issue.
 
         See ``sentry.eventtypes``.
         """
-        return cast(dict[str, object], self.data)["metadata"]
+        return cast(dict[str, dict[str, object]], self.data)["metadata"]

@@ -1,3 +1,7 @@
+from collections.abc import Callable
+from types import TracebackType
+from typing import Any, Concatenate, ParamSpec
+
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
     DatabaseSchemaEditor as PostgresDatabaseSchemaEditor,
@@ -36,7 +40,10 @@ unsafe_mapping = {
 }
 
 
-def value_translator(value):
+P = ParamSpec("P")
+
+
+def value_translator(value: object) -> object:
     if isinstance(value, Field):
         return value.name
     if isinstance(value, ModelBase):
@@ -44,8 +51,10 @@ def value_translator(value):
     return value
 
 
-def translate_unsafeoperation_exception(func):
-    def inner(self, *args, **kwargs):
+def translate_unsafeoperation_exception(
+    func: Callable[Concatenate[Any, P], None],
+) -> Callable[Concatenate[Any, P], None]:
+    def inner(self: Any, *args: P.args, **kwargs: P.kwargs) -> None:
         try:
             func(self, *args, **kwargs)
         except UnsafeOperationException as e:
@@ -82,13 +91,17 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
 
     @translate_unsafeoperation_exception
     def alter_field(
-        self, model: type[Model], old_field: Field, new_field: Field, strict: bool = False
+        self,
+        model: type[Model],
+        old_field: Field[Any, Any],
+        new_field: Field[Any, Any],
+        strict: bool = False,
     ) -> None:
         self._check_alter_indexed_column_type(model, old_field, new_field)
         PostgresDatabaseSchemaEditor.alter_field(self, model, old_field, new_field, strict)
 
     def _check_alter_indexed_column_type(
-        self, model: type[Model], old_field: Field, new_field: Field
+        self, model: type[Model], old_field: Field[Any, Any], new_field: Field[Any, Any]
     ) -> None:
         """
         Block column type changes (including varchar length changes) when the column is
@@ -124,7 +137,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
                 f"More info: https://develop.sentry.dev/database-migrations/#altering-column-types"
             )
 
-    def alter_db_table(self, model, old_db_table, new_db_table):
+    def alter_db_table(self, model: type[Model], old_db_table: str, new_db_table: str) -> None:
         """
         This didn't work correctly in  django_zero_downtime_migrations, so implementing here. This
         method is only used to modify table name, so we just need to raise.
@@ -134,7 +147,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             "More info here: https://develop.sentry.dev/database-migrations/#renaming-tables"
         )
 
-    def delete_model(self, model, is_safe=False):
+    def delete_model(self, model: type[Model], is_safe: bool = False) -> None:
         """
         It's never safe to delete a model using the standard migration process
         """
@@ -145,7 +158,9 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
             )
         super(DatabaseSchemaEditorMixin, self).delete_model(model)
 
-    def remove_field(self, model, field, is_safe=False):
+    def remove_field(
+        self, model: type[Model], field: Field[Any, Any], is_safe: bool = False
+    ) -> None:
         """
         It's never safe to remove a field using the standard migration process
         """
@@ -157,7 +172,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         super(DatabaseSchemaEditorMixin, self).remove_field(model, field)
 
 
-class DatabaseSchemaEditorProxy:
+class DatabaseSchemaEditorProxy:  # justification: proxies untyped schema editor implementations.
     """
     Wrapper that allows us to use either the `SafePostgresDatabaseSchemaEditor` or
     `PostgresDatabaseSchemaEditor`. Can be configured by setting the `safe` property
@@ -168,25 +183,25 @@ class DatabaseSchemaEditorProxy:
     class AlreadyInUse(Exception):
         pass
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         self.args = args
         self.kwargs = kwargs
         self._safe = False
-        self._schema_editor = None
+        self._schema_editor: PostgresDatabaseSchemaEditor | None = None
 
     @property
-    def safe(self):
+    def safe(self) -> bool:
         return self._safe
 
     @safe.setter
-    def safe(self, safe):
+    def safe(self, safe: bool) -> None:
         if self._schema_editor is not None:
             raise self.AlreadyInUse("Schema editor already in use, can't set `safe`")
 
         self._safe = safe
 
     @property
-    def schema_editor(self):
+    def schema_editor(self) -> PostgresDatabaseSchemaEditor:
         if self._schema_editor is None:
             schema_editor_cls = (
                 SafePostgresDatabaseSchemaEditor if self.safe else MakeBtreeGistSchemaEditor
@@ -196,11 +211,16 @@ class DatabaseSchemaEditorProxy:
             self._schema_editor = schema_editor
         return self._schema_editor
 
-    def __getattr__(self, name):
+    def __getattr__(self, name: str) -> Any:
         return getattr(self.schema_editor, name)
 
-    def __enter__(self):
+    def __enter__(self) -> "DatabaseSchemaEditorProxy":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         self.schema_editor.__exit__(exc_type, exc_val, exc_tb)

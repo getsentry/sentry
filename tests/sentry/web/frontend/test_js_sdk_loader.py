@@ -82,8 +82,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_less_than_v7_returns_es6(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -101,8 +101,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_equal_to_v7_returns_es5(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -118,8 +118,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_greater_than_v7_returns_es5(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -135,8 +135,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_es6_with_defaults(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -153,8 +153,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -171,8 +171,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected_with_no_available_v7_version(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -189,8 +189,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_pre_v8_version_when_latest_is_selected_various_v8_versions_available(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
@@ -207,8 +207,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_equal_to_v8_returns_default_bundle(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)
@@ -227,8 +227,8 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://browser.sentry-cdn.com/%s/bundle%s.min.js"
     )
     def test_returns_latest_v8_version_when_various_v8_versions_available(
-        self, load_version_from_file, get_selected_browser_sdk_version
-    ):
+        self, load_version_from_file: MagicMock, get_selected_browser_sdk_version: MagicMock
+    ) -> None:
         self.projectkey.data = {}
         self.projectkey.save()
         resp = self.client.get(self.path)

@@ -4,7 +4,7 @@ from collections import defaultdict, deque
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple
+from typing import Any, NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -28,10 +28,10 @@ class NormalizedModelName:
             raise TypeError("cannot create NormalizedModelName from invalid input string")
         self.__model_name = model_name.lower()
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.__model_name)
 
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: object) -> bool:
         if other is None:
             return False
         if not isinstance(other, self.__class__):
@@ -40,7 +40,7 @@ class NormalizedModelName:
             )
         return self.__model_name == other.__model_name
 
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: object) -> bool:
         if not isinstance(other, self.__class__):
             raise TypeError(
                 "NormalizedModelName can only be compared with other NormalizedModelName"
@@ -194,7 +194,9 @@ class DependenciesJSONEncoder(json.JSONEncoder):
     """JSON serializer that outputs a detailed serialization of all models included in a
     `ModelRelations`."""
 
-    def default(self, obj):
+    def default(
+        self, obj: object
+    ) -> Any:  # justification: JSON encoder fallback returns arbitrary encoded values.
         if meta := getattr(obj, "_meta", None):
             return f"{meta.app_label}.{meta.object_name}".lower()
         if isinstance(obj, ModelRelations):
@@ -245,7 +247,7 @@ class PrimaryKeyMap:
 
     mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.mapping = defaultdict(dict)
 
     def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:

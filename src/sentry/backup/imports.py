@@ -67,7 +67,7 @@ class ImportingError(Exception):
         self.context = context
 
 
-def _clear_model_tables_before_import():
+def _clear_model_tables_before_import() -> None:
     reversed = reversed_dependencies()
 
     # Outbox models are cleared last: some models (e.g. ProjectKey) use pre_delete signals
@@ -115,9 +115,9 @@ def _import(
     *,
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
-    filter_by: Filter | None = None,
+    filter_by: Filter[Any] | None = None,  # justification: filters carry integer or string values.
     printer: Printer,
-):
+) -> None:
     """
     Imports core data for a Sentry installation.
 
@@ -281,7 +281,7 @@ def _import(
     # serialized JSON string containing some number of such model instances, and 3. an offset
     # representing how many instances of this model have already been produced by this generator,
     # NOT including the current instance.
-    def yield_json_models(content) -> Iterator[tuple[NormalizedModelName, str, int]]:
+    def yield_json_models(content: bytes | str) -> Iterator[tuple[NormalizedModelName, str, int]]:
         # TODO(getsentry#team-ospo/190): Better error handling for unparsable JSON.
         models = orjson.loads(content)
 
@@ -439,7 +439,7 @@ def _import(
 
     # Resolves slugs for all imported organization models via the PrimaryKeyMap and reconciles
     # their slug globally via control silo by issuing a slug update.
-    def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap):
+    def resolve_org_slugs_from_pk_map(pk_map: PrimaryKeyMap) -> None:
         from sentry.services.organization import organization_provisioning_service
 
         org_pk_mapping = pk_map.mapping[str(org_model_name)]
@@ -522,7 +522,7 @@ def import_in_user_scope(
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `User` scope, meaning that only models with `RelocationScope.User` will
     be imported from the provided `src` file.
@@ -551,7 +551,7 @@ def import_in_organization_scope(
     flags: ImportFlags | None = None,
     org_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Organization` scope, meaning that only models with
     `RelocationScope.User` or `RelocationScope.Organization` will be imported from the provided
@@ -582,7 +582,7 @@ def import_in_config_scope(
     flags: ImportFlags | None = None,
     user_filter: set[str] | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Config` scope, meaning that we will import all models required to
     globally configure and administrate a Sentry instance from the provided `src` file. This
@@ -613,7 +613,7 @@ def import_in_global_scope(
     decryptor: Decryptor | None = None,
     flags: ImportFlags | None = None,
     printer: Printer,
-):
+) -> None:
     """
     Perform an import in the `Global` scope, meaning that all models will be imported from the
     provided source file. Because a `Global` import is really only useful when restoring to a fresh

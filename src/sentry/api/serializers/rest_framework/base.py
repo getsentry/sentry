@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar, cast, overload
 
 from django.db.models import Model
 from django.utils.text import re_camel_case
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import empty
 from rest_framework.serializers import ModelSerializer, Serializer
+from rest_framework.utils.serializer_helpers import ReturnDict
 
 from sentry.utils import metrics
 
 T = TypeVar("T")
 
 
-def _classify_key_case(data: dict) -> str:
+def _classify_key_case(data: dict[str, object]) -> str:
     """Classify the top-level keys of a dict as camel, snake, mixed, or none."""
     has_camel = False
     has_snake = False
@@ -36,7 +38,7 @@ def _classify_key_case(data: dict) -> str:
     return "uncertain"
 
 
-def _record_key_case_metric(serializer_name: str, data: dict) -> None:
+def _record_key_case_metric(serializer_name: str, data: dict[str, object]) -> None:
     """Emit a metric classifying the parameter key case of incoming data."""
     key_case = _classify_key_case(data)
     metrics.incr(
@@ -48,14 +50,14 @@ def _record_key_case_metric(serializer_name: str, data: dict) -> None:
     )
 
 
-def camel_to_snake_case(value):
+def camel_to_snake_case(value: str) -> str:
     """
     Splits CamelCase and converts to lower case with underscores.
     """
     return re_camel_case.sub(r"_\1", value).strip("_").lower()
 
 
-def snake_to_camel_case(value):
+def snake_to_camel_case(value: str) -> str:
     """
     Converts a string from snake_case to camelCase
     """
@@ -68,7 +70,21 @@ def snake_to_camel_case(value):
 _OPAQUE_DICT_KEYS = frozenset({"additional_fields", "additionalFields"})
 
 
-def convert_dict_key_case(obj, converter):
+@overload
+def convert_dict_key_case(
+    obj: dict[Any, Any], converter: Callable[[str], str]
+) -> dict[Any, Any]: ...
+
+
+@overload
+def convert_dict_key_case(obj: list[Any], converter: Callable[[str], str]) -> list[Any]: ...
+
+
+@overload
+def convert_dict_key_case(obj: object, converter: Callable[[str], str]) -> object: ...
+
+
+def convert_dict_key_case(obj: object, converter: Callable[[str], str]) -> object:
     """
     Recursively converts the keys of a dictionary using the provided converter
     param.
@@ -107,7 +123,7 @@ class CamelSnakeSerializer(Serializer[T]):
     Errors are output in camel case.
     """
 
-    def __init__(self, instance=None, data=empty, **kwargs):
+    def __init__(self, instance: T | None = None, data: Any = empty, **kwargs: Any) -> None:
         if data is not empty:
             if isinstance(data, dict):
                 _record_key_case_metric(type(self).__name__, data)
@@ -115,9 +131,9 @@ class CamelSnakeSerializer(Serializer[T]):
         super().__init__(instance=instance, data=data, **kwargs)
 
     @property
-    def errors(self):
+    def errors(self) -> ReturnDict[str, Any]:
         errors = super().errors
-        return convert_dict_key_case(errors, snake_to_camel_case)
+        return cast("ReturnDict[str, Any]", convert_dict_key_case(errors, snake_to_camel_case))
 
 
 M = TypeVar("M", bound=Model)
@@ -130,7 +146,7 @@ class CamelSnakeModelSerializer(ModelSerializer[M]):
     Errors are output in camel case.
     """
 
-    def __init__(self, instance=None, data=empty, **kwargs):
+    def __init__(self, instance: M | None = None, data: Any = empty, **kwargs: Any) -> None:
         if data is not empty:
             if isinstance(data, dict):
                 _record_key_case_metric(type(self).__name__, data)
@@ -138,6 +154,6 @@ class CamelSnakeModelSerializer(ModelSerializer[M]):
         super().__init__(instance=instance, data=data, **kwargs)
 
     @property
-    def errors(self):
+    def errors(self) -> ReturnDict[str, Any]:
         errors = super().errors
-        return convert_dict_key_case(errors, snake_to_camel_case)
+        return cast("ReturnDict[str, Any]", convert_dict_key_case(errors, snake_to_camel_case))

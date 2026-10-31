@@ -20,7 +20,7 @@ MAX_SYMBOLICATION_FRAMES = 2500
 MAX_SAMPLE_COUNT = 9007199254740991
 
 
-class _StringField(serializers.Field):
+class _StringField(serializers.Field[str, object, str, object]):
     default_error_messages = {"invalid": "Not a valid string."}
 
     def to_internal_value(self, data: Any) -> str:

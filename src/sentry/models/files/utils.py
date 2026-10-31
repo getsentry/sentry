@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from hashlib import sha1
-from typing import IO, TYPE_CHECKING, TypeVar
+from typing import IO, TYPE_CHECKING, Any, TypeVar
 
 from django.conf import settings
 from django.core.files.storage import Storage
@@ -15,7 +15,7 @@ from sentry.utils.imports import import_string
 if TYPE_CHECKING:
     from sentry.models.files.abstractfileblob import AbstractFileBlob
 
-FileModelT = TypeVar("FileModelT", bound="AbstractFileBlob")
+FileModelT = TypeVar("FileModelT", bound="AbstractFileBlob[Any]")
 
 ONE_DAY = 60 * 60 * 24
 ONE_DAY_AND_A_HALF = int(ONE_DAY * 1.5)
@@ -74,7 +74,9 @@ class AssembleChecksumMismatch(Exception):
     pass
 
 
-def get_storage(config=None):
+def get_storage(
+    config: dict[str, Any] | None = None,
+) -> Storage:  # justification: storage backend options are dynamic.
     if config is not None:
         backend = config["backend"]
         options = config["options"]
@@ -91,7 +93,7 @@ def get_storage(config=None):
     return storage(**options)
 
 
-def get_relocation_storage(config=None) -> Storage:
+def get_relocation_storage(config: dict[str, Any] | None = None) -> Storage:
     backend = settings.SENTRY_RELOCATION_FILE_STORAGE_BACKEND
     relocation = settings.SENTRY_RELOCATION_FILE_STORAGE_CONFIG
 
@@ -104,7 +106,7 @@ def get_relocation_storage(config=None) -> Storage:
     return storage(**relocation)
 
 
-def get_profiles_storage(config=None) -> Storage:
+def get_profiles_storage(config: dict[str, Any] | None = None) -> Storage:
     backend = settings.SENTRY_PROFILES_FILE_STORAGE_BACKEND
     profiles = settings.SENTRY_PROFILES_FILE_STORAGE_CONFIG
 
@@ -117,7 +119,7 @@ def get_profiles_storage(config=None) -> Storage:
     return storage(**profiles)
 
 
-def clear_cached_files(cache_path):
+def clear_cached_files(cache_path: str) -> None:
     try:
         cache_folders = os.listdir(cache_path)
     except OSError:

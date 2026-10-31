@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppInstallationStatus
@@ -40,8 +41,8 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         self.login_as(self.user)
 
-    def update_issue(self, _data=None):
-        data = {"status": "resolved"}
+    def update_issue(self, _data: Mapping[str, object] | None = None) -> None:
+        data: dict[str, object] = {"status": "resolved"}
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
 
