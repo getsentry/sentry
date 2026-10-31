@@ -1283,7 +1283,10 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
         )
     if is_new:
         process_resource_change_bound.delay(
-            action="created", sender="Group", instance_id=str(event.group_id)
+            action="created",
+            sender="Group",
+            instance_id=str(event.group_id),
+            event_id=event.event_id,
         )
 
 

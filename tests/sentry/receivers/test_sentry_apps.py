@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
+from uuid import UUID
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.issues.escalating.escalating import manage_issue_states
@@ -54,6 +55,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "now"},
+            idempotency_key=ANY,
         )
 
         # Then marked it unresolved for regressed to make sense
@@ -64,8 +66,13 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="unresolved",
             user_id=self.user.id,
             data={},
+            idempotency_key=ANY,
         )
         assert delay.call_count == 2
+        resolved_key = delay.call_args_list[0].kwargs["idempotency_key"]
+        unresolved_key = delay.call_args_list[1].kwargs["idempotency_key"]
+        assert resolved_key != unresolved_key
+        assert UUID(hex=unresolved_key).version == 4
 
     def test_notify_after_bulk_ongoing(self, delay: MagicMock) -> None:
         # First we need to have an ignored issue
@@ -81,6 +88,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="unresolved",
             user_id=None,
             data={},
+            idempotency_key=ANY,
         )
         assert delay.call_count == 2
 
@@ -100,6 +108,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="unresolved",
             user_id=None,
             data={},
+            idempotency_key=ANY,
         )
         assert delay.call_count == 2
 
@@ -112,7 +121,46 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "now"},
+            idempotency_key=ANY,
         )
+
+    def test_resolve_keys_are_unique_per_installation(self, delay: MagicMock) -> None:
+        second_app = self.create_sentry_app(events=["issue.resolved"])
+        second_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=second_app.slug
+        )
+
+        self.update_issue()
+
+        assert delay.call_count == 2
+        keys_by_installation = {
+            call.kwargs["installation_id"]: call.kwargs["idempotency_key"]
+            for call in delay.call_args_list
+        }
+        assert set(keys_by_installation) == {self.install.id, second_install.id}
+        assert len(set(keys_by_installation.values())) == 2
+
+        for key in keys_by_installation.values():
+            assert len(key) == 32
+            assert UUID(hex=key).hex == key
+            assert UUID(hex=key).version == 4
+
+    def test_ignored_keys_are_unique_per_installation(self, delay: MagicMock) -> None:
+        second_app = self.create_sentry_app(events=["issue.ignored"])
+        second_install = self.create_sentry_app_installation(
+            organization=self.organization, slug=second_app.slug
+        )
+
+        self.update_issue({"status": "ignored"})
+
+        assert delay.call_count == 2
+        keys_by_installation = {
+            call.kwargs["installation_id"]: call.kwargs["idempotency_key"]
+            for call in delay.call_args_list
+        }
+        assert set(keys_by_installation) == {self.install.id, second_install.id}
+        assert len(set(keys_by_installation.values())) == 2
+        assert all(UUID(hex=key).version == 4 for key in keys_by_installation.values())
 
     def test_notify_after_resolve_in_commit(self, delay: MagicMock) -> None:
         repo = self.create_repo(project=self.project)
@@ -128,6 +176,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_commit"},
+            idempotency_key=ANY,
         )
 
     def test_notify_after_resolve_in_specific_release(self, delay: MagicMock) -> None:
@@ -141,6 +190,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_release"},
+            idempotency_key=ANY,
         )
 
     def test_notify_after_resolve_in_latest_release(self, delay: MagicMock) -> None:
@@ -154,6 +204,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_release"},
+            idempotency_key=ANY,
         )
 
     def test_notify_after_resolve_in_next_release(self, delay: MagicMock) -> None:
@@ -167,6 +218,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=self.user.id,
             data={"resolution_type": "in_next_release"},
+            idempotency_key=ANY,
         )
 
     def test_notify_after_resolve_from_set_commits(self, delay: MagicMock) -> None:
@@ -204,6 +256,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="resolved",
             user_id=None,
             data={"resolution_type": "with_commit"},
+            idempotency_key=ANY,
         )
 
     def test_notify_after_issue_ignored(self, delay: MagicMock) -> None:
@@ -215,6 +268,7 @@ class TestIssueWorkflowNotifications(APITestCase):
             type="ignored",
             user_id=self.user.id,
             data={},
+            idempotency_key=ANY,
         )
 
     def test_notify_pending_installation(self, delay: MagicMock) -> None:
@@ -255,7 +309,12 @@ class TestIssueAssigned(APITestCase):
                     "id": self.assignee.id,
                 }
             },
+            idempotency_key=ANY,
         )
+
+        key = delay.call_args.kwargs["idempotency_key"]
+        assert len(key) == 32
+        assert UUID(hex=key).version == 4
 
     def test_after_issue_reassigned(self, delay: MagicMock) -> None:
         GroupAssignee.objects.assign(self.issue, self.assignee, self.user)
@@ -276,7 +335,13 @@ class TestIssueAssigned(APITestCase):
                     "id": new_assignee.id,
                 }
             },
+            idempotency_key=ANY,
         )
+
+        assert delay.call_count == 2
+        first_key = delay.call_args_list[0].kwargs["idempotency_key"]
+        second_key = delay.call_args_list[1].kwargs["idempotency_key"]
+        assert first_key != second_key
 
     def test_after_issue_assigned_with_enhanced_privacy(self, delay: MagicMock) -> None:
         org = self.issue.project.organization
@@ -294,6 +359,7 @@ class TestIssueAssigned(APITestCase):
                 # Excludes email address
                 "assignee": {"type": "user", "name": self.assignee.name, "id": self.assignee.id}
             },
+            idempotency_key=ANY,
         )
 
 
@@ -396,4 +462,5 @@ class TestIssueWorkflowNotificationsForExactSubscription(APITestCase):
             type="ignored",
             user_id=self.user.id,
             data={},
+            idempotency_key=ANY,
         )

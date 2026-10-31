@@ -4,6 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
+from hashlib import sha256
 from typing import Any, Protocol, SupportsInt, cast
 
 import sentry_sdk
@@ -382,12 +383,30 @@ def _process_resource_change(
                 if date_key in data[name] and isinstance(data[name][date_key], datetime):
                     data[name][date_key] = data[name][date_key].isoformat()
 
+            # For issue.created use the event that created the issue, not the
+            # group ID. Error resource changes already use the event ID.
+            subject_id = (
+                kwargs.get("event_id") if event == SentryAppEventType.ISSUE_CREATED else instance_id
+            )
+
             for installation in installations:
                 if _is_project_allowed(installation, instance.project_id):
-                    # Trigger a new task for each webhook
-                    send_resource_change_webhook.delay(
-                        installation_id=installation.id, event=str(event), data=data
-                    )
+                    webhook_kwargs: dict[str, Any] = {
+                        "installation_id": installation.id,
+                        "event": str(event),
+                        "data": data,
+                    }
+                    if subject_id and event in (
+                        SentryAppEventType.ISSUE_CREATED,
+                        SentryAppEventType.ERROR_CREATED,
+                    ):
+                        value = f"{installation.id}:{event}:{subject_id}"
+                        webhook_kwargs["idempotency_key"] = sha256(
+                            value.encode("utf-8")
+                        ).hexdigest()[:32]
+
+                    # Trigger a new task for each webhook, carrying the key through retries.
+                    send_resource_change_webhook.delay(**webhook_kwargs)
 
 
 def _is_project_allowed(installation: RpcSentryAppInstallation, project_id: int) -> bool:
@@ -623,7 +642,13 @@ def workflow_notification(
         data = kwargs.get("data", {})
         data.update({"issue": _webhook_issue_data(group=issue, serialized_group=serialize(issue))})
 
-    send_webhooks(installation=install, event=event, data=data, actor=user)
+    send_webhooks(
+        installation=install,
+        event=event,
+        data=data,
+        actor=user,
+        idempotency_key=kwargs.get("idempotency_key"),
+    )
 
     analytics_event: analytics.Event | None = None
     if event == SentryAppEventType.ISSUE_ASSIGNED:
@@ -786,7 +811,7 @@ def send_resource_change_webhook(
                 message=f"{SentryAppWebhookFailureReason.MISSING_INSTALLATION}"
             )
 
-    send_webhooks(installation, event, data=data)
+    send_webhooks(installation, event, data=data, idempotency_key=kwargs.get("idempotency_key"))
 
     metrics.incr("resource_change.processed", sample_rate=1.0, tags={"change_event": event})
 
