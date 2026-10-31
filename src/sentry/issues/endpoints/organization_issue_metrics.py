@@ -5,7 +5,7 @@ from heapq import nlargest
 from itertools import chain
 from typing import TypedDict
 
-from django.db.models import Count, DateTimeField, F, Func, Q
+from django.db.models import Count, DateTimeField, F, Func, Manager, Q, QuerySet
 from django.db.models.functions import Extract
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -135,12 +135,12 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
             raise ParseError("The specified granularity is too precise. Increase your interval.")
 
         def gen_ts(
-            qs,
+            qs: QuerySet[Group] | Manager[Group],
             group_by: list[str],
             date_column_name: str,
             axis: str,
         ) -> list[TimeSeriesResult]:
-            qs = make_timeseries_query(
+            rows = make_timeseries_query(
                 qs,
                 projects,
                 environments,
@@ -154,11 +154,13 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
 
             grouped_counter: collections.defaultdict[str, int] = collections.defaultdict(int)
             grouped_series: dict[str, list[TimeSeries]] = collections.defaultdict(list)
-            for row in qs:
-                grouping = [row[g] for g in group_by]
+            for row in rows:
+                grouping = [str(row[g]) for g in group_by]
                 key = "||||".join(grouping)
-                grouped_counter[key] += row["value"]
-                grouped_series[key].append({"timestamp": row["timestamp"], "value": row["value"]})
+                grouped_counter[key] += int(row["value"])
+                grouped_series[key].append(
+                    {"timestamp": float(row["timestamp"]), "value": int(row["value"])}
+                )
 
             # Group the smallest series into the "other" bucket.
             if len(grouped_series) > 4:
@@ -245,7 +247,7 @@ class OrganizationIssueMetricsEndpoint(OrganizationEndpoint):
 
 
 def make_timeseries_query(
-    qs,
+    qs: QuerySet[Group] | Manager[Group],
     projects: list[Project],
     environments: list[int],
     type_filter: Q,
@@ -254,7 +256,7 @@ def make_timeseries_query(
     source: str,
     start: datetime,
     end: datetime,
-):
+) -> QuerySet[Group, dict[str, str | int | float]]:
     environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
@@ -281,7 +283,7 @@ def make_timeseries_query(
     order_by.append("timestamp")
     values.append("timestamp")
 
-    qs = (
+    rows = (
         qs.filter(
             environment_filter,
             type_filter,
@@ -293,7 +295,7 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
-    return qs
+    return rows
 
 
 def make_timeseries_result(

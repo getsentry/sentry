@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import TypedDict
 
 from django.http import HttpRequest
@@ -100,7 +101,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         return None
 
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> Response:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> Response:
         self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 
@@ -109,7 +110,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
         request=AuthLoginRequestSerializer,
         responses={200: AuthSuccessSerializer, 202: AuthMfaRequiredSerializer},
     )
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         """
         Process a login request via username/password. SSO login is handled
         elsewhere.
@@ -189,5 +190,5 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         return Response(payload)
 
-    def respond_with_error(self, errors):
+    def respond_with_error(self, errors: Mapping[str, object]) -> Response:
         return Response({"detail": "Login attempt failed", "errors": errors}, status=400)

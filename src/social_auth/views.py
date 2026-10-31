@@ -9,12 +9,14 @@ Notes:
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import REDIRECT_FIELD_NAME
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
 from sentry.web.frontend.base import control_silo_view
+from social_auth.backends import BaseAuth
 from social_auth.decorators import dsa_view
 from social_auth.exceptions import AuthException
 from social_auth.utils import backend_setting, clean_partial_pipeline, setting
@@ -26,7 +28,7 @@ PIPELINE_KEY = setting("SOCIAL_AUTH_PARTIAL_PIPELINE_KEY", "partial_pipeline")
 
 @control_silo_view
 @dsa_view(setting("SOCIAL_AUTH_COMPLETE_URL_NAME", "socialauth_associate_complete_auth_sso"))
-def auth(request, backend):
+def auth(request: HttpRequest, backend: BaseAuth) -> HttpResponse:
     """Authenticate using social backend"""
     data = request.POST if request.method == "POST" else request.GET
 
@@ -59,7 +61,9 @@ def auth(request, backend):
 @csrf_exempt
 @login_required
 @dsa_view()
-def complete(request, backend, *args, **kwargs):
+def complete(
+    request: HttpRequest, backend: BaseAuth, *args: object, **kwargs: object
+) -> HttpResponse:
     """Authentication complete process"""
     # pop redirect value before the session is trashed on login()
     redirect_value = request.session.get(REDIRECT_FIELD_NAME, "")
@@ -92,7 +96,13 @@ def complete(request, backend, *args, **kwargs):
 
 
 @control_silo_view
-def auth_complete(request, backend, user, *args, **kwargs):
+def auth_complete(
+    request: HttpRequest,
+    backend: BaseAuth,
+    user: AbstractBaseUser | None,
+    *args: object,
+    **kwargs: object,
+) -> AbstractBaseUser | HttpResponse | None:
     """Complete auth process. Return authenticated user or None."""
     if request.session.get(PIPELINE_KEY):
         data = request.session.pop(PIPELINE_KEY)

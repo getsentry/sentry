@@ -1,4 +1,5 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TypedDict
 
@@ -12,7 +13,7 @@ from sentry.users.services.user.model import RpcUser
 
 
 class ReleaseFileSerializerResponse(TypedDict):
-    id: str
+    id: str | bytes | None
     name: str
     dist: str | None
     headers: dict[str, object]
@@ -21,7 +22,7 @@ class ReleaseFileSerializerResponse(TypedDict):
     dateCreated: datetime
 
 
-def encode_release_file_id(obj):
+def encode_release_file_id(obj: ReleaseFile) -> str | bytes | None:
     """Generate ID for artifacts that only exist in a bundle
 
     This ID is only unique per release.
@@ -37,9 +38,10 @@ def encode_release_file_id(obj):
         if obj.dist_id:
             dist_name = Distribution.objects.get(pk=obj.dist_id).name
         return urlsafe_b64encode(f"{dist_name}_{obj.name}".encode())
+    return None
 
 
-def decode_release_file_id(id: str):
+def decode_release_file_id(id: str) -> int | tuple[str | None, str]:
     """May raise ValueError"""
     try:
         return int(id)
@@ -54,7 +56,7 @@ class ReleaseFileSerializer(Serializer[ReleaseFileSerializerResponse]):
     def serialize(
         self,
         obj: ReleaseFile,
-        attrs,
+        attrs: Mapping[object, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ReleaseFileSerializerResponse:
