@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Self
+from typing import IO, ClassVar, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
@@ -171,9 +171,13 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
         files = self.manifest.get("files", {})
-        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+        if not isinstance(files, dict):
+            raise ValueError("expected manifest files to be a JSON object")
+        self.artifact_count = len(files)
+        self._entries_by_url = {
+            cast(str, entry["url"]): (path, entry) for path, entry in files.items()
+        }
 
     def __enter__(self):
         return self
