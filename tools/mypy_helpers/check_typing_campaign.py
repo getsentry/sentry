@@ -211,7 +211,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--staged", action="store_true", help="check staged changes (pre-commit default)"
     )
     parser.add_argument("--status", action="store_true")
+    parser.add_argument("--goal", action="store_true", help="fail until the weaklist is empty")
     args = parser.parse_args(argv)
+
+    if args.goal:
+        remaining = len(_weaklist())
+        print(f"weaklist entries remaining: {remaining}")
+        return 0 if remaining == 0 else 1
 
     if args.status:
         return _status(args.base)

@@ -36,6 +36,24 @@ def _stage_file(tmp_path, path: str, contents: str) -> None:
     _git(tmp_path, "add", path)
 
 
+def test_goal_fails_while_weaklist_is_nonempty(tmp_path, capsys) -> None:
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, ["sentry.foo"])
+
+    with contextlib.chdir(tmp_path):
+        assert main(("--goal",)) == 1
+
+    assert "weaklist entries remaining: 1" in capsys.readouterr().out
+
+
+def test_goal_passes_with_empty_weaklist(tmp_path) -> None:
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, [])
+
+    with contextlib.chdir(tmp_path):
+        assert main(("--goal",)) == 0
+
+
 def test_any_in_graduated_module_fails(tmp_path, capsys) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
