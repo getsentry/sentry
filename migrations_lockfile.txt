@@ -27,7 +27,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notebooks: 0002_copy_from_investigations
 
-notifications: 0016_add_inboxitem_and_inboxitemevent
+notifications: 0017_add_notificationthread_integration_id
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
