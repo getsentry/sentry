@@ -1,3 +1,6 @@
+from collections.abc import Iterator
+from contextlib import contextmanager
+
 from django.db import connections, router, transaction
 
 from sentry.db.models.manager.base import flush_manager_local_cache
@@ -6,6 +9,28 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.cache import cache
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
+
+
+@contextmanager
+def manual_transaction_management(using: str) -> Iterator[None]:
+    """
+    Use this context manager to test a transaction where autocommit is off
+
+    This is needed as the `transaction.on_commit` method raises an exception
+    if autocommit is off on a connection with no atomic block
+    """
+    transaction.set_autocommit(False, using=using)
+
+    try:
+        yield
+
+        transaction.commit(using=using)
+    except BaseException:
+        transaction.rollback(using=using)
+
+        raise
+    finally:
+        transaction.set_autocommit(True, using=using)
 
 
 class GetFromCacheTest(TestCase):
@@ -109,5 +134,19 @@ class PostUpdateCacheInvalidationTest(TransactionTestCase):
                 )
 
         assert status_before_commit == GroupStatus.UNRESOLVED
+
+        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.RESOLVED
+
+    def test_post_update_signal_invalidates_cached_instance_under_manual_transaction_management(
+        self,
+    ) -> None:
+        group = self.create_group()
+
+        assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.UNRESOLVED
+
+        with manual_transaction_management(router.db_for_write(Group)):
+            Group.objects.filter(id=group.id).with_post_update_signal(True).update(
+                status=GroupStatus.RESOLVED
+            )
 
         assert Group.objects.get_from_cache(id=group.id).status == GroupStatus.RESOLVED

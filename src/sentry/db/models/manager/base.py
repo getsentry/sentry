@@ -245,11 +245,16 @@ class BaseManager(_base_manager_base[M]):
     def __post_update(self, model_ids: Sequence[Any], **kwargs: Any) -> None:
         """
         Since `post_update` only provides the ids of the updated instances,
-        we can't cache the updated instances. Instead, invalidate the cache
-        so that readers of `get_from_cache` do not read stale data.
+        we can't cache the updated instances.
+
+        Instead, invalidate the cache so that readers of `get_from_cache` do not read stale data.
+
         Only the entries keyed by primary key are invalidated.
-        Entries are invalidated on transaction commit, or immediately outside
-        of a transaction, to prevent simultaneous reads from reading stale data
+
+        To prevent simultaneous reads on stale data, we check if we are in
+        an atomic block. If we are, delete the cache once the transaction commits.
+
+        Otherwise, delete the cache immediately.
         """
         pk_name = self.model._meta.pk.name
 
@@ -261,8 +266,12 @@ class BaseManager(_base_manager_base[M]):
             except Exception as e:
                 logger.exception(str(e))
 
-        # if we are not in a transaction context this runs immediately
-        transaction.on_commit(delete_cache_keys, using=router.db_for_write(self.model))
+        db_for_write = router.db_for_write(self.model)
+
+        if transaction.get_connection(db_for_write).in_atomic_block:
+            transaction.on_commit(delete_cache_keys, using=db_for_write)
+        else:
+            delete_cache_keys()
 
     def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
