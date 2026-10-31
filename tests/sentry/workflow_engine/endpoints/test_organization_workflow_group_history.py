@@ -10,7 +10,7 @@ from sentry.workflow_engine.endpoints.serializers.workflow_group_history_seriali
     WorkflowGroupHistory,
     WorkflowGroupHistorySerializer,
 )
-from sentry.workflow_engine.models import DetectorGroup
+from sentry.workflow_engine.models import DetectorGroup, Workflow
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 
 pytestmark = [requires_snuba]
@@ -98,6 +98,19 @@ class WorkflowGroupHistoryEndpointTest(APITestCase):
             ],
             self.user,
             WorkflowGroupHistorySerializer(),
+        )
+
+    def test_hidden_workflow_is_not_found(self) -> None:
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, type=Workflow.Type.INBOX
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            hidden_workflow.id,
+            start=before_now(days=6),
+            end=before_now(days=0),
+            status_code=404,
         )
 
     def test_pagination(self) -> None:

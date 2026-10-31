@@ -674,6 +674,15 @@ class WorkflowParams:
         description="The IDs of monitors connected to the alerts you'd like to query.",
     )
 
+    TYPE = OpenApiParameter(
+        name="type",
+        location="query",
+        required=False,
+        type=str,
+        many=True,
+        description="The type of workflow you'd like to query. If not specified, all types are returned.",
+    )
+
     QUERY = OpenApiParameter(
         name="query",
         location="query",

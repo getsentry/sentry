@@ -77,6 +77,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     should_include_all_projects_detector_workflows_or_raise,
 )
 from sentry.workflow_engine.models import DetectorWorkflow, Workflow
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.types import DetectorId
@@ -93,6 +94,9 @@ SORT_COL_MAP = {
     "lastTriggered": "last_triggered",
 }
 
+KNOWN_WORKFLOW_TYPES = {workflow_type.value for workflow_type in Workflow.Type}
+
+
 workflow_search_config = SearchConfig.create_from(
     default_config,
     text_operator_keys={"name", "action"},
@@ -101,6 +105,28 @@ workflow_search_config = SearchConfig.create_from(
     free_text_key="query",
 )
 parse_workflow_query = partial(base_parse_search_query, config=workflow_search_config)
+
+
+def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Type]:
+    """
+    Handle the requested `type` value
+    - If not specified, all visible types are returned
+    - Reject unknown values
+    - Drop hidden types
+    """
+    if not raw_types:
+        return VISIBLE_WORKFLOW_TYPES
+
+    unknown_types = [raw_type for raw_type in raw_types if raw_type not in KNOWN_WORKFLOW_TYPES]
+
+    if unknown_types:
+        raise serializers.ValidationError(
+            {"type": [f"Invalid workflow type(s): {', '.join(unknown_types)}"]}
+        )
+
+    requested_types = {Workflow.Type(raw_type) for raw_type in raw_types}
+
+    return VISIBLE_WORKFLOW_TYPES & requested_types
 
 
 class OrganizationWorkflowPermission(OrganizationPermission):
@@ -122,7 +148,9 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
             kwargs["workflow"] = Workflow.objects.get(
-                organization=kwargs["organization"], id=validated_workflow_id
+                organization=kwargs["organization"],
+                id=validated_workflow_id,
+                type__in=VISIBLE_WORKFLOW_TYPES,
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
@@ -149,8 +177,13 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         Helper function to filter workflows based on request parameters.
         Project filtering is ALWAYS applied to ensure users can only
         access workflows connected to projects they have access to.
+        Only workflow types in VISIBLE_WORKFLOW_TYPES are ever returned.
         """
-        queryset: QuerySet[Workflow] = Workflow.objects.filter(organization_id=organization.id)
+        visible_types = parse_visible_workflow_types(request.GET.getlist("type"))
+
+        queryset: QuerySet[Workflow] = Workflow.objects.filter(
+            organization_id=organization.id, type__in=visible_types
+        )
 
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
@@ -272,6 +305,7 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
             WorkflowParams.QUERY,
             WorkflowParams.ID,
             WorkflowParams.DETECTOR,
+            WorkflowParams.TYPE,
             OrganizationParams.PROJECT,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,

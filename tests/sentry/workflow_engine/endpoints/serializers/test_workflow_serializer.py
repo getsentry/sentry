@@ -4,7 +4,11 @@ from sentry.api.serializers import serialize
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.workflow_engine.models import Action, DataConditionGroup, WorkflowFireHistory
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroup,
+    WorkflowFireHistory,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -24,6 +28,7 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "name": str(workflow.name),
+            "type": "alert",
             "organizationId": str(self.organization.id),
             "config": {},
             "createdBy": None,
@@ -108,6 +113,7 @@ class TestWorkflowSerializer(TestCase):
         assert result == {
             "id": str(workflow.id),
             "name": str(workflow.name),
+            "type": "alert",
             "organizationId": str(self.organization.id),
             "config": {},
             "createdBy": str(self.user.id),
