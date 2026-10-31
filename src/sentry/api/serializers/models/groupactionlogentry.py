@@ -54,6 +54,18 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Creating or linking an external issue also records a CREATE_ISSUE Activity, which is
+# mirrored into the log and rendered as "Created/Linked {provider} issue". These
+# log-only counterparts would duplicate that row, so the feed leaves them out.
+FEED_EXCLUDED_ACTION_TYPES = frozenset(
+    {
+        GroupActionType.CREATE_EXTERNAL_ISSUE.value,
+        GroupActionType.LINK_EXTERNAL_ISSUE.value,
+        GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE.value,
+        GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE.value,
+    }
+)
+
 
 class GroupActionLogEntrySerializerResponse(TypedDict):
     id: str
@@ -142,6 +154,7 @@ def get_serialized_activity_items(
             group_id=group.id,
             type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES],
         )
+        .exclude(type__in=FEED_EXCLUDED_ACTION_TYPES)
         .order_by("date_added", "id")
         .first()
     )
@@ -155,7 +168,11 @@ def get_serialized_activity_items(
         )
         return None
 
-    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
+    action_log = (
+        GroupActionLogEntry.objects.user_visible()
+        .filter(group_id=group.id)
+        .exclude(type__in=FEED_EXCLUDED_ACTION_TYPES)
+    )
     entries = list(
         action_log.exclude(type=GroupActionType.FIRST_SEEN.value).order_by("-date_added", "-id")[
             :limit
@@ -311,7 +328,8 @@ class GroupActionLogEntrySerializer(Serializer):
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
-            else obj.get_type_display()
+            # Activity types are serialized lowercase; match that for log-only types.
+            else obj.get_type_display().lower()
         )
 
         if (

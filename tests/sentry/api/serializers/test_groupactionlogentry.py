@@ -40,6 +40,21 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert result["commentId"] is None
         assert result["data"] == {"referrer": "slack"}
 
+    def test_log_only_entry_type_is_lowercase(self) -> None:
+        user = self.create_user()
+        group = self.create_group()
+        entry = self.create_group_action_log_entry(
+            group=group,
+            type=GroupActionType.UNLINK_EXTERNAL_ISSUE,
+            actor_type=GroupActorType.USER,
+            actor_id=user.id,
+            data={"provider": "github", "external_issue_key": "org/repo#42"},
+        )
+
+        result = serialize(entry, user)
+
+        assert result["type"] == "unlink_external_issue"
+
     def test_legacy_mcp_client_family_source_is_renamed(self) -> None:
         user = self.create_user()
         group = self.create_group()
@@ -647,3 +662,58 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             data={"comment_id": note_id, "comment_id_kind": "comment"},
         )
         assert [item["type"] for item in self._activity_items()] == ["first_seen"]
+
+    def test_external_issue_create_and_link_entries_are_not_duplicated(self) -> None:
+        create_issue = self.create_group_action_log_entry(
+            type=GroupActionType.CREATE_ISSUE,
+            data={
+                "title": "Bug",
+                "provider": "GitHub",
+                "location": "https://github.com/org/repo/issues/42",
+                "label": "org/repo#42",
+                "new": True,
+            },
+        )
+        for type, data in [
+            (
+                GroupActionType.CREATE_EXTERNAL_ISSUE,
+                {"provider": "github", "external_issue_key": "org/repo#42"},
+            ),
+            (
+                GroupActionType.LINK_EXTERNAL_ISSUE,
+                {"provider": "github", "external_issue_key": "org/repo#43"},
+            ),
+            (
+                GroupActionType.CREATE_PLATFORM_EXTERNAL_ISSUE,
+                {
+                    "service_type": "linear",
+                    "display_name": "APP-1",
+                    "web_url": "https://linear.app/a/1",
+                },
+            ),
+            (
+                GroupActionType.LINK_PLATFORM_EXTERNAL_ISSUE,
+                {
+                    "service_type": "linear",
+                    "display_name": "APP-2",
+                    "web_url": "https://linear.app/a/2",
+                },
+            ),
+        ]:
+            self.create_group_action_log_entry(type=type, data=data)
+
+        items = self._activity_items()
+
+        assert [item["type"] for item in items] == ["create_issue", "first_seen"]
+        assert items[0]["id"] == str(create_issue.id)
+
+    def test_external_issue_entries_alone_fall_back_to_activity(self) -> None:
+        self.create_group_action_log_entry(
+            type=GroupActionType.CREATE_EXTERNAL_ISSUE,
+            data={"provider": "github", "external_issue_key": "org/repo#42"},
+        )
+
+        with action_log_activity_enabled():
+            items = get_serialized_activity_items(self.group, self.user, endpoint="test")
+
+        assert items is None
