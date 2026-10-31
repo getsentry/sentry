@@ -32,6 +32,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user, acting_user_id
 from sentry.issues.action_log import (
     action_context_scope,
 )
@@ -415,7 +416,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         referrer=referrer,
                         integration_id=integration_id,
                         provider=provider,
-                        user_id=request.user.id if request.user else None,
+                        user_id=acting_user_id(request.user),
                         auto_create_pr=True,
                     )
                 except SeerPermissionError as e:
@@ -443,7 +444,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             group.organization.id,
                             referrer="autofix_open_pr",
                         ),
-                        user=request.user,
+                        user=acting_user(request.user),
                     )
                 except SeerPermissionError:
                     return Response(status=status.HTTP_404_NOT_FOUND)
@@ -455,13 +456,14 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         {"detail": "run_id is required for pr_iteration"},
                         status=status.HTTP_400_BAD_REQUEST,
                     )
-                if request.user.id is None:
+                user_id = acting_user_id(request.user)
+                if user_id is None:
                     raise PermissionDenied(SEER_PERMISSION_DENIED)
 
                 error_response = handle_ui_feedback(
                     group=group,
                     run_id=resolved_run_id,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     user_feedback=user_context,
                     referrer=referrer,
                 )
@@ -561,12 +563,12 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         run_id=resolved_run_id,
                         user_context=user_context,
                         insert_index=data.get("insert_index"),
-                        user=request.user,
+                        user=acting_user(request.user),
                         enable_bash_mode=data.get("enable_bash_mode", False),
                         # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
                         # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(
-                            request.user.id
+                            acting_user_id(request.user)
                             if not is_autofix_kickoff or step == AutofixStep.CODE_CHANGES.value
                             else None
                         ),
@@ -639,12 +641,13 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
         if state is None:
             return Response({"autofix": None})
 
-        if state.coding_agents and request.user.id:
+        user_id = acting_user_id(request.user)
+        if state.coding_agents and user_id:
             agent_providers = {a.provider for a in state.coding_agents.values()}
             if CodingAgentProviderType.GITHUB_COPILOT_AGENT in agent_providers:
                 poll_github_copilot_agents(
                     coding_agents=state.coding_agents,
-                    user_id=request.user.id,
+                    user_id=user_id,
                     organization_id=group.organization.id,
                     run_id=state.run_id,
                     group_id=group.id,

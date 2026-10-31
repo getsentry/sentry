@@ -17,6 +17,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.principal import acting_user_id
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org, is_demo_user
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -347,7 +348,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         resolved: ResolvedSeerRun | None = None
         if run_id:
-            user_id = request.user.id
+            user_id = acting_user_id(request.user)
             if user_id is None:
                 raise PermissionDenied("A user account is required to continue a conversation.")
             result = resolve_seer_run(run_id, organization, for_continue=True, user_id=user_id)
