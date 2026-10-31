@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import asdict
+from typing import Any
 from unittest import mock
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
@@ -20,7 +21,7 @@ from sentry.notifications.notification_action.metric_alert_registry.handlers.uti
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, Condition, DataConditionGroup
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -89,6 +90,93 @@ class TestSentryAppMetricAlertHandler(MetricAlertHandlerBase):
             notification_uuid=notification_uuid,
             incident_serialized_response=get_incident_serializer(self.open_period),
         )
+
+    def add_detector_triggers(self) -> None:
+        condition_group = self.create_data_condition_group(organization=self.organization)
+        self.detector.update(workflow_condition_group=condition_group)
+        for priority, comparison in (
+            (DetectorPriorityLevel.HIGH, 100),
+            (DetectorPriorityLevel.MEDIUM, 50),
+        ):
+            self.create_data_condition(
+                condition_group=condition_group,
+                type=Condition.GREATER,
+                comparison=comparison,
+                condition_result=priority,
+            )
+
+    def send_alert_and_get_triggers(
+        self, mock_send_incident_alert_notification: mock.MagicMock
+    ) -> list[dict[str, Any]]:
+        assert self.group_event.occurrence is not None
+        assert self.group_event.occurrence.priority is not None
+        priority = DetectorPriorityLevel(self.group_event.occurrence.priority)
+        self.handler.send_alert(
+            notification_context=NotificationContext.from_action_model(self.action),
+            alert_context=AlertContext.from_workflow_engine_models(
+                self.detector, self.evidence_data, self.group_event.group.status, priority
+            ),
+            metric_issue_context=MetricIssueContext.from_group_event(
+                self.group, self.evidence_data, priority
+            ),
+            open_period_context=OpenPeriodContext.from_group(self.group),
+            trigger_status=TriggerStatus.ACTIVE,
+            project=self.detector.linked_project,
+            organization=self.detector.linked_project.organization,
+            notification_uuid=str(uuid.uuid4()),
+        )
+        response = mock_send_incident_alert_notification.call_args.kwargs[
+            "incident_serialized_response"
+        ]
+        return response["alertRule"]["triggers"]
+
+    @mock.patch(
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.sentry_app_metric_alert_handler.send_incident_alert_notification"
+    )
+    def test_send_alert_includes_action_from_unconnected_alert(
+        self, mock_send_incident_alert_notification: mock.MagicMock
+    ) -> None:
+        # An alert that runs on all issues in a project isn't connected to the metric
+        # detector, so its action isn't among the detector's trigger actions.
+        self.add_detector_triggers()
+        settings = [{"name": "board", "value": "web"}]
+        self.action.update(data={"settings": settings})
+
+        triggers = self.send_alert_and_get_triggers(mock_send_incident_alert_notification)
+
+        assert len(triggers) == 2
+        for trigger in triggers:
+            sentry_app_actions = [
+                a for a in trigger["actions"] if a["sentryAppId"] == self.sentry_app.id
+            ]
+            assert len(sentry_app_actions) == 1
+            assert sentry_app_actions[0]["settings"] == settings
+            assert sentry_app_actions[0]["alertRuleTriggerId"] == trigger["id"]
+
+    @mock.patch(
+        "sentry.notifications.notification_action.metric_alert_registry.handlers.sentry_app_metric_alert_handler.send_incident_alert_notification"
+    )
+    def test_send_alert_does_not_duplicate_connected_action(
+        self, mock_send_incident_alert_notification: mock.MagicMock
+    ) -> None:
+        self.add_detector_triggers()
+        self.action.update(data={"settings": [{"name": "board", "value": "web"}]})
+        action_filter = self.create_data_condition_group(
+            organization=self.organization, logic_type=DataConditionGroup.Type.ALL
+        )
+        self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=action_filter
+        )
+        self.create_data_condition_group_action(action=self.action, condition_group=action_filter)
+
+        triggers = self.send_alert_and_get_triggers(mock_send_incident_alert_notification)
+
+        assert len(triggers) == 2
+        for trigger in triggers:
+            sentry_app_actions = [
+                a for a in trigger["actions"] if a["sentryAppId"] == self.sentry_app.id
+            ]
+            assert len(sentry_app_actions) == 1
 
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.SentryAppMetricAlertHandler.send_alert"
