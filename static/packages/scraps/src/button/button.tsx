@@ -1,4 +1,3 @@
-import styled from '@emotion/styled';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 
 import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
@@ -7,12 +6,10 @@ import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip, useDisabledTooltip} from '@sentry/scraps/tooltip';
 import {useClickTracking} from '@sentry/scraps/trackingContext';
 
-import {
-  DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
-  DO_NOT_USE_getButtonStyles as getButtonStyles,
-} from './styles';
-import type {DO_NOT_USE_ButtonProps as ButtonProps, ButtonSize} from './types';
+import {DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES} from './styles';
+import type {DO_NOT_USE_ButtonProps as ButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
+import {YakButton as StyledButton} from './yakStyles';
 
 export type {ButtonProps};
 
@@ -100,12 +97,3 @@ export function Button({
     </Tooltip>
   );
 }
-
-const StyledButton = styled('button')<
-  Omit<ButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
-  }
->`
-  ${p => getButtonStyles(p)}
-`;

@@ -247,6 +247,7 @@ if (testMatch?.length === 0) {
  * transformed.
  */
 const ESM_NODE_MODULES = [
+  '@yak\\+react',
   'react-router@8\\.',
   '@remix-run\\+route-pattern',
   'cookie-es',
@@ -326,7 +327,7 @@ const config: Config.InitialOptions = {
     '<rootDir>/node_modules/reflux',
   ],
   transform: {
-    '^.+\\.[mc]?[jt]sx?$': [fileURLToPath(import.meta.resolve('@swc/jest')), swcConfig],
+    '^.+\\.[mc]?[jt]sx?$': ['<rootDir>/build-utils/yak-jest-transform.cjs', swcConfig],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
   transformIgnorePatterns: [

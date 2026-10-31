@@ -1,11 +1,10 @@
 import type * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, styled} from '@yak/react';
 
-import {getTextStyles} from '@sentry/scraps/text/text';
-import type {ButtonVariant, Theme} from '@sentry/scraps/theme';
+import type {ButtonVariant} from '@sentry/scraps/theme';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
+import {withYakProps, withYakTheme} from '@sentry/scraps/yak';
 
 import {useLinkBehavior} from './linkBehaviorContext';
 
@@ -50,52 +49,38 @@ export type LinkDestination =
   | {to: LinkProps['to']; externalHref?: never}
   | {externalHref: string; to?: never};
 
-const getLinkStyles = ({
-  disabled,
-  theme,
-}: {
-  theme: Theme;
-  disabled?: LinkProps['disabled'];
-}) => css`
+const linkStyles = css<{disabled?: boolean}>`
   border-radius: 2px;
-  pointer-events: ${disabled ? 'none' : undefined};
-  color: ${
-    disabled ? theme.tokens.content.disabled : theme.tokens.interactive.link.accent.rest
-  };
-
+  ${p =>
+    p.disabled &&
+    css`
+      pointer-events: none;
+    `}
+  color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.interactive.link.accent.rest)};
   &:hover,
   &:focus-visible {
-    color: ${
-      disabled
-        ? theme.tokens.content.disabled
-        : theme.tokens.interactive.link.accent.hover
-    };
+    color: ${p => (p.disabled ? p.theme.tokens.content.disabled : p.theme.tokens.interactive.link.accent.hover)};
   }
-
   &:focus-visible {
     text-decoration: none;
-    ${theme.focusRing()}
+    outline: none;
+    box-shadow: ${p => p.theme.focusRing().boxShadow};
   }
-`;
-
-const getLinkTextStyles = ({theme}: {theme: Theme}) => css`
-  ${getTextStyles({theme, variant: 'inherit'})}
   font-family: inherit;
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 `;
-
-const Anchor = styled('a', {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
-})<{disabled?: LinkProps['disabled']}>`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
-
+const Anchor = withYakTheme(styled(
+  withYakProps('a', prop => isPropValid(prop) && prop !== 'disabled')
+)<{disabled?: boolean}>`
+  ${linkStyles};
+`);
 type LinkPropsWithButtonBehavior = LinkProps & {
   busy?: boolean;
   variant?: ButtonVariant;
 };
 
-function LinkBase(props: LinkPropsWithButtonBehavior) {
+export function LinkBase(props: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);
   // LinkButton reuses this component for router links and passes these
   // button-only props through at runtime. They are consumed by tracking and
@@ -127,10 +112,9 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
   return <Component {...linkProps} onClick={handleClick} />;
 }
 
-const StyledLink = styled(LinkBase)`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
+const StyledLink = withYakTheme(styled(withYakProps(LinkBase, () => true))`
+  ${linkStyles};
+`);
 
 export function Link(props: LinkProps) {
   return <StyledLink {...props} />;

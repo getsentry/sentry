@@ -1,11 +1,10 @@
-import type * as React from 'react';
-import styled from '@emotion/styled';
-
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {SpaceSize} from '@sentry/scraps/theme';
 
 import {
-  Container,
+  addContainerStyles,
+  LayoutElement,
+  omitContainerProps,
   type ContainerElement,
   type ContainerProps,
   type ContainerPropsWithRenderFunction,
@@ -14,9 +13,9 @@ import {
   FLEX_JUSTIFY_CONTENT,
   type FlexJustify,
   getSpacing,
-  rc,
   type Responsive,
 } from './styles';
+import {addLayoutProp, useLayoutStyle} from './yakLayout';
 
 const omitFlexProps = new Set<keyof FlexLayoutProps | 'as'>([
   'as',
@@ -67,39 +66,18 @@ export interface FlexProps<T extends ContainerElement = 'div'>
 export interface FlexPropsWithRenderFunction<T extends ContainerElement = 'div'>
   extends Omit<ContainerPropsWithRenderFunction<T>, 'display'>, FlexLayoutProps {}
 
-export const Flex = styled(Container, {
-  shouldForwardProp: prop => {
-    return !omitFlexProps.has(prop as keyof FlexLayoutProps | 'as');
-  },
-})<FlexProps<any> | FlexPropsWithRenderFunction<any>>`
-  ${p => rc('display', p.display ?? 'flex', p.theme)};
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('gap', p.gap, p.theme, getSpacing)};
-
-  ${p => rc('flex-direction', p.direction, p.theme)};
-  ${p => rc('flex-wrap', p.wrap, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
-  ${p =>
-    rc('justify-content', p.justify, p.theme, value =>
-      value === undefined ? undefined : FLEX_JUSTIFY_CONTENT[value]
-    )};
-
-  ${p =>
-    rc('align-items', p.align, p.theme, (value, _breakpoint, _theme) => {
-      switch (value) {
-        case 'start':
-          return 'flex-start';
-        case 'end':
-          return 'flex-end';
-        default:
-          return value;
-      }
-    })};
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+const omitted = new Set<string>([...omitContainerProps, ...omitFlexProps]);
+export function Flex<T extends ContainerElement = 'div'>(
   props: FlexProps<T> | FlexPropsWithRenderFunction<T>
-) => React.ReactElement;
+) {
+  const acc = useLayoutStyle(typeof props.children === 'function');
+  addContainerStyles(acc, props, props.display ?? 'flex');
+  addLayoutProp(acc, 'gap', props.gap, (v, theme) => getSpacing(v, undefined, theme));
+  addLayoutProp(acc, 'flexDirection', props.direction);
+  addLayoutProp(acc, 'flexWrap', props.wrap);
+  addLayoutProp(acc, 'justifyContent', props.justify, v => FLEX_JUSTIFY_CONTENT[v]);
+  addLayoutProp(acc, 'alignItems', props.align, v =>
+    v === 'start' ? 'flex-start' : v === 'end' ? 'flex-end' : v
+  );
+  return <LayoutElement elementProps={props} layoutStyle={acc} omitProps={omitted} />;
+}

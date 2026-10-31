@@ -9,7 +9,7 @@ const config = {
   },
   transform: {
     '^.+\\.[jt]sx?$': [
-      '@swc/jest',
+      '../../../build-utils/yak-jest-transform.cjs',
       {
         jsc: {
           target: 'es2022',
@@ -24,6 +24,7 @@ const config = {
   // TanStack Hotkeys publishes ESM only; compile it for the CommonJS test runtime.
   transformIgnorePatterns: ['/node_modules/.pnpm/(?!@tanstack\\+(?:react-)?hotkeys@)'],
   clearMocks: true,
+  transformIgnorePatterns: ['node_modules/(?!(@yak/|\\.pnpm/@yak\\+))'],
 };
 
 export default runOnFirstShard(config);

@@ -1,12 +1,13 @@
 import type * as React from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {rc, type Responsive} from '@sentry/scraps/layout';
+import {LayoutElement} from '@sentry/scraps/layout/container';
+import {addLayoutProp, useLayoutStyle} from '@sentry/scraps/layout/yakLayout';
 import type {ContentVariant, TextSize, Theme} from '@sentry/scraps/theme';
 
 import {getFontSize, getLineHeight, getTextDecoration} from './styles';
+import {addTextStyles, textStyleProps} from './yakStyles';
 
 export interface BaseTextProps {
   /**
@@ -278,7 +279,10 @@ export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
 export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
   BaseTextProps &
     ExclusiveTextEllipsisProps & {
-      children: (props: {className: string}) => React.ReactNode | undefined;
+      children: (props: {
+        className: string;
+        style?: React.CSSProperties;
+      }) => React.ReactNode | undefined;
       as?: never;
       color?: never;
       dateTime?: never;
@@ -300,35 +304,43 @@ export type TextPropsWithRenderFunction<T extends TextPrimitive = 'span'> =
       >
     >;
 
-export const Text = styled(
-  <T extends TextPrimitive = 'span'>(
-    props: (TextProps<T> | TextPropsWithRenderFunction<T>) & {className?: string}
-  ) => {
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
-    const {children, ...rest} = props as TextProps<T>;
-    const Component = props.as || 'span';
-    return <Component {...(rest as any)}>{children}</Component>;
-  },
-  {
-    shouldForwardProp: p => isPropValid(p),
+function resolveYakDisplay(p: TextStyleProps) {
+  const fallback = getDefaultDisplay(p);
+  if (p.display === undefined) {
+    return fallback;
   }
-)`
-  ${getTextStyles}
-
-  /**
-   * Reset any margin or padding that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
-
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends TextPrimitive = 'span'>(
+  if (typeof p.display === 'string') {
+    return p.display;
+  }
+  return p.display.zero === undefined
+    ? {zero: fallback ?? getNativeDisplay(p.as), ...p.display}
+    : p.display;
+}
+export function Text<T extends TextPrimitive = 'span'>(
   props: TextProps<T> | TextPropsWithRenderFunction<T>
-) => React.ReactElement;
+) {
+  const acc = useLayoutStyle(typeof props.children === 'function');
+  const styleProps = {...props, theme: acc.theme};
+  addTextStyles(acc, props);
+  addLayoutProp(acc, 'fontSize', props.size, (v, theme) => getFontSize(v, theme));
+  addLayoutProp(acc, 'lineHeight', props.density, (v, theme) => getLineHeight(v, theme));
+  addLayoutProp(acc, 'display', resolveYakDisplay(styleProps));
+  addLayoutProp(acc, 'width', props.ellipsis ? '100%' : undefined);
+  addLayoutProp(
+    acc,
+    'fontWeight',
+    props.bold === undefined
+      ? undefined
+      : acc.theme.font.weight[props.monospace ? 'mono' : 'sans'][
+          props.bold ? 'medium' : 'regular'
+        ]
+  );
+  return (
+    <LayoutElement
+      elementProps={props}
+      layoutStyle={acc}
+      omitProps={textStyleProps}
+      defaultElement="span"
+    />
+  );
+}

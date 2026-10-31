@@ -58,45 +58,45 @@ describe('Surface', () => {
     expect(first).toEqual(second);
   });
 
-  it('applies different class names for different variants', () => {
+  it('forwards background styles for different variants', () => {
     render(
       <Fragment>
-        <Surface variant="primary">Primary</Surface>
-        <Surface variant="secondary">Secondary</Surface>
-        <Surface variant="overlay">Overlay</Surface>
+        <Surface variant="primary">{props => <div {...props}>Primary</div>}</Surface>
+        <Surface variant="secondary">{props => <div {...props}>Secondary</div>}</Surface>
+        <Surface variant="overlay">{props => <div {...props}>Overlay</div>}</Surface>
       </Fragment>,
       {wrapper: ThemeWrapper}
     );
 
-    const primary = screen.getByText('Primary').className;
-    const secondary = screen.getByText('Secondary').className;
-    const overlay = screen.getByText('Overlay').className;
-
-    expect(primary).not.toEqual(secondary);
-    expect(primary).not.toEqual(overlay);
-    expect(secondary).not.toEqual(overlay);
+    expect(screen.getByText('Primary')).toHaveStyle({
+      background: lightTheme.tokens.background.primary,
+    });
+    expect(screen.getByText('Secondary')).toHaveStyle({
+      background: lightTheme.tokens.background.secondary,
+    });
+    expect(screen.getByText('Overlay')).toHaveStyle({
+      background: lightTheme.tokens.background.overlay,
+    });
   });
 
-  it('applies different class names for different elevations', () => {
+  it('forwards shadow styles for different elevations', () => {
     render(
       <Fragment>
         <Surface variant="overlay" elevation="low">
-          Low
+          {props => <div {...props}>Low</div>}
         </Surface>
         <Surface variant="overlay" elevation="medium">
-          Medium
+          {props => <div {...props}>Medium</div>}
         </Surface>
         <Surface variant="overlay" elevation="high">
-          High
+          {props => <div {...props}>High</div>}
         </Surface>
       </Fragment>,
       {wrapper: ThemeWrapper}
     );
 
-    const low = screen.getByText('Low').className;
-    const medium = screen.getByText('Medium').className;
-    const high = screen.getByText('High').className;
-    expect(low).not.toEqual(high);
-    expect(medium).not.toEqual(high);
+    expect(screen.getByText('Low').style.boxShadow).toBe(lightTheme.shadow.low);
+    expect(screen.getByText('Medium').style.boxShadow).toBe(lightTheme.shadow.medium);
+    expect(screen.getByText('High').style.boxShadow).toBe(lightTheme.shadow.high);
   });
 });
