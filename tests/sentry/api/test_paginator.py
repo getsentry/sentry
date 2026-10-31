@@ -331,6 +331,26 @@ class DateTimePaginatorTest(TestCase):
         assert result3.next
         assert not result3.prev
 
+    def test_prev_page_with_explicit_descending_queryset(self) -> None:
+        joined = timezone.now()
+
+        res1 = self.create_user("foo@example.com", date_joined=joined)
+        res2 = self.create_user("bar@example.com", date_joined=joined + timedelta(seconds=1))
+        res3 = self.create_user("baz@example.com", date_joined=joined + timedelta(seconds=2))
+
+        paginator = DateTimePaginator(
+            User.objects.order_by("-date_joined"), order_by="-date_joined"
+        )
+
+        result1 = paginator.get_result(limit=2, cursor=None)
+        assert list(result1) == [res3, res2]
+
+        result2 = paginator.get_result(limit=2, cursor=result1.next)
+        assert list(result2) == [res1]
+
+        result3 = paginator.get_result(limit=2, cursor=result2.prev)
+        assert list(result3) == [res3, res2]
+
     def test_prev_descending_with_new(self) -> None:
         joined = timezone.now()
 
