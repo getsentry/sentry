@@ -99,6 +99,7 @@ class ProjectReplayDeletionJobsIndexEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ReplayDeletionJobPermission,)
 
     @extend_schema(

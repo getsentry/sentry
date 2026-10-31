@@ -51,6 +51,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PRIVATE,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="getOrganizationIntegration",

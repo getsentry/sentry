@@ -106,6 +106,7 @@ class GroupDetailsEndpoint(GroupEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={

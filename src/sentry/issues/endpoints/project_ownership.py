@@ -236,6 +236,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ProjectOwnershipPermission,)
 
     def get_ownership(self, project: Project) -> ProjectOwnership:

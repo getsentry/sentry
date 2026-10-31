@@ -186,6 +186,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (TeamProjectPermission,)
     owner = ApiOwner.FOUNDATIONS
 

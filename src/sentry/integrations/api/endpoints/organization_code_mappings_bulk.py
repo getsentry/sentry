@@ -128,6 +128,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
 
     @staticmethod

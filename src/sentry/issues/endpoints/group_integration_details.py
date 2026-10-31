@@ -143,6 +143,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         "PUT": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT", "DELETE"})
 
     @extend_schema(
         operation_id="Retrieve an Integration's Issue Config for an Issue",

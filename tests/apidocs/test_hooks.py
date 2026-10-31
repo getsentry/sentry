@@ -190,7 +190,7 @@ class IdempotentOperationsTest(TestCase):
         _OPERATION_SILOS.clear()
 
     def _endpoints(
-        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str]
+        self, path: str, methods: dict[str, ApiPublishStatus], idempotent: frozenset[str] | None
     ) -> list[tuple[Any, Any, str, Any]]:
         view_class = type(
             "FakeEndpoint",
@@ -265,6 +265,24 @@ class IdempotentOperationsTest(TestCase):
 
         with pytest.raises(SentryApiBuildError, match="does not implement"):
             custom_preprocessing_hook(endpoints)
+
+    def test_published_write_without_declaration_raises(self, _write_ownership: Any) -> None:
+        endpoints = self._endpoints("/api/0/assemble/", {"POST": ApiPublishStatus.PUBLIC}, None)
+
+        with pytest.raises(SentryApiBuildError, match="does not declare idempotent_methods"):
+            custom_preprocessing_hook(endpoints)
+
+    def test_undeclared_reads_and_private_writes_are_allowed(self, _write_ownership: Any) -> None:
+        filtered = custom_preprocessing_hook(
+            self._endpoints(
+                "/api/0/assemble/",
+                {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PRIVATE},
+                None,
+            )
+        )
+
+        assert [method for _, _, method, _ in filtered] == ["GET"]
+        assert _IDEMPOTENT_OPERATIONS == set()
 
     def test_safe_method_raises(self, _write_ownership: Any) -> None:
         endpoints = self._endpoints(

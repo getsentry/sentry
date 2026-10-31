@@ -273,7 +273,8 @@ class Endpoint(APIView):
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     # Non-safe methods that a client may resend after a timeout or 5xx without
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.
-    idempotent_methods: frozenset[HTTP_METHOD_NAME] = frozenset()
+    # None means undeclared, which the schema build rejects for published writes.
+    idempotent_methods: frozenset[HTTP_METHOD_NAME] | None = None
     rate_limits: RateLimitConfig | Callable[..., RateLimitConfig] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
     servers: list[dict[str, Any]] | None = None

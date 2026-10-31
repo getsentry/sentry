@@ -297,6 +297,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listProjectSymbolSources",

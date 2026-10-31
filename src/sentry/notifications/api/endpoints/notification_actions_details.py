@@ -43,6 +43,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     """
     Manages a single NotificationAction via the action_id passed in the path.

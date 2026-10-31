@@ -74,6 +74,7 @@ class ProjectRepoEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (ProjectPermission,)
 
     @extend_schema(

@@ -43,6 +43,7 @@ class ProjectCodeOwnersEndpoint(ProjectCodeOwnersBase):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="listProjectCodeOwners",

@@ -210,6 +210,7 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "DELETE": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationReleasePermission,)
 
     @extend_schema(
@@ -701,6 +702,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ProjectReleasePermission,)
 
     rate_limits = RateLimitConfig(

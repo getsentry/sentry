@@ -175,6 +175,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
         "PATCH": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     def convert_args(
@@ -495,6 +496,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationSCIMMemberPermission,)
 
     @extend_schema(

@@ -130,6 +130,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (OrganizationProjectsPermission,)
     owner = ApiOwner.FOUNDATIONS
     logger = logging.getLogger("team-project.create")
