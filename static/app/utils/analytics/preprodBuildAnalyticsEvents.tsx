@@ -145,6 +145,16 @@ export type PreprodBuildEventParameters = {
     images_removed?: number;
     images_unchanged?: number;
   };
+  'preprod.snapshots.onboarding.docs_clicked': {
+    link_type: 'product' | 'ci';
+    organization: Organization;
+    platform: string | undefined;
+  };
+  'preprod.snapshots.onboarding.viewed': {
+    organization: Organization;
+    platform: string | undefined;
+    project_id: string;
+  };
 };
 
 type PreprodBuildAnalyticsKey = keyof PreprodBuildEventParameters;
@@ -178,6 +188,9 @@ export const preprodBuildEventMap: Record<PreprodBuildAnalyticsKey, string | nul
     'Preprod Releases: Mobile Builds Tab Clicked',
   'preprod.releases.snapshots.tab-clicked': 'Preprod Releases: Snapshots Tab Clicked',
   'preprod.snapshots.list.row_clicked': 'Preprod Snapshots: List Row Clicked',
+  'preprod.snapshots.onboarding.viewed': 'Preprod Snapshots: Onboarding Viewed',
+  'preprod.snapshots.onboarding.docs_clicked':
+    'Preprod Snapshots: Onboarding Docs Clicked',
   'preprod.snapshots.details.viewed': 'Preprod Snapshots: Details Viewed',
   'preprod.snapshots.details.approve_clicked': 'Preprod Snapshots: Approve Clicked',
   'preprod.snapshots.details.group_viewed_toggled':
