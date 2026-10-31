@@ -6,6 +6,7 @@ from rest_framework.request import Request
 
 from sentry.auth_v2.utils.session import SessionBuilder, SessionSerializer
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 EXPIRY_DATE = datetime(2023, 12, 31)
 
@@ -114,7 +115,7 @@ class SessionBuilderTest(TestCase):
         for key, value in properties.items():
             mock_attributes[key] = value
 
-        self.request.user = Mock(**mock_attributes)
+        self.request.user = Mock(spec=User, **mock_attributes)
         return self.request.user
 
     def test_initialize_does_not_override_flags(self) -> None:

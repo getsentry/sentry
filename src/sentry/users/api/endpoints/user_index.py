@@ -8,6 +8,7 @@ from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import owned_by_acting_user
 from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
 from sentry.users.api.serializers.user import UserSerializer
@@ -38,15 +39,16 @@ class UserIndexEndpoint(Endpoint):
                     )
                 elif key == "id":
                     valid_ids = []
+                    me = Q(pk__in=[])
                     for v in value:
                         if v == "me":
-                            valid_ids.append(request.user.id)
+                            me = owned_by_acting_user(request.user, "id")
                         else:
                             try:
                                 valid_ids.append(int(v))
                             except (ValueError, TypeError):
                                 raise ParseError(detail=f"Invalid user ID: {v}")
-                    queryset = queryset.filter(id__in=valid_ids)
+                    queryset = queryset.filter(Q(id__in=valid_ids) | me)
                 elif key == "name":
                     queryset = queryset.filter(in_iexact("name", value))
                 elif key == "email":

@@ -13,6 +13,7 @@ from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.u2f import U2fInterface, decode_credential_id
+from sentry.auth.principal import require_user
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.security.utils import capture_security_activity
@@ -68,7 +69,7 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
             capture_security_activity(
                 account=user,
                 type="recovery-codes-regenerated",
-                actor=request.user,
+                actor=require_user(request),
                 ip_address=request.META["REMOTE_ADDR"],
                 context={"authenticator": authenticator},
                 send_email=True,
@@ -232,9 +233,9 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
                 # have been sent to db
                 for iface in backup_interfaces:
                     capture_security_activity(
-                        account=request.user,
+                        account=require_user(request),
                         type="mfa-removed",
-                        actor=request.user,
+                        actor=require_user(request),
                         ip_address=request.META["REMOTE_ADDR"],
                         context={"authenticator": iface.authenticator},
                         send_email=False,

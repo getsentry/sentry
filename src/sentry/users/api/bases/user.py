@@ -10,7 +10,7 @@ from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import to_valid_int_id
-from sentry.auth.principal import acting_user_id, has_user
+from sentry.auth.principal import acting_user_id, has_user, is_acting_user
 from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
@@ -34,7 +34,7 @@ class UserPermission(DemoSafePermission):
     def has_object_permission(
         self, request: Request, view: APIView, user: User | RpcUser | None
     ) -> bool:
-        if user is None or request.user.id == user.id:
+        if user is None or is_acting_user(request.user, user.id):
             return True
         if is_system_auth(request.auth):
             return True
@@ -109,7 +109,7 @@ class UserDisplayPreferencesPermission(UserPermission):
             return request.auth.user_id == user.id
         # Deliberately not `super()`: `UserPermission` lets an active superuser act on
         # another account, which for personal display preferences has no operator use.
-        return request.user.id == user.id
+        return is_acting_user(request.user, user.id)
 
 
 class OrganizationUserPermission(UserAndStaffPermission):
@@ -125,7 +125,7 @@ class OrganizationUserPermission(UserAndStaffPermission):
         if organization_id is None:
             return False
         organization = organization_service.get_organization_by_id(
-            id=organization_id, user_id=request.user.id
+            id=organization_id, user_id=acting_user_id(request.user)
         )
         if not organization:
             return False

@@ -464,7 +464,7 @@ class UserDetailsEndpoint(UserEndpoint):
                         date_added=django_timezone.now(),
                         event_id=audit_log.get_event_id("MEMBER_REMOVE"),
                         actor_user_id=require_user(request).id,
-                        actor_label=request.user.username,
+                        actor_label=require_user(request).username,
                         ip_address=request.META["REMOTE_ADDR"],
                         target_object_id=member_mapping.organizationmember_id,
                         target_user_id=user.id,
@@ -500,7 +500,7 @@ class UserDetailsEndpoint(UserEndpoint):
             record_hard_user_deletion(
                 user_id=user_id,
                 user_email=user_email,
-                actor=request.user,
+                actor=require_user(request),
                 ip_address=request.META["REMOTE_ADDR"],
             )
         else:
@@ -510,7 +510,7 @@ class UserDetailsEndpoint(UserEndpoint):
             delete_logger.info("user.deactivate", extra=logging_data)
             record_user_deactivation(
                 user=user,
-                actor=request.user,
+                actor=require_user(request),
                 ip_address=request.META["REMOTE_ADDR"],
             )
 

@@ -6,6 +6,8 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 
 from sentry.api.serializers import Serializer
+from sentry.auth.principal import require_user
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -35,7 +37,7 @@ class SessionSerializer(Serializer[SessionSerializerResponse]):
         self,
         obj: Request,
         attrs: Mapping[Any, Any],
-        user: User | RpcUser | AnonymousUser,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal,
         **kwargs: Any,
     ) -> SessionSerializerResponse:
         """
@@ -76,9 +78,9 @@ class SessionBuilder:
         the user needs to complete on the frontend. Flags are only
         set if they don't already exist in the session.
         """
-        user = self.request.user
-        if not user or user.is_anonymous:
+        if not self.request.user or self.request.user.is_anonymous:
             return
+        user = require_user(self.request)
 
         session = self.request.session
 
