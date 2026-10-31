@@ -10,6 +10,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ReleaseArchive,
     ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
@@ -72,6 +73,24 @@ class ReleaseFileTestCase(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
+    def test_manifest_must_be_a_json_object(self) -> None:
+        buffer = BytesIO()
+        with ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", "[]")
+        buffer.seek(0)
+
+        with pytest.raises(ValueError, match="expected a JSON object"):
+            ReleaseArchive(buffer)
+
+    def test_manifest_files_must_be_a_json_object(self) -> None:
+        buffer = BytesIO()
+        with ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", json.dumps({"files": []}))
+        buffer.seek(0)
+
+        with pytest.raises(ValueError, match="manifest files to be a JSON object"):
+            ReleaseArchive(buffer)
+
     def create_archive(self, fields, files, dist=None):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
