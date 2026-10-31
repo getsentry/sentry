@@ -117,6 +117,34 @@ def create_manual_investigation(
     return investigation
 
 
+def create_notebook(
+    *,
+    organization: Organization,
+    created_by_id: int | None,
+    created_by_service_account_id: int | None,
+    title: str,
+    source_type: str,
+    source_key: str | None,
+    source: dict[str, Any],
+    source_revision: int | None,
+    filters: dict[str, Any],
+    project_ids: list[int],
+) -> Notebook:
+    investigation = Notebook.objects.create(
+        organization=organization,
+        created_by_id=created_by_id,
+        created_by_service_account_id=created_by_service_account_id,
+        title=title,
+        source_type=source_type,
+        source_key=source_key,
+        source=deepcopy(source),
+        source_revision=source_revision,
+        filters=deepcopy(filters),
+    )
+    _create_project_links(investigation, project_ids)
+    return investigation
+
+
 def _copy_title(title: str) -> str:
     prefix = "Copy of "
     return prefix + title[: MAX_INVESTIGATION_TITLE_LENGTH - len(prefix)]
