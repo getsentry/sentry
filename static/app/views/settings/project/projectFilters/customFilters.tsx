@@ -57,13 +57,47 @@ import {
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
+// Values the tooltip of that count lists before it points at the editor, which
+// shows them all. A tooltip cannot scroll, so a long list would cover the page.
+const MAX_TOOLTIP_VALUES = 10;
+const VALUE_TOOLTIP_WIDTH = 360;
 
+// Values laid out for a tooltip: one per line, left aligned, since a centered
+// pattern that wraps is hard to read.
+function ValueList({values, total}: {total: number; values: string[]}) {
+  return (
+    <Stack align="start" gap="xs">
+      {values.map((value, index) => (
+        <Text key={index} monospace size="sm" align="left">
+          {value}
+        </Text>
+      ))}
+      {total > values.length && (
+        <Text size="sm" variant="muted" align="left">
+          {t(
+            'Showing %s of %s. Edit the filter to see every value.',
+            values.length,
+            total
+          )}
+        </Text>
+      )}
+    </Stack>
+  );
+}
+
+// A value shrinks to its cell and shows the whole pattern on hover when cut.
 function ValueTag({value}: {value: string}) {
   return (
     <Tag variant="muted">
-      <Text monospace size="sm">
+      <InfoText
+        mode="overflowOnly"
+        title={<ValueList values={[value]} total={1} />}
+        maxWidth={VALUE_TOOLTIP_WIDTH}
+        monospace
+        size="sm"
+      >
         {value}
-      </Text>
+      </InfoText>
     </Tag>
   );
 }
@@ -105,14 +139,12 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
           <Tag variant="muted">
             <InfoText
               size="sm"
+              maxWidth={VALUE_TOOLTIP_WIDTH}
               title={
-                <Stack align="start" gap="xs">
-                  {hidden.map((value, index) => (
-                    <Text key={index} monospace size="sm">
-                      {value}
-                    </Text>
-                  ))}
-                </Stack>
+                <ValueList
+                  values={hidden.slice(0, MAX_TOOLTIP_VALUES)}
+                  total={hidden.length}
+                />
               }
             >
               {tn('%s more', '%s more', hidden.length)}
@@ -589,7 +621,7 @@ export function CustomFilters({project}: {project: Project}) {
                     </Text>
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
-                    <Stack align="start" gap="xs">
+                    <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
                         <ConditionSummary key={index} condition={condition} />
                       ))}
