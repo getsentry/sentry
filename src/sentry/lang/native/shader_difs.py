@@ -97,6 +97,24 @@ def find_dxil_pdb_by_debug_name(project: Project, debug_name: str) -> ProjectDeb
     return next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL_PDB), None)
 
 
+def find_sibling_pdb(dxil: ProjectDebugFile) -> tuple[str, ProjectDebugFile] | None:
+    """The PDB uploaded next to a DXIL binary, keyed by the DebugName the decoder will ask for.
+
+    The decoder requests a shader's PDB only after it has received the binary, so
+    sending the sibling PDB along with the binary saves one extra round trip.
+    """
+    difs = ProjectDebugFile.objects.filter(project_id=dxil.project_id, debug_id=dxil.debug_id).order_by(
+        "-id"
+    )
+    pdb = next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL_PDB), None)
+    if pdb is None:
+        return None
+    stem = os.path.splitext(os.path.basename(dxil.object_name or ""))[0]
+    if not stem:
+        stem = dxil.debug_id.replace("-", "")[:32]
+    return f"{stem}.pdb", pdb
+
+
 def presign_dif(dif: ProjectDebugFile) -> str | None:
     """Presigned GET URL for an objectstore-backed debug file, or None."""
     if not dif.storage_path:
@@ -122,6 +140,13 @@ def resolve_shader_difs(project: Project, response: Mapping[str, Any]) -> Shader
         if dif is not None and url is not None:
             found.append(dif)
             resolved.binaries.append((code_id.lower(), url))
+            sibling = find_sibling_pdb(dif)
+            if sibling is not None:
+                debug_name, pdb = sibling
+                pdb_url = presign_dif(pdb)
+                if pdb_url is not None and debug_name.lower() not in {n.lower() for n in debug_names}:
+                    found.append(pdb)
+                    resolved.pdbs.append((debug_name, pdb_url))
 
     for debug_name in dict.fromkeys(debug_names):
         dif = find_dxil_pdb_by_debug_name(project, debug_name)
