@@ -141,6 +141,8 @@ class ConfigTransformer(ABC):
     A ConfigTransformer is used to transform the config between API and internal representations.
     """
 
+    api_schema: dict[str, Any]
+
     @abstractmethod
     def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
         raise NotImplementedError
