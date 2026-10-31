@@ -109,11 +109,11 @@ relationships and fields are:
 filters do not require a matching [`GroupType`](../../issues/grouptype.py). A group type
 classifies the output issue; handlers select it through `DetectorOccurrence.type`.
 
-The model field remains a `CharField`, and database reads return strings. Settings lookup
+The model field is a `CharField`, and database reads return strings. Settings lookup
 validates enum membership and registration; normal model saves call that lookup before
 validating configuration. Unknown stored types can still be loaded for inspection, but
 accessing their settings or saving them raises and logs an error for existing detectors.
-`config_schema=None` skips configuration validation for legacy pipelines that already
+`config_schema=None` skips configuration validation for pipelines that
 validate their own configuration. It does not skip type validation.
 
 `api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
@@ -122,11 +122,10 @@ advertise a type. Discovery also requires a handler and `GET` availability; sugg
 choices require a validator. `DISCOVER` does not restrict access to detector rows or
 explicit creation requests. Row operations have their own availability gates.
 
-Default provisioning uses explicit labels in `DEFAULT_DETECTOR_NAMES`, preserving
-existing names without borrowing issue descriptions. API validation, discovery, and
-history lookup use detector settings and actual associated issues. The legacy
-`Detector.group_type` and `GroupType.detector_settings` properties still assume matching
-slugs; avoid them when implementing detector behavior.
+Default provisioning gets detector names from `DEFAULT_DETECTOR_NAMES`. API validation
+and discovery use detector settings; history lookup uses those settings and the
+associated issues. `Detector.group_type` and `GroupType.detector_settings` assume
+matching slugs; use the detector registry when implementing detector behavior.
 
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.

@@ -38,11 +38,30 @@ from sentry.workflow_engine.types import (
     DetectorSettings,
     DetectorType,
 )
+from sentry.workflow_engine.utils.fingerprinting import build_detector_issue_fingerprint
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
 MOCK_DATA_SOURCE_TYPE = "detector_handler_test_source"
 
 EVENT_ID = "0123456789abcdef0123456789abcdef"
+
+
+@pytest.mark.parametrize(
+    "detector_id,issue_type_id,problem_key",
+    [(2, 100, "problem"), (1, 200, "problem"), (1, 100, "another-problem")],
+)
+def test_detector_issue_fingerprint_separates_distinct_issues(
+    detector_id: int, issue_type_id: int, problem_key: str
+) -> None:
+    original = build_detector_issue_fingerprint(1, 100, "problem")
+    assert len(original) == 1
+    assert original != build_detector_issue_fingerprint(detector_id, issue_type_id, problem_key)
+
+
+def test_detector_issue_fingerprint_keeps_the_problem_key_in_one_entry() -> None:
+    assert build_detector_issue_fingerprint(1, 100, "resource:part/雪") == [
+        "detector:1:type:100:problem:resource:part/雪"
+    ]
 
 
 class MockDataSourceTypeHandler(DataSourceTypeHandler[None]):
