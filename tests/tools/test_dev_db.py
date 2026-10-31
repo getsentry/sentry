@@ -35,7 +35,7 @@ def fake_run() -> Generator[FakeRun]:
 
 
 def _summary(calls: list[tuple[str, ...]]) -> list[tuple[str, ...]]:
-    out = []
+    out: list[tuple[str, ...]] = []
     for cmd in calls:
         if cmd[0] == "docker":
             out.append((cmd[3], cmd[-1]))

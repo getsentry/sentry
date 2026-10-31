@@ -18,9 +18,8 @@ def synced(tmp_path: Path) -> Generator[ModuleType]:
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    module.reporoot = str(tmp_path)
     (tmp_path / ".node-version").write_text("26.12.1\n")
-    with mock.patch.dict(os.environ):
+    with mock.patch.object(module, "reporoot", str(tmp_path)), mock.patch.dict(os.environ):
         os.environ.pop("SENTRY_DEVENV_SKIP_FRONTEND", None)
         yield module
 
