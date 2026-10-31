@@ -24,6 +24,7 @@ from sentry.search.eap.columns import (
     extract_trace_metric_aggregate_arguments,
 )
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
+from sentry.search.eap.trace_metrics.web_vitals import WEB_VITALS_FORMULA_DEFINITIONS
 from sentry.search.eap.validator import literal_validator
 
 
@@ -214,3 +215,7 @@ for combinator, apply_combinator in TRACE_METRICS_FORMULA_COMBINATORS.items():
             combinator_formula_definitions[f"{formula}_{combinator}"] = apply_combinator(definition)
 
 TRACE_METRICS_FORMULA_DEFINITIONS.update(combinator_formula_definitions)
+
+# The web vital score formulas take the spans `measurements.score.total` argument rather than a
+# metric, so they are added after the `if` combinators which only apply to metric formulas.
+TRACE_METRICS_FORMULA_DEFINITIONS.update(WEB_VITALS_FORMULA_DEFINITIONS)

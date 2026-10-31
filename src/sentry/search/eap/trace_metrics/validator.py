@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from sentry.discover.arithmetic import is_equation, parse_arithmetic, strip_equation
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedFunction, ResolvedMultiTraceMetricFormula
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
@@ -14,20 +15,7 @@ from sentry.search.events.types import SnubaParams
 logger = logging.getLogger(__name__)
 
 
-def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
-    """
-    Extract trace metric information from an aggregate string using SearchResolver.
-
-    Args:
-        aggregate: The aggregate function string
-
-    Returns:
-        TraceMetric | None: The extracted trace metric or None if no specific metric
-
-    Raises:
-        InvalidSearchQuery: If the aggregate is invalid
-    """
-
+def _resolve_aggregate(aggregate: str) -> ResolvedFunction:
     now = datetime.now(tz=timezone.utc)
     snuba_params = SnubaParams(
         projects=[],
@@ -45,8 +33,36 @@ def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
     )
 
     resolved_function, _ = resolver.resolve_function(aggregate)
+    return resolved_function
 
-    return getattr(resolved_function, "trace_metric", None)
+
+def extract_trace_metric_from_aggregate(aggregate: str) -> TraceMetric | None:
+    """
+    Extract trace metric information from an aggregate string using SearchResolver.
+
+    Args:
+        aggregate: The aggregate function string
+
+    Returns:
+        TraceMetric | None: The extracted trace metric or None if no specific metric
+
+    Raises:
+        InvalidSearchQuery: If the aggregate is invalid
+    """
+    return getattr(_resolve_aggregate(aggregate), "trace_metric", None)
+
+
+def extract_trace_metrics_from_aggregate(aggregate: str) -> frozenset[TraceMetric]:
+    """
+    Like `extract_trace_metric_from_aggregate`, but also understands formulas that read from
+    several metrics at once (e.g. the web vital scores). Returns an empty set when the aggregate
+    does not target specific metrics.
+    """
+    resolved_function = _resolve_aggregate(aggregate)
+    if isinstance(resolved_function, ResolvedMultiTraceMetricFormula):
+        return resolved_function.trace_metrics
+    trace_metric = getattr(resolved_function, "trace_metric", None)
+    return frozenset([trace_metric]) if trace_metric is not None else frozenset()
 
 
 def validate_trace_metrics_aggregate(aggregate: str) -> None:
@@ -68,8 +84,7 @@ def validate_trace_metrics_aggregate(aggregate: str) -> None:
 
     for term in terms:
         try:
-            trace_metric = extract_trace_metric_from_aggregate(term)
-            if trace_metric is None:
+            if not extract_trace_metrics_from_aggregate(term):
                 raise InvalidSearchQuery(
                     f"Trace metrics aggregate {term} must specify metric name, type, and unit"
                 )
