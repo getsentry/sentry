@@ -19,7 +19,7 @@ import {
   useStreamGroupColumns,
 } from 'sentry/components/stream/groupColumns';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 import {ISSUE_LIST_COLUMNS} from 'sentry/views/issueList/groupListBody';
@@ -120,6 +120,10 @@ function WrappedComponent({
 describe('IssueListActions', () => {
   beforeEach(() => {
     GroupStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-resolve-capability/',
+      body: {canResolve: true},
+    });
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
 
     MockApiClient.addMockResponse({
@@ -143,7 +147,9 @@ describe('IssueListActions', () => {
     it('shows action buttons when any items are selected', async () => {
       render(<WrappedComponent selectedIds={['1']} />);
 
-      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled()
+      );
       expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
     });
 
@@ -163,6 +169,188 @@ describe('IssueListActions', () => {
   });
 
   describe('Bulk', () => {
+    it.each([
+      {
+        issueCategory: IssueCategory.OUTAGE,
+        issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
+      },
+      {issueCategory: IssueCategory.OUTAGE, issueType: IssueType.UPTIME_DOMAIN_FAILURE},
+      {
+        issueCategory: IssueCategory.METRIC,
+        issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+      },
+      {
+        issueCategory: IssueCategory.METRIC,
+        issueType: IssueType.PROFILE_FUNCTION_REGRESSION,
+      },
+    ])('allows resolving $issueType when permitted by the API', async issue => {
+      GroupStore.add([GroupFixture({id: '1', ...issue})]);
+      const updateMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+      render(<WrappedComponent selectedIds={['1']} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled()
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+      expect(updateMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({id: ['1']}),
+          data: {status: 'resolved', statusDetails: {}, substatus: null},
+        })
+      );
+    });
+
+    it('checks the full query when selection expands beyond the loaded issues', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1'}),
+        GroupFixture({id: '2'}),
+        GroupFixture({id: '3'}),
+      ]);
+      const queryCapability = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-resolve-capability/',
+        body: {canResolve: false},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-resolve-capability/',
+        match: [MockApiClient.matchQuery({id: ['1', '2', '3']})],
+        body: {canResolve: true},
+      });
+      render(<WrappedComponent selectedIds={['1', '2', '3']} queryCount={1500} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled()
+      );
+      await userEvent.click(
+        screen.getByText(/Select the first 1,000 issues that match this search query/)
+      );
+      await waitFor(() => expect(queryCapability).toHaveBeenCalled());
+      expect(screen.getByRole('button', {name: 'Resolve'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(queryCapability).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: '',
+            project: [1],
+            sort: IssueSortOptions.DATE,
+          }),
+        })
+      );
+      await userEvent.hover(screen.getByRole('button', {name: 'Resolve'}));
+      expect(
+        await screen.findByText(
+          'One or more selected issues cannot be resolved manually.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not guess resolution support when the capability request fails', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-resolve-capability/',
+        statusCode: 500,
+      });
+      render(<WrappedComponent selectedIds={['1']} />);
+
+      const button = await screen.findByRole('button', {name: 'Resolve'});
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(button);
+      expect(
+        await screen.findByText('Unable to check whether these issues can be resolved.')
+      ).toBeInTheDocument();
+    });
+
+    it.each([
+      {issueCategory: IssueCategory.METRIC, issueType: IssueType.METRIC_ISSUE},
+      {
+        issueCategory: IssueCategory.CONFIGURATION,
+        issueType: IssueType.SOURCEMAP_CONFIGURATION,
+      },
+      {
+        issueCategory: IssueCategory.CONFIGURATION,
+        issueType: IssueType.LOW_VALUE_SPAN_CONFIGURATION,
+      },
+    ])(
+      'disables resolve when the API rejects a selection containing $issueType',
+      async issue => {
+        GroupStore.add([GroupFixture({id: '1'}), GroupFixture({id: '2', ...issue})]);
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues-resolve-capability/',
+          body: {canResolve: false},
+        });
+        const updateMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent selectedIds={['1', '2']} />);
+
+        const resolveButton = await screen.findByRole('button', {name: 'Resolve'});
+        expect(resolveButton).toHaveAttribute('aria-disabled', 'true');
+        expect(
+          screen.getByRole('button', {name: 'More resolve options'})
+        ).toHaveAttribute('aria-disabled', 'true');
+        await userEvent.hover(resolveButton);
+        expect(
+          await screen.findByText(
+            'One or more selected issues cannot be resolved manually.'
+          )
+        ).toBeInTheDocument();
+        await userEvent.click(resolveButton);
+        expect(updateMock).not.toHaveBeenCalled();
+        expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+      }
+    );
+
+    it('allows resolving selected errors when an unselected metric issue is present', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1'}),
+        GroupFixture({
+          id: '2',
+          issueCategory: IssueCategory.METRIC,
+          issueType: IssueType.METRIC_ISSUE,
+        }),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1']} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled()
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Archive options'}));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Until this occurs again…'})
+      ).toBeInTheDocument();
+    });
+
+    it('preserves supported archive options for a selection containing a metric issue', async () => {
+      GroupStore.add([
+        GroupFixture({id: '1'}),
+        GroupFixture({
+          id: '2',
+          issueCategory: IssueCategory.METRIC,
+          issueType: IssueType.METRIC_ISSUE,
+        }),
+      ]);
+
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Archive options'}));
+      expect(screen.getByRole('menuitemradio', {name: 'Forever'})).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'For…'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Until this occurs again…'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Until this affects an additional…'})
+      ).toBeInTheDocument();
+    });
+
     describe('Total results greater than bulk limit', () => {
       it('after checking "Select all" checkbox, displays bulk select message', async () => {
         render(<WrappedComponent queryCount={1500} />);
@@ -470,7 +658,9 @@ describe('IssueListActions', () => {
     render(<WrappedComponent selectedIds={['1', '2', '3']} />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled()
+    );
     expect(screen.getByRole('button', {name: 'Merge'})).toHaveAttribute(
       'aria-disabled',
       'true'
