@@ -40,6 +40,20 @@ from sentry.utils.zip import safe_extract_zip
 logger = logging.getLogger(__name__)
 
 
+def _load_json_object(data: str | bytes) -> dict[str, object]:
+    raw = json.loads(data)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
+
+
+def _load_json_object_from_file(fp: IO[bytes]) -> dict[str, object]:
+    raw = json.load(fp)
+    if not isinstance(raw, dict):
+        raise ValueError("expected a JSON object")
+    return raw
+
+
 ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
@@ -207,8 +221,7 @@ class ReleaseArchive:
         return self._zip_file.read(filename)
 
     def _read_manifest(self) -> dict[str, object]:
-        manifest_bytes = self.read("manifest.json")
-        return cast(dict[str, object], json.loads(manifest_bytes.decode("utf-8")))
+        return _load_json_object(self.read("manifest.json"))
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
@@ -288,7 +301,7 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return cast(dict[str, object], json.load(fp))
+                return _load_json_object_from_file(fp)
 
     @contextmanager
     def writable_data(
@@ -323,7 +336,7 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data: dict[str, object] = json.load(source_file.getfile())
+                    raw_data = _load_json_object_from_file(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
