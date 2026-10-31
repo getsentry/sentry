@@ -198,7 +198,7 @@ def iteration_completed_webhook_fields(
     group: Group,
     state: SeerRunState,
     format_code_changes: Callable[
-        [SeerRunState], dict[str, Any]
+        [SeerRunState], dict[str, Any]  # justification: Seer payloads are decoded JSON.
     ],  # justification: Seer payloads are decoded JSON.
     *,
     retrying: bool,

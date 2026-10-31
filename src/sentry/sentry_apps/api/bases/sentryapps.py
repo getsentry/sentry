@@ -211,10 +211,10 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
         self,
         request: Request,
-        *args: Any,
+        *args: Any,  # justification: Django view argument passing is variadic.
         **kwargs: Any,  # justification: Django view argument passing is variadic.
     ) -> tuple[
-        tuple[Any, ...], dict[str, Any]
+        tuple[Any, ...], dict[str, Any]  # justification: Django view argument passing is variadic.
     ]:  # justification: Django view argument passing is variadic.
         """
         This baseclass is the SentryApp collection endpoints:
@@ -328,7 +328,7 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ) -> tuple[
-        tuple[Any, ...], dict[str, Any]
+        tuple[Any, ...], dict[str, Any]  # justification: Django view argument passing is variadic.
     ]:  # justification: Django view argument passing is variadic.
         try:
             sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
@@ -386,10 +386,10 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
         self,
         request: Request,
         organization_id_or_slug: int | str,
-        *args: Any,
+        *args: Any,  # justification: Django view argument passing is variadic.
         **kwargs: Any,  # justification: Django view argument passing is variadic.
     ) -> tuple[
-        tuple[Any, ...], dict[str, Any]
+        tuple[Any, ...], dict[str, Any]  # justification: Django view argument passing is variadic.
     ]:  # justification: Django view argument passing is variadic.
         extra_args: dict[str, int | None] = {}
         # We need to pass user_id if the user is not a superuser
@@ -476,10 +476,10 @@ class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
         self,
         request: Request,
         uuid: str,
-        *args: Any,
+        *args: Any,  # justification: Django view argument passing is variadic.
         **kwargs: Any,  # justification: Django view argument passing is variadic.
     ) -> tuple[
-        tuple[Any, ...], dict[str, Any]
+        tuple[Any, ...], dict[str, Any]  # justification: Django view argument passing is variadic.
     ]:  # justification: Django view argument passing is variadic.
         installations = app_service.get_many(filter={"uuids": [uuid]})
         installation = installations[0] if installations else None

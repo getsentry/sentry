@@ -908,7 +908,8 @@ def get_autofix_repos_from_project_code_mappings(
         code_mappings = get_sorted_code_mapping_configs(project)
 
     repos: dict[
-        tuple[object, object, object], dict[str, Any]
+        tuple[object, object, object],
+        dict[str, Any],  # justification: Seer payloads are decoded JSON.
     ] = {}  # justification: Seer payloads are decoded JSON.
     for code_mapping in code_mappings:
         repo: Repository = code_mapping.project_repository.repository

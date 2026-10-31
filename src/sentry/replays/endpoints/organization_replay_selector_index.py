@@ -323,7 +323,7 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
     """Process the response further into the expected output."""
 
     def make_selector_name(
-        row: dict[str, Any],
+        row: dict[str, Any],  # justification: replay query rows are decoded JSON.
     ) -> str:  # justification: replay query rows are decoded JSON.
         selector = row["click_tag"]
 

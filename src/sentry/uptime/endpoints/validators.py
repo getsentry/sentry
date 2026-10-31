@@ -191,7 +191,7 @@ def _validate_check_config(
 
 
 class UptimeValidatorBase(
-    CamelSnakeSerializer[Any]
+    CamelSnakeSerializer[Any]  # justification: validated alert payload is decoded JSON.
 ):  # justification: validated alert payload is decoded JSON.
     url = URLField(required=True, max_length=255)
     timeout_ms = serializers.IntegerField(
@@ -225,7 +225,8 @@ class UptimeValidatorBase(
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
     def validate(
-        self, attrs: dict[str, Any]
+        self,
+        attrs: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         _validate_request_size(
             attrs.get("method", "GET"),
@@ -310,7 +311,8 @@ class UptimeMonitorValidator(UptimeValidatorBase):
     )
 
     def validate(
-        self, attrs: dict[str, Any]
+        self,
+        attrs: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
@@ -362,7 +364,8 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         return _validate_mode(mode, self.context["request"])
 
     def create(
-        self, validated_data: dict[str, Any]
+        self,
+        validated_data: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> Detector:  # justification: validated alert payload is decoded JSON.
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
@@ -404,7 +407,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         return detector
 
     def update(
-        self, instance: Detector, data: dict[str, Any]
+        self,
+        instance: Detector,
+        data: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> Detector:  # justification: validated alert payload is decoded JSON.
         uptime_subscription = get_uptime_subscription(instance)
 
@@ -566,7 +571,8 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         return _validate_mode(mode, self.context["request"])
 
     def validate(
-        self, attrs: dict[str, Any]
+        self,
+        attrs: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         attrs = super().validate(attrs)
 
@@ -611,7 +617,7 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
 
 
 class UptimeDomainCheckFailureConfigValidator(
-    CamelSnakeSerializer[dict[str, Any]]
+    CamelSnakeSerializer[dict[str, Any]]  # justification: validated alert payload is decoded JSON.
 ):  # justification: validated alert payload is decoded JSON.
     """
     Validator for the uptime detector config field.
@@ -638,7 +644,11 @@ class UptimeDomainCheckFailureConfigValidator(
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
     def bind(
-        self, field_name: str, parent: serializers.BaseSerializer[Any]
+        self,
+        field_name: str,
+        parent: serializers.BaseSerializer[
+            Any
+        ],  # justification: validated alert payload is decoded JSON.
     ) -> None:  # justification: validated alert payload is decoded JSON.
         super().bind(field_name, parent)
         if not parent:
@@ -797,7 +807,9 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
         return instance
 
     def update_data_source(
-        self, instance: Detector, data_source: dict[str, Any]
+        self,
+        instance: Detector,
+        data_source: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     ) -> Detector:  # justification: validated alert payload is decoded JSON.
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
