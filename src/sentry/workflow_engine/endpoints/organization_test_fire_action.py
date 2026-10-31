@@ -14,6 +14,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.issues.action_log import (
     action_context_scope,
@@ -104,7 +105,7 @@ class OrganizationTestFireActionsEndpoint(OrganizationEndpoint):
 
         qs = Project.objects.filter(
             organization=organization,
-            teams__organizationmember__user_id=request.user.id,
+            teams__organizationmember__user_id=require_user(request).id,
             status=ObjectStatus.ACTIVE,
         ).order_by("slug")
 

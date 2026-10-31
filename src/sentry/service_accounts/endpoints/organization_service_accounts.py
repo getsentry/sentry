@@ -38,6 +38,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.organizations.services.organization import (
     RpcOrganization,
@@ -324,7 +325,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                     scope_list=data["scopes"],
                     is_active=data.get("isActive", True),
                     all_projects=all_projects,
-                    created_by_id=request.user.id,
+                    created_by_id=acting_user_id(request.user),
                 )
                 ServiceAccountProject.objects.bulk_create(
                     ServiceAccountProject(service_account=service_account, project_id=project_id)

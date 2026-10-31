@@ -16,6 +16,7 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.auth.principal import acting_user_id, is_acting_user
 from sentry.flags.models import FlagWebHookSigningSecretModel
 from sentry.models.organization import Organization
 
@@ -95,7 +96,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                 organization_id=organization.id
             ).get(provider=validator.validated_data["provider"])
             # allow update access if the user created the secret
-            is_creator = request.user.id == secret.created_by
+            is_creator = is_acting_user(request.user, secret.created_by)
         except FlagWebHookSigningSecretModel.DoesNotExist:
             # anyone can post a new secret
             is_creator = True
@@ -105,7 +106,7 @@ class OrganizationFlagsWebHookSigningSecretsEndpoint(OrganizationEndpoint):
                 organization=organization,
                 provider=validator.validated_data["provider"],
                 defaults={
-                    "created_by": request.user.id,
+                    "created_by": acting_user_id(request.user),
                     "date_added": datetime.now(tz=timezone.utc),
                     "provider": validator.validated_data["provider"],
                     "secret": validator.validated_data["secret"],

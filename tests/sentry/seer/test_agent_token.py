@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 from sentry.api.authentication import AgentTokenAuthentication, UserAuthTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission, OrganizationReleasesBaseEndpoint
 from sentry.auth.access import DEFAULT, Access, from_auth, from_request, from_request_org_and_scopes
+from sentry.auth.principal import acting_user_id, has_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
@@ -132,6 +133,7 @@ class AgentTokenAuthAndGateTest(TestCase):
     def test_valid_token_supplies_compatibility_user_and_preserves_agent_auth(self) -> None:
         request = self._agent_request(self.owner, ["org:read"], method="GET")
         assert request.user.is_authenticated
+        assert has_user(request.user)
         assert request.user.id == self.owner.id
         assert request.user.email == self.owner.email
         assert request.auth is not None
@@ -145,7 +147,7 @@ class AgentTokenAuthAndGateTest(TestCase):
 
         request = self._agent_request(elevated_user, ["org:read"], method="GET")
 
-        assert request.user.id == elevated_user.id
+        assert acting_user_id(request.user) == elevated_user.id
         assert not request.user.is_staff
         assert not request.user.is_superuser
         assert getattr(request.user, "permissions", None) == frozenset()

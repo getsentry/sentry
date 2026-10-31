@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
     OrganizationEndpoint,
     OrganizationReleasePermission,
 )
+from sentry.auth.principal import acting_user_id, owned_by_acting_user
 from sentry.auth.staff import is_active_staff
 from sentry.models.organization import Organization
 from sentry.preprod.analytics import PreprodStatusCheckApprovalCreatedEvent
@@ -75,9 +76,9 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         # exists()+create() instead of get_or_create — no unique constraint on this model
         # (see snapshots/tasks.py for rationale)
         already_approved = PreprodComparisonApproval.objects.filter(
+            owned_by_acting_user(request.user, "approved_by_id"),
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
-            approved_by_id=request.user.id,
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
         ).exists()
 
@@ -88,7 +89,7 @@ class OrganizationPreprodArtifactApproveEndpoint(OrganizationEndpoint):
         PreprodComparisonApproval.objects.create(
             preprod_artifact=artifact,
             preprod_feature_type=feature_type,
-            approved_by_id=request.user.id,
+            approved_by_id=acting_user_id(request.user),
             approval_status=PreprodComparisonApproval.ApprovalStatus.APPROVED,
             approved_at=datetime.now(timezone.utc),
         )

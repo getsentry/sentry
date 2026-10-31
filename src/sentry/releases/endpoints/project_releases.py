@@ -227,9 +227,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint):
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=acting_user_id(request.user)
-                    if request.user and request.user.id
-                    else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=project.organization_id,
                     project_ids=[project.id],
                     user_agent=request.META.get("HTTP_USER_AGENT", "")[:256],
