@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from django.contrib.auth.models import AnonymousUser
+from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.organization import Organization
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 INVESTIGATIONS_FEATURE = "organizations:investigations"
 # Any one of these lets a member read and manage investigations.
@@ -13,7 +14,7 @@ INVESTIGATION_SCOPES = frozenset({"org:read", "org:write", "org:admin"})
 
 
 def has_investigations_access(
-    organization: Organization, actor: User | RpcUser | AnonymousUser | None = None
+    organization: Organization, actor: RequestPrincipal | None = None
 ) -> bool:
     """Whether investigations are available to `actor` in `organization`.
 

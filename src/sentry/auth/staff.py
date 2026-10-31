@@ -5,10 +5,9 @@ import ipaddress
 import logging
 from collections.abc import Iterable
 from datetime import datetime, timedelta, timezone
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -19,6 +18,9 @@ from sentry import options
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
 from sentry.auth.system import is_system_auth
 from sentry.users.models.user import User
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 from sentry.utils.auth import has_completed_sso
 
 logger = logging.getLogger("sentry.staff")
@@ -56,7 +58,7 @@ def is_active_staff(request: HttpRequest | Request) -> bool:
 
 
 # TODO(schew2381): Delete after staff is GA'd and the options are removed
-def has_staff_option(user: User | AnonymousUser) -> bool:
+def has_staff_option(user: RequestPrincipal) -> bool:
     """
     This checks two options, the first being whether or not staff has been GA'd.
     If not, it falls back to checking the second option which by email specifies which
