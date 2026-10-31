@@ -4,7 +4,13 @@ import logging
 from typing import NotRequired, TypedDict
 
 from django.db.models.query import QuerySet
-from django.http import Http404, HttpResponse, HttpResponseBadRequest, StreamingHttpResponse
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseBase,
+    StreamingHttpResponse,
+)
 from rest_framework.request import Request
 from rest_framework.response import Response
 from symbolic.debuginfo import normalize_debug_id
@@ -57,14 +63,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download_file(self, download_id, project: Project):
+    def download_file(self, download_id: str, project: Project) -> HttpResponseBase:
         split = download_id.split("/")
         if len(split) < 2:
             return HttpResponseBadRequest(content=b"Invalid download ID")
-        ty, ty_id, *_rest = split
+        ty, ty_id_str, *_rest = split
 
         try:
-            ty_id = int(ty_id)
+            ty_id = int(ty_id_str)
         except ValueError:
             return HttpResponseBadRequest(content=b"Invalid download ID")
 
@@ -124,7 +130,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         except OSError:
             raise Http404
 
-    def get(self, request: Request, project: Project) -> Response:
+    def get(self, request: Request, project: Project) -> Response | HttpResponseBase:
         """
         List a Project's Individual Artifacts or Bundles
         ````````````````````````````````````````
