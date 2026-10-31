@@ -135,6 +135,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             GlobalParams.ENVIRONMENT,
+            GlobalParams.START,
+            GlobalParams.END,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             EventParams.EVENT_DETAILS_COLLAPSE,
         ],
         responses={
