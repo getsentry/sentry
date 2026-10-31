@@ -671,8 +671,9 @@ class JiraServerIntegration(IssueSyncIntegration):
         )
 
     def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
-            resp = self.get_client().search_issues(cast(str, query))
+            resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
             return resp
         except ApiError as e:
