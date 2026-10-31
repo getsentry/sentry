@@ -451,15 +451,8 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
           ] as const
         ).map(hotkey => ({
           hotkey,
-          callback: event => {
-            // TanStack's physical Slash fallback also matches AZERTY browser zoom.
-            if (event.key === '+' || event.key === '=') {
-              return;
-            }
-            event.preventDefault();
-            toggleSeerExplorer();
-          },
-          options: {ignoreInputs: false, preventDefault: false},
+          callback: toggleSeerExplorer,
+          options: {ignoreInputs: false},
         }))
   );
 

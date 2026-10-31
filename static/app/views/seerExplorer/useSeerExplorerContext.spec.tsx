@@ -104,7 +104,11 @@ describe('openChatPrompt', () => {
     });
   });
 
-  it.each(['+', '='])('preserves browser zoom for Cmd+%s on AZERTY', key => {
+  it.each([
+    ['+', 'AZERTY zoom in'],
+    ['=', 'AZERTY zoom in'],
+    ['-', 'QWERTZ zoom out'],
+  ])('preserves browser zoom for Cmd+%s (%s)', key => {
     const platform = jest
       .spyOn(window.navigator, 'platform', 'get')
       .mockReturnValue('MacIntel');
