@@ -109,10 +109,10 @@ def find_sibling_pdb(dxil: ProjectDebugFile) -> tuple[str, ProjectDebugFile] | N
     pdb = next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL_PDB), None)
     if pdb is None:
         return None
-    stem = os.path.splitext(os.path.basename(dxil.object_name or ""))[0]
-    if not stem:
-        stem = dxil.debug_id.replace("-", "")[:32]
-    return f"{stem}.pdb", pdb
+    name = os.path.basename((pdb.object_name or "").replace("\\", "/"))
+    if not _PDB_SUFFIX_RE.search(name):
+        name = f"{dxil.debug_id.replace('-', '')[:32]}.pdb"
+    return name, pdb
 
 
 def presign_dif(dif: ProjectDebugFile) -> str | None:
