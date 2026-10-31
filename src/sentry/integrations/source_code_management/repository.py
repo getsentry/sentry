@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import logging
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from enum import StrEnum
 from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
 from urllib.parse import quote as urlquote
 from urllib.parse import unquote, urlparse, urlunparse
 
 import sentry_sdk
 
+from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.gitlab.constants import GITLAB_CLOUD_BASE_URL
@@ -32,6 +36,35 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.users.models.identity import Identity
+from sentry.utils import metrics
+from sentry.utils.cache import cache
+from sentry.utils.hashlib import md5_text
+
+logger = logging.getLogger(__name__)
+
+FILE_CHECK_METRIC = "integrations.source_code_management.stacktrace_link.file_check"
+# The files at a commit never change. Branches move, and a "not found" can come from
+# repository access that gets granted again, so both expire quickly.
+FILE_CHECK_FOUND_AT_COMMIT_CACHE_SECONDS = 60 * 60 * 24 * 7
+FILE_CHECK_CACHE_SECONDS = 60 * 15
+COMMIT_SHA_RE = re.compile(r"[0-9a-fA-F]{40}|[0-9a-fA-F]{64}")
+
+
+class FileCheckResult(StrEnum):
+    """How a file check ended. Only FOUND and NOT_FOUND say whether the file exists."""
+
+    FOUND = "found"
+    NOT_FOUND = "not_found"
+    BAD_REQUEST = "bad_request"
+    CLIENT_MISCONFIGURED = "client_misconfigured"
+    CLIENT_UNAVAILABLE = "client_unavailable"
+    EMPTY_RESPONSE = "empty_response"
+    IDENTITY_NOT_VALID = "identity_not_valid"
+    UNAUTHORIZED = "unauthorized"
+    RETRY_ERROR = "retry_error"
+    USER_DISABLED = "user_disabled"
+    ERROR = "error"
+
 
 HaltReason = Literal[
     "configuration_error",
@@ -251,10 +284,13 @@ class RepositoryIntegration(
             integration_id=self.org_integration.integration_id,
         )
 
-    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+    def check_file_result(
+        self, repo: Repository, filepath: str, branch: str | None = None
+    ) -> FileCheckResult:
         """
         Calls the client's `check_file` method to see if the file exists.
-        Returns the link to the file if it exists, otherwise return `None`.
+        Returns FOUND or NOT_FOUND when the provider answered, otherwise why the file
+        could not be checked.
 
         So far only GitHub, GitLab and VSTS have this implemented, all of which give
         use back 404s. If for some reason an integration gives back a different
@@ -271,16 +307,16 @@ class RepositoryIntegration(
             except IntegrationConfigurationError:
                 # This is likely due to access being revoked by the user, or
                 # some other misconfiguration on the integration's side.
-                return None
+                return FileCheckResult.CLIENT_MISCONFIGURED
             except (Identity.DoesNotExist, IntegrationError):
                 sentry_sdk.capture_exception()
-                return None
+                return FileCheckResult.CLIENT_UNAVAILABLE
             try:
                 response = client.check_file(repo, filepath, branch)
                 if not response:
-                    return None
+                    return FileCheckResult.EMPTY_RESPONSE
             except IdentityNotValid:
-                return None
+                return FileCheckResult.IDENTITY_NOT_VALID
             except ApiRetryError as e:
                 # Ignore retry errors for GitLab
                 # TODO(ecosystem): Remove this once we have a better way to handle this
@@ -289,12 +325,12 @@ class RepositoryIntegration(
                     and client.base_url != GITLAB_CLOUD_BASE_URL
                 ):
                     lifecycle.record_halt(e)
-                    return None
+                    return FileCheckResult.RETRY_ERROR
                 else:
                     raise
             except ApiUnauthorized as e:
                 lifecycle.record_halt(e)
-                return None
+                return FileCheckResult.UNAUTHORIZED
             except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 lifecycle.record_halt(e)
                 # Need to re-raise since 403 errors will be returned to user via get_link
@@ -302,7 +338,11 @@ class RepositoryIntegration(
             except ApiError as e:
                 if e.code in (404, 400):
                     lifecycle.record_halt(e)
-                    return None
+                    # The integration proxy also answers a 400 when the identity is invalid,
+                    # so only a 404 means the file is missing
+                    return (
+                        FileCheckResult.NOT_FOUND if e.code == 404 else FileCheckResult.BAD_REQUEST
+                    )
                 # TODO(ecosystem): Remove this once we have a better way to handle this
                 # It involves decomposing this logic
                 #  {"$id":"1","innerException":null,"message":"According to Microsoft Entra, your Identity xxx is currently Disabled within the following Microsoft Entra tenant: xxx. Please contact your Microsoft Entra administrator to resolve this.","typeName":"Microsoft.TeamFoundation.Framework.Server.AadUserStateException, Microsoft.TeamFoundation.Framework.Server","typeKey":"AadUserStateException","errorCode":0,"eventId":3000}"
@@ -312,11 +352,20 @@ class RepositoryIntegration(
                     and self.integration_name == IntegrationProviderSlug.AZURE_DEVOPS.value
                 ):
                     lifecycle.record_halt(e)
-                    return None
+                    return FileCheckResult.USER_DISABLED
                 else:
                     raise
 
-            return self.format_source_url(repo, filepath, branch)
+            return FileCheckResult.FOUND
+
+    def check_file(self, repo: Repository, filepath: str, branch: str | None = None) -> str | None:
+        """
+        Returns the link to the file if it exists, otherwise return `None`.
+        See `check_file_result` for how the file is checked.
+        """
+        if self.check_file_result(repo, filepath, branch) is FileCheckResult.FOUND:
+            return self.format_source_url(repo, filepath.lstrip("/"), branch)
+        return None
 
     def encode_source_url(self, url: str) -> str:
         """Percent-encode a source URL's path, such as square brackets in a filepath."""
@@ -332,7 +381,8 @@ class RepositoryIntegration(
         request was successful.
 
         Uses the version first, and re-tries with the default branch if we 404
-        trying to use the version (commit sha).
+        trying to use the version (commit sha). Found and not found answers are
+        cached, see `_check_stacktrace_file`.
 
         If no file was found return `None`, and re-raise for non-"Not Found"
         errors, like 403 "Account Suspended".
@@ -352,26 +402,99 @@ class RepositoryIntegration(
             scope.set_tag("stacktrace_link.tried_version", False)
             scope.set_attribute("stacktrace_link.tried_version", False)
 
+            filepath = filepath.lstrip("/")
+            log_extra: dict[str, Any] = {
+                "provider": self.integration_name,
+                "integration_id": self.model.id,
+                "organization_id": repo.organization_id,
+                "repository_id": repo.id,
+                "source_path": filepath,
+                "found": False,
+            }
             try:
                 if version:
                     scope.set_tag("stacktrace_link.tried_version", True)
                     scope.set_attribute("stacktrace_link.tried_version", True)
-                    source_url = self.check_file(repo, filepath, version)
-                    if source_url:
+                    result = self._check_stacktrace_file(
+                        repo, filepath, version, "version", log_extra
+                    )
+                    if result is FileCheckResult.FOUND:
                         scope.set_tag("stacktrace_link.used_version", True)
                         scope.set_attribute("stacktrace_link.used_version", True)
-                        return self.encode_source_url(source_url)
+                        log_extra["found"] = True
+                        return self.encode_source_url(
+                            self.format_source_url(repo, filepath, version)
+                        )
 
                 scope.set_tag("stacktrace_link.used_version", False)
                 scope.set_attribute("stacktrace_link.used_version", False)
-                source_url = self.check_file(repo, filepath, default)
+                result = self._check_stacktrace_file(repo, filepath, default, "default", log_extra)
+                if result is not FileCheckResult.FOUND:
+                    return None
+                log_extra["found"] = True
+                return self.encode_source_url(self.format_source_url(repo, filepath, default))
             except (ApiForbiddenError, IntegrationConfigurationError) as e:
                 # Similar to the `check_file` implementation, we need to re-raise
                 # for 403 errors as these need to be propagated to the user.
                 lifecycle.record_halt(e)
                 raise
+            finally:
+                logger.info("stacktrace_link.file_checks", extra=log_extra)
 
-            return self.encode_source_url(source_url) if source_url else None
+    def _check_stacktrace_file(
+        self,
+        repo: Repository,
+        filepath: str,
+        ref: str,
+        check: Literal["version", "default"],
+        log_extra: dict[str, Any],
+    ) -> FileCheckResult:
+        """
+        Checks a stack trace file through a cache of earlier answers. Only FOUND and
+        NOT_FOUND are cached, so a provider or permissions problem is always checked again.
+        """
+        ref_type = "commit" if COMMIT_SHA_RE.fullmatch(ref) else "branch"
+        cache_enabled = options.get("integrations.stacktrace-link.file-check-cache.enabled")
+        digest = md5_text(ref, "\x00", filepath).hexdigest()
+        cache_key = f"stacktrace-link:file-check:{self.model.id}:{repo.id}:{digest}"
+        cache_status = "miss" if cache_enabled else "disabled"
+        outcome = "raised"
+        try:
+            cached = cache.get(cache_key) if cache_enabled else None
+            if cached is not None:
+                cache_status = "hit"
+                result = FileCheckResult(cached)
+            else:
+                result = self.check_file_result(repo, filepath, ref)
+                if cache_enabled and result in (FileCheckResult.FOUND, FileCheckResult.NOT_FOUND):
+                    cache.set(
+                        cache_key,
+                        result.value,
+                        FILE_CHECK_FOUND_AT_COMMIT_CACHE_SECONDS
+                        if result is FileCheckResult.FOUND and ref_type == "commit"
+                        else FILE_CHECK_CACHE_SECONDS,
+                    )
+            outcome = result.value
+            return result
+        finally:
+            metrics.incr(
+                FILE_CHECK_METRIC,
+                tags={
+                    "provider": self.integration_name,
+                    "check": check,
+                    "ref_type": ref_type,
+                    "cache": cache_status,
+                    "result": outcome,
+                },
+                sample_rate=1.0,
+            )
+            log_extra.update(
+                {
+                    f"{check}_ref_type": ref_type,
+                    f"{check}_cache": cache_status,
+                    f"{check}_result": outcome,
+                }
+            )
 
     def get_codeowner_file(
         self, repo: Repository, ref: str | None = None

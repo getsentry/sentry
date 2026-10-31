@@ -16,6 +16,7 @@ from sentry.integrations.cursor_origin.integration import (
     CursorOriginIntegration,
     CursorOriginIntegrationProvider,
 )
+from sentry.integrations.source_code_management.repository import FileCheckResult
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -168,9 +169,10 @@ class CursorOriginIntegrationTest(TestCase):
 
     def test_the_stacktrace_link_keeps_the_encoded_branch(self) -> None:
         repo = self._repo()
-        source_url = self.install.format_source_url(repo, "src/app.py", "release/test")
 
-        with mock.patch.object(self.install, "check_file", return_value=source_url):
+        with mock.patch.object(
+            self.install, "check_file_result", return_value=FileCheckResult.FOUND
+        ):
             link = self.install.get_stacktrace_link(repo, "src/app.py", "main", "release/test")
 
         assert link == f"{WEB}/{REPO}/blob/release%2Ftest/src/app.py"

@@ -4510,6 +4510,15 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Caches found and not-found answers from stacktrace link file checks, so repeat views of
+# the same frame don't ask the source code provider again. Off checks every time.
+register(
+    "integrations.stacktrace-link.file-check-cache.enabled",
+    default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Allows the recording of Seer actions as issue activities
 # https://linear.app/getsentry/project/add-seer-actions-to-issue-activityaction-log-0e641e1f5dac/overview
 register(
