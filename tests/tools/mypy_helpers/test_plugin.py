@@ -41,6 +41,14 @@ def call_mypy(src: str, *, plugins: list[str] | None = None) -> tuple[int, str]:
         with open(os.path.join(auth_dir, "model.pyi"), "w") as f:
             f.write("class AuthenticatedToken: ...")
 
+        # stubs for request.user types
+        users_dir = _fill_init_pyi(tmpdir, "sentry/users/models")
+        with open(os.path.join(users_dir, "user.pyi"), "w") as f:
+            f.write("class User: ...")
+        sa_dir = _fill_init_pyi(tmpdir, "sentry/service_accounts")
+        with open(os.path.join(sa_dir, "principal.pyi"), "w") as f:
+            f.write("class ServiceAccountPrincipal: ...")
+
         # stub for rest_framework.response.Response — make it Generic[T] with a
         # body-less overload, mirroring fixtures/stubs-for-mypy/rest_framework/
         # response.pyi. The Response-body-Any plugin hook needs this shape to
@@ -260,6 +268,21 @@ Success: no issues found in 1 source file
     ret, out = call_mypy(src)
     assert ret == 0
     assert out == expected_plugins
+
+
+def test_drf_request_user_includes_service_accounts() -> None:
+    src = """\
+from rest_framework.request import Request
+x: Request
+reveal_type(x.user)
+"""
+    expected = """\
+<string>:3: note: Revealed type is "sentry.users.models.user.User | django.contrib.auth.models.AnonymousUser | sentry.service_accounts.principal.ServiceAccountPrincipal"
+Success: no issues found in 1 source file
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0
+    assert out == expected
 
 
 def test_csp_response_attribute() -> None:
