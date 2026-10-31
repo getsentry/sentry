@@ -19,6 +19,7 @@ from sentry.auth.authenticators.base import EnrollmentStatus, NewEnrollmentDisal
 from sentry.auth.authenticators.sms import SmsInterface, SMSRateLimitExceeded
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.principal import require_user
 from sentry.security.utils import capture_security_activity
 from sentry.users.api.bases.user import UserEndpoint
 from sentry.users.api.serializers.authenticator import get_interface_serializer
@@ -185,7 +186,7 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         :auth: required
         """
         if ratelimiter.backend.is_limited(
-            f"auth:authenticator-enroll:{request.user.id}:{interface_id}",
+            f"auth:authenticator-enroll:{require_user(request).id}:{interface_id}",
             limit=10,
             window=86400,  # 10 per day should be fine
         ):
@@ -199,9 +200,9 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
         # error rather than silently switch to the superuser/staff user.
 
         # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
-        if user.id != request.user.id:
-            assert request.user.id is not None
-            user = User.objects.get(id=request.user.id)
+        if user.id != require_user(request).id:
+            assert require_user(request).id is not None
+            user = User.objects.get(id=require_user(request).id)
 
         # start activation
         serializer_cls = serializer_map.get(interface_id, None)
