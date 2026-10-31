@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import DataError, connections, router
@@ -32,6 +32,9 @@ from sentry.utils.validators import (
 )
 from sentry.utils.validators import is_event_id_or_list as _is_event_id_or_list
 from sentry.utils.validators import is_span_id_or_list as _is_span_id_or_list
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 
 class InvalidQuery(Exception):
@@ -352,7 +355,7 @@ def parse_actor_or_none_value(
 _HACKY_INVALID_USER = RpcUser(id=0)
 
 
-def parse_user_value(value: str, user: User | RpcUser | AnonymousUser) -> RpcUser:
+def parse_user_value(value: str, user: RequestPrincipal) -> RpcUser:
     if value == "me":
         if isinstance(user, User):
             return serialize_rpc_user(user)

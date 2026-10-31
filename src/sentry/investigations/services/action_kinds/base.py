@@ -4,17 +4,17 @@ import abc
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
 from rest_framework.request import Request
 
 from sentry.auth.access import Access
 from sentry.investigations.contracts import ActionPayloadSerializer
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.notebooks.models import Notebook, NotebookActionRequest
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 
 class CannotApplyReason(StrEnum):
@@ -120,7 +120,7 @@ class ActionKind(abc.ABC):
         *,
         investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         """For each suggested request, why the viewer can't apply it, or None if they can."""
         return {item.id: CannotApplyReason.UNSUPPORTED_ACTION for item in action_requests}
