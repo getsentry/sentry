@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 
 from sentry.models.project import Project
 from sentry.seer.sentry_data_models import CreateIssueOccurrenceResponse
@@ -14,7 +15,7 @@ def create_issue_occurrence(
     *,
     organization_id: int,
     project_id: int,
-    detected_issue: dict[str, object],
+    detected_issue: Mapping[str, object],
 ) -> CreateIssueOccurrenceResponse:
     """
     Create an issue occurrence from Seer detection data.

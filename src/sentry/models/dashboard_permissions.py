@@ -37,7 +37,7 @@ class DashboardPermissions(Model):
         "sentry.Dashboard", on_delete=models.CASCADE, related_name="permissions"
     )
 
-    def has_edit_permissions(self, user_id: int) -> bool:
+    def has_edit_permissions(self, user_id: int | None) -> bool:
         if self.is_editable_by_everyone:
             return True
         if user_id == self.dashboard.created_by_id:
