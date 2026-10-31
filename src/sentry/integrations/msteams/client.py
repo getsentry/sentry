@@ -52,6 +52,7 @@ class MsTeamsClientABC(ApiClient, ABC):
     def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
         resp: dict[str, object] = self.post(self.CONVERSATION_URL, data=data)
+        # justification: the conversations response contract includes an id string.
         return cast(str, resp["id"])
 
     def send_message(self, conversation_id: str, data: Mapping[str, object]) -> object:

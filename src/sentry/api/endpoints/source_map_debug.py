@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Literal, NamedTuple, TypedDict, cast
+from typing import Any, Literal, NamedTuple, TypedDict
 
 import sentry_sdk
 from django.db.models import Exists, OuterRef
@@ -44,6 +44,13 @@ from sentry.services import eventstore
 from sentry.utils import json, metrics
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
+
+
+def _sourcemap_header(headers: Mapping[str, object]) -> str | None:
+    value = headers.get("sourcemap", headers.get("x-sourcemap"))
+    return value if isinstance(value, str) else None
+
+
 from sentry.utils.urls import non_standard_url_join
 
 logger = logging.getLogger(__name__)
@@ -436,9 +443,7 @@ class ReleaseLookupData:
                     headers = ArtifactBundleArchive.normalize_headers(
                         possible_release_file.file.headers
                     )
-                    sourcemap_header = cast(
-                        "str | None", headers.get("sourcemap", headers.get("x-sourcemap"))
-                    )
+                    sourcemap_header = _sourcemap_header(headers)
                     sourcemap_bytes = (
                         force_bytes(sourcemap_header) if sourcemap_header is not None else None
                     )
@@ -484,9 +489,7 @@ class ReleaseLookupData:
                                 self.found_source_file_name
                             )
                             headers = ArtifactBundleArchive.normalize_headers(headers)
-                            sourcemap_header = cast(
-                                "str | None", headers.get("sourcemap", headers.get("x-sourcemap"))
-                            )
+                            sourcemap_header = _sourcemap_header(headers)
                             sourcemap_bytes = (
                                 force_bytes(sourcemap_header)
                                 if sourcemap_header is not None
@@ -533,9 +536,7 @@ class ReleaseLookupData:
                             headers = ArtifactBundleArchive.normalize_headers(headers)
                             self.source_file_lookup_result = "found"
                             self.found_source_file_name = potential_source_file_name
-                            sourcemap_header = cast(
-                                "str | None", headers.get("sourcemap", headers.get("x-sourcemap"))
-                            )
+                            sourcemap_header = _sourcemap_header(headers)
                             sourcemap_bytes = (
                                 force_bytes(sourcemap_header)
                                 if sourcemap_header is not None

@@ -308,6 +308,8 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     ) -> list[RepositoryInfo]:
         if not query:
             resp = self.get_client().get_repos()
+            # justification: Bitbucket Server repository lists are JSON objects.
+            repos = cast(BitbucketServerReposResponse, resp)
 
             return [
                 {
@@ -317,10 +319,12 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                     "repo": repo["slug"],
                     "name": repo["project"]["name"] + "/" + repo["name"],
                 }
-                for repo in cast(BitbucketServerReposResponse, resp).get("values", [])
+                for repo in repos.get("values", [])
             ]
 
         resp = self.get_client().search_repositories(query)
+        # justification: Bitbucket Server repository lists are JSON objects.
+        repos = cast(BitbucketServerReposResponse, resp)
 
         return [
             {
@@ -330,7 +334,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                 "repo": repo["slug"],
                 "name": repo["project"]["name"] + "/" + repo["name"],
             }
-            for repo in cast(BitbucketServerReposResponse, resp).get("values", [])
+            for repo in repos.get("values", [])
         ]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:

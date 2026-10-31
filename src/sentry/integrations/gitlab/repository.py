@@ -69,15 +69,17 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, object]
     ) -> MutableMapping[str, object]:
-        installation = self.get_installation(
-            cast(GitLabRepositorySetupConfig, config).get("installation"), organization.id
-        )
+        # justification: repository setup config is validated by the provider.
+        setup_config = cast(GitLabRepositorySetupConfig, config)
+        installation = self.get_installation(setup_config["installation"], organization.id)
         client = installation.get_client()
 
-        repo_id = cast(GitLabRepositorySetupConfig, config)["identifier"]
+        repo_id = setup_config["identifier"]
+        # justification: integration metadata is written by the install pipeline.
         instance = cast(str, installation.model.metadata["instance"])
 
         try:
+            # justification: GitLab project responses carry these keys.
             project = cast(GitLabProject, client.get_project(repo_id))
         except Exception as e:
             raise installation.raise_error(e)
@@ -197,21 +199,21 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
         try:
             if start_sha is None:
+                # justification: GitLab commit list responses are JSON arrays.
                 commits = cast(
                     Sequence[GitLabCommit],
                     client.get_last_commits(repo.config["project_id"], end_sha),
                 )
                 return self._format_commits(client, repo, commits)
             else:
+                # justification: GitLab comparison responses are JSON objects.
                 comparison = cast(
                     Mapping[str, object],
                     client.compare_commits(repo.config["project_id"], start_sha, end_sha),
                 )
-                return self._format_commits(
-                    client,
-                    repo,
-                    cast(Sequence[GitLabCommit], comparison["commits"]),
-                )
+                # justification: GitLab comparison commits are JSON arrays.
+                commits = cast(Sequence[GitLabCommit], comparison["commits"])
+                return self._format_commits(client, repo, commits)
         except Exception as e:
             raise installation.raise_error(e)
 
@@ -241,6 +243,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         """GitLab commit lists don't come with diffs so we have
         to make additional round trips.
         """
+        # justification: GitLab diff responses are JSON arrays.
         diffs = cast(Sequence[GitLabDiff], client.get_diff(repo.config["project_id"], sha))
         return self._transform_patchset(diffs)
 

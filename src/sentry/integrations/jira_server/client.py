@@ -115,6 +115,7 @@ class JiraServerClient(ApiClient):
         else:
             q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
+        # justification: Jira search returns a JSON object.
         return cast(
             dict[str, object],
             self.get(
@@ -124,6 +125,7 @@ class JiraServerClient(ApiClient):
         )
 
     def create_comment(self, issue_key: int | str, comment: str) -> dict[str, object]:
+        # justification: Jira comment creation returns a JSON object.
         return cast(
             dict[str, object],
             self.post(self.COMMENTS_URL % issue_key, data={"body": comment}),
@@ -132,6 +134,7 @@ class JiraServerClient(ApiClient):
     def update_comment(
         self, issue_key: int | str, comment_id: str, comment: str
     ) -> dict[str, object]:
+        # justification: Jira comment update returns a JSON object.
         return cast(
             dict[str, object],
             self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment}),
@@ -347,6 +350,7 @@ class JiraServerSetupClient(ApiClient):
                 # Fallback to legacy webhook endpoint if we encounter an error
                 webhook_url = self.LEGACY_WEBHOOK_URL
 
+            # justification: Jira webhook creation returns a JSON object.
             return cast(dict[str, object], self.post(webhook_url, auth=auth, data=data))
 
     def request(self, *args, **kwargs):
