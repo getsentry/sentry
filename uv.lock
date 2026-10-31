@@ -2497,7 +2497,7 @@ dev = [
     { name = "selenium", specifier = ">=4.16.0" },
     { name = "sentry-cli", specifier = ">=3.3.0" },
     { name = "sentry-covdefaults-disable-branch-coverage", specifier = ">=1.0.2" },
-    { name = "sentry-devenv", specifier = ">=1.28.0" },
+    { name = "sentry-devenv", specifier = ">=1.31.0" },
     { name = "time-machine", specifier = ">=2.16.0" },
     { name = "types-beautifulsoup4", specifier = ">=4.11.6" },
     { name = "types-cachetools", specifier = ">=5.3.0.5" },
@@ -2561,14 +2561,14 @@ wheels = [
 
 [[package]]
 name = "sentry-devenv"
-version = "1.28.0"
+version = "1.31.0"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "sentry-sdk" },
     { name = "typing-extensions" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_devenv-1.28.0-py3-none-any.whl", hash = "sha256:304b603c561c4a0a206c7d1346aebf8ec44e6175f44ecce0b9c1a5848fb3f7ca" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_devenv-1.31.0-py3-none-any.whl", hash = "sha256:aa2614e060b7793f2cd7aa73cedce02b53d3750dbebd7f9afe68a7c2d17fb5dc" },
 ]
 
 [[package]]
