@@ -49,7 +49,8 @@ from sentry.utils.safe import get_path
 
 
 def _sourcemap_header(headers: Mapping[str, object]) -> str | None:
-    return cast("str | None", headers.get("sourcemap", headers.get("x-sourcemap")))
+    value = headers.get("sourcemap", headers.get("x-sourcemap"))
+    return value if isinstance(value, str) else None
 
 
 from sentry.utils.urls import non_standard_url_join
