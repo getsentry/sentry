@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -69,7 +70,7 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
+def generate_summary_and_run_automation(group_id: int, **kwargs: Any) -> None:
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
     sentry_sdk.set_attribute("trigger_path", trigger_path)

@@ -26,7 +26,7 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 _logger = logging.getLogger("sentry.integrations.slack")
 
 
-def get_conversations_info(*, integration_id: int, channel_id: str) -> dict:
+def get_conversations_info(*, integration_id: int, channel_id: str) -> dict[str, Any]:
     """Fetch conversations.info. Returns an empty dict on failure."""
     try:
         client = SlackSdkClient(integration_id=integration_id)

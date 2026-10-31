@@ -39,7 +39,7 @@ def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter
     return parameter
 
 
-def build_typed_list(type: Any):
+def build_typed_list(type: Any) -> dict[str, Any]:
     """
     drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
     a typed list using this workaround. build_basic_type will dynamically check the type

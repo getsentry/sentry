@@ -137,7 +137,9 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-integrations",
         url_names=["sentry-api-0-group-integrations"],
     )
-    def get(self, request: Request, group) -> Response[list[IntegrationIssueSerializerResponse]]:
+    def get(
+        self, request: Request, group: Group
+    ) -> Response[list[IntegrationIssueSerializerResponse]]:
         """
         List the organization's issue-tracker integrations and the external issues
         linked to this Sentry issue through each integration. The external issue's

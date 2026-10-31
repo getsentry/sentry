@@ -1,6 +1,7 @@
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
+from types import ModuleType
 from typing import Any
 
 import sentry_sdk
@@ -657,7 +658,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         axes: list[str],
         snuba_params: SnubaParams,
         rollup: int,
-        dataset,
+        dataset: ModuleType,
         organization: Organization,
         ingestion_delay_status: IngestionDelayStatus | None = None,
     ) -> StatsResponse:

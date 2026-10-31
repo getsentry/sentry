@@ -91,7 +91,9 @@ class BaseModel(models.Model):
     def __setstate__(self, state: Mapping[str, Any]) -> None:
         self.__dict__.update(state)
 
-    def _get_relational_field(self, field_name: str) -> models.ForeignKey:
+    def _get_relational_field(
+        self, field_name: str
+    ) -> models.ForeignKey[models.Model, models.Model]:
         ret = self._meta.get_field(field_name)
         if not isinstance(ret, models.ForeignKey):
             raise TypeError(f"expected {field_name=} to be ForeignKey")
