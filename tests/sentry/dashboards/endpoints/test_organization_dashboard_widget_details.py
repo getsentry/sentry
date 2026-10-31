@@ -25,7 +25,7 @@ ONDEMAND_FEATURES = [
 
 
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-widget-details",
             kwargs={"organization_id_or_slug": self.organization.slug},
@@ -1093,7 +1093,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
 
         option_get = options.get
 
-        def mock_options(option_name):
+        def mock_options(option_name: str) -> object:
             if option_name == "on_demand.max_widget_cardinality.on_query_count":
                 return 0
             else:

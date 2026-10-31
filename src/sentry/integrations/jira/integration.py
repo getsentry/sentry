@@ -768,9 +768,7 @@ class JiraIntegration(IssueSyncIntegration):
     def get_link_issue_config(
         self, group: Group, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
-        fields = cast(
-            list[IntegrationIssueConfigField], super().get_link_issue_config(group, **kwargs)
-        )
+        fields = super().get_link_issue_config(group, **kwargs)
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:

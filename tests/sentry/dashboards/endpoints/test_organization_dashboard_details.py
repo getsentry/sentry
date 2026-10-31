@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 from unittest import mock
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from django.db.models import QuerySet
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.dashboards.endpoints.organization_dashboards import PrebuiltDashboardId
@@ -96,7 +99,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             order=0,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-details",
             kwargs={
@@ -105,7 +108,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
             },
         )
 
-    def assert_serialized_dashboard(self, data, dashboard):
+    def assert_serialized_dashboard(self, data: Mapping[str, Any], dashboard: Dashboard) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -919,13 +922,13 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
         self.widget_ids = [self.widget_1.id, self.widget_2.id, self.widget_3.id, self.widget_4.id]
 
-    def get_widget_queries(self, widget):
+    def get_widget_queries(self, widget: DashboardWidget) -> QuerySet[DashboardWidgetQuery]:
         return DashboardWidgetQuery.objects.filter(widget=widget).order_by("order")
 
-    def assert_no_changes(self):
+    def assert_no_changes(self) -> None:
         self.assert_dashboard_and_widgets(self.widget_ids)
 
-    def assert_dashboard_and_widgets(self, widget_ids):
+    def assert_dashboard_and_widgets(self, widget_ids: Sequence[int]) -> None:
         assert Dashboard.objects.filter(
             organization=self.organization, id=self.dashboard.id
         ).exists()
@@ -4917,7 +4920,7 @@ class OrganizationDashboardDetailsOnDemandTransactionLikeTest(
 
 
 class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-visit",
             kwargs={
@@ -4965,7 +4968,7 @@ class OrganizationDashboardFavoriteTest(OrganizationDashboardDetailsTestCase):
         # Both users have favorited the dashboard
         self.dashboard.favorited_by = [self.user_1.id, self.user_2.id]
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -5025,7 +5028,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
     features = ["organizations:dashboards-starred"]
 
-    def do_request(self, *args, **kwargs):
+    def do_request(self, *args: object, **kwargs: object) -> Response:
         with self.feature(self.features):
             return super().do_request(*args, **kwargs)
 
@@ -5040,7 +5043,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
             dashboard=self.dashboard,
         )
 
-    def url(self, dashboard_id):
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={
@@ -5101,7 +5104,7 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 @with_feature("organizations:granular-permission-scopes")
 @granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
-    def url(self, dashboard_id: int) -> str:
+    def url(self, dashboard_id: int | str) -> str:
         return reverse(
             "sentry-api-0-organization-dashboard-favorite",
             kwargs={

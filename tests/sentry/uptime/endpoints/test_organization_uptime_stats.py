@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, UptimeResultEAPTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -23,7 +24,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
         )
         self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
-        scenarios: list[dict] = [
+        scenarios: list[dict[str, Any]] = [
             {"check_status": "success"},
             {"check_status": "failure"},
             {"check_status": "success"},
@@ -39,11 +40,11 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-    ):
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+    ) -> None:
         """Store a single uptime data row. Must be implemented by subclasses."""
         raise NotImplementedError("Subclasses must implement store_uptime_data")
 
@@ -193,11 +194,11 @@ class OrganizationUptimeStatsEndpointWithEAPTests(
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-    ):
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+    ) -> None:
         uptime_result = self.create_eap_uptime_result(
             subscription_id=uuid.UUID(subscription_id).hex,
             guid=uuid.UUID(subscription_id).hex,

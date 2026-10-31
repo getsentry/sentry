@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.utils import timezone
 from rest_framework import status
 
@@ -11,7 +13,7 @@ from sentry.workflow_engine.processors.data_source import bulk_fetch_enabled_det
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
-def _get_valid_data(project_id, environment_name, **overrides):
+def _get_valid_data(project_id: int, environment_name: str, **overrides: object) -> dict[str, Any]:
     data = {
         "projectId": project_id,
         "name": "Test Uptime Detector",
@@ -339,7 +341,7 @@ class OrganizationDetectorProjectIndexPostTest(APITestCase):
 
         assert created_sub.timeout_ms == 30000
         assert created_sub.url == "https://www.google.com"
-        assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE
+        assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE.value
 
     def test_create_detector_optional_fields(self) -> None:
         valid_data = _get_valid_data(
@@ -374,7 +376,7 @@ class OrganizationDetectorProjectIndexPostTest(APITestCase):
 
         assert created_sub.timeout_ms == 30000
         assert created_sub.url == "https://www.google.com"
-        assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE
+        assert created_sub.interval_seconds == UptimeSubscription.IntervalSeconds.ONE_MINUTE.value
         assert created_sub.method == "PUT"
         assert created_sub.headers == [["key", "value"]]
         assert created_sub.body == "<html/>"

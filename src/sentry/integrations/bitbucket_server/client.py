@@ -52,8 +52,21 @@ class BitbucketServerSetupClient(ApiClient):
     authorize_url = "{}/plugins/servlet/oauth/authorize?oauth_token={}"
     integration_name = "bitbucket_server_setup"
 
-    def __init__(self, base_url, consumer_key, private_key, verify_ssl=True, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        base_url: str,
+        consumer_key: str,
+        private_key: str,
+        verify_ssl: bool = True,
+        *,
+        integration_id: int | None = None,
+        logging_context: Mapping[str, object] | None = None,
+    ) -> None:
+        super().__init__(
+            integration_id=integration_id,
+            verify_ssl=verify_ssl,
+            logging_context=logging_context,
+        )
         self.base_url = base_url
         self.consumer_key = consumer_key
         self.private_key = private_key
@@ -98,7 +111,7 @@ class BitbucketServerSetupClient(ApiClient):
         resp = self.post(url, auth=auth, allow_text=True)
         return dict(parse_qsl(resp.text))
 
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> Any:  # justification: shared request surface.
         """
         Add OAuth1 RSA signatures.
         """

@@ -59,6 +59,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
+from sentry.services.eventstore.models import Event
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -109,7 +110,7 @@ def make_sentence(words: int | None = None) -> str:
     return " ".join(random.choice(loremipsum.words) for _ in range(words))
 
 
-def create_sample_event(*args, **kwargs):
+def create_sample_event(*args: object, **kwargs: object) -> Event | None:
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
@@ -118,6 +119,7 @@ def create_sample_event(*args, **kwargs):
         if event is not None:
             features.record([event])
             return event
+    return None
 
 
 def generate_commit_data(user: User) -> list[Mapping[str, object]]:
@@ -170,11 +172,12 @@ def generate_tombstones(project: Project, user: User) -> None:
         prev_group_id += 1
 
 
-def create_sample_time_series(event, release=None):
+def create_sample_time_series(event: Event | None, release: Release | None = None) -> None:
     if event is None:
         return
 
     group = event.group
+    assert group is not None
     project = group.project
     key = project.key_set.all()[0]
 
@@ -564,6 +567,7 @@ def generate_events(
         )
         generated_events.append(event1)
 
+        assert event1 is not None
         EventAttachment.objects.create(
             project_id=project.id,
             event_id=event1.event_id,
@@ -630,6 +634,7 @@ def generate_events(
             user=generate_user(),
         )
     if event5:
+        assert event5.group is not None
         Commit.objects.get_or_create(
             organization_id=project.organization_id,
             repository_id=repository.id,
@@ -647,6 +652,7 @@ def generate_events(
     create_sample_event(project=project, environment=next(ENVIRONMENTS), platform="csp")
 
     if event3:
+        assert event3.group is not None
         UserReport.objects.create(
             project_id=project.id,
             event_id=event3.event_id,
@@ -813,7 +819,7 @@ def create_mock_transactions(
 
     if load_performance_issues:
 
-        def load_n_plus_one_issue():
+        def load_n_plus_one_issue() -> None:
             trace_id = uuid4().hex
             transaction_user = generate_user()
             frontend_root_span_id = uuid4().hex[:16]
@@ -833,7 +839,7 @@ def create_mock_transactions(
                 "hash": "858fea692d4d93e8",
             }
 
-            def make_repeating_span(duration):
+            def make_repeating_span(duration: int) -> dict[str, object]:
                 nonlocal n_plus_one_db_current_offset
                 nonlocal n_plus_one_db_duration
                 n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(
@@ -933,7 +939,7 @@ def create_mock_transactions(
                 ],
             )
 
-        def load_uncompressed_asset_issue():
+        def load_uncompressed_asset_issue() -> None:
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -979,7 +985,7 @@ def create_mock_transactions(
                 spans=[parent_span] + spans,
             )
 
-        def load_consecutive_db_issue():
+        def load_consecutive_db_issue() -> None:
             time.sleep(1.0)
             transaction_user = generate_user()
             trace_id = uuid4().hex
@@ -1038,7 +1044,7 @@ def create_mock_transactions(
                 spans=[parent_span] + spans,
             )
 
-        def load_render_blocking_asset_issue():
+        def load_render_blocking_asset_issue() -> None:
             transaction_user = generate_user()
             trace_id = uuid4().hex
             parent_span_id = uuid4().hex[:16]
@@ -1072,14 +1078,14 @@ def create_mock_transactions(
                 },
             )
 
-        def load_m_n_plus_one_issue():
+        def load_m_n_plus_one_issue() -> None:
             trace_id = uuid4().hex
             transaction_user = generate_user()
 
             parent_span_id = uuid4().hex[:16]
             duration = 200
 
-            def make_repeating_span(i):
+            def make_repeating_span(i: int) -> dict[str, object]:
                 start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
                 end_timestamp = start_timestamp + timedelta(milliseconds=duration)
                 op = "http" if i % 2 == 0 else "db"
@@ -1122,7 +1128,7 @@ def create_mock_transactions(
                 spans=[parent_span] + repeating_spans,
             )
 
-        def generate_performance_issues():
+        def generate_performance_issues() -> None:
             click.echo(f"    > Loading performance issues data")  # NOQA
             click.echo(f"    > Loading n plus one issue")  # NOQA
             load_n_plus_one_issue()

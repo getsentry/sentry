@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.db import connection
 from django.urls import reverse
@@ -53,7 +54,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             interval="1d",
         )
 
-    def assert_equal_dashboards(self, dashboard, data):
+    def assert_equal_dashboards(self, dashboard: Dashboard, data: Mapping[str, Any]) -> None:
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
         assert data["createdBy"]["id"] == str(dashboard.created_by_id)
@@ -2192,7 +2193,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert starred_dashboard["projects"] == []
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_prevents_creation(self, mock_get_dashboard_limit: MagicMock) -> None:
         mock_get_dashboard_limit.return_value = 1
         response = self.do_request("post", self.url, data={"title": "New Dashboard w/ Limit"})
         assert response.status_code == 400
@@ -2203,7 +2204,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 201
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
-    def test_dashboard_limit_not_bypassed_by_burst_creates(self, mock_get_dashboard_limit) -> None:
+    def test_dashboard_limit_not_bypassed_by_burst_creates(
+        self, mock_get_dashboard_limit: MagicMock
+    ) -> None:
         Dashboard.objects.all().delete()
         mock_get_dashboard_limit.return_value = 2
 
@@ -2225,7 +2228,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.quotas.backend.get_dashboard_limit")
     def test_dashboard_limit_does_not_count_prebuilt_dashboards(
-        self, mock_get_dashboard_limit
+        self, mock_get_dashboard_limit: MagicMock
     ) -> None:
         mock_get_dashboard_limit.return_value = 2
 
@@ -2941,7 +2944,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_succeeds_for_user_without_team_membership(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """get_projects filters by team membership, so this resolves to []."""
         assert self.project  # lazy fixture; the org needs a project
@@ -2961,7 +2964,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_creates_dashboard_for_teamless_member_of_open_membership_org(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Creation must work too, not just validation."""
         org = self.create_organization(owner=self.user, flags=1)  # allow_joinleave
@@ -2981,7 +2984,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_accepts_accessible_project_filters_for_teamless_member(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         org = self.create_organization(owner=self.user, flags=1)
         team = self.create_team(organization=org)
@@ -3008,7 +3011,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_errors_when_no_project_is_accessible(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """Without allow_joinleave a teamless member can reach no project."""
         org = self.create_organization(owner=self.user, flags=0)  # no allow_joinleave
@@ -3033,7 +3036,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     @patch("sentry.search.events.builder.base.in_test_environment", return_value=False)
     def test_post_validation_does_not_error_for_organization_without_projects(
-        self, mock_in_test_environment
+        self, mock_in_test_environment: MagicMock
     ) -> None:
         """With no projects there is no fallback, so this hits the backstop."""
         empty_org = self.create_organization(owner=self.user)

@@ -790,6 +790,7 @@ class IssueDefaultTest(TestCase):
         desc_field = next(f for f in config if f["name"] == "description")
 
         assert title_field["default"] == "LLM Title"
+        assert isinstance(desc_field["default"], str)
         assert desc_field["default"].startswith("**")
         assert "LLM Description" in desc_field["default"]
 

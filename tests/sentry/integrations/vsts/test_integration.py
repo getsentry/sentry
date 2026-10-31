@@ -1003,7 +1003,7 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
         comment = Mock()
         comment.data = {"text": comment_text}
 
-        work_item = self.installation.create_comment(1, self.user.id, comment)
+        work_item = self.installation.create_comment("1", self.user.id, comment)
 
         assert work_item and work_item["id"]
         assert (
@@ -1017,4 +1017,4 @@ class RegionVstsIntegrationTest(VstsIntegrationTestCase):
         group_note.data = {"text": comment, "external_id": "123"}
 
         # Does nothing.
-        self.installation.update_comment(1, self.user.id, group_note)
+        self.installation.update_comment("1", self.user.id, group_note)

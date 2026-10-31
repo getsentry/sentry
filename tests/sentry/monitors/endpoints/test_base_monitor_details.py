@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 
@@ -148,7 +149,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
     ) -> None:
         monitor = self._create_monitor()
 
-        def expand_alert_rule_calls() -> list:
+        def expand_alert_rule_calls() -> list[Any]:
             return [
                 c
                 for c in mock_incr.call_args_list
@@ -808,11 +809,14 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     @patch("sentry.quotas.backend.check_assign_seat")
     @patch("sentry.quotas.backend.assign_seat")
     def test_update_slug_sends_right_slug_to_assign(
-        self, assign_seat, check_seat, update_monitor_slug
-    ):
+        self,
+        assign_seat: MagicMock,
+        check_seat: MagicMock,
+        update_monitor_slug: MagicMock,
+    ) -> None:
         check_seat.return_value = SeatAssignmentResult(assignable=True)
 
-        def dummy_assign(data_category=None, seat_object=None):
+        def dummy_assign(data_category: Any = None, seat_object: Any = None) -> Outcome:
             assert seat_object.slug == old_slug
             return Outcome.ACCEPTED
 

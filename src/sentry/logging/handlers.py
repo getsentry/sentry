@@ -59,8 +59,11 @@ _json_encoder_no_skipkeys = _json_encoder(skipkeys=False)
 
 class JSONRenderer:
     def __call__(
-        self, logger: object, name: str, event_dict: MutableMapping[str, Any]
-    ) -> str:  # justification: structlog event dicts are dynamic.
+        self,
+        logger: object,
+        name: str,
+        event_dict: MutableMapping[str, Any],  # justification: structlog event values are dynamic.
+    ) -> str:
         try:
             return _json_encoder_no_skipkeys.encode(event_dict)
         except Exception:
@@ -74,8 +77,11 @@ class JSONRenderer:
 
 class HumanRenderer:
     def __call__(
-        self, logger: object, name: str, event_dict: MutableMapping[str, Any]
-    ) -> str:  # justification: structlog event dicts are dynamic.
+        self,
+        logger: object,
+        name: str,
+        event_dict: MutableMapping[str, Any],  # justification: structlog event values are dynamic.
+    ) -> str:
         level = event_dict.pop("level")
         real_level = level.upper() if isinstance(level, str) else logging.getLevelName(level)
         base = "{} [{}] {}: {}".format(

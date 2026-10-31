@@ -5,7 +5,7 @@ from abc import ABC
 from collections.abc import Mapping
 from datetime import datetime, timezone
 from enum import StrEnum
-from typing import Any
+from typing import Any, TypeAlias
 from uuid import uuid4
 
 import orjson
@@ -41,6 +41,9 @@ from sentry.utils.redis import load_redis_script, redis_clusters
 from sentry.web.frontend.base import cell_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
+
+# justification: webhook payloads are decoded JSON.
+WebhookPayload: TypeAlias = Mapping[str, Any]
 release_repair_debounce = load_redis_script("utils/locking/delete_lock.lua")
 
 PROVIDER_NAME = "integrations:bitbucket_server"
@@ -151,10 +154,10 @@ def trigger_webhook_repair(
 
 class BitbucketServerWebhook(SCMWebhook, ABC):
     @property
-    def provider(self):
+    def provider(self) -> str:
         return IntegrationProviderSlug.BITBUCKET_SERVER.value
 
-    def update_repo_data(self, repo, event):
+    def update_repo_data(self, repo: Repository, event: WebhookPayload) -> None:
         """
         Given a webhook payload, update stored repo data if needed.
         """
@@ -169,7 +172,11 @@ class PushEventWebhook(BitbucketServerWebhook):
     def event_type(self) -> IntegrationWebhookEventType:
         return IntegrationWebhookEventType.PUSH
 
-    def __call__(self, event: Mapping[str, Any], **kwargs) -> None:
+    def __call__(
+        self,
+        event: WebhookPayload,
+        **kwargs: Any,  # justification: webhook dispatch context.
+    ) -> None:
         authors = {}
 
         if not (
@@ -264,11 +271,11 @@ class BitbucketServerWebhookEndpoint(Endpoint):
 
     _handlers: dict[str, type[BitbucketServerWebhook]] = {"repo:refs_changed": PushEventWebhook}
 
-    def get_handler(self, event_type) -> type[BitbucketServerWebhook] | None:
+    def get_handler(self, event_type: str) -> type[BitbucketServerWebhook] | None:
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         if request.method != "POST":
             return HttpResponse(status=405)
 

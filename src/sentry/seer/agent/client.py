@@ -46,7 +46,10 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
     poll_until_done,
 )
-from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
+from sentry.seer.agent.coding_agent_handoff import (
+    CodingAgentHandoffResult,
+    launch_coding_agents,
+)
 from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
@@ -1096,7 +1099,7 @@ class SeerAgentClient:
         user_id: int | None = None,
         issue_short_id: str | None = None,
         issue_url: str | None = None,
-    ) -> dict[str, list]:
+    ) -> CodingAgentHandoffResult:
         """
         Launch coding agents for an agent run.
 

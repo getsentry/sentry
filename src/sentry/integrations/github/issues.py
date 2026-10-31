@@ -116,7 +116,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
 
         return body[:-2]
 
-    def get_group_description(self, group: Group, event: Event | GroupEvent, **kwargs: Any) -> str:
+    def get_group_description(
+        self, group: Group, event: Event | GroupEvent | None, **kwargs: Any
+    ) -> str:
         output = self.get_group_link(group, **kwargs)
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
@@ -294,7 +296,9 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             "repo": repo,
         }
 
-    def get_link_issue_config(self, group: Group, **kwargs: Any) -> list[dict[str, Any]]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_repo, repo_choices = self.get_repository_choices(group, params, PAGE_LIMIT)
 
@@ -375,7 +379,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"repo": "Repository does not belong to this installation"})
         return {"repo": repo.name, "externalIssue": match[3]}
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
+    def get_issue(self, issue_id: str | int, **kwargs: Any) -> Mapping[str, Any]:
         data = kwargs["data"]
         repo = data.get("repo")
         issue_num = data.get("externalIssue")

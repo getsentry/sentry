@@ -760,11 +760,13 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert issue_event.group is not None
         resp = self.install.get_link_issue_config(group=issue_event.group, **data)
         # assert comment wording for linked issue is correct
+        assert isinstance(resp[2]["default"], str)
         assert "Sentry Issue" in resp[2]["default"]
 
         # link a feedback issue
         resp = self.install.get_link_issue_config(group=feedback_issue, **data)
         # assert comment wording for linked feedback is correct
+        assert isinstance(resp[2]["default"], str)
         assert "Sentry Feedback" in resp[2]["default"]
 
         # ensure linked comment is a string

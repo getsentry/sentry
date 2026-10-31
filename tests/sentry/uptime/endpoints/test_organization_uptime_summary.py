@@ -23,7 +23,7 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
         )
         self.detector = self.create_uptime_detector(uptime_subscription=self.subscription)
 
-        scenarios: list[dict] = [
+        scenarios: list[dict[str, Any]] = [
             {"check_status": "success"},
             {"check_status": "success"},
             {"check_status": "success"},
@@ -39,12 +39,12 @@ class OrganizationUptimeSummaryBaseTest(APITestCase):
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        check_duration_us=None,
-    ):
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+        check_duration_us: int | None = None,
+    ) -> None:
         """
         Store a single uptime data row. Must be implemented by subclasses.
         """
@@ -298,12 +298,12 @@ class OrganizationUptimeSummaryEAPTest(
 
     def store_uptime_data(
         self,
-        subscription_id,
-        check_status,
-        incident_status=IncidentStatus.NO_INCIDENT,
-        scheduled_check_time=None,
-        check_duration_us=None,
-    ):
+        subscription_id: str,
+        check_status: str,
+        incident_status: IncidentStatus = IncidentStatus.NO_INCIDENT,
+        scheduled_check_time: datetime | None = None,
+        check_duration_us: int | None = None,
+    ) -> None:
         kwargs = {
             "subscription_id": uuid.UUID(subscription_id).hex,
             "guid": uuid.UUID(subscription_id).hex,

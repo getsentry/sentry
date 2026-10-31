@@ -284,8 +284,13 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
 
     # IntegrationInstallation methods
 
-    def error_message_from_json(self, data):
-        return data.get("error", {}).get("message", "unknown error")
+    def error_message_from_json(self, data: Mapping[str, object]) -> str:
+        error = data.get("error")
+        if isinstance(error, Mapping):
+            message = error.get("message")
+            if isinstance(message, str):
+                return message
+        return "unknown error"
 
     def is_broken_integration_error(self, exc: Exception) -> HaltReason | None:
         if isinstance(exc, ApiError):
@@ -383,7 +388,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     # Bitbucket Server only methods
 
     @property
-    def username(self):
+    def username(self) -> str:
         return self.model.name
 
 
@@ -460,7 +465,7 @@ class BitbucketServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

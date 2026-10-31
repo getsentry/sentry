@@ -1,7 +1,7 @@
 from collections.abc import Generator
 from functools import cached_property
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.conf import settings
@@ -391,7 +391,7 @@ class OptionsManagerTest(TestCase):
         assert not opt.has_any_flag({FLAG_REQUIRED})
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_store(self, mock_timer) -> None:
+    def test_get_metric_source_store(self, mock_timer: MagicMock) -> None:
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()
         self.manager.get("foo")
@@ -405,7 +405,7 @@ class OptionsManagerTest(TestCase):
         ctx.__setitem__.assert_any_call("source", "store")
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_disk(self, mock_timer) -> None:
+    def test_get_metric_source_disk(self, mock_timer: MagicMock) -> None:
         self.manager.register("disk_opt", flags=FLAG_PRIORITIZE_DISK)
         with self.settings(SENTRY_OPTIONS={"disk_opt": "val"}):
             self.manager.get("disk_opt")
@@ -414,7 +414,7 @@ class OptionsManagerTest(TestCase):
         ctx.__setitem__.assert_any_call("source", "disk")
 
     @patch("sentry.utils.metrics.timer")
-    def test_get_metric_source_default(self, mock_timer) -> None:
+    def test_get_metric_source_default(self, mock_timer: MagicMock) -> None:
         self.manager.delete("foo")
         self.store.flush_local_cache()
         self.manager.get("foo")

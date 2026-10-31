@@ -362,8 +362,8 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             "identifier": project + "/" + repo,
             "installation": integration.id,
         }
-        data = self.provider.get_repository_data(organization, data)
-        assert data == {
+        repository_config = self.provider.get_repository_data(organization, data)
+        assert repository_config == {
             "provider": "integrations:bitbucket_server",
             "repo": repo,
             "project": project,
