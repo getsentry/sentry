@@ -2,7 +2,7 @@ import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.utils import timezone
@@ -29,6 +29,7 @@ from sentry.api.helpers.group_index import (
     update_groups_with_search_fn,
 )
 from sentry.api.helpers.group_index.types import MutateIssueResponse
+from sentry.api.helpers.group_index.update import can_resolve_groups, get_groups_for_update
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
 from sentry.api.paginator import DateTimePaginator, Paginator
@@ -605,3 +606,60 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         except Exception:
             logger.exception("Error scheduling tasks to delete groups")
             return Response({"detail": "Error deleting groups"}, status=500)
+
+
+class ResolveCapabilityResponse(TypedDict):
+    canResolve: bool
+
+
+class ResolveCapabilityPermission(OrganizationEventPermission):
+    scope_map = {"GET": OrganizationEventPermission.scope_map["PUT"]}
+
+
+@cell_silo_endpoint
+class OrganizationGroupResolveCapabilityEndpoint(OrganizationGroupIndexEndpoint):
+    http_method_names = ["get", "options"]
+    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    permission_classes = (ResolveCapabilityPermission,)
+
+    @extend_schema(
+        operation_id="getOrganizationIssuesResolveCapability",
+        description="Check issue-type support for manual resolution using bulk-update selection.",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            OrganizationParams.PROJECT,
+            IssueParams.MUTATE_ISSUE_ID_LIST,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.ORGANIZATION_VIEW_SORT,
+            GlobalParams.ENVIRONMENT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationGroupResolveCapabilityResponse", ResolveCapabilityResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ResolveCapabilityResponse] | Response[DetailResponse]:
+        projects = self.get_projects(request, organization)
+        if not projects:
+            return Response({"canResolve": True})
+
+        search_fn = functools.partial(
+            self._search,
+            request,
+            organization,
+            projects,
+            self.get_environments(request, organization),
+        )
+        ids = to_valid_int_id_list("id", request.GET.getlist("id"))
+        groups = get_groups_for_update(ids, projects, organization.id, search_fn)
+        if isinstance(groups, Response):
+            return groups
+        return Response({"canResolve": can_resolve_groups(groups)})

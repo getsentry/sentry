@@ -196,6 +196,10 @@ def get_current_release_version_of_group(group: Group, follows_semver: bool = Fa
     return current_release_version
 
 
+def can_resolve_groups(groups: Sequence[Group]) -> bool:
+    return all(group.issue_type.enable_user_status_and_priority_changes for group in groups)
+
+
 def update_groups(
     request: Request,
     groups: Sequence[Group],
@@ -268,9 +272,7 @@ def update_groups(
                 project_lookup=project_lookup,
             )
         if status in ("resolved", "resolvedInNextRelease"):
-            if any(
-                not group.issue_type.enable_user_status_and_priority_changes for group in groups
-            ):
+            if not can_resolve_groups(groups):
                 return Response(
                     {"detail": "Cannot manually resolve one or more issues."},
                     status=HTTPStatus.BAD_REQUEST,
@@ -321,6 +323,21 @@ def update_groups_with_search_fn(
     organization_id: int,
     search_fn: SearchFunction,
 ) -> Response:
+    group_list = get_groups_for_update(group_ids, projects, organization_id, search_fn)
+    if isinstance(group_list, Response):
+        return group_list
+    if not group_list:
+        return Response(status=204)
+    return update_groups(request, group_list)
+
+
+def get_groups_for_update(
+    group_ids: Sequence[int | str] | None,
+    projects: Sequence[Project],
+    organization_id: int,
+    search_fn: SearchFunction,
+) -> list[Group] | Response:
+    """Select the same scoped, bounded set for capability checks and mutations."""
     group_list = []
     if group_ids:
         group_list = get_group_list(organization_id, projects, group_ids)
@@ -345,10 +362,7 @@ def update_groups_with_search_fn(
 
         group_list = list(cursor_result)
 
-    if not group_list:
-        return Response(status=204)
-
-    return update_groups(request, group_list)
+    return group_list
 
 
 def validate_request(
