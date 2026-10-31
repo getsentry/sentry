@@ -587,6 +587,7 @@ class AssembleRequestFile(TypedDict):
     name: str
     chunks: list[str]
     debug_id: NotRequired[str]
+    code_id: NotRequired[str]
 
 
 AssembleRequestPayload = dict[str, AssembleRequestFile]
@@ -608,6 +609,11 @@ _ASSEMBLE_REQUEST_FILE_SCHEMA: dict[str, object] = {
             "type": "string",
             "pattern": "^[A-Fa-f0-9-]+$",
             "description": "The debug ID to store the file under, overriding the one read from the file.",
+        },
+        "code_id": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]+$",
+            "description": "The code ID to store the file under, for file types the server cannot read it from.",
         },
         "chunks": {
             "type": "array",
@@ -779,6 +785,7 @@ def batch_assemble(
                 "project_id": project.id,
                 "name": name,
                 "debug_id": debug_id,
+                "code_id": file.get("code_id"),
                 "checksum": checksum,
                 "chunks": chunks,
             }

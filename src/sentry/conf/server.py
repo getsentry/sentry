@@ -3417,6 +3417,12 @@ SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}
 # Shared secret used to sign requests to teapot
 SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
+# Dev-only: when Relay did not stream an attachment to objectstore, upload the
+# cached bytes ourselves so teapot can still fetch them by presigned URL.
+SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK = (
+    os.getenv("SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", "0") == "1"
+)
+
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
 
 # This is useful for testing SSO expiry flows

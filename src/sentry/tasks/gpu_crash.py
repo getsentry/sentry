@@ -19,6 +19,7 @@ from sentry import options
 from sentry.ingest.event_payload import load_event_payload
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.gpu import apply_gpu_crash_symbolication
+from sentry.lang.native.shader_difs import resolve_shader_difs
 from sentry.lang.native.teapot import TeapotAttachment, TeapotUnavailable, submit_to_teapot
 from sentry.lang.native.utils import (
     find_all_shader_debug_attachments,
@@ -163,6 +164,8 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
             return False
         breaker.record_success()
 
+        response = _maybe_resolve_shader_difs(project, event_id, dump, shaders, response)
+
         applied = apply_gpu_crash_symbolication(data, response)
         metrics.incr(
             "tasks.gpu_crash.completed",
@@ -179,3 +182,52 @@ def _try_symbolicate(data: MutableMapping[str, Any], project_id: int, event_id: 
         )
         sentry_sdk.capture_exception(e)
         return False
+
+
+def _maybe_resolve_shader_difs(
+    project: Project,
+    event_id: str,
+    dump: TeapotAttachment,
+    shaders: list[Any],
+    response: dict[str, Any],
+) -> dict[str, Any]:
+    """One extra teapot round with presigned URLs for the shader DIFs (dxil,
+    dxil_pdb) it reported missing. Best-effort: any failure keeps the first
+    response, and the breaker is left to the first round."""
+    if response.get("status") != "partial":
+        return response
+
+    try:
+        difs = resolve_shader_difs(project, response)
+        if not difs:
+            metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "unresolved"})
+            return response
+        with metrics.timer("tasks.gpu_crash.teapot_shader_difs"):
+            second = submit_to_teapot(
+                project,
+                event_id,
+                dump,
+                shaders,
+                shader_binaries=difs.binaries,
+                shader_pdbs=difs.pdbs,
+            )
+    except TeapotUnavailable:
+        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "unavailable"})
+        return response
+    except Exception as e:
+        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "error"})
+        logger.warning(
+            "tasks.gpu_crash.shader_difs_error", extra={"event_id": event_id, "error": repr(e)}
+        )
+        sentry_sdk.capture_exception(e)
+        return response
+
+    if second is None:
+        metrics.incr("tasks.gpu_crash.shader_difs", tags={"result": "request_error"})
+        return response
+
+    metrics.incr(
+        "tasks.gpu_crash.shader_difs",
+        tags={"result": second.get("status") or "unknown"},
+    )
+    return second

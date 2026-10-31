@@ -14,12 +14,14 @@ import hmac
 import logging
 import re
 from collections.abc import Sequence
+from datetime import timedelta
 from typing import Any, Protocol
 
 import orjson
 import requests
 import sentry_sdk
 from django.conf import settings
+from objectstore_client import TimeToLive
 
 from sentry import options
 from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
@@ -53,6 +55,18 @@ class TeapotAttachment(Protocol):
 
     name: str
     stored_id: str | None
+
+
+ShaderFileRef = tuple[str, str]
+"""``(key, storage_url)`` for a shader DIF teapot asked for in ``missing_difs``:
+the dxil ``code_id`` or the dxil_pdb ``debug_name``, plus a presigned GET URL."""
+
+# Suffix on the idempotency/request ids of the second (shader DIF) round, so
+# teapot's idempotency cache does not replay the first round's response.
+SHADER_DIF_ROUND_SUFFIX = "-2"
+
+# Dev-only inline attachment uploads live just long enough for the decode.
+INLINE_ATTACHMENT_TTL = timedelta(days=1)
 
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
@@ -139,6 +153,8 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
+        shader_binaries: Sequence[ShaderFileRef] | None = None,
+        shader_pdbs: Sequence[ShaderFileRef] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -157,12 +173,23 @@ class TeapotClient:
                 for att in shader_debug_info
             ],
         }
+        request_id = self.event_id
+        if shader_binaries or shader_pdbs:
+            body["shader_binaries"] = [
+                {"code_id": code_id, "storage_url": storage_url}
+                for code_id, storage_url in shader_binaries or []
+            ]
+            body["shader_pdbs"] = [
+                {"debug_name": debug_name, "storage_url": storage_url}
+                for debug_name, storage_url in shader_pdbs or []
+            ]
+            request_id = f"{self.event_id}{SHADER_DIF_ROUND_SUFFIX}"
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
-            "X-Request-Id": self.event_id,
+            "X-Request-Id": request_id,
             "Content-Type": "application/json",
-            "Idempotency-Key": self.event_id,
+            "Idempotency-Key": request_id,
             **_auth_headers(data),
         }
         return self._send(url, headers=headers, data=data)
@@ -171,8 +198,30 @@ class TeapotClient:
         """Short-lived self-authenticating (presigned) GET URL for the attachment —
         the shared internal objectstore helper (direct link, no auth header)."""
         if not att.stored_id:
-            raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
+            if not getattr(settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", False):
+                raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
+            att.stored_id = self._upload_inline(session, att)
         return get_internal_download_url(session, att.stored_id)
+
+    def _upload_inline(self, session: Any, att: TeapotAttachment) -> str:
+        """Dev fallback: Relay kept the attachment in the processing cache instead
+        of objectstore, so store the cached bytes ourselves and presign that key."""
+        load_data = getattr(att, "load_data", None)
+        if load_data is None:
+            raise TeapotRequestError(f"attachment {att.name!r} has no cached data")
+        payload = load_data(self.project)
+        key = session.put(
+            payload,
+            content_type=getattr(att, "content_type", None) or "application/octet-stream",
+            filename=att.name,
+            expiration_policy=TimeToLive(INLINE_ATTACHMENT_TTL),
+        )
+        metrics.incr("tasks.gpu_crash.teapot_inline_attachment_upload")
+        logger.info(
+            "teapot.inline_attachment_upload",
+            extra={"event_id": self.event_id, "name": att.name, "size": len(payload)},
+        )
+        return key
 
     def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
         def attempt() -> dict[str, Any]:
@@ -226,6 +275,8 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
+    shader_binaries: Sequence[ShaderFileRef] | None = None,
+    shader_pdbs: Sequence[ShaderFileRef] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -233,11 +284,19 @@ def submit_to_teapot(
     URL, missing attachment, 4xx) — teapot is healthy, so the caller should not
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
+
+    ``shader_binaries`` / ``shader_pdbs`` turn this into the second round that
+    hands teapot presigned URLs for the shader DIFs it reported missing.
     """
 
     try:
         client = TeapotClient(project=project, event_id=event_id)
-        return client.symbolicate(dump, shader_debug_info or [])
+        return client.symbolicate(
+            dump,
+            shader_debug_info or [],
+            shader_binaries=shader_binaries,
+            shader_pdbs=shader_pdbs,
+        )
     except TeapotRequestError as e:
         logger.info("teapot.request_error", extra={"event_id": event_id, "error": str(e)})
         return None
