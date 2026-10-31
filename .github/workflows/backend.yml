@@ -203,7 +203,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-26.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -279,10 +280,14 @@ jobs:
 
       - name: Download odiff binary
         run: |
+          case "$(uname -m)" in
+            aarch64) odiff=odiff-linux-arm64 ;;
+            *) odiff=odiff-linux-x64 ;;
+          esac
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
+          sudo install -m 755 "$odiff" /usr/local/bin/odiff
+          rm "$odiff"
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'

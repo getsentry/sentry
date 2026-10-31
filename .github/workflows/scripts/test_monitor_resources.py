@@ -123,3 +123,6 @@ def test_cpu_model(tmp_path) -> None:
     cpuinfo.write_text("processor\t: 0\nmodel name\t: AMD EPYC 7763 64-Core Processor\n")
     assert _mod.cpu_model(str(cpuinfo)) == "AMD EPYC 7763 64-Core Processor"
     assert _mod.cpu_model(str(tmp_path / "missing")) is None
+    arm = tmp_path / "cpuinfo-arm"
+    arm.write_text("processor\t: 0\nCPU implementer\t: 0x41\nCPU part\t: 0xd49\n")
+    assert _mod.cpu_model(str(arm)) == "arm implementer=0x41 part=0xd49"

@@ -96,10 +96,17 @@ def read_text(path: str) -> str:
 
 def cpu_model(cpuinfo: str = "/proc/cpuinfo") -> str | None:
     """Runner CPUs vary a lot in speed, so record which one a shard got."""
+    arm: dict[str, str] = {}
     for line in read_text(cpuinfo).splitlines():
         key, _, value = line.partition(":")
-        if key.strip() == "model name":
+        key = key.strip()
+        if key == "model name":
             return value.strip()
+        # Arm kernels don't report a model name, only implementer and part ids.
+        if key in ("CPU implementer", "CPU part"):
+            arm.setdefault(key, value.strip())
+    if arm:
+        return f"arm implementer={arm.get('CPU implementer')} part={arm.get('CPU part')}"
     return None
 
 
