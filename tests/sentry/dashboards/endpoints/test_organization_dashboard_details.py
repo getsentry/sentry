@@ -2119,7 +2119,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_update_widget_with_invalid_thresholds(self) -> None:
-        cases = (
+        cases: tuple[tuple[object, str], ...] = (
             ([], "Must be an object."),
             ({"max_values": []}, "Must be an object."),
             (
