@@ -193,8 +193,10 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(cast(dict[str, object], self.manifest.get("files", {})))
-        files = cast(dict[str, dict[str, object]], self.manifest.get("files", {}))
+        files = self.manifest.get("files", {})
+        if not isinstance(files, dict):
+            raise ValueError("expected manifest files to be a JSON object")
+        self.artifact_count = len(files)
         self._entries_by_url = {
             cast(str, entry["url"]): (path, entry) for path, entry in files.items()
         }
