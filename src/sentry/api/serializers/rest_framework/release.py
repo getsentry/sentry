@@ -107,6 +107,8 @@ class ReleaseWithVersionSerializer(ReleaseSerializer):
         return value
 
     def validate_owner(self, owner):
+        if owner is None:
+            return owner
         if not OrganizationMember.objects.filter(
             organization=self.context["organization"], user_id=owner.id
         ).exists():
