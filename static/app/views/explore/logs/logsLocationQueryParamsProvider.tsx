@@ -7,11 +7,12 @@ import {
   usePersistedLogsPageParams,
   type PersistedLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
+import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
 import {
-  getReadableQueryParamsFromLocation,
-  getTargetWithReadableQueryParams,
-  isDefaultFields,
+  getLogsQueryParamsUpdates,
+  getReadableLogsQueryParams,
+  isDefaultLogsFields,
+  LOGS_QUERY_PARSERS,
 } from 'sentry/views/explore/logs/logsQueryParams';
 import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -48,14 +49,15 @@ export function LogsLocationQueryParamsProvider({
   );
 
   return (
-    <ExploreLocationQueryParamsProvider
+    <ExploreQueryParamsProvider
       frozenParams={frozenParams}
-      getReadableQueryParamsFromLocation={getReadableQueryParamsFromLocation}
-      getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
-      isDefaultFields={isDefaultFields}
+      getQueryParamsUpdates={getLogsQueryParamsUpdates}
+      getReadableQueryParams={getReadableLogsQueryParams}
+      isDefaultFields={isDefaultLogsFields}
       onSetWritableQueryParams={onSetWritableQueryParams}
+      parsers={LOGS_QUERY_PARSERS}
     >
       {children}
-    </ExploreLocationQueryParamsProvider>
+    </ExploreQueryParamsProvider>
   );
 }

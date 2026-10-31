@@ -1,11 +1,11 @@
 import type {ReactNode} from 'react';
-import type {Location} from 'history';
+import {parseAsString} from 'nuqs';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {ExploreLocationQueryParamsProvider} from 'sentry/views/explore/exploreLocationQueryParamsProvider';
+import {Button} from '@sentry/scraps/button';
+
+import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
 import {
   useQueryParamsQuery,
   useSetQueryParams,
@@ -15,11 +15,13 @@ import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 
-function getReadableQueryParamsFromLocation(location: Location): ReadableQueryParams {
+const parsers = {q: parseAsString};
+
+function getReadableQueryParams(values: {q: string | null}): ReadableQueryParams {
   return new ReadableQueryParams({
     extrapolate: true,
     mode: Mode.SAMPLES,
-    query: decodeScalar(location.query.q) ?? '',
+    query: values.q ?? '',
     cursor: '',
     fields: ['timestamp'],
     sortBys: [],
@@ -29,15 +31,8 @@ function getReadableQueryParamsFromLocation(location: Location): ReadableQueryPa
   });
 }
 
-function getTargetWithReadableQueryParams(
-  location: Location,
-  writableQueryParams: WritableQueryParams
-): Location {
-  const target: Location = {...location, query: {...location.query}};
-  if (defined(writableQueryParams.query)) {
-    target.query.q = writableQueryParams.query;
-  }
-  return target;
+function getQueryParamsUpdates(writableQueryParams: WritableQueryParams) {
+  return {q: writableQueryParams.query};
 }
 
 function isDefaultFields(): boolean {
@@ -51,28 +46,29 @@ function TestComponent() {
   return (
     <div>
       <div>query: {query}</div>
-      <button onClick={() => setQuery('changed')}>set changed</button>
-      <button onClick={() => setQueryParams({query: 'replaced'}, {replace: true})}>
+      <Button onClick={() => setQuery('changed')}>set changed</Button>
+      <Button onClick={() => setQueryParams({query: 'replaced'}, {replace: true})}>
         set replaced
-      </button>
-      <button onClick={() => setQuery(query)}>set same</button>
+      </Button>
+      <Button onClick={() => setQuery(query)}>set same</Button>
     </div>
   );
 }
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
-    <ExploreLocationQueryParamsProvider
-      getReadableQueryParamsFromLocation={getReadableQueryParamsFromLocation}
-      getTargetWithReadableQueryParams={getTargetWithReadableQueryParams}
+    <ExploreQueryParamsProvider
+      getQueryParamsUpdates={getQueryParamsUpdates}
+      getReadableQueryParams={getReadableQueryParams}
       isDefaultFields={isDefaultFields}
+      parsers={parsers}
     >
       {children}
-    </ExploreLocationQueryParamsProvider>
+    </ExploreQueryParamsProvider>
   );
 }
 
-describe('ExploreLocationQueryParamsProvider', () => {
+describe('ExploreQueryParamsProvider', () => {
   it('navigates when the query changes', async () => {
     const {router} = render(
       <Wrapper>

@@ -1,10 +1,9 @@
 import type {Location} from 'history';
+import type {inferParserType} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
@@ -20,20 +19,29 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getAggregateFieldsFromLocation} from 'sentry/views/explore/queryParams/aggregateField';
+import {getAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {getAggregateSortBysFromLocation} from 'sentry/views/explore/queryParams/aggregateSortBy';
-import {getCursorFromLocation} from 'sentry/views/explore/queryParams/cursor';
-import {getFieldsFromLocation} from 'sentry/views/explore/queryParams/field';
+import {getAggregateSortBys} from 'sentry/views/explore/queryParams/aggregateSortBy';
+import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
+import {getFields} from 'sentry/views/explore/queryParams/field';
 import {
   defaultGroupBys,
-  getGroupBysFromLocation,
+  getGroupBys,
   isGroupBy,
 } from 'sentry/views/explore/queryParams/groupBy';
-import {getModeFromLocation} from 'sentry/views/explore/queryParams/mode';
+import {defaultMode} from 'sentry/views/explore/queryParams/mode';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsFieldList,
+  parseAsMode,
+  parseAsRawList,
+  parseAsScalar,
+  type QueryParamsUpdates,
+} from 'sentry/views/explore/queryParams/parsers';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
-import {getSortBysFromLocation} from 'sentry/views/explore/queryParams/sortBy';
+import {getSortBys} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
@@ -43,32 +51,44 @@ export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
 const LOGS_ID_KEY = ID_KEY;
 const LOGS_TITLE_KEY = TITLE_KEY;
 
-export function isDefaultFields(location: Location): boolean {
-  return getFieldsFromLocation(location, LOGS_FIELDS_KEY) ? false : true;
+export const LOGS_QUERY_PARSERS = {
+  [LOGS_MODE_KEY]: parseAsMode,
+  [LOGS_QUERY_KEY]: parseAsScalar,
+  [LOGS_CURSOR_KEY]: parseAsScalar,
+  [LOGS_FIELDS_KEY]: parseAsFieldList,
+  [LOGS_SORT_BYS_KEY]: parseAsRawList,
+  [LOGS_AGGREGATE_CURSOR_KEY]: parseAsScalar,
+  [LOGS_AGGREGATE_FIELD_KEY]: parseAsRawList,
+  [LOGS_AGGREGATE_SORT_BYS_KEY]: parseAsRawList,
+  [LOGS_GROUP_BY_KEY]: parseAsRawList,
+  [LOGS_AGGREGATE_FN_KEY]: parseAsScalar,
+  [LOGS_AGGREGATE_PARAM_KEY]: parseAsScalar,
+  [LOGS_ID_KEY]: parseAsScalar,
+  [LOGS_TITLE_KEY]: parseAsScalar,
+};
+
+type LogsQueryValues = inferParserType<typeof LOGS_QUERY_PARSERS>;
+
+export function isDefaultLogsFields(values: LogsQueryValues): boolean {
+  return getFields(values[LOGS_FIELDS_KEY]) === null;
 }
 
-export function getReadableQueryParamsFromLocation(
-  location: Location
-): ReadableQueryParams {
-  const mode = getModeFromLocation(location, LOGS_MODE_KEY);
-  const query = decodeScalar(location.query[LOGS_QUERY_KEY]) ?? '';
+export function getReadableLogsQueryParams(values: LogsQueryValues): ReadableQueryParams {
+  const mode = values[LOGS_MODE_KEY] ?? defaultMode();
+  const query = values[LOGS_QUERY_KEY] ?? '';
 
-  const cursor = getCursorFromLocation(location, LOGS_CURSOR_KEY);
-  const fields = getFieldsFromLocation(location, LOGS_FIELDS_KEY) ?? defaultLogFields();
-  const sortBys =
-    getSortBysFromLocation(location, LOGS_SORT_BYS_KEY, fields) ?? defaultSortBys(fields);
+  const cursor = values[LOGS_CURSOR_KEY] ?? defaultCursor();
+  const fields = getFields(values[LOGS_FIELDS_KEY]) ?? defaultLogFields();
+  const sortBys = getSortBys(values[LOGS_SORT_BYS_KEY], fields) ?? defaultSortBys(fields);
 
-  const aggregateCursor = getCursorFromLocation(location, LOGS_AGGREGATE_CURSOR_KEY);
-  const aggregateFields = getLogsAggregateFieldsFromLocation(location);
+  const aggregateCursor = values[LOGS_AGGREGATE_CURSOR_KEY] ?? defaultCursor();
+  const aggregateFields = getLogsAggregateFields(values);
   const aggregateSortBys =
-    getAggregateSortBysFromLocation(
-      location,
-      LOGS_AGGREGATE_SORT_BYS_KEY,
-      aggregateFields
-    ) ?? defaultAggregateSortBys(aggregateFields);
+    getAggregateSortBys(values[LOGS_AGGREGATE_SORT_BYS_KEY], aggregateFields) ??
+    defaultAggregateSortBys(aggregateFields);
 
-  const id = decodeScalar(location.query[LOGS_ID_KEY]);
-  const title = decodeScalar(location.query[LOGS_TITLE_KEY]);
+  const id = values[LOGS_ID_KEY] ?? undefined;
+  const title = values[LOGS_TITLE_KEY] ?? undefined;
 
   return new ReadableQueryParams({
     extrapolate: true,
@@ -88,64 +108,63 @@ export function getReadableQueryParamsFromLocation(
   });
 }
 
+/** @internal used in tests */
+export function getReadableQueryParamsFromLocation(
+  location: Location
+): ReadableQueryParams {
+  return getReadableLogsQueryParams(
+    loadQueryParamsFromLocation(LOGS_QUERY_PARSERS, location)
+  );
+}
+
+function encodeSorts(sortBys: readonly Sort[]): string[] {
+  return sortBys.map(sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`);
+}
+
+export function getLogsQueryParamsUpdates(
+  writableQueryParams: WritableQueryParams
+): QueryParamsUpdates<typeof LOGS_QUERY_PARSERS> {
+  const {aggregateFields} = writableQueryParams;
+  // Aggregate fields replace the older separate group by, aggregate function,
+  // and aggregate param keys.
+  const legacyAggregateUpdate = defined(aggregateFields) ? null : undefined;
+
+  return {
+    [LOGS_MODE_KEY]: writableQueryParams.mode,
+    [LOGS_QUERY_KEY]: writableQueryParams.query,
+    [LOGS_CURSOR_KEY]: writableQueryParams.cursor,
+    [LOGS_FIELDS_KEY]:
+      writableQueryParams.fields === null
+        ? null
+        : writableQueryParams.fields?.filter(Boolean),
+    [LOGS_SORT_BYS_KEY]:
+      writableQueryParams.sortBys === null
+        ? null
+        : writableQueryParams.sortBys && encodeSorts(writableQueryParams.sortBys),
+    [LOGS_AGGREGATE_CURSOR_KEY]: writableQueryParams.aggregateCursor,
+    [LOGS_AGGREGATE_FIELD_KEY]: aggregateFields?.map(aggregateField =>
+      JSON.stringify(aggregateField)
+    ),
+    [LOGS_AGGREGATE_SORT_BYS_KEY]:
+      writableQueryParams.aggregateSortBys === null
+        ? null
+        : writableQueryParams.aggregateSortBys &&
+          encodeSorts(writableQueryParams.aggregateSortBys),
+    [LOGS_GROUP_BY_KEY]: legacyAggregateUpdate,
+    [LOGS_AGGREGATE_FN_KEY]: legacyAggregateUpdate,
+    [LOGS_AGGREGATE_PARAM_KEY]: legacyAggregateUpdate,
+  };
+}
+
 export function getTargetWithReadableQueryParams(
   location: Location,
   writableQueryParams: WritableQueryParams
 ): Location {
-  const target: Location = {...location, query: {...location.query}};
-
-  updateNullableLocation(target, LOGS_MODE_KEY, writableQueryParams.mode);
-  updateNullableLocation(target, LOGS_QUERY_KEY, writableQueryParams.query);
-
-  updateNullableLocation(target, LOGS_CURSOR_KEY, writableQueryParams.cursor);
-  updateNullableLocation(
-    target,
-    LOGS_FIELDS_KEY,
-    writableQueryParams.fields === null
-      ? null
-      : writableQueryParams.fields?.filter(Boolean)
+  return applyQueryParamsUpdates(
+    LOGS_QUERY_PARSERS,
+    location,
+    getLogsQueryParamsUpdates(writableQueryParams)
   );
-  updateNullableLocation(
-    target,
-    LOGS_SORT_BYS_KEY,
-    writableQueryParams.sortBys === null
-      ? null
-      : writableQueryParams.sortBys?.map(
-          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
-        )
-  );
-
-  updateNullableLocation(
-    target,
-    LOGS_AGGREGATE_CURSOR_KEY,
-    writableQueryParams.aggregateCursor
-  );
-  updateNullableLocation(
-    target,
-    LOGS_AGGREGATE_FIELD_KEY,
-    writableQueryParams.aggregateFields?.map(aggregateField =>
-      JSON.stringify(aggregateField)
-    )
-  );
-  updateNullableLocation(
-    target,
-    LOGS_AGGREGATE_SORT_BYS_KEY,
-    writableQueryParams.aggregateSortBys === null
-      ? null
-      : writableQueryParams.aggregateSortBys?.map(
-          sort => `${sort.kind === 'desc' ? '-' : ''}${sort.field}`
-        )
-  );
-
-  // when using aggregate fields, we want to make sure to delete the params
-  // used by the separate group by, aggregate fn and aggregate param
-  if (defined(writableQueryParams.aggregateFields)) {
-    delete target.query[LOGS_GROUP_BY_KEY];
-    delete target.query[LOGS_AGGREGATE_FN_KEY];
-    delete target.query[LOGS_AGGREGATE_PARAM_KEY];
-  }
-
-  return target;
 }
 
 function defaultSortBys(fields: string[]) {
@@ -176,14 +195,14 @@ export function defaultVisualizes() {
   ];
 }
 
-function getVisualizesFromLocation(location: Location): Visualize[] | null {
-  const aggregateFn = decodeScalar(location.query?.[LOGS_AGGREGATE_FN_KEY]);
+function getLegacyVisualizes(values: LogsQueryValues): Visualize[] | null {
+  const aggregateFn = values[LOGS_AGGREGATE_FN_KEY] ?? undefined;
 
   if (aggregateFn === AggregationKey.COUNT) {
     return [new VisualizeFunction(`${aggregateFn}(${OurLogKnownFieldKey.MESSAGE})`)];
   }
 
-  const aggregateParam = decodeScalar(location.query?.[LOGS_AGGREGATE_PARAM_KEY]);
+  const aggregateParam = values[LOGS_AGGREGATE_PARAM_KEY];
 
   if (!aggregateParam) {
     return null;
@@ -192,11 +211,8 @@ function getVisualizesFromLocation(location: Location): Visualize[] | null {
   return [new VisualizeFunction(`${aggregateFn}(${aggregateParam})`)];
 }
 
-function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[] {
-  const aggregateFields = getAggregateFieldsFromLocation(
-    location,
-    LOGS_AGGREGATE_FIELD_KEY
-  );
+function getLogsAggregateFields(values: LogsQueryValues): AggregateField[] {
+  const aggregateFields = getAggregateFields(values[LOGS_AGGREGATE_FIELD_KEY]);
 
   if (aggregateFields?.length) {
     let hasGroupBy = false;
@@ -226,8 +242,8 @@ function getLogsAggregateFieldsFromLocation(location: Location): AggregateField[
   // TODO: support a list of aggregate fields,
   // needed for re-ordering columns in aggregate mode
   return [
-    ...(getGroupBysFromLocation(location, LOGS_GROUP_BY_KEY) ?? defaultGroupBys()),
-    ...(getVisualizesFromLocation(location) ?? defaultVisualizes()),
+    ...(getGroupBys(values[LOGS_GROUP_BY_KEY]) ?? defaultGroupBys()),
+    ...(getLegacyVisualizes(values) ?? defaultVisualizes()),
   ];
 }
 

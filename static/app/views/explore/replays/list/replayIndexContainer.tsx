@@ -11,20 +11,15 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayIndexTable} from 'sentry/views/explore/replays/list/replayIndexTable';
 
 const replayListParsers = {
+  ...pageFilterParsers,
   cursor: parseAsString.withDefault(''),
-  end: parseAsString.withDefault(''),
-  environment: parseAsStringArray,
-  project: parseAsStringArray,
   query: parseAsString.withDefault(''),
-  start: parseAsString.withDefault(''),
-  statsPeriod: parseAsString.withDefault(''),
-  utc: parseAsString.withDefault(''),
 };
 
 interface Props {
