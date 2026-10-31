@@ -29,6 +29,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import owned_by_acting_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -139,7 +140,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
         starred_view_ids = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            owned_by_acting_user(request.user), organization=organization
         ).values_list("group_search_view_id", flat=True)
 
         createdBy: Literal["me", "others"] = serializer.validated_data.get("createdBy", "me")
@@ -156,8 +157,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         last_visited_query = Subquery(
             GroupSearchViewLastVisited.objects.filter(
+                owned_by_acting_user(request.user),
                 organization=organization,
-                user_id=request.user.id,
                 group_search_view_id=OuterRef("id"),
             ).values("last_visited")[:1]
         )
@@ -165,18 +166,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
         if createdBy == "me":
             starred_query = (
-                base_queryset.filter(
-                    user_id=request.user.id,
-                    id__in=starred_view_ids,
-                )
+                base_queryset.filter(owned_by_acting_user(request.user), id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
             )
             non_starred_query = (
-                base_queryset.filter(
-                    user_id=request.user.id,
-                )
+                base_queryset.filter(owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
@@ -188,7 +184,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                     id__in=starred_view_ids,
                 )
-                .exclude(user_id=request.user.id)
+                .exclude(owned_by_acting_user(request.user))
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
                 .order_by(*sorts)
@@ -197,7 +193,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
                 base_queryset.filter(
                     visibility=GroupSearchViewVisibility.ORGANIZATION,
                 )
-                .exclude(user_id=request.user.id)
+                .exclude(owned_by_acting_user(request.user))
                 .exclude(id__in=starred_view_ids)
                 .prefetch_related("projects")
                 .annotate(popularity=starred_count_query, last_visited=last_visited_query)
