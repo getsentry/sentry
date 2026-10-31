@@ -510,7 +510,10 @@ def disable_uptime_detector(detector: Detector, skip_quotas: bool = False):
 
         # Are there any other detectors associated to the subscription
         # that are still enabled?
+        # source_id is only unique per data source type. Without the type filter, an enabled
+        # detector on another kind of data source with the same id keeps this subscription active.
         has_active_subscription = Detector.objects.filter(
+            data_sources__type=DATA_SOURCE_UPTIME_SUBSCRIPTION,
             data_sources__source_id=str(uptime_subscription.id),
             enabled=True,
             status=ObjectStatus.ACTIVE,

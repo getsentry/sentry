@@ -978,6 +978,32 @@ class DisableUptimeDetectorTest(UptimeTestCase):
         assert not detector.enabled
 
     @mock.patch("sentry.quotas.backend.disable_seat")
+    def test_ignores_other_data_source_with_same_id(
+        self, mock_disable_seat: mock.MagicMock
+    ) -> None:
+        detector = create_uptime_detector(
+            self.project,
+            self.environment,
+            url="https://sentry.io",
+            interval_seconds=3600,
+            timeout_ms=1000,
+            mode=UptimeMonitorMode.MANUAL,
+        )
+        uptime_subscription = get_uptime_subscription(detector)
+        other_data_source = self.create_data_source(
+            organization=self.organization, source_id=str(uptime_subscription.id)
+        )
+        self.create_data_source_detector(
+            data_source=other_data_source, detector=self.create_detector(project=self.project)
+        )
+
+        with self.tasks():
+            disable_uptime_detector(detector)
+
+        uptime_subscription.refresh_from_db()
+        assert uptime_subscription.status == UptimeSubscription.Status.DISABLED.value
+
+    @mock.patch("sentry.quotas.backend.disable_seat")
     @mock.patch("sentry.uptime.subscriptions.subscriptions.resolve_uptime_issue")
     def test_disable_failed(self, mock_resolve_uptime_issue, mock_disable_seat) -> None:
         with (
