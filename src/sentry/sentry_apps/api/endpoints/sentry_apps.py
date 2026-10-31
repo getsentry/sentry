@@ -14,7 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
@@ -56,11 +56,11 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         elif status == "unpublished":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.UNPUBLISHED)
             if not elevated_user:
-                queryset = self._filter_queryset_for_user(queryset, request.user.id)
+                queryset = self._filter_queryset_for_user(queryset, require_user(request).id)
         elif status == "internal":
             queryset = SentryApp.objects.filter(status=SentryAppStatus.INTERNAL)
             if not elevated_user:
-                queryset = self._filter_queryset_for_user(queryset, request.user.id)
+                queryset = self._filter_queryset_for_user(queryset, require_user(request).id)
         else:
             if elevated_user:
                 queryset = SentryApp.objects.all()

@@ -15,6 +15,7 @@ from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.api.helpers.teams import is_team_admin
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import identity_service
 from sentry.integrations.messaging.spec import MessagingIntegrationSpec
@@ -210,7 +211,8 @@ class IdentityLinkageView(LinkageView, ABC):
 
         self.notify_on_success(external_id, params_dict, integration)
         self.capture_metric("success.post")
-        self.record_analytic(request.user.id)
+        if (user_id := acting_user_id(request.user)) is not None:
+            self.record_analytic(user_id)
 
         if organization is not None:
             self._send_nudge_notification(organization, request)

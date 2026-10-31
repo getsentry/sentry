@@ -21,6 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.constants import SentryAppInstallationStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppInstallationBaseEndpoint
@@ -103,12 +104,9 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
             def notify_on_commit() -> None:
                 try:
-                    assert request.user.is_authenticated, (
-                        "User must be authenticated to delete installation"
-                    )
                     SentryAppInstallationNotifier(
                         sentry_app_installation=sentry_app_installation,
-                        user=request.user,
+                        user=require_user(request),
                         action="deleted",
                     ).run()
                 except RequestException as exc:
@@ -117,10 +115,10 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                     pass
 
             transaction.on_commit(notify_on_commit, using=db)
-        if request.user.is_authenticated:
+        if (user_id := acting_user_id(request.user)) is not None:
             analytics.record(
                 SentryAppUninstalledEvent(
-                    user_id=request.user.id,
+                    user_id=user_id,
                     organization_id=sentry_app_installation.organization_id,
                     sentry_app=sentry_app_installation.sentry_app.slug,
                 ),

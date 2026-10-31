@@ -49,10 +49,10 @@ class OrganizationCodingAgentsEndpoint(OrganizationEndpoint):
         github_copilot_installed = any(i.provider == "github_copilot" for i in integrations)
         if github_copilot_installed:
             has_identity = False
-            if request.user and request.user.id:
+            if user_id := acting_user_id(request.user):
                 try:
                     access_token = github_copilot_identity_service.get_access_token_for_user(
-                        user_id=request.user.id
+                        user_id=user_id
                     )
                     has_identity = access_token is not None
                 except RpcException:

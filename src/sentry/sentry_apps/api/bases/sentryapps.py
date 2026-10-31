@@ -13,7 +13,7 @@ from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, is_acting_user, require_user
 from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
@@ -190,12 +190,12 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
 
     def _get_org_context(self, request: Request) -> RpcUserOrganizationContext:
         organization_slug = self._get_organization_slug(request)
-        assert request.user.is_authenticated, "User must be authenticated to get organization"
+        user = require_user(request)
 
         if is_active_superuser(request) or is_active_staff(request):
-            return self._get_organization_for_superuser_or_staff(request.user, organization_slug)
+            return self._get_organization_for_superuser_or_staff(user, organization_slug)
         else:
-            return self._get_organization_for_user(request.user, organization_slug)
+            return self._get_organization_for_user(user, organization_slug)
 
     def convert_args(self, request: Request, *args, **kwargs):
         """
@@ -248,8 +248,9 @@ class SentryAppPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
+        user_id = acting_user_id(request.user)
         owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+            id=sentry_app.owner_id, user_id=user_id
         )
         assert owner_app, f"owner organization for {sentry_app.name} was not found"
         self.determine_access(request, owner_app)
@@ -258,9 +259,7 @@ class SentryAppPermission(SentryPermission):
             return True
 
         organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
+            user_service.get_organizations(user_id=user_id) if user_id is not None else ()
         )
         # if app is unpublished, user must be in the Org who owns the app.
         if not sentry_app.is_published:
@@ -334,10 +333,9 @@ class SentryAppInstallationsPermission(SentryPermission):
         if superuser_has_permission(request):
             return True
 
+        user_id = acting_user_id(request.user)
         organizations = (
-            user_service.get_organizations(user_id=request.user.id)
-            if request.user.id is not None
-            else ()
+            user_service.get_organizations(user_id=user_id) if user_id is not None else ()
         )
         if not any(organization.id == org.id for org in organizations):
             raise SentryAppError(
@@ -356,7 +354,7 @@ class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
         extra_args = {}
         # We need to pass user_id if the user is not a superuser
         if not is_active_superuser(request):
-            extra_args["user_id"] = request.user.id
+            extra_args["user_id"] = acting_user_id(request.user)
 
         if str(organization_id_or_slug).isdecimal():
             organization = organization_service.get_org_by_id(
@@ -406,11 +404,11 @@ class SentryAppInstallationPermission(SentryPermission):
 
         # if user is an app, make sure it's for that same app
         if request.user.is_sentry_app:
-            return request.user.id == installation.sentry_app.proxy_user_id
+            return is_acting_user(request.user, installation.sentry_app.proxy_user_id)
 
         org_context = organization_service.get_organization_by_id(
             id=installation.organization_id,
-            user_id=request.user.id,
+            user_id=acting_user_id(request.user),
             include_teams=False,
             include_projects=False,
         )
@@ -464,7 +462,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
             return False
 
         installation_org_context = organization_service.get_organization_by_id(
-            id=installation.organization_id, user_id=request.user.id
+            id=installation.organization_id, user_id=acting_user_id(request.user)
         )
         assert installation_org_context, "organization for installation was not found"
         self.determine_access(request, installation_org_context)
@@ -474,7 +472,7 @@ class SentryAppAuthorizationsPermission(SentryPermission):
 
         # Request must be made as the app's Proxy User, using their Client ID
         # and Secret.
-        return request.user.id == installation.sentry_app.proxy_user_id
+        return is_acting_user(request.user, installation.sentry_app.proxy_user_id)
 
 
 class SentryAppAuthorizationsBaseEndpoint(SentryAppInstallationBaseEndpoint):
@@ -494,7 +492,7 @@ class SentryInternalAppTokenPermission(SentryPermission):
             return False
 
         owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+            id=sentry_app.owner_id, user_id=acting_user_id(request.user)
         )
 
         assert owner_app, "Failed to get organization/owner_app to check in has_object_permission"
@@ -517,7 +515,7 @@ class SentryAppStatsPermission(SentryPermission):
             return False
 
         owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+            id=sentry_app.owner_id, user_id=acting_user_id(request.user)
         )
         if owner_app is None:
             logger.error(
@@ -548,7 +546,7 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
             return False
 
         owner_app = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id
+            id=sentry_app.owner_id, user_id=acting_user_id(request.user)
         )
         if owner_app is None:
             logger.error(
