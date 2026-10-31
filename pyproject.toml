@@ -649,7 +649,6 @@ module = [
     "sentry.integrations.msteams.webhook",
     "sentry.integrations.on_call.*",
     "sentry.integrations.opsgenie.actions.*",
-    "sentry.integrations.opsgenie.client",
     "sentry.integrations.opsgenie.integration",
     "sentry.integrations.pipeline",
     "sentry.integrations.slack.actions.*",

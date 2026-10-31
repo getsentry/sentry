@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from typing import Literal
+from collections.abc import Mapping, Sequence
+from typing import Literal, NotRequired, TypedDict
+
+from requests import Response
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
@@ -22,6 +24,17 @@ OPSGENIE_API_VERSION = "v2"
 OPSGENIE_DEFAULT_PRIORITY = "P3"
 
 OpsgeniePriority = Literal["P1", "P2", "P3", "P4", "P5"]
+
+
+class _IssueAlertPayload(TypedDict):
+    message: str | None
+    source: str
+    priority: OpsgeniePriority | None
+    details: dict[str, object]
+    tags: list[str]
+    alias: NotRequired[str]
+    entity: NotRequired[str]
+
 
 logger = logging.getLogger("sentry.integrations.opsgenie")
 
@@ -53,7 +66,7 @@ class OpsgenieClient(ApiClient):
         super().__init__(integration_id=self.integration.id)
 
     @property
-    def metadata(self):
+    def metadata(self) -> Mapping[str, object]:
         return self.integration.metadata
 
     def _get_auth_headers(self) -> dict[str, str]:
@@ -104,11 +117,11 @@ class OpsgenieClient(ApiClient):
         group: Group | None,
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
-    ):
+    ) -> _IssueAlertPayload:
         feature_flags = format_feature_flags_detail(get_event_feature_flags(event))
         feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
 
-        payload: dict[str, object] = {
+        payload: _IssueAlertPayload = {
             "message": event.message or event.title,
             "source": "Sentry",
             "priority": priority,
@@ -148,7 +161,7 @@ class OpsgenieClient(ApiClient):
             }
         return payload
 
-    def send_notification(self, data):
+    def send_notification(self, data: Mapping[str, object]) -> Response:
         headers = self._get_auth_headers()
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
@@ -158,7 +171,7 @@ class OpsgenieClient(ApiClient):
                 raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(self, data):
+    def send_metric_alert_notification(self, data: Mapping[str, object]) -> Response | None:
         headers = self._get_auth_headers()
 
         # If closing an alert (when Sentry alert was resolved)
