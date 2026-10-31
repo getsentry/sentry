@@ -9,6 +9,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectEventPermission
 from sentry.api.serializers import serialize
 from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
+from sentry.models.project import Project
 from sentry.utils.samples import create_sample_event
 
 # we have a more modern python example for python
@@ -27,11 +28,15 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)
 
-    def post(self, request: Request, project) -> Response:
+    def post(self, request: Request, project: Project) -> Response:
         try:
             event = create_sample_event(
                 project,
-                platform=PLATFORM_MAPPING.get(project.platform, project.platform),
+                platform=(
+                    PLATFORM_MAPPING.get(project.platform, project.platform)
+                    if project.platform is not None
+                    else project.platform
+                ),
                 default="javascript",
                 tagged=True,
             )

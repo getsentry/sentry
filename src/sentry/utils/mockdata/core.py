@@ -103,7 +103,7 @@ DB::Exception: String is too long for DateTime: 2018-10-26T19:14:18+00:00. Stack
 17. clickhouse-server(DB::executeQuery(std::__cxx11::basic..."""
 
 
-def make_sentence(words=None):
+def make_sentence(words: int | None = None) -> str:
     if words is None:
         words = int(random.weibullvariate(8, 3))
     return " ".join(random.choice(loremipsum.words) for _ in range(words))
@@ -120,8 +120,8 @@ def create_sample_event(*args, **kwargs):
             return event
 
 
-def generate_commit_data(user):
-    commits = []
+def generate_commit_data(user: User) -> list[Mapping[str, object]]:
+    commits: list[Mapping[str, object]] = []
     for i in range(random.randint(1, 20)):
         if i == 1:
             filename = "raven/base.py"
@@ -146,7 +146,7 @@ def generate_commit_data(user):
     return commits
 
 
-def generate_tombstones(project, user):
+def generate_tombstones(project: Project, user: User) -> None:
     # attempt to create a high enough previous_group_id
     # that it won't conflict with any group ids
     prev_group_id = 100000
@@ -660,8 +660,11 @@ def generate_events(
 
 
 def create_mock_transactions(
-    project_map, load_trends=False, load_performance_issues=False, slow=False
-):
+    project_map: Mapping[str, Project],
+    load_trends: bool = False,
+    load_performance_issues: bool = False,
+    slow: bool = False,
+) -> None:
     backend_project = project_map["Earth"]
     frontend_project = project_map["Fire"]
     service_projects = [
@@ -1135,7 +1138,7 @@ def create_mock_transactions(
         generate_performance_issues()
 
 
-def create_mock_attachment(event_id, project):
+def create_mock_attachment(event_id: str, project: Project) -> None:
     attachment_id = str(uuid.uuid4())
     file_dir = os.path.dirname(os.path.abspath(__file__))
     attachment_path = os.path.join(file_dir, "../../static/sentry/images/favicon.png")
@@ -1169,7 +1172,7 @@ def create_mock_attachment(event_id, project):
     process_individual_attachment(attachment_event, project)
 
 
-def create_mock_user_feedback(project, has_attachment=True):
+def create_mock_user_feedback(project: Project, has_attachment: bool = True) -> None:
     # Get an existing release for this project instead of creating a new one
     release = Release.objects.filter(projects=project).first()
 
@@ -1216,13 +1219,13 @@ def create_mock_user_feedback(project, has_attachment=True):
 
 
 def main(
-    skip_default_setup=False,
-    num_events=1,
-    extra_events=False,
-    load_trends=False,
-    load_performance_issues=False,
-    slow=False,
-):
+    skip_default_setup: bool = False,
+    num_events: int = 1,
+    extra_events: bool = False,
+    load_trends: bool = False,
+    load_performance_issues: bool = False,
+    slow: bool = False,
+) -> None:
     owner = get_superuser()
     user = create_user()
     create_broadcast()

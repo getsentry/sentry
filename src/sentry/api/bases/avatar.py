@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Generic, TypeVar
+from typing import Any, ClassVar, Generic, TypeVar, cast
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,6 +13,9 @@ from sentry.models.avatars.base import AvatarBase
 from sentry.models.avatars.control_base import ControlAvatarBase
 
 AvatarT = TypeVar("AvatarT", bound=AvatarBase)
+
+
+AvatarObjectT = TypeVar("AvatarObjectT", bound=Model)
 
 
 class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
@@ -45,7 +48,7 @@ class AvatarSerializer(serializers.Serializer[dict[str, Any]]):
         return attrs
 
 
-class AvatarMixin(Generic[AvatarT]):
+class AvatarMixin(Generic[AvatarT, AvatarObjectT]):
     object_type: ClassVar[str]
     serializer_cls: ClassVar[type[serializers.Serializer[dict[str, Any]]]] = AvatarSerializer
 
@@ -57,15 +60,15 @@ class AvatarMixin(Generic[AvatarT]):
         obj = kwargs.pop(self.object_type, None)
         return Response(serialize(obj, request.user, **kwargs))
 
-    def get_serializer_context(self, obj: Model, **kwargs: Any) -> dict[str, Any]:
+    def get_serializer_context(self, obj: AvatarObjectT, **kwargs: Any) -> dict[str, Any]:
         return {"type": self.model, "kwargs": {self.object_type: obj}}
 
-    def get_avatar_filename(self, obj: Model) -> str:
+    def get_avatar_filename(self, obj: AvatarObjectT) -> str:
         return f"{obj.id}.png"
 
     def parse(
         self, request: Request, **kwargs: Any
-    ) -> tuple[Model, serializers.Serializer[dict[str, Any]]]:
+    ) -> tuple[AvatarObjectT, serializers.Serializer[dict[str, Any]]]:
         obj = kwargs.pop(self.object_type, None)
 
         serializer = self.serializer_cls(
@@ -74,7 +77,10 @@ class AvatarMixin(Generic[AvatarT]):
         return (obj, serializer)
 
     def save_avatar(
-        self, obj: Model, serializer: serializers.Serializer[dict[str, Any]], **kwargs: Any
+        self,
+        obj: AvatarObjectT,
+        serializer: serializers.Serializer[dict[str, Any]],
+        **kwargs: Any,
     ) -> AvatarT:
         result = serializer.validated_data
 
@@ -86,10 +92,12 @@ class AvatarMixin(Generic[AvatarT]):
             color=result.get("color"),
         )
 
-    def put(self, request: Request, **kwargs: Any) -> Response:
+    def put(self, request: Request, **kwargs: Any) -> Response[dict[str, object]]:
         obj, serializer = self.parse(request, **kwargs)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                cast(dict[str, object], serializer.errors), status=status.HTTP_400_BAD_REQUEST
+            )
         self.save_avatar(obj, serializer)
         obj = kwargs.pop(self.object_type, None)  # serialize doesn't like these params
-        return Response(serialize(obj, request.user, **kwargs))
+        return Response(cast(dict[str, object], serialize(obj, request.user, **kwargs)))

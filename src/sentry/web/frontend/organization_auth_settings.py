@@ -13,6 +13,7 @@ from django.utils.translation import gettext_lazy as _
 from sentry import audit_log, features, roles
 from sentry.auth import manager
 from sentry.auth.helper import AuthHelper
+from sentry.auth.provider import Provider
 from sentry.auth.providers.saml2.generic.provider import GenericSAML2Provider
 from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.store import FLOW_SETUP_PROVIDER
@@ -36,7 +37,12 @@ OK_REMINDERS_SENT = _(
 logger = logging.getLogger("sentry.saml_setup_error")
 
 
-def auth_provider_settings_form(provider, auth_provider, organization, request):
+def auth_provider_settings_form(
+    provider: Provider,
+    auth_provider: AuthProvider | RpcAuthProvider,
+    organization: RpcOrganization,
+    request: HttpRequest,
+) -> forms.Form:
     # Determine the default role choices the current user is allowed to assign
     if is_active_superuser(request):
         role_choices = roles.get_choices()
@@ -119,7 +125,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
     def _disable_provider(
         self, request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
-    ):
+    ) -> None:
         user = request.user
         sending_email = ""
         if hasattr(user, "email"):
@@ -140,7 +146,7 @@ class OrganizationAuthSettingsView(ControlSiloOrganizationView):
 
     def handle_existing_provider(
         self, request: HttpRequest, organization: RpcOrganization, auth_provider: RpcAuthProvider
-    ):
+    ) -> HttpResponseBase:
         provider = auth_provider.get_provider()
 
         if request.method == "POST":

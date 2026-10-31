@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
@@ -70,7 +71,9 @@ class SentryAppsPermission(SentryPermission):
         "POST": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, context: RpcUserOrganizationContext):
+    def has_object_permission(
+        self, request: Request, view: APIView, context: RpcUserOrganizationContext
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -156,7 +159,7 @@ class IntegrationPlatformEndpoint(Endpoint):
 class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppsAndStaffPermission,)
 
-    def _get_organization_slug(self, request: Request):
+    def _get_organization_slug(self, request: Request) -> str:
         organization_slug = request.data.get("organization")
         if not organization_slug or not isinstance(organization_slug, str):
             error_message = "Please provide a valid value for the 'organization' field."
@@ -241,7 +244,9 @@ class SentryAppPermission(SentryPermission):
         "DELETE": ("org:admin",),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: RpcSentryApp | SentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: RpcSentryApp | SentryApp
+    ) -> bool:
         scope_map = self._scopes_for_sentry_app(sentry_app)
 
         if not hasattr(request, "user") or not request.user:
@@ -278,10 +283,14 @@ class SentryAppPermission(SentryPermission):
         if sentry_app.is_published and request.method == "GET":
             return True
 
-        return ensure_scoped_permission(request, scope_map.get(request.method))
+        method = request.method
+        allowed_scopes = scope_map.get(method) if isinstance(method, str) else None
+        return ensure_scoped_permission(request, allowed_scopes)
 
-    def _scopes_for_sentry_app(self, sentry_app):
-        scope_map: Mapping[str, Collection[str]]
+    def _scopes_for_sentry_app(
+        self, sentry_app: RpcSentryApp | SentryApp
+    ) -> Mapping[str, Sequence[str]]:
+        scope_map: Mapping[str, Sequence[str]]
         if sentry_app.is_published:
             scope_map = self.published_scope_map
         else:
@@ -511,7 +520,9 @@ class SentryAppStatsPermission(SentryPermission):
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -542,7 +553,9 @@ class SentryAppWebhookRequestsPermission(SentryPermission):
         "GET": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 

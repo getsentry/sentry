@@ -7,12 +7,15 @@ Over time we want to fully phase out the culprit.  Until then this is the
 code that generates it.
 """
 
+from collections.abc import Mapping, Sequence
+from typing import cast
+
 from sentry.constants import MAX_CULPRIT_LENGTH, NEL_CULPRITS
 from sentry.utils.safe import get_path
 from sentry.utils.strings import truncatechars
 
 
-def generate_culprit(data):
+def generate_culprit(data: Mapping[str, object]) -> str:
     platform = data.get("platform")
     exceptions = get_path(data, "exception", "values", filter=True)
     if exceptions:
@@ -23,7 +26,7 @@ def generate_culprit(data):
 
         stacktraces = [e["stacktrace"] for e in exceptions if get_path(e, "stacktrace", "frames")]
     else:
-        stacktrace = data.get("stacktrace")
+        stacktrace = cast(Mapping[str, object] | None, data.get("stacktrace"))
         if stacktrace and stacktrace.get("frames"):
             stacktraces = [stacktrace]
         else:
@@ -32,10 +35,12 @@ def generate_culprit(data):
     culprit = None
 
     if not culprit and stacktraces:
-        culprit = get_stacktrace_culprit(get_path(stacktraces, -1), platform=platform)
+        culprit = get_stacktrace_culprit(
+            get_path(stacktraces, -1), platform=cast(str | None, platform)
+        )
 
     if not culprit and data.get("type") and data.get("type") == "nel":
-        culprit = get_nel_culprit(data.get("contexts"))
+        culprit = get_nel_culprit(cast(Mapping[str, object], data.get("contexts")))
 
     if not culprit and data.get("request"):
         culprit = get_path(data, "request", "url")
@@ -43,9 +48,9 @@ def generate_culprit(data):
     return truncatechars(culprit or "", MAX_CULPRIT_LENGTH)
 
 
-def get_stacktrace_culprit(stacktrace, platform):
+def get_stacktrace_culprit(stacktrace: Mapping[str, object], platform: str | None) -> str | None:
     default = None
-    for frame in reversed(stacktrace["frames"]):
+    for frame in reversed(cast(Sequence[Mapping[str, object]], stacktrace["frames"])):
         if not frame:
             continue
         if frame.get("in_app"):
@@ -57,13 +62,13 @@ def get_stacktrace_culprit(stacktrace, platform):
     return default
 
 
-def get_frame_culprit(frame, platform):
+def get_frame_culprit(frame: Mapping[str, object], platform: str | None) -> str:
     # If this frame has a platform, we use it instead of the one that
     # was passed in (as that one comes from the exception which might
     # not necessarily be the same platform).
-    platform = frame.get("platform") or platform
+    platform = cast(str | None, frame.get("platform") or platform)
     if platform in ("objc", "cocoa", "native"):
-        return frame.get("function") or "?"
+        return cast(str, frame.get("function") or "?")
     fileloc = frame.get("module") or frame.get("filename")
     if not fileloc:
         return ""
@@ -74,8 +79,11 @@ def get_frame_culprit(frame, platform):
     return "{} in {}".format(fileloc, frame.get("function") or "?")
 
 
-def get_nel_culprit(contexts):
-    ty = contexts.get("nel").get("error_type", "<missing>")
+def get_nel_culprit(contexts: Mapping[str, object]) -> str:
+    nel = cast(Mapping[str, object], contexts.get("nel"))
+    ty = cast(str, nel.get("error_type", "<missing>"))
     if ty == "http.error":
-        return NEL_CULPRITS[ty].format(contexts.get("response").get("status_code"))
+        # justification: the NEL http.error context carries a response mapping.
+        response = cast(Mapping[str, object], contexts.get("response"))
+        return NEL_CULPRITS[ty].format(response.get("status_code"))
     return NEL_CULPRITS.get(ty, ty)

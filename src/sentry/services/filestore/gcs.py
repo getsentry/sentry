@@ -6,7 +6,9 @@ import posixpath
 import random
 import time
 from collections.abc import Callable
+from datetime import datetime
 from tempfile import SpooledTemporaryFile
+from typing import IO, TYPE_CHECKING, TypeVar
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -32,6 +34,11 @@ from sentry.net.http import TimeoutAdapter
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay, sigmoid_delay
 
+if TYPE_CHECKING:
+    _GoogleCloudFileBase = File[bytes]
+else:
+    _GoogleCloudFileBase = File
+
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
 REPLAY_GCS_RETRIES = 125
@@ -54,14 +61,16 @@ GCS_RETRYABLE_ERRORS = (
 # how long are we willing to wait?
 GCS_TIMEOUT = 6.0
 
+T = TypeVar("T")
+
 
 # _client cache is a 3-tuple of project_id, credentials, Client
 # this is so if any information changes under it, it invalidates
 # the cache. This scenario is possible since `options` are dynamic
-_client: tuple[None, None, None] | tuple[int, object, Client] = None, None, None
+_client: tuple[None, None, None] | tuple[str | None, object | None, object] = None, None, None
 
 
-def try_repeated(func):
+def try_repeated(func: Callable[[], T]) -> T:
     """
     Runs a function a few times ignoring errors we see from GCS
     due to what appears to be network issues.  This is a temporary workaround
@@ -95,7 +104,7 @@ def try_repeated(func):
         idx += 1
 
 
-def get_client(project_id, credentials):
+def get_client(project_id: str | None, credentials: object | None) -> object:
     global _client
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
         client = Client(project=project_id, credentials=credentials)
@@ -103,11 +112,12 @@ def get_client(project_id, credentials):
         adapter = TimeoutAdapter(timeout=GCS_TIMEOUT)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        _client = (project_id, credentials, client)
+        client_obj: object = client
+        _client = (project_id, credentials, client_obj)
     return _client[2]
 
 
-def clean_name(name):
+def clean_name(name: str) -> str:
     """
     Cleans the name so that Windows style paths work
     """
@@ -127,7 +137,10 @@ def clean_name(name):
     return clean_name
 
 
-def safe_join(base, *paths):
+def safe_join(
+    base: str | bytes | os.PathLike[str],
+    *paths: str | bytes | os.PathLike[str],
+) -> str:
     """
     A version of django.utils._os.safe_join for S3 paths.
     Joins one or more path components to the base path component
@@ -137,12 +150,12 @@ def safe_join(base, *paths):
     Paths outside the base path indicate a possible security
     sensitive operation.
     """
-    base_path = force_str(base)
+    base_path: str = force_str(base)
     base_path = base_path.rstrip("/")
-    paths = tuple(force_str(p) for p in paths)
+    normalized_paths: tuple[str, ...] = tuple(force_str(path) for path in paths)
 
     final_path = base_path + "/"
-    for path in paths:
+    for path in normalized_paths:
         _final_path = posixpath.normpath(posixpath.join(final_path, path))
         # posixpath.normpath() strips the trailing /. Add it back.
         if path.endswith("/") or _final_path + "/" == final_path:
@@ -173,8 +186,8 @@ class FancyBlob(Blob):
         return download_url
 
 
-class GoogleCloudFile(File):
-    def __init__(self, name, mode, storage):
+class GoogleCloudFile(_GoogleCloudFileBase):
+    def __init__(self, name: str, mode: str, storage: GoogleCloudStorage) -> None:
         self.name = name
         self.mime_type = mimetypes.guess_type(name)[0]
         self._mode = mode
@@ -184,7 +197,7 @@ class GoogleCloudFile(File):
         # or metadata at this step. This means we won't actually
         # know a file doesn't exist until we try to read it.
         self.blob = FancyBlob(storage.download_url, self.name, storage.bucket)
-        self._file = None
+        self._file: IO[bytes] | None = None
         self._is_dirty = False
 
     @property
@@ -194,8 +207,8 @@ class GoogleCloudFile(File):
         return self.blob.size
 
     @property
-    def file(self):
-        def _try_download():
+    def file(self) -> IO[bytes]:
+        def _try_download() -> None:
             assert self._file is not None
             self.blob.download_to_file(self._file)
             self._file.seek(0)
@@ -211,26 +224,26 @@ class GoogleCloudFile(File):
         return self._file
 
     @file.setter
-    def file(self, value):
+    def file(self, value: IO[bytes] | None) -> None:
         self._file = value
 
-    def read(self, num_bytes=None):
+    def read(self, num_bytes: int | None = None) -> bytes:
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
 
         if num_bytes is None:
             num_bytes = -1
 
-        return super().read(num_bytes)
+        return self.file.read(num_bytes)
 
-    def write(self, content):
+    def write(self, content: object) -> int:
         if "w" not in self._mode:
             raise AttributeError("File was not opened in write mode.")
         self._is_dirty = True
-        return super().write(force_bytes(content))
+        return self.file.write(force_bytes(content))
 
-    def close(self):
-        def _try_upload():
+    def close(self) -> None:
+        def _try_upload() -> None:
             self.file.seek(0)
             self.blob.upload_from_file(self.file, content_type=self.mime_type)
 
@@ -242,6 +255,13 @@ class GoogleCloudFile(File):
 
 
 class GoogleCloudStorage(Storage):
+    project_id: str | None
+    bucket_name: str | None
+    file_name_charset: str
+    file_overwrite: bool
+    download_url: str
+    max_memory_size: int
+
     def __init__(
         self,
         project_id=None,
@@ -277,7 +297,7 @@ class GoogleCloudStorage(Storage):
             self._bucket = Bucket(self.client, name=self.bucket_name)
         return self._bucket
 
-    def _normalize_name(self, name):
+    def _normalize_name(self, name: str) -> str:
         """
         Normalizes the name so that paths like /path/to/ignored/../something.txt
         and ./file.txt work.  Note that clean_name adds ./ to some paths so
@@ -285,15 +305,15 @@ class GoogleCloudStorage(Storage):
         """
         return safe_join("", name)
 
-    def _encode_name(self, name):
+    def _encode_name(self, name: str) -> str:
         return smart_str(name, encoding=self.file_name_charset)
 
-    def _open(self, name, mode="rb"):
+    def _open(self, name: str, mode: str = "rb") -> GoogleCloudFile:
         name = self._normalize_name(clean_name(name))
         return GoogleCloudFile(name, mode, self)
 
-    def _save(self, name, content):
-        def _try_upload():
+    def _save(self, name: str, content: File[bytes]) -> str:
+        def _try_upload() -> None:
             content.seek(0, os.SEEK_SET)
             file.blob.upload_from_file(content, size=content.size, content_type=file.mime_type)
 
@@ -307,8 +327,8 @@ class GoogleCloudStorage(Storage):
             self.try_set(_try_upload)
         return cleaned_name
 
-    def delete(self, name):
-        def _try_delete():
+    def delete(self, name: str) -> None:
+        def _try_delete() -> None:
             normalized_name = self._normalize_name(clean_name(name))
             self.bucket.delete_blob(self._encode_name(normalized_name))
 
@@ -317,7 +337,7 @@ class GoogleCloudStorage(Storage):
         except NotFound:
             pass
 
-    def exists(self, name):
+    def exists(self, name: str) -> bool:
         if not name:  # root element aka the bucket
             try:
                 self.bucket
@@ -365,12 +385,12 @@ class GoogleCloudStorage(Storage):
         blob = self._get_blob(self._encode_name(name))
         return blob.size
 
-    def modified_time(self, name):
+    def modified_time(self, name: str) -> datetime:
         name = self._normalize_name(clean_name(name))
         blob = self._get_blob(self._encode_name(name))
         return timezone.make_naive(blob.updated)
 
-    def get_modified_time(self, name):
+    def get_modified_time(self, name: str) -> datetime:
         name = self._normalize_name(clean_name(name))
         blob = self._get_blob(self._encode_name(name))
         updated = blob.updated
@@ -382,7 +402,7 @@ class GoogleCloudStorage(Storage):
         blob = self._get_blob(self._encode_name(name))
         return blob.public_url
 
-    def get_available_name(self, name, max_length=None):
+    def get_available_name(self, name: str, max_length: int | None = None) -> str:
         if self.file_overwrite:
             name = clean_name(name)
             return name
@@ -421,7 +441,7 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
     #
     # def try_get(self, callable: Callable[[], None]) -> None:
 
-    def create_retry_policy(self):
+    def create_retry_policy(self) -> ConditionalRetryPolicy:
         """Retry an action with sigmoid delay for a maximum of five attempts."""
 
         def should_retry(attempt: int, e: Exception) -> bool:

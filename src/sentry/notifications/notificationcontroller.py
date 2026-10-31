@@ -154,20 +154,14 @@ class NotificationController:
 
         return project_settings | org_settings | user_settings | team_settings
 
-    def _filter_options(
-        self,
-        **kwargs,
-    ) -> list[NotificationSettingOption]:
+    def _filter_options(self, **kwargs) -> list[NotificationSettingOption]:
         return [
             setting
             for setting in self.get_all_setting_options
             if all(getattr(setting, arg) == kwargs[arg] for arg in kwargs)
         ]
 
-    def _filter_providers(
-        self,
-        **kwargs,
-    ) -> list[NotificationSettingProvider]:
+    def _filter_providers(self, **kwargs) -> list[NotificationSettingProvider]:
         return [
             setting
             for setting in self.get_all_setting_providers

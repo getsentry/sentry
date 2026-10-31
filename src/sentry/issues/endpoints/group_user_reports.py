@@ -10,6 +10,7 @@ from sentry.api.serializers import serialize
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
+from sentry.models.group import Group
 from sentry.models.userreport import UserReport
 
 
@@ -24,7 +25,7 @@ class GroupUserReportsEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-user-reports",
         url_names=["sentry-api-0-group-user-reports"],
     )
-    def get(self, request: Request, group) -> Response:
+    def get(self, request: Request, group: Group) -> Response:
         """
         List User Reports
         `````````````````

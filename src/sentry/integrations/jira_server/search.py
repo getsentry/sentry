@@ -25,7 +25,7 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
     }
     provider = IntegrationProviderSlug.JIRA_SERVER.value
 
-    def _get_integration(self, organization, integration_id) -> Integration:
+    def _get_integration(self, organization: RpcOrganization, integration_id: int) -> Integration:
         return Integration.objects.get(
             organizationintegration__organization_id=organization.id,
             id=integration_id,

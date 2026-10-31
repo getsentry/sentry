@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import cast
 
 from django.urls import reverse
 
@@ -27,7 +27,7 @@ GITLAB_ISSUE_TITLE_MAX_LENGTH = 255
 
 
 class GitlabIssuesSpec(SourceCodeIssueIntegration):
-    def make_external_key(self, data):
+    def make_external_key(self, data: Mapping[str, str]) -> str:
         return "{}:{}".format(self.model.metadata["domain_name"], data["key"])
 
     def get_issue_url(self, key: str) -> str:
@@ -39,7 +39,9 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project"]
 
-    def get_projects_and_default(self, group: Group | None, params: Mapping[str, Any], **kwargs):
+    def get_projects_and_default(
+        self, group: Group | None, params: Mapping[str, object], **kwargs
+    ) -> tuple[str, list[tuple[str, str]]]:
         if group:
             defaults = self.get_project_defaults(group.project_id)
         else:
@@ -55,7 +57,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         default_project, project_choices = self.get_repository_choices(group, params_mut)
         return default_project, project_choices
 
-    def create_default_repo_choice(self, default_repo):
+    def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         client = self.get_client()
         try:
             # default_repo should be the project_id
@@ -66,11 +68,12 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: User | RpcUser, **kwargs
+        self, group: Group | None, user: User | RpcUser, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "gitlab_integration"
         fields = super().get_create_issue_config(group, user, **kwargs)
-        params = kwargs.pop("params", {})
+        params_obj: object = kwargs.pop("params", dict[str, object]())
+        params: Mapping[str, object] = cast(Mapping[str, object], params_obj)
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
         org = self.organization
@@ -141,7 +144,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[dict[str, Any]]:
+    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 

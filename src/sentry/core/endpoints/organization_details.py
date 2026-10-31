@@ -377,12 +377,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         help_text="List of user IDs that have access to replay data. Only modifiable by owners and managers.",
     )
 
-    def _has_sso_enabled(self):
+    def _has_sso_enabled(self) -> bool:
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
 
-    def validate_relayPiiConfig(self, value):
+    def validate_relayPiiConfig(self, value: str | None) -> str | None:
         organization = self.context["organization"]
         return validate_pii_config_update(organization, value)
 
@@ -411,33 +411,33 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(f'"{value}" is not a valid choice.')
         return value
 
-    def validate_sensitiveFields(self, value):
+    def validate_sensitiveFields(self, value: list[str]) -> list[str]:
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
         if sum(map(len, value)) > MAX_SENSITIVE_FIELD_CHARS:
             raise serializers.ValidationError("List of sensitive fields is too long.")
         return value
 
-    def validate_safeFields(self, value):
+    def validate_safeFields(self, value: list[str]) -> list[str]:
         if value and not all(value):
             raise serializers.ValidationError("Empty values are not allowed.")
         return validate_pii_selectors(value)
 
-    def validate_attachmentsRole(self, value):
+    def validate_attachmentsRole(self, value: str) -> str:
         try:
             roles.get(value)
         except KeyError:
             raise serializers.ValidationError("Invalid role")
         return value
 
-    def validate_debugFilesRole(self, value):
+    def validate_debugFilesRole(self, value: str) -> str:
         try:
             roles.get(value)
         except KeyError:
             raise serializers.ValidationError("Invalid role")
         return value
 
-    def validate_require2FA(self, value):
+    def validate_require2FA(self, value: bool) -> bool:
         user = self.context["user"]
         has_2fa = user.has_2fa()
         if value and not has_2fa:
@@ -447,7 +447,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             raise serializers.ValidationError(ERR_SSO_ENABLED)
         return value
 
-    def validate_trustedRelays(self, value):
+    def validate_trustedRelays(self, value: list[dict[str, object]]) -> list[dict[str, object]]:
         # make sure we don't have multiple instances of one public key
         public_keys = set()
         if value is not None:
@@ -487,7 +487,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value.rstrip("/")
 
-    def validate_enabledConsolePlatforms(self, value):
+    def validate_enabledConsolePlatforms(self, value: list[str] | None) -> list[str] | None:
         request = self.context["request"]
 
         if not is_active_staff(request):
@@ -499,7 +499,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_consoleSdkInviteQuota(self, value):
+    def validate_consoleSdkInviteQuota(self, value: int) -> int:
         request = self.context["request"]
 
         if not is_active_staff(request):
@@ -509,7 +509,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_targetSampleRate(self, value):
+    def validate_targetSampleRate(self, value: float) -> float:
         organization = self.context["organization"]
         request = self.context["request"]
         has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
@@ -520,7 +520,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_samplingMode(self, value):
+    def validate_samplingMode(self, value: str) -> str:
         organization = self.context["organization"]
         request = self.context["request"]
         has_dynamic_sampling_custom = has_custom_dynamic_sampling(organization, actor=request.user)
@@ -541,15 +541,15 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return value
 
-    def validate_hasGranularReplayPermissions(self, value):
+    def validate_hasGranularReplayPermissions(self, value: bool) -> bool:
         self._validate_granular_replay_permissions()
         return value
 
-    def validate_replayAccessMembers(self, value):
+    def validate_replayAccessMembers(self, value: list[int] | None) -> list[int] | None:
         self._validate_granular_replay_permissions()
         return value
 
-    def _validate_granular_replay_permissions(self):
+    def _validate_granular_replay_permissions(self) -> None:
         request = self.context["request"]
 
         if not request.access.has_scope("org:write"):
@@ -557,7 +557,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "You do not have permission to modify granular replay permissions."
             )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         attrs = super().validate(attrs)
         if attrs.get("avatarType") == "upload":
             has_existing_file = OrganizationAvatar.objects.filter(
@@ -586,7 +586,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return attrs
 
-    def save_trusted_relays(self, incoming, changed_data, organization):
+    def save_trusted_relays(
+        self,
+        incoming: list[dict[str, object]],
+        changed_data: dict[str, str],
+        organization: Organization,
+    ) -> list[dict[str, object]]:
         timestamp_now = datetime.now(timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
@@ -604,7 +609,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         modified = False
         for option in incoming:
             public_key = option.get("public_key")
-            existing_info = key_dict.get(public_key, {})
+            existing_info: dict[str, object] = key_dict.get(public_key, {})
 
             option["created"] = existing_info.get("created", timestamp_now)
             option["last_modified"] = existing_info.get("last_modified")
@@ -638,7 +643,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
         return incoming
 
-    def save(self, **kwargs):
+    def save(self, **kwargs: object) -> tuple[Organization, dict[str, str]]:
         org = self.context["organization"]
         changed_data = {}
         if not hasattr(org, "__data"):
@@ -809,7 +814,7 @@ class OwnerOrganizationSerializer(OrganizationSerializer):
     cancelDeletion = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: object, **kwargs: object) -> tuple[Organization, dict[str, str]]:
         org = self.context["organization"]
         update_tracked_data(org)
         data = self.validated_data
@@ -827,7 +832,7 @@ from rest_framework.response import Response
 
 def post_org_pending_deletion(
     *, request: Request, org_delete_response: RpcOrganizationDeleteResponse
-):
+) -> None:
     if org_delete_response.response_state == RpcOrganizationDeleteState.PENDING_DELETION:
         updated_organization = org_delete_response.updated_organization
         assert updated_organization
@@ -865,8 +870,11 @@ def post_org_pending_deletion(
 
 
 def create_console_platform_audit_log(
-    request, organization, previously_enabled_platforms, currently_requested_platforms
-):
+    request: Request,
+    organization: Organization,
+    previously_enabled_platforms: list[str] | None,
+    currently_requested_platforms: list[str] | None,
+) -> None:
     """Create a single audit log entry for console platform changes."""
     prev = set(previously_enabled_platforms or [])
     curr = set(currently_requested_platforms or [])
@@ -1295,7 +1303,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             return self.respond(context)
         return self.respond(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
-    def handle_delete(self, request: Request, organization: Organization):
+    def handle_delete(self, request: Request, organization: Organization) -> Response:
         """
         This method exists as a way for getsentry to override this endpoint with less duplication.
         """
@@ -1335,7 +1343,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.respond(context, status=202)
 
     @sudo_required
-    def delete(self, request: Request, organization) -> Response:
+    def delete(self, request: Request, organization: Organization) -> Response:
         """
         Delete an Organization
         ``````````````````````
@@ -1356,9 +1364,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         return self.handle_delete(request, organization)
 
 
-def flag_has_changed(org, flag_name):
+def flag_has_changed(org: Organization, flag_name: str) -> bool:
     "Returns ``True`` if ``flag`` has changed since initialization."
-    return getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name)
+    return bool(getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name))
 
 
 def update_tracked_data(model):
@@ -1391,7 +1399,7 @@ class DeleteConfirmationArgs(TypedDict):
     countdown: int
 
 
-def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs):
+def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs) -> None:
     from sentry.utils.email import MessageBuilder
 
     organization = delete_confirmation_args["organization"]

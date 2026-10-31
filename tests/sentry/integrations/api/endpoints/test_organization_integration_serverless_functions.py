@@ -42,7 +42,9 @@ class AbstractServerlessTest(APITestCase):
 
     @property
     def sentry_dsn(self):
-        return ProjectKey.get_default(project=self.project).get_dsn(public=True)
+        project_key = ProjectKey.get_default(project=self.project)
+        assert project_key is not None
+        return project_key.get_dsn(public=True)
 
     def set_up_response_mocks(self, get_function_response, update_function_configuration_kwargs):
         responses.add(

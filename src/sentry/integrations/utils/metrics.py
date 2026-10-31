@@ -214,7 +214,7 @@ class EventLifecycle:
                     logger.warning(key, **log_params)
 
     @staticmethod
-    def _report_flow_error(message) -> None:
+    def _report_flow_error(message: str) -> None:
         logger.warning("EventLifecycle flow error: %s", message)
 
     def _terminate(
@@ -244,7 +244,7 @@ class EventLifecycle:
     def record_failure(
         self,
         failure_reason: BaseException | str | None = None,
-        extra: dict[str, Any] | None = None,
+        extra: Mapping[str, object] | None = None,
         create_issue: bool = True,
         sample_log_rate: float | None = None,
     ) -> None:

@@ -10,9 +10,11 @@ from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
+    TraceItemStatsResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import TraceItemFilter
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -40,9 +42,10 @@ from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
 from sentry.search.eap.spans.attributes import SPANS_STATS_EXCLUDED_ATTRIBUTES
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
-from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
+from sentry.search.eap.types import EAPResponse, SearchResolverConfig, SupportedTraceItemType
 from sentry.search.eap.utils import can_expose_attribute, translate_internal_to_public_alias
 from sentry.search.events import fields
+from sentry.search.events.types import SnubaParams
 from sentry.seer.endpoints.compare import compare_distributions
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.referrer import Referrer
@@ -258,7 +261,7 @@ class AttributeDistributionsResponse(TypedDict):
 
 
 def query_attribute_distributions(
-    snuba_params,
+    snuba_params: SnubaParams,
     function_string: str,
     above: bool,
     query_1: str,
@@ -385,7 +388,9 @@ def query_attribute_distributions(
             AttributeKey(name=attr_proto.name, type=AttributeKey.TYPE_STRING)
         )
 
-    def run_stats_request_with_error_handling(filter, attributes):
+    def run_stats_request_with_error_handling(
+        filter: TraceItemFilter | None, attributes: list[AttributeKey]
+    ) -> TraceItemStatsResponse:
         with handle_query_errors():
             request = TraceItemStatsRequest(
                 filter=filter,
@@ -401,7 +406,7 @@ def query_attribute_distributions(
             )
             return trace_item_stats_rpc(request)
 
-    def run_table_query_with_error_handling(query_string):
+    def run_table_query_with_error_handling(query_string: str) -> EAPResponse:
         with handle_query_errors():
             return Spans.run_table_query(
                 params=snuba_params,

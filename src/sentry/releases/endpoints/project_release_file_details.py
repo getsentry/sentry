@@ -140,13 +140,14 @@ class ReleaseFileDetailsMixin:
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
         else:
-            dist, url = id
-            if dist is not None:
+            dist_name, url = id
+            dist: Distribution | None = None
+            if dist_name is not None:
                 # NOTE: Could do one less query if `read_artifact_index` accepted
                 # `dist_name`
                 try:
                     dist = Distribution.objects.get(
-                        organization_id=release.organization_id, name=dist, release=release
+                        organization_id=release.organization_id, name=dist_name, release=release
                     )
                 except Distribution.DoesNotExist:
                     raise ResourceDoesNotExist

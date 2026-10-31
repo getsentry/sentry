@@ -1,4 +1,4 @@
-from typing import Any, get_type_hints
+from typing import Any, cast, get_type_hints
 
 from drf_spectacular.extensions import (
     OpenApiAuthenticationExtension,
@@ -102,8 +102,8 @@ class RestrictedJsonFieldExtension(OpenApiSerializerFieldExtension):
 
     target_class = "rest_framework.fields.JSONField"
 
-    def map_serializer_field(self, auto_schema, direction):
-        return build_basic_type(OpenApiTypes.OBJECT)
+    def map_serializer_field(self, auto_schema: AutoSchema, direction: Direction) -> dict[str, str]:
+        return cast(dict[str, str], build_basic_type(OpenApiTypes.OBJECT))
 
 
 # TODO: extension to do default error codes on responses.

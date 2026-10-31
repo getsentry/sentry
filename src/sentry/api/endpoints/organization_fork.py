@@ -53,7 +53,7 @@ class OrganizationForkEndpoint(Endpoint):
     }
     permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
-    def post(self, request: Request, organization_id_or_slug) -> Response:
+    def post(self, request: Request, organization_id_or_slug: str) -> Response:
         """
         Duplicate an organization across regions. The old organization remains untouched. We kick
         off the standard `SAAS_TO_SAAS` relocation flow to create a duplicate in this region.

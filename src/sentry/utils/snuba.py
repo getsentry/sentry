@@ -343,7 +343,7 @@ OPERATOR_TO_FUNCTION = {
 FUNCTION_TO_OPERATOR = {v: k for k, v in OPERATOR_TO_FUNCTION.items()}
 
 
-def parse_snuba_datetime(value):
+def parse_snuba_datetime(value: str) -> datetime:
     """Parses a datetime value from snuba."""
     return parse_datetime(value)
 
@@ -593,7 +593,7 @@ _snuba_pool = connection_from_url(
 epoch_naive = datetime(1970, 1, 1, tzinfo=None)
 
 
-def to_naive_timestamp(value):
+def to_naive_timestamp(value: datetime) -> float:
     """
     Convert a time zone aware datetime to a POSIX timestamp (with fractional
     component.)
@@ -606,7 +606,7 @@ def to_start_of_hour(dt: datetime) -> str:
     return dt.replace(minute=0, second=0, microsecond=0).isoformat()
 
 
-def get_snuba_column_name(name, dataset=Dataset.Events):
+def get_snuba_column_name(name: str, dataset: Dataset = Dataset.Events) -> str:
     """
     Get corresponding Snuba column name from Sentry snuba map, if not found
     the column is assumed to be a tag. If name is falsy or name is a quoted literal
@@ -641,7 +641,7 @@ def get_snuba_column_name(name, dataset=Dataset.Events):
     return DATASETS[dataset].get(name, default)
 
 
-def get_function_index(column_expr, depth=0):
+def get_function_index(column_expr: object, depth: int = 0) -> int | None:
     """
     If column_expr list contains a function, returns the index of its function name
     within column_expr (and assumption is that index + 1 is the list of arguments),
@@ -678,10 +678,11 @@ def get_function_index(column_expr, depth=0):
         return None
 
 
-def get_arrayjoin(column):
+def get_arrayjoin(column: str) -> str | None:
     match = re.match(r"^(exception_stacks|exception_frames|contexts)\..+$", column)
     if match:
         return match.groups()[0]
+    return None
 
 
 def get_organization_id_from_project_ids(project_ids: Sequence[int]) -> int:
@@ -1952,7 +1953,7 @@ JSON_TYPE_MAP = {
 }
 
 
-def get_json_type(snuba_type):
+def get_json_type(snuba_type: str | None) -> str:
     """
     Convert Snuba/Clickhouse type to JSON type
     Default is string
@@ -2148,7 +2149,9 @@ def naiveify_datetime(dt: datetime) -> datetime:
     return dt if not dt.tzinfo else dt.astimezone(timezone.utc).replace(tzinfo=None)
 
 
-def quantize_time(time, key_hash, duration=300, rounding=ROUND_DOWN):
+def quantize_time(
+    time: datetime, key_hash: int, duration: int = 300, rounding: object = ROUND_DOWN
+) -> datetime:
     """Adds jitter based on the key_hash around start/end times for caching snuba queries
 
     Given a time and a key_hash this should result in a timestamp that remains the same for a duration
@@ -2189,7 +2192,7 @@ def is_measurement(key):
     return isinstance(key, str) and MEASUREMENTS_KEY_RE.match(key)
 
 
-def is_duration_measurement(key):
+def is_duration_measurement(key: object) -> bool:
     return key in [
         "measurements.fp",
         "measurements.fcp",
@@ -2208,7 +2211,7 @@ def is_duration_measurement(key):
     ]
 
 
-def is_percentage_measurement(key):
+def is_percentage_measurement(key: object) -> bool:
     return key in [
         "measurements.frames_slow_rate",
         "measurements.frames_frozen_rate",
@@ -2216,7 +2219,7 @@ def is_percentage_measurement(key):
     ]
 
 
-def is_numeric_measurement(key):
+def is_numeric_measurement(key: object) -> bool:
     return key in [
         "measurements.cls",
         "measurements.frames_frozen",
@@ -2226,16 +2229,16 @@ def is_numeric_measurement(key):
     ]
 
 
-def is_span_op_breakdown(key):
+def is_span_op_breakdown(key: object) -> bool:
     return isinstance(key, str) and get_span_op_breakdown_name(key) is not None
 
 
-def get_measurement_name(measurement):
+def get_measurement_name(measurement: str) -> str | None:
     match = MEASUREMENTS_KEY_RE.match(measurement)
     return match.group(1).lower() if match else None
 
 
-def get_span_op_breakdown_name(breakdown):
+def get_span_op_breakdown_name(breakdown: str) -> str | None:
     match = SPAN_OP_BREAKDOWNS_FIELD_RE.match(breakdown)
     if match:
         breakdown_key = match.group(1).lower()
@@ -2245,19 +2248,19 @@ def get_span_op_breakdown_name(breakdown):
     return None
 
 
-def get_array_column_alias(array_column):
+def get_array_column_alias(array_column: str | None) -> str | None:
     # array column prefix may be aliased differently to the user (i.e. the product)
     if array_column == "span_op_breakdowns":
         return "spans"
     return array_column
 
 
-def get_span_op_breakdown_key_name(breakdown_key):
+def get_span_op_breakdown_key_name(breakdown_key: str) -> str:
     match = SPAN_OP_BREAKDOWNS_KEY_RE.match(breakdown_key)
     return match.group(1).lower() if match else breakdown_key
 
 
-def get_array_column_field(array_column, internal_key):
+def get_array_column_field(array_column: str | None, internal_key: str) -> str:
     if array_column == "span_op_breakdowns":
         return get_span_op_breakdown_key_name(internal_key)
     return internal_key

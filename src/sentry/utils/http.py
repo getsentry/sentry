@@ -341,7 +341,7 @@ def request_body_stream(
     if uwsgi:
         if request.headers.get("Transfer-Encoding", "").lower() == "chunked":
 
-            def stream_generator():
+            def stream_generator() -> Generator[bytes]:
                 while True:
                     chunk = uwsgi.chunked_read()
                     if not chunk:

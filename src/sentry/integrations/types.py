@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import Generic, NotRequired, TypedDict, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -12,10 +12,10 @@ class IntegrationIssueConfigField(TypedDict):
     name: str
     label: str
     type: str
-    default: NotRequired[Any]
-    defaultValue: NotRequired[Any]
+    default: NotRequired[object]
+    defaultValue: NotRequired[object]
     required: NotRequired[bool]
-    choices: NotRequired[Sequence[tuple[Any, str]]]
+    choices: NotRequired[Sequence[tuple[object, str]]]
     url: NotRequired[str]
     updatesForm: NotRequired[bool]
     multiple: NotRequired[bool]
@@ -184,4 +184,4 @@ class IntegrationResponse(Generic[T]):
     interaction_result: EventLifecycleOutcome
     response: T
     outcome_reason: str | Exception | None = None
-    context_data: dict | None = None
+    context_data: dict[str, object] | None = None

@@ -1,5 +1,6 @@
 import logging
 import re
+from collections.abc import Callable, Mapping, Sequence
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -50,12 +51,14 @@ RESERVED_WEBHOOK_HEADER_PREFIXES = ("x-forwarded-", "x-sentry-")
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
-class ApiScopesField(serializers.Field):
-    def to_internal_value(self, data):
+class ApiScopesField(
+    serializers.Field[Sequence[str] | None, Sequence[str] | None, Sequence[str], object]
+):
+    def to_internal_value(self, data: Sequence[str] | None) -> Sequence[str] | None:
         valid_scopes = ApiScopes()
 
         if data is None:
-            return
+            return None
 
         for scope in data:
             if scope not in valid_scopes:
@@ -64,10 +67,12 @@ class ApiScopesField(serializers.Field):
 
 
 @extend_schema_field(build_typed_list(OpenApiTypes.STR))
-class EventListField(serializers.Field):
-    def to_internal_value(self, data):
+class EventListField(
+    serializers.Field[Sequence[str] | None, Sequence[str] | None, Sequence[str], object]
+):
+    def to_internal_value(self, data: Sequence[str] | None) -> Sequence[str] | None:
         if data is None:
-            return
+            return None
 
         valid = set(VALID_EVENT_RESOURCES) | set(VALID_EVENTS)
         if not set(data).issubset(valid):
@@ -78,10 +83,10 @@ class EventListField(serializers.Field):
 
 
 @extend_schema_field(OpenApiTypes.OBJECT)
-class SchemaField(serializers.Field):
-    def to_internal_value(self, data):
+class SchemaField(serializers.Field[object, object, object, object]):
+    def to_internal_value(self, data: object) -> object:
         if data is None:
-            return
+            return None
 
         if data == "" or data == {}:
             return {}
@@ -95,7 +100,7 @@ class SchemaField(serializers.Field):
 
 
 class URLField(serializers.URLField):
-    def to_internal_value(self, url):
+    def to_internal_value(self, url: str) -> str:
         # The Django URLField doesn't distinguish between different types of
         # invalid URLs, so do any manual checks here to give the User a better
         # error message.
@@ -204,8 +209,10 @@ class SentryAppParser(Serializer):
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
-    def get_current_value_wrapper(self, attrs):
-        def get_current_value(field_name):
+    def get_current_value_wrapper(
+        self, attrs: Mapping[str, object]
+    ) -> Callable[[str], object | None]:
+        def get_current_value(field_name: str) -> object | None:
             if field_name in attrs:
                 return attrs[field_name]
             # params might be passed as camel case but we always store as snake case
@@ -217,7 +224,7 @@ class SentryAppParser(Serializer):
 
         return get_current_value
 
-    def validate_name(self, value):
+    def validate_name(self, value: str) -> str:
         max_length = 64 - UUID_CHARS_IN_SLUG - 1  # -1 comes from the - before the UUID bit
         if len(value) > max_length:
             raise ValidationError("Cannot exceed %d characters" % max_length)
@@ -239,13 +246,13 @@ class SentryAppParser(Serializer):
 
         return value
 
-    def validate_allowedOrigins(self, value):
+    def validate_allowedOrigins(self, value: list[str]) -> list[str]:
         for allowed_origin in value:
             if "*" in allowed_origin:
                 raise ValidationError("'*' not allowed in origin")
         return value
 
-    def validate_webhookHeaders(self, value):
+    def validate_webhookHeaders(self, value: list[str]) -> list[str]:
         if len(value) > 20:
             raise ValidationError("Cannot configure more than 20 custom webhook headers.")
         seen_names = set()
@@ -294,7 +301,7 @@ class SentryAppParser(Serializer):
             seen_names.add(normalized)
         return value
 
-    def validate_scopes(self, value):
+    def validate_scopes(self, value: Sequence[str] | None) -> Sequence[str] | None:
         if not value:
             return value
 

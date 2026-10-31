@@ -18,6 +18,7 @@ from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
+    from sentry.models.organization import Organization
     from sentry.models.project import Project
 
 
@@ -144,7 +145,7 @@ def _merge_pii_configs(prefixes_and_configs: list[tuple[str, dict[str, Any]]]) -
     return merged_config
 
 
-def validate_pii_config_update(organization, value):
+def validate_pii_config_update(organization: Organization, value: str | None) -> str | None:
     if not value:
         return value
 
@@ -156,11 +157,11 @@ def validate_pii_config_update(organization, value):
     return value
 
 
-def validate_pii_selectors(selectors):
+def validate_pii_selectors(selectors: list[str]) -> list[str]:
     if not selectors:
         return selectors
 
-    errors = list()
+    errors: list[str] = []
     for line, selector in enumerate(selectors, start=1):
         try:
             validate_pii_selector(selector)

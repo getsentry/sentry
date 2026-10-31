@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
@@ -101,7 +102,7 @@ from sentry.utils.sdk import bind_organization_context
 ERR_INVALID_STATS_PERIOD = "Invalid %s. Valid choices are %s"
 
 
-def get_stats_period_detail(key, choices):
+def get_stats_period_detail(key: str, choices: Iterable[str]) -> str:
     return ERR_INVALID_STATS_PERIOD % (key, ", ".join("'%s'" % x for x in choices))
 
 
@@ -243,7 +244,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
 
 
 @traces.trace
-def debounce_update_release_health_data(organization, project_ids: list[int]):
+def debounce_update_release_health_data(organization: Organization, project_ids: list[int]) -> None:
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
     """

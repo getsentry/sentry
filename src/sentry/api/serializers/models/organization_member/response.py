@@ -85,7 +85,7 @@ class OrganizationMemberResponse(TypedDict):
     expired: bool
     flags: _OrganizationMemberFlags
     dateCreated: datetime
-    inviteStatus: str
+    inviteStatus: str | None
     inviterName: str | None
 
 

@@ -24,13 +24,19 @@ class RegistrationRequest(TypedDict):
     timezone: NotRequired[str]
 
 
-class AuthVerifyValidator(serializers.Serializer):
+class AuthVerifyRequest(TypedDict, total=False):
+    password: str
+    challenge: str
+    response: str
+
+
+class AuthVerifyValidator(serializers.Serializer[AuthVerifyRequest]):
     password = serializers.CharField(required=False, trim_whitespace=False)
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
 
-    def validate(self, data):
+    def validate(self, data: AuthVerifyRequest) -> AuthVerifyRequest:
         if "password" in data:
             return data
         if "challenge" in data and "response" in data:

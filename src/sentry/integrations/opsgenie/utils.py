@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
+from requests import Response
+
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
@@ -131,7 +133,8 @@ def send_incident_alert_notification(
         logger.info(
             "rule.success.opsgenie_incident_alert",
             extra={
-                "status_code": resp.status_code,
+                # justification: a sent alert returns the HTTP response.
+                "status_code": cast(Response, resp).status_code,
                 "organization_id": organization.id,
                 "data": attachment,
                 "status": metric_issue_context.new_status.value,

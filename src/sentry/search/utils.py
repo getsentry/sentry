@@ -376,7 +376,7 @@ def get_latest_release(
     projects: Sequence[Project | int],
     environments: Sequence[Environment] | None,
     organization_id: int | None = None,
-    adopted=False,
+    adopted: bool = False,
 ) -> list[str]:
     if organization_id is None:
         project = projects[0]

@@ -5,7 +5,7 @@ from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from time import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 from urllib.parse import quote
 
 from django.urls import reverse
@@ -28,6 +28,7 @@ from sentry.models.pullrequest import PullRequest, PullRequestComment
 from sentry.models.repository import Repository
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.users.models.identity import Identity
 from sentry.utils import metrics
@@ -67,6 +68,13 @@ def _expires_soon(identity_data: Mapping[str, Any], requested_margin_s: float) -
     return expires is None or int(expires) < time() + margin_s
 
 
+class GitLabMetadata(TypedDict):
+    base_url: str
+    verify_ssl: bool
+    webhook_secret: NotRequired[str]
+    include_subgroups: NotRequired[bool]
+
+
 class GitLabApiRequestType(StrEnum):
     CREATE_PROJECT_WEBHOOK = "create_project_webhook"
     UPDATE_PROJECT_WEBHOOK = "update_project_webhook"
@@ -82,7 +90,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
 
     integration_name = "gitlab_setup"
 
-    def __init__(self, base_url: str, access_token: str, verify_ssl: bool):
+    def __init__(self, base_url: str, access_token: str, verify_ssl: bool) -> None:
         super().__init__(verify_ssl=verify_ssl)
         self.base_url = base_url
         self.token = access_token
@@ -98,7 +106,7 @@ class GitLabSetupApiClient(IntegrationProxyClient):
         return prepared_request
 
     @control_silo_function
-    def get_group(self, group):
+    def get_group(self, group: str) -> MappingApiResponse:
         """Get a group based on `path` which is a slug.
 
         We need to URL quote because subgroups use `/` in their
@@ -106,11 +114,12 @@ class GitLabSetupApiClient(IntegrationProxyClient):
         """
         group = quote(group, safe="")
         path = GitLabApiClientPath.group.format(group=group)
-        return self.get(path)
+        response: MappingApiResponse = self.get(path)
+        return response
 
 
 class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextClient):
-    def __init__(self, installation: GitlabIntegration):
+    def __init__(self, installation: GitlabIntegration) -> None:
         self.installation = installation
         verify_ssl = self.metadata["verify_ssl"]
         self.is_refreshing_token = False
@@ -129,8 +138,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         return self.installation.default_identity
 
     @property
-    def metadata(self):
-        return self.installation.model.metadata
+    def metadata(self) -> GitLabMetadata:
+        return cast(GitLabMetadata, self.installation.model.metadata)
 
     def build_url(self, path: str) -> str:
         path = GitLabApiClientPath.build_api_url(self.base_url, path)
@@ -231,18 +240,19 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             verify_ssl=self.metadata["verify_ssl"],
         )
 
-    def request(self, *args: Any, **kwargs: Any):
+    def request(self, *args: Any, **kwargs: Any) -> object:
         kwargs.pop("credentials_set", None)
 
         if SiloMode.get_current_mode() == SiloMode.CELL:
             # Skip token refreshes in Cell silo, as these will
             # be handled below by the control silo when the
             # integration proxy invokes the client code.
-            return super().request(*args, **kwargs)
+            response: object = super().request(*args, **kwargs)
+            return response
 
         return self._issue_request_with_auto_token_refresh(*args, **kwargs)
 
-    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any):
+    def _issue_request_with_auto_token_refresh(self, *args: Any, **kwargs: Any) -> object:
         try:
             response = super().request(*args, **kwargs)
         except ApiUnauthorized:
@@ -260,9 +270,10 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             # refresh the token if an auth error occurs.
             return self._attempt_request_after_refreshing_token(*args, **kwargs)
 
-        return response
+        response_object: object = response
+        return response_object
 
-    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any):
+    def _attempt_request_after_refreshing_token(self, *args: Any, **kwargs: Any) -> object:
         assert not self.is_refreshing_token, "A token refresh is already occurring"
         self.is_refreshing_token = True
         try:
@@ -277,19 +288,23 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         finally:
             self.is_refreshing_token = False
 
-    def get_user(self):
+    def get_user(self) -> MappingApiResponse:
         """Get a user
 
         See https://docs.gitlab.com/ee/api/users.html#single-user
         """
-        return self.get(GitLabApiClientPath.user)
+        response: MappingApiResponse = self.get(GitLabApiClientPath.user)
+        return response
 
-    def search_users(self, username: str):
+    def search_users(self, username: str) -> SequenceApiResponse:
         """Search for a user by username
 
         See https://docs.gitlab.com/ee/api/users.html#for-non-administrator-users
         """
-        return self.get(GitLabApiClientPath.users, params={"username": username})
+        response: SequenceApiResponse = self.get(
+            GitLabApiClientPath.users, params={"username": username}
+        )
+        return response
 
     def search_projects(self, group=None, query=None, simple=True):
         """Get projects
@@ -326,174 +341,210 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
 
         return self.get_with_pagination(path, gen_params, get_results)
 
-    def get_project(self, project_id):
+    def get_project(self, project_id: str | int) -> MappingApiResponse:
         """Get project
 
         See https://docs.gitlab.com/ee/api/projects.html#get-single-project
         """
-        return self.get(GitLabApiClientPath.project.format(project=safe_quote(project_id)))
+        response: MappingApiResponse = self.get(
+            GitLabApiClientPath.project.format(project=safe_quote(project_id))
+        )
+        return response
 
-    def get_issue(self, project_id, issue_id):
+    def get_issue(self, project_id: str | int, issue_id: str | int) -> MappingApiResponse:
         """Get an issue
 
         See https://docs.gitlab.com/ee/api/issues.html#single-issue
         """
         try:
-            return self.get(
+            response: MappingApiResponse = self.get(
                 GitLabApiClientPath.issue.format(project=safe_quote(project_id), issue=issue_id)
             )
+            return response
         except IndexError:
             raise ApiError("Issue not found with ID", 404)
 
-    def create_issue(self, project, data):
+    def create_issue(self, project: str | int, data: dict[str, object]) -> MappingApiResponse:
         """Create an issue
 
         See https://docs.gitlab.com/ee/api/issues.html#new-issue
         """
-        return self.post(GitLabApiClientPath.issues.format(project=safe_quote(project)), data=data)
+        response: MappingApiResponse = self.post(
+            GitLabApiClientPath.issues.format(project=safe_quote(project)), data=data
+        )
+        return response
 
-    def get_issue_awards(self, project_id: str, issue_id: str):
-        return self.get(
+    def get_issue_awards(self, project_id: str | int, issue_id: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.issue_awards.format(
                 project_id=safe_quote(project_id), issue_id=issue_id
             )
         )
+        return response
 
-    def create_issue_award(self, project_id: str, issue_id: str, emoji: str):
-        return self.post(
+    def create_issue_award(
+        self, project_id: str | int, issue_id: str, emoji: str
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.issue_awards.format(
                 project_id=safe_quote(project_id), issue_id=issue_id
             ),
             params={"name": emoji},
         )
+        return response
 
-    def delete_issue_award(self, project_id: str, issue_id: str, award_id: str):
-        return self.delete(
+    def delete_issue_award(
+        self, project_id: str | int, issue_id: str, award_id: str
+    ) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.issue_award.format(
                 project_id=safe_quote(project_id), issue_id=issue_id, award_id=award_id
             )
         )
+        return response
 
-    def get_issue_notes(self, project_id: str, issue_id: str):
+    def get_issue_notes(self, project_id: str | int, issue_id: str) -> SequenceApiResponse:
         """https://docs.gitlab.com/api/notes/#list-all-issue-notes"""
-        return self.get(
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.issue_notes.format(
                 project_id=safe_quote(project_id), issue_id=issue_id
             )
         )
+        return response
 
-    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]):
+    def create_comment(self, repo: str, issue_id: str, data: dict[str, Any]) -> MappingApiResponse:
         """Create an issue note/comment
 
         See https://docs.gitlab.com/ee/api/notes.html#create-new-issue-note
         """
-        return self.post(
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.issue_notes.format(project_id=safe_quote(repo), issue_id=issue_id),
             data=data,
         )
+        return response
 
-    def update_comment(self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]):
+    def update_comment(
+        self, repo: str, issue_id: str, comment_id: str, data: dict[str, Any]
+    ) -> MappingApiResponse:
         """Modify existing issue note
 
         See https://docs.gitlab.com/ee/api/notes.html#modify-existing-issue-note
         """
-        return self.put(
+        response: MappingApiResponse = self.put(
             GitLabApiClientPath.issue_note.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=comment_id
             ),
             data=data,
         )
+        return response
 
-    def delete_issue_note(self, repo: str, issue_id: str, comment_id: str):
+    def delete_issue_note(self, repo: str, issue_id: str, comment_id: str) -> dict[str, object]:
         """https://docs.gitlab.com/api/notes/#delete-an-issue-note"""
 
-        return self.delete(
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.issue_note.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=comment_id
             )
         )
+        return response
 
-    def get_issue_note_awards(self, repo: str, issue_id: str, note_id: str):
-        return self.get(
+    def get_issue_note_awards(self, repo: str, issue_id: str, note_id: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.issue_note_awards.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id
             )
         )
+        return response
 
-    def create_issue_note_award(self, repo: str, issue_id: str, note_id: str, emoji: str):
-        return self.post(
+    def create_issue_note_award(
+        self, repo: str, issue_id: str, note_id: str, emoji: str
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.issue_note_awards.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id
             ),
             params={"name": emoji},
         )
+        return response
 
-    def delete_issue_note_award(self, repo: str, issue_id: str, note_id: str, award_id: str):
-        return self.delete(
+    def delete_issue_note_award(
+        self, repo: str, issue_id: str, note_id: str, award_id: str
+    ) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.issue_note_award.format(
                 project_id=safe_quote(repo), issue_id=issue_id, note_id=note_id, award_id=award_id
             )
         )
+        return response
 
-    def get_merge_request(self, project_id: str, pr_key: str) -> Any:
-        return self.get(
+    def get_merge_request(self, project_id: str, pr_key: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
             GitLabApiClientPath.merge_request.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             )
         )
+        return response
 
-    def get_merge_requests(self, project_id: str, state: str | None = None) -> Any:
+    def get_merge_requests(self, project_id: str, state: str | None = None) -> SequenceApiResponse:
         if state is None:
             params = None
         else:
             params = {"state": state}
-        return self.get(
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_requests.format(project_id=safe_quote(project_id)),
             params=params,
         )
+        return response
 
-    def create_merge_request(self, project_id: str, data: dict[str, Any]) -> Any:
-        return self.post(
+    def create_merge_request(self, project_id: str, data: dict[str, Any]) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_requests.format(project_id=safe_quote(project_id)),
             data=data,
         )
+        return response
 
-    def update_merge_request(self, project_id: str, pr_key: str, data: dict[str, Any]) -> Any:
-        return self.put(
+    def update_merge_request(
+        self, project_id: str, pr_key: str, data: dict[str, Any]
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.put(
             GitLabApiClientPath.merge_request.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             ),
             data=data,
         )
+        return response
 
-    def get_merge_request_notes(self, project_id: str, pr_key: str) -> Any:
-        return self.get(
+    def get_merge_request_notes(self, project_id: str, pr_key: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_notes.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             )
         )
+        return response
 
-    def get_merge_request_versions(self, project_id: str, pr_key: str) -> Any:
-        return self.get(
+    def get_merge_request_versions(self, project_id: str, pr_key: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_versions.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             )
         )
+        return response
 
     def create_merge_request_discussion(
         self, project_id: str, pr_key: str, data: dict[str, Any]
-    ) -> Any:
-        return self.post(
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_request_discussions.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             ),
             data=data,
         )
+        return response
 
     def create_merge_request_discussion_note(
         self, project_id: str, pr_key: str, discussion_id: str, data: dict[str, Any]
-    ) -> Any:
-        return self.post(
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_request_discussion_notes.format(
                 project_id=safe_quote(project_id),
                 pr_key=pr_key,
@@ -501,11 +552,12 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             ),
             data=data,
         )
+        return response
 
     def resolve_merge_request_discussion(
-        self, project_id: str, pr_key: str, discussion_id: str, resolved=True
-    ) -> Any:
-        return self.put(
+        self, project_id: str, pr_key: str, discussion_id: str, resolved: bool = True
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.put(
             GitLabApiClientPath.merge_request_discussion.format(
                 project_id=safe_quote(project_id),
                 pr_key=pr_key,
@@ -513,19 +565,25 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             ),
             params={"resolved": resolved},
         )
+        return response
 
-    def create_pr_comment(self, repo: Repository, pr: PullRequest, data: dict[str, Any]) -> Any:
+    def create_pr_comment(
+        self, repo: Repository, pr: PullRequest, data: dict[str, Any]
+    ) -> MappingApiResponse:
         return self.create_merge_request_note(
             project_id=repo.config["project_id"], pr_key=pr.key, data=data
         )
 
-    def create_merge_request_note(self, project_id: str, pr_key: str, data: dict[str, Any]) -> Any:
-        return self.post(
+    def create_merge_request_note(
+        self, project_id: str, pr_key: str, data: dict[str, Any]
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_request_notes.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             ),
             data=data,
         )
+        return response
 
     def update_pr_comment(
         self,
@@ -533,70 +591,83 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         pr: PullRequest,
         pr_comment: PullRequestComment,
         data: dict[str, Any],
-    ) -> Any:
+    ) -> MappingApiResponse:
         project_id = repo.config["project_id"]
         url = GitLabApiClientPath.merge_request_note.format(
             project_id=safe_quote(project_id),
             pr_key=pr.key,
             note_id=pr_comment.external_id,
         )
-        return self.put(url, data=data)
+        response: MappingApiResponse = self.put(url, data=data)
+        return response
 
     def delete_merge_request_note(
         self,
         project_id: str,
         pr_key: str,
         note_id: str,
-    ) -> Any:
-        return self.delete(
+    ) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.merge_request_note.format(
                 project_id=safe_quote(project_id), pr_key=pr_key, note_id=note_id
             )
         )
+        return response
 
-    def get_merge_request_awards(self, project_id: str, pr_key: str):
-        return self.get(
+    def get_merge_request_awards(self, project_id: str, pr_key: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_awards.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             )
         )
+        return response
 
-    def create_merge_request_award(self, project_id: str, pr_key: str, emoji: str):
-        return self.post(
+    def create_merge_request_award(
+        self, project_id: str, pr_key: str, emoji: str
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_request_awards.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             ),
             params={"name": emoji},
         )
+        return response
 
-    def delete_merge_request_award(self, project_id: str, pr_key: str, award_id: str):
-        return self.delete(
+    def delete_merge_request_award(
+        self, project_id: str, pr_key: str, award_id: str
+    ) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.merge_request_award.format(
                 project_id=safe_quote(project_id), pr_key=pr_key, award_id=award_id
             )
         )
+        return response
 
-    def get_merge_request_note_awards(self, project_id: str, pr_key: str, note_id: str):
-        return self.get(
+    def get_merge_request_note_awards(
+        self, project_id: str, pr_key: str, note_id: str
+    ) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_note_awards.format(
                 project_id=safe_quote(project_id), pr_key=pr_key, note_id=note_id
             )
         )
+        return response
 
     def create_merge_request_note_award(
         self, project_id: str, pr_key: str, note_id: str, emoji: str
-    ):
-        return self.post(
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.merge_request_note_awards.format(
                 project_id=safe_quote(project_id), pr_key=pr_key, note_id=note_id
             ),
             params={"name": emoji},
         )
+        return response
 
     def delete_merge_request_note_award(
         self, project_id: str, pr_key: str, note_id: str, award_id: str
-    ):
-        return self.delete(
+    ) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
             GitLabApiClientPath.merge_request_note_award.format(
                 project_id=safe_quote(project_id),
                 pr_key=pr_key,
@@ -604,32 +675,44 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                 award_id=award_id,
             )
         )
+        return response
 
-    def search_project_issues(self, project_id, query, iids=None):
+    def search_project_issues(
+        self, project_id: str | int, query: str | None, iids: Sequence[str] | None = None
+    ) -> SequenceApiResponse:
         """Search issues in a project
 
         See https://docs.gitlab.com/ee/api/issues.html#list-project-issues
         """
         path = GitLabApiClientPath.project_issues.format(project=safe_quote(project_id))
 
-        return self.get(path, params={"scope": "all", "search": query, "iids": iids})
+        response: SequenceApiResponse = self.get(
+            path, params={"scope": "all", "search": query, "iids": iids}
+        )
+        return response
 
-    def update_issue_assignees(self, project_id: str, issue_iid: str, assignee_ids: list[int]):
+    def update_issue_assignees(
+        self, project_id: str | int, issue_iid: str, assignee_ids: list[int]
+    ) -> MappingApiResponse:
         """Update an issue's assignees
 
         See https://docs.gitlab.com/ee/api/issues.html#edit-an-issue
         """
         data = {"assignee_ids": assignee_ids}
         path = GitLabApiClientPath.issue.format(project=safe_quote(project_id), issue=issue_iid)
-        return self.put(path, data=data)
+        response: MappingApiResponse = self.put(path, data=data)
+        return response
 
-    def update_issue_status(self, project_id: str, issue_iid: str, state: str):
+    def update_issue_status(
+        self, project_id: str | int, issue_iid: str, state: str
+    ) -> MappingApiResponse:
         """Update an issue's status
 
         See https://docs.gitlab.com/ee/api/issues.html#edit-an-issue
         """
         path = GitLabApiClientPath.issue.format(project=safe_quote(project_id), issue=issue_iid)
-        return self.put(path, data={"state_event": state})
+        response: MappingApiResponse = self.put(path, data={"state_event": state})
+        return response
 
     def _project_webhook_data(self) -> dict[str, Any]:
         hook_uri = reverse("sentry-extensions-gitlab-webhook")
@@ -645,30 +728,34 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
 
-    def create_project_webhook(self, project_id):
+    def create_project_webhook(self, project_id: str | int) -> int:
         """Create a webhook on a project.
 
         See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
         """
         path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
-        resp = self.post(
+        resp: MappingApiResponse = self.post(
             path,
             data=self._project_webhook_data(),
             timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
         )
 
-        return resp["id"]
+        webhook_id: int = resp["id"]
+        return webhook_id
 
-    def get_project_webhooks(self, project_id):
+    def get_project_webhooks(self, project_id: str | int) -> SequenceApiResponse:
         """List webhooks for a project
 
         See https://docs.gitlab.com/ee/api/projects.html#list-project-hooks
         """
         path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
-        return self.get(path)
+        response: SequenceApiResponse = self.get(path)
+        return response
 
-    def update_project_webhook(self, project_id, hook_id):
+    def update_project_webhook(
+        self, project_id: str | int, hook_id: str | int
+    ) -> MappingApiResponse:
         """Update a webhook on a project to include all required events
 
         See https://docs.gitlab.com/ee/api/projects.html#edit-project-hook
@@ -676,12 +763,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.put(
+        response: MappingApiResponse = self.put(
             path,
             data=self._project_webhook_data(),
             timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
         )
+        return response
 
     def ensure_project_webhook(
         self,
@@ -700,7 +788,8 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                     if e.code != 404:
                         raise
                 else:
-                    if hook.get("alert_status") != "disabled":
+                    hook_data: Mapping[str, object] = hook
+                    if hook_data.get("alert_status") != "disabled":
                         outcome = "updated"
                         return hook_id
                     # PUT does not re-enable permanently disabled hooks. Temporarily
@@ -723,7 +812,9 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         finally:
             metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
 
-    def delete_project_webhook(self, project_id, hook_id):
+    def delete_project_webhook(
+        self, project_id: str | int, hook_id: str | int
+    ) -> dict[str, object]:
         """Delete a webhook from a project
 
         See https://docs.gitlab.com/ee/api/projects.html#delete-project-hook
@@ -731,28 +822,33 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(
+        response: dict[str, object] = self.delete(
             path,
             timeout=GITLAB_WEBHOOK_REQUEST_TIMEOUT,
             api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK,
         )
+        return response
 
-    def create_branch(self, project_id: str, branch: str, ref: str):
+    def create_branch(self, project_id: str | int, branch: str, ref: str) -> MappingApiResponse:
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""
-        return self.post(
+        response: MappingApiResponse = self.post(
             GitLabApiClientPath.branches.format(project_id=safe_quote(project_id)),
             params={"branch": branch, "ref": ref},
         )
+        return response
 
-    def get_branch(self, project_id: str, branch: str):
+    def get_branch(self, project_id: str | int, branch: str) -> MappingApiResponse:
         """https://docs.gitlab.com/api/branches/#retrieve-a-repository-branch"""
-        return self.get(
+        response: MappingApiResponse = self.get(
             GitLabApiClientPath.branch.format(
                 project_id=safe_quote(project_id), branch=quote(branch, safe="")
             )
         )
+        return response
 
-    def get_last_commits(self, project_id, end_sha):
+    def get_last_commits(
+        self, project_id: str | int, end_sha: str
+    ) -> SequenceApiResponse | list[object]:
         """Get the last set of commits ending at end_sha
 
         Gitlab doesn't give us a good way to do this, so we fetch the end_sha
@@ -763,24 +859,28 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         https://docs.gitlab.com/ee/api/commits.html#list-repository-commits
         """
         path = GitLabApiClientPath.commit.format(project=safe_quote(project_id), sha=end_sha)
-        commit = self.get(path)
+        commit: MappingApiResponse = self.get(path)
         if not commit:
             return []
-        end_date = commit["created_at"]
+        end_date: str = commit["created_at"]
 
         path = GitLabApiClientPath.commits.format(project=safe_quote(project_id))
-        return self.get(path, params={"until": end_date})
+        response: SequenceApiResponse = self.get(path, params={"until": end_date})
+        return response
 
-    def get_commit(self, project_id, sha):
+    def get_commit(self, project_id: str | int, sha: str) -> MappingApiResponse:
         """
         Get the details of a commit
         See https://docs.gitlab.com/ee/api/commits.html#get-a-single-commit
         """
-        return self.get_cached(
+        response: MappingApiResponse = self.get_cached(
             GitLabApiClientPath.commit.format(project=safe_quote(project_id), sha=sha)
         )
+        return response
 
-    def get_commits(self, project_id, ref: str | None, path: str | None):
+    def get_commits(
+        self, project_id: str | int, ref: str | None, path: str | None
+    ) -> SequenceApiResponse:
         """
         Get the set of commits ending at ref.
         See https://docs.gitlab.com/ee/api/commits.html#list-repository-commits
@@ -790,10 +890,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             params["ref_name"] = ref
         if path:
             params["path"] = path
-        return self.get(
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.commits.format(project=safe_quote(project_id)),
             params=params,
         )
+        return response
 
     def get_merge_commit_sha_from_commit(self, repo: Repository, sha: str) -> str | None:
         """
@@ -804,7 +905,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.commit_merge_requests.format(
             project=safe_quote(project_id), sha=sha
         )
-        response = self.get(path)
+        response: SequenceApiResponse = self.get(path)
 
         # Filter out non-merged merge requests
         merge_requests = []
@@ -817,23 +918,30 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             return None
 
         merge_request = merge_requests[0]
-        return merge_request["merge_commit_sha"] or merge_request["squash_commit_sha"]
+        merge_commit_sha: str | None = (
+            merge_request["merge_commit_sha"] or merge_request["squash_commit_sha"]
+        )
+        return merge_commit_sha
 
-    def compare_commits(self, project_id, start_sha, end_sha):
+    def compare_commits(
+        self, project_id: str | int, start_sha: str, end_sha: str
+    ) -> MappingApiResponse:
         """Compare commits between two SHAs
 
         See https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
         """
         path = GitLabApiClientPath.compare.format(project=safe_quote(project_id))
-        return self.get(path, params={"from": start_sha, "to": end_sha})
+        response: MappingApiResponse = self.get(path, params={"from": start_sha, "to": end_sha})
+        return response
 
-    def get_diff(self, project_id, sha):
+    def get_diff(self, project_id: str | int, sha: str) -> SequenceApiResponse:
         """Get the diff for a commit
 
         See https://docs.gitlab.com/ee/api/commits.html#get-the-diff-of-a-commit
         """
         path = GitLabApiClientPath.diff.format(project=safe_quote(project_id), sha=sha)
-        return self.get(path)
+        response: SequenceApiResponse = self.get(path)
+        return response
 
     def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
         """Fetch a file for stacktrace linking
@@ -852,13 +960,16 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         # Gitlab can return 404 or 400 if the file doesn't exist
         return self.head_cached(request_path, params={"ref": version})
 
-    def get_file_content(self, project_id: str, path: str, ref: str | None):
-        return self.get(
+    def get_file_content(
+        self, project_id: str | int, path: str, ref: str | None
+    ) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
             GitLabApiClientPath.file.format(
                 project=safe_quote(project_id), path=quote(path, safe="")
             ),
             params={"ref": ref},
         )
+        return response
 
     def get_file(
         self, repo: Repository, path: str, ref: str | None, codeowners: bool = False
@@ -895,16 +1006,17 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             },
         )
 
-    def get_pr_diffs(self, repo: Repository, pr: PullRequest) -> list[dict[str, Any]]:
+    def get_pr_diffs(self, repo: Repository, pr: PullRequest) -> SequenceApiResponse:
         project_id = repo.config["project_id"]
         path = GitLabApiClientPath.build_pr_diffs(
             project=safe_quote(project_id), pr_key=pr.key, unidiff=True
         )
-        return self.get(path)
+        response: SequenceApiResponse = self.get(path)
+        return response
 
     def get_repository_tree(
         self, project_id: str, ref: str, recursive: bool = True
-    ) -> list[dict[str, Any]]:
+    ) -> SequenceApiResponse:
         """List repository tree at a given ref.
 
         See https://docs.gitlab.com/ee/api/repositories.html#list-repository-tree
@@ -912,18 +1024,21 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         params: dict[str, str] = {"ref": ref, "per_page": "100"}
         if recursive:
             params["recursive"] = "true"
-        return self.get(
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.tree.format(project=safe_quote(project_id)), params=params
         )
+        return response
 
-    def get_merge_request_diffs(self, project_id: str, pr_key: str) -> list[dict[str, Any]]:
-        return self.get(
+    def get_merge_request_diffs(self, project_id: str, pr_key: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.pr_diffs.format(project=safe_quote(project_id), pr_key=pr_key)
         )
+        return response
 
-    def get_merge_request_commits(self, project_id: str, pr_key: str) -> list[dict[str, Any]]:
-        return self.get(
+    def get_merge_request_commits(self, project_id: str, pr_key: str) -> SequenceApiResponse:
+        response: SequenceApiResponse = self.get(
             GitLabApiClientPath.merge_request_commits.format(
                 project_id=safe_quote(project_id), pr_key=pr_key
             )
         )
+        return response

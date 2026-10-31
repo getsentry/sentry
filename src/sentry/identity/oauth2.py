@@ -129,7 +129,7 @@ class OAuth2Provider(Provider):
     def get_oauth_scopes(self):
         return self.config.get("oauth_scopes", self.oauth_scopes)
 
-    def get_refresh_token_headers(self):
+    def get_refresh_token_headers(self) -> dict[str, str] | None:
         return None
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
@@ -229,7 +229,7 @@ class OAuth2Provider(Provider):
         identity_service.update_data(identity_id=identity.id, data=identity.data)
 
 
-def record_event(event: IntegrationPipelineViewType, provider: str):
+def record_event(event: IntegrationPipelineViewType, provider: str) -> IntegrationPipelineViewEvent:
     from sentry.identity import default_manager as identity_manager
     from sentry.integrations.base import IntegrationDomain
 
@@ -373,7 +373,7 @@ class OAuth2ApiStep:
 
 class OAuth2LoginView:
     authorize_url: str | None = None
-    client_id: str | None = None
+    client_id: str | int | None = None
     scope = ""
 
     def __init__(self, authorize_url=None, client_id=None, scope=None, *args, **kwargs):
@@ -385,13 +385,13 @@ class OAuth2LoginView:
         if scope is not None:
             self.scope = scope
 
-    def get_scope(self):
+    def get_scope(self) -> str:
         return self.scope
 
-    def get_authorize_url(self):
+    def get_authorize_url(self) -> str | None:
         return self.authorize_url
 
-    def get_authorize_params(self, state, redirect_uri):
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         return {
             "client_id": self.client_id,
             "response_type": "code",
@@ -423,7 +423,7 @@ class OAuth2LoginView:
 
 class OAuth2CallbackView:
     access_token_url: str | None = None
-    client_id: str | None = None
+    client_id: str | int | None = None
     client_secret: str | None = None
 
     def __init__(self, access_token_url=None, client_id=None, client_secret=None, *args, **kwargs):
@@ -435,7 +435,7 @@ class OAuth2CallbackView:
         if client_secret is not None:
             self.client_secret = client_secret
 
-    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | int | None]:
         return {
             "grant_type": "authorization_code",
             "code": code,

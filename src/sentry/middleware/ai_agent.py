@@ -3,6 +3,7 @@ from __future__ import annotations
 import json  # noqa: S003 - need stdlib json for indent support
 import logging
 import re
+from collections.abc import Callable
 from typing import Any
 
 from django.http import HttpRequest, HttpResponse
@@ -104,7 +105,7 @@ class AIAgentMiddleware:
     3. Request is anonymous (no authenticated user, no auth token)
     """
 
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]):
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:

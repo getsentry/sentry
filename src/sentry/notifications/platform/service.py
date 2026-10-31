@@ -68,7 +68,7 @@ class NotificationKillswitchedError(NotificationServiceError):
 
 
 class NotificationService[T: NotificationData]:
-    def __init__(self, *, data: T):
+    def __init__(self, *, data: T) -> None:
         self.data: Final[T] = data
 
     @staticmethod

@@ -311,12 +311,13 @@ class Organization(ReplicatedCellModel):
 
         return self == type(self).get_default()
 
-    def has_access(self, user: RpcUser, access=None):
+    def has_access(self, user: RpcUser, access: int | None = None) -> bool:
         queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
 
-        return queryset.exists()
+        exists: bool = queryset.exists()
+        return exists
 
     def get_audit_log_data(self):
         return {

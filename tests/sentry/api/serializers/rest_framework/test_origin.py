@@ -1,11 +1,21 @@
+from typing import TypedDict
+
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import OriginField
 from sentry.testutils.cases import TestCase
 
 
-class DummySerializer(serializers.Serializer):
+class OriginSerializerData(TypedDict):
+    origin_field: str
+
+
+class DummySerializer(serializers.Serializer[object, OriginSerializerData]):
     origin_field = OriginField()
+
+
+class BlankOriginSerializer(serializers.Serializer[object, OriginSerializerData]):
+    origin_field = OriginField(allow_blank=True)
 
 
 class OriginFieldTest(TestCase):
@@ -20,3 +30,9 @@ class OriginFieldTest(TestCase):
         for url in urls:
             serializer = DummySerializer(data={"origin_field": url})
             assert serializer.is_valid() is False
+
+    def test_blank_origin_is_preserved(self) -> None:
+        serializer = BlankOriginSerializer(data={"origin_field": ""})
+
+        assert serializer.is_valid()
+        assert serializer.validated_data["origin_field"] == ""

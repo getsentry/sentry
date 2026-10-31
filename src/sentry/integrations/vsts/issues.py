@@ -161,7 +161,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | User, **kwargs: Any
+        self, group: Group | None, user: RpcUser | User, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []
@@ -459,7 +459,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         # Azure does not support updating comments.
         pass
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         client = self.get_client()
 
         integration = integration_service.get_integration(

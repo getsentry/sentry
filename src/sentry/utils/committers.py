@@ -12,7 +12,11 @@ from django.core.cache import cache
 from django.db.models import Q
 
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
+from sentry.api.serializers.models.commit import (
+    CommitSerializer,
+    CommitSerializerResponse,
+    get_users_for_commits,
+)
 from sentry.api.serializers.release_details_types import Author, NonMappableUser
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -183,7 +187,7 @@ class AuthorCommits(TypedDict):
 class AuthorCommitsSerialized(TypedDict):
     group_owner_id: int
     author: Author | None
-    commits: Sequence[MutableMapping[str, Any]]
+    commits: Sequence[CommitSerializerResponse]
 
 
 class AnnotatedFrame(TypedDict):

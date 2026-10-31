@@ -26,7 +26,7 @@ class UserNotificationSettingsOptionsDetailEndpoint(UserEndpoint):
         *args,
         notification_option_id: int,
         **kwargs,
-    ):
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, user_id, *args, **kwargs)
         user = kwargs["user"]
         try:

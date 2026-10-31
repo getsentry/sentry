@@ -1,6 +1,9 @@
+from typing import TypedDict
+
 from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers
 from rest_framework.request import Request
+from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.analytics.events.onboarding_continuation_sent import OnboardingContinuationSent
@@ -15,13 +18,23 @@ from sentry.utils.email import MessageBuilder
 from sentry.utils.strings import oxfordize_list
 
 
-class OnboardingContinuationSerializer(CamelSnakeSerializer):
+class OnboardingContinuationSerializer(CamelSnakeSerializer[dict[str, list[str]]]):
     platforms = serializers.ListField(
         child=serializers.CharField(max_length=255),
     )
 
 
-def get_request_builder_args(user: User, organization: Organization, platforms: list[str]):
+class RequestBuilderArgs(TypedDict):
+    subject: str
+    type: str
+    context: dict[str, object]
+    template: str
+    html_template: str
+
+
+def get_request_builder_args(
+    user: User, organization: Organization, platforms: list[str]
+) -> RequestBuilderArgs:
     num_platforms = len(platforms)
     context = {
         "recipient_name": user.get_display_name(),
@@ -53,7 +66,7 @@ class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
     owner = ApiOwner.VALUE_DISCOVERY
     permission_classes = (OnboardingContinuationPermission,)
 
-    def post(self, request: Request, organization: Organization):
+    def post(self, request: Request, organization: Organization) -> Response:
         serializer = OnboardingContinuationSerializer(data=request.data)
         if not serializer.is_valid():
             return self.respond(serializer.errors, status=400)

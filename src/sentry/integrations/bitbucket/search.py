@@ -34,11 +34,11 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
         return "repo"
 
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str:
         return IntegrationProviderSlug.BITBUCKET.value
 
     @property
-    def installation_class(self):
+    def installation_class(self) -> type[BitbucketIntegration]:
         return BitbucketIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

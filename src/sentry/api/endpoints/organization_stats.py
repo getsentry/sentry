@@ -10,6 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_id
 from sentry.models.environment import Environment
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.tsdb.base import TSDBModel
@@ -23,7 +24,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
     }
     owner = ApiOwner.FOUNDATIONS
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve Event Counts for an Organization
         `````````````````````````````````````````

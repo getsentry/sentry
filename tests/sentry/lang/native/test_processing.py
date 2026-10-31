@@ -30,6 +30,7 @@ from sentry.lang.native.processing import (
     _merge_image,
     get_frames_for_symbolication,
     get_native_symbolication_functions,
+    get_required_attachment_types,
     process_native_stacktraces,
 )
 from sentry.lang.native.symbolicator import SymbolicatorFunction
@@ -57,6 +58,19 @@ NATIVE_EXCEPTION = {
     "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
     "stacktrace": {"frames": [{"instruction_addr": "0x2a2a3d"}]},
 }
+
+
+def test_get_required_attachment_types() -> None:
+    minidump_data: dict[str, object] = {"exception": {"values": [MINIDUMP_PLACEHOLDER]}}
+    assert get_required_attachment_types(minidump_data) == {"event.minidump"}
+
+    applecrashreport_data: dict[str, object] = {
+        "exception": {"values": [APPLECRASHREPORT_PLACEHOLDER]}
+    }
+    assert get_required_attachment_types(applecrashreport_data) == {"event.applecrashreport"}
+
+    ordinary_data: dict[str, object] = {"platform": "python"}
+    assert not get_required_attachment_types(ordinary_data)
 
 
 @pytest.mark.parametrize(

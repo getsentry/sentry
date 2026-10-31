@@ -23,6 +23,7 @@ from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -75,7 +76,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-tag-key-values",
         url_names=["sentry-api-0-group-tag-key-values"],
     )
-    def get(self, request: Request, group, key) -> Response[list[TagValueSerializerResponse]]:
+    def get(
+        self, request: Request, group: Group, key: str
+    ) -> Response[list[TagValueSerializerResponse]]:
         """
         List a Tag's Values
         """

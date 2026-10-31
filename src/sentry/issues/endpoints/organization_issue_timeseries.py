@@ -2,9 +2,9 @@ import collections
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
-from typing import Any
+from typing import Any, cast
 
-from django.db.models import Count, DateTimeField, F, Func, Q
+from django.db.models import Count, DateTimeField, F, Func, Q, QuerySet
 from django.db.models.functions import Extract
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -30,6 +30,7 @@ from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.group import Group, GroupStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.events.types import SnubaRow
 from sentry.snuba.discover import create_groupby_dict, create_result_key
 from sentry.utils.dates import get_rollup_from_request
 
@@ -122,12 +123,12 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
                 raise ParseError(f"Unknown axis: {axis}")
 
         def gen_ts(
-            qs,
+            qs: QuerySet[Group],
             group_by: list[str],
             date_column_name: str,
             axis: str,
         ) -> list[TimeSeries]:
-            qs = make_timeseries_query(
+            rows = make_timeseries_query(
                 qs,
                 projects,
                 environments,
@@ -142,7 +143,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
             grouped_counter: collections.defaultdict[str, int] = collections.defaultdict(int)
             groupby_key_to_dict: dict[str, list[GroupBy]] = {}
             grouped_series: dict[str, list[Row]] = collections.defaultdict(list)
-            for row in qs:
+            for row in rows:
                 key = create_result_key(row, group_by, {})
                 groupby_dict = create_groupby_dict(row, group_by, {})
                 for groupby_item in groupby_dict:
@@ -238,7 +239,7 @@ class OrganizationIssueTimeSeriesEndpoint(OrganizationEndpoint):
 
 
 def make_timeseries_query(
-    qs,
+    qs: QuerySet[Group],
     projects: list[Project],
     environments: list[int],
     type_filter: Q,
@@ -247,7 +248,7 @@ def make_timeseries_query(
     source: str,
     start: datetime,
     end: datetime,
-):
+) -> QuerySet[Group, SnubaRow]:
     environment_filter = (
         Q(groupenvironment__environment_id=environments[0]) if environments else Q()
     )
@@ -288,7 +289,7 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
-    return qs
+    return cast(QuerySet[Group, SnubaRow], qs)
 
 
 def make_timeseries_result(

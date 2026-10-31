@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import ClassVar, Literal
 
 from django.contrib.postgres.fields.array import ArrayField
@@ -111,7 +112,7 @@ class ExploreSavedQuery(DefaultFieldsModel):
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
-    def set_projects(self, project_ids):
+    def set_projects(self, project_ids: Iterable[int]) -> None:
         with transaction.atomic(router.db_for_write(ExploreSavedQueryProject)):
             ExploreSavedQueryProject.objects.filter(explore_saved_query=self).exclude(
                 project__in=project_ids

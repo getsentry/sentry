@@ -67,23 +67,24 @@ ALL_AWS_REGIONS = [
 
 
 # Taken from: https://gist.github.com/gene1wood/5299969edc4ef21d8efcfea52158dd40
-def parse_arn(arn):
+def parse_arn(arn: str) -> dict[str, str | None]:
     # http://docs.aws.amazon.com/general/latest/gr/aws-arns-and-namespaces.html
     elements = arn.split(":", 5)
-    result = {
+    resource = elements[5]
+    resource_type = None
+    if "/" in resource:
+        resource_type, resource = resource.split("/", 1)
+    elif ":" in resource:
+        resource_type, resource = resource.split(":", 1)
+    return {
         "arn": elements[0],
         "partition": elements[1],
         "service": elements[2],
         "region": elements[3],
         "account": elements[4],
-        "resource": elements[5],
-        "resource_type": None,
+        "resource": resource,
+        "resource_type": resource_type,
     }
-    if "/" in result["resource"]:
-        result["resource_type"], result["resource"] = result["resource"].split("/", 1)
-    elif ":" in result["resource"]:
-        result["resource_type"], result["resource"] = result["resource"].split(":", 1)
-    return result
 
 
 def get_option_value(function, option):
@@ -134,11 +135,11 @@ def get_option_value(function, option):
     return cache_value.get(registry_field)
 
 
-def _get_arn_without_version(arn):
+def _get_arn_without_version(arn: str) -> str:
     return arn.rpartition(":")[0]
 
 
-def get_version_of_arn(arn):
+def get_version_of_arn(arn: str) -> int:
     return int(arn.split(":")[-1])
 
 
@@ -163,7 +164,7 @@ def get_latest_layer_version(function):
     return int(get_option_value(function, OPTION_VERSION))
 
 
-def get_index_of_sentry_layer(layers, arn_to_match):
+def get_index_of_sentry_layer(layers: list[str], arn_to_match: str) -> int:
     """
     Find the index of the Sentry layer in a list of layers.
     If the version is different, we still consider that a match
@@ -203,7 +204,7 @@ def get_dsn_for_project(organization_id, project_id):
     return enabled_dsn.dsn_public
 
 
-def get_node_options_for_layer(layer_name: str, layer_version: int | None) -> str:
+def get_node_options_for_layer(layer_name: str | None, layer_version: int | None) -> str:
     """
     Depending on the SDK major our Lambda Layer represents, a different SDK
     package has to be used when setting `NODE_OPTIONS`.
@@ -354,7 +355,6 @@ def disable_single_lambda(lambda_client, function, layer_arn):
 
 def update_lambda_with_retries(lambda_client, **kwargs):
     num_retries = DEFAULT_NUM_RETRIES
-    # pull off the num_retries argument if it exists
     if "num_retries" in kwargs:
         num_retries = kwargs.pop("num_retries")
     try:
@@ -368,7 +368,7 @@ def update_lambda_with_retries(lambda_client, **kwargs):
         raise
 
 
-def get_invalid_layer_name(err_message):
+def get_invalid_layer_name(err_message: str) -> str | None:
     """
     Check to see if an error matches the invalid layer message
     :param err_message: error string
@@ -383,7 +383,7 @@ def get_invalid_layer_name(err_message):
     return None
 
 
-def get_too_many_requests_error_message(err_message):
+def get_too_many_requests_error_message(err_message: str) -> bool:
     """
     Check to see if an error is a TooManyRequestsException
     :param err_message: error string
@@ -392,7 +392,7 @@ def get_too_many_requests_error_message(err_message):
     return "TooManyRequestsException" in err_message
 
 
-def get_missing_role_error(err_message):
+def get_missing_role_error(err_message: str) -> bool:
     """
     Check to see if an error matches the missing role text
     :param err_message: error string
@@ -407,7 +407,7 @@ def get_missing_role_error(err_message):
     return err_message == missing_role_err
 
 
-def get_exceeded_env_vars_limit_error(err_message):
+def get_exceeded_env_vars_limit_error(err_message: str) -> bool:
     """
     Check to see if an error matches the env vars limit text
     :param err_message: error string

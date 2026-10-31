@@ -44,6 +44,13 @@ from sentry.services import eventstore
 from sentry.utils import json, metrics
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.safe import get_path
+
+
+def _sourcemap_header(headers: Mapping[str, object]) -> str | None:
+    value = headers.get("sourcemap", headers.get("x-sourcemap"))
+    return value if isinstance(value, str) else None
+
+
 from sentry.utils.urls import non_standard_url_join
 
 logger = logging.getLogger(__name__)
@@ -431,18 +438,18 @@ class ReleaseLookupData:
             ):
                 self.source_file_lookup_result = "found"
                 self.found_source_file_name = possible_release_file.name
-                sourcemap_header = None
+                sourcemap_bytes: bytes | None = None
                 if possible_release_file.file.headers:
                     headers = ArtifactBundleArchive.normalize_headers(
                         possible_release_file.file.headers
                     )
-                    sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                    sourcemap_header = (
+                    sourcemap_header = _sourcemap_header(headers)
+                    sourcemap_bytes = (
                         force_bytes(sourcemap_header) if sourcemap_header is not None else None
                     )
                 try:
                     source_map_reference = find_sourcemap(
-                        sourcemap_header, possible_release_file.file.getfile().read()
+                        sourcemap_bytes, possible_release_file.file.getfile().read()
                     )
                     self.source_map_reference = (
                         force_str(source_map_reference)
@@ -482,14 +489,14 @@ class ReleaseLookupData:
                                 self.found_source_file_name
                             )
                             headers = ArtifactBundleArchive.normalize_headers(headers)
-                            sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                            sourcemap_header = (
+                            sourcemap_header = _sourcemap_header(headers)
+                            sourcemap_bytes = (
                                 force_bytes(sourcemap_header)
                                 if sourcemap_header is not None
                                 else None
                             )
                             source_map_reference = find_sourcemap(
-                                sourcemap_header, source_file.read()
+                                sourcemap_bytes, source_file.read()
                             )
                             self.source_map_reference = (
                                 force_str(source_map_reference)
@@ -529,15 +536,15 @@ class ReleaseLookupData:
                             headers = ArtifactBundleArchive.normalize_headers(headers)
                             self.source_file_lookup_result = "found"
                             self.found_source_file_name = potential_source_file_name
-                            sourcemap_header = headers.get("sourcemap", headers.get("x-sourcemap"))
-                            sourcemap_header = (
+                            sourcemap_header = _sourcemap_header(headers)
+                            sourcemap_bytes = (
                                 force_bytes(sourcemap_header)
                                 if sourcemap_header is not None
                                 else None
                             )
                             try:
                                 source_map_reference = find_sourcemap(
-                                    sourcemap_header, matching_file.read()
+                                    sourcemap_bytes, matching_file.read()
                                 )
                                 self.source_map_reference = (
                                     force_str(source_map_reference)

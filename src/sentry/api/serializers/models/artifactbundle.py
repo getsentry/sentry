@@ -1,15 +1,49 @@
 import base64
+import uuid
+from collections.abc import Mapping, Sequence
+from datetime import datetime
+from typing import TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
 from sentry.models.artifactbundle import ReleaseArtifactBundle, SourceFileType
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 INVALID_SOURCE_FILE_TYPE = 0
 
+type ArtifactBundleRow = tuple[int, uuid.UUID, int, datetime | None, datetime]
 
-class ArtifactBundlesSerializer(Serializer):
+
+class ArtifactBundleAssociationResponse(TypedDict):
+    release: str | None
+    dist: str | None
+
+
+class ArtifactBundlesSerializerResponse(TypedDict):
+    bundleId: str
+    associations: list[ArtifactBundleAssociationResponse]
+    fileCount: int
+    dateModified: str | None
+    date: str | None
+
+
+class ArtifactBundleFilesSerializerResponse(TypedDict):
+    id: str
+    fileType: int
+    filePath: str | None
+    fileSize: int | None
+    debugId: str | None
+    sourcemap: str | None
+
+
+class ArtifactBundlesSerializer(Serializer[ArtifactBundlesSerializerResponse]):
     @staticmethod
-    def _compute_associations(item, grouped_bundles):
-        associations = []
+    def _compute_associations(
+        item: ArtifactBundleRow, grouped_bundles: dict[int, list[tuple[str, str]]]
+    ) -> list[ArtifactBundleAssociationResponse]:
+        associations: list[ArtifactBundleAssociationResponse] = []
 
         grouped_bundle = grouped_bundles.get(item[0], [])
         # We preserve the order of the list inside the grouped bundle.
@@ -19,10 +53,15 @@ class ArtifactBundlesSerializer(Serializer):
         return associations
 
     @staticmethod
-    def _format_date(date):
+    def _format_date(date: datetime | None) -> str | None:
         return None if date is None else date.isoformat()[:19] + "Z"
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[ArtifactBundleRow],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ArtifactBundleRow, dict[str, object]]:
         # We sort by id, since it's the best (already existing) field to define total order of
         # release associations that is somehow consistent with upload sequence.
         release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
@@ -45,13 +84,19 @@ class ArtifactBundlesSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: ArtifactBundleRow,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ArtifactBundlesSerializerResponse:
         return {
             "bundleId": str(attrs["bundle_id"]),
-            "associations": attrs["associations"],
-            "fileCount": attrs["file_count"],
-            "dateModified": self._format_date(attrs["date_last_modified"]),
-            "date": self._format_date(attrs["date_uploaded"]),
+            "associations": cast("list[ArtifactBundleAssociationResponse]", attrs["associations"]),
+            "fileCount": cast(int, attrs["file_count"]),
+            "dateModified": self._format_date(cast("datetime | None", attrs["date_last_modified"])),
+            "date": self._format_date(cast("datetime | None", attrs["date_uploaded"])),
         }
 
 

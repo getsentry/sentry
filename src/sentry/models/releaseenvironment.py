@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import TYPE_CHECKING
+
 from django.db import models
 from django.utils import timezone
 
@@ -9,10 +14,16 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.last_seen import BumpResult, try_bump_last_seen
+
+if TYPE_CHECKING:
+    from sentry.models.environment import Environment
+    from sentry.models.project import Project
+    from sentry.models.release import Release
 
 
 @cell_silo_model
@@ -35,19 +46,35 @@ class ReleaseEnvironment(Model):
     __repr__ = sane_repr("organization_id", "release_id", "environment_id")
 
     @classmethod
-    def get_cache_key(cls, organization_id, release_id, environment_id) -> str:
+    def get_cache_key(cls, organization_id: int, release_id: int, environment_id: int) -> str:
         return f"releaseenv:2:{organization_id}:{release_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, project, release, environment, datetime, metrics_tags=None, **kwargs):
+    def get_or_create(
+        cls,
+        project: Project,
+        release: Release,
+        environment: Environment,
+        datetime: datetime,
+        metrics_tags: MutableTags | None = None,
+        **kwargs: object,
+    ) -> ReleaseEnvironment:
         with metrics.timer("models.releaseenvironment.get_or_create") as timer_tags:
-            instance = cls._get_or_create_impl(project, release, environment, datetime, timer_tags)
+            tags = timer_tags
+            instance = cls._get_or_create_impl(project, release, environment, datetime, tags)
             if metrics_tags is not None:
-                metrics_tags.update(timer_tags)
+                metrics_tags.update(tags)
             return instance
 
     @classmethod
-    def _get_or_create_impl(cls, project, release, environment, datetime, metric_tags):
+    def _get_or_create_impl(
+        cls,
+        project: Project,
+        release: Release,
+        environment: Environment,
+        datetime: datetime,
+        metric_tags: MutableTags,
+    ) -> ReleaseEnvironment:
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 
         instance = cache.get(cache_key)

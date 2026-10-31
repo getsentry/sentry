@@ -1,5 +1,3 @@
-from typing import Any
-
 from drf_spectacular.plumbing import build_array_type, build_basic_type
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
@@ -39,7 +37,7 @@ def mark_parameter_experimental(parameter: OpenApiParameter) -> OpenApiParameter
     return parameter
 
 
-def build_typed_list(type: Any):
+def build_typed_list(type: OpenApiTypes) -> dict[str, object]:
     """
     drf-spectacular doesn't support a list type in it's OpenApiTypes, so we manually build
     a typed list using this workaround. build_basic_type will dynamically check the type

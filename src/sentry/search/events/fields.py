@@ -6,7 +6,7 @@ from collections.abc import Collection, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Self
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
@@ -484,7 +484,7 @@ def format_column_arguments(column_args, arguments) -> None:
             column_args[i] = arguments[column_args[i].arg]
 
 
-def _lookback(columns, j, string):
+def _lookback(columns: str, j: int, string: str) -> bool:
     """For parse_arguments, check that the current character is preceeded by string"""
     if j < len(string):
         return False
@@ -675,7 +675,9 @@ def parse_combinator(function: str) -> tuple[str, str | None]:
     return function, None
 
 
-def parse_function(field, match=None, err_msg=None):
+def parse_function(
+    field: str, match: Match[str] | None = None, err_msg: str | None = None
+) -> tuple[str, list[str], str | None]:
     if not match:
         match = is_function(field)
 
@@ -716,7 +718,9 @@ def get_function_alias(field: str) -> str:
     return get_function_alias_with_columns(function, columns)
 
 
-def get_function_alias_with_columns(function_name, columns, prefix=None) -> str:
+def get_function_alias_with_columns(
+    function_name: str, columns: Sequence[str], prefix: str | None = None
+) -> str:
     columns = re.sub(
         r"[^\w]",
         "_",
@@ -838,7 +842,7 @@ class FunctionArg:
     ) -> str | float | datetime | list[Any] | None:
         return value
 
-    def get_type(self, _) -> str:
+    def get_type(self, _: str) -> str:
         raise InvalidFunctionArgument(f"{self.name} has no type defined")
 
 
@@ -932,7 +936,7 @@ class NullColumn(FunctionArg):
         super().__init__(name)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: ParamsType) -> None:
         return None
 
     def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> None:
@@ -984,7 +988,7 @@ class NullableNumberRange(NumberRange):
         super().__init__(name, start, end)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: ParamsType) -> None:
         return None
 
     def normalize(
@@ -1096,7 +1100,7 @@ class CountColumn(ColumnArg):
         super().__init__(name, **kwargs)
         self.has_default = True
 
-    def get_default(self, _) -> None:
+    def get_default(self, _: ParamsType) -> None:
         return None
 
     def normalize(
@@ -1384,22 +1388,22 @@ class DiscoverFunction:
         self.validate()
 
     @property
-    def required_args_count(self):
+    def required_args_count(self) -> int:
         return len(self.required_args)
 
     @property
-    def optional_args_count(self):
+    def optional_args_count(self) -> int:
         return len(self.optional_args)
 
     @property
-    def total_args_count(self):
+    def total_args_count(self) -> int:
         return self.required_args_count + self.optional_args_count
 
     @property
     def args(self):
         return self.required_args + self.optional_args
 
-    def alias_as(self, name):
+    def alias_as(self, name: str) -> Self:
         """Create a copy of this function to be used as an alias"""
         alias = copy(self)
         alias.name = name
@@ -1534,7 +1538,7 @@ class DiscoverFunction:
                     f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
-    def validate_result_type(self, result_type) -> None:
+    def validate_result_type(self, result_type: str | None) -> None:
         assert result_type is None or result_type in RESULT_TYPES, (
             f"{self.name}: result type {result_type} not one of {list(RESULT_TYPES)}"
         )

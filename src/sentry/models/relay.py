@@ -1,6 +1,10 @@
-from typing import Any
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.db import models
+from django.db.models import QuerySet
 from django.utils import timezone
 from django.utils.functional import cached_property
 from sentry_relay.auth import PublicKey
@@ -10,6 +14,9 @@ from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, cell_silo_model
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
 
 
 @cell_silo_model
@@ -57,10 +64,10 @@ class Relay(OverwritableConfigMixin, Model):
         db_table = "sentry_relay"
 
     @cached_property
-    def public_key_object(self):
+    def public_key_object(self) -> PublicKey:
         return PublicKey.parse(self.public_key)
 
-    def has_org_access(self, org):
+    def has_org_access(self, org: Organization) -> bool:
         # Internal relays always have access
         if self.is_internal:
             return True
@@ -75,7 +82,7 @@ class Relay(OverwritableConfigMixin, Model):
         return False
 
     @staticmethod
-    def for_keys(keys):
+    def for_keys(keys: Sequence[str]) -> QuerySet[Relay]:
         """
         Returns all the relays that are configured with one of the specified keys
         """

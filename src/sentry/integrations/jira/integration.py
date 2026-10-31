@@ -3,9 +3,9 @@ from __future__ import annotations
 import logging
 import re
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from operator import attrgetter
-from typing import Any, NamedTuple, NoReturn, TypedDict
+from typing import Any, NamedTuple, NoReturn, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -246,7 +246,7 @@ class JiraIntegration(IssueSyncIntegration):
     comment_key = "sync_comments"
 
     @classproperty
-    def use_email_scope(cls):
+    def use_email_scope(cls) -> bool:
         return settings.JIRA_USE_EMAIL_SCOPE
 
     def get_organization_config(self) -> list[dict[str, Any]]:
@@ -540,7 +540,9 @@ class JiraIntegration(IssueSyncIntegration):
 
         return audit_data or None
 
-    def _filter_active_projects(self, project_mappings: QuerySet[IntegrationExternalProject]):
+    def _filter_active_projects(
+        self, project_mappings: QuerySet[IntegrationExternalProject]
+    ) -> list[IntegrationExternalProject]:
         client = self.get_client()
         if features.has("organizations:jira-paginated-project-config", self.organization):
             project_ids = [pm.external_id for pm in project_mappings]
@@ -709,13 +711,14 @@ class JiraIntegration(IssueSyncIntegration):
         # Copied because the mapping dict assembled below is only for the response; the stored
         # value of this key is a bool.
         config = dict(self.org_integration.config)
-        project_mappings = IntegrationExternalProject.objects.filter(
+        project_mappings_query = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
         )
+        project_mappings: Iterable[IntegrationExternalProject] = project_mappings_query
         sync_status_forward = {}
 
         try:
-            project_mappings = self._filter_active_projects(project_mappings)
+            project_mappings = self._filter_active_projects(project_mappings_query)
         except ApiError as e:
             logger.info(
                 "jira.get-config-data.filter-active-projects-failed",
@@ -737,7 +740,7 @@ class JiraIntegration(IssueSyncIntegration):
         )
         return config
 
-    def sync_metadata(self):
+    def sync_metadata(self) -> None:
         client = self.get_client()
 
         server_info = {}
@@ -762,8 +765,12 @@ class JiraIntegration(IssueSyncIntegration):
             integration_id=self.model.id, name=name, metadata=metadata
         )
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super().get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
+        fields = cast(
+            list[IntegrationIssueConfigField], super().get_link_issue_config(group, **kwargs)
+        )
         org = group.organization
         autocomplete_url = reverse("sentry-extensions-jira-search", args=[org.slug, self.model.id])
         for field in fields:
@@ -778,10 +785,10 @@ class JiraIntegration(IssueSyncIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
-    def get_persisted_ignored_fields(self):
+    def get_persisted_ignored_fields(self) -> list[str]:
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
     def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
@@ -802,12 +809,14 @@ class JiraIntegration(IssueSyncIntegration):
 
         return body.rstrip("\n")  # remove the last new line
 
-    def get_generic_issue_body(self, event):
+    def get_generic_issue_body(self, event: GroupEvent) -> str:
+        occurrence = event.occurrence
+        assert occurrence is not None
         body = ""
-        important = event.occurrence.important_evidence_display
+        important = occurrence.important_evidence_display
         if important:
             body = f"| *{important.name}* | {truncatechars(important.value, MAX_CHAR)} |\n"
-        for evidence in event.occurrence.evidence_display:
+        for evidence in occurrence.evidence_display:
             if evidence.important is False:
                 body += f"| *{evidence.name}* | {truncatechars(evidence.value, MAX_CHAR)} |\n"
         return body[:-2]  # chop off final newline
@@ -900,7 +909,7 @@ class JiraIntegration(IssueSyncIntegration):
                 "There was an error creating a comment on the Jira issue."
             ) from e
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
         username = "Unknown User" if user is None else user.name
 
@@ -923,6 +932,7 @@ class JiraIntegration(IssueSyncIntegration):
             ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
@@ -986,7 +996,7 @@ class JiraIntegration(IssueSyncIntegration):
 
         return error_data
 
-    def search_url(self, org_slug):
+    def search_url(self, org_slug: str) -> str:
         """
         Hook method that varies in Jira Server
         """
@@ -1139,7 +1149,9 @@ class JiraIntegration(IssueSyncIntegration):
         return meta
 
     @all_silo_function
-    def get_create_issue_config(self, group: Group | None, user: RpcUser | User, **kwargs):
+    def get_create_issue_config(
+        self, group: Group | None, user: RpcUser | User, **kwargs
+    ) -> list[IntegrationIssueConfigField]:
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -1260,7 +1272,10 @@ class JiraIntegration(IssueSyncIntegration):
                 if mb_field["label"] in params.get("ignored", []):
                     continue
                 mb_field["name"] = field
-                fields.append(mb_field)
+                # Builder keys (label/required/type + optional
+                # choices/url/multiple/default) plus the caller-set name
+                # exactly match IntegrationIssueConfigField.
+                fields.append(cast(IntegrationIssueConfigField, mb_field))
 
         for field in fields:
             if field["name"] == "priority":
@@ -1502,7 +1517,7 @@ class JiraIntegration(IssueSyncIntegration):
         except ApiInvalidRequestError as e:
             self.raise_error(e)
 
-    def _get_done_statuses(self):
+    def _get_done_statuses(self) -> set[str]:
         client = self.get_client()
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}

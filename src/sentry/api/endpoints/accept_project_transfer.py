@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import Http404
@@ -43,20 +44,21 @@ class AcceptProjectTransferEndpoint(Endpoint):
     authentication_classes = (SessionAuthentication,)
     permission_classes = (SentryIsAuthenticated,)
 
-    def get_validated_data(self, data, user: User):
+    def get_validated_data(self, data: str, user: User) -> tuple[dict[str, object], Project]:
         try:
-            data = unsign(force_str(data), salt=SALT)
+            payload = cast(dict[str, object], unsign(force_str(data), salt=SALT))
         except SignatureExpired:
             raise InvalidPayload("Project transfer link has expired.")
         except BadSignature:
             raise InvalidPayload("Could not approve transfer, please make sure link is valid.")
 
-        if data["user_id"] != user.id:
+        if payload["user_id"] != user.id:
             raise InvalidPayload("Invalid permissions")
 
         try:
             project = Project.objects.get(
-                id=data["project_id"], organization_id=data["from_organization_id"]
+                id=cast(str | int, payload["project_id"]),
+                organization_id=cast(str | int, payload["from_organization_id"]),
             )
         except Project.DoesNotExist:
             raise InvalidPayload("Project no longer exists")
@@ -64,10 +66,10 @@ class AcceptProjectTransferEndpoint(Endpoint):
         expected_transaction_id = ProjectOption.objects.get_value(
             project, "sentry:project-transfer-transaction-id"
         )
-        if data["transaction_id"] != expected_transaction_id:
+        if payload["transaction_id"] != expected_transaction_id:
             raise InvalidPayload("Invalid transaction id")
 
-        return data, project
+        return payload, project
 
     @sudo_required
     @deprecated(CELL_API_DEPRECATION_DATE, url_names=["sentry-api-0-accept-project-transfer"])
@@ -81,7 +83,7 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            _payload, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
@@ -113,11 +115,11 @@ class AcceptProjectTransferEndpoint(Endpoint):
             raise Http404
 
         try:
-            data, project = self.get_validated_data(data, request.user)
+            payload, project = self.get_validated_data(data, request.user)
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        transaction_id = data["transaction_id"]
+        transaction_id = payload["transaction_id"]
 
         org_slug = request.data.get("organization")
         # DEPRECATED

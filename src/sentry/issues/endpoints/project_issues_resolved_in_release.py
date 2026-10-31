@@ -10,6 +10,7 @@ from sentry.api.helpers.releases import get_group_ids_resolved_in_release
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.models.group import Group
+from sentry.models.project import Project
 
 
 @cell_silo_endpoint
@@ -20,7 +21,7 @@ class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectPermission,)
 
-    def get(self, request: Request, project, version) -> Response:
+    def get(self, request: Request, project: Project, version: str) -> Response:
         """
         List issues to be resolved in a particular release
         ``````````````````````````````````````````````````

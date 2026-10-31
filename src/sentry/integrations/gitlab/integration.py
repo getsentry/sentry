@@ -820,7 +820,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def setup(self):
+    def setup(self) -> None:
         from sentry.plugins.base import bindings
 
         bindings.add(

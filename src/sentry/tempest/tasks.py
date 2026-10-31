@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
-def poll_tempest(**kwargs):
+def poll_tempest(**kwargs: object) -> None:
     for credentials in TempestCredentials.objects.select_related("project__organization").all():
         # Note: We are caching credentials in the database even if users don't have access to them.
         # However the latest_fetched_item_id is unique per credentials, and we do not allow PUT/PATCH
@@ -61,7 +61,7 @@ def poll_tempest(**kwargs):
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
-def fetch_latest_item_id(credentials_id: int, **kwargs) -> None:
+def fetch_latest_item_id(credentials_id: int, **kwargs: object) -> None:
     # Lock duration should be slightly longer than the task deadline to prevent
     # overlapping tasks for the same credential. If a task is still running when
     # the next poll_tempest fires, the new task will skip this credential.
@@ -253,7 +253,7 @@ def _fetch_latest_item_id_impl(credentials_id: int) -> None:
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
-def poll_tempest_crashes(credentials_id: int, **kwargs) -> None:
+def poll_tempest_crashes(credentials_id: int, **kwargs: object) -> None:
     # Lock duration should be slightly longer than the task deadline to prevent
     # overlapping tasks for the same credential. If a task is still running when
     # the next poll_tempest fires, the new task will skip this credential.

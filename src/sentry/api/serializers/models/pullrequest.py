@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Literal, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Prefetch, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register, serialize
@@ -22,6 +23,8 @@ from sentry.models.pullrequest import (
 )
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import is_seer_attribution
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 PullRequestStatus = Literal["merged", "open", "closed", "draft", "unknown"]
 
@@ -113,7 +116,13 @@ class PullRequestSerializer(Serializer[PullRequestSerializerResponse]):
 
         return result
 
-    def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> PullRequestSerializerResponse:
+    def serialize(
+        self,
+        obj: PullRequest,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> PullRequestSerializerResponse:
         return {
             "id": obj.key,
             "title": obj.title,
@@ -182,7 +191,13 @@ class LinkedPullRequestSerializer(PullRequestSerializer):
             attrs[item]["attribution"] = _serialize_attribution(item.valid_attributions)
         return attrs
 
-    def serialize(self, obj: PullRequest, attrs, user, **kwargs) -> LinkedPullRequestResponse:
+    def serialize(
+        self,
+        obj: PullRequest,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> LinkedPullRequestResponse:
         checks_and_review = self.checks_and_review_by_pr_id.get(obj.id, PullRequestStatusResult())
         return {
             **super().serialize(obj, attrs, user, **kwargs),

@@ -249,12 +249,12 @@ class ArtifactBundleArchive:
         return json.loads(manifest_bytes.decode("utf-8"))
 
     @staticmethod
-    def normalize_headers(headers: dict) -> dict:
+    def normalize_headers(headers: dict) -> dict[str, object]:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: str | None) -> str | None:
-        if debug_id is None:
+    def normalize_debug_id(debug_id: object) -> str | None:
+        if not isinstance(debug_id, str):
             return None
 
         try:
@@ -270,8 +270,9 @@ class ArtifactBundleArchive:
                 continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
+            raw_debug_id = headers.get("debug-id")
+            if raw_debug_id is not None:
+                debug_id = self.normalize_debug_id(raw_debug_id)
                 file_type = info.get("type")
                 if (
                     debug_id is not None

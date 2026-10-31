@@ -10,6 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.services import eventstore
 from sentry.types.actor import Actor
@@ -22,7 +23,7 @@ class EventOwnersEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project: Project, event_id: str) -> Response:
         """
         Retrieve suggested owners information for an event
         ``````````````````````````````````````````````````

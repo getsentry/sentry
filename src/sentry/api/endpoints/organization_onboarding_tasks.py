@@ -26,7 +26,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
     owner = ApiOwner.VALUE_DISCOVERY
     permission_classes = (OnboardingTaskPermission,)
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         task_id = onboarding_tasks.get_task_lookup_by_key(request.data["task"])
         if task_id is None:
             return Response({"detail": "Invalid task key"}, status=422)

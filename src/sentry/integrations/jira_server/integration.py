@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -44,10 +44,12 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,
 )
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline.types import PipelineStepResult
 from sentry.pipeline.views.base import ApiPipelineSteps
+from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -348,7 +350,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         except Identity.DoesNotExist:
             raise IntegrationError("Identity not found.")
 
-    def get_organization_config(self):
+    def get_organization_config(self) -> list[_Config]:
         configuration: list[_Config] = [
             {
                 "name": self.outbound_status_key,
@@ -555,8 +557,12 @@ class JiraServerIntegration(IssueSyncIntegration):
             metadata=self.model.metadata,
         )
 
-    def get_link_issue_config(self, group, **kwargs):
-        fields = super().get_link_issue_config(group, **kwargs)
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
+        fields = cast(
+            list[IntegrationIssueConfigField], super().get_link_issue_config(group, **kwargs)
+        )
         org = group.organization
         autocomplete_url = reverse(
             "sentry-extensions-jiraserver-search", args=[org.slug, self.model.id]
@@ -593,13 +599,15 @@ class JiraServerIntegration(IssueSyncIntegration):
     def get_persisted_default_config_fields(self) -> Sequence[str]:
         return ["project", "issuetype", "priority", "labels"]
 
-    def get_persisted_user_default_config_fields(self):
+    def get_persisted_user_default_config_fields(self) -> list[str]:
         return ["reporter"]
 
-    def get_persisted_ignored_fields(self):
+    def get_persisted_ignored_fields(self) -> list[str]:
         return self.org_integration.config.get(self.issues_ignored_fields_key, [])
 
-    def get_group_description(self, group, event, **kwargs):
+    def get_group_description(
+        self, group: Group, event: GroupEvent | None, **kwargs: object
+    ) -> str:
         output = [
             "Sentry Issue: [{}|{}]".format(
                 group.qualified_short_id,
@@ -634,11 +642,13 @@ class JiraServerIntegration(IssueSyncIntegration):
             "metadata": {PROVIDER_ISSUE_ID_KEY: issue.get("id")},
         }
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(
+        self, issue_id: int | str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         # https://jira.atlassian.com/secure/WikiRendererHelpAction.jspa?section=texteffects
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().create_comment(issue_id, quoted_comment)
+        return cast(dict[str, object], self.get_client().create_comment(issue_id, quoted_comment))
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id=user_id)
@@ -646,13 +656,19 @@ class JiraServerIntegration(IssueSyncIntegration):
         attribution = f"{user.name} wrote:\n\n"
         return f"{attribution}{{quote}}{comment_text}{{quote}}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(
+        self, issue_id: int | str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
-        return self.get_client().update_comment(
-            issue_id, group_note.data["external_id"], quoted_comment
+        return cast(
+            dict[str, object],
+            self.get_client().update_comment(
+                issue_id, group_note.data["external_id"], quoted_comment
+            ),
         )
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
@@ -698,7 +714,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         return {key: [error] for key, error in data.get("errors").items()}
 
-    def search_url(self, org_slug):
+    def search_url(self, org_slug: str) -> str:
         return reverse("sentry-extensions-jiraserver-search", args=[org_slug, self.model.id])
 
     def build_dynamic_field(self, field_meta, group=None):
@@ -946,7 +962,10 @@ class JiraServerIntegration(IssueSyncIntegration):
                     if mb_field["label"] in params.get("ignored", []):
                         continue
                     mb_field["name"] = field
-                    fields.append(mb_field)
+                    # Builder keys (label/required/type + optional
+                    # choices/url/multiple/default) plus the caller-set name
+                    # exactly match IntegrationIssueConfigField.
+                    fields.append(cast(IntegrationIssueConfigField, mb_field))
 
         for field in fields:
             if field["name"] == "priority":
@@ -1362,7 +1381,7 @@ class JiraServerIntegration(IssueSyncIntegration):
 
         client.transition_issue(external_issue.key, transition["id"])
 
-    def _get_done_statuses(self):
+    def _get_done_statuses(self) -> set[str]:
         client = self.get_client()
         statuses = client.get_valid_statuses()
         return {s["id"] for s in statuses if s["statusCategory"]["key"] == "done"}
@@ -1376,7 +1395,12 @@ class JiraServerIntegration(IssueSyncIntegration):
             should_unresolve=c_from in done_statuses and c_to not in done_statuses,
         )
 
-    def after_link_issue(self, external_issue, data=None, **kwargs):
+    def after_link_issue(
+        self,
+        external_issue: ExternalIssue,
+        data: Mapping[str, str] | None = None,
+        **kwargs: object,
+    ) -> None:
         super().after_link_issue(external_issue, **kwargs)
 
         if data:
@@ -1444,7 +1468,13 @@ class JiraServerIntegrationProvider(IntegrationProvider):
             },
         }
 
-    def create_webhook(self, external_id, webhook_secret, install, credentials):
+    def create_webhook(
+        self,
+        external_id: str,
+        webhook_secret: str,
+        install: InstallationConfigData,
+        credentials: Mapping[str, str],
+    ) -> None:
         client = JiraServerSetupClient(
             install["url"], install["consumer_key"], install["private_key"], install["verify_ssl"]
         )

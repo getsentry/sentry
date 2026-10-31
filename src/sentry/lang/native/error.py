@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Protocol, TypedDict
 
 from sentry.lang.native.utils import image_name
 from sentry.models.eventerror import EventErrorType
@@ -33,8 +34,24 @@ USER_FIXABLE_ERRORS = (
 logger = logging.getLogger(__name__)
 
 
+class _NativeDebugImage(Protocol):
+    debug_id: object
+    name: str | None
+    arch: str | None
+
+
+class _NativeErrorEventData(TypedDict, total=False):
+    errors: list[object]
+    _metrics: dict[str, object]
+
+
 class SymbolicationFailed(Exception):
-    def __init__(self, message=None, type=None, obj=None):
+    def __init__(
+        self,
+        message: object | None = None,
+        type: EventErrorType | None = None,
+        obj: _NativeDebugImage | None = None,
+    ) -> None:
         Exception.__init__(self)
         self.message = str(message)
         self.type = type
@@ -51,23 +68,23 @@ class SymbolicationFailed(Exception):
             self.image_arch = None
 
     @property
-    def is_user_fixable(self):
+    def is_user_fixable(self) -> bool:
         """These are errors that a user can fix themselves."""
         return self.type in USER_FIXABLE_ERRORS
 
     @property
-    def is_fatal(self):
+    def is_fatal(self) -> bool:
         """If this is true then a processing issues has to be reported."""
         return self.type in FATAL_ERRORS
 
     @property
-    def is_sdk_failure(self):
+    def is_sdk_failure(self) -> bool:
         """An error that most likely happened because of a bad SDK."""
         return self.type == EventErrorType.NATIVE_UNKNOWN_IMAGE
 
-    def get_data(self):
+    def get_data(self) -> dict[str, object]:
         """Returns the event data."""
-        rv = {"message": self.message, "type": self.type}
+        rv: dict[str, object] = {"message": self.message, "type": self.type}
         if self.image_path is not None:
             rv["image_path"] = self.image_path
         if self.image_uuid is not None:
@@ -88,7 +105,7 @@ class SymbolicationFailed(Exception):
         return "".join(rv)
 
 
-def write_error(e, data):
+def write_error(e: SymbolicationFailed, data: _NativeErrorEventData) -> None:
     if e.is_user_fixable or e.is_sdk_failure:
         errors = data.setdefault("errors", [])
         errors.append(e.get_data())

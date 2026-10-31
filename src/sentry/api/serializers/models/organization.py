@@ -120,12 +120,12 @@ class OnboardingTasksSerializerResponse(TypedDict):
     status: str  # TODO: literal/enum
     completionSeen: datetime | None
     dateCompleted: datetime
-    data: Any  # JSON objec
+    data: object
 
 
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     features: list[str]  # Only included if include_feature_flags is True
-    extraOptions: dict[str, dict[str, Any]]
+    extraOptions: dict[str, dict[str, object]]
     access: frozenset[str]  # Only if access=... is passed
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 

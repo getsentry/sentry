@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from io import BytesIO
 from threading import Thread
@@ -10,6 +11,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ReleaseArchive,
     ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
@@ -72,6 +74,24 @@ class ReleaseFileTestCase(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
+    def test_manifest_must_be_a_json_object(self) -> None:
+        buffer = BytesIO()
+        with ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", "[]")
+        buffer.seek(0)
+
+        with pytest.raises(ValueError, match="expected a JSON object"):
+            ReleaseArchive(buffer)
+
+    def test_manifest_files_must_be_a_json_object(self) -> None:
+        buffer = BytesIO()
+        with ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", json.dumps({"files": []}))
+        buffer.seek(0)
+
+        with pytest.raises(ValueError, match="manifest files to be a JSON object"):
+            ReleaseArchive(buffer)
+
     def create_archive(self, fields, files, dist=None):
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
@@ -202,10 +222,13 @@ class ReleaseArchiveTestCase(TestCase):
 class ArtifactIndexGuardTestCase(TransactionTestCase):
     tick = 0.1  # seconds
 
-    def _create_update_fn(self, initial_delay, locked_delay, files, create):
-        def f():
+    def _create_update_fn(
+        self, initial_delay: float, locked_delay: float, files: dict[str, object], create: bool
+    ) -> Callable[[], None]:
+        def f() -> None:
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                assert data is not None
                 sleep(locked_delay * self.tick)
                 data.update_files(files)
 
@@ -254,6 +277,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         dist = None
 
         with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+            assert data is not None
             data.update_files({"0": 0})
 
         update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)

@@ -9,11 +9,12 @@ from django.http.response import HttpResponseBase, HttpResponseRedirect
 
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganization
 
 logger = logging.getLogger(__name__)
 
 
-def _get_org(slug):
+def _get_org(slug: str | None) -> RpcOrganization | None:
     if not slug:
         return None
     if (

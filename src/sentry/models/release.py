@@ -72,7 +72,7 @@ class ReleaseStatus:
     ARCHIVED = 1
 
     @classmethod
-    def from_string(cls, value):
+    def from_string(cls, value: str) -> int:
         if value == "open":
             return cls.OPEN
         elif value == "archived":
@@ -81,7 +81,7 @@ class ReleaseStatus:
             raise ValueError(repr(value))
 
     @classmethod
-    def to_string(cls, value):
+    def to_string(cls, value: int | None) -> str:
         # XXX(markus): Since the column is nullable we need to handle `null` here.
         # However `null | undefined` in request payloads means "don't change
         # status of release". This is why `from_string` does not consider
@@ -145,7 +145,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         build: str,
         project_ids: Sequence[int] | None = None,
         negated: bool = False,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver_build(
             organization_id,
             operator,
@@ -159,7 +159,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         organization_id: int,
         semver_filter: SemverFilter,
         project_ids: Sequence[int] | None = None,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_semver(organization_id, semver_filter, project_ids)
 
     def filter_by_stage(
@@ -186,7 +186,7 @@ class ReleaseModelManager(BaseManager["Release"]):
             value, project_ids, lookup=lookup, negated=negated
         )
 
-    def order_by_recent(self):
+    def order_by_recent(self) -> ReleaseQuerySet:
         return self.get_queryset().order_by_recent()
 
     def _get_group_release_version(
@@ -375,12 +375,12 @@ class Release(Model):
             and self._for_project_id == other._for_project_id
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
 
     @staticmethod
-    def is_valid_version(value):
+    def is_valid_version(value: str | None) -> bool:
         if value is None:
             return False
 
@@ -395,10 +395,10 @@ class Release(Model):
         )
 
     @property
-    def is_semver_release(self):
-        return self.package is not None
+    def is_semver_release(self) -> bool:
+        return bool(self.package is not None)
 
-    def get_previous_release(self, project):
+    def get_previous_release(self, project: Project) -> ReleaseProject | None:
         """Get the release prior to this one. None if none exists"""
         return (
             ReleaseProject.objects.filter(project=project, release__date_added__lt=self.date_added)
@@ -407,7 +407,7 @@ class Release(Model):
         )
 
     @staticmethod
-    def is_semver_version(version):
+    def is_semver_version(version: str) -> bool:
         """
         Method that checks if a version follows semantic versioning
         """
@@ -463,11 +463,11 @@ class Release(Model):
         )
 
     @classmethod
-    def get_cache_key(cls, organization_id, version) -> str:
+    def get_cache_key(cls, organization_id: int, version: str) -> str:
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
-    def get_lock_key(cls, organization_id, release_id) -> str:
+    def get_lock_key(cls, organization_id: int, release_id: int) -> str:
         return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
@@ -784,7 +784,7 @@ class Release(Model):
             releasefile.delete()
         self.delete()
 
-    def count_artifacts(self):
+    def count_artifacts(self) -> int:
         """Sum the artifact_counts of all release files.
 
         An artifact count of NULL is interpreted as 1.
@@ -792,7 +792,9 @@ class Release(Model):
         counts = get_artifact_counts([self.id])
         return counts.get(self.id, 0)
 
-    def count_artifacts_in_artifact_bundles(self, project_ids: Sequence[int]):
+    def count_artifacts_in_artifact_bundles(
+        self, project_ids: Sequence[int]
+    ) -> tuple[str, object] | None:
         """
         Counts the number of artifacts in the artifact bundles associated with this release and a set of projects.
         """

@@ -90,7 +90,7 @@ metadata = IntegrationMetadata(
 )
 
 
-class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient):
+class MsTeamsIntegration(IntegrationInstallation, IntegrationNotificationClient[AdaptiveCard]):
     def get_client(self) -> MsTeamsClient:
         return MsTeamsClient(self.model)
 
@@ -124,7 +124,7 @@ class MsTeamsInstallParams(TypedDict):
     installation_type: str
 
 
-class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
+class MsTeamsInitialDataSerializer(CamelSnakeSerializer[MsTeamsInstallParams]):
     """Initial pipeline data for Microsoft Teams installs.
 
     The Sentry bot in Teams renders a card with a single `signed_params` blob
@@ -143,7 +143,7 @@ class MsTeamsInitialDataSerializer(CamelSnakeSerializer):
             raise serializers.ValidationError("Invalid installation link")
 
 
-class MsTeamsAdvanceSerializer(CamelSnakeSerializer):
+class MsTeamsAdvanceSerializer(CamelSnakeSerializer[dict[str, object]]):
     state = CharField(required=True)
 
 

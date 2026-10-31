@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 import sentry_sdk
 from django.db.models.signals import post_save
 
@@ -36,7 +38,7 @@ from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.eventstore.models import GroupEvent
+from sentry.services.eventstore.models import BaseEvent, GroupEvent
 from sentry.signals import (
     advanced_search,
     advanced_search_feature_gated,
@@ -123,7 +125,7 @@ def record_first_event(project, **kwargs):
     )
 
 
-def record_event_processed(project, event, **kwargs):
+def record_event_processed(project: Project, event: BaseEvent, **kwargs: object) -> None:
     return record_generic_event_processed(
         project,
         platform=event.group.platform if event.group else event.platform,
@@ -137,16 +139,16 @@ def record_event_processed(project, event, **kwargs):
 
 
 def record_generic_event_processed(
-    project,
-    platform=None,
-    release=None,
-    environment=None,
-    user_keys=None,
-    tag_keys=None,
-    has_sourcemap=False,
-    has_breadcrumbs=False,
-    **kwargs,
-):
+    project: Project,
+    platform: str | None = None,
+    release: str | None = None,
+    environment: str | None = None,
+    user_keys: Iterable[str] | None = None,
+    tag_keys: Iterable[str] | None = None,
+    has_sourcemap: bool = False,
+    has_breadcrumbs: object = False,
+    **kwargs: object,
+) -> None:
     feature_slugs = []
 
     # Platform

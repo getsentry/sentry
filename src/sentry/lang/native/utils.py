@@ -36,11 +36,11 @@ STORE_CRASH_REPORTS_ALL = -1
 STORE_CRASH_REPORTS_MAX = 100
 
 
-def is_native_platform(platform):
+def is_native_platform(platform: object) -> bool:
     return platform in NATIVE_PLATFORMS
 
 
-def is_native_image(image):
+def is_native_image(image: Mapping[str, object]) -> bool:
     return (
         bool(image)
         and image.get("type") in NATIVE_IMAGE_TYPES
@@ -71,14 +71,14 @@ def has_native_stacktraces(stacktraces: list[StacktraceInfo]) -> bool:
     return False
 
 
-def image_name(pkg):
+def image_name(pkg: str) -> str:
     if not pkg:
         return pkg
     split = "\\" if WINDOWS_PATH_RE.match(pkg) else "/"
     return pkg.rsplit(split, 1)[-1]
 
 
-def get_os_from_event(event) -> str | None:
+def get_os_from_event(event: Mapping[str, object]) -> str | None:
     """
     Gets the OS name from either the OS context, or the SDK Info, which represents
     the runtime SDK and *NOT* the Sentry SDK.
@@ -96,7 +96,7 @@ def get_os_from_event(event) -> str | None:
     return None
 
 
-def signal_from_data(data):
+def signal_from_data(data: Mapping[str, object]) -> int | None:
     exceptions = get_path(data, "exception", "values", filter=True)
     signal = get_path(exceptions, 0, "mechanism", "meta", "signal", "number")
     if signal is not None:
@@ -141,7 +141,7 @@ def convert_crashreport_count(value: bool | None, allow_none: bool = False) -> i
     return int(value)
 
 
-def is_minidump_event(data):
+def is_minidump_event(data: Mapping[str, object]) -> bool:
     """
     Checks whether an event indicates that it has an associated minidump.
 
@@ -149,10 +149,10 @@ def is_minidump_event(data):
     ``write_minidump_placeholder``.
     """
     exceptions = get_path(data, "exception", "values", filter=True)
-    return get_path(exceptions, 0, "mechanism", "type") == "minidump"
+    return bool(get_path(exceptions, 0, "mechanism", "type") == "minidump")
 
 
-def is_applecrashreport_event(data):
+def is_applecrashreport_event(data: Mapping[str, object]) -> bool:
     """
     Checks whether an event indicates that it has an apple crash report.
 
@@ -160,7 +160,7 @@ def is_applecrashreport_event(data):
     ``write_applecrashreport_placeholder``.
     """
     exceptions = get_path(data, "exception", "values", filter=True)
-    return get_path(exceptions, 0, "mechanism", "type") == "applecrashreport"
+    return bool(get_path(exceptions, 0, "mechanism", "type") == "applecrashreport")
 
 
 def find_gpu_crash_dump_attachment(data: Any) -> CachedAttachment | None:
@@ -212,22 +212,22 @@ class Backoff:
     Creates a new exponential backoff.
     """
 
-    def __init__(self, initial, max):
+    def __init__(self, initial: float, max: float) -> None:
         """
         :param initial: The initial backoff time in seconds.
         :param max: The maximum backoff time in seconds.
         """
         self.initial = initial
         self.max = max
-        self._current = 0
+        self._current: float = 0
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Resets the backoff time zero.
         """
         self._current = 0
 
-    def sleep_failure(self):
+    def sleep_failure(self) -> None:
         """
         Sleeps until the next retry attempt and increases the backoff time for the next failure.
         """

@@ -10,7 +10,11 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import tagstore
 from sentry.api.endpoints.organization_releases import ReleaseSerializerWithProjects
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.release import GroupEventReleaseSerializer, get_users_for_authors
+from sentry.api.serializers.models.release import (
+    GroupEventReleaseSerializer,
+    _expose_health_data,
+    get_users_for_authors,
+)
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -594,6 +598,22 @@ class ReleaseSerializerTest(TestCase, SnubaTestCase):
 
         assert result["version"] == "0.1"
         assert result["newGroups"] == 0  # Should default to 0 when None
+
+    def test_none_new_groups_per_project_defaults_to_zero(self) -> None:
+        project = self.create_project()
+
+        release = Release.objects.create(
+            organization_id=project.organization_id,
+            version="0.2",
+        )
+        release.add_project(project)
+
+        ReleaseProject.objects.filter(release=release, project=project).update(new_groups=None)
+
+        result = serialize(release, user=self.user, project=project)
+
+        assert result["newGroups"] == 0
+        assert result["projects"][0]["newGroups"] == 0  # Should default to 0 when None
 
     def test_new_groups_single_release(self) -> None:
         """
@@ -1263,3 +1283,34 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
         assert users[str(author.id)].get("id", "not present") == str(user2.id)
         assert users[str(author.id)]["email"] == "user2@company.com"
         assert users[str(author.id)]["name"] == "User 2"
+
+
+class ExposeHealthDataTest(TestCase):
+    def test_none_and_empty_payload_returns_none(self) -> None:
+        assert _expose_health_data(None) is None
+        assert _expose_health_data({}) is None
+
+    def test_missing_stats_defaults_to_empty_dict(self) -> None:
+        result = _expose_health_data(
+            {
+                "duration_p50": None,
+                "duration_p90": None,
+                "crash_free_users": None,
+                "crash_free_sessions": None,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "total_users": 0,
+                "total_users_24h": 0,
+                "total_project_users_24h": 0,
+                "total_sessions": 0,
+                "total_sessions_24h": 0,
+                "total_project_sessions_24h": 0,
+                "adoption": None,
+                "sessions_adoption": None,
+                "has_health_data": False,
+            }
+        )
+
+        assert result is not None
+        assert result["stats"] == {}
+        assert result["sessionsCrashed"] == 0

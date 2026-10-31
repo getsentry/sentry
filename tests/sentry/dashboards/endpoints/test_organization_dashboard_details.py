@@ -2118,6 +2118,49 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             == "Must be '+', '-', or empty string."
         )
 
+    def test_update_widget_with_invalid_thresholds(self) -> None:
+        cases: tuple[tuple[object, str], ...] = (
+            ([], "Must be an object."),
+            ({"max_values": []}, "Must be an object."),
+            (
+                {"max_values": {"max1": 100, "max3": 300}},
+                "Invalid maximum key max3",
+            ),
+            (
+                {"max_values": {"max1": "100", "max2": 200}},
+                "Maximum values must be integers.",
+            ),
+            (
+                {"max_values": {"max1": 100, "max2": 200}, "unit": 5},
+                "Must be a string.",
+            ),
+        )
+        for thresholds, message in cases:
+            with self.subTest(thresholds=thresholds):
+                data = {
+                    "title": "Dashboard",
+                    "widgets": [
+                        {
+                            "id": str(self.widget_1.id),
+                            "title": "Big Number with Invalid Thresholds",
+                            "displayType": "big_number",
+                            "thresholds": thresholds,
+                            "queries": [
+                                {
+                                    "name": "",
+                                    "fields": ["count()"],
+                                    "columns": [],
+                                    "aggregates": ["count()"],
+                                    "conditions": "",
+                                }
+                            ],
+                        },
+                    ],
+                }
+                response = self.do_request("put", self.url(self.dashboard.id), data=data)
+                assert response.status_code == 400, response.data
+                assert message in str(response.data)
+
     def test_update_widget_with_invalid_threshold_time_window(self) -> None:
         data = {
             "title": "Dashboard",

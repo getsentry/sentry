@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -52,16 +52,16 @@ def _serialize_base_role(
 
 
 class OrganizationRoleSerializer(Serializer[OrganizationRoleSerializerResponse]):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: object) -> None:
         """
         Remove this when deleting "organizations:team-roles" flag
         """
-        self.organization = kwargs["organization"]
+        self.organization = cast(Organization, kwargs["organization"])
 
     def serialize(
         self,
         obj: OrganizationRole,
-        attrs: Mapping[str, Any],
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> OrganizationRoleSerializerResponse:
@@ -77,15 +77,23 @@ class OrganizationRoleSerializer(Serializer[OrganizationRoleSerializerResponse])
 
 
 class TeamRoleSerializer(Serializer[TeamRoleSerializerResponse]):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: object) -> None:
         """
         Remove this when deleting "organizations:team-roles" flag
         """
-        self.organization = kwargs["organization"]
+        self.organization = cast(Organization, kwargs["organization"])
 
-    def serialize(self, obj: TeamRole, attrs, user, **kwargs) -> TeamRoleSerializerResponse:
+    def serialize(
+        self,
+        obj: TeamRole,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> TeamRoleSerializerResponse:
         base = _serialize_base_role(
-            obj, self.organization, allowed_roles=kwargs.get("allowed_roles", ())
+            obj,
+            self.organization,
+            allowed_roles=cast(Collection[Role], kwargs.get("allowed_roles", ())),
         )
         return {
             **base,

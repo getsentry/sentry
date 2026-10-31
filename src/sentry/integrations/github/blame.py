@@ -55,7 +55,7 @@ def is_graphql_response(response: object) -> TypeIs[GitHubGraphQlResponse]:
     return isinstance(response, MappingApiResponse) and ("data" in response or "errors" in response)
 
 
-FilePathMapping = dict[str, dict[str, OrderedSet]]
+FilePathMapping = dict[str, dict[str, "OrderedSet[str]"]]
 GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
 

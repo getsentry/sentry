@@ -13,6 +13,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.ingest import inbound_filters
+from sentry.models.project import Project
 
 
 class ProjectFilterResponse(TypedDict):
@@ -43,7 +44,7 @@ class ProjectFiltersEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.GET_PROJECT_FILTERS,
     )
-    def get(self, request: Request, project) -> Response[list[ProjectFilterResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ProjectFilterResponse]]:
         """
         Retrieve a list of filters for a given project.
         `active` will be either a boolean or a list for the legacy browser filters.

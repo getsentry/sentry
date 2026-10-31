@@ -1,23 +1,28 @@
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.distribution import Distribution
 from sentry.models.releasefile import ReleaseFile
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class ReleaseFileSerializerResponse(TypedDict):
-    id: str
+    id: str | bytes | None
     name: str
     dist: str | None
-    headers: dict[str, Any]
+    headers: dict[str, object]
     size: int
-    sha1: str
+    sha1: str | None
     dateCreated: datetime
 
 
-def encode_release_file_id(obj):
+def encode_release_file_id(obj: ReleaseFile) -> str | bytes | None:
     """Generate ID for artifacts that only exist in a bundle
 
     This ID is only unique per release.
@@ -33,9 +38,10 @@ def encode_release_file_id(obj):
         if obj.dist_id:
             dist_name = Distribution.objects.get(pk=obj.dist_id).name
         return urlsafe_b64encode(f"{dist_name}_{obj.name}".encode())
+    return None
 
 
-def decode_release_file_id(id: str):
+def decode_release_file_id(id: str) -> int | tuple[str | None, str]:
     """May raise ValueError"""
     try:
         return int(id)
@@ -47,7 +53,13 @@ def decode_release_file_id(id: str):
 
 @register(ReleaseFile)
 class ReleaseFileSerializer(Serializer[ReleaseFileSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseFileSerializerResponse:
+    def serialize(
+        self,
+        obj: ReleaseFile,
+        attrs: Mapping[object, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ReleaseFileSerializerResponse:
         dist_name = None
         if obj.dist_id:
             dist_name = Distribution.objects.get(pk=obj.dist_id).name

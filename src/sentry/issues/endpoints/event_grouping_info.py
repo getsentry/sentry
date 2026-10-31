@@ -10,6 +10,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
@@ -22,7 +23,7 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: HttpRequest, project, event_id) -> HttpResponse:
+    def get(self, request: HttpRequest, project: Project, event_id: str) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````

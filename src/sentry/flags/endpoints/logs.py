@@ -1,6 +1,7 @@
-from datetime import datetime
-from typing import Any, Literal, TypedDict
+from collections.abc import Mapping
+from typing import Any, Literal, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as rest_serializers
@@ -35,12 +36,14 @@ from sentry.flags.models import (
     ProviderName,
 )
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: Literal["created", "deleted", "updated"]
-    createdAt: datetime
+    createdAt: str
     createdBy: str | None
     createdByType: Literal["email", "id", "name"] | None
     flag: str
@@ -58,16 +61,27 @@ class FlagLogDetailsResponse(TypedDict):
 
 @register(FlagAuditLogModel)
 class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
+    def serialize(
+        self,
+        obj: FlagAuditLogModel,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,
-            "action": ActionEnum.to_string(obj.action),
+            "action": cast(
+                Literal["created", "deleted", "updated"], ActionEnum.to_string(obj.action)
+            ),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
             "createdByType": (
                 None
                 if obj.created_by_type is None
-                else CreatedByTypeEnum.to_string(obj.created_by_type)
+                else cast(
+                    Literal["email", "id", "name"],
+                    CreatedByTypeEnum.to_string(obj.created_by_type),
+                )
             ),
             "flag": obj.flag,
             "provider": (None if obj.provider is None else ProviderEnum.to_string(obj.provider)),
