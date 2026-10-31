@@ -30,6 +30,7 @@ from sentry.apidocs.parameters import (
     IssueParams,
     VisibilityParams,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group
@@ -221,7 +222,7 @@ class ProjectGroupIndexEndpoint(ProjectEndpoint):
             try:
                 analytics.record(
                     ProjectIssueSearchEvent(
-                        user_id=request.user.id,
+                        user_id=acting_user_id(request.user),
                         organization_id=project.organization_id,
                         project_id=project.id,
                         query=query,
