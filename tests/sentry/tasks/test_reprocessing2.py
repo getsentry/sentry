@@ -25,7 +25,6 @@ from sentry.models.userreport import UserReport
 from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.services.eventstore.reprocessing import reprocessing_store
 from sentry.services.eventstore.reprocessing.redis import (
     RedisReprocessingStore,
@@ -39,7 +38,6 @@ from sentry.tasks.reprocessing2 import (
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -62,17 +60,6 @@ def reprocessing_feature():
         yield
 
 
-@pytest.fixture(params=[False, True], ids=["redis", "inline"])
-def inline_payload_options(request):
-    with override_options(
-        {
-            "store.enable-inline-payloads": float(request.param),
-            "store.disable-processing-store": request.param,
-        }
-    ):
-        yield
-
-
 @pytest.fixture
 def process_and_save(default_project, task_runner):
     def inner(data, seconds_ago=1):
@@ -86,14 +73,12 @@ def process_and_save(default_project, task_runner):
         )
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
-        data = mgr.get_data()
+        data = dict(mgr.get_data())
         event_id = data["event_id"]
-        cache_key = event_processing_store.store(dict(data))
-
         with task_runner():
             # factories.store_event would almost be suitable for this, but let's
             # actually run through stacktrace processing once
-            preprocess_event(start_time=time(), cache_key=cache_key, data=data)
+            preprocess_event(start_time=time(), data=data)
 
         return event_id
 
@@ -122,7 +107,6 @@ def test_basic(
     process_and_save,
     register_event_preprocessor,
     django_cache,
-    inline_payload_options,
 ):
     from sentry import eventstream
 

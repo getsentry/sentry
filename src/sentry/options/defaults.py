@@ -1859,7 +1859,7 @@ register(
 register(
     "store.enable-inline-payloads",
     type=Float,
-    default=0.0,
+    default=1.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Suppresses working-cache keys only for events entering in the inline cohort.
@@ -1868,7 +1868,7 @@ register(
 register(
     "store.disable-processing-store",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
