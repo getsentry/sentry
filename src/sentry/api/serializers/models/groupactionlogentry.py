@@ -155,11 +155,12 @@ def get_serialized_activity_items(
         )
         return None
 
-    action_log = GroupActionLogEntry.objects.user_visible().filter(group_id=group.id)
     entries = list(
-        action_log.exclude(type=GroupActionType.FIRST_SEEN.value).order_by("-date_added", "-id")[
-            :limit
-        ]
+        GroupActionLogEntry.objects.user_visible()
+        .filter(group_id=group.id)
+        # Appended separately below, regardless of the limit.
+        .exclude(type=GroupActionType.FIRST_SEEN)
+        .order_by("-date_added", "-id")[:limit]
     )
     notes = list(
         Activity.objects.filter(group=group, type=ActivityType.NOTE.value).order_by(
@@ -311,7 +312,7 @@ class GroupActionLogEntrySerializer(Serializer):
         type_display = (
             ActivityType(activity_type).name.lower()
             if activity_type is not None
-            else obj.get_type_display()
+            else obj.get_type_display().lower()
         )
 
         if (
