@@ -46,6 +46,12 @@ from sentry.apidocs.parameters import (
     VisibilityParams,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import (
+    RequestPrincipal,
+    acting_user_id,
+    owned_by_acting_user,
+    require_user,
+)
 from sentry.discover.endpoints.bases import filter_to_accessible_discover_queries
 from sentry.discover.models import (
     DiscoverSavedQuery,
@@ -83,7 +89,7 @@ class CombinedExploreSavedQueryResponse(ExploreSavedQueryResponse):
 
 
 def get_discover_queryset(
-    request: Request, organization: Organization, user_id: int
+    request: Request, organization: Organization
 ) -> QuerySet[DiscoverSavedQuery]:
     """Returns the Discover queryset filtering out homepage queries"""
     queryset: QuerySet[DiscoverSavedQuery] = (
@@ -104,7 +110,7 @@ def get_discover_queryset(
         # Discover calls it date_created, but Explore calls it date_added
         date_added=F("date_created"),
         my_queries=Case(
-            When(created_by_id=user_id, then=Value(-1)),
+            When(owned_by_acting_user(request.user, "created_by_id"), then=Value(-1)),
             default="created_by_id",
             output_field=IntegerField(),
         ),
@@ -112,7 +118,7 @@ def get_discover_queryset(
 
 
 def get_explore_queryset(
-    request: Request, organization: Organization, user_id: int
+    request: Request, organization: Organization
 ) -> QuerySet[ExploreSavedQuery]:
     """Returns the Explore queryset"""
 
@@ -131,7 +137,7 @@ def get_explore_queryset(
         query_type=Value(SavedQueryType.EXPLORE.value, output_field=CharField()),
         lower_name=Lower("name"),
         my_queries=Case(
-            When(created_by_id=user_id, then=Value(-1)),
+            When(owned_by_acting_user(request.user, "created_by_id"), then=Value(-1)),
             default="created_by_id",
             output_field=IntegerField(),
         ),
@@ -145,7 +151,7 @@ def build_combined_queryset(
     *,
     starred_only: bool,
     organization: Organization,
-    user_id: int,
+    user: RequestPrincipal,
 ) -> QuerySet[DiscoverSavedQuery, dict[str, Any]]:
     """Translate ``sortBy`` and two querysets into an ordered union."""
     order_by: list[str | OrderBy] = []
@@ -156,7 +162,7 @@ def build_combined_queryset(
         discover_queryset = discover_queryset.annotate(
             position=Subquery(
                 DiscoverSavedQueryStarred.objects.filter(
-                    discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                    owned_by_acting_user(user), discover_saved_query_id=OuterRef("id"), starred=True
                 ).values("position")[:1],
                 output_field=IntegerField(),
             )
@@ -164,7 +170,7 @@ def build_combined_queryset(
         explore_queryset = explore_queryset.annotate(
             position=Subquery(
                 ExploreSavedQueryStarred.objects.filter(
-                    explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                    owned_by_acting_user(user), explore_saved_query_id=OuterRef("id"), starred=True
                 ).values("position")[:1],
                 output_field=IntegerField(),
             )
@@ -193,8 +199,8 @@ def build_combined_queryset(
                 discover_queryset = discover_queryset.annotate(
                     user_last_visited=Subquery(
                         DiscoverSavedQueryLastVisited.objects.filter(
+                            owned_by_acting_user(user),
                             organization=organization,
-                            user_id=user_id,
                             discover_saved_query_id=OuterRef("id"),
                         ).values("last_visited")[:1]
                     )
@@ -202,8 +208,8 @@ def build_combined_queryset(
                 explore_queryset = explore_queryset.annotate(
                     user_last_visited=Subquery(
                         ExploreSavedQueryLastVisited.objects.filter(
+                            owned_by_acting_user(user),
                             organization=organization,
-                            user_id=user_id,
                             explore_saved_query_id=OuterRef("id"),
                         ).values("last_visited")[:1]
                     )
@@ -237,14 +243,18 @@ def build_combined_queryset(
                 discover_queryset = discover_queryset.annotate(
                     is_starred=Exists(
                         DiscoverSavedQueryStarred.objects.filter(
-                            discover_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                            owned_by_acting_user(user),
+                            discover_saved_query_id=OuterRef("id"),
+                            starred=True,
                         )
                     )
                 )
                 explore_queryset = explore_queryset.annotate(
                     is_starred=Exists(
                         ExploreSavedQueryStarred.objects.filter(
-                            explore_saved_query_id=OuterRef("id"), user_id=user_id, starred=True
+                            owned_by_acting_user(user),
+                            explore_saved_query_id=OuterRef("id"),
+                            starred=True,
                         )
                     )
                 )
@@ -386,20 +396,20 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
         # Explore has prebuilt queries that are created and starred lazily on read.
         try:
             lock = locks.get(
-                f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                f"explore:sync_prebuilt_queries:{organization.id}:{acting_user_id(request.user)}",
                 duration=10,
                 name="sync_prebuilt_queries",
             )
             with lock.acquire():
                 sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user)
+                sync_prebuilt_queries_starred(organization, require_user(request))
         except UnableToAcquireLock:
             pass
         except Exception as err:
             sentry_sdk.capture_exception(err)
 
-        discover_queryset = get_discover_queryset(request, organization, request.user.id)
-        explore_queryset = get_explore_queryset(request, organization, request.user.id)
+        discover_queryset = get_discover_queryset(request, organization)
+        explore_queryset = get_explore_queryset(request, organization)
 
         query = request.query_params.get("query")
         if query:
@@ -418,22 +428,30 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
 
         exclude = request.query_params.get("exclude")
         if exclude == "shared":
-            discover_queryset = discover_queryset.filter(created_by_id=request.user.id)
-            explore_queryset = explore_queryset.filter(created_by_id=request.user.id)
+            discover_queryset = discover_queryset.filter(
+                owned_by_acting_user(request.user, "created_by_id")
+            )
+            explore_queryset = explore_queryset.filter(
+                owned_by_acting_user(request.user, "created_by_id")
+            )
         elif exclude == "owned":
-            discover_queryset = discover_queryset.exclude(created_by_id=request.user.id)
-            explore_queryset = explore_queryset.exclude(created_by_id=request.user.id)
+            discover_queryset = discover_queryset.exclude(
+                owned_by_acting_user(request.user, "created_by_id")
+            )
+            explore_queryset = explore_queryset.exclude(
+                owned_by_acting_user(request.user, "created_by_id")
+            )
 
         starred_only = request.query_params.get("starred") == "1"
         if starred_only:
             discover_queryset = discover_queryset.filter(
                 id__in=DiscoverSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
+                    owned_by_acting_user(request.user), organization=organization, starred=True
                 ).values_list("discover_saved_query_id", flat=True)
             )
             explore_queryset = explore_queryset.filter(
                 id__in=ExploreSavedQueryStarred.objects.filter(
-                    organization=organization, user_id=request.user.id, starred=True
+                    owned_by_acting_user(request.user), organization=organization, starred=True
                 ).values_list("explore_saved_query_id", flat=True)
             )
 
@@ -443,7 +461,7 @@ class SavedQueriesEndpoint(OrganizationEndpoint):
             request.query_params.getlist("sortBy"),
             starred_only=starred_only,
             organization=organization,
-            user_id=request.user.id,
+            user=request.user,
         )
 
         def data_fn(offset, limit):

@@ -11,6 +11,7 @@ from sentry.api.bases import NoProjects, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.api.serializers import serialize
+from sentry.auth.principal import owned_by_acting_user, require_user
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery, DiscoverSavedQueryTypes
@@ -19,7 +20,7 @@ from sentry.models.organization import Organization
 
 def get_homepage_query(organization, user):
     return DiscoverSavedQuery.objects.get(
-        organization=organization, is_homepage=True, created_by_id=user.id
+        owned_by_acting_user(user, "created_by_id"), organization=organization, is_homepage=True
     )
 
 
@@ -104,7 +105,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 if user_selected_dataset
                 else DatasetSourcesTypes.UNKNOWN.value
             ),
-            created_by_id=request.user.id,
+            created_by_id=require_user(request).id,
             is_homepage=True,
         )
 

@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -17,6 +18,8 @@ from sentry.explore.models import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class SavedQueriesTest(APITestCase):
@@ -154,6 +157,50 @@ class SavedQueriesTest(APITestCase):
         ]
         # Discover homepage queries are not saved queries.
         assert "Homepage query" not in names
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_shared_queries_without_personal_state(self) -> None:
+        sync_prebuilt_queries(self.org)
+        sync_prebuilt_queries_starred(self.org, self.user)
+        DiscoverSavedQueryStarred.objects.create(
+            organization=self.org,
+            user_id=self.user.id,
+            discover_saved_query=self.discover_query,
+            position=99,
+        )
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.features):
+            mine = self.client.get(
+                self.url, {"exclude": "shared"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            starred = self.client.get(
+                self.url, {"starred": "1"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+            shared = self.client.get(
+                self.url,
+                {"sortBy": ["myqueries", "starred", "recentlyViewed"]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert mine.status_code == 200, mine.content
+        assert mine.data == []
+        assert starred.status_code == 200, starred.content
+        assert starred.data == []
+        assert shared.status_code == 200, shared.content
+        assert {"Test query", "Discover query"} <= {query["name"] for query in shared.data}
+        assert not any(query["starred"] for query in shared.data)
+        assert not any(query.get("lastVisited") for query in shared.data)
 
     def test_get_name_filter(self) -> None:
         with self.feature(self.features):
