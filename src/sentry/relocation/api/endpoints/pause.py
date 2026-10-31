@@ -12,6 +12,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.relocation.api.endpoints import (
     ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
     ERR_UNKNOWN_RELOCATION_STEP,
@@ -55,7 +56,7 @@ class RelocationPauseEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.pause.put.start", extra={"caller": request.user.id})
+        logger.info("relocations.pause.put.start", extra={"caller": acting_user_id(request.user)})
 
         try:
             relocation: Relocation = Relocation.objects.get(uuid=relocation_uuid)

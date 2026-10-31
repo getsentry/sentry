@@ -6,6 +6,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.permissions import DisallowAgentToken, SentryIsAuthenticated
+from sentry.auth.principal import require_user
 from sentry.users.models.user_merge_verification_code import UserMergeVerificationCode
 
 
@@ -21,11 +22,7 @@ class AuthUserMergeVerificationCodeEndpoint(Endpoint):
     """
 
     def post(self, request: Request) -> Response:
-        user = request.user
-        if user.id is None:
-            return Response(
-                status=403, data={"error": "Must be authenticated to use this endpoint."}
-            )
+        user = require_user(request)
         try:
             # regenerate the code if it exists
             code = UserMergeVerificationCode.objects.get(user_id=user.id)

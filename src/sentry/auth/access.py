@@ -15,7 +15,7 @@ from sentry_sdk import traces
 from sentry import features, roles
 from sentry.api.exceptions import DataSecrecyError
 from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, require_user
 from sentry.auth.scope_declaration import check_scope_declaration, check_scope_declarations
 from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
@@ -48,6 +48,7 @@ from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.service_accounts.auth import is_service_account_auth
 from sentry.service_accounts.models import ServiceAccountProjectReplica
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.types.request import _HttpRequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -1201,7 +1202,9 @@ def organizationless_access(
     )
 
 
-def normalize_valid_user(user: User | RpcUser | AnonymousUser | None) -> User | RpcUser | None:
+def normalize_valid_user(
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
+) -> User | RpcUser | None:
     if not user or not has_user(user) or not user.is_active:
         return None
     return user
@@ -1257,7 +1260,7 @@ def from_request(
             raise DataSecrecyError()
 
     if request.user.is_authenticated and request.user.is_sentry_app:
-        return _from_sentry_app(request.user, organization=organization)
+        return _from_sentry_app(require_user(request), organization=organization)
 
     if is_active_superuser(request):
         member: OrganizationMember | None = None
@@ -1343,7 +1346,7 @@ def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> A
 
 
 def from_user(
-    user: User | RpcUser | AnonymousUser | None,
+    user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
     organization: Organization | None = None,
     scopes: Iterable[str] | None = None,
     is_superuser: bool = False,

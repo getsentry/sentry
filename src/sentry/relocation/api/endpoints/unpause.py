@@ -11,6 +11,7 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.relocation.api.endpoints import (
     ERR_COULD_NOT_PAUSE_RELOCATION_AT_STEP,
     ERR_UNKNOWN_RELOCATION_STEP,
@@ -132,7 +133,7 @@ class RelocationUnpauseEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.unpause.put.start", extra={"caller": request.user.id})
+        logger.info("relocations.unpause.put.start", extra={"caller": acting_user_id(request.user)})
 
         # Use a `select_for_update` transaction to prevent duplicate tasks from being started by
         # racing unpause calls.

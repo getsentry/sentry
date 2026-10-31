@@ -22,6 +22,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.permissions import DisallowAgentToken, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import acting_user_id, owned_by_acting_user, require_user
 from sentry.models.files.file import File
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
@@ -104,7 +105,7 @@ def validate_new_relocation_request(
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
     # Only superuser/staff can start relocations for other users.
-    creator = user_service.get_user(user_id=request.user.id)
+    creator = user_service.get_user(user_id=require_user(request).id)
     if creator is None:
         raise RuntimeError("Could not ascertain request user's username")
     if not elevated_user and creator.username != owner_username:
@@ -178,7 +179,7 @@ class RelocationIndexEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.index.get.start", extra={"caller": request.user.id})
+        logger.info("relocations.index.get.start", extra={"caller": acting_user_id(request.user)})
 
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -188,7 +189,7 @@ class RelocationIndexEndpoint(Endpoint):
         # TODO(schew2381): Remove the superuser reference below after feature flag is removed.
         # Non-superuser/staff can only see their own relocations.
         if not has_elevated_mode(request):
-            queryset = queryset.filter(owner_id=request.user.id)
+            queryset = queryset.filter(owned_by_acting_user(request.user, "owner_id"))
 
         query = request.GET.get("query")
         if query:
@@ -242,7 +243,7 @@ class RelocationIndexEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("relocations.index.post.start", extra={"caller": request.user.id})
+        logger.info("relocations.index.post.start", extra={"caller": acting_user_id(request.user)})
 
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -276,12 +277,13 @@ class RelocationIndexEndpoint(Endpoint):
         file = File.objects.create(name="raw-relocation-data.tar", type=RELOCATION_FILE_TYPE)
         file.putfile(fileobj, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
 
+        creator = require_user(request)
         with atomic_transaction(
             using=(router.db_for_write(Relocation), router.db_for_write(RelocationFile))
         ):
             provenance = Relocation.Provenance.SELF_HOSTED
             relocation: Relocation = Relocation.objects.create(
-                creator_id=request.user.id,
+                creator_id=creator.id,
                 owner_id=owner.id,
                 want_org_slugs=org_slugs,
                 step=Relocation.Step.UPLOADING.value,
@@ -300,7 +302,7 @@ class RelocationIndexEndpoint(Endpoint):
         try:
             analytics.record(
                 RelocationCreatedEvent(
-                    creator_id=request.user.id,
+                    creator_id=creator.id,
                     owner_id=owner.id,
                     uuid=str(relocation.uuid),
                 )
