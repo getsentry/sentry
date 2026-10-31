@@ -525,7 +525,6 @@ module = [
     "sentry.conf.*",
     "sentry.consumers.*",
     "sentry.core.*",
-    "sentry.culprit",
     "sentry.db.analyze",
     "sentry.db.models.fields.array",
     "sentry.db.models.fields.bounded",
