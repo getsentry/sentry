@@ -39,7 +39,7 @@ logger = logging.getLogger("sentry.saml_setup_error")
 
 def auth_provider_settings_form(
     provider: Provider,
-    auth_provider: RpcAuthProvider,
+    auth_provider: AuthProvider | RpcAuthProvider,
     organization: RpcOrganization,
     request: HttpRequest,
 ) -> forms.Form:

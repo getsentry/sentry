@@ -101,6 +101,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
+from sentry.metrics.base import TagValue
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
@@ -757,7 +758,7 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
 
 # How often each cache-fronted model lookup on the save path reached Postgres.
 # `data_access` is set by the model: cache_hit, db_read, db_create, or db_update.
-def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
+def _record_resolve_model(model: str, tags: Mapping[str, TagValue]) -> None:
     metrics.incr(
         "save_event.resolve_model",
         tags={
@@ -1008,7 +1009,7 @@ def _get_or_create_release_associated_models(
         )
         _record_resolve_model("releaseenvironment", release_env_tags)
 
-        release_project_env_tags: dict[str, str] = {}
+        release_project_env_tags: MutableTags = {}
         ReleaseProjectEnvironment.get_or_create(
             project=project,
             release=release,
