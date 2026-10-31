@@ -1,6 +1,6 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -86,7 +86,7 @@ class UserReportSerializer(Serializer[UserReportSerializerResponse]):
     def serialize(
         self,
         obj: UserReport,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> UserReportSerializerResponse:
@@ -148,12 +148,12 @@ class UserReportWithGroupSerializer(UserReportSerializer):
     def serialize(
         self,
         obj: UserReport,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> UserReportWithGroupSerializerResponse:
         context = super().serialize(obj, attrs, user)
         return {
             **context,
-            "issue": attrs["group"],
+            "issue": cast(dict[str, object], attrs["group"]),
         }

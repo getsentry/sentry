@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterator, Mapping, Sequence
-from typing import Protocol, TypedDict
+from typing import Protocol, TypedDict, cast
 
 from django.conf import settings
 from django.core.cache import cache
@@ -70,8 +70,8 @@ class Suggestion:
     def to_json(self) -> dict[str, object]:
         raise NotImplementedError()
 
-    def __eq__(self, other):
-        return self.to_json() == other.to_json()
+    def __eq__(self, other: object) -> bool:
+        return self.to_json() == cast(Suggestion, other).to_json()
 
 
 class EnableIntegrationSuggestion(Suggestion):
@@ -381,7 +381,7 @@ SDK_SUPPORTED_MODULES: list[SupportedModule] = [
 ]
 
 
-def get_sdk_index():
+def get_sdk_index() -> dict[str, dict[str, object]]:
     """
     Get the SDK index from cache, if available.
 
@@ -396,7 +396,7 @@ def get_sdk_index():
 def get_sdk_versions() -> dict[str, str]:
     try:
         rv = settings.SDK_VERSIONS
-        rv.update((key, info["version"]) for (key, info) in get_sdk_index().items())
+        rv.update((key, cast(str, info["version"])) for (key, info) in get_sdk_index().items())
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-versions")
@@ -406,7 +406,10 @@ def get_sdk_versions() -> dict[str, str]:
 def get_sdk_urls() -> dict[str, str]:
     try:
         rv = dict(settings.SDK_URLS)
-        rv.update((key, info.get("main_docs_url", "")) for (key, info) in get_sdk_index().items())
+        rv.update(
+            (key, cast(str, info.get("main_docs_url", "")))
+            for (key, info) in get_sdk_index().items()
+        )
         return rv
     except Exception:
         logger.exception("sentry-release-registry.sdk-urls")

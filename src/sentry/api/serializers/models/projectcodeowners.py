@@ -1,7 +1,7 @@
 import logging
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -133,7 +133,7 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
     def serialize(
         self,
         obj: ProjectCodeOwners,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ProjectCodeOwnersResponse:
@@ -144,7 +144,7 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
             "dateUpdated": obj.date_updated,
             "dateSynced": obj.date_synced,
             "codeMappingId": str(obj.repository_project_path_config_id),
-            "provider": attrs.get("provider", "unknown"),
+            "provider": cast(str, attrs.get("provider", "unknown")),
         }
 
         if "codeMapping" in self.expand:
@@ -169,6 +169,6 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
 
         if "hasTargetingContext" in self.expand:
             data["schema"] = _serialize_ownership_schema(obj.schema) if obj.schema else obj.schema
-            data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
+            data["codeOwnersUrl"] = cast(str, attrs.get("codeOwnersUrl", "unknown"))
 
         return data

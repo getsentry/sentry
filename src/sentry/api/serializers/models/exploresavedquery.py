@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Literal, TypedDict, cast
 
@@ -119,8 +119,15 @@ class ExploreSavedQueryAttrs(TypedDict, total=False):
 
 @register(ExploreSavedQuery)
 class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(lambda: {"created_by": {}})
+    def get_attrs(
+        self,
+        item_list: Sequence[ExploreSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ExploreSavedQuery, dict[str, object]]:
+        result: defaultdict[ExploreSavedQuery, dict[str, object]] = defaultdict(
+            lambda: {"created_by": {}}
+        )
 
         starred_queries = {}
         user_last_visited = {}

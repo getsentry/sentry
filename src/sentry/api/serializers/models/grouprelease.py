@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import NamedTuple, TypedDict, cast
 
@@ -48,9 +48,15 @@ class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
             result[item] = {"release": releases.get(item.release_id)}
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: GroupRelease,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> GroupReleaseSerializerResponse:
         return {
-            "release": attrs["release"],
+            "release": cast(ReleaseSerializerResponse | None, attrs["release"]),
             "environment": obj.environment,
             "firstSeen": obj.first_seen,
             "lastSeen": obj.last_seen,
@@ -113,7 +119,13 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 item_stats[key] = [(k, v[item.id]) for k, v in stats.get(item.group_id, {})]
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        result = super().serialize(obj, attrs, user)
-        result["stats"] = attrs["stats"]
+    def serialize(
+        self,
+        obj: GroupRelease,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> GroupReleaseWithStatsSerializerResponse:
+        result = cast(GroupReleaseWithStatsSerializerResponse, super().serialize(obj, attrs, user))
+        result["stats"] = cast(dict[str, list[tuple[float, float]]], attrs["stats"])
         return result

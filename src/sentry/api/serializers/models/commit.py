@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from datetime import datetime
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -13,6 +13,7 @@ from sentry.api.serializers.release_details_types import Author
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.pullrequest import PullRequest
+from sentry.models.release import Release
 from sentry.models.repository import Repository
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -122,7 +123,7 @@ class CommitSerializer(Serializer[CommitSerializerResponse]):
     def serialize(
         self,
         obj: Commit,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> CommitSerializerResponse:
@@ -130,13 +131,13 @@ class CommitSerializer(Serializer[CommitSerializerResponse]):
             "id": obj.key,
             "message": obj.message,
             "dateCreated": obj.date_added,
-            "pullRequest": attrs["pull_request"],
-            "suspectCommitType": attrs["suspect_commit_type"],
+            "pullRequest": cast(PullRequestSerializerResponse | None, attrs["pull_request"]),
+            "suspectCommitType": cast(str, attrs["suspect_commit_type"]),
         }
         if "repository" not in self.exclude:
-            d["repository"] = attrs["repository"]
+            d["repository"] = cast(RepositorySerializerResponse, attrs["repository"])
         if "author" not in self.exclude:
-            d["author"] = attrs["user"]
+            d["author"] = cast(Author | EmptyAuthor, attrs["user"])
         return d
 
 
@@ -176,7 +177,7 @@ class CommitWithReleaseSerializer(CommitSerializer):
     def serialize(
         self,
         obj: Commit,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> CommitSerializerResponseWithReleases:
@@ -196,12 +197,12 @@ class CommitWithReleaseSerializer(CommitSerializer):
                     "dateReleased": r.date_released,
                     "dateCreated": r.date_added,
                 }
-                for r in attrs["releases"]
+                for r in cast(Sequence[Release], attrs["releases"])
             ],
         }
         if "repository" in data:
-            ret["repository"] = attrs["repository"]
+            ret["repository"] = cast(RepositorySerializerResponse, attrs["repository"])
         if "author" in data:
-            ret["author"] = attrs["user"]
+            ret["author"] = cast(Author | EmptyAuthor, attrs["user"])
 
         return ret

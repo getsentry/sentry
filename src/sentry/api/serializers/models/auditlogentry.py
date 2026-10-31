@@ -2,7 +2,7 @@ import re
 from collections.abc import Mapping, Sequence
 from copy import copy
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -16,13 +16,17 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 
-def fix(data):
+class _Team(Protocol):
+    id: int
+
+
+def fix(data: dict[str, object]) -> dict[str, object]:
     # There was a point in time where full Team objects
     # got serialized into our AuditLogEntry.data, so these
     # values need to be stripped and reduced down to integers
-    if data.get("teams"):
-        if hasattr(data["teams"][0], "id"):
-            data["teams"] = [t.id for t in data["teams"]]
+    teams = cast(list[object], data.get("teams"))
+    if teams and hasattr(teams[0], "id"):
+        data["teams"] = [cast(_Team, team).id for team in teams]
 
     # Only return fields in the `data` field that are actually used by the frontend
     # Do not add fields to this list that contain sensitive information
@@ -30,7 +34,7 @@ def fix(data):
     return {k: v for k, v in data.items() if k in required_fields}
 
 
-def override_actor_id(user):
+def override_actor_id(user: User | RpcUser) -> re.Match[str] | None:
     # overrides the usage of actor_id only to make SCIM token
     # name more readable (for now)
     scim_prefix = "scim-internal-integration-"
@@ -80,7 +84,7 @@ class AuditLogEntrySerializer(Serializer[AuditLogEntrySerializerResponse]):
             item: {
                 "actor": (
                     users[str(item.actor_id)]
-                    if item.actor_id and not override_actor_id(item.actor)
+                    if item.actor_id and not override_actor_id(cast(User, item.actor))
                     else {"name": item.get_actor_name()}
                 ),
                 "targetUser": users.get(str(item.target_user_id)) or item.target_user_id,

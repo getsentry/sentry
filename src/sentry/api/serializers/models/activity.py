@@ -1,6 +1,6 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime
-from typing import TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -284,7 +284,7 @@ class ActivitySerializer(Serializer):
     def serialize(
         self,
         obj: Activity,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ActivitySerializerResponse:
@@ -317,8 +317,8 @@ class ActivitySerializer(Serializer):
         return {
             "id": str(obj.id),
             "commentId": str(obj.id) if obj.type == ActivityType.NOTE.value else None,
-            "user": attrs["user"],
-            "sentry_app": attrs["sentry_app"],
+            "user": cast(dict[str, object] | None, attrs["user"]),
+            "sentry_app": cast(_ActivitySentryAppEmbed | None, attrs["sentry_app"]),
             "type": obj.get_type_display(),
             "data": data,
             "dateCreated": obj.datetime,

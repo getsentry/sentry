@@ -459,7 +459,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         # Azure does not support updating comments.
         pass
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         client = self.get_client()
 
         integration = integration_service.get_integration(

@@ -21,7 +21,9 @@ class UserNotificationSettingData(TypedDict, total=False):
     providers: list[str]
 
 
-class UserNotificationSettingsOptionsDetailsSerializer(CamelSnakeSerializer):
+class UserNotificationSettingsOptionsDetailsSerializer(
+    CamelSnakeSerializer[UserNotificationSettingData]
+):
     type = serializers.CharField()
     scope_identifier = serializers.CharField()
     scope_type = serializers.CharField()

@@ -80,7 +80,7 @@ class OrgAuthToken(ReplicatedControlModel):
     def __str__(self) -> str:
         return force_str(self.token_hashed)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {"name": self.name, "scopes": self.get_scopes()}
 
     def get_allowed_origins(self) -> list[str]:
@@ -89,7 +89,7 @@ class OrgAuthToken(ReplicatedControlModel):
     def get_scopes(self) -> list[str]:
         return self.scope_list
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
 
     def is_active(self) -> bool:

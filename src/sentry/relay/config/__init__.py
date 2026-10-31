@@ -298,7 +298,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
-def _browser_name_one_of(*args):
+def _browser_name_one_of(*args: str) -> dict[str, object]:
     """Returns a condition that matches if an event
     or span's browser name is one of the options in `args`.
 

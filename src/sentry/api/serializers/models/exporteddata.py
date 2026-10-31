@@ -1,6 +1,6 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -68,7 +68,7 @@ class ExportedDataSerializer(Serializer):
     def serialize(
         self,
         obj: ExportedData,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> ExportedDataResponse:
@@ -82,7 +82,7 @@ class ExportedDataSerializer(Serializer):
 
         return {
             "id": obj.id,
-            "user": attrs.get("user"),
+            "user": cast(ExportedDataUserResponse | None, attrs.get("user")),
             "dateCreated": obj.date_added,
             "dateFinished": obj.date_finished,
             "dateExpired": obj.date_expired,

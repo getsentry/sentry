@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TypedDict
 
@@ -29,7 +30,7 @@ class EventUserSerializer(Serializer[EventUserSerializerResponse]):
     def serialize(
         self,
         obj: EventUser,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> EventUserSerializerResponse:
