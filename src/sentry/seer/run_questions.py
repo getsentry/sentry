@@ -115,7 +115,7 @@ def _get_answer(
     """
     cache_key = _answer_cache_key(organization, run_id, question)
     cached = default_cache.get(cache_key)
-    if cached is not None:
+    if isinstance(cached, str):
         return cached
 
     try:

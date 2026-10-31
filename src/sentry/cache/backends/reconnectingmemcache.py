@@ -1,7 +1,7 @@
 import contextvars
 import threading
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import NamedTuple
 
 import pymemcache
@@ -37,8 +37,10 @@ class ReconnectingMemcache(PyMemcacheCache):
     _class: pymemcache.Client
     _options: Mapping[str, str] | None = None
 
-    def __init__(self, server, params) -> None:
-        self._reconnect_age: int = params.get("OPTIONS", {}).pop("reconnect_age", 300)
+    def __init__(self, server: str | Sequence[str], params: dict[str, object]) -> None:
+        options = params.get("OPTIONS", {})
+        assert isinstance(options, dict)
+        self._reconnect_age: int = options.pop("reconnect_age", 300)
         self._backend_var: contextvars.ContextVar[_BackendState | None] = contextvars.ContextVar(
             f"reconnecting_memcache_{id(self)}", default=None
         )

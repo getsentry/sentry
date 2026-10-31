@@ -3,6 +3,7 @@ from unittest import mock
 import orjson
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
@@ -17,7 +18,9 @@ pytestmark = [requires_snuba]
 class SlackResolvedInReleaseNotificationTest(
     SlackActivityNotificationTest, PerformanceIssueTestCase
 ):
-    def create_notification(self, group, version="meow"):
+    def create_notification(
+        self, group: Group, version: str = "meow"
+    ) -> ResolvedInReleaseActivityNotification:
         return ResolvedInReleaseActivityNotification(
             Activity(
                 project=self.project,

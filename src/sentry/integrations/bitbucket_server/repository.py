@@ -31,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 # justification: provider API configs and commit payloads are decoded JSON.
 JsonMapping: TypeAlias = Mapping[str, Any]
-JsonMutableMapping: TypeAlias = MutableMapping[str, Any]
+JsonMutableMapping: TypeAlias = MutableMapping[str, Any]  # justification: decoded JSON.
 
 
 class BitbucketServerRepositoryProvider(

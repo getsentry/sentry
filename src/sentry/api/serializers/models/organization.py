@@ -574,8 +574,10 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
 
         if "access" in kwargs:
             context["access"] = kwargs["access"].scopes
-            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
-            context["onboardingTasks"] = serialize(tasks_to_serialize, user)
+            # justification: onboarding tasks are queried for the requesting model user.
+            requesting_user = cast(User, user)
+            tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, requesting_user))
+            context["onboardingTasks"] = serialize(tasks_to_serialize, requesting_user)
 
         return context
 

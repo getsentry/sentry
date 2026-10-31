@@ -3,6 +3,7 @@ from base64 import urlsafe_b64decode, urlsafe_b64encode
 from hashlib import sha1
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
@@ -197,7 +198,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert b"File contents here" == close_streaming_response(response)
 
-    def _get(self, file_id, postfix=""):
+    def _get(self, file_id: str, postfix: str = "") -> Response:
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={

@@ -74,7 +74,7 @@ def _assert_roundtrip(backend: RedisCache) -> None:
     "cache_options", ({}, {"cluster_id": "default"}), ids=("implicit", "named")
 )
 def test_redis_cache_uses_redis_clusters(cache_options: dict[str, str]) -> None:
-    backend = RedisCache(**cache_options)
+    backend = RedisCache(cluster_id=cache_options.get("cluster_id", "default"))
     assert backend._text_client is redis_clusters.get("default")
     assert backend._bytes_client is redis_clusters.get_binary("default")
     _assert_roundtrip(backend)

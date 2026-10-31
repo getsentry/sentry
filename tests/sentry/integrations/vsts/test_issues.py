@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from time import time
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -39,7 +40,9 @@ from sentry.users.services.user.service import user_service
 pytestmark = [requires_snuba]
 
 
-def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs):
+def generate_mock_response(
+    *, method: str, non_region_url: str, path: str, **kwargs: Any
+) -> None:  # justification: heterogeneous kwargs forwarded to the responses library
     if SiloMode.get_current_mode() == SiloMode.CELL:
         match: list[Any] | None = kwargs.pop("match", None)
         if match is None:
@@ -57,7 +60,9 @@ def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwa
         responses.add(method=method, url=non_region_url, **kwargs)
 
 
-def assert_response_calls(expected_region_response, expected_non_region_response):
+def assert_response_calls(
+    expected_region_response: Sequence[str], expected_non_region_response: Sequence[str]
+) -> None:
     assert len(expected_region_response) == len(expected_non_region_response)
     if SiloMode.get_current_mode() == SiloMode.CELL:
         for index, path in enumerate(expected_region_response):
@@ -110,7 +115,7 @@ class VstsIssueBase(TestCase):
         )
         self.project_id_with_states = "c0bf429a-c03c-4a99-9336-d45be74db5a6"
 
-    def mock_categories(self, project):
+    def mock_categories(self, project: str) -> None:
         responses.add(
             responses.GET,
             f"https://fabrikam-fiber-inc.visualstudio.com/{project}/_apis/wit/workitemtypecategories",
@@ -591,18 +596,28 @@ class VstsIssueFormTest(VstsIssueBase):
     def tearDown(self) -> None:
         responses.reset()
 
-    def update_issue_defaults(self, defaults):
+    def update_issue_defaults(self, defaults: Mapping[str, object]) -> None:
         self.integration.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.integration.org_integration.id,
             config={"project_issue_defaults": {str(self.group.project_id): defaults}},
         )
 
-    def assert_project_field(self, fields, default_value, choices):
+    def assert_project_field(
+        self,
+        fields: Sequence[Mapping[str, object]],
+        default_value: object,
+        choices: Sequence[object],
+    ) -> None:
         project_field = [field for field in fields if field["name"] == "project"][0]
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices
 
-    def assert_work_item_type_field(self, fields, default_value, choices):
+    def assert_work_item_type_field(
+        self,
+        fields: Sequence[Mapping[str, object]],
+        default_value: object,
+        choices: Sequence[object],
+    ) -> None:
         project_field = [field for field in fields if field["name"] == "work_item_type"][0]
         assert project_field["defaultValue"] == default_value
         assert project_field["choices"] == choices

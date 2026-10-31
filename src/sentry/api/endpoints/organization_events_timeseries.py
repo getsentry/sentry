@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from types import ModuleType
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.db import connections
@@ -543,7 +543,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                         dataset, snuba_params, query, query_columns, rollup
                     )
                     if cached := default_cache.get(cache_key):
-                        cached_timestamps = sorted([item["time"] for item in cached])
+                        # justification: cache stores query rows with numeric time values.
+                        cached_rows = cast(Sequence[Mapping[str, int]], cached)
+                        cached_timestamps = sorted(row["time"] for row in cached_rows)
                         # Don't use the cache if we haven't queried the start before
                         # If this works well we can fork two queries in the future but keeping it simple for now
                         if cached_timestamps[0] > snuba_params.start_date.timestamp():

@@ -101,7 +101,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         )
         return response
 
-    def get_workspace_hooks(self, workspace: str):
+    def get_workspace_hooks(self, workspace: str) -> MappingApiResponse:
         return self.get(BitbucketAPIPath.workspace_hooks.format(workspace=workspace))
 
     def create_issue(self, repo: str, data: Mapping[str, object]) -> MappingApiResponse:

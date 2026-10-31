@@ -244,7 +244,8 @@ def format_top_events_timeseries_results(
     with traces.start_span(
         name="top_events.transform_results", attributes={"sentry.op": "discover.discover"}
     ) as span:
-        result = query_builder.strip_alias_prefix(result)
+        # justification: snuba response is a mutable row payload.
+        result = query_builder.strip_alias_prefix(cast(dict[str, object], result))
 
         span.set_attribute(
             "result_count",

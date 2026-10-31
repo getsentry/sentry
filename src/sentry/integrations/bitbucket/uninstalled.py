@@ -28,10 +28,10 @@ class BitbucketUninstalledEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         try:
             token = request.META["HTTP_AUTHORIZATION"].split(" ", 1)[1]
         except (KeyError, IndexError):

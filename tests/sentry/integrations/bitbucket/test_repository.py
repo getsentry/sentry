@@ -1,5 +1,5 @@
 import datetime
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from datetime import timezone
 from functools import cached_property
 
@@ -181,7 +181,7 @@ class BitbucketRepositoryProviderTest(TestCase):
                 },
             )
             integration.add_organization(organization)
-        data: Mapping[str, object] = {
+        data: MutableMapping[str, object] = {
             "provider": "integrations:bitbucket",
             "identifier": full_repo_name,
             "installation": integration.id,
@@ -194,9 +194,9 @@ class BitbucketRepositoryProviderTest(TestCase):
             "external_id": REPO["uuid"],
             "name": full_repo_name,
         }
-        data = self.provider.build_repository_config(organization, data)
+        repository_config = self.provider.build_repository_config(organization, data)
 
-        assert data == {
+        assert repository_config == {
             "name": full_repo_name,
             "external_id": REPO["uuid"],
             "url": "https://bitbucket.org/laurynsentry/helloworld",

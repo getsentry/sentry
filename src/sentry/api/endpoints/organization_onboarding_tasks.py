@@ -1,3 +1,5 @@
+from typing import cast
+
 import sentry_sdk
 from django.utils import timezone
 from rest_framework.request import Request
@@ -11,6 +13,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
+from sentry.users.models.user import User
 
 
 class OnboardingTaskPermission(OrganizationPermission):
@@ -37,7 +40,11 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         if status_value is None and completion_seen is None:
             return Response({"detail": "completionSeen or status must be provided"}, status=422)
 
-        status = onboarding_tasks.get_status_lookup_by_key(status_value)
+        status = (
+            onboarding_tasks.get_status_lookup_by_key(status_value)
+            if isinstance(status_value, str)
+            else None
+        )
 
         if status_value and status is None:
             return Response({"detail": "Invalid status key"}, status=422)
@@ -49,7 +56,7 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         ):
             return Response(status=422)
 
-        values = {}
+        values: dict[str, object] = {}
 
         if status:
             values["status"] = status
@@ -57,10 +64,12 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         if completion_seen:
             values["completion_seen"] = timezone.now()
 
+        # justification: authenticated request user is the model user the service expects.
+        user = cast(User, request.user)
         instance, created = onboarding_tasks.create_or_update_onboarding_task(
             organization=organization,
             task=task_id,
-            user=request.user,
+            user=user,
             values=values,
         )
 
@@ -78,9 +87,9 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
         return Response(status=204)
 
     def get(self, request: Request, organization: Organization) -> Response:
-        tasks_to_serialize = list(
-            onboarding_tasks.fetch_onboarding_tasks(organization, request.user)
-        )
-        serialized_tasks = serialize(tasks_to_serialize, request.user)
+        # justification: authenticated request user is the model user the service expects.
+        user = cast(User, request.user)
+        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(organization, user))
+        serialized_tasks = serialize(tasks_to_serialize, user)
 
         return Response({"onboardingTasks": serialized_tasks}, status=200)

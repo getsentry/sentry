@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from typing import Any
 from unittest import mock
@@ -55,7 +55,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
         self.session_error_metric = rh_indexer_record(org_id, SessionMRI.RAW_ERROR.value)
 
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     def test_missing_field(self) -> None:
@@ -1586,7 +1586,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         self.tx_user_metric = perf_indexer_record(self.organization.id, "s:transactions/user@none")
 
     @property
-    def now(self):
+    def now(self) -> datetime:
         return MetricsAPIBaseTestCase.MOCK_DATETIME
 
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
@@ -1597,12 +1597,12 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.releases.endpoints.organization_release_health_data.parse_field")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
         self,
-        mocked_parse_field,
-        mocked_get_public_name_from_mri,
-        mocked_get_mri_query,
-        mocked_reverse_mri,
-        mocked_parse_mri,
-    ):
+        mocked_parse_field: mock.MagicMock,
+        mocked_get_public_name_from_mri: mock.MagicMock,
+        mocked_get_mri_query: mock.MagicMock,
+        mocked_reverse_mri: mock.MagicMock,
+        mocked_parse_mri: mock.MagicMock,
+    ) -> None:
         mocked_get_public_name_from_mri.return_value = "crash_free_fake"
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"

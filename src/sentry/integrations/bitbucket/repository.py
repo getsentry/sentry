@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
@@ -29,11 +29,17 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
     name = "Bitbucket"
     repo_provider = IntegrationProviderSlug.BITBUCKET.value
 
-    def get_repository_data(self, organization, config):
-        installation = self.get_installation(config.get("installation"), organization.id)
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, object]
+    ) -> MutableMapping[str, object]:
+        # justification: config values come from untrusted repository input
+        installation_id = cast(int | None, config.get("installation"))
+        installation = self.get_installation(installation_id, organization.id)
         client = installation.get_client()
+        # justification: config values come from untrusted repository input
+        identifier = cast(str, config["identifier"])
         try:
-            repo = client.get_repo(config["identifier"])
+            repo = client.get_repo(identifier)
         except Exception as e:
             installation.raise_error(e)
         else:
@@ -133,19 +139,25 @@ class BitbucketRepositoryProvider(IntegrationRepositoryProvider["BitbucketIntegr
                 return
             raise
 
-    def _format_commits(self, repo, commit_list):
-        return [
-            {
-                "id": c["hash"],
-                "repository": repo.name,
-                "author_email": parse_email(c["author"]["raw"]),
-                "author_name": parse_user_name(c["author"]["raw"]),
-                "message": c["message"],
-                "timestamp": self.format_date(c["date"]),
-                "patch_set": c.get("patch_set"),
-            }
-            for c in commit_list
-        ]
+    def _format_commits(
+        self, repo: Repository, commit_list: Sequence[Mapping[str, object]]
+    ) -> list[dict[str, object]]:
+        commits: list[dict[str, object]] = []
+        for c in commit_list:
+            author = cast(Mapping[str, object], c["author"])
+            raw_author = cast(str, author["raw"])
+            commits.append(
+                {
+                    "id": c["hash"],
+                    "repository": repo.name,
+                    "author_email": parse_email(raw_author),
+                    "author_name": parse_user_name(raw_author),
+                    "message": c["message"],
+                    "timestamp": self.format_date(cast(str, c["date"])),
+                    "patch_set": c.get("patch_set"),
+                }
+            )
+        return commits
 
     def compare_commits(
         self, repo: Repository, start_sha: str | None, end_sha: str

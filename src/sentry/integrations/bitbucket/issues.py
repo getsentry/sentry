@@ -6,6 +6,7 @@ from typing import Any, NoReturn, cast
 
 from django.urls import reverse
 
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
@@ -113,8 +114,10 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             },
         ]
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
-        params = kwargs.pop("params", {})
+    def get_link_issue_config(
+        self, group: Group, **kwargs: object
+    ) -> list[IntegrationIssueConfigField]:
+        params = cast(Mapping[str, object], kwargs.pop("params", {}))
         default_repo, repo_choices = self.get_repository_choices(group, params)
 
         org = group.organization
@@ -157,16 +160,18 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
                 raise IntegrationConfigurationError(message)
         super().raise_error(exc, identity)
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: Mapping[str, object], **kwargs: object) -> dict[str, object]:
+        data = dict(data)
         client = self.get_client()
-        if not data.get("repo"):
+        repo = data.get("repo")
+        if not repo:
             raise IntegrationFormError({"repo": ["Repository is required"]})
 
         data["content"] = {"raw": data["description"]}
         del data["description"]
 
         try:
-            issue = client.create_issue(data.get("repo"), data)
+            issue = client.create_issue(cast(str, repo), data)
         except ApiError as e:
             self.raise_error(e)
 
@@ -184,10 +189,11 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             raise IntegrationFormError({"externalIssue": "Invalid Bitbucket issue URL"})
         return {"repo": match[1], "externalIssue": match[2]}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> dict[str, object]:
         client = self.get_client()
-        repo = kwargs["data"].get("repo")
-        issue = client.get_issue(repo, issue_id)
+        data = cast(Mapping[str, object], kwargs["data"])
+        repo = data.get("repo")
+        issue = client.get_issue(cast(str, repo), str(issue_id))
         return {
             "key": issue["id"],
             "title": issue["title"],
@@ -198,8 +204,8 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     def make_external_key(self, data: Mapping[str, str]) -> str:
         return "{}#{}".format(data["repo"], data["key"])
 
-    def after_link_issue(self, external_issue, **kwargs):
-        data = kwargs["data"]
+    def after_link_issue(self, external_issue: ExternalIssue, **kwargs: object) -> None:
+        data = cast(Mapping[str, object], kwargs["data"])
         client = self.get_client()
 
         repo, issue_num = external_issue.key.split("#")
@@ -218,9 +224,9 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
             except ApiError as e:
                 self.raise_error(e)
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: object) -> dict[str, Any]:
         client = self.get_client()
-        repo = kwargs["repo"]
+        repo = cast(str, kwargs["repo"])
         resp = client.search_issues(repo, query)
         assert isinstance(resp, dict)
         return resp

@@ -143,6 +143,9 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
             return self.respond_with_error(login_form.errors)
 
         user = login_form.get_user()
+        if user is None:
+            metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)
+            return self.respond_with_error({"__all__": ["Invalid username or password."]})
 
         if getattr(user, "is_suspended", False):
             metrics.incr("login.attempt", instance="failure", skip_internal=True, sample_rate=1.0)

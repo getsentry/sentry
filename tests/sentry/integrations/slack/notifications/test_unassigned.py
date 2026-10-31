@@ -4,6 +4,7 @@ import orjson
 import responses
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
@@ -14,7 +15,7 @@ pytestmark = [requires_snuba]
 
 
 class SlackUnassignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
-    def create_notification(self, group):
+    def create_notification(self, group: Group) -> UnassignedActivityNotification:
         return UnassignedActivityNotification(
             Activity(
                 project=self.project,

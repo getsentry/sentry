@@ -94,10 +94,12 @@ def process_service_hook(
     else:
         raise NotImplementedError
 
+    guid = servicehook.guid
+    assert guid is not None
     headers = {
         "Content-Type": "application/json",
         "X-ServiceHook-Timestamp": str(int(time())),
-        "X-ServiceHook-GUID": servicehook.guid,
+        "X-ServiceHook-GUID": guid,
         "X-ServiceHook-Signature": servicehook.build_signature(payload),
     }
 

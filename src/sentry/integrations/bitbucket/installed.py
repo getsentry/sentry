@@ -36,10 +36,10 @@ class BitbucketInstalledEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         state = request.data
         if not state:
             return self.respond(status=400)
