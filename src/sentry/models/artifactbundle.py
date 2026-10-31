@@ -253,8 +253,8 @@ class ArtifactBundleArchive:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: str | None) -> str | None:
-        if debug_id is None:
+    def normalize_debug_id(debug_id: object) -> str | None:
+        if not isinstance(debug_id, str):
             return None
 
         try:
