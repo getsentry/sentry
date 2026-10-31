@@ -24,6 +24,7 @@ from sentry.api.serializers.models.group import (
     GroupStatusDetailsResponseOptional,
     GroupStatusStr,
     SeenStats,
+    _SeenStatsQueryResult,
     is_seen_stats,
     snuba_tsdb,
 )
@@ -244,7 +245,7 @@ class _SeenStatsFunc(Protocol):
         end: datetime | None = None,
         conditions=None,
         environment_ids: list[int] | None = None,
-    ) -> Mapping[str, Any]: ...
+    ) -> _SeenStatsQueryResult: ...
 
 
 class _Filtered(TypedDict):
@@ -606,7 +607,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids={"organization_id": cast(int, self.organization_id)},
             project_ids=self.project_ids,
             **query_params,
         )
@@ -652,14 +653,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            bool(self.start or self.end or self.conditions),
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                self.start or self.end or self.conditions,
+                bool(self.start or self.end or self.conditions),
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")

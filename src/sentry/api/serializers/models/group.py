@@ -6,7 +6,16 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Literal,
+    NotRequired,
+    Protocol,
+    TypedDict,
+    TypeGuard,
+    cast,
+)
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -14,6 +23,7 @@ from django.db.models import Min, prefetch_related_objects
 from sentry_sdk import traces
 
 from sentry import tagstore
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.auth.principal import has_user
@@ -52,7 +62,11 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.search.events.filter import (
+    FilterConvertParams,
+    convert_search_filter_to_snuba_query,
+    format_search_filter,
+)
 from sentry.services.eventstore.reprocessing.base import ReprocessingInfo
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.snuba.backend import fix_tag_value_data
@@ -184,6 +198,12 @@ class SeenStats(TypedDict):
     first_seen: datetime | None
     last_seen: datetime | None
     user_count: int
+    filtered: NotRequired[SeenStats | None]
+    lifetime: NotRequired[SeenStats | None]
+
+
+class _SeenStatsQueryResult(TypedDict):
+    data: Sequence[Mapping[str, object]]
 
 
 class SeenStatsResponse(TypedDict):
@@ -496,9 +516,11 @@ class GroupSerializerBase(Serializer, ABC):
             return False
         return key in self.collapse
 
-    def _get_status(self, attrs: Mapping[str, Any], obj: Group):
+    def _get_status(
+        self, attrs: Mapping[str, Any], obj: Group
+    ) -> tuple[GroupStatusDetailsResponseOptional, GroupStatusStr]:
         status = obj.status
-        status_details = {}
+        status_details: GroupStatusDetailsResponseOptional = {}
         if attrs["ignore_until"]:
             snooze = attrs["ignore_until"]
             if snooze.is_valid(group=obj):
@@ -1028,12 +1050,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
         environment_ids: list[int] | None = None,
         start: datetime | None = None,
         end: datetime | None = None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(collapse=collapse, expand=expand)
         from sentry.search.snuba.executors import get_search_filter
 
@@ -1070,15 +1092,19 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
         conditions = []
         if search_filters is not None:
+            params = cast(
+                FilterConvertParams,
+                {
+                    "organization_id": organization_id,
+                    "project_id": project_ids,
+                    "environment_id": environment_ids,
+                },
+            )
             for search_filter in search_filters:
                 if search_filter.key.name not in self.skip_snuba_fields:
                     formatted_conditions, projects_to_filter, group_ids = format_search_filter(
                         search_filter,
-                        params={
-                            "organization_id": organization_id,
-                            "project_id": project_ids,
-                            "environment_id": environment_ids,
-                        },
+                        params=params,
                     )
 
                     # if no re-formatted conditions, use fallback method
@@ -1088,11 +1114,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
                     elif group_ids:
                         new_condition = convert_search_filter_to_snuba_query(
                             search_filter,
-                            params={
-                                "organization_id": organization_id,
-                                "project_id": project_ids,
-                                "environment_id": environment_ids,
-                            },
+                            params=params,
                         )
 
                     if new_condition:
@@ -1138,7 +1160,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         end: datetime | None = None,
         conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
-    ) -> dict[str, object]:
+    ) -> _SeenStatsQueryResult:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1153,7 +1175,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filters["environment"] = environment_ids
 
         return cast(
-            dict[str, object],
+            _SeenStatsQueryResult,
             aliased_query(
                 dataset=Dataset.Events,
                 start=start,
@@ -1177,7 +1199,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         end: datetime | None = None,
         conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
-    ) -> dict[str, object]:
+    ) -> _SeenStatsQueryResult:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1191,7 +1213,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filters["environment"] = environment_ids
 
         return cast(
-            dict[str, object],
+            _SeenStatsQueryResult,
             aliased_query(
                 dataset=Dataset.IssuePlatform,
                 start=start,
@@ -1210,8 +1232,11 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _parse_seen_stats_results(
-        result, item_list, use_result_first_seen_times_seen, environment_ids=None
-    ):
+        result: _SeenStatsQueryResult,
+        item_list: Sequence[Group],
+        use_result_first_seen_times_seen: bool,
+        environment_ids: list[int] | None = None,
+    ) -> Mapping[Group, SeenStats]:
         seen_data = {
             issue["group_id"]: fix_tag_value_data(
                 dict(filter(lambda key: key[0] != "group_id", issue.items()))

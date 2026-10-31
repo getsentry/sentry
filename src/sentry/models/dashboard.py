@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from typing import Any, ClassVar
 
 import sentry_sdk
@@ -75,7 +76,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
-    ):
+    ) -> None:
         """
         Reorders the positions of favorited dashboards for a user in an organization.
         Does NOT add or remove favorited dashboards. Also normalizes the positions
@@ -423,7 +424,7 @@ class Dashboard(Model):
     __repr__ = sane_repr("organization", "title")
 
     @property
-    def favorited_by(self):
+    def favorited_by(self) -> Iterable[int]:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """
@@ -433,7 +434,7 @@ class Dashboard(Model):
         return user_ids
 
     @favorited_by.setter
-    def favorited_by(self, user_ids):
+    def favorited_by(self, user_ids: Iterable[int]) -> None:
         """
         @deprecated Use the DashboardFavoriteUser object manager instead.
         """

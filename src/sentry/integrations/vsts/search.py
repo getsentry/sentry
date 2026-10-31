@@ -13,13 +13,13 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 @control_silo_endpoint
-class VstsSearchEndpoint(SourceCodeSearchEndpoint):
+class VstsSearchEndpoint(SourceCodeSearchEndpoint[VstsIntegration]):
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str:
         return IntegrationProviderSlug.AZURE_DEVOPS.value
 
     @property
-    def installation_class(self):
+    def installation_class(self) -> type[VstsIntegration]:
         return VstsIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

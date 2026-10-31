@@ -21,7 +21,9 @@ PAGE_LIMIT = 1
 
 
 @control_silo_endpoint
-class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
+class GithubSharedSearchEndpoint(
+    SourceCodeSearchEndpoint[GitHubIntegration | GitHubEnterpriseIntegration]
+):
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 
     @property
@@ -29,11 +31,15 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
         return "repo"
 
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str | None:
         return None
 
     @property
-    def installation_class(self):
+    def installation_class(
+        self,
+    ) -> (
+        type[GitHubIntegration] | tuple[type[GitHubIntegration], type[GitHubEnterpriseIntegration]]
+    ):
         return (GitHubIntegration, GitHubEnterpriseIntegration)
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:
