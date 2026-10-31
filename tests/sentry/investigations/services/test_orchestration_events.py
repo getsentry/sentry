@@ -1126,7 +1126,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.phase == "planning"
         assert self.orchestration_run.last_event_sequence == 0
         assert self.orchestration_run.notebook_revision == 1
-        assert block.deleted_at is not None
+        assert block.deleted_at is None
+        assert block.stale_at is not None
 
     def test_manual_title_override_survives_generated_title_events(self) -> None:
         self.investigation.title = "My incident title"
@@ -1771,6 +1772,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                         phase="completed",
                         status="completed",
                         report_revision=2,
+                        report_status="completed",
                     ),
                     "reportRevision": 2,
                     "blocks": [
@@ -1992,7 +1994,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.producer_revision == 2
         assert first.content == "revised body"
         assert first.deleted_at is None
-        assert second.producer_revision == 2
+        assert second.producer_revision == 1
         assert second.deleted_at is not None
 
         self.deliver(
@@ -2018,6 +2020,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.producer_revision == 2
         assert first.deleted_at is None
         self.deliver(self.event(10, "report_clear", {"reportRevision": 3}))
+        first.refresh_from_db()
+        assert first.deleted_at is None
+        assert first.stale_at is not None
+        self.deliver(self.event(11, "report_completed", {"reportRevision": 3}))
         first.refresh_from_db()
         assert first.deleted_at is not None
 
@@ -2075,7 +2081,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         completed = NotebookBlock.objects.get(producer_key="completed")
         partial = NotebookBlock.objects.get(producer_key="partial")
-        assert completed.producer_revision == 2
+        assert completed.producer_revision == 1
         assert completed.deleted_at is None
         assert partial.producer_revision == 1
         assert partial.deleted_at is not None
@@ -2085,6 +2091,153 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "code": "investigation_report_restarted",
             "message": "The investigation report was restarted.",
         }
+
+    def text_block_upserted(
+        self, sequence: int, key: str, revision: int, content: str
+    ) -> dict[str, Any]:
+        return self.event(
+            sequence,
+            "report_block_upserted",
+            self.report_block(key, reportRevision=revision, title=key, content=content),
+        )
+
+    def test_report_clear_marks_blocks_stale_until_the_new_report_completes(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
+        self.deliver(self.text_block_upserted(3, "dropped", 1, "dropped body"))
+        kept = NotebookBlock.objects.get(producer_key="kept")
+        dropped = NotebookBlock.objects.get(producer_key="dropped")
+        comment = self.create_notebook_comment(notebook=self.investigation, block=kept)
+        self.deliver_request(
+            4, self.action_request("under", anchor={"type": "block", "id": "dropped"})
+        )
+
+        self.deliver(self.event(5, "report_clear", {"reportRevision": 2}))
+
+        for block in (kept, dropped):
+            block.refresh_from_db()
+            assert block.deleted_at is None
+            assert block.stale_at is not None
+        assert dropped.content == "dropped body"
+
+        self.deliver(
+            self.event(
+                6,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "kept",
+                    "position": 0,
+                    "kind": "text",
+                    "title": "kept",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        kept.refresh_from_db()
+        assert kept.producer_revision == 2
+        assert kept.stale_at is not None
+        assert kept.content == "kept body"
+
+        self.deliver(self.text_block_upserted(7, "kept", 2, "rewritten"))
+        self.deliver_request(
+            8,
+            self.action_request(
+                "fresh", reportRevision=2, anchor={"type": "block", "id": "dropped"}
+            ),
+        )
+        self.deliver(self.event(9, "report_completed", {"reportRevision": 2}))
+
+        rewritten = NotebookBlock.objects.get(producer_key="kept", deleted_at__isnull=True)
+        assert rewritten.id == kept.id
+        assert rewritten.producer_revision == 2
+        assert rewritten.content == "rewritten"
+        assert rewritten.stale_at is None
+        comment.refresh_from_db()
+        assert comment.block_id == kept.id
+        dropped.refresh_from_db()
+        assert dropped.deleted_at is not None
+        assert self.request_states() == {
+            "under": NotebookActionRequestState.SUPERSEDED,
+            "fresh": NotebookActionRequestState.SUPERSEDED,
+        }
+
+    def test_failed_report_keeps_stale_blocks_until_a_report_completes(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.event(
+                4,
+                "report_failed",
+                {"reportRevision": 2, "error": {"code": "failed", "message": "Report failed"}},
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        assert old.deleted_at is None
+        assert old.stale_at is not None
+
+        self.deliver(self.event(5, "report_clear", {"reportRevision": 3}))
+        self.deliver(self.event(6, "report_completed", {"reportRevision": 3}))
+
+        old.refresh_from_db()
+        assert old.deleted_at is not None
+
+    def test_snapshot_drops_unlisted_blocks_of_its_revision(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.text_block_upserted(4, "dropped", 2, "dropped body"))
+
+        self.deliver(
+            self.event(
+                5,
+                "state_snapshot",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    ),
+                    "reportRevision": 2,
+                    "blocks": [self.report_block("new", title="New", content="new body")],
+                },
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        dropped = NotebookBlock.objects.get(producer_key="dropped")
+        new = NotebookBlock.objects.get(producer_key="new")
+        assert old.deleted_at is None
+        assert old.stale_at is not None
+        assert dropped.deleted_at is not None
+        assert new.stale_at is None
+
+        self.deliver(self.event(6, "report_completed", {"reportRevision": 2}))
+
+        old.refresh_from_db()
+        assert old.deleted_at is not None
+
+    def test_adopted_blocks_survive_report_completion(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "first", 1, "first body"))
+        self.deliver(
+            self.event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+        self.deliver(self.event(4, "report_completed", {"reportRevision": 2}))
+
+        first = NotebookBlock.objects.get(producer_key="first")
+        assert first.deleted_at is None
+        assert first.stale_at is None
+        assert first.producer_revision == 1
+        assert first.content == "first body"
 
     def test_report_failure_finishes_partial_text_and_query_executions(self) -> None:
         events = [

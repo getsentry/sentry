@@ -40,18 +40,17 @@ from sentry.investigations.services.orchestration import (
     requeue_commands_behind,
     schedule_orchestration_commands,
 )
-from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
     NotebookBlockExecution,
     NotebookBlockExecutionStatus,
-    NotebookBlockKind,
     NotebookProject,
     NotebookStatus,
 )
 from sentry.notebooks.services.producer_writes import (
     UNSET,
+    append_block_content,
     move_block,
     remove_blocks,
     upsert_block,
@@ -451,20 +450,11 @@ def _adopt_preserved_report_revision(
         ).values_list("id", flat=True)
     )
     discarded_ids = list(live_blocks.exclude(id__in=completed_ids).values_list("id", flat=True))
-    now = timezone.now()
-    if completed_ids:
-        NotebookBlock.objects.filter(id__in=completed_ids).update(
-            producer_revision=revision,
-            date_updated=now,
-        )
     if discarded_ids:
         _cancel_report_executions(run, block_ids=discarded_ids)
-        discarded = NotebookBlock.objects.filter(id__in=discarded_ids)
         supersede_block_action_requests(
-            run.investigation,
-            [key for key in discarded.values_list("producer_key", flat=True) if key],
+            run.investigation, remove_blocks(run.investigation, block_ids=discarded_ids)
         )
-        remove_blocks(run.investigation, block_ids=discarded_ids, now=now)
     _control(run).update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
@@ -550,7 +540,8 @@ def _clear_report(
         run,
         block_ids=list(live_blocks.values_list("id", flat=True)),
     )
-    remove_blocks(run.investigation, all_blocks=True, now=now)
+    # The old blocks stay visible until the new report completes or replaces them.
+    live_blocks.update(stale_at=now, date_updated=now)
     supersede_action_requests_before(run.investigation, revision)
     control.update(
         {
@@ -567,6 +558,15 @@ def _clear_report(
     if bump:
         _bump_notebook(run, run.investigation)
     return True
+
+
+def _remove_replaced_report_blocks(run: InvestigationOrchestrationRun) -> bool:
+    """Remove the blocks a clear left stale that the current report didn't write again."""
+
+    removed = remove_blocks(run.investigation, stale=True, revision_below=_report_revision(run))
+    if removed:
+        supersede_block_action_requests(run.investigation, removed)
+    return bool(removed)
 
 
 def _complete_metadata(
@@ -623,24 +623,31 @@ def _apply_snapshot(
         if "actionRequests" in payload and revision == _report_revision(run):
             _sync_snapshot_action_requests(run, payload["actionRequests"])
         return
-    blocks = payload["blocks"]
-    _clear_report(run, revision, force=True, bump=False, mutate_projection=False)
-    seen_keys: set[str] = set()
-    for position, raw_block in enumerate(blocks):
-        block_payload = deepcopy(raw_block)
-        block_payload.setdefault("reportRevision", revision)
-        block_payload.setdefault("position", position)
-        block_payload = _validate_event_payload("report_block_upserted", block_payload)
-        key = block_payload["stableAgentKey"]
-        if key in seen_keys:
-            raise serializers.ValidationError({"payload": "Snapshot block keys must be unique."})
-        seen_keys.add(key)
-        _upsert_report_block(
-            run=run,
-            payload=block_payload,
-            complete=True,
-            from_snapshot=True,
-        )
+    # A snapshot of an older report doesn't clear the current one, so its blocks don't apply.
+    if _clear_report(run, revision, force=True, bump=False, mutate_projection=False):
+        seen_keys: set[str] = set()
+        for position, raw_block in enumerate(payload["blocks"]):
+            block_payload = deepcopy(raw_block)
+            block_payload.setdefault("reportRevision", revision)
+            block_payload.setdefault("position", position)
+            block_payload = _validate_event_payload("report_block_upserted", block_payload)
+            key = block_payload["stableAgentKey"]
+            if key in seen_keys:
+                raise serializers.ValidationError(
+                    {"payload": "Snapshot block keys must be unique."}
+                )
+            seen_keys.add(key)
+            _upsert_report_block(
+                run=run,
+                payload=block_payload,
+                complete=True,
+                from_snapshot=True,
+            )
+        # The snapshot lists every block of its revision. Older blocks wait for the
+        # report to complete, as they do when the events arrive one by one.
+        remove_blocks(run.investigation, stale=True, revision=revision)
+        if projection.get("report", {}).get("status") == "completed":
+            _remove_replaced_report_blocks(run)
     metadata = payload.get("metadata")
     if metadata is not None:
         metadata = {**metadata, "reportRevision": revision}
@@ -736,28 +743,13 @@ def _apply_event(
             )
             _bump_notebook(run, run.investigation)
         elif event.type == "report_text_delta":
-            block = NotebookBlock.objects.filter(
-                notebook=run.investigation,
-                producer_revision=revision,
-                producer_key=payload["stableAgentKey"],
-                deleted_at__isnull=True,
-                kind=NotebookBlockKind.TEXT,
-            ).first()
-            if block is None:
-                raise serializers.ValidationError({"payload": "Text block was not started."})
-            if block.content_execution_id == block.current_execution_id:
-                delta = payload["delta"]
-                reset = payload.get("reset") is True
-                if (0 if reset else len(block.content)) + len(delta) > MAX_MARKDOWN_CHARS:
-                    raise serializers.ValidationError(
-                        {"payload": "Text block exceeds its size limit."}
-                    )
-                block.content = delta if reset else block.content + delta
-                block.generated_content = delta if reset else block.generated_content + delta
-                block.version += 1
-                block.save(
-                    update_fields=["content", "generated_content", "version", "date_updated"]
-                )
+            if append_block_content(
+                run.investigation,
+                key=payload["stableAgentKey"],
+                revision=revision,
+                text=payload["delta"],
+                reset=payload.get("reset") is True,
+            ):
                 _bump_notebook(run, run.investigation)
         elif event.type == "report_block_upserted":
             _upsert_report_block(
@@ -767,16 +759,10 @@ def _apply_event(
             )
             _bump_notebook(run, run.investigation)
         elif event.type == "report_block_removed":
-            _cancel_report_executions(
-                run,
-                revision=revision,
-                producer_key=payload["stableAgentKey"],
-            )
-            updated = remove_blocks(
-                run.investigation, revision=revision, key=payload["stableAgentKey"]
-            )
-            if updated:
-                supersede_block_action_requests(run.investigation, [payload["stableAgentKey"]])
+            _cancel_report_executions(run, producer_key=payload["stableAgentKey"])
+            removed = remove_blocks(run.investigation, key=payload["stableAgentKey"])
+            if removed:
+                supersede_block_action_requests(run.investigation, removed)
                 _bump_notebook(run, run.investigation)
         elif event.type == "report_block_moved":
             # Seer sends absolute positions in the final plan, not insertions.
@@ -791,6 +777,8 @@ def _apply_event(
             report = run.projection.setdefault("report", {})
             if isinstance(report, dict):
                 report.update({"status": "completed", "error": None})
+            if _remove_replaced_report_blocks(run):
+                _bump_notebook(run, run.investigation)
         elif event.type == "report_failed":
             execution_updated = _fail_report_executions(run, revision=revision)
             report = run.projection.setdefault("report", {})

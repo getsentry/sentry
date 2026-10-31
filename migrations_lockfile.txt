@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0002_copy_from_investigations
+notebooks: 0003_unique_live_producer_block
 
 notifications: 0016_add_inboxitem_and_inboxitemevent
 
