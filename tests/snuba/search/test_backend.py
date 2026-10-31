@@ -1339,6 +1339,15 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
             user=self.user,
         )
 
+    def test_my_teams_without_teams_matches_nothing(self) -> None:
+        user = self.create_user()
+        self.create_member(organization=self.project.organization, user=user, teams=[])
+        GroupAssignee.objects.create(team_id=self.team.id, group=self.group1, project=self.project)
+
+        for key in ("assigned", "assigned_or_suggested"):
+            self.run_test_query(f"{key}:my_teams", [], [self.group1, self.group2], user=user)
+            self.run_test_query(f"{key}:[my_teams]", [], user=user)
+
     def test_assigned_to_in_syntax(self) -> None:
         group_3 = self.store_event(
             data={

@@ -149,7 +149,7 @@ def inbox_search(
         )
 
     owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search:
+    if owner_search is not None:
         qs = qs.filter(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
