@@ -7,12 +7,198 @@ import {promisify} from 'node:util';
 
 const execAsync = promisify(exec);
 
-type GitDiffChange = {
-  addedLines: Set<number>;
+export type CoverageItem = {
+  column: number;
   file: string;
-  modifiedRanges: Array<{end: number; start: number}>;
+  kind: string;
+  line: number;
+  code?: string;
+  name?: string;
+  targetType?: string;
+};
+
+type EditBlock = {
+  addedLines: Set<number>;
   removedLines: Set<number>;
 };
+
+export type GitDiffChange = EditBlock & {
+  blocks: EditBlock[];
+  file: string;
+  oldFile: string;
+};
+
+export function parseGitDiffText(diff: string): Map<string, GitDiffChange> {
+  const changes = new Map<string, GitDiffChange>();
+  let oldFile = '';
+  let change: GitDiffChange | undefined;
+  let block: EditBlock | undefined;
+  let oldLine = 0;
+  let newLine = 0;
+  let inHunk = false;
+
+  for (const line of diff.split('\n')) {
+    if (line.startsWith('diff --git ')) {
+      change = undefined;
+      block = undefined;
+      oldFile = '';
+      inHunk = false;
+    } else if (!inHunk && line.startsWith('--- ')) {
+      oldFile = line.startsWith('--- a/') ? line.slice(6) : '';
+    } else if (!inHunk && line.startsWith('+++ ')) {
+      const file = line.startsWith('+++ b/') ? line.slice(6) : oldFile;
+      change = {
+        file,
+        oldFile: oldFile || file,
+        addedLines: new Set(),
+        removedLines: new Set(),
+        blocks: [],
+      };
+      changes.set(file, change);
+    } else if (line.startsWith('@@ ')) {
+      const match = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+      if (match) {
+        oldLine = Number(match[1]);
+        newLine = Number(match[2]);
+        block = undefined;
+        inHunk = true;
+      }
+    } else if (inHunk && change) {
+      if (line.startsWith('+') || line.startsWith('-')) {
+        if (!block) {
+          block = {addedLines: new Set(), removedLines: new Set()};
+          change.blocks.push(block);
+        }
+        if (line.startsWith('+')) {
+          change.addedLines.add(newLine);
+          block.addedLines.add(newLine++);
+        } else {
+          change.removedLines.add(oldLine);
+          block.removedLines.add(oldLine++);
+        }
+      } else if (line.startsWith(' ')) {
+        oldLine++;
+        newLine++;
+        block = undefined;
+      }
+    }
+  }
+  return changes;
+}
+
+function semanticKey(item: CoverageItem): string {
+  // Include the target even when the code preview was truncated before the cast.
+  return JSON.stringify([item.kind, item.name, item.code, item.targetType]);
+}
+
+function assertionKey(item: CoverageItem): string | undefined {
+  if (item.kind === 'type(as)' || item.kind === 'type(angle)') {
+    return item.targetType === undefined
+      ? undefined
+      : JSON.stringify([item.kind, item.targetType]);
+  }
+  if (
+    item.kind === 'as-any' ||
+    item.kind === 'nonnull(expr)' ||
+    item.kind === 'nonnull(property)'
+  ) {
+    return item.kind;
+  }
+  return undefined;
+}
+
+export function compareItems<T extends CoverageItem>(
+  current: T[],
+  old: T[],
+  gitChanges: Map<string, GitDiffChange>
+): {added: T[]; removed: T[]} {
+  const oldChanges = new Map(
+    Array.from(gitChanges.values(), change => [change.oldFile, change])
+  );
+  const isAdded = (item: T) =>
+    gitChanges.get(item.file)?.addedLines.has(item.line) ?? false;
+  const isRemoved = (item: T) =>
+    oldChanges.get(item.file)?.removedLines.has(item.line) ?? false;
+  const unmatchedCurrent = new Set(current);
+  const unmatchedOld = new Set(old);
+
+  function match(currentItems: T[], oldItems: T[], key: (item: T) => string | undefined) {
+    const candidates = new Map<string, T[]>();
+    for (const item of oldItems) {
+      const itemKey = key(item);
+      if (itemKey === undefined || !unmatchedOld.has(item)) {
+        continue;
+      }
+      const bucket = candidates.get(itemKey) ?? [];
+      bucket.push(item);
+      candidates.set(itemKey, bucket);
+    }
+    for (const item of currentItems) {
+      if (!unmatchedCurrent.has(item)) {
+        continue;
+      }
+      const itemKey = key(item);
+      if (itemKey === undefined) {
+        continue;
+      }
+      const previous = candidates.get(itemKey)?.shift();
+      if (previous) {
+        unmatchedCurrent.delete(item);
+        unmatchedOld.delete(previous);
+      }
+    }
+  }
+
+  // Reserve unchanged occurrences first, so an added duplicate cannot use them.
+  match(
+    [...current].sort((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
+    [...old].sort((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
+    item =>
+      JSON.stringify([
+        // Use the new path when Git identifies a rename.
+        oldChanges.get(item.file)?.file ?? item.file,
+        semanticKey(item),
+      ])
+  );
+
+  // Match exact moves across files too, including deleted files and renames.
+  match(current.filter(isAdded), old.filter(isRemoved), item =>
+    item.code === undefined && item.kind !== 'as-any' ? undefined : semanticKey(item)
+  );
+
+  function byFile(items: Set<T>) {
+    const files = new Map<string, T[]>();
+    for (const item of items) {
+      const bucket = files.get(item.file) ?? [];
+      bucket.push(item);
+      files.set(item.file, bucket);
+    }
+    return files;
+  }
+  const currentByFile = byFile(unmatchedCurrent);
+  const oldByFile = byFile(unmatchedOld);
+
+  // An operand edit does not introduce another assertion. Limit this heuristic
+  // to a contiguous replacement block; do not cancel unrelated edits in a file.
+  for (const change of gitChanges.values()) {
+    for (const block of change.blocks) {
+      match(
+        (currentByFile.get(change.file) ?? []).filter(item =>
+          block.addedLines.has(item.line)
+        ),
+        (oldByFile.get(change.oldFile) ?? []).filter(item =>
+          block.removedLines.has(item.line)
+        ),
+        assertionKey
+      );
+    }
+  }
+
+  return {
+    added: current.filter(item => unmatchedCurrent.has(item) && isAdded(item)),
+    removed: old.filter(item => unmatchedOld.has(item) && isRemoved(item)),
+  };
+}
 
 const colors = {
   red: (text: string) => `\x1B[31m${text}\x1B[0m`,
@@ -96,8 +282,9 @@ ${colors.bold('DESCRIPTION:')}
   - REMOVED any-typed symbols on lines that were removed
   - NEW/REMOVED non-null assertions and type assertions
 
-  Only shows changes on lines that were literally added or removed in the git diff,
-  eliminating false positives from code that just moved around.
+  Matches existing issues one-to-one before reporting added or removed lines.
+  Ignores exact code moves and assertions whose kind and target type are unchanged
+  within the same replacement block.
 `);
 }
 
@@ -213,146 +400,10 @@ async function parseGitDiff(
       {maxBuffer: 1024 * 1024 * 100}
     );
 
-    const changes = new Map<string, GitDiffChange>();
-    const lines = stdout.split('\n');
-    let currentFile: string | null = null;
-    let oldLineNumber = 0;
-    let newLineNumber = 0;
-
-    for (const line of lines) {
-      // Parse file headers: --- a/file.ts, +++ b/file.ts
-      if (line.startsWith('--- a/')) {
-        continue; // Skip old file marker
-      } else if (line.startsWith('+++ b/')) {
-        currentFile = line.substring(6); // Remove "+++ b/"
-        if (!changes.has(currentFile)) {
-          changes.set(currentFile, {
-            file: currentFile,
-            addedLines: new Set(),
-            removedLines: new Set(),
-            modifiedRanges: [],
-          });
-        }
-      } else if (line.startsWith('@@') && currentFile) {
-        // Parse hunk header: @@ -oldStart,oldCount +newStart,newCount @@
-        const match = line.match(/@@ -(\d+),?(\d+)? \+(\d+),?(\d+)? @@/);
-        if (match) {
-          const oldStart = parseInt(match[1] || '1', 10);
-          const newStart = parseInt(match[3] || '1', 10);
-          const newCount = parseInt(match[4] || '1', 10);
-          oldLineNumber = oldStart;
-          newLineNumber = newStart;
-
-          const change = changes.get(currentFile)!;
-          change.modifiedRanges.push({
-            start: newStart,
-            end: newStart + newCount - 1,
-          });
-        }
-      } else if (line.startsWith('+') && !line.startsWith('+++') && currentFile) {
-        // Added line - exists only in new file
-        const change = changes.get(currentFile)!;
-        change.addedLines.add(newLineNumber);
-        newLineNumber++;
-      } else if (line.startsWith('-') && !line.startsWith('---') && currentFile) {
-        // Removed line - exists only in old file
-        const change = changes.get(currentFile)!;
-        change.removedLines.add(oldLineNumber);
-        oldLineNumber++;
-      } else if (line.startsWith(' ') && currentFile) {
-        // Context line (unchanged) - exists in both files
-        oldLineNumber++;
-        newLineNumber++;
-      }
-    }
-
-    return changes;
+    return parseGitDiffText(stdout);
   } catch (error) {
     throw new Error(`Failed to parse git diff: ${error}`);
   }
-}
-
-function isOnAddedLine(
-  item: {file: string; line: number},
-  gitChanges: Map<string, GitDiffChange>
-): boolean {
-  const change = gitChanges.get(item.file);
-  if (!change) {
-    return false; // File wasn't modified
-  }
-
-  // Check if the line was literally added in the diff
-  return change.addedLines.has(item.line);
-}
-
-function isOnRemovedLine(
-  item: {file: string; line: number},
-  gitChanges: Map<string, GitDiffChange>
-): boolean {
-  const change = gitChanges.get(item.file);
-  if (!change) {
-    return false; // File wasn't modified
-  }
-
-  // Check if the line was literally removed in the diff
-  return change.removedLines.has(item.line);
-}
-
-function createItemKey(item: any): string {
-  return `${item.file}:${item.line}:${item.column}:${item.kind}`;
-}
-
-function createSemanticKey(item: {
-  column: number;
-  file: string;
-  kind: string;
-  line: number;
-}): string {
-  // Create a key based on the semantic content, not just location
-  if ('name' in item) {
-    // For any-typed symbols, use file + kind + name
-    return `${item.file}:${item.kind}:${item.name}`;
-  }
-  if ('code' in item) {
-    // For non-null assertions and type assertions, use file + kind + code
-    return `${item.file}:${item.kind}:${item.code}`;
-  }
-  if ('targetType' in item) {
-    // For type assertions, include target type
-    return `${item.file}:${item.kind}:${item.targetType}`;
-  }
-  return createItemKey(item);
-}
-
-function compareItems<
-  T extends {column: number; file: string; kind: string; line: number},
->(
-  current: T[],
-  old: T[],
-  gitChanges: Map<string, GitDiffChange>
-): {added: T[]; removed: T[]} {
-  // Create semantic maps to match items by their actual content
-  const currentSemanticKeys = new Set(current.map(createSemanticKey));
-  const oldSemanticKeys = new Set(old.map(createSemanticKey));
-
-  // Only consider items "added" if:
-  // 1. They don't exist semantically in the old version, AND
-  // 2. They're on lines that were literally added (green + lines in git diff)
-  const added = current.filter(
-    item =>
-      !oldSemanticKeys.has(createSemanticKey(item)) && isOnAddedLine(item, gitChanges)
-  );
-
-  // Only consider items "removed" if:
-  // 1. They don't exist semantically in the current version, AND
-  // 2. They were on lines that were literally removed (red - lines in git diff)
-  const removed = old.filter(
-    item =>
-      !currentSemanticKeys.has(createSemanticKey(item)) &&
-      isOnRemovedLine(item, gitChanges)
-  );
-
-  return {added, removed};
 }
 
 function formatItems<
@@ -668,9 +719,11 @@ async function main() {
   }
 }
 
-try {
-  await main();
-} catch (err) {
-  console.error(colors.red(String(err)));
-  process.exit(1);
+if (import.meta.main) {
+  try {
+    await main();
+  } catch (err) {
+    console.error(colors.red(String(err)));
+    process.exit(1);
+  }
 }
