@@ -31,6 +31,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models import Workflow
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -466,6 +467,35 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert finding["monitors"] == [
             {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
+        ]
+
+    def test_hidden_workflow_findings_are_dropped(self) -> None:
+        alert_workflow = self.create_workflow(organization=self.organization, name="Alert")
+
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, name="Hidden", type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.keep, workflow=alert_workflow)
+        self.create_detector_workflow(detector=self.keep, workflow=hidden_workflow)
+
+        run = self.trigger()
+
+        result = self.result()
+
+        findings = result["data"]["projects"][0]["findings"]
+        findings[0]["alert_ids"] = [str(alert_workflow.id)]
+        findings.append({**findings[0], "alert_ids": [str(hidden_workflow.id)]})
+
+        deliver_monitor_cleanup_result(
+            self.organization.id, run.run.uuid, "completed", result, None
+        )
+
+        run.refresh_from_db()
+        (finding,) = run.extras["results"][0]["findings"]
+
+        assert finding["alerts"] == [
+            {"id": str(alert_workflow.id), "name": "Alert", "enabled": alert_workflow.enabled}
         ]
 
     def test_invalid_results_report_safe_errors(self) -> None:
