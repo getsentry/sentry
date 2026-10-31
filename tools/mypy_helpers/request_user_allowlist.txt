@@ -50,10 +50,7 @@ src/sentry/feedback/endpoints/organization_feedback_categories.py
 src/sentry/feedback/endpoints/organization_feedback_summary.py
 src/sentry/flags/endpoints/secrets.py
 src/sentry/insights/endpoints/starred_segments.py
-src/sentry/integrations/api/endpoints/organization_coding_agents.py
 src/sentry/integrations/api/endpoints/organization_config_integrations.py
-src/sentry/integrations/api/endpoints/organization_integration_request.py
-src/sentry/integrations/messaging/linkage.py
 src/sentry/investigations/endpoints/organization_investigation_details.py
 src/sentry/investigations/services/action_requests.py
 src/sentry/issues/endpoints/group_event_details.py
@@ -104,12 +101,6 @@ src/sentry/seer/endpoints/search_agent_state.py
 src/sentry/seer/endpoints/trace_explorer_ai_translate_agentic.py
 src/sentry/seer/supergroups/endpoints/organization_supergroup_details.py
 src/sentry/seer/supergroups/endpoints/organization_supergroups_by_group.py
-src/sentry/sentry_apps/api/bases/sentryapps.py
-src/sentry/sentry_apps/api/endpoints/installation_details.py
-src/sentry/sentry_apps/api/endpoints/sentry_app_details.py
-src/sentry/sentry_apps/api/endpoints/sentry_app_rotate_secret.py
-src/sentry/sentry_apps/api/endpoints/sentry_apps.py
-src/sentry/sentry_apps/api/endpoints/sentry_internal_app_token_details.py
 src/sentry/service_accounts/endpoints/organization_service_accounts.py
 src/sentry/users/api/bases/user.py
 src/sentry/users/api/endpoints/authenticator_index.py

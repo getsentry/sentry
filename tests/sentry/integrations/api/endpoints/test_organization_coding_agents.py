@@ -1,7 +1,12 @@
 import contextlib
 from unittest.mock import MagicMock, Mock, patch
 
+from django.test import override_settings
+from django.urls import reverse
+
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class BaseOrganizationCodingAgentsTest(APITestCase):
@@ -261,6 +266,34 @@ class OrganizationCodingAgentsGetTest(BaseOrganizationCodingAgentsTest):
             mock_identity_service.get_access_token_for_user.assert_called_once_with(
                 user_id=self.user.id
             )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    @patch(
+        "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
+    )
+    def test_github_copilot_service_account_has_no_identity(self, mock_identity_service):
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["event:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        copilot = self._mock_github_copilot_integration()
+
+        with self.mock_integration_service_calls(integrations=[copilot]):
+            response = self.client.get(
+                reverse(self.endpoint, args=[self.organization.slug]),
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["integrations"][0]["has_identity"] is False
+        mock_identity_service.get_access_token_for_user.assert_not_called()
 
     @patch(
         "sentry.integrations.api.endpoints.organization_coding_agents.github_copilot_identity_service"
