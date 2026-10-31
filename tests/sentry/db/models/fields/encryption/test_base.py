@@ -54,7 +54,7 @@ def test_fernet_encryption_without_key() -> None:
         FernetKeyStore._is_loaded = original_is_loaded
 
 
-def test_fernet_encryption_with_key(multi_fernet_keys_store):
+def test_fernet_encryption_with_key(multi_fernet_keys_store: dict[str, bytes]) -> None:
     """Test Fernet encryption with a valid key using new format."""
     with (
         override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": "key_primary"}),
@@ -91,7 +91,7 @@ def test_fernet_encryption_with_key(multi_fernet_keys_store):
         assert decrypted == b"test value"
 
 
-def test_fernet_key_rotation(multi_fernet_keys_store):
+def test_fernet_key_rotation(multi_fernet_keys_store: dict[str, bytes]) -> None:
     """Test that data encrypted with different keys can be decrypted."""
     with (
         override_settings(DATABASE_ENCRYPTION_SETTINGS={"fernet_primary_key_id": "key_primary"}),
@@ -119,7 +119,7 @@ def test_fernet_key_rotation(multi_fernet_keys_store):
         assert decrypted_manual == b"second key data"
 
 
-def test_fernet_format_without_key_id_rejected(fernet_keys_store):
+def test_fernet_format_without_key_id_rejected(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that Fernet format without key_id is rejected."""
     key_id, fernet_key = fernet_keys_store
 
@@ -140,7 +140,7 @@ def test_fernet_format_without_key_id_rejected(fernet_keys_store):
         assert result == invalid_format
 
 
-def test_encryption_method_switching(fernet_keys_store):
+def test_encryption_method_switching(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that values can be decrypted after switching encryption methods."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -174,7 +174,7 @@ def test_encryption_method_switching(fernet_keys_store):
             assert decrypted_plain == b"plain text value"
 
 
-def test_fernet_non_utf_8_chars(fernet_keys_store):
+def test_fernet_non_utf_8_chars(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that different encrypted field types work correctly."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -206,7 +206,7 @@ def test_keysets_not_implemented() -> None:
             field.get_prep_value("test value")
 
 
-def test_fernet_marker_handling(fernet_keys_store):
+def test_fernet_marker_handling(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that the fernet marker is handled correctly."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -258,7 +258,7 @@ def test_to_python_conversion() -> None:
         assert field.to_python(encrypted) == b"test bytes"
 
 
-def test_non_utf8_data_handling(fernet_keys_store):
+def test_non_utf8_data_handling(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test handling of non-UTF8 data."""
     key_id, _fernet_key = fernet_keys_store
     invalid_value = b"\xc0"  # invalid UTF-8 char
@@ -287,7 +287,9 @@ def test_non_utf8_data_handling(fernet_keys_store):
         b"invalid utf-8: \xc0",
     ],
 )
-def test_encryption_decryption_roundtrip(encryption_method, test_value, fernet_keys_store):
+def test_encryption_decryption_roundtrip(
+    encryption_method: str, test_value: object, fernet_keys_store: tuple[str, bytes]
+) -> None:
     """Test that encryption and decryption work correctly in roundtrip."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -308,7 +310,7 @@ def test_encryption_decryption_roundtrip(encryption_method, test_value, fernet_k
             assert decrypted == test_value
 
 
-def test_marker_format_consistency(fernet_keys_store):
+def test_marker_format_consistency(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that the marker format is consistent across methods."""
     key_id, _fernet_key = fernet_keys_store
     field = _encrypted_field()
@@ -327,7 +329,7 @@ def test_marker_format_consistency(fernet_keys_store):
         assert encrypted.startswith(f"{MARKER_FERNET}:")
 
 
-def test_fernet_missing_key_decryption(fernet_keys_store):
+def test_fernet_missing_key_decryption(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that decryption fails gracefully when key_id is not found."""
     key_id, _fernet_key = fernet_keys_store
 
@@ -346,7 +348,7 @@ def test_fernet_missing_key_decryption(fernet_keys_store):
         assert result == formatted_value  # Should return the original encrypted string
 
 
-def test_fernet_format_with_plaintext_data(fernet_keys_store):
+def test_fernet_format_with_plaintext_data(fernet_keys_store: tuple[str, bytes]) -> None:
     """Test that data in fernet format but containing plain text (not encrypted) falls back correctly."""
     key_id, _fernet_key = fernet_keys_store
 

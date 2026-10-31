@@ -25,7 +25,7 @@ class BitFieldTestModel(models.Model):
         bitfield_db_column = "another_name"
 
 
-class BitFieldTestModelForm(forms.ModelForm):
+class BitFieldTestModelForm(forms.ModelForm[BitFieldTestModel]):
     class Meta:
         model = BitFieldTestModel
         exclude = ()

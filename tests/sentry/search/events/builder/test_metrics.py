@@ -66,7 +66,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_granularity(self) -> None:
         # Need to pick granularity based on the period
-        def get_granularity(start, end):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime) -> int:
             params = {
                 "organization_id": self.organization.id,
                 "project_id": self.projects,
@@ -129,7 +129,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
     def test_granularity_boundaries(self) -> None:
         # Need to pick granularity based on the period
-        def get_granularity(start, end):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime) -> int:
             params = {
                 "organization_id": self.organization.id,
                 "project_id": self.projects,
@@ -210,7 +210,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_granularity(self) -> None:
         # Need to pick granularity based on the period and interval for timeseries
-        def get_granularity(start, end, interval):
+        def get_granularity(start: datetime.datetime, end: datetime.datetime, interval: int) -> int:
             query = TimeseriesMetricQueryBuilder(
                 {
                     "organization_id": self.organization.id,

@@ -2,14 +2,14 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast
 
 import orjson
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import IntegrityError, models, router
-from django.db.models import Case, Exists, F, Func, OuterRef, Q, Sum, When
+from django.db.models import Case, Exists, F, Func, OuterRef, Q, QuerySet, Sum, When
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -58,6 +58,7 @@ from sentry.utils.numbers import validate_bigint
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
+    from sentry.models.distribution import Distribution
     from sentry.models.project import Project
 
 
@@ -166,10 +167,10 @@ class ReleaseModelManager(BaseManager["Release"]):
         self,
         organization_id: int,
         operator: str,
-        value,
+        value: str | list[str],
         project_ids: Sequence[int] | None = None,
         environments: Sequence[str | int] | None = None,
-    ) -> models.QuerySet:
+    ) -> ReleaseQuerySet:
         return self.get_queryset().filter_by_stage(
             organization_id, operator, value, project_ids, environments
         )
@@ -427,7 +428,7 @@ class Release(Model):
             return False
 
     @staticmethod
-    def is_release_newer_or_equal(org_id, release, other_release):
+    def is_release_newer_or_equal(org_id: int, release: Any, other_release: Any) -> bool:
         if release is None:
             return False
 
@@ -471,10 +472,10 @@ class Release(Model):
         return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
-    def get(cls, project, version):
+    def get(cls, project: Project, version: str) -> Release | None:
         cache_key = cls.get_cache_key(project.organization_id, version)
 
-        release = cache.get(cache_key)
+        release: Release | int | None = cache.get(cache_key)
         if release is None:
             try:
                 release = cls.objects.get(
@@ -485,12 +486,20 @@ class Release(Model):
             cache.set(cache_key, release, 300)
 
         if release == -1:
-            return
+            return None
 
-        return release
+        return cast("Release | None", release)
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None, *, create=True, metrics_tags=None):
+    def get_or_create(
+        cls,
+        project: Project,
+        version: str,
+        date_added: datetime | None = None,
+        *,
+        create: bool = True,
+        metrics_tags: MutableMapping[str, str | int | float | None] | None = None,
+    ) -> Release | None:
         with metrics.timer("models.release.get_or_create") as timer_tags:
             release = cls._get_or_create_impl(project, version, date_added, timer_tags, create)
             if metrics_tags is not None:
@@ -498,7 +507,14 @@ class Release(Model):
             return release
 
     @classmethod
-    def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
+    def _get_or_create_impl(
+        cls,
+        project: Project,
+        version: str,
+        date_added: datetime | None,
+        metric_tags: MutableMapping[str, str | int | float | None],
+        create: bool = True,
+    ) -> Release | None:
         from sentry.models.project import Project
 
         if date_added is None:
@@ -588,7 +604,7 @@ class Release(Model):
         return release
 
     @cached_property
-    def version_info(self):
+    def version_info(self) -> dict[str, Any] | None:
         try:
             return parse_release(self.version, json_loads=orjson.loads)
         except RelayError:
@@ -596,7 +612,7 @@ class Release(Model):
             return None
 
     @classmethod
-    def merge(cls, to_release, from_releases):
+    def merge(cls, to_release: Release, from_releases: Sequence[Release]) -> None:
         # The following models reference release:
         # ReleaseCommit.release
         # ReleaseEnvironment.release_id
@@ -648,7 +664,7 @@ class Release(Model):
 
             release.delete()
 
-    def add_dist(self, name, date_added=None):
+    def add_dist(self, name: str, date_added: datetime | None = None) -> Distribution:
         from sentry.models.distribution import Distribution
 
         if date_added is None:
@@ -659,7 +675,7 @@ class Release(Model):
             defaults={"date_added": date_added, "organization_id": self.organization_id},
         )[0]
 
-    def add_project(self, project):
+    def add_project(self, project: Project) -> tuple[ReleaseProject | None, bool]:
         """
         Add a project to this release.
 
@@ -679,7 +695,7 @@ class Release(Model):
 
         return obj, created
 
-    def handle_commit_ranges(self, refs):
+    def handle_commit_ranges(self, refs: list[dict[str, Any]]) -> None:
         """
         Takes commit refs of the form:
         [
@@ -694,7 +710,9 @@ class Release(Model):
             if COMMIT_RANGE_DELIMITER in ref["commit"]:
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
-    def set_refs(self, refs, user_id, fetch=False):
+    def set_refs(
+        self, refs: list[dict[str, Any]], user_id: int | None, fetch: bool = False
+    ) -> None:
         with traces.start_span(name="set_refs", attributes={"sentry.op": "set_refs"}):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -737,7 +755,7 @@ class Release(Model):
                 )
 
     @traces.trace
-    def set_commits(self, commit_list):
+    def set_commits(self, commit_list: list[Any]) -> None:
         """
         Bind a list of commits to this release.
 
@@ -752,7 +770,7 @@ class Release(Model):
 
         set_commits(self, commit_list)
 
-    def safe_delete(self):
+    def safe_delete(self) -> None:
         """Deletes a release if possible or raises a `UnsafeReleaseDeletion`
         exception.
         """
@@ -817,7 +835,7 @@ class Release(Model):
 
         return qs[0]
 
-    def clear_commits(self):
+    def clear_commits(self) -> None:
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
@@ -941,7 +959,9 @@ def get_artifact_counts(release_ids: list[int]) -> Mapping[int, int]:
     return dict(qs)
 
 
-def follows_semver_versioning_scheme(org_id, project_id, release_version=None):
+def follows_semver_versioning_scheme(
+    org_id: int, project_id: int, release_version: str | None = None
+) -> bool:
     """
     Checks if we should follow semantic versioning scheme for ordering based on
     1. Latest ten releases of the project_id passed in all follow semver
@@ -1027,7 +1047,9 @@ def get_previous_release(release: Release) -> Release | None:
     )
 
 
-def filter_releases_by_projects(queryset: Any, project_ids: list[int]):
+def filter_releases_by_projects(
+    queryset: QuerySet[Release], project_ids: Sequence[int]
+) -> QuerySet[Release]:
     """Return releases belonging to a project."""
     if not project_ids:
         return queryset
@@ -1043,10 +1065,10 @@ def filter_releases_by_projects(queryset: Any, project_ids: list[int]):
 
 
 def filter_releases_by_environments(
-    queryset: Any,
-    project_ids: list[int],
-    environment_ids: list[int],
-):
+    queryset: QuerySet[Release],
+    project_ids: Sequence[int],
+    environment_ids: Sequence[int],
+) -> QuerySet[Release]:
     """Return a release queryset filtered by environments."""
     from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 

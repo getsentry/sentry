@@ -833,7 +833,7 @@ class OrganizationIndex2faTest(TwoFactorAPITestCase):
         self.no_2fa_user = self.create_user()
         self.create_member(organization=self.org_2fa, user=self.no_2fa_user, role="member")
 
-    def assert_redirected_to_2fa(self):
+    def assert_redirected_to_2fa(self) -> None:
         response = self.get_success_response(self.org_2fa.slug, status_code=302)
         assert self.path_2fa in response.url
 
@@ -876,7 +876,7 @@ class OrganizationIndexMemberLimitTest(APITestCase):
     # This is a react view, not an API endpoint
     endpoint = "sentry-organization-index"
 
-    def setup_user(self, is_superuser=False):
+    def setup_user(self, is_superuser: bool = False) -> None:
         self.organization = self.create_organization()
         self.user = self.create_user(is_superuser=is_superuser)
         self.create_member(

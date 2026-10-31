@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -1083,7 +1084,9 @@ class ActionsTest(TestCase):
             group, self.project, "test txt", [MessageAction(name="TEST")], MOCKIDENTITY
         ) == ([], "", True)
 
-    def _assert_message_actions_list(self, actions, expected):
+    def _assert_message_actions_list(
+        self, actions: Sequence[MessageAction], expected: dict[str, Any]
+    ) -> None:
         actions_dict = [
             {"name": a.name, "label": a.label, "type": a.type, "value": a.value} for a in actions
         ]

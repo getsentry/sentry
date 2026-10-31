@@ -5,6 +5,7 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any, Optional, cast
 
+from requests import Response
 from requests import Session as _Session
 from requests.adapters import DEFAULT_POOLBLOCK, DEFAULT_RETRIES, HTTPAdapter, Retry
 from urllib3.connection import HTTPConnection, HTTPSConnection
@@ -33,7 +34,9 @@ class SafeConnectionMixin:
     timeout: float | None
     port: int
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+    ) -> None:
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(*args, **kwargs)
 
@@ -113,7 +116,9 @@ class SafeHTTPSConnection(SafeConnectionMixin, HTTPSConnection):
 class SafeHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = SafeHTTPConnection
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = cast(
             type[SafeHTTPConnection],
@@ -124,7 +129,9 @@ class SafeHTTPConnectionPool(HTTPConnectionPool):
 class SafeHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = cast(
             type[SafeHTTPSConnection],
@@ -139,7 +146,9 @@ class SafePoolManager(PoolManager):
     ConnectionPool classes to create.
     """
 
-    def __init__(self, *args, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs):
+    def __init__(
+        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+    ) -> None:
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
             "http": partial(SafeHTTPConnectionPool, is_ipaddress_permitted=is_ipaddress_permitted),  # type: ignore[dict-item]  # https://github.com/urllib3/urllib3/issues/3554
@@ -204,7 +213,7 @@ class TimeoutAdapter(HTTPAdapter):
             timeout = 10.0
         self.default_timeout: float = timeout
 
-    def send(self, *args, **kwargs):
+    def send(self, *args: Any, **kwargs: Any) -> Response:
         if kwargs.get("timeout") is None:
             kwargs["timeout"] = self.default_timeout
         return HTTPAdapter.send(self, *args, **kwargs)
@@ -214,7 +223,7 @@ USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 
 class Session(_Session):
-    def request(self, *args, **kwargs):
+    def request(self, *args: Any, **kwargs: Any) -> Response:
         kwargs.setdefault("timeout", 30)
         response = _Session.request(self, *args, **kwargs)
         # requests' attempts to use chardet internally when no encoding is found
@@ -242,7 +251,7 @@ class SafeSession(Session):
 class UnixHTTPConnection(HTTPConnection):
     default_socket_options = []
 
-    def __init__(self, host: str, **kwargs):
+    def __init__(self, host: str, **kwargs: Any) -> None:
         # We're using the `host` as the socket path, but
         # urllib3 uses this host as the Host header by default.
         # If we send along the socket path as a Host header, this is
@@ -258,7 +267,7 @@ class UnixHTTPConnection(HTTPConnection):
         # If provided, set socket level options before connecting.
         _set_socket_options(sock, self.socket_options)
 
-        if self.timeout is not _DEFAULT_TIMEOUT:
+        if cast("object", self.timeout) is not _DEFAULT_TIMEOUT:
             sock.settimeout(self.timeout)
         sock.connect(self.socket_path)
         return sock
@@ -271,7 +280,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
         return f"{type(self).__name__}(host={self.host!r})"
 
 
-def connection_from_url(endpoint: str, **kw: Any):
+def connection_from_url(endpoint: str, **kw: Any) -> HTTPConnectionPool:
     if endpoint[:1] == "/":
         return UnixHTTPConnectionPool(endpoint, **kw)
     return _connection_from_url(endpoint, **kw)

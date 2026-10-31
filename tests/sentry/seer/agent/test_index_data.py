@@ -1,5 +1,6 @@
 import uuid
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import orjson
@@ -239,7 +240,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service responses for both transaction and continuous profiles
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 if f"profiles/{profile1_id}" in path:
                     response = mock.Mock()
                     response.status = 200
@@ -434,7 +437,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 response = mock.Mock()
                 response.status = 200
                 response.data = orjson.dumps(
@@ -561,7 +566,9 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         # Mock the external profiling service calls
         with mock.patch("sentry.seer.agent.utils.get_from_profiling_service") as mock_service:
             # Mock profile service response for continuous profiles (/chunks endpoint)
-            def mock_service_response(method, path, *args, **kwargs):
+            def mock_service_response(
+                method: str, path: str, *args: Any, **kwargs: Any
+            ) -> mock.Mock:
                 response = mock.Mock()
                 response.status = 200
                 response.data = orjson.dumps(
@@ -685,8 +692,13 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
         with mock.patch("sentry.seer.agent.index_data.fetch_profile_data") as mock_fetch:
             # Mock to capture the timestamps passed to fetch_profile_data
             def capture_and_return(
-                profile_id, organization_id, project_id, start_ts, end_ts, is_continuous
-            ):
+                profile_id: str,
+                organization_id: int,
+                project_id: int,
+                start_ts: Any,
+                end_ts: Any,
+                is_continuous: bool,
+            ) -> dict[str, Any]:
                 captured_timestamps["start_ts"] = start_ts
                 captured_timestamps["end_ts"] = end_ts
                 captured_timestamps["profile_id"] = profile_id
@@ -743,7 +755,7 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
 
 class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSnubaMixin):
     @property
-    def backend(self):
+    def backend(self) -> EventsDatasetSnubaSearchBackend:
         return EventsDatasetSnubaSearchBackend()
 
     def setUp(self) -> None:

@@ -35,7 +35,7 @@ from sentry.search.grammar.sql import Condition, OrderBy, ParsedQuery, parse_sql
         ),
     ],
 )
-def test_search_filter_to_query_string(query, expected) -> None:
+def test_search_filter_to_query_string(query: str, expected: ParsedQuery) -> None:
     parsed_query = parse_sql_query(query)
 
     assert parsed_query == expected, parsed_query

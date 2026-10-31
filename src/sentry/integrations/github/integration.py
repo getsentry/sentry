@@ -371,14 +371,14 @@ class GitHubIntegration(
             return False
         return True
 
-    def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
+    def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         if query is None:
             query = ""
         resp = self.get_client().search_issues(query)
         assert isinstance(resp, dict)
         return resp
 
-    def get_account_id(self):
+    def get_account_id(self) -> str | int:
         installation_metadata = self.model.metadata
         github_account_id = installation_metadata.get("account_id")
 
@@ -418,7 +418,7 @@ class GitHubIntegration(
 
         return False
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
@@ -837,7 +837,7 @@ def get_install_app_url() -> str:
     return f"https://github.com/apps/{slugify(name)}"
 
 
-def record_event(event: IntegrationPipelineViewType):
+def record_event(event: IntegrationPipelineViewType) -> IntegrationPipelineViewEvent:
     return IntegrationPipelineViewEvent(
         event, IntegrationDomain.SOURCE_CODE_MANAGEMENT, GitHubIntegrationProvider.key
     )
@@ -1063,7 +1063,11 @@ def validate_github_installation(
     return installation_id
 
 
-class InitialDataSerializer(CamelSnakeSerializer):
+class InitialDataValidatedData(TypedDict):
+    installation_id: NotRequired[str]
+
+
+class InitialDataSerializer(CamelSnakeSerializer[InitialDataValidatedData]):
     """Validates initial data for provider-initiated GitHub installs.
 
     When a user installs the GitHub App directly from GitHub, the redirect
@@ -1084,7 +1088,7 @@ class OAuthLoginValidatedData(TypedDict):
     installation_id: NotRequired[str]
 
 
-class OAuthLoginSerializer(CamelSnakeSerializer):
+class OAuthLoginSerializer(CamelSnakeSerializer[OAuthLoginValidatedData]):
     code = CharField(required=True)
     state = CharField(required=True)
     # GitHub includes installation_id in the OAuth callback URL when the user
@@ -1167,7 +1171,7 @@ class OrgSelectionValidatedData(TypedDict):
     installation_id: NotRequired[str]
 
 
-class OrgSelectionSerializer(CamelSnakeSerializer):
+class OrgSelectionSerializer(CamelSnakeSerializer[OrgSelectionValidatedData]):
     chosen_installation_id = CharField(required=False, allow_blank=True)
     installation_id = CharField(required=False)
 

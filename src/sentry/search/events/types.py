@@ -40,6 +40,7 @@ class ParamsType(TypedDict, total=False):
     team_id: NotRequired[list[int]]
     environment_objects: NotRequired[list[Environment]]
     statsPeriod: NotRequired[str]
+    user_id: NotRequired[int | None]
 
 
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]

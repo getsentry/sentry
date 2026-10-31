@@ -6,7 +6,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
 @thread_leak_allowlist(reason="datadog precise metrics", issue=98805)
 @mock.patch("datadog.dogstatsd.base.DogStatsd.distribution")
-def test_precise_distribution(distribution):
+def test_precise_distribution(distribution: mock.MagicMock) -> None:
     backend = PreciseDogStatsdMetricsBackend(prefix="sentrytest.")
 
     backend.distribution("foo", 100, tags={"some": "stuff"}, unit="byte")
@@ -19,7 +19,7 @@ def test_precise_distribution(distribution):
 
 @thread_leak_allowlist(reason="datadog precise metrics", issue=98805)
 @mock.patch("datadog.dogstatsd.base.DogStatsd.set")
-def test_precise_set(mock_set):
+def test_precise_set(mock_set: mock.MagicMock) -> None:
     backend = PreciseDogStatsdMetricsBackend(prefix="sentrytest.")
 
     backend.set("foo", 4242, tags={"some": "stuff"})
@@ -27,7 +27,7 @@ def test_precise_set(mock_set):
 
 
 @thread_leak_allowlist(reason="datadog precise metrics", issue=98805)
-def test_precise_constant_tags():
+def test_precise_constant_tags() -> None:
     backend = PreciseDogStatsdMetricsBackend(
         prefix="sentrytest.",
         tags={"metrics_source": "dd-agent"},

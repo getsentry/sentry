@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -15,7 +16,12 @@ from sentry.integrations.slack.unfurl.dashboards import build_widget_timeseries_
 from sentry.integrations.slack.unfurl.explore import _build_heatmap_query, _heatmap_y_buckets
 from sentry.integrations.slack.unfurl.handlers import link_handlers, match_link
 from sentry.integrations.slack.unfurl.types import LinkType, UnfurlableUrl
-from sentry.models.dashboard_widget import DashboardWidgetDisplayTypes, DashboardWidgetTypes
+from sentry.models.dashboard import Dashboard
+from sentry.models.dashboard_widget import (
+    DashboardWidget,
+    DashboardWidgetDisplayTypes,
+    DashboardWidgetTypes,
+)
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.snuba import discover, errors, transactions
 from sentry.testutils.cases import TestCase
@@ -202,7 +208,7 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
         ),
     ],
 )
-def test_match_link(url, expected) -> None:
+def test_match_link(url: str, expected: tuple[LinkType | None, Mapping[str, Any] | None]) -> None:
     assert match_link(url) == expected
 
 
@@ -832,8 +838,8 @@ class UnfurlTest(TestCase):
     )
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     def test_unfurl_discover_without_project_ids(
-        self, mock_generate_chart, mock_get_event_stats_data
-    ):
+        self, mock_generate_chart: MagicMock, mock_get_event_stats_data: MagicMock
+    ) -> None:
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?dataset=errors&field=title&field=event.type&field=project&field=user.display&field=timestamp&name=All+Events&query=&sort=-timestamp&statsPeriod=24h"
         link_type, args = match_link(url)
 
@@ -1133,7 +1139,7 @@ class UnfurlTest(TestCase):
         dataset = mock_get_event_stats_data.mock_calls[0][2]["dataset"]
         assert dataset == discover
 
-    def _build_mock_timeseries_response(self, y_axis="avg(span.duration)"):
+    def _build_mock_timeseries_response(self, y_axis: str = "avg(span.duration)") -> dict[str, Any]:
         return {
             "timeSeries": [
                 {
@@ -1184,7 +1190,7 @@ class UnfurlTest(TestCase):
         chart_data = mock_generate_chart.call_args[0][1]
         assert "timeSeries" in chart_data
 
-    def _build_mock_heatmap_response(self):
+    def _build_mock_heatmap_response(self) -> dict[str, Any]:
         """A HeatMapSeries-shaped events-heatmap response. The Y axis is the
         generic `value` field, so the API returns no metric unit in the meta."""
         return {
@@ -2259,7 +2265,7 @@ class UnfurlTest(TestCase):
         conditions: str = "",
         orderby: str = "",
         title: str = "My Spans Widget",
-    ):
+    ) -> tuple[Dashboard, DashboardWidget]:
         dashboard = self.create_dashboard(organization=self.organization)
         widget = self.create_dashboard_widget(
             dashboard=dashboard,
@@ -2552,7 +2558,7 @@ class UnfurlTest(TestCase):
     def test_unfurl_dashboards_single_query_multi_series_share_query_index(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        def grouped_response(group_value: str):
+        def grouped_response(group_value: str) -> dict[str, Any]:
             return {
                 "timeSeries": [
                     {
@@ -2659,7 +2665,7 @@ class BuildWidgetTimeseriesParamsTest(TestCase):
         self,
         widget_type: int = DashboardWidgetTypes.SPANS,
         queries: list[dict[str, Any]] | None = None,
-    ):
+    ) -> DashboardWidget:
         dashboard = self.create_dashboard(organization=self.organization)
         widget = self.create_dashboard_widget(
             dashboard=dashboard,

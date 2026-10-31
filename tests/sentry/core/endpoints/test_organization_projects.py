@@ -1,8 +1,11 @@
+from typing import Any
+
 import pytest
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -17,7 +20,7 @@ class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
     @staticmethod
-    def check_valid_response(response, expected_projects):
+    def check_valid_response(response: Any, expected_projects: list[Project]) -> None:
         assert [project.id for project in expected_projects] == [
             int(project_resp["id"]) for project_resp in response.data
         ]
