@@ -3,7 +3,6 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Iterable
 from copy import deepcopy
-from datetime import datetime
 from typing import Any
 from uuid import UUID
 
@@ -11,7 +10,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from sentry.models.project import Project
-from sentry.notebooks.contracts import validate_text_result
+from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS, validate_text_result
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -65,20 +64,22 @@ def upsert_block(
     producing_seer_run_id: int | None = None,
     input_snapshot: dict[str, Any],
 ) -> NotebookBlock:
-    """Create or update the producer block `(key, revision)` and record its execution.
+    """Write the producer block for `key` at `revision` and record its execution.
 
-    A field left UNSET keeps the block's value, and generated_content falls back to content.
+    A newer revision updates the block in place, and an older one is rejected. A field
+    left UNSET keeps the block's value, and generated_content falls back to content.
     """
 
-    block = (
-        NotebookBlock.objects.filter(
+    block = _live_block(notebook, key)
+    if block is None:
+        # Bring back a block removed in this revision, since the revision and key stay unique.
+        block = NotebookBlock.objects.filter(
             notebook=notebook,
             producer_revision=revision,
             producer_key=key,
-        )
-        .select_related("current_execution")
-        .first()
-    )
+        ).first()
+    else:
+        _check_revision(block, revision)
     if block is None:
         # Optional on the schema because an update may reuse the stored position,
         # but a block being created has none to fall back on.
@@ -92,11 +93,7 @@ def upsert_block(
             kind=kind,
         )
     elif block.kind != kind:
-        previous_execution = block.current_execution
-        if not from_snapshot and (
-            previous_execution is None
-            or previous_execution.input_snapshot.get("reportRevision", revision) >= revision
-        ):
+        if not from_snapshot and block.producer_revision == revision:
             raise serializers.ValidationError(
                 {"payload": "Changing a report block's kind requires a new report revision."}
             )
@@ -138,6 +135,7 @@ def upsert_block(
     block.title = title
     block.config = deepcopy(config)
     block.display = deepcopy(display)
+    block.producer_revision = revision
     block.producing_seer_run_id = producing_seer_run_id
     block.deleted_at = None
     if complete:
@@ -296,15 +294,32 @@ def upsert_block(
     return block
 
 
+def append_block_content(
+    notebook: Notebook, *, key: str, revision: int, text: str, reset: bool = False
+) -> bool:
+    """Stream text into a started text block. Returns whether the block changed."""
+
+    block = _live_block(notebook, key)
+    if block is None or block.kind != NotebookBlockKind.TEXT:
+        raise serializers.ValidationError({"payload": "Text block was not started."})
+    _check_revision(block, revision)
+    # A rewrite keeps showing the previous output until it completes.
+    if block.content_execution_id != block.current_execution_id:
+        return False
+    if (0 if reset else len(block.content)) + len(text) > MAX_MARKDOWN_CHARS:
+        raise serializers.ValidationError({"payload": "Text block exceeds its size limit."})
+    block.content = text if reset else block.content + text
+    block.generated_content = text if reset else block.generated_content + text
+    block.version += 1
+    block.save(update_fields=["content", "generated_content", "version", "date_updated"])
+    return True
+
+
 def move_block(notebook: Notebook, *, key: str, revision: int, position: int) -> None:
-    block = NotebookBlock.objects.filter(
-        notebook=notebook,
-        producer_revision=revision,
-        producer_key=key,
-        deleted_at__isnull=True,
-    ).first()
+    block = _live_block(notebook, key)
     if block is None:
         raise serializers.ValidationError({"payload": "Report block was not found."})
+    _check_revision(block, revision)
     block.position = position
     block.version += 1
     block.save(update_fields=["position", "version", "date_updated"])
@@ -316,15 +331,24 @@ def remove_blocks(
     revision: int | None = None,
     key: str | None = None,
     block_ids: Iterable[int] | None = None,
+    revision_below: int | None = None,
+    stale: bool = False,
     all_blocks: bool = False,
-    now: datetime | None = None,
-) -> int:
-    """Soft-delete the notebook's live producer blocks that match the filters.
+) -> list[str]:
+    """Soft-delete the notebook's live producer blocks that match the filters, and return
+    their keys. `stale=True` matches only stale blocks.
 
     Pass all_blocks=True to remove every live producer block.
     """
 
-    if revision is None and key is None and block_ids is None and not all_blocks:
+    if (
+        revision is None
+        and key is None
+        and block_ids is None
+        and revision_below is None
+        and not stale
+        and not all_blocks
+    ):
         raise ValueError("remove_blocks needs a filter or all_blocks=True.")
 
     blocks = NotebookBlock.objects.filter(
@@ -339,5 +363,24 @@ def remove_blocks(
         blocks = blocks.filter(producer_key=key)
     if block_ids is not None:
         blocks = blocks.filter(id__in=block_ids)
-    now = now or timezone.now()
-    return blocks.update(deleted_at=now, date_updated=now)
+    if revision_below is not None:
+        blocks = blocks.filter(producer_revision__lt=revision_below)
+    if stale:
+        blocks = blocks.filter(stale_at__isnull=False)
+    removed = list(blocks.values_list("id", "producer_key"))
+    now = timezone.now()
+    NotebookBlock.objects.filter(id__in=[block_id for block_id, _ in removed]).update(
+        deleted_at=now, date_updated=now
+    )
+    return [block_key for _, block_key in removed if block_key is not None]
+
+
+def _live_block(notebook: Notebook, key: str) -> NotebookBlock | None:
+    return NotebookBlock.objects.filter(
+        notebook=notebook, producer_key=key, deleted_at__isnull=True
+    ).first()
+
+
+def _check_revision(block: NotebookBlock, revision: int) -> None:
+    if block.producer_revision is not None and block.producer_revision > revision:
+        raise serializers.ValidationError({"payload": "The block has a newer revision."})
