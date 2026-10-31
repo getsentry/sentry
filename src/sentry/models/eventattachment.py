@@ -284,7 +284,7 @@ class EventAttachment(EventAttachmentBase):
 
     @classmethod
     def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
-        content_type = normalize_content_type(attachment.content_type, attachment.name)
+        content_type = normalize_content_type(attachment.content_type, attachment.name or "")
         if attachment.size == 0:
             return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
         if attachment.stored_id is not None:

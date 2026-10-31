@@ -349,6 +349,7 @@ def create_console_screenshot_attachment(event, project, platform):
 
         file_result = EventAttachment.putfile(project.id, attachment)
 
+        assert attachment.name is not None
         EventAttachment.objects.create(
             event_id=event.event_id,
             project_id=project.id,

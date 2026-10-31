@@ -114,11 +114,11 @@ class DebugWeeklyReportView(MailPreviewView):
             )
             project_context = ProjectContext(project)
             project_context.error_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
+                int(start_timestamp + (i * ONE_DAY)): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
             project_context.issue_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
+                int(start_timestamp + (i * ONE_DAY)): random.randint(0, daily_maximum // 10)
                 for i in range(0, 7)
             }
 

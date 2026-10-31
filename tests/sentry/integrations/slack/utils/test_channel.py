@@ -1,3 +1,5 @@
+from collections.abc import Mapping, Sequence
+from contextlib import AbstractContextManager
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -58,7 +60,12 @@ class GetChannelIdTest(TestCase):
             "response_metadata": {"next_cursor": ""},
         }
 
-    def patch_mock_list(self, list_type, channels, result_name="channels"):
+    def patch_mock_list(
+        self,
+        list_type: str,
+        channels: Sequence[Mapping[str, object]],
+        result_name: str = "channels",
+    ) -> AbstractContextManager[MagicMock]:
         return patch(
             "slack_sdk.web.client.WebClient.%s_list" % list_type,
             return_value=SlackResponse(
@@ -72,7 +79,7 @@ class GetChannelIdTest(TestCase):
             ),
         )
 
-    def patch_msg_response_not_found(self):
+    def patch_msg_response_not_found(self) -> AbstractContextManager[MagicMock]:
         return patch(
             "slack_sdk.web.client.WebClient.chat_scheduleMessage",
             return_value=SlackResponse(
@@ -86,7 +93,9 @@ class GetChannelIdTest(TestCase):
             ),
         )
 
-    def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
+    def run_valid_test(
+        self, channel: str, expected_prefix: str, expected_id: str | None, timed_out: bool
+    ) -> None:
         assert SlackChannelIdData(expected_prefix, expected_id, timed_out) == get_channel_id(
             self.integration, channel
         )
@@ -261,7 +270,7 @@ class IsInputAUserIdTest(TestCase):
         assert not is_input_a_user_id("F12345678")  # File ID
 
 
-def create_user_response(*, user):
+def create_user_response(*, user: Mapping[str, object]) -> SlackResponse:
     return SlackResponse(
         client=None,
         http_verb="POST",
@@ -273,7 +282,7 @@ def create_user_response(*, user):
     )
 
 
-def create_user_error(*, error, status_code: int = 400):
+def create_user_error(*, error: str, status_code: int = 400) -> SlackApiError:
     return SlackApiError(
         message=error,
         response=SlackResponse(

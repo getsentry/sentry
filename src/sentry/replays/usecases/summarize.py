@@ -199,7 +199,7 @@ def fetch_trace_connected_errors(
 
 
 @traces.trace
-def fetch_feedback_details(feedback_id: str | None, project_id) -> EventDict | None:
+def fetch_feedback_details(feedback_id: str | None, project_id: int) -> EventDict | None:
     """
     Fetch user feedback associated with a specific feedback event ID.
     """
@@ -270,7 +270,7 @@ def _format_when(timestamp: float | None) -> str:
 def generate_summary_logs(
     segment_data: Iterator[tuple[int, memoryview]],
     error_events: list[EventDict],
-    project_id,
+    project_id: int,
     is_mobile_replay: bool = False,
     replay_start: str | None = None,
 ) -> Generator[str]:

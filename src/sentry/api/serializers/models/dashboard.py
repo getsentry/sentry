@@ -179,7 +179,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             y_axes = (
                 aggregate_equation_fields
                 if obj.display_type == DashboardWidgetDisplayTypes.TABLE
-                else spans_query.aggregates
+                else (spans_query.aggregates or [])
             )
 
             explore_mode = "aggregate"
@@ -221,7 +221,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             group_by = (
                 non_aggregate_group_by_fields
                 if spans_query.fields and obj.display_type == DashboardWidgetDisplayTypes.TABLE
-                else spans_query.columns
+                else (spans_query.columns or [])
             )
             if len(group_by) == 0:
                 group_by = [""]

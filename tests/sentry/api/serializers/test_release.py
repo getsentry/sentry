@@ -1204,7 +1204,7 @@ class GetUsersForAuthorsUserMappingsTest(TestCase):
         assert users[str(author.id)]["name"] == "Regular Sentry User"
 
     @patch("sentry.users.services.user.service.user_service.serialize_many")
-    def test_get_users_for_authors_user_dropped(self, mock_serialize) -> None:
+    def test_get_users_for_authors_user_dropped(self, mock_serialize: MagicMock) -> None:
         """Edge case: user ID is found but doesn't come back from serialize_many"""
         project = self.create_project()
         user = self.create_user(email="found@company.com", name="Found User")

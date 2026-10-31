@@ -36,9 +36,9 @@ from sentry.users.services.user_option import get_option_from_list, user_option_
 # justification: provider issue payloads and defaults are decoded JSON.
 IssuePayload: TypeAlias = Mapping[str, Any]
 IssueDefaults: TypeAlias = dict[str, Any]  # justification: decoded JSON.
-IssueSearchResults: TypeAlias = (
+IssueSearchResults: TypeAlias = (  # justification: decoded JSON.
     list[dict[str, Any]] | dict[str, Any]
-)  # justification: decoded JSON.
+)
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 

@@ -1180,6 +1180,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 data=b"permission matrix attachment",
             )
             attachment_file = EventAttachment.putfile(self.project.id, cached_attachment)
+            assert cached_attachment.name is not None
             resource = EventAttachment.objects.create(
                 event_id=event.event_id,
                 project_id=self.project.id,

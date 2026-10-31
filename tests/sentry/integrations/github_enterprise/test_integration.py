@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -18,6 +19,7 @@ from sentry.integrations.github_enterprise.integration import (
     _api_base_url,
     get_user_info,
 )
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -26,6 +28,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -34,6 +37,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.model import RpcUser
 
 
 class ApiBaseUrlTest(TestCase):
@@ -78,19 +82,19 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         from sentry.integrations import github
 
         with mock.patch.object(github.client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_enterprise(self):
+    def stub_get_jwt_enterprise(self) -> Iterator[None]:
         with mock.patch(
             "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
         ):
@@ -144,7 +148,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         external_id: str = "octocat",
         issue_key: str = "Test-Organization/foo#123",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[RpcUser, GitHubEnterpriseIntegration, ExternalIssue, Integration, Group]:
         """
         Common setup for assignee sync tests.
 
