@@ -200,6 +200,8 @@ def _status(base: str | None) -> int:
     print(f"strict-checked: {len(strong)}")
     print(f"still weaklisted: {len(weak)}")
     print(f"weaklist entries: {len(weaklist)}")
+    print(f"exact entries: {sum(1 for entry in weaklist if not entry.endswith('.*'))}")
+    print(f"wildcard entries: {sum(1 for entry in weaklist if entry.endswith('.*'))}")
     return 0
 
 
