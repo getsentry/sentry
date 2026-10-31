@@ -39,6 +39,7 @@ class TimeChecker:
 
 
 class ExperimentalConfigBuilder(Protocol):
+    # justification: Relay config builders have arbitrary signatures at this boundary.
     def __call__(self, timeout: TimeChecker, *args: Any, **kwargs: Any) -> Any:
         pass
 

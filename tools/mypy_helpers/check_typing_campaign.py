@@ -163,6 +163,11 @@ def _check_file(
         and len(new_any_lines) > len(_any_lines(old_text))
     ):
         for line_number in sorted(set(new_any_lines) & added):
+            previous_line = lines[line_number - 2] if line_number > 1 else ""
+            if JUSTIFICATION_RE.search(lines[line_number - 1]) or JUSTIFICATION_RE.search(
+                previous_line
+            ):
+                continue
             errors.append(
                 f"{path}:{line_number}: new Any in graduated module {module}; "
                 "fix the type or add a precise contract"

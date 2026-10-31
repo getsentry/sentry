@@ -1,5 +1,3 @@
-from typing import Any
-
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +16,7 @@ class StarViewSerializer(serializers.Serializer):
     starred = serializers.BooleanField(required=True)
     position = serializers.IntegerField(required=False)
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if not data["starred"] and "position" in data:
             raise serializers.ValidationError("Position is only allowed when starring a view.")
         return data

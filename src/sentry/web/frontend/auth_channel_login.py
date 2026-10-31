@@ -1,4 +1,4 @@
-from typing import Any
+from collections.abc import Mapping
 
 from django.contrib.auth import REDIRECT_FIELD_NAME
 from django.http import HttpRequest, HttpResponseBase
@@ -24,7 +24,7 @@ class AuthChannelLoginView(AuthOrganizationLoginView):
         if request.subdomain is not None:
             return self.redirect(reverse("sentry-auth-organization", args=[request.subdomain]))
 
-        config_data: str | dict[str, Any] = request.GET.get("config_data", "")
+        config_data: str | Mapping[str, object] = request.GET.get("config_data", "")
 
         if not config_data:
             # NOTE: This provider_config may differ per provider

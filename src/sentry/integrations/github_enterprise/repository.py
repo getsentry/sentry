@@ -22,7 +22,7 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
     def _validate_repo(
         self, client: GitHubBaseClient, installation: IntegrationInstallation, repo: str
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, object]:
         try:
             repo_data = client.get_repo(repo)
         except Exception as e:

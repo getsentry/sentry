@@ -9,8 +9,8 @@ For example: `integration.get_installation(organization_id).get_thread_history(.
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
@@ -26,7 +26,7 @@ from sentry.notifications.platform.slack.provider import SlackRenderable
 _logger = logging.getLogger("sentry.integrations.slack")
 
 
-def get_conversations_info(*, integration_id: int, channel_id: str) -> dict[str, Any]:
+def get_conversations_info(*, integration_id: int, channel_id: str) -> dict[str, object]:
     """Fetch conversations.info. Returns an empty dict on failure."""
     try:
         client = SlackSdkClient(integration_id=integration_id)
@@ -81,8 +81,11 @@ def has_history_scope(
     if SlackScope.CHANNELS_HISTORY in installed and SlackScope.GROUPS_HISTORY in installed:
         return True
 
-    channel_info = get_conversations_info(integration_id=integration_id, channel_id=channel_id).get(
-        "channel", {}
+    channel_info = cast(
+        Mapping[str, object],
+        get_conversations_info(integration_id=integration_id, channel_id=channel_id).get(
+            "channel", {}
+        ),
     )
     is_channel = channel_info.get("is_channel", False)
     is_private = channel_info.get("is_private", False)
