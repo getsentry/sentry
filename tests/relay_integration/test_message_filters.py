@@ -33,8 +33,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
     def test_should_filter_local_ip_addresses_when_enabled(self) -> None:
         self._set_filter_state(_localhost_filter, "1")
         message = self._get_message_with_bad_ip()
-        event = self.post_and_try_retrieve_event(message)
-        assert event is None
+        self.post_and_assert_not_stored(message)
 
     def test_should_not_filter_bad_ip_addresses_when_disabled(self) -> None:
         self._set_filter_state(_localhost_filter, "0")
@@ -54,8 +53,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
     def test_should_filter_browser_extensions_when_enabled(self) -> None:
         self._set_filter_state(_browser_extensions_filter, "1")
         message = self._get_message_with_bad_extension()
-        event = self.post_and_try_retrieve_event(message)
-        assert event is None
+        self.post_and_assert_not_stored(message)
 
     def test_should_not_filter_browser_extensions_when_disabled(self) -> None:
         self._set_filter_state(_browser_extensions_filter, "0")
@@ -78,8 +76,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
     def test_should_filter_web_crawlers_when_enabled(self) -> None:
         self._set_filter_state(_web_crawlers_filter, "1")
         message = self._get_message_from_webcrawler()
-        event = self.post_and_try_retrieve_event(message)
-        assert event is None
+        self.post_and_assert_not_stored(message)
 
     def test_should_not_filter_web_crawlers_when_disabled(self) -> None:
         self._set_filter_state(_web_crawlers_filter, "0")
@@ -106,8 +103,7 @@ class FilterTests(RelayStoreHelper, TransactionTestCase):
     def test_should_filter_legacy_browsers(self) -> None:
         self._set_filter_state(_legacy_browsers_filter, "1")
         message = self._get_message_from_legacy_browser()
-        event = self.post_and_try_retrieve_event(message)
-        assert event is None
+        self.post_and_assert_not_stored(message)
 
     def test_should_not_filter_legacy_browsers_when_disabled(self) -> None:
         self._set_filter_state(_legacy_browsers_filter, "0")
