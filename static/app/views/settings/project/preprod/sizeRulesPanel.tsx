@@ -131,67 +131,65 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
               />
             </Flex>
 
-            {config.enabled ? (
-              <Fragment>
-                {config.rules.length > 0 ? (
-                  <Stack>
-                    {config.rules.map(rule => (
-                      <StatusCheckRuleItem
-                        key={rule.id}
-                        rule={rule}
-                        formCopy={copy.form}
-                        isExpanded={rule.id === newRuleId || expandedRuleIds.has(rule.id)}
-                        onToggleExpanded={isExpanded =>
-                          handleToggleExpanded(rule.id, isExpanded)
-                        }
-                        onSave={updated => {
-                          updateRule(rule.id, updated);
-                          analytics.onUpdate(updated);
-                          if (rule.id === newRuleId) {
-                            setNewRuleId(null);
-                          }
-                        }}
-                        onDelete={() => {
-                          analytics.onDelete();
-                          deleteRule(rule.id);
-                          if (rule.id === newRuleId) {
-                            setNewRuleId(null);
-                          }
-                          const newExpanded = new Set(expandedRuleIds);
-                          newExpanded.delete(rule.id);
-                          updateExpandedInUrl([...newExpanded]);
-                        }}
-                      />
-                    ))}
-                  </Stack>
-                ) : (
-                  <Container
-                    margin="md"
-                    padding="xl"
-                    background="secondary"
-                    border="primary"
-                    radius="md"
-                    style={{borderStyle: 'dashed'}}
-                  >
-                    <Text align="center" variant="muted">
-                      {copy.emptyRulesText}
-                    </Text>
-                  </Container>
-                )}
-
-                <Flex padding="lg xl" borderTop="primary" align="start">
-                  <Button icon={<IconAdd />} onClick={handleAddRule}>
-                    {copy.addRuleButtonLabel}
-                  </Button>
-                </Flex>
-              </Fragment>
-            ) : (
-              <Container padding="md">
+            {!config.enabled && (
+              <Container padding="md" borderBottom="primary">
                 <Text align="center" variant="muted" italic>
                   {copy.disabledHintText}
                 </Text>
               </Container>
             )}
+
+            {config.rules.length > 0 ? (
+              <Stack>
+                {config.rules.map(rule => (
+                  <StatusCheckRuleItem
+                    key={rule.id}
+                    rule={rule}
+                    formCopy={copy.form}
+                    isExpanded={rule.id === newRuleId || expandedRuleIds.has(rule.id)}
+                    onToggleExpanded={isExpanded =>
+                      handleToggleExpanded(rule.id, isExpanded)
+                    }
+                    onSave={updated => {
+                      updateRule(rule.id, updated);
+                      analytics.onUpdate(updated);
+                      if (rule.id === newRuleId) {
+                        setNewRuleId(null);
+                      }
+                    }}
+                    onDelete={() => {
+                      analytics.onDelete();
+                      deleteRule(rule.id);
+                      if (rule.id === newRuleId) {
+                        setNewRuleId(null);
+                      }
+                      const newExpanded = new Set(expandedRuleIds);
+                      newExpanded.delete(rule.id);
+                      updateExpandedInUrl([...newExpanded]);
+                    }}
+                  />
+                ))}
+              </Stack>
+            ) : (
+              <Container
+                margin="md"
+                padding="xl"
+                background="secondary"
+                border="primary"
+                radius="md"
+                style={{borderStyle: 'dashed'}}
+              >
+                <Text align="center" variant="muted">
+                  {copy.emptyRulesText}
+                </Text>
+              </Container>
+            )}
+
+            <Flex padding="lg xl" borderTop="primary" align="start">
+              <Button icon={<IconAdd />} onClick={handleAddRule}>
+                {copy.addRuleButtonLabel}
+              </Button>
+            </Flex>
           </Fragment>
         ) : (
           <Grid columns="1fr auto" align="center" gap="xl" style={{padding: '56px 48px'}}>

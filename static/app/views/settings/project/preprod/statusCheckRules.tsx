@@ -37,7 +37,9 @@ export function StatusCheckRules() {
           emptyRulesText: t(
             'No status check rules configured. Create one to get started.'
           ),
-          disabledHintText: t('Enable status checks above to configure rules.'),
+          disabledHintText: t(
+            "Status checks are disabled. Rules are saved but won't be evaluated."
+          ),
           addRuleButtonLabel: t('Create Status Check Rule'),
           connectRepoText: t(
             'Connect at least one repository to get Size Analysis status checks'

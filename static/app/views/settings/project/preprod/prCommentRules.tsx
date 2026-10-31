@@ -35,7 +35,9 @@ export function PrCommentRules() {
           ),
           toggleAriaLabel: t('Toggle PR comments'),
           emptyRulesText: t('No PR comment rules configured. Create one to get started.'),
-          disabledHintText: t('Enable PR comments above to configure rules.'),
+          disabledHintText: t(
+            "PR comments are disabled. Rules are saved but won't be evaluated."
+          ),
           addRuleButtonLabel: t('Create PR Comment Rule'),
           connectRepoText: t(
             'Connect at least one repository to get Size Analysis PR comments'
