@@ -450,7 +450,6 @@ module = [
     "fixtures.sdk_crash_detection.crash_event_react_native",
     "fixtures.sudo_testutils",
     "fixtures.vsts",
-    "sentry",
     "sentry.adoption.*",
     "sentry.api.authentication",
     "sentry.api.base",
