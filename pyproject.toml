@@ -479,7 +479,6 @@ module = [
     "sentry.api.endpoints.project_transaction_threshold",
     "sentry.api.endpoints.project_transaction_threshold_override",
     "sentry.api.endpoints.relay.*",
-    "sentry.api.exceptions",
     "sentry.api.fields.*",
     "sentry.api.paginator",
     "sentry.api.serializers.models.artifactbundle",
