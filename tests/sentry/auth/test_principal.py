@@ -16,13 +16,17 @@ from sentry.api.exceptions import UserRequired
 from sentry.auth import principal
 from sentry.auth.principal import (
     RequestPrincipal,
+    acting_user,
     acting_user_id,
     has_user,
+    is_acting_user,
+    owned_by_acting_user,
     require_user,
     resolve_actor,
     set_request_principal,
 )
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.models.groupbookmark import GroupBookmark
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test
@@ -66,6 +70,64 @@ class HasUserTest(TestCase):
 
 
 @all_silo_test
+class ActingUserTest(TestCase):
+    def test_user(self) -> None:
+        assert acting_user(self.user) == self.user
+
+    def test_no_user(self) -> None:
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="sa"
+        )
+        assert acting_user(service_account) is None
+        assert acting_user(AnonymousUser()) is None
+
+
+class IsActingUserTest(TestCase):
+    def test_user(self) -> None:
+        assert is_acting_user(self.user, self.user.id)
+        assert not is_acting_user(self.user, self.user.id + 1)
+
+    def test_no_user_is_never_a_match(self) -> None:
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="sa"
+        )
+        assert not is_acting_user(service_account, None)
+        assert not is_acting_user(AnonymousUser(), None)
+
+
+class OwnedByActingUserTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.other = self.create_user()
+        group = self.create_group()
+        self.mine = GroupBookmark.objects.create(
+            project=group.project, group=group, user_id=self.user.id
+        )
+        self.theirs = GroupBookmark.objects.create(
+            project=group.project,
+            group=self.create_group(project=group.project),
+            user_id=self.other.id,
+        )
+
+    def test_user(self) -> None:
+        mine = owned_by_acting_user(self.user)
+        assert list(GroupBookmark.objects.filter(mine)) == [self.mine]
+        assert list(GroupBookmark.objects.exclude(mine)) == [self.theirs]
+
+    def test_no_user_owns_nothing(self) -> None:
+        service_account = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="sa"
+        )
+        nothing = owned_by_acting_user(service_account)
+        assert not GroupBookmark.objects.filter(nothing).exists()
+        assert set(GroupBookmark.objects.exclude(nothing)) == {self.mine, self.theirs}
+
+    def test_field(self) -> None:
+        assert list(GroupBookmark.objects.filter(owned_by_acting_user(self.user, "user_id"))) == [
+            self.mine
+        ]
+
+
 class ResolveActorTest(TestCase):
     def test_user(self) -> None:
         assert resolve_actor(self.user, None) == Actor(type=ActorType.USER, actor_id=self.user.id)
