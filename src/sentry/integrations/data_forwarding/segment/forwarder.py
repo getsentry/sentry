@@ -56,8 +56,11 @@ class SegmentForwarder(BaseDataForwarder):
             )
 
         if "exception" in event.interfaces:
-            exc = event.interfaces["exception"].values[0]
-            props.update({"exceptionType": exc.type})
+            # The exception interface preserves ``None`` entries to keep offsets
+            # stable, so pick the first concrete exception value.
+            exc = next((v for v in event.interfaces["exception"].values if v is not None), None)
+            if exc is not None:
+                props.update({"exceptionType": exc.type})
 
         return {
             "context": context,

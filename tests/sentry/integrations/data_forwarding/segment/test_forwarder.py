@@ -8,7 +8,9 @@ from sentry.integrations.data_forwarding.segment.forwarder import SegmentForward
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
 
@@ -64,6 +66,36 @@ class SegmentDataForwarderTest(TestCase):
             "integration": {"name": "sentry", "version": VERSION},
             "timestamp": event.datetime.isoformat() + "Z",
         } == payload
+
+    def test_get_event_payload_skips_none_exception_values(self) -> None:
+        config = self.data_forwarder_project.get_config()
+        event = Event(
+            project_id=self.project.id,
+            event_id="a" * 32,
+            data={
+                "timestamp": before_now(minutes=1).timestamp(),
+                "exception": {"values": [None, {"type": "ValueError", "value": "foo bar"}]},
+            },
+        )
+
+        payload = self.forwarder.get_event_payload(event, config)
+
+        assert payload["properties"]["exceptionType"] == "ValueError"
+
+    def test_get_event_payload_all_none_exception_values(self) -> None:
+        config = self.data_forwarder_project.get_config()
+        event = Event(
+            project_id=self.project.id,
+            event_id="b" * 32,
+            data={
+                "timestamp": before_now(minutes=1).timestamp(),
+                "exception": {"values": [None]},
+            },
+        )
+
+        payload = self.forwarder.get_event_payload(event, config)
+
+        assert "exceptionType" not in payload["properties"]
 
     @responses.activate
     def test_forward_event_http_error(self) -> None:
