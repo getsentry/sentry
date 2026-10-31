@@ -1,8 +1,4 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconBot} from '@sentry/icons/bot';
-import {IconCopy} from '@sentry/icons/copy';
-import {IconUser} from '@sentry/icons/user';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -11,66 +7,40 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {
-  StepIndexProvider,
-  TabSelectionScope,
-} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  DocsParams,
-  OnboardingStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  DocsPageLocation,
-  StepType,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
+import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
-import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {
-  CopyLLMPromptButton,
-  getAgentSetupPrompt,
-} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
+  AgentSetupOptions,
+  AgentSetupSteps,
+} from 'sentry/views/insights/pages/agents/components/agentSetupSteps';
+import {AgentSetupTabs} from 'sentry/views/insights/pages/agents/components/agentSetupTabs';
+import {CopyLLMPromptButton} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {
   AI_AGENTS_GETTING_STARTED_DOCS_LINK,
   AI_INSTRUMENTATION_DOCS_LINKS,
 } from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
+import {useAgentOnboardingSetup} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingSetup';
 import {
   BulletList,
   HeaderText,
-  PulseSpacer,
   PulsingIndicator,
   SubTitle,
-  useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
@@ -103,127 +73,6 @@ function ConversationWaitingIndicator({
   );
 }
 
-function ConversationStepRenderer({
-  project,
-  step,
-  stepIndex,
-  isLastStep,
-  onDismiss,
-  trailingItems,
-}: {
-  isLastStep: boolean;
-  onDismiss: () => void;
-  project: Project;
-  step: OnboardingStep;
-  stepIndex: number;
-  trailingItems?: React.ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <GuidedSteps.Step
-      stepKey={step.type || step.title}
-      title={step.title || (step.type && StepTitles[step.type])}
-      trailingItems={trailingItems}
-    >
-      <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
-      </StepIndexProvider>
-      <GuidedSteps.ButtonWrapper>
-        <GuidedSteps.BackButton
-          size="md"
-          analyticsEventKey="conversations.onboarding.interaction"
-          analyticsEventName="Conversations: Onboarding Interaction"
-          analyticsParams={{action: 'previous_step', step: stepIndex + 1}}
-        />
-        <GuidedSteps.NextButton
-          size="md"
-          analyticsEventKey="conversations.onboarding.interaction"
-          analyticsEventName="Conversations: Onboarding Interaction"
-          analyticsParams={{action: 'next_step', step: stepIndex + 1}}
-        />
-        {isLastStep && (
-          <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
-        )}
-      </GuidedSteps.ButtonWrapper>
-      {isLastStep && <PulseSpacer />}
-    </GuidedSteps.Step>
-  );
-}
-
-function AgentSetupInstructions({
-  project,
-  prompt,
-  onDismiss,
-}: {
-  onDismiss: () => void;
-  project: Project;
-  prompt: string;
-}) {
-  const {copy} = useCopyToClipboard();
-  const organization = useOrganization();
-
-  return (
-    <Stack gap="xl" align="start" paddingTop="md">
-      <Text>
-        {t(
-          'Give this prompt to your coding agent to set up agent tracing for this project.'
-        )}
-      </Text>
-      <Container width="100%" border="primary" radius="md" padding="lg">
-        {containerProps => (
-          <ClippedBox
-            {...containerProps}
-            clipHeight={150}
-            defaultClipped
-            collapsible
-            buttonProps={{variant: 'secondary', size: 'xs'}}
-            onReveal={() => {
-              trackAnalytics('conversations.onboarding.interaction', {
-                organization,
-                action: 'expand_prompt',
-              });
-            }}
-            onCollapse={() => {
-              trackAnalytics('conversations.onboarding.interaction', {
-                organization,
-                action: 'collapse_prompt',
-              });
-            }}
-          >
-            <Text
-              as="div"
-              size="sm"
-              monospace
-              wrap="pre-wrap"
-              wordBreak="break-word"
-              density="comfortable"
-            >
-              {prompt}
-            </Text>
-          </ClippedBox>
-        )}
-      </Container>
-      <Button
-        size="md"
-        variant="primary"
-        icon={<IconCopy />}
-        analyticsEventKey="conversations.onboarding.interaction"
-        analyticsEventName="Conversations: Onboarding Interaction"
-        analyticsParams={{action: 'copy_agent_prompt'}}
-        onClick={() => {
-          copy(prompt, {
-            successMessage: t('Copied setup prompt to clipboard'),
-          });
-        }}
-      >
-        {t('Copy prompt')}
-      </Button>
-      <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
-      <PulseSpacer />
-    </Stack>
-  );
-}
-
 function ConversationOnboardingPanel({
   project,
   children,
@@ -238,11 +87,6 @@ function ConversationOnboardingPanel({
   hasPlatformInstructions?: boolean;
 }) {
   const organization = useOrganization();
-  const prompt = dsn
-    ? getAgentSetupPrompt({organizationSlug: organization.slug, project, dsn})
-    : undefined;
-  const defaultTab = prompt ? 'agent' : 'human';
-  const isHumanTabDisabled = Boolean(prompt) && !hasPlatformInstructions;
 
   return (
     <Panel>
@@ -290,69 +134,25 @@ function ConversationOnboardingPanel({
               <Grid autoColumns="minmax(0, 1fr)" flow="column" position="relative">
                 <Setup>
                   <SetupTitle project={project} />
-                  <Tabs
-                    key={defaultTab}
-                    defaultValue={defaultTab}
-                    aria-label={t('Setup instructions')}
-                    onChange={tab => {
+                  <AgentSetupTabs
+                    project={project}
+                    dsn={dsn}
+                    hasPlatformInstructions={hasPlatformInstructions}
+                    waitingIndicator={
+                      <ConversationWaitingIndicator
+                        project={project}
+                        onDismiss={onDismiss}
+                      />
+                    }
+                    onInteraction={interaction => {
                       trackAnalytics('conversations.onboarding.interaction', {
                         organization,
-                        action: 'switch_tab',
-                        tab,
+                        ...interaction,
                       });
                     }}
                   >
-                    <TabList variant="floating">
-                      <TabList.Item
-                        key="agent"
-                        textValue={t('For your agent')}
-                        disabled={!prompt}
-                        tooltip={
-                          prompt
-                            ? undefined
-                            : {
-                                title: t(
-                                  'A project DSN is required to copy a setup prompt.'
-                                ),
-                              }
-                        }
-                      >
-                        <IconBot />
-                        {t('For your agent')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="human"
-                        textValue={t('For you')}
-                        disabled={isHumanTabDisabled}
-                        tooltip={
-                          isHumanTabDisabled
-                            ? {
-                                title: t(
-                                  "Step-by-step instructions aren't available for this platform."
-                                ),
-                              }
-                            : undefined
-                        }
-                      >
-                        <IconUser />
-                        {t('For you')}
-                      </TabList.Item>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanels.Item key="agent">
-                        {prompt && (
-                          <AgentSetupInstructions
-                            project={project}
-                            prompt={prompt}
-                            onDismiss={onDismiss}
-                          />
-                        )}
-                      </TabPanels.Item>
-                      <TabPanels.Item key="human">
-                        <Container paddingTop="md">{children}</Container>
-                      </TabPanels.Item>
-                    </TabPanels>
-                  </Tabs>
+                    {children}
+                  </AgentSetupTabs>
                 </Setup>
                 <Container padding="xl" paddingTop="3xl">
                   <Heading as="h4" size="xl">
@@ -531,99 +331,47 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
 ]);
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
-  const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const project = useOnboardingProject();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const setup = useAgentOnboardingSetup();
 
-  const currentPlatform = project?.platform
-    ? platforms.find(p => p.id === project.platform)
-    : undefined;
-
-  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
-    platform: currentPlatform || otherPlatform,
-    orgSlug: organization.slug,
-    projSlug: project?.slug,
-  });
-
-  const {
-    deploymentTarget,
-    integrationDeploymentTarget,
-    isPhpPlatform,
-    isPythonPlatform,
-    platformOptions,
-    projectAgentIntegration,
-    selectedPlatformOptions,
-    showPlatformOptions,
-  } = useAgentOnboardingOptions({
-    platform: project?.platform,
-    platformInfo: currentPlatform,
-  });
-
-  const {isPending: isLoadingRegistry, data: registryData} =
-    useSourcePackageRegistries(organization);
-
-  if (!project) {
-    return <div>{t('No project found')}</div>;
+  switch (setup.status) {
+    case 'no-project':
+      return <div>{t('No project found')}</div>;
+    case 'loading':
+      return <LoadingIndicator />;
+    case 'unsupported':
+      return (
+        <UnsupportedPlatformOnboarding
+          project={setup.project}
+          platformName={setup.platformName}
+          dsn={setup.dsn?.public}
+          onDismiss={onDismiss}
+        />
+      );
+    case 'no-docs':
+      return (
+        <NoDocsOnboarding
+          project={setup.project}
+          dsn={setup.dsn?.public}
+          onDismiss={onDismiss}
+        />
+      );
+    default:
+      break;
   }
 
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (!agentMonitoringPlatforms.has(project.platform!)) {
-    return (
-      <UnsupportedPlatformOnboarding
-        project={project}
-        platformName={currentPlatform?.name || project.slug}
-        dsn={dsn?.public}
-        onDismiss={onDismiss}
-      />
-    );
-  }
-
-  const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
-
-  if (!agentMonitoringDocs || !dsn || !projectKeyId) {
-    return <NoDocsOnboarding project={project} dsn={dsn?.public} onDismiss={onDismiss} />;
-  }
-
-  const docParams: DocsParams<any> = {
-    api,
-    projectKeyId,
-    dsn,
-    organization,
-    platformKey: project.platform || 'other',
-    project,
-    isLogsSelected: false,
-    isFeedbackSelected: false,
-    isMetricsSelected: false,
-    isPerformanceSelected: true,
-    isProfilingSelected: false,
-    isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
-    platformOptions: {...selectedPlatformOptions, deploymentTarget},
-    docsLocation: DocsPageLocation.PROFILING_PAGE,
-    urlPrefix,
-    isSelfHosted,
-  };
+  const {project, dsn, introduction, isPhpPlatform, isPythonPlatform} = setup;
 
   const selectedIntegration =
-    selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
-  const jsPackageName =
-    agentMonitoringDocs.sdkImportSpecifier?.(docParams) ?? '@sentry/node';
+    setup.selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
+  const jsPackageName = setup.sdkImportSpecifier ?? '@sentry/node';
 
   const setsConversationIdAutomatically =
     INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
 
   const steps: OnboardingStep[] = [
-    ...(agentMonitoringDocs.install?.(docParams) || []),
-    ...(agentMonitoringDocs.configure?.(docParams) || []),
+    ...setup.installSteps,
+    ...setup.configureSteps,
     ...(setsConversationIdAutomatically
       ? []
       : [
@@ -634,27 +382,18 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
           ),
         ]),
     ...(isPhpPlatform ? [] : [getSetUserStep(isPythonPlatform, jsPackageName)]),
-    ...(isPhpPlatform
-      ? [getPhpConversationVerifyStep()]
-      : agentMonitoringDocs.verify?.(docParams) || []),
+    ...(isPhpPlatform ? [getPhpConversationVerifyStep()] : setup.verifySteps),
   ].filter(s => !s.collapsible);
-
-  const introduction = agentMonitoringDocs.introduction?.(docParams);
 
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        {showPlatformOptions && (
+        {setup.showPlatformOptions && (
           <Flex gap="lg" align="center" justify="between" wrap="wrap">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text>{t('Set up')}</Text>
-              <PlatformOptionDropdown
-                platformOptions={platformOptions}
-                // Framework projects only render the runtime selector, which then
-                // directly follows "with".
-                connectors={
-                  projectAgentIntegration ? undefined : {deploymentTarget: t('on')}
-                }
+              <AgentSetupOptions
+                setup={setup}
                 onChange={(option, value) => {
                   trackAnalytics('conversations.onboarding.interaction', {
                     organization,
@@ -663,52 +402,27 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
                     value,
                   });
                 }}
-                lockedValues={
-                  integrationDeploymentTarget
-                    ? {deploymentTarget: integrationDeploymentTarget}
-                    : undefined
-                }
               />
             </Flex>
           </Flex>
         )}
-        {showPlatformOptions && <Separator orientation="horizontal" />}
+        {setup.showPlatformOptions && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
-        <GuidedSteps
-          // Remount when the integration or runtime changes so the stepper doesn't
-          // carry over stale per-step state from the previous selection.
-          key={`${selectedIntegration}-${deploymentTarget}`}
-          initialStep={decodeInteger(location.query.guidedStep)}
-          onStepChange={step => {
-            navigate({
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
-            });
-          }}
-        >
-          {steps.map((step, index) => (
-            <ConversationStepRenderer
-              key={step.title || step.type}
-              project={project}
-              step={step}
-              stepIndex={index}
-              isLastStep={index === steps.length - 1}
-              onDismiss={onDismiss}
-              trailingItems={
-                index === 0 ? (
-                  <OnboardingCopyMarkdownButton
-                    borderless
-                    steps={steps}
-                    source="conversations_onboarding"
-                  />
-                ) : undefined
-              }
+        <AgentSetupSteps
+          setup={setup}
+          steps={steps}
+          analyticsEventKey="conversations.onboarding.interaction"
+          lastStepItems={
+            <ConversationWaitingIndicator project={project} onDismiss={onDismiss} />
+          }
+          firstStepTrailingItems={
+            <OnboardingCopyMarkdownButton
+              borderless
+              steps={steps}
+              source="conversations_onboarding"
             />
-          ))}
-        </GuidedSteps>
+          }
+        />
       </Stack>
     </ConversationOnboardingPanel>
   );
