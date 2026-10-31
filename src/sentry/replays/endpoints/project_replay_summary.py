@@ -56,7 +56,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
     }
     permission_classes = (ReplaySummaryPermission,)
 
-    def __init__(self, **kw) -> None:
+    def __init__(self, **kw: object) -> None:
         storage.initialize_client()
         # Trace sample rates for each method. Uses the default when not set (=0).
         self.sample_rate_post = options.get(

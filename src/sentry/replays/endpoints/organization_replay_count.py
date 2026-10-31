@@ -148,7 +148,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsEndpointBase):
         return self.respond(replay_counts)
 
 
-def project_in_org_has_sent_replay(organization):
+def project_in_org_has_sent_replay(organization: Organization) -> bool:
     return (
         Project.objects.filter(organization=organization)
         .filter(flags=F("flags").bitor(Project.flags.has_replays))

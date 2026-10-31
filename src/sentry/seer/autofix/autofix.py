@@ -32,7 +32,7 @@ def get_trace_tree_for_event(
     if not trace_id:
         return None
 
-    def _fetch_trace():
+    def _fetch_trace() -> dict[str, Any] | None:  # justification: Seer payloads are decoded JSON.
         projects_qs = Project.objects.filter(
             organization=project.organization, status=ObjectStatus.ACTIVE
         )
@@ -129,7 +129,7 @@ def get_all_tags_overview(
         end=end,
     )
 
-    all_tags: list[dict] = []
+    all_tags: list[dict[str, Any]] = []  # justification: Seer payloads are decoded JSON.
 
     KEYS_TO_EXCLUDE = {
         "release",

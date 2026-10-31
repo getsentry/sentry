@@ -5,8 +5,10 @@ import hashlib
 import itertools
 import logging
 import uuid
-from datetime import timedelta
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from datetime import datetime, timedelta
 from types import SimpleNamespace
+from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
@@ -56,7 +58,9 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 class UnmergeTestCase(TestCase, SnubaTestCase):
     @patch("sentry.tasks.unmerge.Group")
     @patch("sentry.tasks.unmerge.current_task")
-    def test_selfchain_skips_when_already_spawned(self, mock_current_task, mock_group) -> None:
+    def test_selfchain_skips_when_already_spawned(
+        self, mock_current_task: mock.MagicMock, mock_group: mock.MagicMock
+    ) -> None:
         # A prior delivery of this activation already spawned its continuation; a broker re-pend
         # must short-circuit before touching the DB (proving no re-processing / no fork).
         mock_current_task.return_value = SimpleNamespace(id="unmerge-act-skip")
@@ -203,7 +207,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         # bucket causing count mismatches.
         now = before_now(minutes=5).replace(second=0, microsecond=0)
 
-        def time_from_now(offset=0):
+        def time_from_now(offset: int = 0) -> datetime:
             return now + timedelta(seconds=offset)
 
         project = self.create_project()
@@ -214,7 +218,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         user_values = itertools.cycle([{"id": 1}, {"id": 2}])
 
         def create_message_event(
-            template, parameters, environment, release, fingerprint="group1"
+            template: str,
+            parameters: object,
+            environment: str,
+            release: str | None,
+            fingerprint: str = "group1",
         ) -> GroupEvent:
             i = next(sequence)
 
@@ -412,10 +420,15 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "get_range", "organization_id": 1},
         )
 
-        def get_expected_series_values(rollup, events, function=None):
+        # justification: aggregators accumulate different value types (counts, sets, dicts).
+        def get_expected_series_values(
+            rollup: int,
+            events: Sequence[GroupEvent],
+            function: Callable[[Any, GroupEvent], Any] | None = None,
+        ) -> dict[float, Any]:
             if function is None:
 
-                def function(aggregate, event):
+                def function(aggregate: Any, event: GroupEvent) -> Any:
                     return (aggregate if aggregate is not None else 0) + 1
 
             expected: dict[float, float] = {}
@@ -425,14 +438,18 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return expected
 
-        def assert_series_contains(expected, actual, default=0):
-            actual = dict(actual)
+        def assert_series_contains(
+            expected: Mapping[float, Any],
+            actual: Iterable[tuple[float, Any]],
+            default: Any = 0,
+        ) -> None:
+            actual_dict = dict(actual)
 
             for key, value in expected.items():
-                assert actual.get(key, 0) == value
+                assert actual_dict.get(key, 0) == value
 
-            for key in set(actual.keys()) - set(expected.keys()):
-                assert actual.get(key, 0) == default
+            for key in set(actual_dict.keys()) - set(expected.keys()):
+                assert actual_dict.get(key, 0) == default
 
         assert_series_contains(
             get_expected_series_values(rollup_duration, list(events.values())[1]),
@@ -481,7 +498,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             tenant_ids={"referrer": "r", "organization_id": 1234},
         )
 
-        def collect_by_user_tag(aggregate, event):
+        def collect_by_user_tag(aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else set()
             aggregate.add(
                 get_event_user_from_interface(event.data["user"], event.group.project).tag_value
@@ -511,7 +528,9 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 time_series[destination.id],
             )
 
-        def strip_zeroes(data):
+        def strip_zeroes(
+            data: dict[int, list[tuple[float, dict[int, float]]]],
+        ) -> dict[int, list[tuple[float, dict[int, float]]]]:
             for group_id, series in data.items():
                 for _, values in series:
                     for key, val in list(values.items()):
@@ -520,7 +539,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
             return data
 
-        def collect_by_release(group, aggregate, event):
+        def collect_by_release(group: Group, aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else {}
             release = event.get_tag("sentry:release")
             assert release
@@ -538,7 +557,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         for i in [source.id, destination.id]:
             items[i] = list(GroupRelease.objects.filter(group_id=i).values_list("id", flat=True))
 
-        time_series = strip_zeroes(
+        frequency_time_series = strip_zeroes(
             tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_releases_by_group,
                 items,
@@ -555,7 +574,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[1],
                 functools.partial(collect_by_release, source),
             ),
-            time_series[source.id],
+            frequency_time_series[source.id],
             {},
         )
 
@@ -565,7 +584,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[0] + list(events.values())[2],
                 functools.partial(collect_by_release, destination),
             ),
-            time_series[destination.id],
+            frequency_time_series[destination.id],
             {},
         )
 
@@ -573,7 +592,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         for i in [source.id, destination.id]:
             items[i] = list(Environment.objects.all().values_list("id", flat=True))
 
-        time_series = strip_zeroes(
+        frequency_time_series = strip_zeroes(
             tsdb.backend.get_frequency_series(
                 TSDBModel.frequent_environments_by_group,
                 items,
@@ -584,7 +603,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             )
         )
 
-        def collect_by_environment(aggregate, event):
+        def collect_by_environment(aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else {}
             environment = Environment.objects.get(
                 organization_id=project.organization_id, name=event.data["environment"]
@@ -596,7 +615,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
             get_expected_series_values(
                 rollup_duration, list(events.values())[1], collect_by_environment
             ),
-            time_series[source.id],
+            frequency_time_series[source.id],
             {},
         )
 
@@ -606,7 +625,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
                 list(events.values())[0] + list(events.values())[2],
                 collect_by_environment,
             ),
-            time_series[destination.id],
+            frequency_time_series[destination.id],
             {},
         )
 
@@ -691,7 +710,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_skips_similarity_when_backfilled_to_seer(
-        self, mock_similarity
+        self, mock_similarity: mock.MagicMock
     ) -> None:
         project = self.create_project()
         project.update_option("sentry:similarity_backfill_completed", True)
@@ -707,7 +726,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
     @mock.patch("sentry.tasks.unmerge.similarity")
     def test_repair_denormalizations_records_similarity_when_not_backfilled(
-        self, mock_similarity
+        self, mock_similarity: mock.MagicMock
     ) -> None:
         project = self.create_project()
 

@@ -1,4 +1,11 @@
-from django.core.management.base import BaseCommand, CommandError
+from typing import cast
+
+from django.core.management.base import (
+    BaseCommand,
+    CommandError,
+    CommandParser,
+    OutputWrapper,
+)
 
 from sentry.mail import mail_adapter
 from sentry.models.organization import Organization
@@ -6,7 +13,7 @@ from sentry.models.project import Project
 from sentry.utils.email import get_email_addresses
 
 
-def handle_project(project: Project, stream) -> None:
+def handle_project(project: Project, stream: OutputWrapper) -> None:
     """
     For every user that should receive ISSUE_ALERT notifications for a given
     project, write a map of usernames to email addresses to the given stream
@@ -24,7 +31,7 @@ def handle_project(project: Project, stream) -> None:
 class Command(BaseCommand):
     help = "Dump addresses that would get an email notification"
 
-    def add_arguments(self, parser):
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--organization", action="store", type=int, dest="organization", default=0, help=""
         )
@@ -32,14 +39,16 @@ class Command(BaseCommand):
             "--project", action="store", type=int, dest="project", default=0, help=""
         )
 
-    def handle(self, *args, **options):
+    def handle(self, *args: object, **options: object) -> None:
         if not (options["project"] or options["organization"]):
             raise CommandError("Must specify either a project or organization")
 
         if options["organization"]:
-            projects = list(Organization.objects.get(pk=options["organization"]).project_set.all())
+            projects = list(
+                Organization.objects.get(pk=cast(int, options["organization"])).project_set.all()
+            )
         else:
-            projects = [Project.objects.get(pk=options["project"])]
+            projects = [Project.objects.get(pk=cast(int, options["project"]))]
 
         for project in projects:
             handle_project(project, self.stdout)

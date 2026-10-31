@@ -499,8 +499,10 @@ class VstsAccountSelectionApiStep:
             oauth_data = pipeline.fetch_state("oauth_data") or {}
             access_token: str = oauth_data["access_token"]
             user = get_user_info(access_token)
+            user_uuid = user["uuid"]
+            assert isinstance(user_uuid, str)
 
-            accounts = get_accounts(access_token, user["uuid"])
+            accounts = get_accounts(access_token, user_uuid)
             extra = {
                 "organization_id": pipeline.organization.id if pipeline.organization else None,
                 "user_id": request.user.id,
@@ -648,7 +650,8 @@ class VstsIntegrationProvider(IntegrationProvider):
             "metadata": {"domain_name": base_url, "scopes": scopes},
             "user_identity": {
                 "type": IntegrationProviderSlug.AZURE_DEVOPS.value,
-                "external_id": user["id"],
+                # justification: VSTS profile id is a string.
+                "external_id": str(user["id"]),
                 "scopes": scopes,
                 "data": oauth_data,
             },

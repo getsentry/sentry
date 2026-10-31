@@ -39,7 +39,7 @@ class DSN(TypedDict):
 
 
 class BrowserSDK(TypedDict):
-    choices: list[list[str]]
+    choices: tuple[tuple[str, str], ...]
 
 
 class DynamicSDKLoaderOptions(TypedDict):

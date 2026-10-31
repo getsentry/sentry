@@ -1054,7 +1054,7 @@ def prepare_template_context(
 
     spans_chart_cache: dict[frozenset[str], str | None] = {}
     user_template_context_by_user_id_list: list[
-        dict[str, Any]
+        dict[str, Any]  # justification: report context is dynamic JSON.
     ] = []  # justification: report context.
     for user_id in user_ids:
         excluded = exclusions_by_user.get(user_id) if isinstance(user_id, int) else None

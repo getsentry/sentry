@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -85,10 +85,11 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def get_replay_filter_params(self, request, organization):
-        filter_params = self.get_filter_params(request, organization)
-
-        return filter_params
+    # justification: filter params merge validated query params of mixed types.
+    def get_replay_filter_params(
+        self, request: Request, organization: Organization
+    ) -> dict[str, Any]:  # justification: replay query rows are decoded JSON.
+        return dict(self.get_filter_params(request, organization))
 
     @extend_schema(
         operation_id="listOrganizationReplaySelectors",
@@ -127,7 +128,9 @@ class OrganizationReplaySelectorIndexEndpoint(OrganizationReplayEndpoint):
             if key not in filter_params:
                 filter_params[key] = value
 
-        def data_fn(offset, limit):
+        def data_fn(
+            offset: int, limit: int
+        ) -> list[dict[str, Any]]:  # justification: replay query rows are decoded JSON.
             try:
                 search_filters = parse_search_query(request.query_params.get("query", ""))
             except InvalidSearchQuery as e:
@@ -158,12 +161,12 @@ def query_selector_collection(
     start: datetime,
     end: datetime,
     sort: str | None,
-    limit: str | None,
-    offset: str | None,
-    environment: list[str],
+    limit: int,
+    offset: int,
+    environment: list[str] | None,
     search_filters: Sequence[QueryToken],
     organization: Organization,
-) -> dict:
+) -> list[dict[str, Any]]:  # justification: replay query rows are decoded JSON.
     """Query aggregated replay collection."""
     if organization:
         tenant_ids = {"organization_id": organization.id}
@@ -190,11 +193,11 @@ def query_selector_dataset(
     start: datetime,
     end: datetime,
     search_filters: Sequence[QueryToken],
-    environment: list[str],
+    environment: list[str] | None,
     pagination: Paginators | None,
     sort: str | None,
     tenant_ids: dict[str, Any] | None = None,
-):
+) -> Mapping[str, Any]:  # justification: replay query rows are decoded JSON.
     query_options = {}
 
     if pagination:
@@ -319,7 +322,9 @@ def query_selector_dataset(
 def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Process the response further into the expected output."""
 
-    def make_selector_name(row) -> str:
+    def make_selector_name(
+        row: dict[str, Any],
+    ) -> str:  # justification: replay query rows are decoded JSON.
         selector = row["click_tag"]
 
         if row["click_id"]:

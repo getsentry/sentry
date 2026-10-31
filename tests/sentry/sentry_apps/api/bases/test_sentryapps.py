@@ -286,6 +286,7 @@ class IntegrationPlatformEndpointTest(TestCase):
     def test_handle_sentry_app_error(self) -> None:
         error = SentryAppError(message="cool", status_code=400)
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -300,6 +301,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             status_code=400,
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 400
         assert response.exception is True
@@ -311,6 +313,7 @@ class IntegrationPlatformEndpointTest(TestCase):
             message="bruh", webhook_context={"bruh": "bruhhh"}, public_context=public_context
         )
         response = self.endpoint._handle_sentry_app_exception(error)
+        assert response is not None
 
         assert response.status_code == 500
         assert response.data == {

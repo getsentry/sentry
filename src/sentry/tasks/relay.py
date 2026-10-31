@@ -144,6 +144,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
                 project.set_cached_field_value("organization", organization)
                 for key in ProjectKey.objects.filter(project_id=project.id):
                     key.set_cached_field_value("project", project)
+                    assert key.public_key is not None
                     # If we find the config in the cache it means it was active.  As such we want to
                     # recalculate it.  If the config was not there at all, we leave it and avoid the
                     # cost of re-computation.
@@ -160,6 +161,7 @@ def compute_configs(organization_id=None, project_id=None, public_key=None):
         for project in Project.objects.filter(id=project_id):
             for key in ProjectKey.objects.filter(project_id=project_id):
                 key.set_cached_field_value("project", project)
+                assert key.public_key is not None
                 # If we find the config in the cache it means it was active.  As such we want to
                 # recalculate it.  If the config was not there at all, we leave it and avoid the
                 # cost of re-computation.

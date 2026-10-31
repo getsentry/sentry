@@ -144,7 +144,9 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         dataset = self.get_dataset(request, organization)
 
-        def data_fn(offset, limit):
+        def data_fn(
+            offset: int, limit: int
+        ) -> dict[str, Any]:  # justification: replay query rows are decoded JSON.
             query_details = {
                 "selected_columns": self.get_field_list(organization, request),
                 "query": request.GET.get("query"),

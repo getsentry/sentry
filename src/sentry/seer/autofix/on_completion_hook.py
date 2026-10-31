@@ -477,7 +477,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 )
 
     @classmethod
-    def _format_code_changes_payload(cls, state: SeerRunState) -> dict:
+    def _format_code_changes_payload(
+        cls, state: SeerRunState
+    ) -> dict[str, Any]:  # justification: Seer payloads are decoded JSON.
         diffs_by_repo = state.get_diffs_by_repo()
         return {
             repo: [

@@ -143,7 +143,7 @@ def _trigger_autofix_task(
     auto_run_source: str,
     referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | str | None = None,
-):
+) -> None:
     """
     Asynchronous task to trigger Autofix.
     Task queue serializes enum parameters to strings, so we need to convert them back.
@@ -250,7 +250,7 @@ def _call_seer(
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
     experiment_variant: str | None = None,
-):
+) -> SummarizeIssueResponse:
     body = SummarizeIssueRequest(
         group_id=group.id,
         issue={

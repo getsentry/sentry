@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Sequence
-from typing import Any, override
+from typing import Any, cast, override
 
 import jsonschema
 from django.contrib.auth.models import AnonymousUser
@@ -45,7 +45,7 @@ from sentry.uptime.subscriptions.subscriptions import (
     update_uptime_detector,
     update_uptime_subscription,
 )
-from sentry.uptime.types import UptimeMonitorMode
+from sentry.uptime.types import CheckConfig, UptimeMonitorMode
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
@@ -156,7 +156,7 @@ def _validate_request_size(
 
 
 def _validate_check_config(
-    attrs,
+    attrs: dict[str, Any],  # justification: validated alert payload is decoded JSON.
     uptime_subscription: UptimeSubscription | None,
     organization: Organization,
     user: User | RpcUser | AnonymousUser | None,
@@ -182,13 +182,17 @@ def _validate_check_config(
 
     region = get_region_config(get_active_regions()[0].slug)
     assert region is not None
-    check_config = checker_api.create_preview_check(validated_data, region)
+    check_config = checker_api.create_preview_check(
+        cast(checker_api._PreviewCheckData, validated_data), region
+    )
     result = checker_api.invoke_checker_validator(check_config, region)
     if result is not None and result.status_code >= 400:
         raise serializers.ValidationError({"assertion": result.json()})
 
 
-class UptimeValidatorBase(CamelSnakeSerializer):
+class UptimeValidatorBase(
+    CamelSnakeSerializer[Any]
+):  # justification: validated alert payload is decoded JSON.
     url = URLField(required=True, max_length=255)
     timeout_ms = serializers.IntegerField(
         required=True,
@@ -220,7 +224,9 @@ class UptimeValidatorBase(CamelSnakeSerializer):
 
 @extend_schema_serializer()
 class UptimeCheckPreviewValidator(UptimeValidatorBase):
-    def validate(self, attrs):
+    def validate(
+        self, attrs: dict[str, Any]
+    ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         _validate_request_size(
             attrs.get("method", "GET"),
             attrs.get("url", ""),
@@ -240,10 +246,15 @@ class UptimeCheckPreviewValidator(UptimeValidatorBase):
     def validate_headers(self, headers: object) -> object:
         return _validate_headers(headers)
 
-    def create(self, validated_data):
+    def create(
+        self,
+        validated_data: dict[str, Any],  # justification: validated alert payload is decoded JSON.
+    ) -> CheckConfig:
         region_config = get_region_config(get_active_regions()[0].slug)
         assert region_config is not None
-        return checker_api.create_preview_check(validated_data, region_config)
+        return checker_api.create_preview_check(
+            cast(checker_api._PreviewCheckData, validated_data), region_config
+        )
 
 
 @extend_schema_serializer()
@@ -298,7 +309,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         help_text="Number of consecutive failed checks required to mark monitor as down.",
     )
 
-    def validate(self, attrs):
+    def validate(
+        self, attrs: dict[str, Any]
+    ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         # When creating a new uptime monitor, check if we would exceed the organization limit
         if not self.instance:
             organization = self.context["organization"]
@@ -348,7 +361,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def create(self, validated_data):
+    def create(
+        self, validated_data: dict[str, Any]
+    ) -> Detector:  # justification: validated alert payload is decoded JSON.
         if validated_data.get("environment") is not None:
             environment = Environment.get_or_create(
                 project=self.context["project"],
@@ -367,7 +382,7 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             interval_seconds=validated_data["interval_seconds"],
             timeout_ms=validated_data["timeout_ms"],
             name=validated_data["name"],
-            status=validated_data.get("status"),
+            status=cast(int, validated_data.get("status")),
             mode=validated_data.get("mode", UptimeMonitorMode.MANUAL),
             owner=validated_data.get("owner"),
             trace_sampling=validated_data.get("trace_sampling", False),
@@ -388,7 +403,9 @@ class UptimeMonitorValidator(UptimeValidatorBase):
 
         return detector
 
-    def update(self, instance: Detector, data) -> Detector:
+    def update(
+        self, instance: Detector, data: dict[str, Any]
+    ) -> Detector:  # justification: validated alert payload is decoded JSON.
         uptime_subscription = get_uptime_subscription(instance)
 
         url = data["url"] if "url" in data else uptime_subscription.url
@@ -548,7 +565,9 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
     def validate_mode(self, mode: int) -> UptimeMonitorMode:
         return _validate_mode(mode, self.context["request"])
 
-    def validate(self, attrs: dict[str, Any]):
+    def validate(
+        self, attrs: dict[str, Any]
+    ) -> dict[str, Any]:  # justification: validated alert payload is decoded JSON.
         attrs = super().validate(attrs)
 
         headers = []
@@ -591,7 +610,9 @@ class UptimeMonitorDataSourceValidator(BaseDataSourceValidator[UptimeSubscriptio
         return uptime_subscription
 
 
-class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
+class UptimeDomainCheckFailureConfigValidator(
+    CamelSnakeSerializer[dict[str, Any]]
+):  # justification: validated alert payload is decoded JSON.
     """
     Validator for the uptime detector config field.
     """
@@ -616,7 +637,9 @@ class UptimeDomainCheckFailureConfigValidator(CamelSnakeSerializer):
     )
     mode = serializers.IntegerField(required=False, default=UptimeMonitorMode.MANUAL)
 
-    def bind(self, field_name, parent):
+    def bind(
+        self, field_name: str, parent: serializers.BaseSerializer[Any]
+    ) -> None:  # justification: validated alert payload is decoded JSON.
         super().bind(field_name, parent)
         if not parent:
             return
@@ -773,7 +796,9 @@ class UptimeDomainCheckFailureValidator(BaseDetectorTypeValidator):
 
         return instance
 
-    def update_data_source(self, instance: Detector, data_source: dict[str, Any]) -> Detector:
+    def update_data_source(
+        self, instance: Detector, data_source: dict[str, Any]
+    ) -> Detector:  # justification: validated alert payload is decoded JSON.
         subscription = get_uptime_subscription(instance)
         update_uptime_subscription(
             detector=instance,

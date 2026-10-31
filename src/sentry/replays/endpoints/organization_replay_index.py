@@ -82,7 +82,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
 
         headers = {}
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> QueryResponse:
             try:
                 search_filters = parse_search_query(
                     request.query_params.get("query", ""), config=replay_url_parser_config
@@ -144,7 +144,7 @@ class ReplayPaginator:
     def __init__(self, data_fn: Callable[[int, int], QueryResponse]) -> None:
         self.data_fn = data_fn
 
-    def get_result(self, limit: int, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[object]:
         assert limit > 0
         offset = int(cursor.offset) if cursor is not None else 0
         response = self.data_fn(offset, limit + 1)

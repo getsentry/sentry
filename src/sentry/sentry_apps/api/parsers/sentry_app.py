@@ -1,6 +1,7 @@
 import logging
 import re
 from collections.abc import Callable, Mapping, Sequence
+from typing import Any, cast
 
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -11,9 +12,10 @@ from rest_framework.serializers import Serializer, ValidationError
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import build_typed_list
+from sentry.auth.access import Access
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
-from sentry.sentry_apps.api.parsers.schema import validate_ui_element_schema
+from sentry.sentry_apps.api.parsers.schema import UiElementSchema, validate_ui_element_schema
 from sentry.sentry_apps.models.sentry_app import (
     UUID_CHARS_IN_SLUG,
     VALID_EVENTS,
@@ -92,7 +94,7 @@ class SchemaField(serializers.Field[object, object, object, object]):
             return {}
 
         try:
-            validate_ui_element_schema(data)
+            validate_ui_element_schema(cast(UiElementSchema, data))
         except SchemaValidationError as e:
             raise ValidationError(e.message)
 
@@ -203,9 +205,10 @@ class SentryAppParser(Serializer):
         allow_null=True,
     )
 
-    def __init__(self, *args, **kwargs):
-        self.active_staff = kwargs.pop("active_staff", False)
-        self.access = kwargs.pop("access", None)
+    # justification: DRF serializer init options are arbitrary decoded request values.
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.active_staff: bool = kwargs.pop("active_staff", False)
+        self.access: Access | None = kwargs.pop("access", None)
         Serializer.__init__(self, *args, **kwargs)
 
     # an abstraction to pull fields from attrs if they are available or the sentry_app if not
@@ -334,7 +337,8 @@ class SentryAppParser(Serializer):
 
         return value
 
-    def validate(self, attrs):
+    # justification: DRF validated data is decoded request JSON with no static shape.
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # validates events against scopes
         if attrs.get("scopes"):
             for subscription in attrs.get("events", []):

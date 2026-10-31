@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReplayParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.storage import storage
 from sentry.replays.usecases.reader import download_segments, fetch_segments_metadata
@@ -31,7 +32,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
     }
 
-    def __init__(self, **options) -> None:
+    def __init__(self, **options: object) -> None:
         storage.initialize_client()
         super().__init__(**options)
 
@@ -57,7 +58,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         examples=ReplayExamples.GET_REPLAY_SEGMENTS,
     )
     def get(
-        self, request: Request, project, replay_id: str
+        self, request: Request, project: Project, replay_id: str
     ) -> Response[list[list[dict[str, Any]]]]:
         """Return a collection of replay recording segments."""
         self.check_replay_access(request, project)

@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_sdk import Scope
 
 from sentry import options
 from sentry.api.authentication import ClientIdSecretAuthentication, JWTClientSecretAuthentication
@@ -20,11 +21,13 @@ from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.integrations.api.bases.integration import PARANOID_GET
 from sentry.models.organization import OrganizationStatus
 from sentry.organizations.services.organization import (
+    RpcOrganization,
+    RpcOrganizationSummary,
     RpcUserOrganizationContext,
     organization_service,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
-from sentry.sentry_apps.services.app import RpcSentryApp, app_service
+from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
     SentryAppError,
@@ -134,12 +137,18 @@ class IntegrationPlatformEndpoint(Endpoint):
         response.exception = True
         return response
 
-    def handle_exception_with_details(self, request, exc, handler_context=None, scope=None):
+    def handle_exception_with_details(
+        self,
+        request: Request,
+        exc: Exception,
+        handler_context: Mapping[str, object] | None = None,
+        scope: Scope | None = None,
+    ) -> Response:
         return self._handle_sentry_app_exception(
             exception=exc
         ) or super().handle_exception_with_details(request, exc, handler_context, scope)
 
-    def _handle_sentry_app_exception(self, exception: Exception):
+    def _handle_sentry_app_exception(self, exception: Exception) -> Response | None:
         if isinstance(exception, (SentryAppError, SentryAppIntegratorError)):
             response_body = exception.to_public_dict()
 
@@ -199,7 +208,14 @@ class SentryAppsBaseEndpoint(IntegrationPlatformEndpoint):
         else:
             return self._get_organization_for_user(request.user, organization_slug)
 
-    def convert_args(self, request: Request, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        *args: Any,
+        **kwargs: Any,  # justification: Django view argument passing is variadic.
+    ) -> tuple[
+        tuple[Any, ...], dict[str, Any]
+    ]:  # justification: Django view argument passing is variadic.
         """
         This baseclass is the SentryApp collection endpoints:
 
@@ -311,7 +327,9 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
 
     def convert_args(
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
-    ):
+    ) -> tuple[
+        tuple[Any, ...], dict[str, Any]
+    ]:  # justification: Django view argument passing is variadic.
         try:
             sentry_app = SentryApp.objects.get(slug__id_or_slug=sentry_app_id_or_slug)
         except SentryApp.DoesNotExist:
@@ -333,11 +351,15 @@ class SentryAppInstallationsPermission(SentryPermission):
         "POST": ("org:integrations", "org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, organization):
+    def has_object_permission(
+        self, request: Request, view: APIView, organization: RpcOrganizationSummary
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, organization)
+        # justification: determine_access accepts a summarized organization at runtime
+        # via extract_id_from, but is not typed to accept one.
+        self.determine_access(request, cast(RpcOrganization, organization))
 
         if superuser_has_permission(request):
             return True
@@ -360,8 +382,16 @@ class SentryAppInstallationsPermission(SentryPermission):
 class SentryAppInstallationsBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes = (SentryAppInstallationsPermission,)
 
-    def convert_args(self, request: Request, organization_id_or_slug, *args, **kwargs):
-        extra_args = {}
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        *args: Any,
+        **kwargs: Any,  # justification: Django view argument passing is variadic.
+    ) -> tuple[
+        tuple[Any, ...], dict[str, Any]
+    ]:  # justification: Django view argument passing is variadic.
+        extra_args: dict[str, int | None] = {}
         # We need to pass user_id if the user is not a superuser
         if not is_active_superuser(request):
             extra_args["user_id"] = request.user.id
@@ -397,17 +427,23 @@ class SentryAppInstallationPermission(SentryPermission):
         "POST": ("org:integrations", "event:write", "event:admin"),
     }
 
-    def has_permission(self, request: Request, *args, **kwargs) -> bool:
+    def has_permission(  # justification: Django view argument passing is variadic.
+        self, request: Request, *args: Any, **kwargs: Any
+    ) -> bool:
         # To let the app mark the installation as installed, we don't care about permissions
         if request.user.is_authenticated and request.user.is_sentry_app and request.method == "PUT":
             return True
         return super().has_permission(request, *args, **kwargs)
 
-    def has_object_permission(self, request: Request, view, installation):
+    def has_object_permission(
+        self, request: Request, view: APIView, installation: RpcSentryAppInstallation
+    ) -> bool:
         if not hasattr(request, "user") or not request.user or not request.user.is_authenticated:
             return False
 
-        self.determine_access(request, installation.organization_id)
+        # justification: determine_access accepts an organization id at runtime via
+        # extract_id_from, but is not typed to accept one.
+        self.determine_access(request, cast(RpcOrganization, installation.organization_id))
 
         if superuser_has_permission(request):
             return True
@@ -436,8 +472,16 @@ class SentryAppInstallationPermission(SentryPermission):
 class SentryAppInstallationBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppInstallationPermission,)
 
-    def convert_args(self, request: Request, uuid, *args, **kwargs):
-        installations = app_service.get_many(filter=dict(uuids=[uuid]))
+    def convert_args(
+        self,
+        request: Request,
+        uuid: str,
+        *args: Any,
+        **kwargs: Any,  # justification: Django view argument passing is variadic.
+    ) -> tuple[
+        tuple[Any, ...], dict[str, Any]
+    ]:  # justification: Django view argument passing is variadic.
+        installations = app_service.get_many(filter={"uuids": [uuid]})
         installation = installations[0] if installations else None
         if installation is None:
             raise SentryAppError(
@@ -467,7 +511,9 @@ class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEn
 
 
 class SentryAppAuthorizationsPermission(SentryPermission):
-    def has_object_permission(self, request: Request, view, installation):
+    def has_object_permission(
+        self, request: Request, view: APIView, installation: RpcSentryAppInstallation
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 
@@ -497,7 +543,9 @@ class SentryInternalAppTokenPermission(SentryPermission):
         "DELETE": ("org:write", "org:admin"),
     }
 
-    def has_object_permission(self, request: Request, view, sentry_app):
+    def has_object_permission(
+        self, request: Request, view: APIView, sentry_app: SentryApp | RpcSentryApp
+    ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False
 

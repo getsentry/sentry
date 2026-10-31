@@ -207,6 +207,8 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         second_key = test_project.key_set.create()
 
         # Set configs for both keys
+        assert first_key.public_key is not None
+        assert second_key.public_key is not None
         projectconfig_cache.backend.set_many(
             {
                 first_key.public_key: {"test_proj": "config1"},
