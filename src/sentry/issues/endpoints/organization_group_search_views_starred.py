@@ -7,6 +7,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchviewstarred import GroupSearchViewStarredSerializer
+from sentry.auth.principal import require_user
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
 
@@ -30,9 +31,9 @@ class OrganizationGroupSearchViewsStarredEndpoint(OrganizationEndpoint):
         Retrieve a list of starred views for the current organization member.
         """
 
-        assert request.user.id is not None
+        user = require_user(request)
         starred_views = GroupSearchViewStarred.objects.filter(
-            organization=organization, user_id=request.user.id
+            organization=organization, user_id=user.id
         ).select_related("group_search_view")
 
         return self.paginate(

@@ -27,10 +27,12 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.event_examples import EventExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.services import eventstore
 from sentry.tasks.unmerge import start_unmerge
 from sentry.users.models.user import User
@@ -160,7 +162,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
         start_unmerge.delay(
-            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
+            group.project_id, group.id, None, grouphashes, acting_user_id(request.user)
         )
 
         return Response(status=202)
@@ -169,7 +171,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         self,
         project_id: int,
         group_id: int,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         full: str | bool,
         results: Sequence[dict[str, str]],
     ) -> list[GroupHashesResult]:
@@ -190,7 +192,7 @@ class GroupHashesEndpoint(GroupEndpoint):
 
     def __handle_result(
         self,
-        user: User | RpcUser | AnonymousUser | None,
+        user: User | RpcUser | AnonymousUser | ServiceAccountPrincipal | None,
         project_id: int,
         group_id: int,
         full: str | bool,

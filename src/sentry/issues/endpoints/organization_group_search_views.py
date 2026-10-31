@@ -29,7 +29,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import owned_by_acting_user
+from sentry.auth.principal import owned_by_acting_user, require_user
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -265,10 +265,11 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         for project in projects:
             self.check_object_permissions(request, project)
 
+        user = require_user(request)
         # Create the new view
         view = GroupSearchView.objects.create(
             organization=organization,
-            user_id=request.user.id,
+            user_id=user.id,
             name=validated_data["name"],
             query=validated_data["query"],
             query_sort=validated_data["querySort"],
@@ -282,7 +283,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if validated_data.get("starred"):
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=user.id,
                 view=view,
             )
 
