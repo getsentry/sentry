@@ -19,3 +19,6 @@ class Config(AppConfig):
         import sentry.notifications.platform.slack.renderers.seer  # noqa: F401
         import sentry.notifications.platform.slack.renderers.seer_agent_write_approval  # noqa: F401
         import sentry.notifications.platform.templates  # noqa: F401
+
+        # Not imported by the templates package to avoid a circular import, see its __init__.py
+        import sentry.notifications.platform.templates.seer  # noqa: F401
