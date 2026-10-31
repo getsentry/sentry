@@ -97,7 +97,7 @@ def _added_lines_by_file(diff: str) -> dict[str, set[int]]:
 
 
 def _diff(base: str | None, filenames: Sequence[str], staged: bool) -> dict[str, set[int]]:
-    paths = [path for path in filenames if path.endswith(".py")]
+    paths = [path for path in filenames if path.endswith(".py")] or ["src"]
     if base is not None:
         diff = _run_git("diff", "--unified=0", f"{base}...HEAD", "--", *paths)
     elif staged:
@@ -115,12 +115,20 @@ def _changed_files(base: str | None) -> list[str]:
     return [line for line in diff.splitlines() if line.endswith(".py")]
 
 
-def _any_lines(text: str) -> set[int]:
-    lines = set()
-    for token in tokenize.generate_tokens(io.StringIO(text).readline):
-        if token.type == tokenize.NAME and token.string == "Any":
-            lines.add(token.start[0])
-    return lines
+def _any_lines(text: str) -> list[int]:
+    return [
+        token.start[0]
+        for token in tokenize.generate_tokens(io.StringIO(text).readline)
+        if token.type == tokenize.NAME and token.string == "Any"
+    ]
+
+
+def _old_text(base: str | None, path: str, staged: bool) -> str:
+    ref = base if base is not None else "HEAD"
+    try:
+        return _run_git("show", f"{ref}:{path}")
+    except subprocess.CalledProcessError:
+        return ""
 
 
 def _cast_nodes(text: str) -> Iterable[ast.Call]:
@@ -135,15 +143,26 @@ def _cast_nodes(text: str) -> Iterable[ast.Call]:
             yield node
 
 
-def _check_file(path: str, added: set[int], weaklist: frozenset[str], root: Path) -> list[str]:
+def _check_file(
+    path: str,
+    added: set[int],
+    weaklist: frozenset[str],
+    root: Path,
+    old_text: str,
+) -> list[str]:
     errors: list[str] = []
     source_path = root / path
     text = source_path.read_text()
     lines = text.splitlines()
     module = _module_for_path(path)
 
-    if module is not None and not _is_weaklisted(module, weaklist):
-        for line_number in sorted(_any_lines(text) & added):
+    new_any_lines = _any_lines(text)
+    if (
+        module is not None
+        and not _is_weaklisted(module, weaklist)
+        and len(new_any_lines) > len(_any_lines(old_text))
+    ):
+        for line_number in sorted(set(new_any_lines) & added):
             errors.append(
                 f"{path}:{line_number}: new Any in graduated module {module}; "
                 "fix the type or add a precise contract"
@@ -207,12 +226,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     weaklist = _weaklist()
     errors: list[str] = []
     for path, lines in added.items():
-        if not lines:
+        if not lines or not path.endswith(".py"):
             continue
         source_path = root / path
         if not source_path.exists():
             continue
-        errors.extend(_check_file(path, lines, weaklist, root))
+        old_text = _old_text(args.base, path, staged=args.staged or args.base is None)
+        errors.extend(_check_file(path, lines, weaklist, root, old_text))
 
     for error in errors:
         print(error, file=sys.stderr)
