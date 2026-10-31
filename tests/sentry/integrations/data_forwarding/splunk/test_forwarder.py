@@ -5,7 +5,9 @@ from sentry.integrations.data_forwarding.splunk.forwarder import SplunkForwarder
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 
 
@@ -94,6 +96,37 @@ class SplunkDataForwarderTest(TestCase):
         assert result["event"]["type"] == "error"
         assert result["event"]["exception_type"] == "ValueError"
         assert result["event"]["exception_value"] == "foo bar"
+
+    def test_error_payload_skips_none_exception_values(self) -> None:
+        config = self.data_forwarder_project.get_config()
+        event = Event(
+            project_id=self.project.id,
+            event_id="a" * 32,
+            data={
+                "timestamp": before_now(minutes=1).timestamp(),
+                "exception": {"values": [None, {"type": "ValueError", "value": "foo bar"}]},
+            },
+        )
+
+        result = self.forwarder.get_event_payload(event, config)
+
+        assert result["event"]["exception_type"] == "ValueError"
+        assert result["event"]["exception_value"] == "foo bar"
+
+    def test_error_payload_all_none_exception_values(self) -> None:
+        config = self.data_forwarder_project.get_config()
+        event = Event(
+            project_id=self.project.id,
+            event_id="b" * 32,
+            data={
+                "timestamp": before_now(minutes=1).timestamp(),
+                "exception": {"values": [None]},
+            },
+        )
+
+        result = self.forwarder.get_event_payload(event, config)
+
+        assert "exception_type" not in result["event"]
 
     def test_csp_payload(self) -> None:
         event = self.store_event(

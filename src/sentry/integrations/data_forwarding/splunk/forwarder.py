@@ -102,8 +102,11 @@ class SplunkForwarder(BaseDataForwarder):
                     }
                 )
             elif key == "exception":
-                exc = value.values[0]
-                props.update({"exception_type": exc.type, "exception_value": exc.value})
+                # The exception interface preserves ``None`` entries to keep
+                # offsets stable, so pick the first concrete exception value.
+                exc = next((v for v in value.values if v is not None), None)
+                if exc is not None:
+                    props.update({"exception_type": exc.type, "exception_value": exc.value})
             elif key == "logentry":
                 props.update({"message": value.formatted or value.message})
             elif key in ("csp", "expectct", "expectstable", "hpkp"):
