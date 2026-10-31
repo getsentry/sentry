@@ -25,7 +25,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, owned_by_acting_user
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
@@ -230,7 +230,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
             if self.should_add_creator_to_team(request):
                 try:
                     member = OrganizationMember.objects.get(
-                        user_id=request.user.id, organization=organization
+                        owned_by_acting_user(request.user), organization=organization
                     )
                 except OrganizationMember.DoesNotExist:
                     pass

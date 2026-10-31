@@ -20,6 +20,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -426,6 +427,35 @@ class CreateWithClosedMembershipTest(CreateOrganizationMemberTeamTest):
         assert OrganizationAccessRequest.objects.filter(
             team=self.team,
             member=self.member,
+        ).exists()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_requests_access_without_a_requester(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        self.get_success_response(
+            self.org.slug,
+            self.member.id,
+            self.team.slug,
+            extra_headers={"HTTP_X_VIEWER_CONTEXT": viewer_context},
+            status_code=status.HTTP_202_ACCEPTED,
+        )
+
+        assert not OrganizationMemberTeam.objects.filter(
+            team=self.team, organizationmember=self.member
+        ).exists()
+        assert OrganizationAccessRequest.objects.filter(
+            team=self.team, member=self.member, requester_id=None
         ).exists()
 
     def test_multiple_of_the_same_access_request(self) -> None:

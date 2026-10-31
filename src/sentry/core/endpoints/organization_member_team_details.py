@@ -32,6 +32,7 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
+from sentry.auth.principal import acting_user_id, is_acting_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
@@ -203,7 +204,7 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not request.user.is_authenticated:
             return False
 
-        if request.user.id == member.user_id:
+        if is_acting_user(request.user, member.user_id):
             return True
 
         # There is an edge case where org owners/managers cannot remove a member from a team they
@@ -222,8 +223,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         if not created:
             return
 
-        requester = request.user.id if request.user.id != member.user_id else None
-        if requester:
+        requester = acting_user_id(request.user)
+        if requester and requester != member.user_id:
             omt.update(requester_id=requester)
 
         omt.send_request_email()

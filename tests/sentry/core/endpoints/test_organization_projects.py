@@ -90,6 +90,32 @@ class OrganizationProjectsTestBase(APITestCase):
         assert response.status_code == 200, response.content
         assert teamless.id in [int(project["id"]) for project in response.data]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_is_member_of_no_projects(self) -> None:
+        project = self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "project:read"],
+            project_ids=[project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"query": "is_member:1"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+
 
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
     def setUp(self) -> None:
@@ -392,3 +418,26 @@ class OrganizationProjectsCountTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, qs_params={"get_counts": "1"})
         assert response.data == {"allProjects": 6, "myProjects": 4}
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_projects_of_its_own(self) -> None:
+        project = self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"], project_ids=[project.id]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"allProjects": 1, "myProjects": 0}
