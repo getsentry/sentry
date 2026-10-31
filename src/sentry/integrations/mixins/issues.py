@@ -9,7 +9,7 @@ from operator import attrgetter
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from sentry import features
-from sentry.auth.principal import has_user
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -217,7 +217,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         return []
 
-    def store_issue_last_defaults(self, project: Project, user: RpcUser | User, data):
+    def store_issue_last_defaults(self, project: Project, user: RequestPrincipal, data):
         """
         Stores the last used field defaults on a per-project basis. This
         accepts a dict of values that will be filtered to keys returned by

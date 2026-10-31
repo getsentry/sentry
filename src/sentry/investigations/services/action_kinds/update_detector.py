@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from rest_framework import serializers
 
@@ -42,8 +41,6 @@ from sentry.models.organization import Organization
 from sentry.notebooks.contracts import StrictContractSerializer
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.snuba.models import SnubaQuery
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.workflow_engine.endpoints.organization_detector_details import (
     check_metric_detector_allowed,
 )
@@ -55,6 +52,9 @@ from sentry.workflow_engine.endpoints.validators.utils import can_edit_detector_
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import DetectorQuerySet
 from sentry.workflow_engine.types import DetectorPriorityLevel
+
+if TYPE_CHECKING:
+    from sentry.auth.principal import RequestPrincipal
 
 UPDATE_DETECTOR_ACTION = "update_detector"
 
@@ -404,7 +404,7 @@ class UpdateDetectorKind(ActionKind):
         *,
         investigations: dict[int, Notebook],
         access: Access,
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
     ) -> dict[int, CannotApplyReason | None]:
         source_detector_ids = {
             investigation_id: source_detector_id(source)
