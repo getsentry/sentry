@@ -1,5 +1,20 @@
 from drf_spectacular.utils import OpenApiExample
 
+_METRIC_DATA_SOURCE = {
+    "queryType": 0,
+    "dataset": "events",
+    "query": "is:unresolved",
+    "aggregate": "count()",
+    "timeWindow": 3600,
+    "environment": None,
+    "eventTypes": ["error", "default"],
+}
+
+_THRESHOLD_CONDITIONS = [
+    {"type": "gt", "comparison": 10, "conditionResult": 75},
+    {"type": "lte", "comparison": 10, "conditionResult": 0},
+]
+
 
 class WorkflowEngineExamples:
     GET_WORKFLOW = [
@@ -257,6 +272,11 @@ class WorkflowEngineExamples:
     ]
     UPDATE_DETECTOR = [
         OpenApiExample(
+            "Update a monitor to percent-change detection",
+            value={"config": {"detectionType": "percent", "comparisonDelta": 3600}},
+            request_only=True,
+        ),
+        OpenApiExample(
             "Update a Monitor",
             value={
                 "id": "12345",
@@ -339,7 +359,7 @@ class WorkflowEngineExamples:
             },
             status_codes=["200"],
             response_only=True,
-        )
+        ),
     ]
     LIST_ORG_DETECTORS = [
         OpenApiExample(
@@ -774,6 +794,52 @@ class WorkflowEngineExamples:
     ]
     CREATE_DETECTOR = [
         OpenApiExample(
+            "Create a static threshold monitor",
+            value={
+                "name": "Unresolved errors",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {"logicType": "any", "conditions": _THRESHOLD_CONDITIONS},
+                "config": {"detectionType": "static"},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Create a percent-change monitor",
+            value={
+                "name": "Error volume change",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {"logicType": "any", "conditions": _THRESHOLD_CONDITIONS},
+                "config": {"detectionType": "percent", "comparisonDelta": 3600},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
+            "Create a dynamic anomaly monitor",
+            value={
+                "name": "Unusual error volume",
+                "type": "metric_issue",
+                "dataSources": [_METRIC_DATA_SOURCE],
+                "conditionGroup": {
+                    "logicType": "any",
+                    "conditions": [
+                        {
+                            "type": "anomaly_detection",
+                            "comparison": {
+                                "sensitivity": "high",
+                                "seasonality": "auto",
+                                "thresholdType": 2,
+                            },
+                            "conditionResult": 75,
+                        }
+                    ],
+                },
+                "config": {"detectionType": "dynamic"},
+            },
+            request_only=True,
+        ),
+        OpenApiExample(
             "Monitor successfully created",
             value={
                 "id": "12345",
@@ -830,5 +896,5 @@ class WorkflowEngineExamples:
             },
             status_codes=["201"],
             response_only=True,
-        )
+        ),
     ]
