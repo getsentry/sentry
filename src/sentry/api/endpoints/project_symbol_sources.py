@@ -46,7 +46,7 @@ class LayoutSerializer(serializers.Serializer):
     - `ssqp` - Microsoft SSQP
     - `unified` - Unified Symbol Server Layout
     - `debuginfod` - debuginfod
-    - `nxsymstore` - Nintendo NXSymStore
+    - `nnsymstore` - Nintendo Symbol Store
 
     **`casing`** ***(string)*** - The layout of the folder structure. The options are:
     - `default` - Default (mixed case)
