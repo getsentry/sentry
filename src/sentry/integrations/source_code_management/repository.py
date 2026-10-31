@@ -119,6 +119,7 @@ class BaseRepositoryIntegration(ABC):
         ``parallel`` is a hint that pages after the first may be fetched
         concurrently. Providers that do not implement parallel pagination may
         accept and ignore this argument.
+
         """
         raise NotImplementedError
 
