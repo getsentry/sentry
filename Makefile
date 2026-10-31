@@ -11,15 +11,41 @@ bootstrap:
 	@echo "you probably want to run devenv sync to bring the"
 	@echo "sentry dev environment up to date!"
 
-build-platform-assets \
-clean \
-init-config \
-run-dependent-services \
-drop-db \
-create-db \
-apply-migrations \
-reset-db :
-	@./scripts/do.sh $@
+.PHONY: init-config run-dependent-services build-platform-assets clean create-db drop-db apply-migrations reset-db
+init-config:
+	sentry init --dev --no-clobber
+
+run-dependent-services:
+	devservices up
+
+build-platform-assets:
+	@echo "--> Building platform assets"
+	python3 -m sentry.build._integration_docs
+	@# make sure this didn't silently do nothing
+	@test -f src/sentry/integration-docs/android.json
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* src/sentry/static/sentry/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+
+create-db:
+	@python3 -m tools.dev_db create
+
+drop-db:
+	@python3 -m tools.dev_db drop
+
+apply-migrations:
+	@python3 -m tools.dev_db migrate
+
+# One invocation keeps drop, migrate and createuser ordered under `make -j`.
+reset-db:
+	@python3 -m tools.dev_db reset
 
 develop \
 install-js-dev \
