@@ -30,8 +30,8 @@ class DebugPerformanceIssueEmailView(View):
         origin = NotificationOrigin(
             label="Example performance rule",
             environment_id=None,
-            workflow_id=None,
-            legacy_rule_id=1,
+            workflow_id=1,
+            legacy_rule_id=None,
         )
 
         transaction_data = get_transaction_data(perf_event)
