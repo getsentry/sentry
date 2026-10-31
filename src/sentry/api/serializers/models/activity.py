@@ -2,10 +2,9 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import Any, TypeAlias, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
+from sentry.auth.principal import RequestPrincipal
 from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
@@ -19,8 +18,6 @@ from sentry.sentry_apps.api.serializers.sentry_app_avatar import (
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
 from sentry.types.activity import ActivityType
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
@@ -78,7 +75,7 @@ def serialize_activity_source(source: str | None) -> str | None:
 def serialize_group_notes(
     group: Group,
     notes: Sequence[Activity],
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
 ) -> list[GroupNoteSerializerResponse]:
     if not notes:
         return []

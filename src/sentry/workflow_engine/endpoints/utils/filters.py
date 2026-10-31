@@ -19,10 +19,7 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import APIGate, DetectorAPIOperation
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
-
-    from sentry.users.models.user import User
-    from sentry.users.services.user.model import RpcUser
+    from sentry.auth.principal import RequestPrincipal
 
 
 _API_OPERATIONS_BY_NAME: dict[str | None, DetectorAPIOperation] = {
@@ -34,7 +31,7 @@ _API_OPERATIONS_BY_NAME["HEAD"] = DetectorAPIOperation.GET
 def _api_gate_enabled(
     gate: APIGate,
     organization: Organization,
-    actor: User | RpcUser | AnonymousUser | None,
+    actor: RequestPrincipal | None,
 ) -> bool:
     if isinstance(gate, bool):
         return gate
@@ -45,7 +42,7 @@ def get_excluded_detector_types(
     operation: DetectorAPIOperation | str | None,
     organization: Organization,
     *,
-    actor: User | RpcUser | AnonymousUser | None = None,
+    actor: RequestPrincipal | None = None,
 ) -> list[str]:
     """Resolve detector-platform API gates for the current request, without fetching rows."""
     required_operations: tuple[DetectorAPIOperation, ...]
