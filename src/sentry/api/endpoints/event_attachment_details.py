@@ -20,6 +20,7 @@ from sentry.apidocs.examples.event_attachment_examples import EventAttachmentExa
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
@@ -216,7 +217,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
                     group_id=attachment.group_id,
                     project=project,
                     type=ActivityType.DELETED_ATTACHMENT.value,
-                    user_id=request.user.id,
+                    user_id=acting_user_id(request.user),
                     data={},
                 )
         attachment.delete()

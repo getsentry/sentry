@@ -18,6 +18,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.apitoken import ApiToken
 from sentry.security.utils import capture_security_activity
@@ -44,7 +45,7 @@ def get_appropriate_user_id(request: Request) -> int:
     assert request.user.is_authenticated
 
     # Get the user id for the user that made the current request as a baseline default
-    user_id = request.user.id
+    user_id = require_user(request).id
     if has_elevated_mode(request):
         datastore = request.GET if request.GET else request.data
         # If a userId override is not found, use the id for the user who made the request
@@ -85,9 +86,10 @@ class ApiTokensEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
             assert request.user.is_authenticated, "User must not be anonymous"
+            user = require_user(request)
 
             token = ApiToken.objects.create(
-                user_id=request.user.id,
+                user_id=user.id,
                 name=result.get("name", None),
                 token_type=AuthTokenType.USER,
                 scope_list=result["scopes"],
@@ -95,15 +97,15 @@ class ApiTokensEndpoint(Endpoint):
             )
 
             capture_security_activity(
-                account=request.user,
+                account=user,
                 type="api-token-generated",
-                actor=request.user,
+                actor=user,
                 ip_address=request.META["REMOTE_ADDR"],
                 context={},
                 send_email=True,
             )
 
-            analytics.record(ApiTokenCreated(user_id=request.user.id))
+            analytics.record(ApiTokenCreated(user_id=user.id))
 
             return Response(serialize(token, request.user), status=201)
         return Response(serializer.errors, status=400)
@@ -127,6 +129,6 @@ class ApiTokensEndpoint(Endpoint):
 
             token_to_delete.delete()
 
-        analytics.record(ApiTokenDeleted(user_id=request.user.id))
+        analytics.record(ApiTokenDeleted(user_id=acting_user_id(request.user)))
 
         return Response(status=204)
