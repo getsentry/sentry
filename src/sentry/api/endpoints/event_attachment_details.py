@@ -1,11 +1,13 @@
 import posixpath
-from typing import Any
+from collections.abc import Iterator
+from typing import Any, cast
 
 import sentry_sdk
 from django.http import HttpResponseRedirect, StreamingHttpResponse
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry import features, roles
 from sentry.api.api_owners import ApiOwner
@@ -29,9 +31,14 @@ from sentry.issues.action_log import (
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.objectstore import parse_accept_encoding
+from sentry.organizations.services.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.services import eventstore
 from sentry.types.activity import ActivityType
 
@@ -59,7 +66,13 @@ DOWNLOAD_PARAM = OpenApiParameter(
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
-    def has_object_permission(self, request: Request, view, project):
+    def has_object_permission(
+        self,
+        request: Request,
+        view: APIView,
+        project: Project | Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
+        project = cast(Project, project)
         result = super().has_object_permission(request, view, project)
 
         if not result:
@@ -113,7 +126,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
         blob_stream = attachment.get_blob_stream(accept_encoding)
 
-        def stream_attachment():
+        def stream_attachment() -> Iterator[bytes]:
             with blob_stream.payload as payload:
                 while chunk := payload.read(4096):
                     yield chunk

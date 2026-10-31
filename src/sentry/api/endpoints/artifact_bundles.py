@@ -17,6 +17,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.artifactbundle import ArtifactBundlesSerializer
 from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
+from sentry.models.project import Project
 from sentry.utils.db import atomic_transaction
 
 # We want to keep a mapping of the fields that the frontend uses for filtering since we want to align the UI names and
@@ -43,7 +44,7 @@ class ArtifactBundlesMixin:
         raise InvalidSortByParameter
 
     @classmethod
-    def is_valid_uuid(cls, value):
+    def is_valid_uuid(cls, value: object) -> bool:
         try:
             uuid.UUID(str(value))
             return True
@@ -60,7 +61,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
     owner = ApiOwner.COMMUNITY
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Artifact Bundles
         ````````````````````````````````````
@@ -125,7 +126,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             on_results=lambda r: serialize(r, request.user, ArtifactBundlesSerializer()),
         )
 
-    def delete(self, request: Request, project) -> Response:
+    def delete(self, request: Request, project: Project) -> Response:
         """
         Delete an Archive
         ```````````````````````````````````````````````````

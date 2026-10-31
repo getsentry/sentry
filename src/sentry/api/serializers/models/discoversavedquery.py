@@ -1,7 +1,7 @@
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -41,7 +41,7 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     display: str
     topEvents: int
     interval: str
-    exploreQuery: dict | None
+    exploreQuery: dict[str, object] | None
     lastVisited: datetime | None
     starred: bool
     position: int | None
@@ -62,7 +62,7 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
 
 @register(DiscoverSavedQuery)
 class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
-    def partial_serialize_explore_query(self, query: ExploreSavedQuery) -> dict:
+    def partial_serialize_explore_query(self, query: ExploreSavedQuery) -> dict[str, object]:
         query_keys = [
             "environment",
             "query",
@@ -71,7 +71,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "end",
             "interval",
         ]
-        data = {
+        data: dict[str, object] = {
             "id": str(query.id),
             "name": query.name,
             "projects": [project.id for project in query.projects.all()],
@@ -187,7 +187,7 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
     def serialize(
         self,
         obj: DiscoverSavedQuery,
-        attrs,
+        attrs: Mapping[str, object],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DiscoverSavedQueryResponse:
@@ -218,17 +218,17 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "expired": False,
             "dateCreated": obj.date_created,
             "dateUpdated": obj.date_updated,
-            "createdBy": attrs.get("created_by"),
+            "createdBy": cast(UserSerializerResponse | None, attrs.get("created_by")),
         }
 
         if "user_last_visited" in attrs:
-            data["lastVisited"] = attrs["user_last_visited"]
+            data["lastVisited"] = cast(datetime | None, attrs["user_last_visited"])
 
         if "starred" in attrs:
-            data["starred"] = attrs["starred"]
+            data["starred"] = cast(bool, attrs["starred"])
 
         if "position" in attrs:
-            data["position"] = attrs["position"]
+            data["position"] = cast(int | None, attrs["position"])
 
         for key in query_keys:
             if obj.query.get(key) is not None:
@@ -248,6 +248,6 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             data["projects"] = list(ALL_ACCESS_PROJECTS)
 
         if attrs.get("explore_query") is not None:
-            data["exploreQuery"] = attrs.get("explore_query")
+            data["exploreQuery"] = cast(dict[str, object] | None, attrs.get("explore_query"))
 
         return data

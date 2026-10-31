@@ -1,5 +1,7 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from itertools import chain, groupby
+from typing import TypedDict, cast
 
 import sentry_sdk
 from django.utils import timezone
@@ -14,23 +16,43 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_sdk_index, get_suggested_updates
 from sentry.search.events.types import SnubaParams
 from sentry.snuba import discover
 from sentry.utils.numbers import format_grouped_length
 
+SdkUsageRow = TypedDict(
+    "SdkUsageRow",
+    {
+        "project.id": int,
+        "sdk.name": str,
+        "sdk.version": str,
+    },
+)
 
-def by_sdk_name(sdk):
+
+class SdkLatest(TypedDict):
+    projectId: str
+    sdkName: str
+    sdkVersion: str
+
+
+class SdkUpdate(SdkLatest):
+    suggestions: list[dict[str, object]]
+
+
+def by_sdk_name(sdk: SdkUsageRow) -> str:
     return sdk["sdk.name"]
 
 
-def by_project_id(sdk):
+def by_project_id(sdk: SdkUsageRow) -> int:
     return sdk["project.id"]
 
 
-def serialize(data, projects):
+def serialize(data: Sequence[SdkUsageRow], projects: Sequence[Project]) -> list[SdkUpdate]:
     # filter out SDKs with empty sdk.name or sdk.version or invalid version
-    nonempty_sdks = []
+    nonempty_sdks: list[SdkUsageRow] = []
     for sdk in data:
         if not sdk["sdk.name"] or not sdk["sdk.version"]:
             continue
@@ -46,11 +68,11 @@ def serialize(data, projects):
     # project we have events for.
     latest_sdks = chain.from_iterable(
         [
-            {
-                "projectId": str(project_id),
-                "sdkName": sdk_name,
-                "sdkVersion": max((s["sdk.version"] for s in sdks), key=version.parse),
-            }
+            SdkLatest(
+                projectId=str(project_id),
+                sdkName=sdk_name,
+                sdkVersion=max((s["sdk.version"] for s in sdks), key=version.parse),
+            )
             for sdk_name, sdks in groupby(sorted(sdks_used, key=by_sdk_name), key=by_sdk_name)
         ]
         for project_id, sdks_used in groupby(nonempty_sdks, key=by_project_id)
@@ -60,8 +82,10 @@ def serialize(data, projects):
     index_state = SdkIndexState()
 
     updates_list = [
-        dict(
-            **latest,
+        SdkUpdate(
+            projectId=latest["projectId"],
+            sdkName=latest["sdkName"],
+            sdkVersion=latest["sdkVersion"],
             suggestions=list(
                 get_suggested_updates(
                     # TODO: In the future it would be nice to also add
@@ -121,7 +145,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
                 referrer="api.organization-sdk-updates",
             )
 
-        return Response(serialize(result["data"], projects))
+        return Response(serialize(cast(Sequence[SdkUsageRow], result["data"]), projects))
 
 
 @cell_silo_endpoint

@@ -3,8 +3,8 @@ from __future__ import annotations
 import enum
 import functools
 import logging
-from collections.abc import Callable
-from typing import Any
+from collections.abc import Callable, Hashable
+from typing import Any, overload
 
 from django.dispatch.dispatcher import Signal
 
@@ -48,14 +48,38 @@ class receivers_raise_on_send:
 
         return wrapped
 
-    def __exit__(self, *args) -> bool | None:
+    def __exit__(self, *args: object) -> bool | None:
         global _receivers_that_raise
         _receivers_that_raise = self.old
         return None
 
 
 class BetterSignal(Signal):
-    def connect(self, receiver=None, *args, **kwargs):
+    @overload
+    def connect(
+        self,
+        receiver: None = None,
+        sender: object | None = None,
+        weak: bool = True,
+        dispatch_uid: Hashable | None = None,
+    ) -> Callable[[Callable[..., Any]], None]: ...
+
+    @overload
+    def connect(
+        self,
+        receiver: Callable[..., Any],
+        sender: object | None = None,
+        weak: bool = True,
+        dispatch_uid: Hashable | None = None,
+    ) -> None: ...
+
+    def connect(
+        self,
+        receiver: Callable[..., Any] | None = None,
+        sender: object | None = None,
+        weak: bool = True,
+        dispatch_uid: Hashable | None = None,
+    ) -> Callable[[Callable[..., Any]], None] | None:
         """
         Support decorator syntax:
 
@@ -65,8 +89,10 @@ class BetterSignal(Signal):
 
         """
 
-        def wrapped(func):
-            return super(BetterSignal, self).connect(func, *args, **kwargs)
+        def wrapped(func: Callable[..., Any]) -> None:
+            super(BetterSignal, self).connect(
+                func, sender=sender, weak=weak, dispatch_uid=dispatch_uid
+            )
 
         if receiver is None:
             return wrapped
@@ -77,7 +103,8 @@ class BetterSignal(Signal):
             wrapped.__module__ = receiver.__module__
         if hasattr(receiver, "__doc__"):
             wrapped.__doc__ = receiver.__doc__
-        return wrapped(receiver)
+        wrapped(receiver)
+        return None
 
     def _log_robust_failure(self, receiver: object, err: Exception) -> None:
         if in_test_environment():

@@ -9,6 +9,7 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -201,7 +202,7 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
             return ResolveSyncAction.UNRESOLVE
         return ResolveSyncAction.NOOP
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id)
         username = "Unknown User" if user is None else user.name
 
@@ -210,7 +211,9 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
         quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
         return f"{attribution}{quoted_text}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(
+        self, issue_id: str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
 
         repo, issue_number = issue_id.rsplit("#", 1)
@@ -219,7 +222,9 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
             repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
         )
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(
+        self, issue_id: str, user_id: int, group_note: Activity
+    ) -> dict[str, object]:
         # GitHub uses markdown syntax directly without needing special formatting
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
