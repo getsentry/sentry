@@ -43,10 +43,10 @@ class ProjectFieldTest(TestCase):
 
 
 class EmptyListFieldTest(TestCase):
-    def test_empty_string_is_preserved(self) -> None:
+    def test_empty_string_is_an_empty_list(self) -> None:
         field = EmptyListField(child=serializers.CharField(allow_blank=True))
 
-        assert field.to_internal_value("") == ""
+        assert field.to_internal_value("") == []
 
     def test_default_child_preserves_arbitrary_items(self) -> None:
         field = EmptyListField()
