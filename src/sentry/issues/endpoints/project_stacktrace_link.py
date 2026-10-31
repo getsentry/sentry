@@ -183,6 +183,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
 
     @extend_schema(
         operation_id="getProjectStacktraceLink",

@@ -136,6 +136,8 @@ ACTION_PARAM = OpenApiParameter(
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    max_acceptable_duration = 10.0
+
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,

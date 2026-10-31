@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, IssueParams
@@ -107,6 +107,8 @@ class IntegrationIssueSerializer(Serializer[IntegrationIssueSerializerResponse])
 @extend_schema(tags=["Integration"])
 @cell_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     owner = ApiOwner.INTEGRATION_PLATFORM
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,

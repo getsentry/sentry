@@ -110,6 +110,12 @@ ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
+# A reasonable `Endpoint.max_acceptable_duration` (in seconds) for endpoints with no known reason
+# to be slow. Endpoints have no budget unless they set one; use this when opting in without a
+# more specific value. This value may change, so use an explicit number when the budget was
+# chosen for that endpoint.
+DEFAULT_DURATION_BUDGET = 3.0
+
 CURSOR_LINK_HEADER = (
     '<{uri}&cursor={cursor}>; rel="{name}"; results="{has_results}"; cursor="{cursor}"'
 )
@@ -270,6 +276,9 @@ class Endpoint(APIView):
     cursor_name = "cursor"
 
     owner: ApiOwner = ApiOwner.UNOWNED
+    # Request duration budgets are expressed in seconds. A mapping applies budgets only to the
+    # listed HTTP methods; missing methods are not budgeted. See DEFAULT_DURATION_BUDGET.
+    max_acceptable_duration: dict[HTTP_METHOD_NAME, float] | float | None = None
     publish_status: dict[HTTP_METHOD_NAME, ApiPublishStatus] = {}
     # Non-safe methods that a client may resend after a timeout or 5xx without
     # changing the outcome. Published as `x-sentry-idempotent`; see apidocs/README.md.

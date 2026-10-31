@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.helpers.releases import get_group_ids_resolved_in_release
@@ -15,6 +15,7 @@ from sentry.models.group import Group
 @cell_silo_endpoint
 class ProjectIssuesResolvedInReleaseEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
