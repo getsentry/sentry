@@ -113,8 +113,8 @@ class SentryAppSerializer(Serializer):
         owner_contexts: dict[int, RpcUserOrganizationContext] = {}
         unique_owner_ids = {i.owner_id for i in item_list if i.owner_id in user_org_ids}
         for owner_id in unique_owner_ids:
-            owner_context = organization_service.get_organization_by_id(
-                id=owner_id, user_id=user.id
+            owner_context = organization_service.get_access_context(
+                organization_id=owner_id, user_id=user.id
             )
             if owner_context:
                 owner_contexts[owner_id] = owner_context

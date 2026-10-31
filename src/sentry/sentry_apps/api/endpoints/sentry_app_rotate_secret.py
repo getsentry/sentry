@@ -10,11 +10,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.permissions import DemoSafePermission
 from sentry.api.serializers import serialize
+from sentry.auth import access
 from sentry.auth.superuser import superuser_has_permission
 from sentry.conf.server import SENTRY_TOKEN_ONLY_SCOPES
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import generate_token
-from sentry.organizations.services.organization import organization_service
 from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.utils.errors import SentryAppError
@@ -36,8 +36,8 @@ class SentryAppRotateSecretPermission(DemoSafePermission):
         }
 
         # organization that owns an integration
-        org_context = organization_service.get_organization_by_id(
-            id=sentry_app.owner_id, user_id=request.user.id if request.user else None
+        org_context = access.get_organization_access_context(
+            request, organization_id=sentry_app.owner_id
         )
         if org_context is None:
             logger.warning("owner organization for a sentry app was not found", extra=log_info)
