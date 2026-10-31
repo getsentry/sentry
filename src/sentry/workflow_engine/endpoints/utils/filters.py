@@ -5,18 +5,19 @@ from typing import TYPE_CHECKING
 from django.db.models import BigIntegerField, Exists, Model, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.query import in_iexact
-from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.subscription_limits import get_disallowed_metric_datasets
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.snuba.models import QuerySubscription
+from sentry.workflow_engine.endpoints.utils.detector_filters import (
+    is_detector_api_operation_available,
+)
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import APIGate, DetectorAPIOperation
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorType
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -31,16 +32,6 @@ _API_OPERATIONS_BY_NAME: dict[str | None, DetectorAPIOperation] = {
 _API_OPERATIONS_BY_NAME["HEAD"] = DetectorAPIOperation.GET
 
 
-def _api_gate_enabled(
-    gate: APIGate,
-    organization: Organization,
-    actor: User | RpcUser | AnonymousUser | None,
-) -> bool:
-    if isinstance(gate, bool):
-        return gate
-    return features.has(gate.name, organization, actor=actor)
-
-
 def get_excluded_detector_types(
     operation: DetectorAPIOperation | str | None,
     organization: Organization,
@@ -52,6 +43,8 @@ def get_excluded_detector_types(
     match _API_OPERATIONS_BY_NAME.get(operation):
         case DetectorAPIOperation.LIST:
             required_operations = (DetectorAPIOperation.GET, DetectorAPIOperation.LIST)
+        case DetectorAPIOperation.DISCOVER:
+            required_operations = (DetectorAPIOperation.GET, DetectorAPIOperation.DISCOVER)
         case None:
             required_operations = ()
         case normalized_operation:
@@ -60,8 +53,9 @@ def get_excluded_detector_types(
     excluded_types = []
     for detector_type, settings in detector_settings_registry.registrations.items():
         for required_operation in required_operations:
-            gate = settings.api_availability.get(required_operation, True)
-            if not _api_gate_enabled(gate, organization, actor):
+            if not is_detector_api_operation_available(
+                settings, required_operation, organization, actor=actor
+            ):
                 excluded_types.append(detector_type)
                 break
 
@@ -98,7 +92,7 @@ def exclude_disallowed_metric_detectors(
         )
     )
 
-    return queryset.exclude(Q(type=MetricIssue.slug) & Exists(disallowed_ds))
+    return queryset.exclude(Q(type=DetectorType.METRIC_ISSUE) & Exists(disallowed_ds))
 
 
 def apply_filter[T: Model](

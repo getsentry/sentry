@@ -26,9 +26,9 @@ from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
+    get_group_types_without_open_periods,
     get_open_periods_for_group,
     get_open_periods_for_groups,
-    should_create_open_periods,
 )
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
@@ -40,9 +40,9 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
 def detector_opens_new_issue_per_activation(detector: Detector) -> bool:
-    detector_settings = detector.group_type.detector_settings
+    detector_settings = detector.settings
 
-    if detector_settings is None or detector_settings.handler is None:
+    if detector_settings.handler is None:
         return False
 
     return (
@@ -104,11 +104,10 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 query_end=query_end,
             )
 
-        if not should_create_open_periods(detector.group_type.type_id):
-            return GroupOpenPeriod.objects.none()
-
-        detector_group_ids = DetectorGroup.objects.filter(detector=detector).values_list(
-            "group_id", flat=True
+        detector_group_ids = (
+            DetectorGroup.objects.filter(detector=detector)
+            .exclude(group__type__in=get_group_types_without_open_periods())
+            .values_list("group_id", flat=True)
         )
 
         return get_open_periods_for_groups(

@@ -35,6 +35,7 @@ from sentry.workflow_engine.models.data_source import DataPacket
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
     DetectorException,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -366,6 +367,10 @@ class MetricIssue(GroupType):
 
 @detector_settings_registry.register(DetectorType.METRIC_ISSUE)
 class MetricIssueDetectorSettings(DetectorSettings):
+    api_availability = {
+        **DetectorSettings.DEFAULT_API_AVAILABILITY,
+        DetectorAPIOperation.DISCOVER: True,
+    }
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator
     config_schema = {

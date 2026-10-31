@@ -10,7 +10,6 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.api.serializers.models.group import SimpleGroupSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
 from sentry.apidocs.omissions import sentry_schema_serializer
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.types.actor import Actor
@@ -22,6 +21,7 @@ from sentry.workflow_engine.models import (
     DetectorGroup,
     DetectorWorkflow,
 )
+from sentry.workflow_engine.types import DetectorType
 
 
 class DetectorSerializerResponseOptional(TypedDict, total=False):
@@ -139,7 +139,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             for detector_id, group_id in latest_group_ids_by_detector_id.items()
         }
 
-        filtered_item_list = [item for item in item_list if item.type == ErrorGroupType.slug]
+        filtered_item_list = [item for item in item_list if item.type == DetectorType.ERROR]
         error_detector_project_ids = [item.project_id for item in filtered_item_list]
 
         project_options_list = list(

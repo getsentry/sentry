@@ -103,6 +103,7 @@ relationships and fields are:
 - Configuration JSON schema
 - Query filter for detector visibility
 - API operation availability
+- Type discovery visibility
 
 `Detector.settings` reads directly from this registry. Its handler, schema, and query
 filters do not require a matching [`GroupType`](../../issues/grouptype.py). A group type
@@ -115,11 +116,17 @@ accessing their settings or saving them raises and logs an error for existing de
 `config_schema=None` skips configuration validation for legacy pipelines that already
 validate their own configuration. It does not skip type validation.
 
-Some compatibility paths still use the shared slug: `Detector.group_type` looks up a
-group type by detector type, and `GroupType.detector_settings` looks up settings by the
-issue-type slug. API type validation, type discovery, and default provisioning still use
-these relationships. Existing type values remain unchanged, and adding settings alone
-does not make a type discoverable through the API.
+`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+validation choices. It defaults to `False`; set it to `True` or a `FeatureGate` to
+advertise a type. Discovery also requires a handler and `GET` availability; suggested
+choices require a validator. `DISCOVER` does not restrict access to detector rows or
+explicit creation requests. Row operations have their own availability gates.
+
+Default provisioning uses explicit labels in `DEFAULT_DETECTOR_NAMES`, preserving
+existing names without borrowing issue descriptions. API validation, discovery, and
+history lookup use detector settings and actual associated issues. The legacy
+`Detector.group_type` and `GroupType.detector_settings` properties still assume matching
+slugs; avoid them when implementing detector behavior.
 
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.
