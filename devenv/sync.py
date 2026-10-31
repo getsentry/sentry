@@ -360,7 +360,7 @@ def main(context: dict[str, str]) -> int:
         (
             (
                 "python migrations",
-                ("make", "apply-migrations"),
+                (f"{venv_dir}/bin/python", "-m", "tools.dev_db", "migrate"),
                 {},
             ),
         ),
