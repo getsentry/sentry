@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint
+from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -60,7 +61,7 @@ class OrganizationIntercomJwtEndpoint(ControlSiloOrganizationEndpoint):
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
-        user = request.user
+        user = require_user(request)
         now = int(datetime.datetime.now(datetime.UTC).timestamp())
         exp = now + JWT_VALIDITY_WINDOW_SECONDS
 

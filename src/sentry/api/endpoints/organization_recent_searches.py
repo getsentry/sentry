@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import owned_by_acting_user, require_user
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
 
@@ -54,7 +55,6 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         query_kwargs = {
             "organization": organization,
-            "user_id": request.user.id,
             "type": search_type,
         }
 
@@ -62,7 +62,9 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
             query_kwargs["query__icontains"] = request.GET["query"]
 
         recent_searches = list(
-            RecentSearch.objects.filter(**query_kwargs).order_by("-last_seen")[:limit]
+            RecentSearch.objects.filter(
+                owned_by_acting_user(request.user), **query_kwargs
+            ).order_by("-last_seen")[:limit]
         )
 
         return Response(serialize(recent_searches, request.user))
@@ -72,16 +74,17 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
+            user = require_user(request)
 
             _, created = RecentSearch.objects.update_or_create(
                 organization_id=organization.id,
-                user_id=request.user.id,
+                user_id=user.id,
                 type=result["type"],
                 query=result["query"],
                 defaults={"last_seen": timezone.now()},
             )
             if created:
-                remove_excess_recent_searches(organization, request.user, result["type"])
+                remove_excess_recent_searches(organization, user, result["type"])
             status = 201 if created else 204
 
             return Response(status=status)

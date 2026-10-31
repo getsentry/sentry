@@ -400,7 +400,7 @@ class DemoSafePermission(SentryPermission):
         else:
             org_context = organization_service.get_organization_by_id(
                 id=extract_id_from(organization),
-                user_id=request.user.id if request.user else None,
+                user_id=acting_user_id(request.user),
             )
 
         assert org_context is not None, "Failed to fetch organization in determine_access"

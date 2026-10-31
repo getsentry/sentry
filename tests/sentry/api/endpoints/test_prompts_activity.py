@@ -1,10 +1,13 @@
+from django.test import override_settings
 from django.urls import reverse
 
+from sentry.models.promptsactivity import PromptsActivity
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class PromptsActivityTestBase(APITestCase):
@@ -53,6 +56,35 @@ class GetPromptsActivityTest(PromptsActivityTestBase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == 'Missing required field "project_id"'
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_no_prompt_state(self) -> None:
+        PromptsActivity.objects.create(
+            user_id=self.user.id,
+            feature="releases",
+            organization_id=self.org.id,
+            project_id=self.project.id,
+            data={"dismissed_ts": 1},
+        )
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        resp = self.client.get(
+            self.path,
+            {"project_id": self.project.id, "feature": "releases"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+        assert resp.status_code == 200, resp.content
+        assert resp.data == {"data": None, "features": {}}
 
 
 class PutPromptsActivityTest(PromptsActivityTestBase):

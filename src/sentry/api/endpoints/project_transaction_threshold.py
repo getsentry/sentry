@@ -8,6 +8,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
     ProjectTransactionThreshold,
@@ -95,7 +96,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
 
         data = serializer.validated_data
 
-        defaults = {"edited_by_id": request.user.id}
+        defaults = {"edited_by_id": acting_user_id(request.user)}
         if data.get("threshold") is not None:
             defaults["threshold"] = data.get("threshold")
         if data.get("metric") is not None:
@@ -107,7 +108,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
             create_defaults={
                 "threshold": data.get("threshold", 300),
                 "metric": data.get("metric", TransactionMetric.DURATION.value),
-                "edited_by_id": request.user.id,
+                "edited_by_id": acting_user_id(request.user),
             },
             defaults=defaults,
         )

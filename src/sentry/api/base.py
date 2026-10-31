@@ -782,9 +782,7 @@ class ReleaseAnalyticsMixin:
         try:
             analytics.record(
                 ReleaseSetCommitsLocalEvent(
-                    user_id=acting_user_id(request.user)
-                    if request.user and request.user.id
-                    else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization_id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),
