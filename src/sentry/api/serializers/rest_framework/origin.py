@@ -1,5 +1,3 @@
-from typing import cast
-
 from rest_framework import serializers
 
 from sentry.utils.http import parse_uri_match
@@ -10,8 +8,6 @@ class OriginField(serializers.CharField):
 
     def to_internal_value(self, data: str) -> str:
         rv = super().to_internal_value(data)
-        if not rv:
-            return cast(str, None)
         self.validate_origin(rv)
         return rv
 

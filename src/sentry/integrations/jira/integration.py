@@ -810,7 +810,8 @@ class JiraIntegration(IssueSyncIntegration):
         return body.rstrip("\n")  # remove the last new line
 
     def get_generic_issue_body(self, event: GroupEvent) -> str:
-        occurrence = cast(IssueOccurrence, event.occurrence)
+        occurrence = event.occurrence
+        assert occurrence is not None
         body = ""
         important = occurrence.important_evidence_display
         if important:
@@ -931,7 +932,7 @@ class JiraIntegration(IssueSyncIntegration):
             ) from e
 
     def search_issues(self, query: str | None, **kwargs) -> dict[str, Any]:
-        query = cast(str, query)
+        assert query is not None, "search_issues requires a query string"
         try:
             resp = self.get_client().search_issues(query)
             assert isinstance(resp, dict)
