@@ -36,6 +36,7 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
 )
 from tests.sentry.issues.test_grouptype import BaseGroupTypeTest
 
@@ -274,21 +275,24 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         class NoHandlerGroupType(GroupType):
             type_id = 1
-            slug = "no_handler"
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "no handler"
             category = GroupCategory.METRIC.value
 
         class HandlerGroupType(GroupType):
             type_id = 2
-            slug = "handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "handler"
             category = GroupCategory.METRIC.value
 
         class HandlerStateGroupType(GroupType):
             type_id = 3
-            slug = "handler_with_state"
+            slug = DetectorType.PERFORMANCE_LARGE_HTTP_PAYLOAD
             description = "handler with state"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(HandlerGroupType.slug)
+        detector_settings_registry.registrations.pop(HandlerStateGroupType.slug)
 
         @detector_settings_registry.register(HandlerGroupType.slug)
         class HandlerDetectorSettings(DetectorSettings):
@@ -341,9 +345,11 @@ class ConditionDetectorHandlerTest(BaseGroupTypeTest):
 
         class ConditionGroupType(GroupType):
             type_id = 5
-            slug = "condition_handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "condition handler"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(ConditionGroupType.slug)
 
         @detector_settings_registry.register(ConditionGroupType.slug)
         class ConditionDetectorSettings(DetectorSettings):
@@ -715,9 +721,11 @@ class TestBaseDetectorHandlerWithoutConditionGroup(BaseGroupTypeTest):
 
         class UnconditionedGroupType(GroupType):
             type_id = 8
-            slug = "unconditioned_handler"
+            slug = DetectorType.PERFORMANCE_SLOW_DB_QUERY
             description = "unconditioned handler"
             category = GroupCategory.METRIC.value
+
+        detector_settings_registry.registrations.pop(UnconditionedGroupType.slug)
 
         @detector_settings_registry.register(UnconditionedGroupType.slug)
         class UnconditionedDetectorSettings(DetectorSettings):

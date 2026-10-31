@@ -1,14 +1,25 @@
+from collections.abc import Generator
 from unittest.mock import patch
 
 import pytest
+from django.db.models import Q
+from jsonschema import ValidationError
 
 from sentry.constants import ObjectStatus
-from sentry.grouping.grouptype import ErrorGroupType
+from sentry.grouping.grouptype import ErrorDetectorHandler, ErrorGroupType
+from sentry.incidents.grouptype import MetricIssue
+from sentry.issues import grouptype
+from sentry.issues.grouptype import get_group_type_by_slug
+from sentry.models.project import Project
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import DetectorSettingsRegistry, detector_settings_registry
+from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings, DetectorType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -181,3 +192,236 @@ def test_get_detector_project_type_cache_key() -> None:
     cache_key = get_detector_project_type_cache_key(project_id, detector_type)
 
     assert cache_key == f"detector:by_proj_type:{project_id}:{detector_type}"
+
+
+@pytest.mark.parametrize("detector_type", list(DetectorType))
+def test_detector_type_registration_supports_string_lookup(detector_type: DetectorType) -> None:
+    # Startup must load every declared implementation; callers still pass stored/API strings.
+    assert detector_settings_registry.get(detector_type.value) is detector_settings_registry.get(
+        detector_type
+    )
+
+
+def test_settings_registration_requires_enum_member() -> None:
+    registry = DetectorSettingsRegistry()
+    registry.register(DetectorType.METRIC_ISSUE)(DetectorSettings)
+    assert registry.get("metric_issue") is DetectorSettings
+
+
+@pytest.mark.parametrize("detector_type", ["metric_issue", "unknown_detector"])
+def test_settings_registration_rejects_strings(detector_type: str) -> None:
+    registry = DetectorSettingsRegistry()
+    with pytest.raises(ValueError, match="must be registered with a DetectorType member"):
+        registry.register(detector_type)(DetectorSettings)
+    assert registry.registrations == {}
+
+
+@django_db_all
+def test_detector_type_enum_preserves_stored_value(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
+
+    detector.refresh_from_db()
+
+    assert type(detector.type) is str
+    assert detector.type == "metric_issue"
+    assert detector.settings is detector_settings_registry.get(DetectorType.METRIC_ISSUE)
+
+
+@pytest.fixture
+def registry_only_settings() -> Generator[type[DetectorSettings]]:
+    class RegistryOnlySettings(DetectorSettings):
+        handler = ErrorDetectorHandler
+        config_schema = {
+            "type": "object",
+            "properties": {"value": {"type": "number"}, "visible": {"type": "boolean"}},
+            "required": ["value"],
+            "additionalProperties": False,
+        }
+        filter = Q(config__visible=True)
+
+    with (
+        patch.dict(
+            detector_settings_registry.registrations,
+            {DetectorType.PERFORMANCE_SLOW_DB_QUERY: RegistryOnlySettings},
+        ),
+        patch.dict(grouptype.registry._slug_lookup),
+    ):
+        del grouptype.registry._slug_lookup[DetectorType.PERFORMANCE_SLOW_DB_QUERY]
+        yield RegistryOnlySettings
+
+
+@django_db_all
+def test_detector_settings_and_handler_without_group_type(
+    factories: Factories,
+    default_project: Project,
+    registry_only_settings: type[DetectorSettings],
+) -> None:
+    assert get_group_type_by_slug(DetectorType.PERFORMANCE_SLOW_DB_QUERY) is None
+    detector = factories.create_detector(
+        project=default_project,
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
+        config={"value": 10, "visible": True},
+    )
+
+    detector.refresh_from_db()
+    assert detector.settings is registry_only_settings
+    handler = detector.detector_handler
+    assert isinstance(handler, ErrorDetectorHandler)
+    assert handler.detector == detector
+
+    detector.config = {"value": "invalid"}
+    with pytest.raises(ValidationError, match="Invalid config"):
+        detector.save()
+
+    detector.refresh_from_db()
+    assert detector.config == {"value": 10, "visible": True}
+
+
+@pytest.mark.parametrize(
+    ("config", "error"),
+    [
+        ([], "Detector config must be a dictionary"),
+        ({}, "Invalid config"),
+        ({"value": 10, "unexpected": True}, "Invalid config"),
+    ],
+)
+def test_registry_only_detector_validates_config(
+    registry_only_settings: type[DetectorSettings], config: object, error: str
+) -> None:
+    detector = Detector(type=DetectorType.PERFORMANCE_SLOW_DB_QUERY, config=config)
+
+    with pytest.raises(ValidationError, match=error):
+        detector.enforce_config_schema()
+
+
+@pytest.mark.parametrize("detector_type", ["unregistered_detector", "feedback"])
+def test_group_type_without_detector_registration_is_rejected(detector_type: str) -> None:
+    detector = Detector(type=detector_type, config={})
+
+    with patch("sentry.workflow_engine.models.detector.logger") as logger:
+        with pytest.raises(
+            ValueError, match=f"Detector type '{detector_type}' not registered"
+        ) as error:
+            detector.enforce_config_schema()
+        assert type(error.value.__cause__) is ValueError
+        logger.exception.assert_not_called()
+
+
+def test_enum_member_without_settings_is_rejected() -> None:
+    with (
+        patch.dict(detector_settings_registry.registrations),
+        patch("sentry.workflow_engine.models.detector.logger") as logger,
+    ):
+        del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
+        detector = Detector(type=DetectorType.METRIC_ISSUE, config={})
+        with pytest.raises(
+            NoRegistrationExistsError, match="No registration exists for metric_issue"
+        ):
+            detector.enforce_config_schema()
+        logger.exception.assert_not_called()
+
+
+def test_type_outside_enum_is_rejected_even_if_settings_exist() -> None:
+    with patch.dict(detector_settings_registry.registrations, {"unknown": DetectorSettings}):
+        detector = Detector(type="unknown", config={})
+        with pytest.raises(ValueError, match="Detector type 'unknown' not registered"):
+            detector.enforce_config_schema()
+
+
+@django_db_all
+def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
+    Detector.objects.filter(id=detector.id).update(type="legacy_unknown_type")
+
+    with patch("sentry.workflow_engine.models.detector.logger") as logger:
+        detector = Detector.objects.get(id=detector.id)
+        assert detector.type == "legacy_unknown_type"
+        logger.exception.assert_not_called()
+
+        with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
+            _ = detector.settings
+        logger.exception.assert_called_once_with(
+            "Existing detector has a type outside DetectorType",
+            extra={"detector_id": detector.id, "detector_type": "legacy_unknown_type"},
+        )
+
+        with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
+            detector.save()
+
+
+@django_db_all
+def test_stored_detector_with_missing_settings_is_reported(
+    factories: Factories, default_project: Project
+) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
+
+    with (
+        patch.dict(detector_settings_registry.registrations),
+        patch("sentry.workflow_engine.models.detector.logger") as logger,
+    ):
+        del detector_settings_registry.registrations[DetectorType.METRIC_ISSUE]
+        detector = Detector.objects.get(id=detector.id)
+        logger.exception.assert_not_called()
+
+        with pytest.raises(
+            NoRegistrationExistsError, match="No registration exists for metric_issue"
+        ):
+            _ = detector.settings
+        logger.exception.assert_called_once_with(
+            "Existing detector's DetectorType has no registered settings",
+            extra={"detector_id": detector.id, "detector_type": "metric_issue"},
+        )
+
+
+@django_db_all
+def test_registry_only_detector_filters(
+    factories: Factories,
+    default_project: Project,
+    registry_only_settings: type[DetectorSettings],
+) -> None:
+    visible = factories.create_detector(
+        project=default_project,
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
+        config={"value": 1, "visible": True},
+    )
+    hidden = factories.create_detector(
+        project=default_project,
+        type=DetectorType.PERFORMANCE_SLOW_DB_QUERY,
+        config={"value": 2, "visible": False},
+    )
+    unfiltered = factories.create_detector(project=default_project, type=MetricIssue.slug)
+
+    detector_ids = set(
+        Detector.objects.with_type_filters()
+        .filter(id__in=[visible.id, hidden.id, unfiltered.id])
+        .values_list("id", flat=True)
+    )
+
+    assert detector_ids == {visible.id, unfiltered.id}
+
+
+@pytest.mark.parametrize(
+    "detector_type",
+    [
+        "performance_slow_db_query",
+        "performance_large_http_payload",
+        "query_injection_vulnerability",
+    ],
+)
+@pytest.mark.parametrize("config", [{}, {"duration_threshold": 5000}, [], "legacy-config"])
+def test_performance_detector_settings_preserve_legacy_validation(
+    detector_type: str, config: object
+) -> None:
+    # Do not import issue_detection.grouptype here: startup must load these registrations.
+    detector = Detector(type=detector_type, config=config)
+
+    detector.enforce_config_schema()
+
+    assert detector.settings.handler is None
+    assert detector.settings.validator is None
+    assert detector.settings.config_schema is None
+    assert detector.detector_handler is None

@@ -13,6 +13,7 @@ condition handling belong in `sentry.workflow_engine`.
 Before coding, identify:
 
 - The owning product module
+- The detector implementation type and output issue type
 - The packet payload type
 - The source of packet ordering
 - Whether one packet contains one value or grouped values
@@ -392,6 +393,17 @@ def thresholds(self) -> DetectorThresholds:
 
 ## Define the Issue and Detector Type
 
+Add a member to [`DetectorType`](../types.py) for the detector implementation:
+
+```python
+# In DetectorType:
+EXAMPLE_DETECTOR = "example_detector"
+```
+
+The string value is stored in `Detector.type` and used by APIs. Keep existing values
+unchanged when renaming an enum member. Settings registrations require an enum member;
+passing its string value to `register` is rejected.
+
 Create or extend a concrete [`GroupType`](../../issues/grouptype.py) in the owning
 product's `grouptype.py`:
 
@@ -410,18 +422,29 @@ Use the Issue Platform documentation and existing group types to choose the type
 category, release controls, priority, auto-resolution, escalation behavior, and
 notification configuration.
 
+These are separate identities: `DetectorType` selects the implementation, and `GroupType`
+classifies its output. Settings and handler lookup no longer require the issue type.
+However, API type validation, discovery, and default provisioning still use matching
+group-type slugs. Keep the detector value and issue-type slug aligned when using those
+paths until those callers are migrated.
+
 ### Register detector settings
 
 The group type describes the issue. The detector components live in a
 [`DetectorSettings`](../types.py) subclass registered in
-[`detector_settings_registry`](../registry.py) under the group type's slug:
+[`detector_settings_registry`](../registry.py) under the detector's enum member:
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, FeatureGate
+from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
+    DetectorSettings,
+    DetectorType,
+    FeatureGate,
+)
 
 
-@detector_settings_registry.register(ExampleGroupType.slug)
+@detector_settings_registry.register(DetectorType.EXAMPLE_DETECTOR)
 class ExampleDetectorSettings(DetectorSettings):
     handler = ExampleDetectorHandler
     validator = ExampleDetectorValidator
@@ -449,6 +472,12 @@ imported during application startup.
 | `validator`        | Native detector API validator                                                          |
 | `config_schema`    | Save-time JSON schema for `Detector.config`                                            |
 | `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                |
+
+New handlers should provide a configuration schema. Legacy implementations can set
+`config_schema=None` when validation belongs to their existing pipeline. The detector
+type must still belong to the enum and have registered settings. A settings registration
+can omit a handler or validator; it does not move execution into Workflow Engine or
+make the detector available for API creation.
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
 `api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`
@@ -512,7 +541,10 @@ registers itself when its decorator runs. Sentry startup imports the root
 [`import_grouptype`](../../issues/grouptype.py). Put both classes there, or import a
 nested implementation from that file, as
 [`sentry.preprod.grouptype`](../../preprod/grouptype.py) does. Add a test that checks
-both the group type and its settings resolve by slug after normal application startup.
+the issue type resolves through the GroupType registry and settings resolve through
+`detector_settings_registry.get(DetectorType.EXAMPLE_DETECTOR)` after normal application
+startup. Every `DetectorType` member must have registered settings; a startup test checks
+this contract.
 
 ## Implement API Validation
 
@@ -662,7 +694,8 @@ cause a producer to run.
 ### Issue type and handler
 
 - [ ] Add or update the product `GroupType`.
-- [ ] Register a `DetectorSettings` subclass in `detector_settings_registry` with
+- [ ] Add the implementation's `DetectorType` member with a stable stored value.
+- [ ] Register a `DetectorSettings` subclass with that enum member in `detector_settings_registry`, with
       handler, validator, and strict config schema.
 - [ ] Implement the selected detector handler abstraction.
 - [ ] Implement occurrence evidence and event data.
