@@ -11,7 +11,7 @@ from sentry.constants import (
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
-from sentry.models.projectrepository import ProjectRepository
+from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     AutofixStatus,
@@ -42,6 +42,7 @@ from sentry.seer.models import (
     AutofixHandoffPoint,
     BranchOverride,
     SeerAutomationHandoffConfiguration,
+    SeerCodeMapping,
     SeerProjectPreference,
     SeerRepoDefinition,
 )
@@ -1049,6 +1050,38 @@ class ReadPreferenceFromSentryDbBaseTest(TestCase):
         assert len(result.repositories) == 1
         assert result.repositories[0].branch_name == "main"
 
+    def test_includes_link_source_and_code_mappings(self):
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.create_seer_project_repository(project=self.project, repository=self.repo2)
+        self.create_code_mapping(
+            project=self.project,
+            repo=self.repo,
+            stack_root="app/",
+            source_root="services/api/app/",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        repo_by_name = {r.name: r for r in result.repositories}
+        assert repo_by_name["test-repo"].project_repository_source == "seer_preference"
+        assert repo_by_name["test-repo"].code_mappings == [
+            SeerCodeMapping(stack_root="app/", source_root="services/api/app/")
+        ]
+        assert repo_by_name["other-repo"].code_mappings == []
+
+    def test_excludes_other_projects_code_mappings(self):
+        other_project = self.create_project(organization=self.organization)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+        self.create_code_mapping(
+            project=other_project,
+            repo=self.repo,
+            stack_root="web/",
+            source_root="services/web/",
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].code_mappings == []
+
     def test_autofix_automation_tuning_default(self):
         self.create_seer_project_repository(
             project=self.project, repository=self.repo, branch_name="main"
@@ -1233,6 +1266,17 @@ class TestReadPreferenceFromSentryDbTokenBasedBilling(ReadPreferenceFromSentryDb
         assert result.repositories[0].instructions is None
         assert result.repositories[0].branch_overrides == []
 
+    def test_includes_auto_link_source(self) -> None:
+        self.create_project_repository(
+            project=self.project,
+            repository=self.repo,
+            source=ProjectRepositorySource.AUTO_NAME_MATCH,
+        )
+
+        result = read_preference_from_sentry_db(self.project)
+        assert len(result.repositories) == 1
+        assert result.repositories[0].project_repository_source == "auto_name_match"
+
 
 class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
     __test__ = False
@@ -1339,6 +1383,23 @@ class BulkReadPreferencesFromSentryDbBaseTest(TestCase):
         pref = result[self.project1.id]
         assert pref is not None
         assert pref.autofix_automation_tuning == AutofixAutomationTuningSettings.OFF
+
+    def test_code_mappings_are_per_project(self):
+        for project, source_root in ((self.project1, "services/api/"), (self.project2, "web/")):
+            self.create_seer_project_repository(project=project, repository=self.repo)
+            self.create_code_mapping(
+                project=project, repo=self.repo, stack_root="", source_root=source_root
+            )
+
+        result = bulk_read_preferences_from_sentry_db(
+            self.organization.id, [self.project1.id, self.project2.id]
+        )
+        assert result[self.project1.id].repositories[0].code_mappings == [
+            SeerCodeMapping(stack_root="", source_root="services/api/")
+        ]
+        assert result[self.project2.id].repositories[0].code_mappings == [
+            SeerCodeMapping(stack_root="", source_root="web/")
+        ]
 
     def test_wrong_organization_excluded(self):
         other_org = self.create_organization()

@@ -33,6 +33,11 @@ class IssueSummary(SummarizeIssueResponse):
     event_id: str
 
 
+class SeerCodeMapping(BaseModel):
+    stack_root: str
+    source_root: str
+
+
 class SeerRepoDefinition(BaseModel):
     repository_id: int | None = None
     organization_id: int | None = None
@@ -56,6 +61,14 @@ class SeerRepoDefinition(BaseModel):
     )
     base_commit_sha: str | None = None
     provider_raw: str | None = None
+    project_repository_source: str | None = Field(
+        default=None,
+        description="How the repo was linked to the project, such as 'manual' or 'auto_name_match'.",
+    )
+    code_mappings: list[SeerCodeMapping] = Field(
+        default_factory=list,
+        description="The project's code mappings for this repo.",
+    )
 
 
 class SpanInsight(BaseModel):
