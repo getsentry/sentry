@@ -50,6 +50,7 @@ interface MessagesPanelProps {
   onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   isLoading?: boolean;
+  messages?: ConversationMessage[];
   /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
@@ -66,8 +67,12 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: suppliedMessages,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => suppliedMessages ?? extractMessagesFromNodes(nodes),
+    [nodes, suppliedMessages]
+  );
 
   // Detect XML once per list so selection re-renders don't re-parse every message.
   const hasXmlByMessageId = useMemo(() => {
@@ -258,8 +263,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   const cost = generationNode
     ? getNumberAttr(generationNode, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
     : undefined;
+  const isStandaloneTool = message.toolCalls?.some(
+    tool => tool.nodeId === message.nodeId
+  );
+  // A standalone tool event already renders its duration on the tool row.
   const hasMeta =
-    cost !== undefined || (message.duration !== undefined && message.duration > 0);
+    !isStandaloneTool &&
+    (cost !== undefined || (message.duration !== undefined && message.duration > 0));
   const meta = <AssistantMeta cost={cost} duration={message.duration} />;
 
   const handleClick = () => {

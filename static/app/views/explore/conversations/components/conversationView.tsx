@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
@@ -20,6 +21,8 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {useConversationTranscript} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
+import {hasBackendConversationTranscriptFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -53,6 +56,8 @@ export function ConversationViewContent({
   focusedTool,
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
+  const useBackendTranscript = hasBackendConversationTranscriptFeature(useOrganization());
+  const transcript = useConversationTranscript(conversation, !isTimeline);
 
   const {
     nodes,
@@ -64,7 +69,10 @@ export function ConversationViewContent({
     error,
     loadNextPage,
     isNextPageError,
-  } = useConversation({...conversation, autoFetchAll: false});
+  } = useConversation({
+    ...conversation,
+    autoFetchAll: useBackendTranscript && !isTimeline,
+  });
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -169,7 +177,7 @@ export function ConversationViewContent({
   const isDetailLoading =
     hasUnresolvedSelection && (isLoading || canAutoFetchNextPage || isFetchingNextPage);
 
-  if (error) {
+  if (error || (isTranscript && useBackendTranscript && transcript.isError)) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
@@ -186,7 +194,13 @@ export function ConversationViewContent({
           <Fragment>
             {isTranscript ? (
               <MessagesPanel
-                isLoading={isLoading}
+                isLoading={
+                  isLoading ||
+                  (useBackendTranscript && (transcript.isLoading || hasNextPage))
+                }
+                messages={
+                  useBackendTranscript ? (transcript.data?.transcript ?? []) : undefined
+                }
                 nodes={nodes}
                 selectedNodeId={displayedNode?.id ?? null}
                 onSelectNode={handleSelectAndOpenDetail}

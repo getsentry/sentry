@@ -22,6 +22,11 @@ import {
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {
+  getConversationTranscriptFromPages,
+  getConversationTranscriptQueryOptions,
+  MAX_TRANSCRIPT_PAGES,
+} from 'sentry/views/explore/conversations/hooks/useConversationTranscript';
+import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -29,6 +34,7 @@ import {
   buildExportFilename,
   downloadTextFile,
 } from 'sentry/views/explore/conversations/utils/exportConversation';
+import {hasBackendConversationTranscriptFeature} from 'sentry/views/explore/conversations/utils/features';
 
 const MAX_EXPORT_SPANS = 50_000;
 
@@ -55,9 +61,60 @@ export function useExportConversation(
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const [isExporting, setIsExporting] = useState(false);
+  const useBackendTranscript = hasBackendConversationTranscriptFeature(organization);
 
   const runExport = useCallback(
     async (deliver: (result: ConversationExport) => void | Promise<void>) => {
+      if (useBackendTranscript) {
+        const backendOptions = getConversationTranscriptQueryOptions(
+          organization,
+          conversation,
+          selection
+        );
+        const cachedTranscript = getConversationTranscriptFromPages(
+          queryClient.getQueryData(backendOptions.queryKey)
+        );
+        if (cachedTranscript?.complete) {
+          await deliver({
+            markdown: messagesToMarkdown(cachedTranscript.transcript),
+            title: cachedTranscript.title,
+          });
+          return;
+        }
+        setIsExporting(true);
+        const observer = new InfiniteQueryObserver(queryClient, backendOptions);
+        try {
+          let result = observer.getCurrentResult();
+          while (!result.data || result.hasNextPage) {
+            if ((result.data?.pages.length ?? 0) >= MAX_TRANSCRIPT_PAGES) {
+              break;
+            }
+            result = await observer.fetchNextPage({
+              throwOnError: true,
+              cancelRefetch: false,
+            });
+          }
+          observer.destroy();
+          setIsExporting(false);
+          const transcript = getConversationTranscriptFromPages(result.data);
+          if (!transcript?.complete) {
+            addErrorMessage(t('Failed to export transcript'));
+            return;
+          }
+          await deliver({
+            markdown: messagesToMarkdown(transcript.transcript),
+            title: transcript.title,
+          });
+        } catch (error) {
+          observer.destroy();
+          setIsExporting(false);
+          if (!(error instanceof CancelledError)) {
+            Sentry.captureException(error);
+            addErrorMessage(t('Failed to export transcript'));
+          }
+        }
+        return;
+      }
       const options = getConversationQueryOptions(organization, conversation, selection);
 
       const toExport = (
@@ -91,6 +148,7 @@ export function useExportConversation(
         return;
       }
 
+      // SAFETY: keep the API key tuple intact; the extra marker isolates export pagination.
       const exportQueryKey = [
         options.queryKey[0],
         options.queryKey[1],
@@ -136,7 +194,7 @@ export function useExportConversation(
         addErrorMessage(t('Failed to export transcript'));
       }
     },
-    [queryClient, organization, conversation, selection]
+    [queryClient, organization, conversation, selection, useBackendTranscript]
   );
 
   const copyConversation = useCallback(
