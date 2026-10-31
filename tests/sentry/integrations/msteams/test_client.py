@@ -149,6 +149,28 @@ class MsTeamsClientTest(TestCase):
             mock_metrics.gauge.assert_not_called()
 
     @responses.activate
+    def test_get_user_conversation_id(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations",
+            json={"id": "some_conversation_id"},
+        )
+        assert (
+            self.msteams_client.get_user_conversation_id("user_id", "tenant_id")
+            == "some_conversation_id"
+        )
+
+    @responses.activate
+    def test_get_user_conversation_id_missing_id_raises(self) -> None:
+        responses.add(
+            responses.POST,
+            "https://smba.trafficmanager.net/amer/v3/conversations",
+            json={},
+        )
+        with pytest.raises(KeyError):
+            self.msteams_client.get_user_conversation_id("user_id", "tenant_id")
+
+    @responses.activate
     def test_simple(self) -> None:
         self.msteams_client.get_channel_list("foobar")
         assert len(responses.calls) == 2
