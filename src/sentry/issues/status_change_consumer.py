@@ -22,6 +22,7 @@ from sentry.models.groupinbox import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.signals import issue_resolved
 from sentry.types.activity import ActivityType
 from sentry.types.group import IGNORED_SUBSTATUS_CHOICES, GroupSubStatus
 from sentry.utils import metrics
@@ -72,6 +73,15 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             update_date=status_change.get("update_date"),
         )
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
+        issue_resolved.send_robust(
+            organization_id=group.project.organization_id,
+            user=None,
+            group=group,
+            project=group.project,
+            resolution_type="autoresolve",
+            commit_id=None,
+            sender="status_change_consumer",
+        )
         kick_off_status_syncs.apply_async(
             kwargs={"project_id": group.project_id, "group_id": group.id}
         )
