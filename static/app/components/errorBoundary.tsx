@@ -1,9 +1,10 @@
-import {Component} from 'react';
+import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {DetailedError} from 'sentry/components/errors/detailedError';
@@ -30,8 +31,11 @@ type Props = DefaultProps & {
   // To add context for better UX
   className?: string;
   customComponent?: ((props: CustomComponentRenderProps) => React.ReactNode) | null;
-
+  /** Content displayed above the mini error fallback. */
+  header?: React.ReactNode;
   message?: React.ReactNode;
+  /** Overrides dismissal. By default, dismissing retries the children. */
+  onDismiss?: () => void;
 };
 
 type State = {
@@ -98,6 +102,14 @@ export class ErrorBoundary extends Component<Props, State> {
     this.setState({error: null});
   };
 
+  handleDismiss = () => {
+    if (this.props.onDismiss) {
+      this.props.onDismiss();
+    } else {
+      this.handleClose();
+    }
+  };
+
   render() {
     const {error} = this.state;
 
@@ -106,7 +118,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return this.props.children;
     }
 
-    const {customComponent, mini, message, className} = this.props;
+    const {customComponent, mini, message, className, header} = this.props;
 
     if (customComponent === null) {
       return null;
@@ -118,14 +130,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
     if (mini) {
       return (
-        <Alert.Container>
-          <Alert variant="danger" className={className}>
-            <Flex align="center" justify="between">
+        <Fragment>
+          {header}
+          <Alert variant="danger" role="alert" className={className}>
+            <Flex align="center" justify="between" gap="md">
               {message || t('There was a problem rendering this component')}
-              {this.props.allowDismiss && <IconClose onClick={this.handleClose} />}
+              {this.props.allowDismiss && (
+                <Button
+                  aria-label={t('Dismiss error')}
+                  icon={<IconClose size="xs" />}
+                  size="zero"
+                  variant="transparent"
+                  onClick={this.handleDismiss}
+                />
+              )}
             </Flex>
           </Alert>
-        </Alert.Container>
+        </Fragment>
       );
     }
 

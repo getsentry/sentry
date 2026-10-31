@@ -1,3 +1,5 @@
+import * as Sentry from '@sentry/react';
+
 import {
   act,
   render,
@@ -5,18 +7,135 @@ import {
   renderHookWithProviders,
   screen,
   userEvent,
+  waitFor,
   waitForElementToBeRemoved,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {InfoText} from '@sentry/scraps/info';
-import {useModal} from '@sentry/scraps/modal';
+import {GlobalModal, useModal} from '@sentry/scraps/modal';
 
 import {closeModal, openModal} from 'sentry/actionCreators/modal';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+
+function ThrowingModal({error}: {error: Error}): React.ReactNode {
+  throw error;
+}
 
 describe('GlobalModal', () => {
   beforeEach(() => {
-    jest.resetAllMocks();
+    jest.clearAllMocks();
+  });
+
+  describe('error recovery', () => {
+    let consoleErrorSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      consoleErrorSpy.mockRestore();
+    });
+
+    it.each(['component', 'renderer'] as const)(
+      'contains errors from the modal %s and preserves the page',
+      async source => {
+        const error = new Error('Modal render failed');
+        const onClose = jest.fn();
+
+        render(
+          <ErrorBoundary>
+            <input aria-label="Page draft" />
+            <GlobalModal />
+          </ErrorBoundary>
+        );
+
+        const draft = screen.getByRole('textbox', {name: 'Page draft'});
+        await userEvent.type(draft, 'Unsaved changes');
+
+        act(() =>
+          openModal(
+            () => {
+              if (source === 'renderer') {
+                throw error;
+              }
+              return <ThrowingModal error={error} />;
+            },
+            {closeEvents: 'none', onClose}
+          )
+        );
+
+        const dialog = screen.getByRole('dialog');
+        expect(
+          within(dialog).getByRole('heading', {name: 'Something went wrong'})
+        ).toBeInTheDocument();
+        expect(within(dialog).getByRole('alert')).toHaveTextContent(
+          'There was a problem rendering the dialog.'
+        );
+        expect(draft).toBeInTheDocument();
+        expect(draft).toHaveValue('Unsaved changes');
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+        expect(Sentry.captureException).toHaveBeenCalledWith(error);
+
+        await userEvent.click(
+          within(dialog).getByRole('button', {name: 'Dismiss error'})
+        );
+        await waitFor(() => expect(dialog).not.toBeInTheDocument());
+
+        expect(onClose).toHaveBeenCalledWith('close-button');
+        expect(Sentry.captureException).toHaveBeenCalledTimes(1);
+        expect(screen.getByRole('textbox', {name: 'Page draft'})).toBe(draft);
+        expect(draft).toHaveFocus();
+        await userEvent.type(draft, ' kept');
+        expect(draft).toHaveValue('Unsaved changes kept');
+      }
+    );
+
+    it('can close a failed modal with Escape and open another modal', async () => {
+      const {waitForModalToHide} = renderGlobalModal();
+      const onClose = jest.fn();
+
+      act(() =>
+        openModal(() => <ThrowingModal error={new Error('Modal render failed')} />, {
+          closeEvents: 'escape-key',
+          onClose,
+        })
+      );
+
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      await userEvent.keyboard('{Escape}');
+      await waitForModalToHide();
+      expect(onClose).toHaveBeenCalledWith('escape-key');
+
+      act(() => openModal(({Body}) => <Body>New modal content</Body>));
+
+      expect(screen.getByText('New modal content')).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('resets the error when a modal is replaced using the same renderer', () => {
+      renderGlobalModal();
+      let shouldThrow = true;
+      const renderer = () => {
+        if (shouldThrow) {
+          throw new Error('Modal render failed');
+        }
+        return <input aria-label="Replacement modal" />;
+      };
+
+      act(() => openModal(renderer));
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+
+      shouldThrow = false;
+      act(() => openModal(renderer));
+
+      expect(
+        screen.getByRole('textbox', {name: 'Replacement modal'})
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 
   it('uses actionCreators to open and close Modal', async () => {
