@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.sentry_apps.api.parsers.servicehook import ServiceHookValidator
 from sentry.sentry_apps.api.serializers.servicehook import (
@@ -137,7 +138,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             project_ids=[project.id],
             organization_id=project.organization.id,
             url=result["url"],
-            actor_id=request.user.id,
+            actor_id=require_user(request).id,
             events=result.get("events"),
             application_id=app_id,
             installation_id=None,  # Just being explicit here.

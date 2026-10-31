@@ -7,7 +7,7 @@ from django.http.response import HttpResponseBase
 from rest_framework.request import Request
 
 from sentry.api.exceptions import PrimaryEmailVerificationRequired, SudoRequired, UserRequired
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, require_user
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.orgauthtoken import is_org_auth_token_auth
@@ -58,7 +58,10 @@ def sudo_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
 def primary_email_verification_required[T, **P](func: _RFMethod[T, P]) -> _RFMethod[T, P]:
     @wraps(func)
     def wrapped(self: T, request: Request, *args: P.args, **kwargs: P.kwargs) -> HttpResponseBase:
-        if isinstance(request.user, AnonymousUser) or not request.user.has_verified_primary_email():
+        if (
+            isinstance(request.user, AnonymousUser)
+            or not require_user(request).has_verified_primary_email()
+        ):
             raise PrimaryEmailVerificationRequired(request.user)
         return func(self, request, *args, **kwargs)
 

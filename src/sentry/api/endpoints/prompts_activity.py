@@ -23,6 +23,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import owned_by_acting_user
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
@@ -150,7 +151,7 @@ class PromptsActivityEndpoint(OrganizationEndpoint):
 
         # Always scope by organization from URL - passed directly to filter() to prevent override
         result_qs = PromptsActivity.objects.filter(
-            conditions, user_id=request.user.id, organization_id=organization.id
+            conditions, owned_by_acting_user(request.user), organization_id=organization.id
         )
         featuredata = {k.feature: k.data for k in result_qs}
         if len(features) == 1:

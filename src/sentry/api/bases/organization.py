@@ -31,7 +31,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.principal import acting_user_id
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -99,7 +99,7 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.is_authenticated and request.user.has_2fa():
+        if request.user.is_authenticated and require_user(request).has_2fa():
             return False
 
         if request.user.is_authenticated and request.user.is_sentry_app:
@@ -932,7 +932,7 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         key = None
         if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
-                actor_id = "user:%s" % request.user.id
+                actor_id = "user:%s" % require_user(request).id
             elif request.auth is not None:
                 actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:

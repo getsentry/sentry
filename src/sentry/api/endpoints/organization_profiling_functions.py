@@ -16,6 +16,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
@@ -82,7 +83,9 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

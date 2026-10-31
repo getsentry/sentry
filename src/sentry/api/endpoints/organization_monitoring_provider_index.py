@@ -11,6 +11,7 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.auth.principal import owned_by_acting_user
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.models.identity import OrganizationIdentity
 
@@ -48,8 +49,8 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
 
         connected_providers = set(
             OrganizationIdentity.objects.filter(
+                owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type__in=MONITORING_PROVIDERS.keys(),
             ).values_list("identity__idp__type", flat=True)
         )

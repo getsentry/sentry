@@ -926,7 +926,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     )
                 fetch_commits = not commit_list
                 try:
-                    release.set_refs(refs, request.user.id, fetch=fetch_commits)
+                    release.set_refs(refs, acting_user_id(request.user), fetch=fetch_commits)
                 except InvalidRepository as e:
                     scope.set_tag("failure_reason", "InvalidRepository")
                     scope.set_attribute("failure_reason", "InvalidRepository")
@@ -943,9 +943,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             analytics.record(
                 ReleaseCreatedEvent(
-                    user_id=acting_user_id(request.user)
-                    if request.user and request.user.id
-                    else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=[project.id for project in projects],
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),

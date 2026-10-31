@@ -12,6 +12,7 @@ from sentry.api.bases.organization import (
     ControlSiloOrganizationEndpoint,
     OrganizationPermission,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import NotRegistered
 from sentry.identity.pipeline import IdentityPipeline
 from sentry.integrations.pipeline import (
@@ -127,7 +128,7 @@ class OrganizationPipelineEndpoint(ControlSiloOrganizationEndpoint):
             return Response({"detail": "Pipeline does not support API mode."}, status=400)
 
         pipeline.set_api_mode()
-        pipeline.bind_state("user_id", request.user.id)
+        pipeline.bind_state("user_id", acting_user_id(request.user))
 
         metrics.incr(
             "integrations.pipeline_api.initialize",

@@ -35,6 +35,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.trace_item_attribute_examples import TraceItemAttributeExamples
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.resolver import SearchResolver
@@ -195,7 +196,9 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
             {"referrer": Referrer.API_TRACE_EXPLORER_STATS.value},
         )
 
-        viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        viewer_context = SeerViewerContext(
+            organization_id=organization.id, user_id=acting_user_id(request.user)
+        )
         scored_attrs_rrr = compare_distributions(
             baseline=cohort_2_distribution,
             outliers=cohort_1_distribution,

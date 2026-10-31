@@ -4,6 +4,8 @@ from datetime import UTC, datetime, timedelta
 from functools import cached_property
 from typing import Any
 
+from django.test import override_settings
+from django.urls import reverse
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -15,6 +17,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class RecentSearchesListTest(APITestCase):
@@ -188,6 +191,33 @@ class RecentSearchesListTest(APITestCase):
             ),
         ]
         self.check_results(issue_recent_searches[1:], search_type=SearchType.ISSUE, query="lde")
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_no_recent_searches(self) -> None:
+        RecentSearch.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            type=SearchType.ISSUE.value,
+            query="some test",
+        )
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        response = self.client.get(
+            url, {"type": SearchType.ISSUE.value}, HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
 
 class RecentSearchesCreateTest(APITestCase):
