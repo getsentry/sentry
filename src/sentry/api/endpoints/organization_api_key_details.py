@@ -1,4 +1,4 @@
-from typing import Any
+from typing import cast
 
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -20,7 +20,7 @@ from sentry.models.apikey import ApiKey
 from sentry.organizations.services.organization.model import RpcOrganization
 
 
-class ApiKeySerializer(serializers.ModelSerializer):
+class ApiKeySerializer(serializers.ModelSerializer[ApiKey]):
     class Meta:
         model = ApiKey
         fields = ("label", "scope_list", "allowed_origins")
@@ -45,10 +45,10 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
     permission_classes = (OrganizationAdminPermission,)
 
     def convert_args(
-        self, request: Request, api_key_id: str, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        self, request: Request, api_key_id: str, *args: object, **kwargs: object
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
-        organization = kwargs["organization"]
+        organization = cast(RpcOrganization, kwargs["organization"])
         validated_api_key_id = to_valid_int_id("api_key_id", api_key_id, raise_404=True)
         try:
             kwargs["api_key"] = ApiKey.objects.get(
@@ -59,7 +59,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
 
         return (args, kwargs)
 
-    def get(self, request: Request, api_key: ApiKey, **kwargs) -> Response:
+    def get(self, request: Request, api_key: ApiKey, **kwargs: object) -> Response:
         """
         Retrieves API Key details
         `````````````````````````
@@ -72,7 +72,11 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         return Response(serialize(api_key, request.user))
 
     def put(
-        self, request: Request, api_key: ApiKey, organization: RpcOrganization, **kwargs
+        self,
+        request: Request,
+        api_key: ApiKey,
+        organization: RpcOrganization,
+        **kwargs: object,
     ) -> Response:
         """
         Update an API Key
@@ -104,7 +108,11 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(
-        self, request: Request, api_key: ApiKey, organization: RpcOrganization, **kwargs
+        self,
+        request: Request,
+        api_key: ApiKey,
+        organization: RpcOrganization,
+        **kwargs: object,
     ) -> Response:
         """
         Deletes an API Key

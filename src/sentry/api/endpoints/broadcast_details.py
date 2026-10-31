@@ -56,17 +56,21 @@ class BroadcastDetailsEndpoint(Endpoint):
         kwargs["broadcast"] = broadcast
         return args, kwargs
 
-    def _get_validator(self, request: Request):
+    def _get_validator(
+        self, request: Request
+    ) -> type[BroadcastValidator] | type[AdminBroadcastValidator]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastValidator
         return BroadcastValidator
 
-    def _get_serializer(self, request: Request):
+    def _get_serializer(
+        self, request: Request
+    ) -> type[BroadcastSerializer] | type[AdminBroadcastSerializer]:
         if request.access.has_permission("broadcasts.admin"):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
-    def _serialize_response(self, request: Request, broadcast):
+    def _serialize_response(self, request: Request, broadcast: Broadcast) -> Response:
         serializer_cls = self._get_serializer(request)
         return self.respond(serialize(broadcast, request.user, serializer=serializer_cls()))
 
