@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-from collections.abc import MutableMapping
+from collections.abc import Iterator, MutableMapping
 from typing import Any
 
 import orjson
@@ -140,6 +140,38 @@ class ViewerContextHook:
         if ctx is None:
             return contextlib.nullcontext()
         return viewer_context_scope(ctx)
+
+
+class LocalCacheClearHook:
+    """
+    ContextHook that clears process-local caches when a task finishes, so a
+    later task in the same worker doesn't read options cached by an earlier one.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        try:
+            yield
+        finally:
+            clear_local_caches()
+
+
+def clear_local_caches() -> None:
+    """Clear the process-local option and group meta caches."""
+    # Imported here because models can't be imported while the task app is set up.
+    from sentry.models.groupmeta import GroupMeta
+    from sentry.models.options.organization_option import OrganizationOption
+
+    try:
+        # Every OptionManager shares one process-local dict, so this clears the
+        # organization, project and user option caches together.
+        OrganizationOption.objects.clear_local_cache()
+        GroupMeta.objects.clear_local_cache()
+    except Exception:
+        logger.exception("taskworker.clear_local_caches.failed")
 
 
 _producers: dict[str, SingletonProducer] = {}
