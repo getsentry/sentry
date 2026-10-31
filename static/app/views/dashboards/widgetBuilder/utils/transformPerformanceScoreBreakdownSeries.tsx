@@ -5,7 +5,8 @@ import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import {getWeights} from 'sentry/views/insights/browser/webVitals/utils/getWeights';
 
 export function transformPerformanceScoreBreakdownTimeSeries(
-  data: EventsTimeSeriesResponse
+  data: EventsTimeSeriesResponse,
+  getScoreYAxis?: (webVital: WebVitals) => string
 ): EventsTimeSeriesResponse {
   // Grouped series can't be weighted per web vital, so leave them as they are
   if (data.timeSeries.some(timeSeries => (timeSeries.groupBy?.length ?? 0) > 0)) {
@@ -17,9 +18,11 @@ export function transformPerformanceScoreBreakdownTimeSeries(
   );
 
   const getTimeSeries = (webVital: WebVitals): TimeSeries | undefined => {
-    const yAxis = isEquationFormat
-      ? `equation|performance_score(measurements.score.${webVital})`
-      : `performance_score(measurements.score.${webVital})`;
+    const yAxis = getScoreYAxis
+      ? getScoreYAxis(webVital)
+      : isEquationFormat
+        ? `equation|performance_score(measurements.score.${webVital})`
+        : `performance_score(measurements.score.${webVital})`;
     return data.timeSeries.find(timeSeries => timeSeries.yAxis === yAxis);
   };
 
