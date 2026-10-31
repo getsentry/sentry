@@ -15,6 +15,7 @@ from sentry.api.endpoints.source_map_debug import (
     MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
     ReleaseBundleUrls,
     SourceMapReleaseProcessResult,
+    _sourcemap_header,
     get_release_bundle_urls,
     report_unsuccessful_url_matches,
 )
@@ -33,6 +34,13 @@ from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ARTIFACT_INDEX_TY
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.skips import requires_snuba
+
+
+def test_sourcemap_header_ignores_non_strings() -> None:
+    assert _sourcemap_header({"sourcemap": "foo"}) == "foo"
+    assert _sourcemap_header({"x-sourcemap": "bar"}) == "bar"
+    assert _sourcemap_header({"sourcemap": 1}) is None
+
 
 pytestmark = [requires_snuba]
 
