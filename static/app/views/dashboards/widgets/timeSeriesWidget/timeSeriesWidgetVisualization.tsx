@@ -42,6 +42,7 @@ import {defined} from 'sentry/utils/defined';
 import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -62,6 +63,7 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
+import {ContinuousTimeSeries} from './plottables/continuousTimeSeries';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -193,6 +195,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // TODO: It would be polite to also scan for gaps (i.e., the items don't all
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
+
+  const organization = useOrganization({allowNull: true});
+  const showLowConfidence =
+    organization?.features.includes('data-browsing-time-series-confidence') ?? false;
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
   const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
@@ -408,9 +414,26 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
         const fieldType = correspondingPlottable?.dataType ?? FALLBACK_TYPE;
 
-        return escape(
+        const formattedValue = escape(
           formatTooltipValue(value, fieldType, unitForType[fieldType] ?? undefined)
         );
+
+        // Look up by timestamp, not `dataIndex`. Lines are split into several
+        // series by display style, so `dataIndex` is relative to each segment
+        const timestamp = Array.isArray(valueFormatterParams.value)
+          ? valueFormatterParams.value[0]
+          : undefined;
+
+        if (
+          showLowConfidence &&
+          correspondingPlottable instanceof ContinuousTimeSeries &&
+          typeof timestamp === 'number' &&
+          correspondingPlottable.isLowConfidenceAt(timestamp)
+        ) {
+          return `${formattedValue} <span style="color: ${theme.tokens.content.warning}">${escape(t('(Low confidence)'))}</span>`;
+        }
+
+        return formattedValue;
       },
       renderSeriesDetails: props.renderTooltipSeriesDetails,
       limit: props.tooltipLimit,
@@ -630,6 +653,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       color,
       yAxisPosition: getYAxisPosition(plottable),
       unit: unitForType[plottable.dataType ?? FALLBACK_TYPE],
+      showLowConfidence,
       theme,
       maxOffset: thresholdMaxOffset,
     });

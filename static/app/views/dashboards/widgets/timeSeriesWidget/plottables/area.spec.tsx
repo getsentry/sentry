@@ -46,4 +46,28 @@ describe('Area', () => {
     expect(left[0]!.stack).not.toBe(right[0]!.stack);
     expect(left[1]!.stack).not.toBe(right[1]!.stack);
   });
+
+  it('draws low confidence segments dashed only when enabled', () => {
+    const lowConfidenceTimeSeries = TimeSeriesFixture({
+      values: [
+        {timestamp: 1729796400000, value: 10},
+        {timestamp: 1729798200000, value: 20, confidence: 'low'},
+      ],
+    });
+    const plottingOptions = {
+      color: '#7553FF',
+      unit: lowConfidenceTimeSeries.meta.valueUnit,
+      yAxisPosition: 'left' as const,
+    };
+    const area = new Area(lowConfidenceTimeSeries);
+
+    const disabled = area.toSeries(plottingOptions);
+    expect(disabled).toHaveLength(1);
+    expect(disabled[0]!.lineStyle?.type).toBeUndefined();
+
+    const enabled = area.toSeries({...plottingOptions, showLowConfidence: true});
+    expect(enabled).toHaveLength(2);
+    expect(enabled[0]!.lineStyle?.type).toBeUndefined();
+    expect(enabled[1]!.lineStyle?.type).toBe('dashed');
+  });
 });

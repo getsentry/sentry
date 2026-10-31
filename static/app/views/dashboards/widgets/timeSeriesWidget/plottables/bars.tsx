@@ -52,8 +52,38 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           },
           opacity: 1,
         },
-        data: scaledTimeSeries.values.map(timeSeriesItemToEChartsDataPoint),
+        data: scaledTimeSeries.values.map(datum => {
+          const dataPoint = timeSeriesItemToEChartsDataPoint(datum);
+
+          if (!plottingOptions.showLowConfidence || datum.confidence !== 'low') {
+            return dataPoint;
+          }
+
+          return {
+            value: dataPoint,
+            itemStyle: {
+              decal: {
+                ...LOW_CONFIDENCE_DECAL,
+                // The hatch has to contrast with the bar's own color, not the
+                // page background, so theme tokens don't apply here
+                color:
+                  colorObject.luminosity() > 0.5
+                    ? 'rgba(0, 0, 0, 0.35)'
+                    : 'rgba(255, 255, 255, 0.45)',
+              },
+            },
+          };
+        }),
       }),
     ];
   }
 }
+
+// Diagonal hatch drawn over low-confidence bars
+const LOW_CONFIDENCE_DECAL = {
+  symbol: 'rect',
+  symbolSize: 1,
+  dashArrayX: [1, 0],
+  dashArrayY: [2, 4],
+  rotation: -Math.PI / 4,
+};

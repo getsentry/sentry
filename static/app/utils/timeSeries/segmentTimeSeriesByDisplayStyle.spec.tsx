@@ -1,11 +1,12 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {DurationUnit} from 'sentry/utils/discover/fields';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {markDelayedData} from './markDelayedData';
-import {segmentTimeSeriesByIncompleteData} from './segmentTimeSeriesByIncompleteData';
+import {segmentTimeSeriesByDisplayStyle} from './segmentTimeSeriesByDisplayStyle';
 
-describe('segmentTimeSeriesByIncompleteData', () => {
+describe('segmentTimeSeriesByDisplayStyle', () => {
   beforeEach(() => {
     setMockDate(new Date('2024-10-24T15:59:00.000Z')); // Unix: 1729785540000
   });
@@ -41,7 +42,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByIncompleteData(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie);
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -97,7 +98,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByIncompleteData(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie);
     const incompleteSerie = segments?.[0]?.[0];
     const completeSerie = segments?.[1]?.[0];
 
@@ -166,7 +167,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByIncompleteData(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie);
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -243,7 +244,7 @@ describe('segmentTimeSeriesByIncompleteData', () => {
       90
     );
 
-    const segments = segmentTimeSeriesByIncompleteData(serie);
+    const segments = segmentTimeSeriesByDisplayStyle(serie);
     const completeSerie = segments?.[0]?.[0];
     const incompleteSerie = segments?.[1]?.[0];
 
@@ -279,4 +280,82 @@ describe('segmentTimeSeriesByIncompleteData', () => {
       },
     ]);
   });
+
+  describe('low confidence', () => {
+    it('Ignores low confidence unless enabled', () => {
+      const serie = makeSerie([
+        {value: 1, timestamp: 1, confidence: 'low'},
+        {value: 2, timestamp: 2, confidence: 'high'},
+      ]);
+
+      const segments = segmentTimeSeriesByDisplayStyle(serie);
+
+      expect(segments).toHaveLength(1);
+      expect(segments[0]![1]).toBe('normal');
+    });
+
+    it('Splits normal, low confidence, normal runs with shared boundary points', () => {
+      const serie = makeSerie([
+        {value: 1, timestamp: 1, confidence: 'high'},
+        {value: 2, timestamp: 2, confidence: 'low'},
+        {value: 3, timestamp: 3, confidence: 'low'},
+        {value: 4, timestamp: 4, confidence: 'high'},
+      ]);
+
+      const segments = segmentTimeSeriesByDisplayStyle(serie, {
+        showLowConfidence: true,
+      });
+
+      expect(summarize(segments)).toEqual([
+        ['normal', [1]],
+        ['lowConfidence', [1, 2, 3, 4]],
+        ['normal', [4]],
+      ]);
+    });
+
+    it('Does not split a series with all low confidence data', () => {
+      const serie = makeSerie([
+        {value: 1, timestamp: 1, confidence: 'low'},
+        {value: 2, timestamp: 2, confidence: 'low'},
+      ]);
+
+      const segments = segmentTimeSeriesByDisplayStyle(serie, {
+        showLowConfidence: true,
+      });
+
+      expect(summarize(segments)).toEqual([['lowConfidence', [1, 2]]]);
+    });
+
+    it('Lets incomplete data take precedence over low confidence', () => {
+      const serie = makeSerie([
+        {value: 1, timestamp: 1, confidence: 'low'},
+        {value: 2, timestamp: 2, confidence: 'low', incomplete: true},
+        {value: 3, timestamp: 3, incomplete: true},
+      ]);
+
+      const segments = segmentTimeSeriesByDisplayStyle(serie, {
+        showLowConfidence: true,
+      });
+
+      expect(summarize(segments)).toEqual([
+        ['lowConfidence', [1]],
+        ['incomplete', [1, 2, 3]],
+      ]);
+    });
+  });
 });
+
+function makeSerie(values: TimeSeries['values']): TimeSeries {
+  return {
+    yAxis: 'count()',
+    values,
+    meta: {valueType: 'integer', valueUnit: null, interval: 1},
+  };
+}
+
+function summarize(segments: ReturnType<typeof segmentTimeSeriesByDisplayStyle>) {
+  return segments.map(([serie, style]) => [
+    style,
+    serie.values.map(item => item.timestamp),
+  ]);
+}

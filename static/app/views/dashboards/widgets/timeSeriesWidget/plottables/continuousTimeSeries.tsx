@@ -42,6 +42,10 @@ export type ContinuousTimeSeriesPlottingOptions = {
    * If the chart has multiple Y axes (e.g., plotting durations and rates on the same chart), whether this value should be plotted on the left or right axis.
    */
   yAxisPosition: 'left' | 'right';
+  /**
+   * Whether to visually de-emphasize low-confidence data points
+   */
+  showLowConfidence?: boolean;
 };
 
 /**
@@ -53,11 +57,17 @@ export abstract class ContinuousTimeSeries<
   // Ideally both the `timeSeries` and `config` would be protected properties.
   timeSeries: Readonly<TimeSeries>;
   #timestamps: readonly number[];
+  #lowConfidenceTimestamps: ReadonlySet<number>;
   config?: Readonly<TConfig>;
 
   constructor(timeSeries: TimeSeries, config?: TConfig) {
     this.timeSeries = timeSeries;
     this.#timestamps = timeSeries.values.map(datum => datum.timestamp).toSorted();
+    this.#lowConfidenceTimestamps = new Set(
+      timeSeries.values
+        .filter(datum => datum.confidence === 'low')
+        .map(datum => datum.timestamp)
+    );
     this.config = config;
   }
 
@@ -113,6 +123,10 @@ export abstract class ContinuousTimeSeries<
         );
       }),
     };
+  }
+
+  isLowConfidenceAt(timestamp: number): boolean {
+    return this.#lowConfidenceTimestamps.has(timestamp);
   }
 
   scaleToUnit(destinationUnit: TimeSeriesValueUnit): TimeSeries {
