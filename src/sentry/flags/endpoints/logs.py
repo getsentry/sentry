@@ -1,6 +1,7 @@
-from datetime import datetime
+from collections.abc import Mapping
 from typing import Any, Literal, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers as rest_serializers
@@ -35,12 +36,14 @@ from sentry.flags.models import (
     ProviderName,
 )
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class FlagAuditLogModelSerializerResponse(TypedDict):
     id: int
     action: Literal["created", "deleted", "updated"]
-    createdAt: datetime
+    createdAt: str
     createdBy: str | None
     createdByType: Literal["email", "id", "name"] | None
     flag: str
@@ -58,7 +61,13 @@ class FlagLogDetailsResponse(TypedDict):
 
 @register(FlagAuditLogModel)
 class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> FlagAuditLogModelSerializerResponse:
+    def serialize(
+        self,
+        obj: FlagAuditLogModel,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,
             "action": ActionEnum.to_string(obj.action),

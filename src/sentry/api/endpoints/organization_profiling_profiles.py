@@ -96,7 +96,7 @@ class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     query = serializers.CharField(required=False)
     expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         source = attrs.get("dataSource")
 
         if source is None:

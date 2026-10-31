@@ -61,7 +61,7 @@ def _try_get_from_cache(
 
 
 def get_all_merged_group_ids(
-    group_ids: Iterable[str | int], threshold=SIZE_THRESHOLD_FOR_CLICKHOUSE
+    group_ids: Iterable[str | int], threshold: int = SIZE_THRESHOLD_FOR_CLICKHOUSE
 ) -> set[str | int]:
     with traces.start_span(
         name="get_all_merged_group_ids", attributes={"sentry.op": "get_all_merged_group_ids"}

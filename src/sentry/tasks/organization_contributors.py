@@ -41,7 +41,7 @@ def reset_num_actions_for_organization_contributors(organization_id: int) -> Non
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
 )
-def assign_seat_to_organization_contributor(contributor_id) -> None:
+def assign_seat_to_organization_contributor(contributor_id: int) -> None:
     try:
         organization_contributor = OrganizationContributors.objects.get(id=contributor_id)
     except OrganizationContributors.DoesNotExist:
