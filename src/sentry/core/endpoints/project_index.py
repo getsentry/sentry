@@ -11,7 +11,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import ProjectWithOrganizationSerializer, serialize
 from sentry.auth import access
-from sentry.auth.principal import has_user
+from sentry.auth.principal import has_user, owned_by_acting_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import CELL_API_DEPRECATION_DATE, ObjectStatus
 from sentry.db.models.query import in_iexact
@@ -89,7 +89,9 @@ class ProjectIndexEndpoint(Endpoint):
                 if isinstance(queryset, EmptyQuerySet):
                     raise AuthenticationFailed("Token not found")
             else:
-                queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+                queryset = queryset.filter(
+                    owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+                )
 
             org_id_filter = request.GET.get("organizationId", None)
             if org_id_filter:

@@ -855,7 +855,7 @@ def post_org_pending_deletion(
             capture_exception(e)
 
         delete_confirmation_args: DeleteConfirmationArgs = {
-            "username": request.user.get_username(),
+            "username": require_user(request).get_username(),
             "ip_address": entry.ip_address,
             "deletion_datetime": entry.datetime,
             "countdown": ONE_DAY,

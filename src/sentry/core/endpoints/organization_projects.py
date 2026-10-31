@@ -4,7 +4,6 @@ import string
 from email.headerregistry import Address
 from typing import Any, TypedDict, TypeIs
 
-from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.db.models.query import QuerySet
@@ -46,7 +45,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import has_user, require_user
+from sentry.auth.principal import RequestPrincipal, has_user, owned_by_acting_user, require_user
 from sentry.constants import ObjectStatus
 from sentry.core.endpoints.team_projects import (
     AuditData,
@@ -247,7 +246,9 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                     team_list = list(Team.objects.filter(organization=organization, slug__in=value))
                     queryset = queryset.exclude(teams__in=team_list)
                 elif key == "is_member":
-                    queryset = queryset.filter(teams__organizationmember__user_id=request.user.id)
+                    queryset = queryset.filter(
+                        owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+                    )
                 else:
                     queryset = queryset.none()
 
@@ -296,7 +297,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
                 paginator_cls=OffsetPaginator,
             )
 
-    def should_add_creator_to_team(self, user: User | AnonymousUser) -> TypeIs[User]:
+    def should_add_creator_to_team(self, user: RequestPrincipal) -> TypeIs[User]:
         return has_user(user)
 
     @extend_schema(
@@ -479,6 +480,8 @@ class OrganizationProjectsCountEndpoint(OrganizationEndpoint):
         queryset = Project.objects.filter(organization=organization)
 
         all_projects = queryset.count()
-        my_projects = queryset.filter(teams__organizationmember__user_id=request.user.id).count()
+        my_projects = queryset.filter(
+            owned_by_acting_user(request.user, "teams__organizationmember__user_id")
+        ).count()
 
         return Response({"allProjects": all_projects, "myProjects": my_projects})

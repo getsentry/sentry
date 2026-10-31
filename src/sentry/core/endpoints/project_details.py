@@ -33,6 +33,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.principal import require_user
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
@@ -821,11 +822,15 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("isBookmarked"):
             try:
                 with transaction.atomic(router.db_for_write(ProjectBookmark)):
-                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
+                    ProjectBookmark.objects.create(
+                        project_id=project.id, user_id=require_user(request).id
+                    )
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
+            ProjectBookmark.objects.filter(
+                project_id=project.id, user_id=require_user(request).id
+            ).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])
