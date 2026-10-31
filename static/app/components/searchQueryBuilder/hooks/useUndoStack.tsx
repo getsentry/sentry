@@ -77,17 +77,20 @@ function updateUndoStack({
  * Hook that manages the undo stack for the search query builder.
  */
 export function useUndoStack(state: ListState<ParseResultToken>) {
-  const {query, focusOverride, dispatch} = useSearchQueryBuilderState();
+  const {query, focusOverride, dispatch, pendingFilterKey} = useSearchQueryBuilderState();
   const undoStackRef = useRef<UndoItem[]>([]);
   const trimmedQuery = query.trim();
 
-  updateUndoStack({
-    // oxlint-disable-next-line react/refs
-    undoStack: undoStackRef.current,
-    query: trimmedQuery,
-    focusOverride,
-    state,
-  });
+  // A pending filter's placeholder value must not come back as a real value
+  if (!pendingFilterKey) {
+    updateUndoStack({
+      // oxlint-disable-next-line react/refs
+      undoStack: undoStackRef.current,
+      query: trimmedQuery,
+      focusOverride,
+      state,
+    });
+  }
 
   const undo = useCallback(() => {
     const previousItem = getPreviousUndoItem(undoStackRef.current, trimmedQuery);

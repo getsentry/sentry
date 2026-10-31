@@ -292,6 +292,7 @@ describe('multiSelectTokenValue', () => {
       committedQuery: query,
       focusOverride: null,
       clearAskSeerFeedback: false,
+      pendingFilterKey: null,
     };
     return multiSelectTokenValue(state, {type: 'TOGGLE_FILTER_VALUE', token, value});
   }
@@ -396,6 +397,7 @@ describe('typed filter keys containing colons', () => {
       committedQuery: query,
       focusOverride: null,
       clearAskSeerFeedback: false,
+      pendingFilterKey: null,
     };
 
     expect(
@@ -563,6 +565,7 @@ describe('syntax-bearing filter keys', () => {
       committedQuery: query,
       focusOverride: null,
       clearAskSeerFeedback: false,
+      pendingFilterKey: null,
     };
 
     expect(

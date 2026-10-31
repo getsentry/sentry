@@ -14,7 +14,11 @@ import {
   type FieldDefinitionGetter,
   type FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import {isDateToken, makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  isDateToken,
+  isNumericFilterToken,
+  makeTokenKey,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
@@ -55,6 +59,14 @@ type QueryBuilderState = {
   focusOverride: FocusOverride | null;
 
   /**
+   * Item key of a number-based filter that was just added and has no value yet.
+   * The search grammars have no way to write an empty number filter, so `query`
+   * holds the filter with a placeholder value. The placeholder is only
+   * committed if the user leaves the filter without entering a value.
+   */
+  pendingFilterKey: string | null;
+
+  /**
    * The current query value.
    * This is the basic source of truth for what is currently being displayed.
    */
@@ -76,6 +88,14 @@ type UpdateQueryAction = {
 };
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
+
+type CommitPendingFilterAction = {
+  /**
+   * Only commit the filter if it is still the pending one.
+   */
+  itemKey: string;
+  type: 'COMMIT_PENDING_FILTER';
+};
 
 type DeleteTokenAction = {
   token: ParseResultToken;
@@ -249,6 +269,7 @@ export type QueryBuilderActions =
   | CommitQueryAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
+  | CommitPendingFilterAction
   | DeleteTokenAction
   | DeleteTokensAction
   | DeleteToCursorAction
@@ -1119,6 +1140,162 @@ function updateLogicOperator(
   };
 }
 
+function findPendingFilter(
+  query: string,
+  pendingFilterKey: string | null,
+  parseQuery: (query: string) => ParseResult | null
+): TokenResult<Token.FILTER> | null {
+  if (!pendingFilterKey) {
+    return null;
+  }
+
+  const parsedQuery = parseQuery(query);
+  const token = parsedQuery?.find(
+    tk => makeTokenKey(tk, parsedQuery) === pendingFilterKey
+  );
+
+  return token?.type === Token.FILTER && isNumericFilterToken(token) ? token : null;
+}
+
+/**
+ * Actions that add a filter with getInitialFilterText, which gives number
+ * filters a placeholder value.
+ */
+function isFilterCreationAction(
+  action: QueryBuilderActions
+): action is
+  | UpdateFreeTextActionOnSelect
+  | UpdateFreeTextActionOnColon
+  | UpdateFreeTextActionOnFunction
+  | ReplaceTokensWithTextOnSelectAction {
+  return (
+    action.type === 'UPDATE_FREE_TEXT_ON_SELECT' ||
+    action.type === 'UPDATE_FREE_TEXT_ON_COLON' ||
+    action.type === 'UPDATE_FREE_TEXT_ON_FUNCTION' ||
+    action.type === 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT'
+  );
+}
+
+function getActionTokens(action: QueryBuilderActions): ParseResultToken[] {
+  if ('tokens' in action) {
+    return action.tokens;
+  }
+  if ('token' in action) {
+    return [action.token];
+  }
+  return [];
+}
+
+/**
+ * Works out which filter, if any, is still pending after `action`. Item keys
+ * are positional, so when the action changed the query around the pending
+ * filter, find it again by the text before or after it.
+ */
+function getNextPendingFilterKey(
+  state: QueryBuilderState,
+  newState: QueryBuilderState,
+  action: QueryBuilderActions,
+  parseQuery: (query: string) => ParseResult | null
+): string | null {
+  if (
+    action.type === 'CLEAR' ||
+    action.type === 'UPDATE_QUERY' ||
+    (action.type === 'COMMIT_PENDING_FILTER' && action.itemKey === state.pendingFilterKey)
+  ) {
+    return null;
+  }
+
+  if (isFilterCreationAction(action)) {
+    const itemKey = action.focusOverride?.itemKey;
+    if (
+      itemKey?.startsWith(`${Token.FILTER}:`) &&
+      findPendingFilter(newState.query, itemKey, parseQuery)
+    ) {
+      return itemKey;
+    }
+  }
+
+  const pendingFilter = findPendingFilter(
+    state.query,
+    state.pendingFilterKey,
+    parseQuery
+  );
+  if (!pendingFilter) {
+    return null;
+  }
+
+  const {start, end} = pendingFilter.location;
+  const targetsPendingFilter = getActionTokens(action).some(
+    tk => tk.type === Token.FILTER && tk.location.start.offset === start.offset
+  );
+
+  if (targetsPendingFilter) {
+    switch (action.type) {
+      case 'UPDATE_TOKEN_VALUE':
+      case 'TOGGLE_FILTER_VALUE':
+      case 'DELETE_TOKEN':
+      case 'DELETE_TOKENS':
+        return null;
+      default:
+        // The pending filter itself was edited (key, operator or arguments), so
+        // no filters moved and its item key is unchanged.
+        return findPendingFilter(newState.query, state.pendingFilterKey, parseQuery)
+          ? state.pendingFilterKey
+          : null;
+    }
+  }
+
+  let offset: number | null = null;
+  if (newState.query.startsWith(state.query.slice(0, end.offset))) {
+    offset = start.offset;
+  } else if (newState.query.endsWith(state.query.slice(start.offset))) {
+    offset = newState.query.length - (state.query.length - start.offset);
+  }
+
+  const parsedQuery = parseQuery(newState.query);
+  const token = parsedQuery?.find(
+    tk => tk.type === Token.FILTER && tk.location.start.offset === offset
+  );
+
+  return token?.type === Token.FILTER && isNumericFilterToken(token)
+    ? makeTokenKey(token, parsedQuery)
+    : null;
+}
+
+/**
+ * Keeps the pending filter's placeholder value out of `committedQuery`.
+ */
+function updatePendingFilter(
+  state: QueryBuilderState,
+  newState: QueryBuilderState,
+  action: QueryBuilderActions,
+  parseQuery: (query: string) => ParseResult | null
+): QueryBuilderState {
+  if (!state.pendingFilterKey && !isFilterCreationAction(action)) {
+    return newState;
+  }
+
+  const pendingFilterKey = getNextPendingFilterKey(state, newState, action, parseQuery);
+  const pendingFilter = findPendingFilter(newState.query, pendingFilterKey, parseQuery);
+
+  if (!pendingFilter) {
+    return newState.pendingFilterKey === null
+      ? newState
+      : {...newState, pendingFilterKey: null};
+  }
+
+  const isCommitting =
+    action.type === 'COMMIT_QUERY' || newState.committedQuery !== state.committedQuery;
+
+  return {
+    ...newState,
+    pendingFilterKey,
+    committedQuery: isCommitting
+      ? removeQueryTokensFromQuery(newState.query, [pendingFilter])
+      : state.committedQuery,
+  };
+}
+
 export function useQueryBuilderState({
   disabled,
   displayAskSeerFeedback,
@@ -1143,9 +1320,10 @@ export function useQueryBuilderState({
     committedQuery: initialQuery,
     focusOverride: null,
     clearAskSeerFeedback: false,
+    pendingFilterKey: null,
   };
 
-  const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
+  const baseReducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
     (state, action): QueryBuilderState => {
       if (disabled && !(action.type === 'UPDATE_QUERY' && action.ignoreDisabled)) {
         return state;
@@ -1207,6 +1385,11 @@ export function useQueryBuilderState({
             ...state,
             focusOverride: null,
           };
+        case 'COMMIT_PENDING_FILTER':
+          if (action.itemKey !== state.pendingFilterKey) {
+            return state;
+          }
+          return {...state, committedQuery: state.query};
         case 'DELETE_TOKEN': {
           return {
             ...replaceTokensWithText(state, {
@@ -1318,6 +1501,12 @@ export function useQueryBuilderState({
       replaceRawSearchKeys,
       searchSource,
     ]
+  );
+
+  const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
+    (state, action) =>
+      updatePendingFilter(state, baseReducer(state, action), action, parseQuery),
+    [baseReducer, parseQuery]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);
