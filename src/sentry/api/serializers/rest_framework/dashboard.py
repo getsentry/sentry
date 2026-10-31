@@ -897,46 +897,65 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                 {"thresholds": "Heatmap widgets do not support thresholds."}
             )
 
-        if thresholds:
+        if thresholds is not None:
+            if not isinstance(thresholds, dict):
+                raise serializers.ValidationError({"thresholds": "Must be an object."})
+
             max_values = thresholds.get("max_values")
             allowed_max_keys = [key.value for key in ThresholdMaxKeys]
-            if max_values:
-                for i in range(len(max_values)):
-                    max_key = f"max{i + 1}"
-
-                    if max_key not in allowed_max_keys:
+            if max_values is not None:
+                if not isinstance(max_values, dict):
+                    raise serializers.ValidationError(
+                        {"thresholds": {"max_values": "Must be an object."}}
+                    )
+                if max_values:
+                    invalid_keys = set(max_values) - set(allowed_max_keys)
+                    if invalid_keys:
                         raise serializers.ValidationError(
-                            {"thresholds": f"Invalid maximum key {max_key}"}
+                            {"thresholds": f"Invalid maximum key {sorted(invalid_keys)[0]}"}
                         )
 
-                    if max_values.get(max_key):
-                        if max_values.get(max_key) < 0:
+                    for max_key, max_value in max_values.items():
+                        if not isinstance(max_value, int) or isinstance(max_value, bool):
+                            raise serializers.ValidationError(
+                                {"thresholds": {max_key: "Maximum values must be integers."}}
+                            )
+                        if max_value < 0:
                             raise serializers.ValidationError(
                                 {"thresholds": {max_key: "Maximum values can not be negative"}}
                             )
-                        elif i > 0:
-                            prev_max_key = f"max{i}"
-                            if max_values.get(prev_max_key) and max_values.get(
-                                prev_max_key
-                            ) >= max_values.get(max_key):
+
+                    for prev_max_key, max_key in zip(
+                        allowed_max_keys, allowed_max_keys[1:], strict=False
+                    ):
+                        if (
+                            prev_max_key in max_values
+                            and max_key in max_values
+                            and max_values[prev_max_key] >= max_values[max_key]
+                        ):
+                            raise serializers.ValidationError(
+                                {
+                                    "thresholds": {
+                                        max_key: "Maximum value must be greater than minimum."
+                                    }
+                                }
+                            )
+
+                    if len(max_values) < len(ThresholdMaxKeys):
+                        for key in allowed_max_keys:
+                            if key not in max_values:
                                 raise serializers.ValidationError(
                                     {
                                         "thresholds": {
-                                            max_key: "Maximum value must be greater than minimum."
+                                            key: "Must set all threshold maximums or none at all."
                                         }
                                     }
                                 )
 
-                if len(max_values) < len(ThresholdMaxKeys):
-                    for key in allowed_max_keys:
-                        if max_values.get(key) is None:
-                            raise serializers.ValidationError(
-                                {
-                                    "thresholds": {
-                                        key: "Must set all threshold maximums or none at all."
-                                    }
-                                }
-                            )
+            unit = thresholds.get("unit")
+            if unit is not None and not isinstance(unit, str):
+                raise serializers.ValidationError({"thresholds": {"unit": "Must be a string."}})
+
             preferred_polarity = thresholds.get("preferred_polarity")
             if preferred_polarity is not None and preferred_polarity not in ("+", "-", ""):
                 raise serializers.ValidationError(
