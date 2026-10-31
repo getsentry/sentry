@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 __all__ = ["override_options"]
 
 from collections.abc import Iterator, Mapping

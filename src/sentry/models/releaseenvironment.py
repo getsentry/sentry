@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import MutableMapping
 from datetime import datetime
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
@@ -15,6 +14,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -56,11 +56,11 @@ class ReleaseEnvironment(Model):
         release: Release,
         environment: Environment,
         datetime: datetime,
-        metrics_tags: MutableMapping[str, str] | None = None,
+        metrics_tags: MutableTags | None = None,
         **kwargs: object,
     ) -> ReleaseEnvironment:
         with metrics.timer("models.releaseenvironment.get_or_create") as timer_tags:
-            tags = cast(dict[str, str], timer_tags)
+            tags = timer_tags
             instance = cls._get_or_create_impl(project, release, environment, datetime, tags)
             if metrics_tags is not None:
                 metrics_tags.update(tags)
@@ -73,7 +73,7 @@ class ReleaseEnvironment(Model):
         release: Release,
         environment: Environment,
         datetime: datetime,
-        metric_tags: dict[str, str],
+        metric_tags: MutableTags,
     ) -> ReleaseEnvironment:
         cache_key = cls.get_cache_key(project.id, release.id, environment.id)
 

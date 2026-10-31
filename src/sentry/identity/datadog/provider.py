@@ -3,7 +3,8 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import orjson
 import sentry_sdk
@@ -331,15 +332,15 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
             ),
         ]
 
-    def get_oauth_data(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def get_oauth_data(self, payload: Mapping[str, object]) -> dict[str, Any]:
         data = super().get_oauth_data(payload)
         if "scope" in payload:
             data["scope"] = payload["scope"]
         return data
 
-    def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        token_data = data["data"]
-        access_token = token_data.get("access_token")
+    def build_identity(self, data: Mapping[str, object]) -> dict[str, Any]:
+        token_data = cast(Mapping[str, object], data["data"])
+        access_token = cast(str | None, token_data.get("access_token"))
         if not access_token:
             raise ValueError("Datadog token exchange did not return an access_token")
 
@@ -353,8 +354,8 @@ class DatadogIdentityProvider(McpIdentityProvider, OAuth2Provider):
         oauth_data = self.get_oauth_data(token_data)
 
         # Persist DCR credentials and site so refresh_identity can access them outside a pipeline context.
-        client_id = data.get("dcr_client_id")
-        client_secret = data.get("dcr_client_secret")
+        client_id = cast(str | None, data.get("dcr_client_id"))
+        client_secret = cast(str | None, data.get("dcr_client_secret"))
         if not client_id or not client_secret:
             raise IdentityNotValid("Missing DCR credentials")
         oauth_data["client_id"] = client_id
@@ -432,12 +433,12 @@ class DatadogPatIdentityProvider(McpIdentityProvider, Provider):
         base = mcp_base_url_for_site(identity_data.get("site"))
         return [f"{base}{MCP_ENDPOINT_PATH}"] if base else []
 
-    def build_identity(self, data: dict[str, Any]) -> dict[str, Any]:
-        access_token = (data.get("access_token") or "").strip()
+    def build_identity(self, data: Mapping[str, object]) -> dict[str, Any]:
+        access_token = cast(str, data.get("access_token") or "").strip()
         if not access_token:
             raise ValueError("Datadog requires an 'access_token' parameter.")
 
-        site = data.get("site")
+        site = cast(str | None, data.get("site"))
         base = mcp_base_url_for_site(site)
         if not site:
             raise ValueError("Datadog requires a 'site' parameter (e.g. 'datadoghq.com').")

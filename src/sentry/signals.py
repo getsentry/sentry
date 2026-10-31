@@ -4,13 +4,15 @@ import enum
 import functools
 import logging
 from collections.abc import Callable, Hashable
-from typing import Any, overload
+from typing import ParamSpec, TypeVar, cast, overload
 
 from django.dispatch.dispatcher import Signal
 
 from sentry.utils.env import in_test_environment
 
-Receiver = Callable[[], Any]
+P = ParamSpec("P")
+R = TypeVar("R")
+Receiver = Callable[..., object]
 
 _AllReceivers = enum.Enum("_AllReceivers", "ALL")
 
@@ -26,7 +28,7 @@ class receivers_raise_on_send:
     This behavior only works in tests.
     """
 
-    receivers: Any
+    receivers: _AllReceivers | Receiver | list[Receiver]
 
     def __init__(self, receivers: _AllReceivers | Receiver | list[Receiver] = _AllReceivers.ALL):
         self.receivers = receivers
@@ -38,11 +40,14 @@ class receivers_raise_on_send:
         if self.receivers is _AllReceivers.ALL:
             _receivers_that_raise = self.receivers
         else:
-            _receivers_that_raise += self.receivers
+            receivers = self.receivers
+            if not isinstance(receivers, list):
+                receivers = [receivers]
+            _receivers_that_raise = cast(list[Receiver], _receivers_that_raise) + receivers
 
-    def __call__(self, f: Callable[..., Any]) -> Callable[..., Any]:
+    def __call__(self, f: Callable[P, R]) -> Callable[P, R]:
         @functools.wraps(f)
-        def wrapped(*args: Any, **kwds: Any) -> Any:
+        def wrapped(*args: P.args, **kwds: P.kwargs) -> R:
             with receivers_raise_on_send(self.receivers):
                 return f(*args, **kwds)
 
@@ -62,12 +67,12 @@ class BetterSignal(Signal):
         sender: object | None = None,
         weak: bool = True,
         dispatch_uid: Hashable | None = None,
-    ) -> Callable[[Callable[..., Any]], None]: ...
+    ) -> Callable[[Callable[..., object]], None]: ...
 
     @overload
     def connect(
         self,
-        receiver: Callable[..., Any],
+        receiver: Callable[..., object],
         sender: object | None = None,
         weak: bool = True,
         dispatch_uid: Hashable | None = None,
@@ -75,11 +80,11 @@ class BetterSignal(Signal):
 
     def connect(
         self,
-        receiver: Callable[..., Any] | None = None,
+        receiver: Callable[..., object] | None = None,
         sender: object | None = None,
         weak: bool = True,
         dispatch_uid: Hashable | None = None,
-    ) -> Callable[[Callable[..., Any]], None] | None:
+    ) -> Callable[[Callable[..., object]], None] | None:
         """
         Support decorator syntax:
 
@@ -89,7 +94,7 @@ class BetterSignal(Signal):
 
         """
 
-        def wrapped(func: Callable[..., Any]) -> None:
+        def wrapped(func: Callable[..., object]) -> None:
             super(BetterSignal, self).connect(
                 func, sender=sender, weak=weak, dispatch_uid=dispatch_uid
             )

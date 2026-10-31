@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from rest_framework.response import Response
 
@@ -19,11 +19,14 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 PAGE_LIMIT = 1
 
+if TYPE_CHECKING:
+    _SearchEndpointBase = SourceCodeSearchEndpoint[GitHubIntegration | GitHubEnterpriseIntegration]
+else:
+    _SearchEndpointBase = SourceCodeSearchEndpoint
+
 
 @control_silo_endpoint
-class GithubSharedSearchEndpoint(
-    SourceCodeSearchEndpoint[GitHubIntegration | GitHubEnterpriseIntegration]
-):
+class GithubSharedSearchEndpoint(_SearchEndpointBase):
     """NOTE: This endpoint is a shared search endpoint for Github and Github Enterprise integrations."""
 
     @property

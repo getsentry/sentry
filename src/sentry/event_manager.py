@@ -999,7 +999,7 @@ def _get_or_create_release_associated_models(
         environment = job["environment"]
         date = job["event"].datetime
 
-        release_env_tags: dict[str, str] = {}
+        release_env_tags: MutableTags = {}
         ReleaseEnvironment.get_or_create(
             project=project,
             release=release,

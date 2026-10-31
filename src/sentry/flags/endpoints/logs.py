@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
@@ -70,13 +70,18 @@ class FlagAuditLogModelSerializer(Serializer[FlagAuditLogModelSerializerResponse
     ) -> FlagAuditLogModelSerializerResponse:
         return {
             "id": obj.id,
-            "action": ActionEnum.to_string(obj.action),
+            "action": cast(
+                Literal["created", "deleted", "updated"], ActionEnum.to_string(obj.action)
+            ),
             "createdAt": obj.created_at.isoformat(),
             "createdBy": obj.created_by,
             "createdByType": (
                 None
                 if obj.created_by_type is None
-                else CreatedByTypeEnum.to_string(obj.created_by_type)
+                else cast(
+                    Literal["email", "id", "name"],
+                    CreatedByTypeEnum.to_string(obj.created_by_type),
+                )
             ),
             "flag": obj.flag,
             "provider": (None if obj.provider is None else ProviderEnum.to_string(obj.provider)),

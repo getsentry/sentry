@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 import orjson
 
@@ -80,11 +81,11 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
             **kwargs,
         )
 
-    def build_identity(self, state: dict[str, Any]) -> dict[str, Any]:
-        data = state.get("data", {})
+    def build_identity(self, state: Mapping[str, object]) -> dict[str, Any]:
+        data = cast(Mapping[str, object], state.get("data", {}))
 
         try:
-            id_token = data["id_token"]
+            id_token = cast(str, data["id_token"])
         except KeyError:
             raise IdentityNotValid("Missing id_token in OAuth response")
 
