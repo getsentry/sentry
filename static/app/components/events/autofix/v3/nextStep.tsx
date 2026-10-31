@@ -25,7 +25,6 @@ import {
   isCodeChangesSection,
   isPullRequestsSection,
   isRootCauseSection,
-  isRunValidForPrIteration,
   isSolutionSection,
   type AutofixSection,
   type useExplorerAutofix,
@@ -132,12 +131,6 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 }
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
-  const organization = useOrganization();
-
-  if (!isRunValidForPrIteration(organization)) {
-    return null;
-  }
-
   return (
     <PrIterationFeedbackForm
       autofix={autofix}

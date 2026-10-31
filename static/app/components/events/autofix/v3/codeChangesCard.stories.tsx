@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -12,14 +12,8 @@ import type {
 import {CodeChangesCard} from 'sentry/components/events/autofix/v3/codeChangesCard';
 import * as Storybook from 'sentry/stories';
 import type {User} from 'sentry/types/user';
-import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
-
-// The Feedback section is gated behind this feature flag; the wrapper below
-// injects it so every example renders it.
-const PR_ITERATION_FEATURE = 'autofix-pr-iteration-manual';
 
 const noop = () => {};
 
@@ -236,7 +230,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
   story('All feedback sources', () => {
     const user = useUser();
     return (
-      <FeatureWrapper>
+      <Fragment>
         <Text size="sm" variant="muted">
           Every feedback source type, shown as <code>processed</code> block feedback (top
           six) plus <code>queued</code> feedback (bottom two). Newest is listed first.
@@ -280,7 +274,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             ),
           ])}
         />
-      </FeatureWrapper>
+      </Fragment>
     );
   });
 
@@ -289,37 +283,31 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
     return (
       <Stack gap="xl">
         <StatusExample label="Processed — the iteration it drove has finished and its changes are pushed (accent checkmark).">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="In progress — driving the iteration currently being processed (spinner). The card body shows the “Iterating on PR…” loader.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('processing', [
-                makeFeedbackBlock(0, userUiFeedback('Fix the failing CI check', user)),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('processing', [
+              makeFeedbackBlock(0, userUiFeedback('Fix the failing CI check', user)),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Queued — submitted while a run was processing, not yet picked up (muted circle + “Queued” label).">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix([userUiFeedback('Make the button blue', user)])}
-              section={makeSection('completed', [])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix([userUiFeedback('Make the button blue', user)])}
+            section={makeSection('completed', [])}
+          />
         </StatusExample>
       </Stack>
     );
@@ -328,7 +316,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
   story('Push refused to protect newer PR commits', () => {
     const user = useUser();
     return (
-      <FeatureWrapper>
+      <Fragment>
         <Text size="sm" variant="muted">
           The latest feedback failed because pushing would require a force push over newer
           PR commits. Hover over the red error icon for the explanation. Earlier feedback
@@ -362,7 +350,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             ),
           ])}
         />
-      </FeatureWrapper>
+      </Fragment>
     );
   });
 
@@ -379,131 +367,104 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
         </Text>
 
         <StatusExample label="Changes requested — a review body plus two inline comments, grouped under a danger badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 100,
-                    reviewState: 'changes_requested',
-                    body: 'A couple of blockers before this can merge — see inline.',
-                  }),
-                  githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
-                    reviewId: 100,
-                  }),
-                  githubPrReviewCommentFeedback(
-                    'Guard against the null user before dereferencing.',
-                    {reviewId: 100}
-                  ),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 100,
+                  reviewState: 'changes_requested',
+                  body: 'A couple of blockers before this can merge — see inline.',
+                }),
+                githubPrReviewCommentFeedback('This branch is never hit — remove it.', {
+                  reviewId: 100,
+                }),
+                githubPrReviewCommentFeedback(
+                  'Guard against the null user before dereferencing.',
+                  {reviewId: 100}
+                ),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Approved — a review body with one inline comment, grouped under a success badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 200,
-                    reviewState: 'approved',
-                    body: 'LGTM! One tiny nit inline, feel free to ignore.',
-                    login: 'monalisa',
-                  }),
-                  githubPrReviewCommentFeedback('Nit: prefer `const` here.', {
-                    reviewId: 200,
-                    login: 'monalisa',
-                  }),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 200,
+                  reviewState: 'approved',
+                  body: 'LGTM! One tiny nit inline, feel free to ignore.',
+                  login: 'monalisa',
+                }),
+                githubPrReviewCommentFeedback('Nit: prefer `const` here.', {
+                  reviewId: 200,
+                  login: 'monalisa',
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Commented — a review left with only inline comments and a body, no explicit approve/reject, grouped under a muted badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 300,
-                    reviewState: 'commented',
-                    body: 'A few thoughts, nothing blocking.',
-                  }),
-                  githubPrReviewCommentFeedback(
-                    'Could this be extracted into a helper?',
-                    {reviewId: 300}
-                  ),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 300,
+                  reviewState: 'commented',
+                  body: 'A few thoughts, nothing blocking.',
+                }),
+                githubPrReviewCommentFeedback('Could this be extracted into a helper?', {
+                  reviewId: 300,
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Body-only review — an approval with no inline comments renders as a single row with just the badge.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(0, [
-                  githubPrReviewBodyFeedback({
-                    reviewId: 400,
-                    reviewState: 'approved',
-                    body: 'Ship it 🚀',
-                    login: 'monalisa',
-                  }),
-                ]),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(0, [
+                githubPrReviewBodyFeedback({
+                  reviewId: 400,
+                  reviewState: 'approved',
+                  body: 'Ship it 🚀',
+                  login: 'monalisa',
+                }),
+              ]),
+            ])}
+          />
         </StatusExample>
 
         <StatusExample label="Comment-only review — GitHub's “Add single comment” has no body, so there's no header or badge; the comment stays flat.">
-          <FeatureWrapper>
-            <CodeChangesCard
-              groupId="1"
-              autofix={makeAutofix()}
-              section={makeSection('completed', [
-                makeFeedbackBlock(
-                  0,
-                  githubPrReviewCommentFeedback(
-                    'Drive-by comment, not part of a submitted review.',
-                    {}
-                  )
-                ),
-              ])}
-            />
-          </FeatureWrapper>
+          <CodeChangesCard
+            groupId="1"
+            autofix={makeAutofix()}
+            section={makeSection('completed', [
+              makeFeedbackBlock(
+                0,
+                githubPrReviewCommentFeedback(
+                  'Drive-by comment, not part of a submitted review.',
+                  {}
+                )
+              ),
+            ])}
+          />
         </StatusExample>
       </Stack>
     );
   });
 });
-
-/**
- * Injects the `autofix-pr-iteration-manual` feature into the surrounding organization
- * so the Feedback section renders. Mirrors the pattern used by
- * activityLineItem.stories.tsx.
- */
-function FeatureWrapper({children}: {children: ReactNode}) {
-  const organization = useOrganization();
-  const features = [...organization.features, PR_ITERATION_FEATURE];
-
-  return (
-    <OrganizationContext.Provider value={{...organization, features}}>
-      {children}
-    </OrganizationContext.Provider>
-  );
-}
 
 function StatusExample({children, label}: {children: ReactNode; label: string}) {
   return (

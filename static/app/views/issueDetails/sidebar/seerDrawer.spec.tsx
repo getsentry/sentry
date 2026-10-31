@@ -387,7 +387,7 @@ describe('SeerDrawer', () => {
       });
     }
 
-    it('does not poll the autofix endpoint when both PR iteration features are disabled', async () => {
+    it('polls the autofix endpoint when a PR exists', async () => {
       const getMock = mockAutofixWithPr();
 
       render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
@@ -402,33 +402,7 @@ describe('SeerDrawer', () => {
         await jest.advanceTimersByTimeAsync(10_000);
       });
 
-      expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
+      expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
     });
-
-    it.each([['autofix-pr-iteration'], ['autofix-pr-iteration-manual']])(
-      'polls the autofix endpoint when %s is enabled and a PR exists',
-      async feature => {
-        const getMock = mockAutofixWithPr();
-
-        render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-          organization: OrganizationFixture({
-            hideAiFeatures: false,
-            features: [feature],
-          }),
-        });
-
-        await waitForElementToBeRemoved(() =>
-          screen.queryByTestId('ai-setup-loading-indicator')
-        );
-
-        const callsAfterLoad = getMock.mock.calls.length;
-
-        await act(async () => {
-          await jest.advanceTimersByTimeAsync(10_000);
-        });
-
-        expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-      }
-    );
   });
 });
