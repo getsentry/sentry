@@ -165,12 +165,13 @@ This allows workflows to target a product-specific detector or the broader issue
 
 [`Workflow`](../models/workflow.py) is organization-scoped. Important fields are:
 
-| Field or relationship  | Meaning                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `when_condition_group` | Optional trigger group evaluated before action filters  |
-| `environment`          | `NULL` for all environments or one specific environment |
-| `config.frequency`     | Repeat suppression interval in minutes                  |
-| `enabled`              | Whether the workflow is eligible to run                 |
+| Field or relationship  | Meaning                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | `alert` (default) for user-facing alerts, or a hidden automation type such as `inbox`; alert APIs expose only `VISIBLE_WORKFLOW_TYPES` |
+| `when_condition_group` | Optional trigger group evaluated before action filters                                                                                 |
+| `environment`          | `NULL` for all environments or one specific environment                                                                                |
+| `config.frequency`     | Repeat suppression interval in minutes                                                                                                 |
+| `enabled`              | Whether the workflow is eligible to run                                                                                                |
 
 ### `WorkflowDataConditionGroup`
 
@@ -255,6 +256,11 @@ source object, generic data source, source mapping, and workflows.
 
 Default detectors and workflows are created by [`defaults/`](../defaults) from project
 and organization signal receivers. These functions must remain idempotent.
+
+Workflows created through the public API go through
+[`WorkflowValidator`](../endpoints/validators/base/workflow.py), which never sets `type`,
+so they are always `alert`. Code that creates a hidden workflow type passes `type` to
+`Workflow.objects.create` directly.
 
 ### Updates
 
