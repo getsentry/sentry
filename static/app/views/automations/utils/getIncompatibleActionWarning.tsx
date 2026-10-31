@@ -14,7 +14,7 @@ const METRIC_DETECTOR_UNSUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.AZURE_DEVOPS,
 ]);
 
-const SEER_ACTIVITY_SUPPORTED_ACTIONS = new Set<ActionType>([
+const ACTIVITY_TRIGGER_SUPPORTED_ACTIONS = new Set<ActionType>([
   ActionType.EMAIL,
   ActionType.SLACK,
   ActionType.SLACK_STAGING,
@@ -40,10 +40,17 @@ export function getIncompatibleActionWarnings(
   const warnings: string[] = [];
 
   if (
-    !SEER_ACTIVITY_SUPPORTED_ACTIONS.has(action.type) &&
+    !ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) &&
     triggerConditions.some(c => c.type === DataConditionType.SEER_ACTIVITY_TRIGGER)
   ) {
     warnings.push(t('This action is not supported for Seer activity triggers.'));
+  }
+
+  if (
+    !ACTIVITY_TRIGGER_SUPPORTED_ACTIONS.has(action.type) &&
+    triggerConditions.some(c => c.type === DataConditionType.ISSUE_RESOLVED_TRIGGER)
+  ) {
+    warnings.push(t('This action will not fire when an issue is resolved.'));
   }
 
   if (
