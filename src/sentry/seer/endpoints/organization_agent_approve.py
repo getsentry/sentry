@@ -24,6 +24,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import (
@@ -104,8 +105,7 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         if not grantable:
             return Response({"detail": "No grantable scopes for this user."}, status=400)
 
-        user_id = request.user.id
-        assert user_id is not None  # guaranteed by the user-session requirement above
+        user_id = require_user(request).id
 
         grant = agent_token.create_write_grant(
             organization_id=organization.id,

@@ -40,6 +40,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 # Note: Detailed tests for the implementation of functions in seer/autofix.py
 # have been moved to tests/sentry/seer/test_autofix.py
@@ -765,6 +766,37 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 777
         mock_trigger_explorer.assert_called_once()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_service_account_starts_run_without_user(self, mock_trigger_explorer):
+        group = self.create_group()
+        mock_trigger_explorer.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=777
+        )
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write", "org:read", "project:read"],
+            project_ids=[group.project_id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key=AGENT_TOKEN_SECRET,
+        )
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 202, response.data
+        assert mock_trigger_explorer.call_args.kwargs["user"] is None
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer):
