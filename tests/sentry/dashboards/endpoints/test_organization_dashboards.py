@@ -5,6 +5,7 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connection
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry import audit_log
@@ -32,6 +33,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
@@ -824,6 +826,26 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 200, response.content
         values = [row["title"] for row in response.data]
         assert values == ["Dashboard User 1"]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_owns_no_dashboards(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            self.url,
+            {"filter": "owned", "sort": "mydashboards", "pin": "favorites"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
     def test_get_shared_dashboards_across_organizations(self) -> None:
         # The test user is a member of just the single org.

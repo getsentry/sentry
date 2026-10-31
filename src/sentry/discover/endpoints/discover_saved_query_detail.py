@@ -27,6 +27,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.discover_saved_query_examples import DiscoverExamples
 from sentry.apidocs.parameters import DiscoverSavedQueryParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.auth.principal import require_user
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
 from sentry.discover.models import (
@@ -229,7 +230,7 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
         if request.user.is_authenticated:
             DiscoverSavedQueryLastVisited.objects.update_or_create(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=require_user(request).id,
                 discover_saved_query=query,
                 defaults={"last_visited": timezone.now()},
             )

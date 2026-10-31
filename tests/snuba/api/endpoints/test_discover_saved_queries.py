@@ -1,3 +1,4 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -16,6 +17,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -414,6 +416,27 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.status_code == 200, response.content
         values = [int(item["createdBy"]["id"]) for item in response.data]
         assert values == [self.user.id, uhoh_user.id, whoops_user.id]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sorts_by_myqueries(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(
+                self.url, {"sortBy": "myqueries"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+        assert response.status_code == 200, response.content
+        assert [query["name"] for query in response.data] == ["Test query"]
 
     def test_get_expired_query(self) -> None:
         query = {
