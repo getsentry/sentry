@@ -87,7 +87,7 @@ class ParsedEquation:
     contains_functions: bool
 
 
-def flatten(remaining):
+def flatten(remaining: list[Operation]) -> Operation:
     """Take all the remaining terms and reduce them to a single tree"""
     term = remaining.pop(0)
     while remaining:
@@ -278,7 +278,7 @@ class ArithmeticVisitor(NodeVisitor):
         remaining_muls[0].lhs = primary
         return flatten(remaining_muls)
 
-    def visited_operator(self):
+    def visited_operator(self) -> None:
         """We visited an operator, increment the count and error if we exceed max"""
         self.operators += 1
         if self.operators > self.max_operators:
@@ -486,7 +486,7 @@ def strip_equation(field: str) -> str:
     return field[len(EQUATION_PREFIX) :]
 
 
-def categorize_columns(columns) -> tuple[list[str], list[str]]:
+def categorize_columns(columns: Iterable[str]) -> tuple[list[str], list[str]]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
     equations = []
     fields = []

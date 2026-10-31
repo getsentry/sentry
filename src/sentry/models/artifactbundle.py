@@ -3,7 +3,7 @@ from __future__ import annotations
 import zipfile
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any
+from typing import IO, Any, cast
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -249,7 +249,7 @@ class ArtifactBundleArchive:
         return json.loads(manifest_bytes.decode("utf-8"))
 
     @staticmethod
-    def normalize_headers(headers: dict) -> dict:
+    def normalize_headers(headers: dict) -> dict[str, object]:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
@@ -270,7 +270,7 @@ class ArtifactBundleArchive:
                 continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id")) is not None:
+            if (debug_id := cast(str | None, headers.get("debug-id"))) is not None:
                 debug_id = self.normalize_debug_id(debug_id)
                 file_type = info.get("type")
                 if (
@@ -362,7 +362,7 @@ class ArtifactBundleArchive:
                 return True
 
             headers = self.normalize_headers(info.get("headers", {}))
-            debug_id = self.normalize_debug_id(headers.get("debug-id", None))
+            debug_id = self.normalize_debug_id(cast(str | None, headers.get("debug-id", None)))
             if debug_id is not None:
                 debug_id = debug_id.lower()
 

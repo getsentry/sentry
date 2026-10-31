@@ -1,7 +1,9 @@
 from unittest.mock import Mock
 
+import pytest
 from rest_framework import serializers
 
+from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.testutils.cases import TestCase
 
@@ -38,3 +40,34 @@ class ProjectFieldTest(TestCase):
 
         assert not serializer.is_valid()
         assert serializer.errors == {"project": ["Invalid project"]}
+
+
+class EmptyListFieldTest(TestCase):
+    def test_empty_string_is_preserved(self) -> None:
+        field = EmptyListField(child=serializers.CharField(allow_blank=True))
+
+        assert field.to_internal_value("") == ""
+
+    def test_default_child_preserves_arbitrary_items(self) -> None:
+        field = EmptyListField()
+
+        assert field.to_internal_value([1, "value"]) == [1, "value"]
+
+    def test_integer_child_converts_values(self) -> None:
+        field = EmptyListField(child=serializers.IntegerField())
+
+        assert field.to_internal_value(["1"]) == [1]
+
+    def test_string_child_validates_values(self) -> None:
+        field = EmptyListField(child=serializers.CharField())
+
+        assert field.to_internal_value([1]) == ["1"]
+
+    def test_invalid_values_keep_list_field_validation(self) -> None:
+        field = EmptyListField(child=serializers.IntegerField())
+
+        with pytest.raises(serializers.ValidationError):
+            field.to_internal_value(["invalid"])
+
+        with pytest.raises(serializers.ValidationError):
+            field.to_internal_value("invalid")

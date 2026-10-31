@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import datetime
 import logging
-from typing import Any
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -14,9 +15,10 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.models.repository import Repository
+from sentry.shared_integrations.response import MappingApiResponse
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
-from sentry.utils.patch_set import patch_to_file_changes
+from sentry.utils.patch_set import FileChange, patch_to_file_changes
 
 BITBUCKET_KEY = f"{urlparse(absolute_uri()).hostname}.bitbucket"
 
@@ -62,7 +64,7 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
     page_size = 100
     page_number_limit = 50
 
-    def __init__(self, integration: RpcIntegration | Integration):
+    def __init__(self, integration: RpcIntegration | Integration) -> None:
         self.shared_secret = integration.metadata["shared_secret"]
         # subject is probably the clientKey
         self.subject = integration.external_id
@@ -93,30 +95,40 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
         prepared_request.headers["Authorization"] = f"JWT {encoded_jwt}"
         return prepared_request
 
-    def get_issue(self, repo, issue_id):
-        return self.get(BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id))
+    def get_issue(self, repo: str, issue_id: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
+            BitbucketAPIPath.issue.format(repo=repo, issue_id=issue_id)
+        )
+        return response
 
     def get_workspace_hooks(self, workspace: str):
         return self.get(BitbucketAPIPath.workspace_hooks.format(workspace=workspace))
 
-    def create_issue(self, repo, data):
-        return self.post(path=BitbucketAPIPath.issues.format(repo=repo), data=data)
+    def create_issue(self, repo: str, data: Mapping[str, object]) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
+            path=BitbucketAPIPath.issues.format(repo=repo), data=data
+        )
+        return response
 
     def search_issues(self, repo: str, query: str) -> dict[str, Any]:
         # Query filters can be found here:
         # https://developer.atlassian.com/bitbucket/api/2/reference/meta/filtering#supp-endpoints
         return self.get(path=BitbucketAPIPath.issues.format(repo=repo), params={"q": query})
 
-    def create_comment(self, repo, issue_id, data):
+    def create_comment(
+        self, repo: str, issue_id: str, data: Mapping[str, object]
+    ) -> MappingApiResponse:
         # Call the method as below:
         # client.create_comment('repo', '1', {"content": {"raw": "Whatever you're commenting."}})
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/issues/%7Bissue_id%7D/comments#post
-        return self.post(
+        response: MappingApiResponse = self.post(
             path=BitbucketAPIPath.issue_comments.format(repo=repo, issue_id=issue_id), data=data
         )
+        return response
 
-    def get_repo(self, repo):
-        return self.get(BitbucketAPIPath.repository.format(repo=repo))
+    def get_repo(self, repo: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(BitbucketAPIPath.repository.format(repo=repo))
+        return response
 
     def _get_all_from_paginated(
         self,
@@ -157,39 +169,54 @@ class BitbucketApiClient(ApiClient, RepositoryClient):
             page_number_limit=page_number_limit,
         )
 
-    def search_repositories(self, username, query):
-        return self.get(
+    def search_repositories(self, username: str, query: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
             path=BitbucketAPIPath.repositories.format(username=username), params={"q": query}
         )
+        return response
 
-    def create_hook(self, repo, data):
-        return self.post(path=BitbucketAPIPath.repository_hooks.format(repo=repo), data=data)
+    def create_hook(self, repo: str, data: Mapping[str, object]) -> MappingApiResponse:
+        response: MappingApiResponse = self.post(
+            path=BitbucketAPIPath.repository_hooks.format(repo=repo), data=data
+        )
+        return response
 
-    def get_hooks(self, repo):
-        return self.get(path=BitbucketAPIPath.repository_hooks.format(repo=repo))
+    def get_hooks(self, repo: str) -> MappingApiResponse:
+        response: MappingApiResponse = self.get(
+            path=BitbucketAPIPath.repository_hooks.format(repo=repo)
+        )
+        return response
 
-    def delete_hook(self, repo, hook_id):
-        return self.delete(path=BitbucketAPIPath.repository_hook.format(repo=repo, uid=hook_id))
+    def delete_hook(self, repo: str, hook_id: str) -> dict[str, object]:
+        response: dict[str, object] = self.delete(
+            path=BitbucketAPIPath.repository_hook.format(repo=repo, uid=hook_id)
+        )
+        return response
 
-    def get_commit_filechanges(self, repo, sha):
+    def get_commit_filechanges(self, repo: str, sha: str) -> list[FileChange]:
         resp = self.get(
             BitbucketAPIPath.repository_diff.format(repo=repo, spec=sha), allow_text=True
         )
         return patch_to_file_changes(resp.text)
 
-    def zip_commit_data(self, repo, commit_list):
+    def zip_commit_data(
+        self, repo: str, commit_list: Sequence[MutableMapping[str, object]]
+    ) -> Sequence[MutableMapping[str, object]]:
         for commit in commit_list:
-            commit.update({"patch_set": self.get_commit_filechanges(repo, commit["hash"])})
+            sha = cast(str, commit["hash"])
+            commit.update({"patch_set": self.get_commit_filechanges(repo, sha)})
         return commit_list
 
-    def get_last_commits(self, repo, end_sha):
+    def get_last_commits(self, repo: str, end_sha: str) -> Sequence[Mapping[str, object]]:
         # return api request that fetches last ~30 commits
         # see https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D
         # using end_sha as parameter
         data = self.get(BitbucketAPIPath.repository_commits.format(repo=repo, revision=end_sha))
         return self.zip_commit_data(repo, data["values"])
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: str, start_sha: str, end_sha: str
+    ) -> Sequence[Mapping[str, object]]:
         # where start_sha is oldest and end_sha is most recent
         # see
         # https://developer.atlassian.com/bitbucket/api/2/reference/resource/repositories/%7Busername%7D/%7Brepo_slug%7D/commits/%7Brevision%7D

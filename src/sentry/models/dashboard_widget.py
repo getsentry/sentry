@@ -347,7 +347,7 @@ class DashboardWidgetQueryOnDemand(Model):
 
         return True
 
-    def extraction_enabled(self):
+    def extraction_enabled(self) -> bool:
         """Whether on-demand is enabled or disabled for this widget.
         If this is enabled, Relay should be extracting metrics from events matching the associated widget_query upon ingest.
         """

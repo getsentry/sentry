@@ -15,6 +15,7 @@ from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, R
 from sentry.apidocs.examples.project_examples import KEY_NO_RATE_LIMIT, KEY_RATE_LIMIT
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.models.team import Team
@@ -81,7 +82,9 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
             ),
         ],
     )
-    def get(self, request: Request, organization) -> Response[list[ProjectKeySerializerResponse]]:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys (DSNs) for all projects in an organization.
 

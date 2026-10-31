@@ -3,13 +3,17 @@ from __future__ import annotations
 import logging
 import zipfile
 from contextlib import contextmanager
+from datetime import datetime
 from hashlib import sha1
 from io import BytesIO
 from tempfile import TemporaryDirectory
-from typing import IO, ClassVar, Self
+from types import TracebackType
+from typing import IO, ClassVar, Iterable, Iterator, Mapping, Self, cast
 from urllib.parse import urlunsplit
 
 from django.db import models, router
+from django.db.models import QuerySet
+from django.db.models.base import ModelBase
 from django.db.models.functions import Now
 from django.utils import timezone
 from sentry_sdk import traces
@@ -52,7 +56,7 @@ class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
 
     """
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[ReleaseFile]:
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
@@ -95,7 +99,13 @@ class ReleaseFile(Model):
         app_label = "sentry"
         db_table = "sentry_releasefile"
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         from sentry.models.distribution import Distribution
 
         if not self.ident and self.name:
@@ -103,29 +113,41 @@ class ReleaseFile(Model):
             if self.dist_id:
                 dist = Distribution.objects.get(pk=self.dist_id).name
             self.ident = type(self).get_ident(self.name, dist)
-        return super().save(*args, **kwargs)
+        return super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=update_fields,
+        )
 
-    def update(self, *args, **kwargs):
+    def update(
+        self,
+        using: str | None = None,
+        *args: str,
+        **kwargs: File | int | str | datetime | None,
+    ) -> int:
         # If our name is changing, we must also change the ident
         if "name" in kwargs and "ident" not in kwargs:
             dist_name = None
-            dist_id = kwargs.get("dist_id") or self.dist_id
+            dist_id = cast(int | None, kwargs.get("dist_id") or self.dist_id)
             if dist_id:
                 dist_name = Distribution.objects.filter(pk=dist_id).values_list("name", flat=True)[
                     0
                 ]
-            kwargs["ident"] = self.ident = type(self).get_ident(kwargs["name"], dist_name)
+            kwargs["ident"] = self.ident = type(self).get_ident(
+                cast(str, kwargs["name"]), dist_name
+            )
             kwargs["date_accessed"] = timezone.now()
-        return super().update(*args, **kwargs)
+        return super().update(using, *args, **kwargs)
 
     @classmethod
-    def get_ident(cls, name, dist=None):
+    def get_ident(cls, name: str, dist: str | None = None) -> str:
         if dist is not None:
             return sha1_text(name + "\x00\x00" + dist).hexdigest()
         return sha1_text(name).hexdigest()
 
     @classmethod
-    def normalize(cls, url):
+    def normalize(cls, url: str) -> list[str]:
         """Transforms a full absolute url into 2 or 4 generalized options
 
         * the original url as input
@@ -153,21 +175,28 @@ class ReleaseFile(Model):
 class ReleaseArchive:
     """Read-only view of uploaded ZIP-archive of release files"""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO[bytes]) -> None:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
-        files = self.manifest.get("files", {})
-        self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
+        self.artifact_count = len(cast(dict[str, object], self.manifest.get("files", {})))
+        files = cast(dict[str, dict[str, object]], self.manifest.get("files", {}))
+        self._entries_by_url = {
+            cast(str, entry["url"]): (path, entry) for path, entry in files.items()
+        }
 
-    def __enter__(self):
+    def __enter__(self) -> Self:
         return self
 
-    def __exit__(self, exc, value, tb):
+    def __exit__(
+        self,
+        exc: type[BaseException] | None,
+        value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         self._zip_file.close()
         self._fileobj.close()
 
@@ -177,11 +206,11 @@ class ReleaseArchive:
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
-    def _read_manifest(self) -> dict:
+    def _read_manifest(self) -> dict[str, object]:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        return cast(dict[str, object], json.loads(manifest_bytes.decode("utf-8")))
 
-    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict]:
+    def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, object]]:
         """Return file-like object and headers.
 
         The caller is responsible for closing the returned stream.
@@ -189,9 +218,9 @@ class ReleaseArchive:
         May raise ``KeyError``
         """
         filename, entry = self._entries_by_url[url]
-        return self._zip_file.open(filename), entry.get("headers", {})
+        return self._zip_file.open(filename), cast(dict[str, object], entry.get("headers", {}))
 
-    def extract(self) -> TemporaryDirectory:
+    def extract(self) -> TemporaryDirectory[str]:
         """Extract contents to a temporary directory.
 
         The caller is responsible for cleanup of the temporary files.
@@ -205,29 +234,33 @@ class ReleaseArchive:
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
 
-    def __init__(self, data: dict, fresh=False):
+    def __init__(self, data: dict[str, object], fresh: bool = False) -> None:
         self._data = data
         self.changed = fresh
 
     @property
-    def data(self):
+    def data(self) -> dict[str, object]:
         """Meant to be read-only"""
         return self._data
 
     @property
-    def num_files(self):
-        return len(self._data.get("files", {}))
+    def num_files(self) -> int:
+        files = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        return len(files)
 
-    def get(self, filename: str):
-        return self._data.get("files", {}).get(filename, None)
+    def get(self, filename: str) -> object:
+        files = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        return files.get(filename, None)
 
-    def update_files(self, files: dict):
+    def update_files(self, files: Mapping[str, object]) -> None:
         if files:
-            self._data.setdefault("files", {}).update(files)
+            files_map = cast(dict[str, object], self._data.setdefault("files", dict[str, object]()))
+            files_map.update(files)
             self.changed = True
 
     def delete(self, filename: str) -> bool:
-        result = self._data.get("files", {}).pop(filename, None)
+        files_map = cast(dict[str, object], self._data.get("files", dict[str, object]()))
+        result = files_map.pop(filename, None)
         deleted = result is not None
         if deleted:
             self.changed = True
@@ -238,13 +271,15 @@ class _ArtifactIndexData:
 class _ArtifactIndexGuard:
     """Ensures atomic write operations to the artifact index"""
 
-    def __init__(self, release: Release, dist: Distribution | None, **filter_args):
+    def __init__(self, release: Release, dist: Distribution | None, **filter_args) -> None:
         self._release = release
         self._dist = dist
-        self._ident = ReleaseFile.get_ident(ARTIFACT_INDEX_FILENAME, dist and dist.name)
+        self._ident = ReleaseFile.get_ident(
+            ARTIFACT_INDEX_FILENAME, dist.name if dist is not None else None
+        )
         self._filter_args = filter_args  # Extra constraints on artifact index release file
 
-    def readable_data(self) -> dict | None:
+    def readable_data(self) -> dict[str, object] | None:
         """Simple read, no synchronization necessary"""
         try:
             releasefile = self._releasefile_qs()[0]
@@ -253,10 +288,12 @@ class _ArtifactIndexGuard:
         else:
             fp = releasefile.file.getfile()
             with fp:
-                return json.load(fp)
+                return cast(dict[str, object], json.load(fp))
 
     @contextmanager
-    def writable_data(self, create: bool, initial_artifact_count=None):
+    def writable_data(
+        self, create: bool, initial_artifact_count: int | None = None
+    ) -> Iterator[_ArtifactIndexData | None]:
         """Context manager for editable artifact index"""
         with atomic_transaction(
             using=(
@@ -286,12 +323,13 @@ class _ArtifactIndexGuard:
                     source_file = releasefile.file
                     if source_file.type != ARTIFACT_INDEX_TYPE:
                         raise RuntimeError("Unexpected file type for artifact index")
-                    raw_data = json.load(source_file.getfile())
+                    raw_data: dict[str, object] = json.load(source_file.getfile())
                     index_data = _ArtifactIndexData(raw_data)
 
             yield index_data  # editable reference to index
 
             if index_data is not None and index_data.changed:
+                releasefile = cast(ReleaseFile, releasefile)
                 if created:
                     target_file = releasefile.file
                 else:
@@ -304,11 +342,13 @@ class _ArtifactIndexGuard:
                 artifact_count = index_data.num_files
                 if not created:
                     # Update and clean existing
-                    old_file = releasefile.file
+                    old_file: Model = releasefile.file
                     releasefile.update(file=target_file, artifact_count=artifact_count)
                     old_file.delete()
 
-    def _get_or_create_releasefile(self, initial_artifact_count):
+    def _get_or_create_releasefile(
+        self, initial_artifact_count: int | None
+    ) -> tuple[ReleaseFile, bool]:
         """Make sure that the release file exists"""
         return ReleaseFile.objects.select_for_update().get_or_create(
             **self._key_fields(),
@@ -321,16 +361,16 @@ class _ArtifactIndexGuard:
             },
         )
 
-    def _releasefile_qs(self):
+    def _releasefile_qs(self) -> QuerySet[ReleaseFile]:
         """QuerySet for selecting artifact index"""
         return ReleaseFile.objects.filter(**self._key_fields(), **self._filter_args)
 
-    def _key_fields(self):
+    def _key_fields(self) -> dict[str, int | str | None]:
         """Columns needed to identify the artifact index in the db"""
         return dict(
             organization_id=self._release.organization_id,
             release_id=self._release.id,
-            dist_id=self._dist.id if self._dist else self._dist,
+            dist_id=cast(int, self._dist.id) if self._dist is not None else None,
             name=ARTIFACT_INDEX_FILENAME,
             ident=self._ident,
         )
@@ -372,13 +412,13 @@ def update_artifact_index(
     with ReleaseArchive(temp_file or archive_file.getfile()) as archive:
         manifest = archive.manifest
 
-        files = manifest.get("files", {})
+        files = cast(dict[str, object], manifest.get("files", {}))
         if not files:
             return
 
         for filename, info in files.items():
-            info = info.copy()
-            url = info.pop("url")
+            info = cast(dict[str, object], info).copy()
+            url = cast(str, info.pop("url"))
             info["filename"] = filename
             info["archive_ident"] = releasefile.ident
             info["date_created"] = archive_file.timestamp
@@ -388,7 +428,7 @@ def update_artifact_index(
 
     guard = _ArtifactIndexGuard(release, dist)
     with guard.writable_data(create=True, initial_artifact_count=len(files_out)) as index_data:
-        index_data.update_files(files_out)
+        cast(_ArtifactIndexData, index_data).update_files(files_out)
 
     return releasefile
 

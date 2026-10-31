@@ -121,7 +121,7 @@ class ActionTrigger(FlexibleIntEnum):
 
 
 class ActionRegistration(metaclass=ABCMeta):
-    def __init__(self, action: NotificationAction):
+    def __init__(self, action: NotificationAction) -> None:
         self.action = action
 
     @abstractmethod
@@ -265,7 +265,7 @@ class NotificationAction(AbstractNotificationAction):
         return inner
 
     @classmethod
-    def get_trigger_types(cls):
+    def get_trigger_types(cls) -> tuple[tuple[int, str], ...]:
         return cls._trigger_types
 
     @classmethod
@@ -294,7 +294,7 @@ class NotificationAction(AbstractNotificationAction):
         """
         return {"trigger": NotificationAction.get_trigger_text(self.trigger_type)}
 
-    def fire(self, *args, **kwargs):
+    def fire(self, *args: object, **kwargs: object) -> None:
         registration = NotificationAction.get_registration(
             self.trigger_type, self.service_type, self.target_type
         )

@@ -3,14 +3,15 @@ from __future__ import annotations
 import functools
 from abc import abstractmethod
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
+from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, release_health, tsdb
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
 from sentry.api.serializers.models.group import (
@@ -85,8 +86,8 @@ class GroupStatsMixin:
         groups: Sequence[Group],
         query_params,
         conditions=None,
-        environment_ids=None,
-        user=None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         **kwargs,
     ):
         pass
@@ -149,7 +150,7 @@ class GroupStatsMixin:
 
 
 class _MaybeStats(TypedDict, total=False):
-    stats: dict[str, dict[int, list[tuple[int, int]]]]
+    stats: dict[str, list[tuple[int, int]]]
 
 
 class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
@@ -157,7 +158,11 @@ class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
-    def __init__(self, environment_func=None, stats_period=None):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        stats_period: str | None = None,
+    ) -> None:
         super().__init__(environment_func=environment_func)
 
         assert (
@@ -197,7 +202,9 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         base = super().serialize(obj, attrs, user)
 
         if self.stats_period:
-            extra: _MaybeStats = {"stats": {self.stats_period: attrs["stats"]}}
+            extra: _MaybeStats = {
+                "stats": {self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])}
+            }
         else:
             extra = {}
 
@@ -208,8 +215,8 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         groups: Sequence[Group],
         query_params,
         conditions=None,
-        environment_ids=None,
-        user=None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         **kwargs,
     ):
         try:
@@ -232,11 +239,11 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 class _SeenStatsFunc(Protocol):
     def __call__(
         self,
-        item_list,
-        start=None,
-        end=None,
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
         conditions=None,
-        environment_ids=None,
+        environment_ids: list[int] | None = None,
     ) -> Mapping[str, Any]: ...
 
 
@@ -308,17 +315,17 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
         environment_ids: list[int] | None = None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        start=None,
-        end=None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        stats_period: str | None = None,
+        stats_period_start: datetime | None = None,
+        stats_period_end: datetime | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(
             environment_ids,
             start,
@@ -621,12 +628,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return results
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(generic_issue_list, self._execute_generic_seen_stats_query)
 
@@ -682,7 +689,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
         return time_range_result
 
-    def _build_session_cache_key(self, project_id):
+    def _build_session_cache_key(self, project_id: int) -> str:
         start_key_dt = end_key_dt = None
         env_key = ""
         if self.start:

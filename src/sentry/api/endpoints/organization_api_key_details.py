@@ -25,7 +25,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
         model = ApiKey
         fields = ("label", "scope_list", "allowed_origins")
 
-    def validate_scope_list(self, value):
+    def validate_scope_list(self, value: list[str]) -> list[str]:
         invalid_scopes = set(value) - SENTRY_SCOPES
         if invalid_scopes:
             raise serializers.ValidationError(

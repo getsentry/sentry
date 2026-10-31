@@ -17,8 +17,8 @@ from sentry import eventstore, features
 from sentry.api.client import client
 from sentry.api.endpoints.organization_events_timeseries import TOP_EVENTS_DATASETS
 from sentry.api.serializers.base import serialize
-from sentry.api.serializers.models.activity import ActivitySerializer
-from sentry.api.serializers.models.commit import CommitSerializer
+from sentry.api.serializers.models.activity import ActivitySerializer, ActivitySerializerResponse
+from sentry.api.serializers.models.commit import CommitSerializer, CommitSerializerResponse
 from sentry.api.serializers.models.event import EventSerializer
 from sentry.api.serializers.models.group import GroupSerializer
 from sentry.api.utils import MAX_STATS_PERIOD, default_start_end_dates, get_date_range_from_params
@@ -1435,11 +1435,11 @@ def get_issue_details(
             type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
             user_id__isnull=False,
         )
-        activities = (
+        activities: list[Activity] = list(
             Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
         )
-        serialized_activities = serialize(
-            list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
+        serialized_activities: list[ActivitySerializerResponse] = serialize(
+            activities, user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
     except Exception:
         logger.exception(
@@ -1605,27 +1605,27 @@ class _IssueCommitters:
             # Batch-serialize every commit in one call: CommitSerializer.get_attrs runs
             # repository and pull request queries per invocation, so serializing one
             # commit at a time would be an N+1.
-            commits_by_id = {
-                commit.id: commit
+            commits_by_id: dict[int, Commit] = {
+                cast(int, commit.id): commit
                 for entry in author_commits
-                for commit, _ in entry.get("commits", [])
+                for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
-            serialized_by_id = {
+            commit_list: list[Commit] = list(commits_by_id.values())
+            serialized_commits: list[CommitSerializerResponse] = serialize(
+                commit_list,
+                serializer=CommitSerializer(exclude=["author"]),
+            )
+
+            serialized_by_id: dict[int, CommitSerializerResponse] = {
                 commit_id: serialized
-                for commit_id, serialized in zip(
-                    commits_by_id,
-                    serialize(
-                        list(commits_by_id.values()),
-                        serializer=CommitSerializer(exclude=["author"]),
-                    ),
-                )
+                for commit_id, serialized in zip(commits_by_id, serialized_commits)
             }
             stack_commits = [
                 {
                     "author": entry.get("author"),
                     "commits": [
-                        {**serialized_by_id[commit.id], "score": score}
-                        for commit, score in entry.get("commits", [])
+                        {**serialized_by_id[cast(int, commit.id)], "score": score}
+                        for commit, score in entry.get("commits", list[tuple[Commit, int]]())
                     ],
                 }
                 for entry in author_commits

@@ -182,7 +182,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
+def get_quotas(
+    project: Project, keys: Iterable[ProjectKey] | None = None
+) -> list[dict[str, object]]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)

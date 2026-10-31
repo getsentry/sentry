@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 import sqlparse
@@ -14,6 +14,7 @@ from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.models.eventattachment import EventAttachmentSerializerResponse
 from sentry.api.serializers.models.release import GroupEventReleaseSerializer
 from sentry.api.serializers.models.userreport import UserReportSerializerResponse
 from sentry.api.serializers.types import GroupEventReleaseSerializerResponse
@@ -63,7 +64,7 @@ class MeasurementValue(TypedDict):
     unit: NotRequired[str | None]
 
 
-def get_crash_files(events):
+def get_crash_files(events: Sequence[Event | GroupEvent]) -> list[EventAttachment]:
     event_ids = [x.event_id for x in events if x.platform == "native"]
     if event_ids:
         return [
@@ -74,7 +75,9 @@ def get_crash_files(events):
     return []
 
 
-def get_tags_with_meta(event) -> tuple[list[EventTag], dict[str, Any] | None]:
+def get_tags_with_meta(
+    event: Event | GroupEvent,
+) -> tuple[list[EventTag], dict[str, object] | None]:
     meta = get_path(event.data, "_meta", "tags") or {}
 
     # If we have meta, we need to get the tags in their original order
@@ -120,7 +123,11 @@ def get_tags_with_meta(event) -> tuple[list[EventTag], dict[str, Any] | None]:
     return tags, meta_with_chunks(tags, tags_meta)
 
 
-def get_entries(event: Event | GroupEvent, user: User, is_public: bool = False):
+def get_entries(
+    event: Event | GroupEvent,
+    user: User | RpcUser | AnonymousUser,
+    is_public: bool = False,
+) -> tuple[list[dict[str, object]], dict[int, dict[str, object]]]:
     # XXX(dcramer): These are called entries for future-proofing
     platform = event.platform
     meta = event.data.get("_meta") or {}
@@ -164,20 +171,20 @@ class BaseEventSerializerResponse(TypedDict):
     location: str | None
     user: EventUserApiContext | None
     tags: list[EventTag]
-    platform: str
+    platform: str | None
     dateReceived: datetime | None
-    contexts: dict[str, Any] | None
+    contexts: dict[str, object] | None
     size: int | None
     entries: list[Any]
     dist: str | None
     sdk: EventSdkApiContext | None
-    context: dict[str, Any] | None
-    packages: dict[str, Any]
+    context: dict[str, object] | None
+    packages: dict[str, object]
     type: EventTypeStr
-    metadata: dict[str, Any]
+    metadata: dict[str, object]
     errors: list[EventErrorApiContext]
     occurrence: IssueOccurrenceResponse | None
-    _meta: dict[str, Any]
+    _meta: dict[str, object]
 
 
 class ErrorEventFields(TypedDict, total=False):
@@ -207,7 +214,7 @@ class SqlFormatEventSerializerResponse(EventSerializerResponse):
 
 class IssueEventSerializerResponse(SqlFormatEventSerializerResponse):
     userReport: UserReportSerializerResponse | None
-    sdkUpdates: list[dict[str, Any]]
+    sdkUpdates: list[dict[str, object]]
     resolvedWith: list[str]
 
 
@@ -258,17 +265,24 @@ class EventSerializer(Serializer):
 
         return (message, meta_with_chunks(message, msg_meta))
 
-    def _get_user_report(self, user, event):
+    def _get_user_report(
+        self, user: User | RpcUser | AnonymousUser, event: Event | GroupEvent
+    ) -> UserReportSerializerResponse | None:
         try:
             user_report = UserReport.objects.get(
                 event_id=event.event_id, project_id=event.project_id
             )
         except UserReport.DoesNotExist:
             user_report = None
-        return serialize(user_report, user)
+        return cast(UserReportSerializerResponse | None, serialize(user_report, user))
 
-    def get_attrs(self, item_list, user, **kwargs):
-        is_public = kwargs.pop("is_public", False)
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Event | GroupEvent, dict[str, object]]:
+        is_public = cast(bool, kwargs.pop("is_public", False))
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
@@ -300,7 +314,7 @@ class EventSerializer(Serializer):
             }
         return results
 
-    def should_display_error(self, error):
+    def should_display_error(self, error: Mapping[str, object]) -> bool:
         name = error.get("name")
         if not isinstance(name, str):
             return True
@@ -312,7 +326,13 @@ class EventSerializer(Serializer):
             and ".frames." not in name
         )
 
-    def serialize(self, obj, attrs, user, **kwargs) -> EventSerializerResponse:
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> EventSerializerResponse:
         from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_to_camel_case
 
         errors = [
@@ -405,7 +425,7 @@ class EventSerializer(Serializer):
 
         return transaction_attrs
 
-    def __serialize_error_attrs(self, attrs, obj) -> ErrorEventFields:
+    def __serialize_error_attrs(self, attrs, obj: Event | GroupEvent) -> ErrorEventFields:
         """
         Add attributes that are present on error and default event types
         """
@@ -427,12 +447,17 @@ class SqlFormatEventSerializer(EventSerializer):
         super().__init__()
         self.formatted_sql_cache: dict[str, str] = {}
 
-    def get_attrs(self, item_list, user, **kwargs):
-        is_public = kwargs.pop("is_public", False)
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Event | GroupEvent, dict[str, object]]:
+        is_public = bool(kwargs.pop("is_public", False))
         return super().get_attrs(item_list, user, is_public=is_public)
 
     # Various checks to ensure that we don't spend too much time formatting
-    def _should_skip_formatting(self, query: str):
+    def _should_skip_formatting(self, query: str) -> bool:
         if (
             (not query)
             | (len(self.formatted_sql_cache) >= MAX_SQL_FORMAT_OPS)
@@ -460,7 +485,10 @@ class SqlFormatEventSerializer(EventSerializer):
         return formatted
 
     def _format_breadcrumb_messages(
-        self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
+        self,
+        event_data: EventSerializerResponse,
+        event: Event | GroupEvent,
+        user: User | RpcUser | AnonymousUser,
     ) -> EventSerializerResponse:
         try:
             breadcrumbs = next(
@@ -485,7 +513,10 @@ class SqlFormatEventSerializer(EventSerializer):
             return event_data
 
     def _get_release_info(
-        self, user, event, include_full_release_data: bool
+        self,
+        user: User | RpcUser | AnonymousUser,
+        event: Event | GroupEvent,
+        include_full_release_data: bool,
     ) -> GroupEventReleaseSerializerResponse | None:
         version = event.get_tag("sentry:release")
         if not version:
@@ -504,7 +535,10 @@ class SqlFormatEventSerializer(EventSerializer):
             return serialize(release, user, GroupEventReleaseSerializer())
 
     def _format_db_spans(
-        self, event_data: EventSerializerResponse, event: Event | GroupEvent, user: User
+        self,
+        event_data: EventSerializerResponse,
+        event: Event | GroupEvent,
+        user: User | RpcUser | AnonymousUser,
     ) -> EventSerializerResponse:
         try:
             spans = next(
@@ -525,8 +559,14 @@ class SqlFormatEventSerializer(EventSerializer):
             sentry_sdk.capture_exception(exc)
             return event_data
 
-    def serialize(self, obj, attrs, user, **kwargs) -> SqlFormatEventSerializerResponse:
-        include_full_release_data = kwargs.pop("include_full_release_data", False)
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs,
+    ) -> SqlFormatEventSerializerResponse:
+        include_full_release_data = bool(kwargs.pop("include_full_release_data", False))
         result = super().serialize(obj, attrs, user, **kwargs)
 
         with traces.start_span(name="Format SQL", attributes={"sentry.op": "serialize"}):
@@ -547,14 +587,14 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
         **kwargs,
-    ):
-        is_public = kwargs.pop("is_public", False)
+    ) -> dict[Event | GroupEvent, dict[str, object]]:
+        is_public = bool(kwargs.pop("is_public", False))
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
 
-    def _get_sdk_updates(self, obj):
+    def _get_sdk_updates(self, obj: Event | GroupEvent) -> list[dict[str, object]]:
         return list(get_suggested_updates(SdkSetupState.from_event_json(obj.data)))
 
-    def _get_resolved_with(self, obj: Event) -> list[str]:
+    def _get_resolved_with(self, obj: Event | GroupEvent) -> list[str]:
         stacktraces = find_stacktraces_in_data(obj.data)
 
         frame_lists = [stacktrace.get_frames() for stacktrace in stacktraces]
@@ -569,7 +609,13 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
         return list(unique_resolution_methods)
 
-    def serialize(self, obj, attrs, user, **kwargs) -> IssueEventSerializerResponse:
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> IssueEventSerializerResponse:
         result = super().serialize(obj, attrs, user, **kwargs)
 
         return {
@@ -581,7 +627,12 @@ class IssueEventSerializer(SqlFormatEventSerializer):
 
 
 class SharedEventSerializer(EventSerializer):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Event | GroupEvent, dict[str, object]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 
     def serialize(self, obj, attrs, user, **kwargs):
@@ -648,12 +699,22 @@ class SimpleEventSerializer(EventSerializer):
         crash_files = get_crash_files(item_list)
         serialized_files = {
             file.event_id: serialized
-            for file, serialized in zip(crash_files, serialize(crash_files, user=user))
+            for file, serialized in zip(
+                crash_files,
+                cast(
+                    list[EventAttachmentSerializerResponse],
+                    serialize(crash_files, user=user),
+                ),
+            )
         }
         return {event: {"crash_file": serialized_files.get(event.event_id)} for event in item_list}
 
     def serialize(  # type: ignore[override]  # intentionally different shape
-        self, obj: Event | GroupEvent, attrs, user, **kwargs
+        self,
+        obj: Event | GroupEvent,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> SimpleEventSerializerResponse:
         tags: list[EventTag] = [
             {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
@@ -688,6 +749,20 @@ class SimpleEventSerializer(EventSerializer):
         }
 
 
+class ExternalEventSerializerResponse(TypedDict):
+    groupID: str | None
+    eventID: str
+    project: str
+    message: str
+    title: str
+    location: str | None
+    culprit: str | None
+    user: EventUserApiContext | None
+    tags: list[EventTag]
+    platform: str | None
+    datetime: str
+
+
 class ExternalEventSerializer(EventSerializer):
     """
     Event serializer for the minimum event data needed to send to an external service. This
@@ -702,7 +777,7 @@ class ExternalEventSerializer(EventSerializer):
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
-        map_device_class_tags(tags)
+        map_device_class_tags(cast(list[EventTag], tags))
 
         user = obj.get_minimal_user()
 
@@ -723,7 +798,7 @@ class ExternalEventSerializer(EventSerializer):
         }
 
 
-def map_device_class_tags(tags):
+def map_device_class_tags(tags: list[EventTag]) -> list[EventTag]:
     """
     If device.class tag exists, set the value to high, medium, low
     """

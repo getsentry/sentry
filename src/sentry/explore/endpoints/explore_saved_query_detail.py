@@ -59,7 +59,7 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
@@ -182,12 +182,14 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def has_feature(self, organization, request):
+    def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
         )
 
-    def post(self, request: Request, organization, query) -> Response:
+    def post(
+        self, request: Request, organization: Organization, query: ExploreSavedQuery
+    ) -> Response:
         """
         Update last_visited and increment visits counter
         """

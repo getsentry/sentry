@@ -7,7 +7,7 @@ import requests
 from django.conf import settings
 
 from sentry import options
-from sentry.runner.commands.presenters.optionspresenter import OptionsPresenter
+from sentry.runner.commands.presenters.optionspresenter import ExpectedOptionType, OptionsPresenter
 from sentry.utils import json
 
 
@@ -32,7 +32,7 @@ class WebhookPresenter(OptionsPresenter):
         self.unset_options: list[str] = []
         self.not_writable_options: list[tuple[str, str]] = []
         self.unregistered_options: list[str] = []
-        self.invalid_type_options: list[tuple[str, type, type]] = []
+        self.invalid_type_options: list[tuple[str, type, ExpectedOptionType]] = []
 
     @staticmethod
     def is_webhook_enabled() -> bool:
@@ -123,7 +123,7 @@ class WebhookPresenter(OptionsPresenter):
         self,
         key: str,
         got_type: type,
-        expected_type: type,
+        expected_type: ExpectedOptionType,
     ) -> None:
         self.invalid_type_options.append((key, got_type, expected_type))
 

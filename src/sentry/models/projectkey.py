@@ -4,7 +4,7 @@ import enum
 import re
 import secrets
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -33,6 +33,9 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.silo.base import SiloMode
 from sentry.tasks.relay import schedule_invalidate_project_config
 
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 _token_re = re.compile(r"^[a-f0-9]{32}$")
 
 # TODO(dcramer): pull in enum library
@@ -49,7 +52,7 @@ class ProjectKeyManager(CellOutboxProducingManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
-    def post_delete(self, instance, **kwargs):
+    def post_delete(self, instance: ProjectKey, **kwargs: object) -> None:
         schedule_invalidate_project_config(
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
@@ -152,11 +155,11 @@ class ProjectKey(ReplicatedCellModel):
         return str(self.public_key)
 
     @classmethod
-    def generate_api_key(cls):
+    def generate_api_key(cls) -> str:
         return secrets.token_hex(nbytes=16)
 
     @classmethod
-    def looks_like_api_key(cls, key):
+    def looks_like_api_key(cls, key: str) -> bool:
         return bool(_token_re.match(key))
 
     @classmethod
@@ -175,7 +178,7 @@ class ProjectKey(ReplicatedCellModel):
         return ProjectKey.objects.get(public_key=public_key, project=project_id)
 
     @classmethod
-    def get_default(cls, project):
+    def get_default(cls, project: Project | int) -> ProjectKey | None:
         return cls.objects.filter(
             project=project,
             roles=models.F("roles").bitor(cls.roles.store),
@@ -187,7 +190,7 @@ class ProjectKey(ReplicatedCellModel):
         return self.status == ProjectKeyStatus.ACTIVE
 
     @property
-    def rate_limit(self):
+    def rate_limit(self) -> tuple[int, int]:
         if self.rate_limit_count and self.rate_limit_window:
             return (self.rate_limit_count, self.rate_limit_window)
         return (0, 0)
@@ -220,7 +223,7 @@ class ProjectKey(ReplicatedCellModel):
             ),
         )
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: object, **kwargs: object) -> None:
         if not self.public_key:
             self.public_key = ProjectKey.generate_api_key()
         if not self.secret_key:
@@ -229,7 +232,7 @@ class ProjectKey(ReplicatedCellModel):
             self.label = petname.generate(2, " ", letters=10).title()
         super().save(*args, **kwargs)
 
-    def get_dsn(self, domain=None, secure=True, public=False):
+    def get_dsn(self, domain: str | None = None, secure: bool = True, public: bool = False) -> str:
         urlparts = urlparse(self.get_endpoint())
 
         if not public:
@@ -253,45 +256,45 @@ class ProjectKey(ReplicatedCellModel):
         return self.project.organization
 
     @property
-    def dsn_private(self):
+    def dsn_private(self) -> str:
         return self.get_dsn(public=False)
 
     @property
-    def dsn_public(self):
+    def dsn_public(self) -> str:
         return self.get_dsn(public=True)
 
     @property
-    def csp_endpoint(self):
+    def csp_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/csp-report/?sentry_key={self.public_key}"
 
     @property
-    def security_endpoint(self):
+    def security_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/security/?sentry_key={self.public_key}"
 
     @property
-    def nel_endpoint(self):
+    def nel_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/nel/?sentry_key={self.public_key}"
 
     @property
-    def minidump_endpoint(self):
+    def minidump_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/minidump/?sentry_key={self.public_key}"
 
     @property
-    def playstation_endpoint(self):
+    def playstation_endpoint(self) -> str:
         endpoint = self.get_endpoint()
 
         return f"{endpoint}/api/{self.project_id}/playstation/?sentry_key={self.public_key}"
 
     @property
-    def integration_endpoint(self):
+    def integration_endpoint(self) -> str:
         endpoint = self.get_endpoint()
         return f"{endpoint}/api/{self.project_id}/integration/"
 
@@ -299,11 +302,11 @@ class ProjectKey(ReplicatedCellModel):
         return f"{self.integration_endpoint}{integration_name}/{postfix}"
 
     @property
-    def otlp_traces_endpoint(self):
+    def otlp_traces_endpoint(self) -> str:
         return self.build_integration_endpoint("otlp", "v1/traces")
 
     @property
-    def otlp_logs_endpoint(self):
+    def otlp_logs_endpoint(self) -> str:
         return self.build_integration_endpoint("otlp", "v1/logs")
 
     @property
@@ -368,7 +371,7 @@ class ProjectKey(ReplicatedCellModel):
 
         return get_origins(self.project)
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, object]:
         return {
             "label": self.label,
             "public_key": self.public_key,
@@ -379,7 +382,7 @@ class ProjectKey(ReplicatedCellModel):
             "rate_limit_window": self.rate_limit_window,
         }
 
-    def get_scopes(self):
+    def get_scopes(self) -> tuple[str, ...]:
         return self.scopes
 
     def write_relocation_import(

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -141,7 +141,7 @@ def is_named_after_own_debug_id(url: str, info: dict[str, Any]) -> bool:
     URL of every frame that has one, which the lookup resolves before it uses the URL index.
     """
     headers = ArtifactBundleArchive.normalize_headers(info.get("headers", {}))
-    debug_id = ArtifactBundleArchive.normalize_debug_id(headers.get("debug-id"))
+    debug_id = ArtifactBundleArchive.normalize_debug_id(cast(str | None, headers.get("debug-id")))
     if debug_id is None:
         return False
     file_name = url.rsplit("/", 1)[-1].lower()

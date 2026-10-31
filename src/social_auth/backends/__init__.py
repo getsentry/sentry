@@ -25,6 +25,7 @@ from django.contrib.auth import authenticate, load_backend
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.auth import record_suspended_user_rejection
@@ -185,7 +186,7 @@ class SocialAuthBackend:
         else:
             return {}
 
-    def get_user(self, user_id):
+    def get_user(self, user_id: int) -> RpcUser | None:
         """
         Return user with given ID from the User model used by this backend.
         This is called by django.contrib.auth.middleware.
@@ -338,13 +339,13 @@ class BaseAuth:
         return extra_arguments
 
     @property
-    def uses_redirect(self):
+    def uses_redirect(self) -> bool:
         """Return True if this provider uses redirect url method,
         otherwise return false."""
         return True
 
     @classmethod
-    def enabled(cls):
+    def enabled(cls) -> bool:
         """Return backend enabled status, all enabled by default"""
         return True
 
@@ -394,7 +395,7 @@ class OAuthAuth(BaseAuth):
         return (setting(cls.SETTINGS_KEY_NAME), setting(cls.SETTINGS_SECRET_NAME))
 
     @classmethod
-    def enabled(cls):
+    def enabled(cls) -> bool:
         """Return backend enabled status by checking basic settings"""
         return bool(setting(cls.SETTINGS_KEY_NAME) and setting(cls.SETTINGS_SECRET_NAME))
 
@@ -405,7 +406,7 @@ class OAuthAuth(BaseAuth):
             scope = scope + setting(self.SCOPE_VAR_NAME, [])
         return scope
 
-    def get_scope_argument(self):
+    def get_scope_argument(self) -> dict[str, str]:
         param = {}
         scope = self.get_scope()
         if scope:

@@ -17,6 +17,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import PROTECTED_TAG_KEYS
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 
 
 class ProjectTagKeyResponse(TypedDict):
@@ -64,7 +65,7 @@ class ProjectTagsEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response[list[ProjectTagKeyResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ProjectTagKeyResponse]]:
         """
         Return a list of the tag keys that have been seen within a project.
         """
@@ -73,7 +74,7 @@ class ProjectTagsEndpoint(ProjectEndpoint):
         except Environment.DoesNotExist:
             tag_keys = []
         else:
-            kwargs: dict = {}
+            kwargs: dict[str, datetime.datetime] = {}
 
             # Flags are stored on the same table as tags but on a different column. Ideally both
             # could be queried in a single request. But at present we're not sure if we want to

@@ -49,10 +49,12 @@ class OrganizationMemberSerializerTest(TestCase):
         member = self.create_member(
             organization=self.org,
             user_id=user.id,
+            invite_status=None,
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
         assert result["user"]["id"] == str(user.id)
         assert result["user"]["name"] == "bob"
+        assert result["inviteStatus"] is None
 
     def test_member_with_missing_user_and_no_denormalized_email(self) -> None:
         # Tests the case where we have no user to resolve, and need to have

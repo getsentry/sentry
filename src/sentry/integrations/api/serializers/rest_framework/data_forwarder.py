@@ -1,6 +1,6 @@
 import re
 from collections.abc import Mapping, MutableMapping
-from typing import Any, TypedDict
+from typing import Any
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -11,27 +11,6 @@ from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
 from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.models.project import Project
-
-
-class SQSConfig(TypedDict, total=False):
-    queue_url: str
-    region: str
-    access_key: str
-    secret_key: str
-    message_group_id: str | None
-    s3_bucket: str | None
-
-
-class SegmentConfig(TypedDict, total=False):
-    write_key: str
-
-
-class SplunkConfig(TypedDict, total=False):
-    instance_url: str
-    index: str
-    source: str
-    token: str
-
 
 SQS_REQUIRED_KEYS = ["queue_url", "region", "access_key", "secret_key"]
 SEGMENT_REQUIRED_KEYS = ["write_key"]
@@ -70,7 +49,7 @@ class DataForwarderSerializer(Serializer):
         help_text="The IDs of the projects connected to the data forwarder. Missing project IDs will be unenrolled if previously enrolled.",
     )
 
-    def validate_config(self, config) -> SQSConfig | SegmentConfig | SplunkConfig:
+    def validate_config(self, config: dict[str, str]) -> dict[str, str]:
         # Filter out empty string values (cleared optional fields)
         config = {k: v for k, v in config.items() if v != ""}
         provider = self.initial_data.get("provider")
@@ -104,7 +83,7 @@ class DataForwarderSerializer(Serializer):
 
     def _validate_all_fields_present(
         self,
-        config: dict,
+        config: Mapping[str, str],
         required_fields: list[str] | frozenset[str],
         provider: DataForwarderProviderSlug,
     ) -> None:
@@ -114,7 +93,7 @@ class DataForwarderSerializer(Serializer):
                 f"Missing required {provider.value} fields: {', '.join(missing_fields)}"
             )
 
-    def _validate_sqs_queue_url(self, config: dict, errors: list[str]) -> None:
+    def _validate_sqs_queue_url(self, config: Mapping[str, str], errors: list[str]) -> None:
         queue_url = config.get("queue_url")
         sqs_url_pattern = (
             r"^https://sqs\.[a-z0-9\-]+\.amazonaws\.com/\d+/[a-zA-Z0-9\-_/]+(?:\.fifo)?$"
@@ -125,7 +104,7 @@ class DataForwarderSerializer(Serializer):
                 "https://sqs.<region>.amazonaws.com/<account>/<queue-name>"
             )
 
-    def _validate_sqs_region(self, config: dict, errors: list[str]) -> None:
+    def _validate_sqs_region(self, config: Mapping[str, str], errors: list[str]) -> None:
         import boto3
 
         region = config.get("region")
@@ -135,33 +114,33 @@ class DataForwarderSerializer(Serializer):
         if not region or region not in valid_regions:
             errors.append("region must be a valid AWS region")
 
-    def _validate_sqs_message_group_id(self, config: dict, errors: list[str]) -> None:
+    def _validate_sqs_message_group_id(self, config: Mapping[str, str], errors: list[str]) -> None:
         message_group_id = config.get("message_group_id")
         queue_url = config.get("queue_url")
 
         if isinstance(queue_url, str) and queue_url.endswith(".fifo") and not message_group_id:
             errors.append("message_group_id is required for FIFO queues")
 
-    def _validate_sqs_s3_bucket(self, config: dict, errors: list[str]) -> None:
+    def _validate_sqs_s3_bucket(self, config: Mapping[str, str], errors: list[str]) -> None:
         s3_bucket = config.get("s3_bucket")
         if s3_bucket is not None:
             s3_bucket_pattern = r"^[a-z0-9\-\.]+$"
             if not re.match(s3_bucket_pattern, s3_bucket):
                 errors.append("s3_bucket must be a valid S3 bucket name")
 
-    def _validate_segment_write_key(self, config: dict) -> None:
+    def _validate_segment_write_key(self, config: Mapping[str, str]) -> None:
         segment_write_key_pattern = r"^[a-zA-Z0-9_\-]+$"
         write_key = config.get("write_key")
         if not write_key or not re.match(segment_write_key_pattern, write_key):
             raise ValidationError("write_key must be a valid Segment write key format")
 
-    def _validate_splunk_instance_url(self, config: dict, errors: list[str]) -> None:
+    def _validate_splunk_instance_url(self, config: Mapping[str, str], errors: list[str]) -> None:
         splunk_url_pattern = r"^https?://[a-zA-Z0-9\-\.]+(?::\d+)?(?:/.*)?$"
         instance_url = config.get("instance_url")
         if not instance_url or not re.match(splunk_url_pattern, instance_url):
             errors.append("instance_url must be a valid URL starting with http:// or https://")
 
-    def _validate_splunk_token_format(self, config: dict, errors: list[str]) -> None:
+    def _validate_splunk_token_format(self, config: Mapping[str, str], errors: list[str]) -> None:
         token = config.get("token")
         if token:
             splunk_token_pattern = r"^[a-zA-Z0-9\-]+$"
@@ -187,7 +166,7 @@ class DataForwarderSerializer(Serializer):
 
         return attrs
 
-    def _validate_sqs_config(self, config) -> SQSConfig:
+    def _validate_sqs_config(self, config: dict[str, str]) -> dict[str, str]:
         self._validate_all_fields_present(config, SQS_REQUIRED_KEYS, DataForwarderProviderSlug.SQS)
 
         errors: list[str] = []
@@ -201,14 +180,14 @@ class DataForwarderSerializer(Serializer):
 
         return config
 
-    def _validate_segment_config(self, config) -> SegmentConfig:
+    def _validate_segment_config(self, config: dict[str, str]) -> dict[str, str]:
         self._validate_all_fields_present(
             config, SEGMENT_REQUIRED_KEYS, DataForwarderProviderSlug.SEGMENT
         )
         self._validate_segment_write_key(config)
         return config
 
-    def _validate_splunk_config(self, config) -> SplunkConfig:
+    def _validate_splunk_config(self, config: dict[str, str]) -> dict[str, str]:
         self._validate_all_fields_present(
             config, SPLUNK_REQUIRED_KEYS, DataForwarderProviderSlug.SPLUNK
         )

@@ -171,7 +171,7 @@ class NextReleaseOrderingTest(TestCase):
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version) -> None:
+def test_version_is_semver_valid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -198,7 +198,7 @@ def test_version_is_semver_valid(release_version) -> None:
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version) -> None:
+def test_version_is_semver_invalid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is False
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
+from django.db.models.expressions import Combinable
 from django.utils.translation import gettext_lazy as _
 
 __all__ = (
@@ -106,6 +107,9 @@ class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):
 
 
 class BoundedBigAutoField(models.BigAutoField):
+    _pyi_private_set_type: float | int | str | Combinable
+    _pyi_private_get_type: int
+
     description = _("Big Integer")
 
     MAX_VALUE = I64_MAX

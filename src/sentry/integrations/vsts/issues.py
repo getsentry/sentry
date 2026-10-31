@@ -161,7 +161,7 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
 
     @all_silo_function
     def get_create_issue_config(
-        self, group: Group | None, user: RpcUser | User, **kwargs: Any
+        self, group: Group | None, user: RpcUser | User, **kwargs: object
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "vsts_integration"
         fields = []

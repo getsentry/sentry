@@ -159,7 +159,7 @@ export interface Member {
     'sso:linked': boolean;
   };
   id: string;
-  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join';
+  inviteStatus: 'approved' | 'requested_to_be_invited' | 'requested_to_join' | null;
   invite_link: string | null;
   inviterName: string | null;
   isOnlyOwner: boolean;

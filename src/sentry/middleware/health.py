@@ -7,7 +7,7 @@ from rest_framework.request import Request
 
 
 class HealthCheck(MiddlewareMixin):
-    def process_request(self, request: Request):
+    def process_request(self, request: Request) -> HttpResponse | None:
         # Our health check can't be a done as a view, because we need
         # to bypass the ALLOWED_HOSTS check. We need to do this
         # since not all load balancers can send the expected Host header
@@ -15,7 +15,7 @@ class HealthCheck(MiddlewareMixin):
         # Instead, we just intercept the request at this point, and return
         # our success/failure immediately.
         if request.path != "/_health/":
-            return
+            return None
 
         if "full" not in request.GET:
             return HttpResponse("ok", content_type="text/plain")

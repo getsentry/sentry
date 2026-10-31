@@ -1,10 +1,15 @@
 import mimetypes
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.files.file import File
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class EventAttachmentSerializerResponse(TypedDict):
@@ -21,7 +26,13 @@ class EventAttachmentSerializerResponse(TypedDict):
 
 @register(EventAttachment)
 class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> EventAttachmentSerializerResponse:
+    def serialize(
+        self,
+        obj: EventAttachment,
+        attrs: Mapping[object, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> EventAttachmentSerializerResponse:
         content_type = obj.content_type
         size = obj.size or 0
         headers = {"Content-Type": content_type}

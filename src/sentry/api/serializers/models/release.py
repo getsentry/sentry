@@ -3,15 +3,21 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.release_details_types import Author, NonMappableUser, VersionInfo
+from sentry.api.serializers.release_details_types import (
+    Author,
+    HealthData,
+    NonMappableUser,
+    VersionInfo,
+)
+from sentry.api.serializers.release_details_types import Project as SerializedProject
 from sentry.api.serializers.types import (
     GroupEventReleaseSerializerResponse,
     ReleaseSerializerResponse,
@@ -20,9 +26,10 @@ from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
+from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import AdoptionStage, ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.release_health.base import ReleaseHealthOverview
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -57,7 +64,7 @@ def expose_version_info(info) -> VersionInfo | None:
     }
 
 
-def _expose_health_data(data):
+def _expose_health_data(data: ReleaseHealthOverview | None) -> HealthData | None:
     if not data:
         return None
     return {
@@ -81,8 +88,8 @@ def _expose_health_data(data):
     }
 
 
-def _expose_project(project):
-    rv = {
+def _expose_project(project: _ProjectDict) -> SerializedProject:
+    rv: SerializedProject = {
         "id": project["id"],
         "slug": project["slug"],
         "name": project["name"],
@@ -97,8 +104,8 @@ def _expose_project(project):
     return rv
 
 
-def _expose_current_project_meta(current_project_meta):
-    rv = {}
+def _expose_current_project_meta(current_project_meta: dict[str, object]) -> dict[str, object]:
+    rv: dict[str, object] = {}
     if "sessions_lower_bound" in current_project_meta:
         rv["sessionsLowerBound"] = current_project_meta["sessions_lower_bound"]
     if "sessions_upper_bound" in current_project_meta:
@@ -119,7 +126,7 @@ class _AuthorList(TypedDict):
 
 
 def _get_authors_metadata(
-    item_list: list[Release], user: User | RpcUser | AnonymousUser
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
 ) -> dict[Release, _AuthorList]:
     """
     Returns a dictionary of release_id => authors metadata,
@@ -168,7 +175,9 @@ def _get_authors_metadata(
     return result
 
 
-def _get_last_commit_metadata(item_list, user):
+def _get_last_commit_metadata(
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
+) -> dict[Release, dict[str, object]]:
     """
     Returns a dictionary of release_id => commit metadata,
     where each commit metadata dict contains last_commit.
@@ -187,7 +196,7 @@ def _get_last_commit_metadata(item_list, user):
     else:
         commits = {}
 
-    result = {}
+    result: dict[Release, dict[str, object]] = {}
     for item in item_list:
         result[item] = {
             "last_commit": commits.get(item.last_commit_id),
@@ -195,7 +204,9 @@ def _get_last_commit_metadata(item_list, user):
     return result
 
 
-def _get_last_deploy_metadata(item_list, user):
+def _get_last_deploy_metadata(
+    item_list: Sequence[Release], user: User | RpcUser | AnonymousUser
+) -> dict[Release, dict[str, object]]:
     """
     Returns a dictionary of release_id => deploy metadata,
     where each commit metadata dict contains last_deploy
@@ -215,7 +226,7 @@ def _get_last_deploy_metadata(item_list, user):
     else:
         deploys = {}
 
-    result = {}
+    result: dict[Release, dict[str, object]] = {}
     for item in item_list:
         result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
     return result
@@ -409,7 +420,7 @@ def get_users_for_authors(
 
 class _ProjectDict(TypedDict):
     id: int
-    slug: str | None
+    slug: str
     name: str
     new_groups: int | None
     platform: str | None
@@ -420,7 +431,7 @@ class _ProjectDict(TypedDict):
 
 @register(Release)
 class ReleaseSerializer(Serializer):
-    def __get_project_id_list(self, item_list) -> list[int]:
+    def __get_project_id_list(self, item_list: Sequence[Release]) -> list[int]:
         project_ids = set()
         need_fallback = False
 
@@ -479,8 +490,10 @@ class ReleaseSerializer(Serializer):
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_adoption_stages(self, release_project_envs):
-        adoption_stages: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    def _get_release_adoption_stages(
+        self, release_project_envs: QuerySet[ReleaseProjectEnvironment]
+    ) -> dict[str, dict[str, AdoptionStage]]:
+        adoption_stages: dict[str, dict[str, AdoptionStage]] = defaultdict(dict)
 
         for release_project_env in release_project_envs:
             adoption_stages[release_project_env.release.version].setdefault(
@@ -489,7 +502,11 @@ class ReleaseSerializer(Serializer):
 
         return adoption_stages
 
-    def __get_release_data_with_environments(self, release_project_envs):
+    def __get_release_data_with_environments(
+        self, release_project_envs: QuerySet[ReleaseProjectEnvironment]
+    ) -> tuple[
+        dict[str, datetime.datetime], dict[str, datetime.datetime], dict[int, dict[int, int]]
+    ]:
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
 
@@ -515,7 +532,12 @@ class ReleaseSerializer(Serializer):
 
         return first_seen, last_seen, group_counts_by_release
 
-    def _get_release_project_envs(self, item_list, environments, project):
+    def _get_release_project_envs(
+        self,
+        item_list: Sequence[Release],
+        environments: Sequence[str] | None,
+        project: Project | None,
+    ) -> QuerySet[ReleaseProjectEnvironment]:
         release_project_envs = (
             ReleaseProjectEnvironment.objects.filter(release__in=item_list)
             .select_related("release", "project")
@@ -528,7 +550,12 @@ class ReleaseSerializer(Serializer):
 
         return release_project_envs
 
-    def _get_release_project_envs_unordered(self, item_list, environments, project):
+    def _get_release_project_envs_unordered(
+        self,
+        item_list: Sequence[Release],
+        environments: Sequence[str] | None,
+        project: Project | None,
+    ) -> QuerySet[ReleaseProjectEnvironment]:
         release_project_envs = ReleaseProjectEnvironment.objects.filter(
             release__in=item_list
         ).select_related("release")
@@ -562,7 +589,7 @@ class ReleaseSerializer(Serializer):
         if with_health_data and no_snuba_for_release_creation:
             raise TypeError("health data requires snuba")
 
-        adoption_stages = {}
+        adoption_stages: dict[str, dict[str, AdoptionStage]] = {}
         if self.with_adoption_stages:
             release_project_envs = self._get_release_project_envs(item_list, environments, project)
             adoption_stages = self._get_release_adoption_stages(release_project_envs)
@@ -581,7 +608,7 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners = {}
+        owners: dict[str, object] = {}
         owner_ids = [i.owner_id for i in item_list if i.owner_id]
         if owner_ids:
             owners = {
@@ -615,6 +642,7 @@ class ReleaseSerializer(Serializer):
             platforms_by_project[project_id].append(platform)
 
         # XXX: Legacy should be removed later
+        has_health_data: dict[tuple[int, str], bool] = {}
         if with_health_data:
             health_data = release_health.backend.get_release_health_data_overview(
                 [(pr["project__id"], pr["release__version"]) for pr in project_releases],
@@ -623,10 +651,8 @@ class ReleaseSerializer(Serializer):
                 environments=environments,
                 stat=health_stat,
             )
-            has_health_data = None
         else:
             health_data = None
-            has_health_data = {}
 
         for pr in project_releases:
             # Use environment-filtered new groups count if available, otherwise fall back to ReleaseProject data
@@ -660,7 +686,7 @@ class ReleaseSerializer(Serializer):
                 ) in has_health_data
             release_projects[pr["release_id"]].append(pr_rv)
 
-        result = {}
+        result: dict[Release, dict[str, object]] = {}
         for item in item_list:
             single_release_projects = release_projects.get(item.id, [])
 
@@ -674,7 +700,7 @@ class ReleaseSerializer(Serializer):
             else:
                 release_new_groups = sum((issue_counts_by_release.get(item.id) or {}).values())
 
-            p = {
+            p: dict[str, object] = {
                 "owner": owners[str(item.owner_id)] if item.owner_id else None,
                 "new_groups": release_new_groups,
                 "projects": single_release_projects,
@@ -695,7 +721,13 @@ class ReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
+    def serialize(
+        self,
+        obj: Release,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs,
+    ) -> ReleaseSerializerResponse:
         d: ReleaseSerializerResponse = {
             "id": obj.id,
             "version": obj.version,
@@ -736,20 +768,31 @@ class GroupEventReleaseSerializer(Serializer):
     The minimal representation of a release necessary for group events
     """
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Release],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[Release, dict[str, object]]:
         last_commit_metadata_attrs = _get_last_commit_metadata(item_list, user)
         deploy_metadata_attrs = _get_last_deploy_metadata(item_list, user)
 
-        result = {}
+        result: dict[Release, dict[str, object]] = {}
         for item in item_list:
-            p = {}
+            p: dict[str, object] = {}
             p.update(last_commit_metadata_attrs[item])
             p.update(deploy_metadata_attrs[item])
 
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> GroupEventReleaseSerializerResponse:
+    def serialize(
+        self,
+        obj: Release,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> GroupEventReleaseSerializerResponse:
         return {
             "id": obj.id,
             "commitCount": obj.commit_count,

@@ -1,5 +1,7 @@
+from typing import TypedDict
+
 import sentry_sdk
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -10,7 +12,7 @@ from sentry import options, release_health
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import ReleaseAnalyticsMixin, cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
+from sentry.api.bases.organization import FilterParamsDateNotNull, OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
     _release_suffix,
     add_environment_to_queryset,
@@ -75,6 +77,11 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
     )
 
 
+class _ReleaseDateQueryAndOrder(TypedDict):
+    date_query_q: Q
+    order_by: list[str]
+
+
 def add_status_filter_to_queryset(queryset, status_filter):
     """
     Function that adds status filter on a queryset
@@ -108,7 +115,9 @@ def add_query_filter_to_queryset(queryset, query):
 
 class OrganizationReleaseDetailsPaginationMixin:
     @staticmethod
-    def __get_prev_release_date_query_q_and_order_by(release):
+    def __get_prev_release_date_query_q_and_order_by(
+        release: Release,
+    ) -> _ReleaseDateQueryAndOrder:
         """
         Method that takes a release and returns a dictionary containing a date query Q expression
         and order by columns required to fetch previous release to that passed in release on date
@@ -121,7 +130,9 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
-    def __get_next_release_date_query_q_and_order_by(release):
+    def __get_next_release_date_query_q_and_order_by(
+        release: Release,
+    ) -> _ReleaseDateQueryAndOrder:
         """
         Method that takes a release and returns a dictionary containing a date query Q expression
         and order by columns required to fetch next release to that passed in release on date
@@ -135,13 +146,13 @@ class OrganizationReleaseDetailsPaginationMixin:
 
     @staticmethod
     def __get_release_according_to_filters_and_order_by_for_date_sort(
-        org,
-        filter_params,
-        date_query_q,
-        order_by,
-        status_filter,
-        query,
-    ):
+        org: Organization,
+        filter_params: FilterParamsDateNotNull,
+        date_query_q: Q,
+        order_by: list[str],
+        status_filter: str,
+        query: str | None,
+    ) -> QuerySet[Release]:
         """
         Helper function that executes a query on Release table based on different filters
         provided as inputs and orders that query based on `order_by` input provided
@@ -156,7 +167,7 @@ class OrganizationReleaseDetailsPaginationMixin:
             Queryset that contains one element that represents either next or previous release
             based on the inputs
         """
-        queryset = Release.objects.filter(
+        queryset: QuerySet[Release] = Release.objects.filter(
             date_query_q,
             organization=org,
             projects__id__in=filter_params["project_id"],
@@ -178,14 +189,14 @@ class OrganizationReleaseDetailsPaginationMixin:
 
     def get_adjacent_releases_to_current_release(
         self,
-        release,
-        org,
-        filter_params,
-        stats_period,
-        sort,
-        status_filter,
-        query,
-    ):
+        release: Release,
+        org: Organization,
+        filter_params: FilterParamsDateNotNull,
+        stats_period: str | None,
+        sort: str,
+        status_filter: str,
+        query: str | None,
+    ) -> dict[str, str | None]:
         """
         Method that returns the prev and next release to a current release based on different
         sort options
@@ -202,22 +213,25 @@ class OrganizationReleaseDetailsPaginationMixin:
             previous release and next release respectively
         """
         if sort == "date":
-            release_common_filters = {
-                "org": org,
-                "filter_params": filter_params,
-                "status_filter": status_filter,
-                "query": query,
-            }
-
             # Get previous queryset of current release
+            prev_date_query = self.__get_prev_release_date_query_q_and_order_by(release)
             prev_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
-                **release_common_filters,
-                **self.__get_prev_release_date_query_q_and_order_by(release),
+                org=org,
+                filter_params=filter_params,
+                date_query_q=prev_date_query["date_query_q"],
+                order_by=prev_date_query["order_by"],
+                status_filter=status_filter,
+                query=query,
             )
             # Get next queryset of current release
+            next_date_query = self.__get_next_release_date_query_q_and_order_by(release)
             next_release_list = self.__get_release_according_to_filters_and_order_by_for_date_sort(
-                **release_common_filters,
-                **self.__get_next_release_date_query_q_and_order_by(release),
+                org=org,
+                filter_params=filter_params,
+                date_query_q=next_date_query["date_query_q"],
+                order_by=next_date_query["order_by"],
+                status_filter=status_filter,
+                query=query,
             )
         else:
             raise InvalidSortException
@@ -271,7 +285,13 @@ class OrganizationReleaseDetailsPaginationMixin:
             return None
         return release.version
 
-    def get_first_and_last_releases(self, org, environment, project_id, sort):
+    def get_first_and_last_releases(
+        self,
+        org: Organization,
+        environment: list[str] | None,
+        project_id: list[int],
+        sort: str,
+    ) -> dict[str, str | None]:
         """
         Method that returns the first and last release based on `date_added`
         Inputs:-
@@ -287,7 +307,7 @@ class OrganizationReleaseDetailsPaginationMixin:
         last_release_version = None
 
         if sort == "date":
-            proj_and_env_dict = {"project_id": project_id}
+            proj_and_env_dict: dict[str, list[int] | list[str]] = {"project_id": project_id}
             if environment is not None:
                 proj_and_env_dict["environment"] = environment
 
@@ -356,7 +376,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def get(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[DetailResponse]:
         """
 
@@ -490,7 +510,7 @@ class OrganizationReleaseDetailsEndpoint(
         examples=OrganizationExamples.RELEASE_DETAILS,
     )
     def put(
-        self, request: Request, organization: Organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
         """
 
@@ -623,7 +643,7 @@ class OrganizationReleaseDetailsEndpoint(
         },
     )
     def delete(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[None] | Response[DetailResponse]:
         """
 

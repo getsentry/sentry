@@ -192,7 +192,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
         return "edited project performance issue detector settings " + items_string
 
 
-def render_project_action(audit_log_entry: AuditLogEntry, action: str):
+def render_project_action(audit_log_entry: AuditLogEntry, action: str) -> str:
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
     slug = audit_log_entry.data.get("slug")

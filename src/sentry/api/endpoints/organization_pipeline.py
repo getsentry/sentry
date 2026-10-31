@@ -20,7 +20,6 @@ from sentry.integrations.pipeline import (
     initialize_integration_pipeline,
 )
 from sentry.organizations.services.organization.model import RpcOrganization
-from sentry.pipeline.base import Pipeline
 from sentry.pipeline.types import PipelineStepAction
 from sentry.utils import metrics
 
@@ -40,7 +39,7 @@ class PipelinePermission(OrganizationPermission):
 
 def _get_api_pipeline(
     request: Request, organization: RpcOrganization, pipeline_name: str
-) -> Response | Pipeline:
+) -> Response[dict[str, str]] | IntegrationPipeline | IdentityPipeline:
     """Look up an active API-ready pipeline from the session, or return an error Response."""
     pipelines = {cls.pipeline_name: cls for cls in PIPELINE_CLASSES}
     if pipeline_name not in pipelines:

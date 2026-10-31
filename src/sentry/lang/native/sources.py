@@ -3,8 +3,9 @@ from __future__ import annotations
 import base64
 import logging
 import os
+from collections.abc import Iterator
 from copy import deepcopy
-from typing import Any
+from typing import Any, cast
 
 import google.auth
 import jsonschema
@@ -307,13 +308,13 @@ def _last_upload_key(project_id: int) -> str:
     return f"symbols:last_upload:{project_id}"
 
 
-def record_last_upload(project: Project):
+def record_last_upload(project: Project) -> None:
     timestamp = int(deprecated_utcnow().timestamp() * 1000)
     _get_cluster().setex(_last_upload_key(project.id), LAST_UPLOAD_TTL, timestamp)
 
 
-def get_last_upload(project_id: int):
-    return _get_cluster().get(_last_upload_key(project_id))
+def get_last_upload(project_id: int) -> str | None:
+    return cast(str | None, _get_cluster().get(_last_upload_key(project_id)))
 
 
 class InvalidSourcesError(Exception):
@@ -340,7 +341,7 @@ def get_internal_url_prefix() -> str:
     return internal_url_prefix.rstrip("/")
 
 
-def get_internal_source(project: Project):
+def get_internal_source(project: Project) -> dict[str, str]:
     """
     Returns the source configuration for a Sentry project.
     """
@@ -370,7 +371,7 @@ def get_internal_source(project: Project):
     }
 
 
-def get_internal_artifact_lookup_source_url(project: Project):
+def get_internal_artifact_lookup_source_url(project: Project) -> str:
     """
     Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
@@ -411,7 +412,7 @@ def get_scraping_config(project: Project) -> dict[str, Any]:
     }
 
 
-def get_internal_artifact_lookup_source(project: Project):
+def get_internal_artifact_lookup_source(project: Project) -> dict[str, str]:
     """
     Returns the source configuration for the Sentry artifact-lookup API.
     """
@@ -423,7 +424,7 @@ def get_internal_artifact_lookup_source(project: Project):
     }
 
 
-def is_internal_source_id(source_id: str):
+def is_internal_source_id(source_id: str) -> bool:
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 
     This is trivial, but multiple functions in this file need to use the same definition.
@@ -464,7 +465,7 @@ def normalize_user_source(source, project_id=None, event_id=None):
     return source
 
 
-def secret_fields(source_type):
+def secret_fields(source_type: str) -> Iterator[str]:
     """
     Returns a string list of all of the fields that contain a secret in a given source.
     """

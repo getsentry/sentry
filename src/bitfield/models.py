@@ -1,5 +1,5 @@
-from collections.abc import Mapping, Sequence
-from typing import Any, TypeVar, cast
+from collections.abc import Iterator, Mapping, Sequence
+from typing import Any, SupportsIndex, SupportsInt, TypeVar, cast
 
 from django.db.models import Model
 from django.db.models.fields import BigIntegerField
@@ -13,7 +13,7 @@ MAX_FLAG_COUNT = int(len(bin(BigIntegerField.MAX_BIGINT)) - 2)
 
 
 class BitFieldFlags:
-    def __init__(self, flags):
+    def __init__(self, flags: Sequence[str]) -> None:
         if len(flags) > MAX_FLAG_COUNT:
             raise ValueError("Too many flags")
         self._flags = flags
@@ -21,34 +21,34 @@ class BitFieldFlags:
     def __repr__(self) -> str:
         return repr(self._flags)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         yield from self._flags
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Bit:
         if key not in self._flags:
             raise AttributeError
         return Bit(self._flags.index(key))
 
     __getitem__ = __getattr__
 
-    def iteritems(self):
+    def iteritems(self) -> Iterator[tuple[str, Bit]]:
         for flag in self._flags:
             yield flag, Bit(self._flags.index(flag))
 
-    def iterkeys(self):
+    def iterkeys(self) -> Iterator[str]:
         yield from self._flags
 
-    def itervalues(self):
+    def itervalues(self) -> Iterator[Bit]:
         for flag in self._flags:
             yield Bit(self._flags.index(flag))
 
-    def items(self):
+    def items(self) -> list[tuple[str, Bit]]:
         return list(self.iteritems())
 
-    def keys(self):
+    def keys(self) -> list[str]:
         return list(self.iterkeys())
 
-    def values(self):
+    def values(self) -> list[Bit]:
         return list(self.itervalues())
 
 
@@ -61,10 +61,10 @@ class BitFieldCreator:
     available (usually during deploys).
     """
 
-    def __init__(self, field):
+    def __init__(self, field: "BitField") -> None:
         self.field = field
 
-    def __set__(self, obj, value):
+    def __set__(self, obj: Model, value: object) -> None:
         obj.__dict__[self.field.name] = self.field.to_python(value)
 
     def __get__(self, obj, type=None):
@@ -78,6 +78,9 @@ class BitFieldCreator:
 
 
 class BitField(BigIntegerField):
+    flags: list[str]
+    labels: list[str]
+
     def contribute_to_class(self, cls: type[Model], name: str, private_only: bool = False) -> None:
         super().contribute_to_class(cls, name, private_only=private_only)
         setattr(cls, self.name, BitFieldCreator(self))
@@ -98,6 +101,7 @@ class BitField(BigIntegerField):
 
         self._arg_flags = flags
         flags = list(flags)
+
         labels = []
         for num, flag in enumerate(flags):
             if isinstance(flag, (tuple, list)):
@@ -117,11 +121,14 @@ class BitField(BigIntegerField):
         self.flags = flags
         self.labels = labels
 
-    def pre_save(self, instance, add):
+    def pre_save(self, instance: Model, add: bool) -> object:
         value = getattr(instance, self.attname)
         return value
 
-    def get_prep_value(self, value):
+    def get_prep_value(
+        self,
+        value: SupportsInt | SupportsIndex | str | bytes | bytearray | Bit | BitHandler | None,
+    ) -> int | None:
         if value is None:
             return None
         if isinstance(value, (BitHandler, Bit)):
@@ -153,7 +160,7 @@ class BitField(BigIntegerField):
         return name, path, args, kwargs
 
 
-def flags_from_annotations(annotations: Mapping[str, type]) -> Sequence[str]:
+def flags_from_annotations(annotations: Mapping[str, object]) -> list[str]:
     flags = []
     for attr, ty in annotations.items():
         assert ty in ("bool", bool), f"bitfields can only hold bools, {attr} is {ty!r}"
@@ -203,7 +210,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
 T = TypeVar("T")
 
 
-def typed_dict_bitfield(definition: type[T], default=None, null=False) -> T:
+def typed_dict_bitfield(definition: type[T], default: object = None, null: bool = False) -> T:
     """
     A wrapper around BitField that allows you to access its fields as
     dictionary keys attributes in a type-safe way.

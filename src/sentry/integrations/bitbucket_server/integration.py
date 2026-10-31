@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -247,6 +247,21 @@ class OAuthApiStep:
         return PipelineStepResult.advance()
 
 
+class BitbucketServerProjectPayload(TypedDict, total=False):
+    key: str
+    name: str
+
+
+class BitbucketServerRepoPayload(TypedDict, total=False):
+    slug: str
+    name: str
+    project: BitbucketServerProjectPayload
+
+
+class BitbucketServerReposResponse(TypedDict, total=False):
+    values: list[BitbucketServerRepoPayload]
+
+
 class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
@@ -302,7 +317,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                     "repo": repo["slug"],
                     "name": repo["project"]["name"] + "/" + repo["name"],
                 }
-                for repo in resp.get("values", [])
+                for repo in cast(BitbucketServerReposResponse, resp).get("values", [])
             ]
 
         resp = self.get_client().search_repositories(query)
@@ -315,7 +330,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                 "repo": repo["slug"],
                 "name": repo["project"]["name"] + "/" + repo["name"],
             }
-            for repo in resp.get("values", [])
+            for repo in cast(BitbucketServerReposResponse, resp).get("values", [])
         ]
 
     def has_repo_access(self, repo: RpcRepository) -> bool:

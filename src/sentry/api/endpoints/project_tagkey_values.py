@@ -15,6 +15,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -70,7 +71,9 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project, key) -> Response[list[TagValueSerializerResponse]]:
+    def get(
+        self, request: Request, project: Project, key: str
+    ) -> Response[list[TagValueSerializerResponse]]:
         """
         Return a list of values associated with this tag key. The `query` parameter
         can be used to perform a "contains" match on values. Paginated, returning at

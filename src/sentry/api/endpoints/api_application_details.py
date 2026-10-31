@@ -38,9 +38,9 @@ class ApiApplicationEndpoint(Endpoint):
         self,
         request: Request,
         app_id: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         try:
             application = ApiApplication.objects.get(
                 owner_id=request.user.id, client_id=app_id, status=ApiApplicationStatus.active

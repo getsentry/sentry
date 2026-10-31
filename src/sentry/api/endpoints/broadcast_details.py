@@ -39,9 +39,9 @@ class BroadcastDetailsEndpoint(Endpoint):
         self,
         request: Request,
         broadcast_id: int | str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         if request.access.has_permission("broadcasts.admin"):
             queryset = Broadcast.objects.all()
         else:

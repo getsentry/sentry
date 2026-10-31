@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -14,9 +14,12 @@ from urllib.parse import urlencode
 from django.conf import settings
 from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
+from django.db.models.base import ModelBase
+from django.db.models.expressions import Combinable
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes
+from django.utils.functional import Promise
 from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
@@ -53,8 +56,14 @@ from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.auth.provider import Provider
+    from sentry.auth.services.auth.model import RpcAuthProvider
     from sentry.integrations.services.integration import RpcIntegration
+    from sentry.models.apikey import ApiKey
     from sentry.models.organization import Organization
+    from sentry.models.organizationmemberteam import OrganizationMemberTeam
+    from sentry.models.team import Team
+    from sentry.users.models.user import User
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -68,6 +77,12 @@ _OrganizationMemberFlags = TypedDict(
     },
 )
 
+
+class _OrganizationMemberTeamRole(TypedDict):
+    team: int
+    role: str | None
+
+
 logger = logging.getLogger("sentry.org_roles")
 
 
@@ -80,7 +95,7 @@ class InviteStatus(Enum):
     REQUESTED_TO_JOIN = 2
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str | Promise], ...]:
         return (
             (InviteStatus.APPROVED.value, _("Approved")),
             (
@@ -103,7 +118,7 @@ ERR_JOIN_REQUESTS_DISABLED = "Your organization does not allow requests to join.
 
 
 class OrganizationMemberManager(BaseManager["OrganizationMember"]):
-    def get_contactable_members_for_org(self, organization_id: int) -> QuerySet:
+    def get_contactable_members_for_org(self, organization_id: int) -> QuerySet[OrganizationMember]:
         """Get a list of members we can contact for an organization through email."""
         # TODO(Steve): check member-limit:restricted
         return self.filter(
@@ -156,7 +171,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             "organization"
         )
 
-    def get_member_invite_query(self, id: int) -> QuerySet:
+    def get_member_invite_query(self, id: int) -> QuerySet[OrganizationMember]:
         return self.filter(
             invite_status__in=[
                 InviteStatus.REQUESTED_TO_BE_INVITED.value,
@@ -174,7 +189,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
                 user_teams[user_id].append(team_id)
         return user_teams
 
-    def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
+    def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet[OrganizationMember]:
         users_by_email = user_service.get_many(
             filter=dict(
                 emails=[email],
@@ -205,12 +220,16 @@ class OrganizationMember(ReplicatedCellModel):
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE", null=True, blank=True)
     # This email indicates the invite state of this membership -- it will be cleared when the user is set.
     # it does not necessarily represent the final email of the user associated with the membership, see user_email.
-    email = models.EmailField(null=True, blank=True, max_length=75)
+    email: models.EmailField[str | Combinable | None, str | None] = models.EmailField(
+        null=True, blank=True, max_length=75
+    )
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
 
     flags = typed_dict_bitfield(_OrganizationMemberFlags, default=0)
 
-    token = models.CharField(max_length=64, null=True, blank=True, unique=True)
+    token: models.Field[str | int | Combinable | None, str | None] = models.CharField(
+        max_length=64, null=True, blank=True, unique=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     token_expires_at = models.DateTimeField(default=None, null=True)
     has_global_access = models.BooleanField(default=True)
@@ -246,7 +265,13 @@ class OrganizationMember(ReplicatedCellModel):
 
     __repr__ = sane_repr("organization_id", "user_id", "email", "role")
 
-    def save(self, *args, **kwargs):
+    def save(
+        self,
+        force_insert: bool | tuple[ModelBase, ...] = False,
+        force_update: bool = False,
+        using: str | None = None,
+        update_fields: Iterable[str] | None = None,
+    ) -> None:
         if self.id is not None:
             invite = OrganizationMemberInvite.objects.filter(organization_member_id=self.id).first()
             assert invite is None, "Cannot save placeholder organization member for an invited user"
@@ -254,60 +279,70 @@ class OrganizationMember(ReplicatedCellModel):
         with outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))):
             if self.token and not self.token_expires_at:
                 self.refresh_expires_at()
-            super().save(*args, **kwargs)
+            super().save(
+                force_insert=force_insert,
+                force_update=force_update,
+                using=using,
+                update_fields=update_fields,
+            )
 
-    def refresh_from_db(self, *args, **kwargs):
-        super().refresh_from_db(*args, **kwargs)
+    def refresh_from_db(
+        self,
+        using: str | None = None,
+        fields: Iterable[str] | None = None,
+        from_queryset: QuerySet[OrganizationMember] | None = None,
+    ) -> None:
+        super().refresh_from_db(using=using, fields=fields, from_queryset=from_queryset)
 
-    def set_user(self, user_id: int):
+    def set_user(self, user_id: int) -> None:
         self.user_id = user_id
         self.email = None
         self.token = None
         self.token_expires_at = None
 
-    def remove_user(self):
+    def remove_user(self) -> None:
         self.email = self.get_email()
         self.user_id = None
         self.token = self.generate_token()
 
-    def regenerate_token(self):
+    def regenerate_token(self) -> None:
         self.token = self.generate_token()
         self.refresh_expires_at()
 
     def payload_for_update(self) -> dict[str, Any] | None:
         return dict(user_id=self.user_id)
 
-    def refresh_expires_at(self):
+    def refresh_expires_at(self) -> None:
         now = timezone.now()
         self.token_expires_at = now + timedelta(days=INVITE_DAYS_VALID)
 
-    def approve_invite(self):
+    def approve_invite(self) -> None:
         self.invite_status = InviteStatus.APPROVED.value
         self.regenerate_token()
 
-    def get_invite_status_name(self):
+    def get_invite_status_name(self) -> str | None:
         if self.invite_status is None:
-            return
+            return None
         return invite_status_names[self.invite_status]
 
     @property
-    def invite_approved(self):
+    def invite_approved(self) -> bool:
         return self.invite_status == InviteStatus.APPROVED.value
 
     @property
-    def requested_to_join(self):
+    def requested_to_join(self) -> bool:
         return self.invite_status == InviteStatus.REQUESTED_TO_JOIN.value
 
     @property
-    def requested_to_be_invited(self):
+    def requested_to_be_invited(self) -> bool:
         return self.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
 
     @property
-    def is_pending(self):
+    def is_pending(self) -> bool:
         return self.user_id is None
 
     @property
-    def token_expired(self):
+    def token_expired(self) -> bool:
         # Old tokens don't expire to preserve compatibility and not require
         # a backfill migration.
         if self.token_expires_at is None:
@@ -317,7 +352,7 @@ class OrganizationMember(ReplicatedCellModel):
         return True
 
     @property
-    def legacy_token(self):
+    def legacy_token(self) -> str:
         email = self.get_email()
         if not email:
             return ""
@@ -327,10 +362,10 @@ class OrganizationMember(ReplicatedCellModel):
         checksum.update(force_bytes(settings.SECRET_KEY))
         return checksum.hexdigest()
 
-    def generate_token(self):
+    def generate_token(self) -> str:
         return secrets.token_hex(nbytes=32)
 
-    def get_invite_link(self, referrer: str | None = None):
+    def get_invite_link(self, referrer: str | None = None) -> str | None:
         if not self.is_pending or not self.invite_approved:
             return None
         path = reverse(
@@ -346,7 +381,7 @@ class OrganizationMember(ReplicatedCellModel):
             invite_link += "?referrer=" + referrer
         return invite_link
 
-    def send_invite_email(self, referrer: str | None = None):
+    def send_invite_email(self, referrer: str | None = None) -> None:
         from sentry.utils.email import MessageBuilder
         from sentry.utils.email.sanitize import sanitize_outbound_name
 
@@ -370,7 +405,9 @@ class OrganizationMember(ReplicatedCellModel):
             mail_logger = get_logger(name="sentry.mail")
             mail_logger.exception(e)
 
-    def send_sso_link_email(self, sending_user_email: str, provider):
+    def send_sso_link_email(
+        self, sending_user_email: str, provider: Provider | RpcAuthProvider
+    ) -> None:
         from sentry.utils.email import MessageBuilder
         from sentry.utils.email.sanitize import sanitize_outbound_name
 
@@ -391,7 +428,7 @@ class OrganizationMember(ReplicatedCellModel):
         )
         msg.send_async([self.get_email()])
 
-    def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
+    def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider: Provider) -> None:
         from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
         from sentry.utils.email.sanitize import sanitize_outbound_name
@@ -435,21 +472,21 @@ class OrganizationMember(ReplicatedCellModel):
         )
         msg.send_async([email])
 
-    def get_display_name(self):
+    def get_display_name(self) -> str | None:
         if self.user_id:
             user = user_service.get_user(user_id=self.user_id)
             if user:
                 return user.get_display_name()
         return self.email
 
-    def get_label(self):
+    def get_label(self) -> str | int | None:
         if self.user_id:
             user = user_service.get_user(user_id=self.user_id)
             if user:
                 return user.get_label()
         return self.email or self.id
 
-    def get_email(self):
+    def get_email(self) -> str:
         if self.user_id:
             if self.user_email:
                 return self.user_email
@@ -463,14 +500,16 @@ class OrganizationMember(ReplicatedCellModel):
                 return user.email
         return self.email or ""
 
-    def get_avatar_type(self):
+    def get_avatar_type(self) -> str:
         if self.user_id:
             user = user_service.get_user(user_id=self.user_id)
             if user:
                 return user.get_avatar_type()
         return "letter_avatar"
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(
+        self,
+    ) -> dict[str, str | int | bool | list[int] | list[str] | None]:
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
         from sentry.models.team import Team
 
@@ -494,7 +533,7 @@ class OrganizationMember(ReplicatedCellModel):
             ),
         }
 
-    def get_teams(self):
+    def get_teams(self) -> QuerySet[Team]:
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
         from sentry.models.team import Team
 
@@ -505,7 +544,9 @@ class OrganizationMember(ReplicatedCellModel):
             ).values("team"),
         )
 
-    def get_team_roles(self):
+    def get_team_roles(
+        self,
+    ) -> QuerySet[OrganizationMemberTeam, _OrganizationMemberTeamRole]:
         from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
         return OrganizationMemberTeam.objects.filter(
@@ -519,7 +560,9 @@ class OrganizationMember(ReplicatedCellModel):
 
         return frozenset(scopes)
 
-    def validate_invitation(self, user_to_approve, allowed_roles):
+    def validate_invitation(
+        self, user_to_approve: User | RpcUser, allowed_roles: Iterable[OrganizationRole]
+    ) -> bool:
         """
         Validates whether an org has the options to invite members, handle join requests,
         and that the member role doesn't exceed the allowed roles to invite.
@@ -542,8 +585,12 @@ class OrganizationMember(ReplicatedCellModel):
         return True
 
     def approve_member_invitation(
-        self, user_to_approve, api_key=None, ip_address=None, referrer=None
-    ):
+        self,
+        user_to_approve: User | RpcUser,
+        api_key: ApiKey | None = None,
+        ip_address: str | None = None,
+        referrer: str | None = None,
+    ) -> None:
         """
         Approve a member invite/join request and send an audit log entry
         """
@@ -579,10 +626,10 @@ class OrganizationMember(ReplicatedCellModel):
 
     def reject_member_invitation(
         self,
-        user_to_approve,
-        api_key=None,
-        ip_address=None,
-    ):
+        user_to_approve: User | RpcUser,
+        api_key: ApiKey | None = None,
+        ip_address: str | None = None,
+    ) -> None:
         """
         Reject a member invite/join request and send an audit log entry
         """

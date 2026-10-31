@@ -28,7 +28,7 @@ logger = logging.getLogger(__name__)
 class GCPOAuth2LoginView(OAuth2LoginView):
     """OAuth2 login for the GCP MCP with offline access for refresh tokens."""
 
-    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         params = super().get_authorize_params(state, redirect_uri)
         params["access_type"] = "offline"  # Required for Google to return a refresh token
         params["prompt"] = (

@@ -2,6 +2,7 @@ import logging
 import os.path
 import random
 import time
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
 from uuid import uuid4
 
@@ -20,7 +21,7 @@ logger = logging.getLogger(__name__)
 epoch = datetime.fromtimestamp(0)
 
 
-def random_normal(mu, sigma, minimum, maximum=None):
+def random_normal(mu: float, sigma: float, minimum: float, maximum: float | None = None) -> float:
     random_value = max(random.normalvariate(mu, sigma), minimum)
     if maximum is not None:
         random_value = min(random_value, maximum)
@@ -44,7 +45,7 @@ def random_ip():
     )
 
 
-def random_geo():
+def random_geo() -> dict[str, str]:
     return random.choice(
         [
             {"country_code": "US", "region": "CA", "city": "San Francisco"},
@@ -54,7 +55,7 @@ def random_geo():
     )
 
 
-def random_username():
+def random_username() -> str:
     return random.choice(
         [
             "jess",
@@ -109,14 +110,14 @@ def load_data(
     platform: str,
     default: str | None = None,
     sample_name: str | None = None,
-    timestamp=None,
-    start_timestamp=None,
+    timestamp: datetime | None = None,
+    start_timestamp: datetime | None = None,
     trace: str | None = None,
     span_id: str | None = None,
-    spans=None,
-    trace_context=None,
-    fingerprint=None,
-    event_id=None,
+    spans: Sequence[dict[str, object]] | None = None,
+    trace_context: dict[str, object] | None = None,
+    fingerprint: list[str] | None = None,
+    event_id: str | None = None,
 ):
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
@@ -309,7 +310,7 @@ def load_data(
     return data
 
 
-def load_console_screenshot():
+def load_console_screenshot() -> str | None:
     expected_commonpath = os.path.realpath(os.path.join(STATIC_ROOT, "images"))
     image_path = os.path.join(expected_commonpath, "console-screenshot.png")
     image_real_path = os.path.realpath(image_path)

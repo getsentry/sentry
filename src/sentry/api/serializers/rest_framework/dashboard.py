@@ -89,24 +89,24 @@ def is_aggregate(field: str) -> bool:
     return False
 
 
-def get_next_query_order(widget_id):
-    max_order = DashboardWidgetQuery.objects.filter(widget_id=widget_id).aggregate(Max("order"))[
-        "order__max"
-    ]
+def get_next_query_order(widget_id: int) -> int:
+    max_order: int | None = DashboardWidgetQuery.objects.filter(widget_id=widget_id).aggregate(
+        Max("order")
+    )["order__max"]
 
     return max_order + 1 if max_order else 1
 
 
-def validate_id(self, value):
+def validate_id(self: CamelSnakeSerializer[Dashboard], value: str) -> int:
     try:
         return int(value)
     except ValueError:
         raise serializers.ValidationError("Invalid ID format. Must be a numeric string")
 
 
-def is_table_display_type(display_type):
-    return display_type == DashboardWidgetDisplayTypes.get_type_name(
-        DashboardWidgetDisplayTypes.TABLE
+def is_table_display_type(display_type: object) -> bool:
+    return bool(
+        display_type == DashboardWidgetDisplayTypes.get_type_name(DashboardWidgetDisplayTypes.TABLE)
     )
 
 

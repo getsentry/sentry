@@ -1340,9 +1340,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 attributes={"sentry.op": "search.postgres_sort.native_order_by"},
             ):
                 ordered_queryset, order_by = strategy.native_order_by(group_queryset)
-                return Paginator(
-                    ordered_queryset.using_replica(), order_by=order_by, **paginator_options
-                ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+                return cast(
+                    CursorResult[Group],
+                    Paginator(
+                        ordered_queryset.using_replica(), order_by=order_by, **paginator_options
+                    ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
         with traces.start_span(
@@ -1496,8 +1499,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        return paginator_results
+        return CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
     def _execute_inverted_chunk_sort(
         self,
@@ -1707,8 +1715,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        return paginator_results
+        return CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
     def query(
         self,
@@ -1855,7 +1868,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
 
             # When it's a simple django-only search, we count_hits like normal
-            results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+            results = cast(
+                CursorResult[Group],
+                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+            )
             metrics.timing(
                 "snuba.search.query",
                 (timezone.now() - now).total_seconds(),
@@ -1939,7 +1955,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             else:
                 return self.empty_result
 
-        paginator_results = self.empty_result
+        paginator_results: CursorResult[Group] | CursorResult[int] = self.empty_result
         result_groups: list[tuple[int, Any]] = []
         result_group_ids: set[int] = set()
 
@@ -2055,7 +2071,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         metrics.distribution("snuba.search.num_chunks", num_chunks)
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        paginator_results = CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
         metrics.timing(
             "snuba.search.query",

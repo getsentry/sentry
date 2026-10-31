@@ -1,5 +1,7 @@
 from collections import defaultdict
+from collections.abc import Sequence
 
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,7 +12,9 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.notifications.types import UserOptionsSettingsKey
 from sentry.users.api.bases.user import UserEndpoint
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.users.services.user.model import RpcUser
 
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.SELF_ACTIVITY: {
@@ -25,13 +29,19 @@ USER_OPTION_SETTINGS = {
 
 
 class UserNotificationsSerializer(Serializer):
-    def get_attrs(self, item_list, user, *args, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[User],
+        user: User | RpcUser | AnonymousUser,
+        *args: object,
+        **kwargs: object,
+    ) -> dict[User, list[UserOption]]:
         user_options = UserOption.objects.filter(
             user__in=item_list, organization_id=None, project_id=None
         ).select_related("user")
         keys_to_user_option_objects = {user_option.key: user_option for user_option in user_options}
 
-        results = defaultdict(list)
+        results: dict[User, list[UserOption]] = defaultdict(list)
         for user_option in keys_to_user_option_objects.values():
             results[user_option.user].append(user_option)
         return results
@@ -61,11 +71,11 @@ class UserNotificationDetailsEndpoint(UserEndpoint):
         "PUT": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, user) -> Response:
+    def get(self, request: Request, user: User) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)
 
-    def put(self, request: Request, user) -> Response:
+    def put(self, request: Request, user: User) -> Response:
         serializer = UserNotificationDetailsSerializer(data=request.data)
 
         if not serializer.is_valid():

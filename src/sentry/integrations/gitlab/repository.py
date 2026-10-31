@@ -1,36 +1,84 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
+from sentry.models.pullrequest import PullRequest
+from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.plugins.providers.integration_repository import RepositoryConfig
+from sentry.plugins.providers.integration_repository import CommitPatchFile, RepositoryConfig
 from sentry.shared_integrations.exceptions import ApiError
 
 if TYPE_CHECKING:
+    from sentry.integrations.gitlab.client import GitLabApiClient
     from sentry.integrations.gitlab.integration import GitlabIntegration  # NOQA
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+
+class GitLabProject(TypedDict):
+    id: str | int
+    path_with_namespace: str
+    name_with_namespace: str
+    web_url: str
+
+
+class GitLabRepositorySetupConfig(TypedDict):
+    installation: int
+    identifier: str | int
+
+
+class GitLabCommit(TypedDict):
+    id: str
+    author_email: str
+    author_name: str
+    title: str
+    created_at: str
+    message: NotRequired[str | None]
+
+
+class GitLabDiff(TypedDict):
+    old_path: str
+    new_path: str
+    new_file: bool
+    deleted_file: bool
+    renamed_file: bool
+
+
+class GitLabCommitData(TypedDict):
+    id: str
+    repository: str
+    author_email: str
+    author_name: str
+    message: str
+    timestamp: datetime | None
+    patch_set: list[CommitPatchFile]
 
 
 class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"]):
     name = "Gitlab"
     repo_provider = IntegrationProviderSlug.GITLAB.value
 
-    def get_repository_data(self, organization, config):
-        installation = self.get_installation(config.get("installation"), organization.id)
+    def get_repository_data(
+        self, organization: Organization, config: MutableMapping[str, object]
+    ) -> MutableMapping[str, object]:
+        installation = self.get_installation(
+            cast(GitLabRepositorySetupConfig, config).get("installation"), organization.id
+        )
         client = installation.get_client()
 
-        repo_id = config["identifier"]
-        instance = installation.model.metadata["instance"]
+        repo_id = cast(GitLabRepositorySetupConfig, config)["identifier"]
+        instance = cast(str, installation.model.metadata["instance"])
 
         try:
-            project = client.get_project(repo_id)
+            project = cast(GitLabProject, client.get_project(repo_id))
         except Exception as e:
             raise installation.raise_error(e)
         config.update(
@@ -125,7 +173,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             event = "gitlab.repository.webhook_updated"
         logger.info(event, extra={**log_extra, "gitlab.repository.webhook_id": hook_id})
 
-    def on_delete_repository(self, repo):
+    def on_delete_repository(self, repo: Repository) -> None:
         """Clean up the attached webhook"""
         webhook_id = repo.config.get("webhook_id")
         # A repository whose hook creation failed has no webhook_id. There is no hook to
@@ -141,21 +189,38 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 return
             raise installation.raise_error(e)
 
-    def compare_commits(self, repo, start_sha, end_sha):
+    def compare_commits(
+        self, repo: Repository, start_sha: str | None, end_sha: str
+    ) -> list[GitLabCommitData]:
         """Fetch the commit list and diffed files between two SHAs"""
         installation = self.get_installation(repo.integration_id, repo.organization_id)
         client = installation.get_client()
         try:
             if start_sha is None:
-                res = client.get_last_commits(repo.config["project_id"], end_sha)
-                return self._format_commits(client, repo, res)
+                commits = cast(
+                    Sequence[GitLabCommit],
+                    client.get_last_commits(repo.config["project_id"], end_sha),
+                )
+                return self._format_commits(client, repo, commits)
             else:
-                res = client.compare_commits(repo.config["project_id"], start_sha, end_sha)
-                return self._format_commits(client, repo, res["commits"])
+                comparison = cast(
+                    Mapping[str, object],
+                    client.compare_commits(repo.config["project_id"], start_sha, end_sha),
+                )
+                return self._format_commits(
+                    client,
+                    repo,
+                    cast(Sequence[GitLabCommit], comparison["commits"]),
+                )
         except Exception as e:
             raise installation.raise_error(e)
 
-    def _format_commits(self, client, repo, commit_list):
+    def _format_commits(
+        self,
+        client: GitLabApiClient,
+        repo: Repository,
+        commit_list: Sequence[GitLabCommit],
+    ) -> list[GitLabCommitData]:
         """Convert GitLab commits into our internal format"""
         return [
             {
@@ -170,15 +235,17 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
             for c in commit_list
         ]
 
-    def _get_patchset(self, client, repo, sha):
+    def _get_patchset(
+        self, client: GitLabApiClient, repo: Repository, sha: str
+    ) -> list[CommitPatchFile]:
         """GitLab commit lists don't come with diffs so we have
         to make additional round trips.
         """
-        diffs = client.get_diff(repo.config["project_id"], sha)
+        diffs = cast(Sequence[GitLabDiff], client.get_diff(repo.config["project_id"], sha))
         return self._transform_patchset(diffs)
 
-    def _transform_patchset(self, patch_set):
-        file_changes = []
+    def _transform_patchset(self, patch_set: Sequence[GitLabDiff]) -> list[CommitPatchFile]:
+        file_changes: list[CommitPatchFile] = []
         for changed_file in patch_set:
             if changed_file["new_file"]:
                 file_changes.append({"path": changed_file["new_path"], "type": "A"})
@@ -192,8 +259,9 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
 
         return file_changes
 
-    def pull_request_url(self, repo, pull_request) -> str:
+    def pull_request_url(self, repo: Repository, pull_request: PullRequest) -> str:
         return f"{repo.url}/merge_requests/{pull_request.key}"
 
-    def repository_external_slug(self, repo):
-        return repo.config["project_id"]
+    def repository_external_slug(self, repo: Repository) -> str | None:
+        project_id: str | None = repo.config["project_id"]
+        return project_id

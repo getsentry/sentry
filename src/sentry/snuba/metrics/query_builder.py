@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, overload
+from typing import Any, TypedDict, cast, overload
 
 import sentry_sdk
+from django.utils.datastructures import MultiValueDict
 from snuba_sdk import (
     AliasedExpression,
     Column,
@@ -508,11 +509,11 @@ class QueryDefinition:
 
     def __init__(
         self,
-        projects,
-        query_params,
+        projects: Sequence[Project],
+        query_params: MultiValueDict[str, str],
         allow_mri: bool = False,
-        paginator_kwargs: dict | None = None,
-    ):
+        paginator_kwargs: Mapping[str, int] | None = None,
+    ) -> None:
         self._projects = projects
         paginator_kwargs = paginator_kwargs or {}
 
@@ -561,7 +562,9 @@ class QueryDefinition:
         )
 
     @staticmethod
-    def _parse_orderby(query_params, allow_mri: bool = False):
+    def _parse_orderby(
+        query_params: MultiValueDict[str, str], allow_mri: bool = False
+    ) -> list[MetricsOrderBy] | None:
         orderbys = query_params.getlist("orderBy", [])
         if not orderbys:
             return None
@@ -579,19 +582,19 @@ class QueryDefinition:
         return orderby_list
 
     @staticmethod
-    def _parse_limit(paginator_kwargs) -> Limit | None:
+    def _parse_limit(paginator_kwargs: Mapping[str, int]) -> Limit | None:
         if "limit" not in paginator_kwargs:
             return None
         return Limit(paginator_kwargs["limit"])
 
     @staticmethod
-    def _parse_offset(paginator_kwargs) -> Offset | None:
+    def _parse_offset(paginator_kwargs: Mapping[str, int]) -> Offset | None:
         if "offset" not in paginator_kwargs:
             return None
         return Offset(paginator_kwargs["offset"])
 
 
-def get_date_range(params: Mapping) -> tuple[datetime, datetime, int]:
+def get_date_range(params: Mapping[str, str | None]) -> tuple[datetime, datetime, int]:
     """Get start, end, rollup for the given parameters.
 
     Apply a similar logic as `sessions_v2.get_constrained_date_range`,
@@ -601,7 +604,7 @@ def get_date_range(params: Mapping) -> tuple[datetime, datetime, int]:
     contrary to the one used in sessions_v2.
 
     """
-    interval_td = parse_stats_period(params.get("interval", "1h"))
+    interval_td = parse_stats_period(cast(str, params.get("interval", "1h")))
     interval = int(3600 if interval_td is None else interval_td.total_seconds())
 
     start, end = get_date_range_from_params(params, default_stats_period=timedelta(days=1))

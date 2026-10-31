@@ -8,7 +8,7 @@ from typing import NamedTuple
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
-from django.db.models.fields.related import ForeignKey, OneToOneField
+from django.db.models.fields.related import OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
@@ -407,21 +407,24 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
-                is_nullable = getattr(field, "null", False)
+                is_nullable: bool = getattr(field, "null", False)
+                fk_field_name: str = field.name
                 if field.name != "id" and getattr(field, "unique", False):
-                    uniques.add(frozenset({field.name}))
+                    uniques.add(frozenset({fk_field_name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                fk_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if fk_rel_model is not None and fk_rel_model != model:
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.FlexibleForeignKey,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, ForeignKey):
-                        foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                    elif field.many_to_one:
+                        foreign_keys[fk_field_name] = ForeignField(
+                            model=fk_rel_model,
                             kind=ForeignFieldKind.DefaultForeignKey,
                             nullable=is_nullable,
                         )
@@ -442,22 +445,23 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
                 if getattr(field, "unique", False):
                     uniques.add(frozenset({field.name}))
 
-                rel_model = getattr(field.remote_field, "model", None)
-                if rel_model is not None and rel_model != model:
+                o2o_rel_model: type[models.base.Model] | None = getattr(
+                    field.remote_field, "model", None
+                )
+                if o2o_rel_model is not None and o2o_rel_model != model:
                     if isinstance(field, OneToOneCascadeDeletes):
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.OneToOneCascadeDeletes,
                             nullable=is_nullable,
                         )
-                    elif isinstance(field, OneToOneField):
+                    else:
+                        # one_to_one_fields filters to OneToOneField instances.
                         foreign_keys[field.name] = ForeignField(
-                            model=rel_model,
+                            model=o2o_rel_model,
                             kind=ForeignFieldKind.DefaultOneToOneField,
                             nullable=is_nullable,
                         )
-                    else:
-                        raise RuntimeError("Unknown one to kind")
 
             # Use some heuristics to grab numeric-only unlinked dependencies.
             simple_integer_fields = [

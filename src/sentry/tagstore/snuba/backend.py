@@ -108,11 +108,11 @@ DEFAULT_TYPE_CONDITION = ["type", "!=", "transaction"]
 tag_value_data_transformers = {"first_seen": parse_datetime, "last_seen": parse_datetime}
 
 
-def is_boolean_key(key):
+def is_boolean_key(key: str) -> bool:
     return key in BOOLEAN_KEYS
 
 
-def is_fuzzy_numeric_key(key):
+def is_fuzzy_numeric_key(key: str) -> bool:
     return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
 
 
@@ -128,7 +128,7 @@ def get_project_list(project_id: int | list[int]) -> list[int]:
 
 
 def _translate_filter_keys(
-    project_ids, group_ids, environment_ids: Sequence[int] | None
+    project_ids: Sequence[int], group_ids: Sequence[int], environment_ids: Sequence[int] | None
 ) -> dict[str, Any]:
     filter_keys = {"project_id": project_ids}
 

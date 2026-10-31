@@ -1,25 +1,49 @@
-from collections import namedtuple
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+from typing import NamedTuple, TypedDict, cast
 
+from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import tsdb
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tsdb.base import TSDBModel
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
-StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
+
+class StatsPeriod(NamedTuple):
+    segments: int
+    interval: timedelta
+
+
+class GroupReleaseSerializerResponse(TypedDict):
+    release: ReleaseSerializerResponse | None
+    environment: str
+    firstSeen: datetime
+    lastSeen: datetime
+
+
+class GroupReleaseWithStatsSerializerResponse(GroupReleaseSerializerResponse):
+    stats: dict[str, list[tuple[float, float]]]
 
 
 @register(GroupRelease)
-class GroupReleaseSerializer(Serializer):
-    def get_attrs(self, item_list, user, **kwargs):
+class GroupReleaseSerializer(Serializer[GroupReleaseSerializerResponse]):
+    def get_attrs(
+        self,
+        item_list: Sequence[GroupRelease],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[GroupRelease, dict[str, object]]:
         release_list = list(Release.objects.filter(id__in=[i.release_id for i in item_list]))
         releases = {r.id: d for r, d in zip(release_list, serialize(release_list, user))}
 
-        result = {}
+        result: dict[GroupRelease, dict[str, object]] = {}
         for item in item_list:
             result[item] = {"release": releases.get(item.release_id)}
         return result
@@ -39,11 +63,16 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
         "30d": StatsPeriod(30, timedelta(hours=24)),
     }
 
-    def __init__(self, since=None, until=None):
+    def __init__(self, since: datetime | None = None, until: datetime | None = None) -> None:
         self.since = since
         self.until = until
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[GroupRelease],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[GroupRelease, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
         tenant_ids = (
@@ -56,7 +85,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
             else None
         )
 
-        items: dict[str, list[str]] = {}
+        items: dict[int, list[int]] = {}
         for item in item_list:
             items.setdefault(item.group_id, []).append(item.id)
             attrs[item]["stats"] = {}
@@ -80,9 +109,8 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
                 stats = {}
 
             for item in item_list:
-                attrs[item]["stats"][key] = [
-                    (k, v[item.id]) for k, v in stats.get(item.group_id, {})
-                ]
+                item_stats = cast(dict[str, object], attrs[item]["stats"])
+                item_stats[key] = [(k, v[item.id]) for k, v in stats.get(item.group_id, {})]
         return attrs
 
     def serialize(self, obj, attrs, user, **kwargs):

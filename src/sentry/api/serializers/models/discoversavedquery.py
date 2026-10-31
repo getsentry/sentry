@@ -1,6 +1,9 @@
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import datetime
 from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
 from sentry.auth.principal import has_user
@@ -14,6 +17,8 @@ from sentry.discover.models import (
 )
 from sentry.explore.models import ExploreSavedQuery, ExploreSavedQueryDataset
 from sentry.users.api.serializers.user import UserSerializerResponse
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
@@ -36,8 +41,8 @@ class DiscoverSavedQueryResponseOptional(TypedDict, total=False):
     display: str
     topEvents: int
     interval: str
-    exploreQuery: dict
-    lastVisited: str
+    exploreQuery: dict | None
+    lastVisited: datetime | None
     starred: bool
     position: int | None
 
@@ -50,9 +55,9 @@ class DiscoverSavedQueryResponse(DiscoverSavedQueryResponseOptional):
     queryDataset: str
     datasetSource: str
     expired: bool
-    dateCreated: str
-    dateUpdated: str
-    createdBy: UserSerializerResponse
+    dateCreated: datetime
+    dateUpdated: datetime
+    createdBy: UserSerializerResponse | None
 
 
 @register(DiscoverSavedQuery)
@@ -99,8 +104,13 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         return data
 
-    def get_attrs(self, item_list, user, **kwargs):
-        result: defaultdict[str, dict] = defaultdict(
+    def get_attrs(
+        self,
+        item_list: Sequence[DiscoverSavedQuery],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> defaultdict[DiscoverSavedQuery, dict[str, object]]:
+        result: defaultdict[DiscoverSavedQuery, dict[str, object]] = defaultdict(
             lambda: {"created_by": {}, "explore_query": None}
         )
 
@@ -174,7 +184,13 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs) -> DiscoverSavedQueryResponse:
+    def serialize(
+        self,
+        obj: DiscoverSavedQuery,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> DiscoverSavedQueryResponse:
         query_keys = [
             "environment",
             "query",

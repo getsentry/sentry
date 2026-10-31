@@ -631,7 +631,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
     def on_delete_repository(self, repo: Any) -> None:
         pass
 
-    def format_date(self, date: str | None) -> Any | None:
+    def format_date(self, date: str | None) -> datetime | None:
         if not date:
             return None
         return parse_date(date).astimezone(timezone.utc)

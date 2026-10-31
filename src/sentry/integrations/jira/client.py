@@ -62,7 +62,7 @@ class JiraCloudClient(ApiClient):
         integration: RpcIntegration | Integration,
         verify_ssl: bool,
         logging_context: Any | None = None,
-    ):
+    ) -> None:
         self.base_url = integration.metadata["base_url"]
         self.shared_secret = integration.metadata["shared_secret"]
         super().__init__(
@@ -71,7 +71,7 @@ class JiraCloudClient(ApiClient):
             logging_context=logging_context,
         )
 
-    def finalize_request(self, prepared_request: PreparedRequest):
+    def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
         assert prepared_request.url is not None
         assert prepared_request.method is not None
         path = prepared_request.url[len(self.base_url) :]
@@ -95,19 +95,19 @@ class JiraCloudClient(ApiClient):
     def get_cache_prefix(self) -> str:
         return "sentry-jira-2:"
 
-    def user_id_get_param(self):
+    def user_id_get_param(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use accountId
         """
         return "accountId"
 
-    def user_id_field(self):
+    def user_id_field(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use accountId
         """
         return "accountId"
 
-    def user_query_param(self):
+    def user_query_param(self) -> str:
         """
         Jira-Cloud requires GDPR compliant API usage so we have to use query
         """
@@ -140,7 +140,7 @@ class JiraCloudClient(ApiClient):
         """deprecated - please use paginated projects endpoint"""
         return self.get_cached(self.PROJECT_URL)
 
-    def get_project_key_for_id(self, project_id) -> str:
+    def get_project_key_for_id(self, project_id: str) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
@@ -223,9 +223,10 @@ class JiraCloudClient(ApiClient):
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_email(self, account_id):
+    def get_email(self, account_id: str | None) -> str | None:
         user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
-        return user.get("email")
+        email: str | None = user.get("email")
+        return email
 
     def get_field_autocomplete(self, name, value):
         if name.startswith(CUSTOMFIELD_PREFIX):

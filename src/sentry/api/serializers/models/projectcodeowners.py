@@ -1,6 +1,9 @@
 import logging
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import TypedDict
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.projectownership import (
@@ -17,6 +20,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.source_code_management.repository import RepositoryIntegration
 from sentry.issues.ownership.grammar import OwnershipSchema, convert_schema_to_rules_text
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -76,12 +81,17 @@ DEFAULT_CODEOWNERS_EXPAND = ("errors", "hasTargetingContext")
 class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
     def __init__(
         self,
-        expand=None,
-    ):
+        expand: Collection[str] | None = None,
+    ) -> None:
         self.expand = expand or []
 
-    def get_attrs(self, item_list, user, **kwargs):
-        attrs = {}
+    def get_attrs(
+        self,
+        item_list: Sequence[ProjectCodeOwners],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ProjectCodeOwners, dict[str, object]]:
+        attrs: dict[ProjectCodeOwners, dict[str, object]] = {}
         integrations = {
             i.id: i
             for i in integration_service.get_integrations(
@@ -120,7 +130,13 @@ class ProjectCodeOwnersSerializer(Serializer[ProjectCodeOwnersResponse]):
 
         return attrs
 
-    def serialize(self, obj, attrs, user, **kwargs) -> ProjectCodeOwnersResponse:
+    def serialize(
+        self,
+        obj: ProjectCodeOwners,
+        attrs,
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> ProjectCodeOwnersResponse:
         data: ProjectCodeOwnersResponse = {
             "id": str(obj.id),
             "raw": obj.raw,

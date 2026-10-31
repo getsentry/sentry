@@ -8,7 +8,7 @@ import os
 import tempfile
 from collections.abc import Sequence
 from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import IO, TYPE_CHECKING, Any, Generic, TypeVar, cast
 
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
@@ -27,6 +27,7 @@ from sentry.utils import metrics
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 logger = logging.getLogger(__name__)
+LoggerType = logging.Logger | type[nooplogger]
 
 
 class ChunkedFileBlobIndexWrapper:
@@ -49,11 +50,11 @@ class ChunkedFileBlobIndexWrapper:
     def __exit__(self, exc_type, exc_value, tb) -> None:
         self.close()
 
-    def detach_tempfile(self):
+    def detach_tempfile(self) -> tempfile._TemporaryFileWrapper[bytes]:
         if not self.prefetched:
             raise TypeError("Can only detech tempfiles in prefetch mode")
         assert self._curfile is not None
-        rv = self._curfile
+        rv = cast("tempfile._TemporaryFileWrapper[bytes]", self._curfile)
         self._curfile = None
         self.close()
         rv.seek(0)
@@ -244,7 +245,13 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     @abc.abstractmethod
     def _delete_unreferenced_blob_task(self) -> Task[Any, Any]: ...
 
-    def _get_chunked_blob(self, mode=None, prefetch=False, prefetch_to=None, delete=True):
+    def _get_chunked_blob(
+        self,
+        mode: str | None = None,
+        prefetch: bool = False,
+        prefetch_to: str | None = None,
+        delete: bool = True,
+    ) -> ChunkedFileBlobIndexWrapper:
         return ChunkedFileBlobIndexWrapper(
             self._blob_index_records(),
             mode=mode,
@@ -254,13 +261,13 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
         )
 
     @traces.trace
-    def getfile(self, mode=None, prefetch=False):
+    def getfile(self, mode: str | None = None, prefetch: bool = False) -> FileObj[bytes]:
         """Returns a file object.  By default the file is fetched on
         demand but if prefetch is enabled the file is fully prefetched
         into a tempfile before reading can happen.
         """
         impl = self._get_chunked_blob(mode, prefetch)
-        return FileObj(impl, self.name)
+        return FileObj(cast(IO[bytes], impl), self.name)
 
     @traces.trace
     def save_to(self, path) -> None:
@@ -299,7 +306,13 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                     pass
 
     @traces.trace
-    def putfile(self, fileobj, blob_size=DEFAULT_BLOB_SIZE, commit=True, logger=nooplogger):
+    def putfile(
+        self,
+        fileobj: IO[bytes],
+        blob_size: int = DEFAULT_BLOB_SIZE,
+        commit: bool = True,
+        logger: LoggerType = nooplogger,
+    ) -> list[BlobIndexType]:
         """
         Save a fileobj into a number of chunks.
 

@@ -19,6 +19,7 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
+from sentry.models.project import Project
 
 
 @extend_schema(tags=["Projects"])
@@ -46,7 +47,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         examples=None,
     )
     def put(
-        self, request: Request, project, filter_id
+        self, request: Request, project: Project, filter_id: str
     ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update various inbound data filters for a project.

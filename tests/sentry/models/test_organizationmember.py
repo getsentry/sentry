@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -83,6 +84,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         member = OrganizationMember(id=1, organization=self.organization, email="foo@example.com")
 
         link = member.get_invite_link(referrer="test_referrer")
+        assert link is not None
         assert "?referrer=test_referrer" in link
 
     def test_send_invite_email(self) -> None:
@@ -210,9 +212,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         assert member.is_pending is False
         assert member.token_expires_at is None
-        assert member.token is None
+        assert cast(str | None, member.token) is None
+        member = OrganizationMember.objects.get(pk=member.pk)
         assert member.email is None
-        member.refresh_from_db()
         self.assert_org_member_mapping(org_member=member)
 
     def test_regenerate_token(self) -> None:

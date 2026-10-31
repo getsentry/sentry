@@ -7,7 +7,7 @@ class CommitPatchSetSerializer(serializers.Serializer):
     path = serializers.CharField(max_length=510)
     type = serializers.CharField(max_length=1)
 
-    def validate_type(self, value):
+    def validate_type(self, value: str) -> str:
         if not CommitFileChange.is_valid_type(value):
             raise serializers.ValidationError("Commit patch_set type %s is not supported." % value)
         return value

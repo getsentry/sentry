@@ -14,6 +14,7 @@ from sentry.apidocs.examples.organization_member_examples import OrganizationMem
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 
 
 @extend_schema(tags=["Projects"])
@@ -38,7 +39,7 @@ class ProjectMemberIndexEndpoint(ProjectEndpoint):
         },
         examples=OrganizationMemberExamples.LIST_ORG_MEMBERS,
     )
-    def get(self, request: Request, project) -> Response[list[OrganizationMemberResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[OrganizationMemberResponse]]:
         """
         Returns a list of active organization members that belong to any team assigned to the project.
         """

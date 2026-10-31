@@ -213,7 +213,7 @@ class DatadogOAuth2LoginView(OAuth2LoginView):
 
         return super().dispatch(request, pipeline)
 
-    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_authorize_params(self, state: str, redirect_uri: str) -> dict[str, str | int | None]:
         params = super().get_authorize_params(state, redirect_uri)
 
         params["resource"] = self.resource
@@ -245,7 +245,7 @@ class DatadogOAuth2CallbackView(OAuth2CallbackView):
                 "error_description": "Could not authenticate due to missing pipeline state",
             }
 
-    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | None]:
+    def get_token_params(self, code: str, redirect_uri: str) -> dict[str, str | int | None]:
         return {
             "grant_type": "authorization_code",
             "code": code,

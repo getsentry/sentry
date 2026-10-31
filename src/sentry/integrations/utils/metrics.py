@@ -244,7 +244,7 @@ class EventLifecycle:
     def record_failure(
         self,
         failure_reason: BaseException | str | None = None,
-        extra: dict[str, Any] | None = None,
+        extra: Mapping[str, object] | None = None,
         create_issue: bool = True,
         sample_log_rate: float | None = None,
     ) -> None:

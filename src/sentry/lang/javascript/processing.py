@@ -101,7 +101,7 @@ def sourcemap_images_from_data(data):
 
 # Most people don't upload release artifacts for their third-party libraries,
 # so ignore missing node_modules files or chrome extensions
-def should_skip_missing_source_error(abs_path) -> bool:
+def should_skip_missing_source_error(abs_path: str) -> bool:
     return "node_modules" in abs_path or abs_path.startswith("chrome-extension:")
 
 
@@ -193,11 +193,11 @@ def _handles_frame(frame, data):
     return True
 
 
-def _is_native_frame(abs_path):
+def _is_native_frame(abs_path: str) -> bool:
     return abs_path in ("native", "[native code]")
 
 
-def _is_built_in(abs_path, platform):
+def _is_built_in(abs_path: str, platform: str) -> bool:
     return platform == "node" and not NON_BUILTIN_PATH_REGEX.match(abs_path)
 
 

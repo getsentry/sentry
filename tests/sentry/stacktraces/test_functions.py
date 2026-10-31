@@ -355,4 +355,6 @@ def test_trim_function_name_cocoa() -> None:
     ],
 )
 def test_get_source_link_for_frame(input, output) -> None:
-    assert get_source_link_for_frame(Frame.to_python(input)) == output
+    frame = Frame.to_python(input)
+    assert frame is not None
+    assert get_source_link_for_frame(frame) == output

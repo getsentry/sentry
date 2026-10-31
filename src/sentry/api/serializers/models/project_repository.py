@@ -1,10 +1,13 @@
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.projectrepository import ProjectRepository
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class ProjectRepositorySerializerResponse(TypedDict):
@@ -26,17 +29,20 @@ class ProjectRepositorySerializer(Serializer[ProjectRepositorySerializerResponse
         self.include_mapping_count = include_mapping_count
 
     def get_attrs(
-        self, item_list: Sequence[ProjectRepository], user: Any, **kwargs: Any
-    ) -> dict[ProjectRepository, dict[str, Any]]:
+        self,
+        item_list: Sequence[ProjectRepository],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[ProjectRepository, dict[str, object]]:
         prefetch_related_objects(item_list, "repository")
         return {item: {} for item in item_list}
 
     def serialize(
         self,
         obj: ProjectRepository,
-        attrs: Mapping[str, Any],
-        user: Any,
-        **kwargs: Any,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
     ) -> ProjectRepositorySerializerResponse:
         repository = obj.repository
         provider = repository.provider

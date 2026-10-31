@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, TypeGuard, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -84,7 +84,7 @@ logger = logging.getLogger(__name__)
 
 def merge_list_dictionaries(
     dict1: MutableMapping[Any, list[Any]], dict2: Mapping[Any, Sequence[Any]]
-):
+) -> None:
     for key, val in dict2.items():
         dict1.setdefault(key, []).extend(val)
 
@@ -256,9 +256,9 @@ def _get_level_label(group: Group) -> GroupLevelStr:
 class GroupSerializerBase(Serializer, ABC):
     def __init__(
         self,
-        collapse=None,
-        expand=None,
-    ):
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+    ) -> None:
         self.collapse = collapse
         self.expand = expand
 
@@ -475,23 +475,23 @@ class GroupSerializerBase(Serializer, ABC):
 
     @abstractmethod
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         pass
 
     @abstractmethod
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         pass
 
-    def _expand(self, key) -> bool:
+    def _expand(self, key: str) -> bool:
         if self.expand is None:
             return False
 
         return key in self.expand
 
-    def _collapse(self, key) -> bool:
+    def _collapse(self, key: str) -> bool:
         if self.collapse is None:
             return False
         return key in self.collapse
@@ -552,7 +552,9 @@ class GroupSerializerBase(Serializer, ABC):
             status_label = "unresolved"
         return status_details, status_label
 
-    def _get_seen_stats(self, item_list: Sequence[Group], user) -> Mapping[Group, SeenStats] | None:
+    def _get_seen_stats(
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
+    ) -> Mapping[Group, SeenStats] | None:
         """
         Returns a dictionary keyed by item that includes:
             - times_seen
@@ -583,11 +585,11 @@ class GroupSerializerBase(Serializer, ABC):
 
     def _get_group_snuba_stats(
         self, item_list: Sequence[Group], seen_stats: Mapping[Group, SeenStats] | None
-    ):
+    ) -> dict[int, dict[str, bool | None]] | None:
         if self._collapse("unhandled") and len(item_list) > 0:
             return None
         start = self._get_start_from_seen_stats(seen_stats)
-        unhandled = {}
+        unhandled: dict[int, bool | None] = {}
 
         cache_keys = []
         for item in item_list:
@@ -624,7 +626,7 @@ class GroupSerializerBase(Serializer, ABC):
                     {"organization_id": item_list[0].project.organization_id} if item_list else None
                 ),
             )
-            to_cache = {}
+            to_cache: dict[str, bool | None] = {}
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
                 to_cache[f"group-mechanism-handled:{x['group_id']}"] = x["unhandled"]
@@ -638,7 +640,7 @@ class GroupSerializerBase(Serializer, ABC):
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 
     @staticmethod
-    def _get_start_from_seen_stats(seen_stats: Mapping[Group, SeenStats] | None):
+    def _get_start_from_seen_stats(seen_stats: Mapping[Group, SeenStats] | None) -> datetime:
         # Try to figure out what is a reasonable time frame to look into stats,
         # based on a given "seen stats".  We try to pick a day prior to the earliest last seen,
         # but it has to be at least 14 days, and not more than 90 days ago.
@@ -710,7 +712,7 @@ class GroupSerializerBase(Serializer, ABC):
 
     @staticmethod
     def _resolve_resolutions(
-        groups: Sequence[Group], user
+        groups: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> tuple[Mapping[int, Sequence[Any]], Mapping[int, Any]]:
         resolved_groups = [i for i in groups if i.status == GroupStatus.RESOLVED]
         if not resolved_groups:
@@ -809,7 +811,7 @@ class GroupSerializerBase(Serializer, ABC):
         return integration_annotations
 
     @staticmethod
-    def _get_permalink(attrs, obj: Group) -> str:
+    def _get_permalink(attrs: Mapping[str, object], obj: Group) -> str:
         with traces.start_span(
             name="GroupSerializerBase.serialize.permalink.build",
             attributes={"sentry.op": "GroupSerializerBase.serialize.permalink.build"},
@@ -855,14 +857,16 @@ class _EnvironmentSeenStatsFunc(Protocol):
 class GroupSerializer(GroupSerializerBase):
     def __init__(
         self,
-        collapse=None,
-        expand=None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
         environment_func: Callable[[], Environment | None] | None = None,
-    ):
+    ) -> None:
         GroupSerializerBase.__init__(self, collapse=collapse, expand=expand)
         self.environment_func = environment_func if environment_func is not None else lambda: None
 
-    def _seen_stats_error(self, item_list, user) -> Mapping[Group, SeenStats]:
+    def _seen_stats_error(
+        self, item_list: Sequence[Group], user: User | RpcUser | AnonymousUser
+    ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
             item_list,
             tagstore.backend.get_groups_user_counts,
@@ -870,7 +874,7 @@ class GroupSerializer(GroupSerializerBase):
         )
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(
             generic_issue_list,
@@ -1096,7 +1100,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         self.conditions = conditions
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
             self._execute_error_seen_stats_query(
@@ -1112,7 +1116,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         )
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self._parse_seen_stats_results(
             self._execute_generic_seen_stats_query(
@@ -1129,8 +1133,12 @@ class GroupSerializerSnuba(GroupSerializerBase):
 
     @staticmethod
     def _execute_error_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> dict[str, object]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1144,25 +1152,32 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.Events,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            dict[str, object],
+            aliased_query(
+                dataset=Dataset.Events,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 
     @staticmethod
     def _execute_generic_seen_stats_query(
-        item_list, start=None, end=None, conditions=None, environment_ids=None
-    ):
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> dict[str, object]:
         project_ids = list({item.project_id for item in item_list})
         group_ids = [item.id for item in item_list]
         aggregations = [
@@ -1175,18 +1190,21 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        return aliased_query(
-            dataset=Dataset.IssuePlatform,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=conditions,
-            filter_keys=filters,
-            aggregations=aggregations,
-            condition_resolver=get_snuba_column_name,
-            referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
-            tenant_ids=(
-                {"organization_id": item_list[0].project.organization_id} if item_list else None
+        return cast(
+            dict[str, object],
+            aliased_query(
+                dataset=Dataset.IssuePlatform,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=conditions,
+                filter_keys=filters,
+                aggregations=aggregations,
+                condition_resolver=get_snuba_column_name,
+                referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+                tenant_ids=(
+                    {"organization_id": item_list[0].project.organization_id} if item_list else None
+                ),
             ),
         )
 

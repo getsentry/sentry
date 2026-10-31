@@ -1,6 +1,8 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any, TypeAlias, TypedDict
 
+from sentry.release_health.base import ReleaseHealthStats, StatsPeriod
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
@@ -31,7 +33,7 @@ class NonMappableUser(TypedDict):
     email: str
 
 
-Author = UserSerializerResponse | NonMappableUser
+Author: TypeAlias = UserSerializerResponse | NonMappableUser
 
 
 class HealthDataOptional(TypedDict, total=False):
@@ -53,7 +55,7 @@ class HealthData(HealthDataOptional):
     sessionsCrashed: int
     sessionsErrored: int
     hasHealthData: bool
-    stats: dict[str, Any]
+    stats: Mapping[StatsPeriod, ReleaseHealthStats] | None
 
 
 class ProjectOptional(TypedDict, total=False):
@@ -73,4 +75,4 @@ class BaseProject(ProjectOptional):
 
 
 class Project(BaseProject):
-    newGroups: int
+    newGroups: int | None

@@ -57,6 +57,48 @@ disallow_untyped_defs = false
         assert main(("pyproject.toml",)) == 0
 
 
+def test_wildcard_narrowing_passes(tmp_path) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.*", "c.d"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.e", "c.d"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 0
+
+
+def test_wildcard_narrowing_does_not_cover_unrelated_addition(tmp_path, capsys) -> None:
+    initial = """\
+[[tool.mypy.overrides]]
+module = ["a.b.*", "c.d"]
+disallow_untyped_defs = false
+"""
+    updated = """\
+[[tool.mypy.overrides]]
+module = ["a.b.e", "c.d", "x.y.z"]
+disallow_untyped_defs = false
+"""
+    _init_repo(tmp_path)
+    _commit_pyproject(tmp_path, initial)
+    tmp_path.joinpath("pyproject.toml").write_text(updated)
+
+    with contextlib.chdir(tmp_path):
+        assert main(("pyproject.toml",)) == 1
+
+    out = capsys.readouterr().out
+    assert "'x.y.z'" in out
+    assert "'a.b.e'" not in out
+
+
 def test_addition_fails(tmp_path, capsys) -> None:
     initial = """\
 [[tool.mypy.overrides]]
