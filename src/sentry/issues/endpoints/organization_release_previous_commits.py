@@ -79,9 +79,7 @@ class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoin
         try:
             analytics.record(
                 ReleaseGetPreviousCommitsEvent(
-                    user_id=acting_user_id(request.user)
-                    if request.user and request.user.id
-                    else None,
+                    user_id=acting_user_id(request.user),
                     organization_id=organization.id,
                     project_ids=project_ids,
                     user_agent=request.META.get("HTTP_USER_AGENT", ""),

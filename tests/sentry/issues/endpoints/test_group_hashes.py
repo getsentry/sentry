@@ -1,7 +1,7 @@
 from unittest.mock import patch
 from urllib.parse import urlencode
 
-from django.test import RequestFactory
+from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
 from sentry.api.serializers.models.event import FULL_PAYLOAD_MAX_PER_PAGE
@@ -10,6 +10,8 @@ from sentry.issues.endpoints.group_hashes import GroupHashesEndpoint
 from sentry.models.grouphash import GroupHash
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class GroupHashesTest(APITestCase, SnubaTestCase):
@@ -255,6 +257,33 @@ class GroupHashesTest(APITestCase, SnubaTestCase):
                 sample_rate=1.0,
                 tags={"platform": "javascript", "sdk": "sentry.javascript.nextjs"},
             )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_unmerge_service_account(self) -> None:
+        group = self.create_group(platform="javascript")
+        GroupHash.objects.create(project=group.project, group=group, hash="a" * 32)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write"],
+            project_ids=[group.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = "?".join(
+            [
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/hashes/",
+                urlencode({"id": ["a" * 32]}, True),
+            ]
+        )
+
+        response = self.client.put(url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context)
+        assert response.status_code == 202, response.content
 
     def test_unmerge_conflict(self) -> None:
         self.login_as(user=self.user)
