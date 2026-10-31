@@ -2274,55 +2274,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# per-organization limits on the number of timeseries that can be observed in
-# each window.
-#
-# Format is a list of dictionaries of format {
-#   "window_seconds": ...,
-#   "granularity_seconds": ...,
-#   "limit": ...
-# }
-#
-# See sentry.ratelimiters.cardinality for an explanation of what each of
-# those terms mean.
-#
-# Note that changing either window or granularity_seconds of a limit will
-# effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.sessions.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.10s-granularity",
     default=False,
