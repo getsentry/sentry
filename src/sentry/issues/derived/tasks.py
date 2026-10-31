@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils import metrics
-from sentry.utils.db import statement_timeout
+from sentry.utils.db import make_statement_timeout_budget
 
 logger = logging.getLogger(__name__)
 
@@ -474,12 +474,9 @@ def _discover_stale_pipeline_hashes(current_hash: str, limit: int) -> list[str]:
     results: list[str] = []
     cursor: str | None = ""
     using = router.db_for_read(GroupDerivedData)
-    deadline = time.monotonic() + _STALE_HASH_DISCOVERY_TIMEOUT.total_seconds()
+    query_timeout = make_statement_timeout_budget(_STALE_HASH_DISCOVERY_TIMEOUT, using=using)
     while len(results) < limit:
-        remaining_seconds = deadline - time.monotonic()
-        if remaining_seconds <= 0.001:
-            raise OperationalError("stale hash discovery budget exceeded")
-        with statement_timeout(using, timedelta(seconds=remaining_seconds)):
+        with query_timeout():
             cursor = (
                 GroupDerivedData.objects.using(using)
                 .filter(pipeline_hash__gt=cursor)

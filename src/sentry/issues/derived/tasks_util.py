@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 import random
-import time
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -10,7 +9,6 @@ from math import ceil
 from typing import Protocol
 
 from django.db.models import Max, Min
-from django.db.utils import OperationalError
 
 from sentry.issues.derived.check import (
     CheckFailure,
@@ -23,7 +21,7 @@ from sentry.issues.derived.framework import DerivedDataError
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.utils import metrics
-from sentry.utils.db import statement_timeout
+from sentry.utils.db import make_statement_timeout_budget
 
 logger = logging.getLogger(__name__)
 
@@ -209,16 +207,12 @@ def group_id_ranges_for_hash(
     )
     using = matching_group_ids.db
     matching_group_ids = matching_group_ids.using(using)
-    query_deadline = time.monotonic() + _GROUP_ID_RANGE_QUERY_TIMEOUT.total_seconds()
+    query_timeout = make_statement_timeout_budget(_GROUP_ID_RANGE_QUERY_TIMEOUT, using=using)
 
     with metrics.timer("issues.derived.group_id_range_query"):
 
         def fetch_group_ids(start: int, limit: int) -> list[int]:
-            remaining_seconds = query_deadline - time.monotonic()
-            if remaining_seconds <= 0.001:
-                raise OperationalError("group ID range query budget exceeded")
-
-            with statement_timeout(using, timedelta(seconds=remaining_seconds)):
+            with query_timeout():
                 return list(matching_group_ids.filter(group_id__gte=start)[:limit])
 
         requested_rows = range_size * max_ranges
