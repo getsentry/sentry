@@ -1,8 +1,11 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {EventView} from 'sentry/utils/discover/eventView';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getAllViews} from 'sentry/views/discover/results/data';
 import {
+  getSavedQueryDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateQuery,
@@ -96,5 +99,24 @@ describe('SavedQueries API helpers', () => {
       const response = await handleDeleteQuery(api, organization, errorsView);
       expect(response).toEqual({data: {}, fromBody: {}});
     });
+  });
+});
+
+describe('getSavedQueryDataset', () => {
+  it('returns a valid queryDataset from the location', () => {
+    const organization = OrganizationFixture();
+    const location = LocationFixture({
+      query: {queryDataset: SavedQueryDatasets.TRANSACTIONS},
+    });
+    expect(getSavedQueryDataset(organization, location, undefined)).toBe(
+      SavedQueryDatasets.TRANSACTIONS
+    );
+  });
+
+  it('ignores an invalid queryDataset from the location', () => {
+    const location = LocationFixture({query: {queryDataset: 'error-'}});
+    expect(getSavedQueryDataset(OrganizationFixture(), location, undefined)).toBe(
+      SavedQueryDatasets.ERRORS
+    );
   });
 });
