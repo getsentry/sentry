@@ -3,7 +3,7 @@ from __future__ import annotations
 import zipfile
 from collections.abc import Callable, Iterable, Mapping
 from enum import Enum
-from typing import IO, Any, cast
+from typing import IO, Any
 
 from django.db import models
 from django.db.models.signals import post_delete
@@ -253,8 +253,8 @@ class ArtifactBundleArchive:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def normalize_debug_id(debug_id: str | None) -> str | None:
-        if debug_id is None:
+    def normalize_debug_id(debug_id: object) -> str | None:
+        if not isinstance(debug_id, str):
             return None
 
         try:
@@ -270,8 +270,9 @@ class ArtifactBundleArchive:
                 continue
             # Building the map for debug_id lookup.
             headers = self.normalize_headers(info.get("headers", {}))
-            if (debug_id := cast(str | None, headers.get("debug-id"))) is not None:
-                debug_id = self.normalize_debug_id(debug_id)
+            raw_debug_id = headers.get("debug-id")
+            if raw_debug_id is not None:
+                debug_id = self.normalize_debug_id(raw_debug_id)
                 file_type = info.get("type")
                 if (
                     debug_id is not None
@@ -362,7 +363,7 @@ class ArtifactBundleArchive:
                 return True
 
             headers = self.normalize_headers(info.get("headers", {}))
-            debug_id = self.normalize_debug_id(cast(str | None, headers.get("debug-id", None)))
+            debug_id = self.normalize_debug_id(headers.get("debug-id", None))
             if debug_id is not None:
                 debug_id = debug_id.lower()
 
