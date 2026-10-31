@@ -6,6 +6,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.helpers.deprecation import deprecated
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.models.group import Group
 from sentry.tasks.reprocessing2 import reprocess_group
 
 
@@ -20,7 +21,7 @@ class GroupReprocessingEndpoint(GroupEndpoint):
         suggested_api="sentry-api-0-organization-group-group-reprocessing",
         url_names=["sentry-api-0-group-reprocessing"],
     )
-    def post(self, request: Request, group) -> Response:
+    def post(self, request: Request, group: Group) -> Response:
         """
         Reprocess a group
         `````````````````

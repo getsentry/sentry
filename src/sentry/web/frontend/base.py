@@ -129,7 +129,7 @@ class ViewSiloLimit(SiloLimit):
 
 class CellSiloView(ViewSiloLimit):
     def __init__(
-        self, cell_resolver: CellRequestResolver | None = None, *args, **kwargs: Any
+        self, cell_resolver: CellRequestResolver | None = None, *args: bool, **kwargs: Any
     ) -> None:
         super().__init__([SiloMode.CELL], *args, **kwargs)
         self.cell_resolver = cell_resolver

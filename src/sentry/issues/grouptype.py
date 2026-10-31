@@ -801,7 +801,7 @@ class WebVitalsGroup(GroupType):  # TODO: Rename to WebVitalsGroupType
 
 def should_create_group(
     grouptype: type[GroupType],
-    client: RedisCluster | StrictRedis,
+    client: RedisCluster[str] | StrictRedis[str],
     grouphash: str,
     project: Project,
 ) -> bool:

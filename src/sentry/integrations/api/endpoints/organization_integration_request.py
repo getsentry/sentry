@@ -19,6 +19,8 @@ from sentry.sentry_apps.services.app import app_service
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
+    from sentry.models.organization import Organization
+
 
 def get_provider_name(provider_type: str, provider_slug: str) -> str | _StrPromise | None:
     """
@@ -49,7 +51,7 @@ class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
         "POST": ApiPublishStatus.PRIVATE,
     }
 
-    def post(self, request: Request, organization) -> Response:
+    def post(self, request: Request, organization: Organization) -> Response:
         """
         Email the organization owners asking them to install an integration.
         ````````````````````````````````````````````````````````````````````

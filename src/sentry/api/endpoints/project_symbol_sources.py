@@ -228,7 +228,7 @@ class SourceSerializer(serializers.Serializer):
         help_text="The Microsoft Entra client secret. Required for Azure sources, invalid for all others.",
     )
 
-    def validate(self, data):
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
         if data["type"] == "http":
             required = ["type", "name", "url", "layout"]
             allowed = required + ["username", "password"]

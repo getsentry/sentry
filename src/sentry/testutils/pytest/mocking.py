@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar, cast
 from unittest.mock import MagicMock
 from unittest.mock import call as MockCall
 
@@ -107,11 +107,11 @@ def capture_results(
                 assert repr(result)== "TypeError('Expected dog, but got cat instead.')"
     """
 
-    def record_result(result):
+    def record_result(result: T | Exception) -> None:
         if isinstance(results, list):
-            results.append(result)
+            results.append(cast(T, result))
         elif isinstance(results, dict):
-            results.setdefault(fn.__name__, []).append(result)
+            results.setdefault(fn.__name__, []).append(cast(T, result))
 
     def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> T:
         try:

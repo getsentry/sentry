@@ -62,7 +62,7 @@ class OrganizationOnboardingTaskManager(BaseManager["OrganizationOnboardingTask"
         organization_id: int,
         task: int,
         status: OnboardingTaskStatus = OnboardingTaskStatus.COMPLETE,
-        **kwargs,
+        **kwargs: object,
     ) -> bool:
         """Record the completion of an onboarding task. Caches the completion. Returns whether the task was created or not."""
         if status != OnboardingTaskStatus.COMPLETE:

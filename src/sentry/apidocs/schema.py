@@ -1,6 +1,6 @@
 import contextlib
 import copy
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from typing import Any
 
 from drf_spectacular.drainage import get_override
@@ -25,7 +25,7 @@ class SentrySchema(AutoSchema):
     """DRF Documentation Schema for sentry endpoints"""
 
     @property
-    def view_func(self):
+    def view_func(self) -> Callable[..., object]:
         return getattr(self.view, self.method.lower())
 
     def get_operation_id(self) -> str:

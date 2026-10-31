@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CELL,
 )
 def remove_inaccessible_console_platform_sources(
-    organization_id: int, current_platforms: list[str], **kwargs
+    organization_id: int, current_platforms: list[str], **kwargs: object
 ) -> None:
     """
     Remove symbol sources that the organization can no longer access from all

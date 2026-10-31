@@ -20,6 +20,7 @@ from sentry.api.authentication import (
     ViewerContextAuthentication,
 )
 from sentry.auth.principal import set_request_principal
+from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
@@ -33,7 +34,7 @@ TOKEN_AUTHENTICATION = (
 )
 
 
-def get_user(request):
+def get_user(request: HttpRequest) -> User | AnonymousUser:
     if not hasattr(request, "_cached_user"):
         user = auth_get_user(request)
         # If the user bound to this request matches a real user,
@@ -60,8 +61,9 @@ def get_user(request):
                 user = AnonymousUser()
             else:
                 UserIP.log(user, request.META["REMOTE_ADDR"])
-        request._cached_user = user
-    return request._cached_user
+        setattr(request, "_cached_user", user)
+    cached_user: User | AnonymousUser = getattr(request, "_cached_user")
+    return cached_user
 
 
 class AuthenticationMiddleware(MiddlewareMixin):

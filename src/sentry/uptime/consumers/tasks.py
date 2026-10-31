@@ -69,7 +69,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
     subscription_interval_ms = subscription.interval_seconds * 1000
     expected_next_ms = last_update_ms + subscription_interval_ms
     processed_count = 0
-    queued_results_raw: list[tuple[bytes, float]] = cluster.zrange(
+    queued_results_raw: list[tuple[str, float]] = cluster.zrange(
         backlog_key, 0, -1, withscores=True
     )
     host_provider = get_host_provider_if_valid(subscription)

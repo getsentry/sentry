@@ -14,7 +14,7 @@ def create_issue_occurrence(
     *,
     organization_id: int,
     project_id: int,
-    detected_issue: dict,
+    detected_issue: dict[str, object],
 ) -> CreateIssueOccurrenceResponse:
     """
     Create an issue occurrence from Seer detection data.
