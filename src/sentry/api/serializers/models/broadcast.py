@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count
@@ -30,6 +30,14 @@ class AdminBroadcastSerializerResponse(BroadcastSerializerResponse):
     createdBy: str | None
     upstreamId: str | None
     syncLocked: bool
+    plans: NotRequired[list[str] | None]
+    roles: NotRequired[list[str] | None]
+    trialStatus: NotRequired[list[str] | None]
+    region: NotRequired[str | None]
+    platform: NotRequired[list[str] | None]
+    product: NotRequired[list[str] | None]
+    earlyAdopter: NotRequired[bool | None]
+    organizations: NotRequired[list[int] | None]
 
 
 @register(Broadcast)
