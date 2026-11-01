@@ -93,7 +93,12 @@ class ReleaseArchiveTestCase(TestCase):
         with pytest.raises(ValueError, match="manifest files to be a JSON object"):
             ReleaseArchive(buffer)
 
-    def create_archive(self, fields, files, dist=None):
+    def create_archive(
+        self,
+        fields: dict[str, object],
+        files: dict[str, str],
+        dist: Distribution | None = None,
+    ) -> ReleaseFile | None:
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -124,6 +129,7 @@ class ReleaseArchiveTestCase(TestCase):
                 "baz": "bazaa",
             },
         )
+        assert archive1 is not None
 
         assert read_artifact_index(self.release, None) == {
             "files": {
@@ -165,6 +171,7 @@ class ReleaseArchiveTestCase(TestCase):
                 "zap": "zapz",
             },
         )
+        assert archive2 is not None
 
         # Two files were overwritten, one was added
         expected: ArtifactIndex = {
@@ -256,7 +263,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         # Only one `File` was created:
         assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
 
-        def delete():
+        def delete() -> None:
             sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 
@@ -295,7 +302,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert index is not None
         assert index["files"].keys() == {"0", "foo", "123"}
 
-        def delete():
+        def delete() -> None:
             sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 

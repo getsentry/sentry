@@ -1,14 +1,17 @@
-from typing import TYPE_CHECKING, Any
+from collections.abc import Callable, Mapping
+from typing import IO, TYPE_CHECKING, Any
 
 import pytest
 import requests
 import responses
+from django.conf import LazySettings
 
 from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
 
 if TYPE_CHECKING:
+    from sentry.services.eventstore.models import Event
     from sentry.testutils.cases import TestCase
 
     RequiredBaseclass = TestCase
@@ -35,7 +38,9 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
 
-    def post_and_retrieve_event(self, data, headers=None):
+    def post_and_retrieve_event(
+        self, data: object, headers: Mapping[str, str] | None = None
+    ) -> Event:
         if headers is None:
             headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
         url = self.get_relay_store_url(self.project.id)
@@ -61,7 +66,7 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event is not None
         return event
 
-    def post_and_retrieve_security_report(self, data):
+    def post_and_retrieve_security_report(self, data: object) -> Event:
         url = self.get_relay_security_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -73,7 +78,7 @@ class RelayStoreHelper(RequiredBaseclass):
             )
         }
 
-        def has_new_event():
+        def has_new_event() -> Event | None:
             # Hack: security report endpoint does not return event ID
             for event in eventstore.backend.get_events(
                 eventstore.Filter(project_ids=[self.project.id]),
@@ -81,6 +86,7 @@ class RelayStoreHelper(RequiredBaseclass):
             ):
                 if event.event_id not in event_ids:
                     return event
+            return None
 
         resp = requests.post(url, json=data)
 
@@ -91,13 +97,19 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event
         return event
 
-    def post_and_try_retrieve_event(self, data, headers=None):
+    def post_and_try_retrieve_event(
+        self, data: object, headers: Mapping[str, str] | None = None
+    ) -> Event | None:
         try:
             return self.post_and_retrieve_event(data, headers)
         except AssertionError:
             return None
 
-    def post_and_retrieve_attachment(self, event_id, files):
+    def post_and_retrieve_attachment(
+        self,
+        event_id: str,
+        files: Mapping[str, IO[bytes] | tuple[str, IO[bytes]]],
+    ) -> None:
         url = self.get_relay_attachments_url(self.project.id, event_id)
         responses.add_passthru(url)
 
@@ -116,7 +128,11 @@ class RelayStoreHelper(RequiredBaseclass):
 
         assert exists
 
-    def post_and_retrieve_minidump(self, files, data):
+    def post_and_retrieve_minidump(
+        self,
+        files: Mapping[str, IO[bytes] | tuple[str, IO[bytes]]] | None,
+        data: Mapping[str, object] | None,
+    ) -> Event:
         url = self.get_relay_minidump_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -140,7 +156,7 @@ class RelayStoreHelper(RequiredBaseclass):
         assert event is not None
         return event
 
-    def post_and_retrieve_unreal(self, payload):
+    def post_and_retrieve_unreal(self, payload: bytes) -> Event:
         url = self.get_relay_unreal_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
@@ -166,14 +182,14 @@ class RelayStoreHelper(RequiredBaseclass):
     @pytest.fixture(autouse=True)
     def relay_setup_fixtures(
         self,
-        settings,
-        get_relay_store_url,
-        get_relay_minidump_url,
-        get_relay_unreal_url,
-        get_relay_security_url,
-        get_relay_attachments_url,
-        wait_for_ingest_consumer,
-    ):
+        settings: LazySettings,
+        get_relay_store_url: Callable[..., str],
+        get_relay_minidump_url: Callable[..., str],
+        get_relay_unreal_url: Callable[..., str],
+        get_relay_security_url: Callable[..., str],
+        get_relay_attachments_url: Callable[..., str],
+        wait_for_ingest_consumer: Callable[..., Callable[..., object | None]],
+    ) -> None:
         self.auth_header = get_auth_header(
             "TEST_USER_AGENT/0.0.0",
             self.projectkey.public_key,

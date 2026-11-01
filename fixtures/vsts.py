@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import ParseResult, parse_qs, urlparse
 
 import pytest
 import responses
@@ -29,7 +30,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         return integration, installation
 
     @pytest.fixture(autouse=True)
-    def setup_data(self):
+    def setup_data(self) -> Iterator[None]:
         self.access_token = "9d646e20-7a62-4bcc-abc0-cb2d4d075e36"
         self.refresh_token = "32004633-a3c0-4616-9aa0-a40632adac77"
 
@@ -53,7 +54,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
             self._stub_vsts()
             yield
 
-    def _stub_vsts(self):
+    def _stub_vsts(self) -> None:
         responses.reset()
 
         responses.add(
@@ -195,7 +196,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
                 },
             )
 
-    def _pipeline_url(self):
+    def _pipeline_url(self) -> str:
         return reverse(
             "sentry-api-0-organization-pipeline",
             kwargs={
@@ -204,13 +205,13 @@ class VstsIntegrationTestCase(IntegrationTestCase):
             },
         )
 
-    def assert_vsts_new_oauth_redirect(self, redirect):
+    def assert_vsts_new_oauth_redirect(self, redirect: ParseResult) -> None:
         assert redirect.scheme == "https"
         assert redirect.netloc == "login.microsoftonline.com"
         assert redirect.path == "/common/oauth2/v2.0/authorize"
 
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def assert_installation(self, account_id=None):
+    def assert_installation(self, account_id: str | None = None) -> None:
         # Drives the API pipeline: initialize -> oauth -> account selection.
         account_id = account_id or self.vsts_account_id
         pipeline_url = self._pipeline_url()

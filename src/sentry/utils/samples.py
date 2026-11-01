@@ -4,6 +4,7 @@ import random
 import time
 from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from typing import Any, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -12,6 +13,8 @@ from django.core.exceptions import SuspiciousFileOperation
 from sentry.constants import DATA_ROOT, INTEGRATION_ID_TO_PLATFORM_DATA, STATIC_ROOT
 from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
+from sentry.models.project import Project
+from sentry.services.eventstore.models import Event
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
 from sentry.utils.dates import deprecated_utcnow
@@ -28,7 +31,7 @@ def random_normal(mu: float, sigma: float, minimum: float, maximum: float | None
     return random_value
 
 
-def random_ip():
+def random_ip() -> str:
     not_valid = [10, 127, 169, 172, 192]
 
     first = random.randrange(1, 256)
@@ -74,7 +77,7 @@ def random_username() -> str:
     )
 
 
-def name_for_username(username):
+def name_for_username(username: str) -> str:
     return {
         "ben": "Ben Vinegar",
         "chris": "Chris Jennings",
@@ -90,7 +93,12 @@ def name_for_username(username):
     }.get(username, username.replace("_", " ").title())
 
 
-def generate_user(username=None, email=None, ip_address=None, id=None):
+def generate_user(
+    username: str | None = None,
+    email: str | None = None,
+    ip_address: str | None = None,
+    id: int | None = None,
+) -> str:
     if username is None and email is None:
         username = random_username()
         email = f"{username}@example.com"
@@ -100,7 +108,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
             "username": username,
             "email": email,
             "ip_address": ip_address or random_ip(),
-            "name": name_for_username(username),
+            "name": name_for_username(cast(str, username)),
             "geo": random_geo(),
         }
     )
@@ -109,7 +117,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
 
 
 def load_data(
-    platform: str,
+    platform: str | None,
     default: str | None = None,
     sample_name: str | None = None,
     timestamp: datetime | None = None,
@@ -120,7 +128,7 @@ def load_data(
     trace_context: dict[str, object] | None = None,
     fingerprint: list[str] | None = None,
     event_id: str | None = None,
-):
+) -> dict[str, Any] | None:
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -131,7 +139,7 @@ def load_data(
     #     a fake event is generated to go through the pipeline.
     data = None
     language = None
-    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform)
+    platform_data = INTEGRATION_ID_TO_PLATFORM_DATA.get(platform or "")
 
     if platform_data is not None and platform_data["type"] != "language":
         language = platform_data["language"]
@@ -165,7 +173,7 @@ def load_data(
         if not os.path.isfile(json_path):
             raise IsADirectoryError("expected file but found a directory instead")
 
-        if not sample_name:
+        if not sample_name and platform is not None:
             try:
                 sample_name = INTEGRATION_ID_TO_PLATFORM_DATA[platform]["name"]
             except KeyError:
@@ -179,7 +187,7 @@ def load_data(
             break
 
     if data is None:
-        return
+        return None
 
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
@@ -326,7 +334,7 @@ def load_console_screenshot() -> str | None:
         return None
 
 
-def create_console_screenshot_attachment(event, project, platform):
+def create_console_screenshot_attachment(event: Event, project: Project, platform: str) -> None:
     from sentry.attachments.base import CachedAttachment
     from sentry.models.eventattachment import EventAttachment
 
@@ -368,7 +376,7 @@ def create_console_screenshot_attachment(event, project, platform):
         return None
 
 
-def create_n_plus_one_issue(data):
+def create_n_plus_one_issue(data: dict[str, Any]) -> None:
     timestamp = datetime.fromtimestamp(data["start_timestamp"])
     n_plus_one_db_duration = timedelta(milliseconds=100)
     n_plus_one_db_current_offset = timestamp
@@ -421,7 +429,7 @@ def create_n_plus_one_issue(data):
     )
 
 
-def create_db_main_thread_issue(data):
+def create_db_main_thread_issue(data: dict[str, Any]) -> None:
     timestamp = datetime.fromtimestamp(data["start_timestamp"])
     span_duration = timedelta(milliseconds=100)
     parent_span_id = data["spans"][0]["parent_span_id"]
@@ -448,22 +456,22 @@ PERFORMANCE_ISSUE_CREATORS = {
 
 
 def create_sample_event(
-    project,
-    platform=None,
-    default=None,
-    raw=True,
-    sample_name=None,
-    timestamp=None,
-    start_timestamp=None,
-    trace=None,
-    span_id=None,
-    spans=None,
-    tagged=False,
-    performance_issues=None,
-    **kwargs,
-):
+    project: Project,
+    platform: str | None = None,
+    default: str | None = None,
+    raw: bool = True,
+    sample_name: str | None = None,
+    timestamp: datetime | None = None,
+    start_timestamp: datetime | None = None,
+    trace: str | None = None,
+    span_id: str | None = None,
+    spans: Sequence[dict[str, object]] | None = None,
+    tagged: bool = False,
+    performance_issues: Sequence[str] | None = None,
+    **kwargs: Any,
+) -> Event | None:
     if not platform and not default:
-        return
+        return None
 
     data = load_data(
         platform,
@@ -475,6 +483,7 @@ def create_sample_event(
         span_id,
         spans,
     )
+    assert data is not None
 
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:
@@ -494,8 +503,12 @@ def create_sample_event(
 
 
 def create_sample_event_basic(
-    data, project_id, raw=True, skip_send_first_transaction=False, tagged=False
-):
+    data: dict[str, Any],
+    project_id: int,
+    raw: bool = True,
+    skip_send_first_transaction: bool = False,
+    tagged: bool = False,
+) -> Event:
     if tagged:
         set_tag(data, "sample_event", "yes")
     manager = EventManager(data)
@@ -505,7 +518,15 @@ def create_sample_event_basic(
     )
 
 
-def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
+def create_trace(
+    slow: bool,
+    start_timestamp: datetime,
+    timestamp: datetime,
+    user: object,
+    trace_id: str,
+    parent_span_id: str,
+    data: dict[str, Any],
+) -> None:
     """A recursive function that creates the events of a trace"""
     frontend = data.get("frontend")
     mobile = data.get("mobile")

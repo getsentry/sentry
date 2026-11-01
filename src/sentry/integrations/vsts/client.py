@@ -130,7 +130,14 @@ class VstsSetupApiClient(ApiClient):
         self.oauth_redirect_url = oauth_redirect_url
         self.access_token = access_token
 
-    def request(self, method, path, data=None, params=None, api_preview: bool = False) -> Any:
+    def request(
+        self,
+        method: str,
+        path: str,
+        data: Mapping[str, Any] | None = None,
+        params: Mapping[str, Any] | None = None,
+        api_preview: bool = False,
+    ) -> Any:
         headers = prepare_headers(
             api_version=self.api_version,
             method=method,
@@ -165,7 +172,7 @@ class VstsApiClient(IntegrationProxyClient, RepositoryClient):
         super().__init__(org_integration_id=org_integration_id)
 
     @property
-    def identity(self):
+    def identity(self) -> Identity:
         if self._identity:
             return self._identity
         if self.identity_id is None:

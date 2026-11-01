@@ -23,7 +23,7 @@ class StubService:
     service_name: str
 
     @staticmethod
-    def get_stub_json(service_name, name):
+    def get_stub_json(service_name: str, name: str) -> str:
         """
         Get the stubbed data as a JSON string.
 
@@ -36,7 +36,7 @@ class StubService:
             return f.read()
 
     @staticmethod
-    def get_stub_data(service_name, name):
+    def get_stub_data(service_name: str, name: str) -> Any:
         """
         Get the stubbed data as a python object.
 
@@ -44,6 +44,7 @@ class StubService:
         :param name: string
         :return: object
         """
+        # justification: decoded JSON fixture data has no fixed schema.
         cache_key = f"{service_name}.{name}"
         cached = StubService.stub_data_cache.get(cache_key)
         if cached:
@@ -53,5 +54,6 @@ class StubService:
             StubService.stub_data_cache[cache_key] = data
         return deepcopy(data)
 
-    def _get_stub_data(self, name):
+    def _get_stub_data(self, name: str) -> Any:
+        # justification: decoded JSON fixture data has no fixed schema.
         return StubService.get_stub_data(self.service_name, name)
