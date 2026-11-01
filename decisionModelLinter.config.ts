@@ -1,7 +1,4 @@
 // Sentry's decision-model lint rules: https://github.com/getsentry/decision-model-linter
-import {execFile} from 'node:child_process';
-import {promisify} from 'node:util';
-
 import type {Config, Model, Suite} from '@sentry/decision-model-linter';
 
 const jev = {
@@ -11,41 +8,7 @@ const jev = {
   maxInputTokens: 32_768,
 } satisfies Model;
 
-const diffBase = process.env.DECISION_MODEL_LINT_BASE;
-const NO_DIFF = 'No diff available.';
-const execFileAsync = promisify(execFile);
-
-// the engine shows a changed file's new lines only, so a rule can't tell new code from code
-// that was already there. The diff adds the removed lines, with no context lines so unchanged
-// code stays hidden from the other rules in the suitee
-async function diff({path}: {path: string}): Promise<string> {
-  if (!diffBase) {
-    return NO_DIFF;
-  }
-  try {
-    const {stdout} = await execFileAsync('git', [
-      'diff',
-      '--unified=0',
-      diffBase,
-      '--',
-      path,
-    ]);
-    // a new file or a renamed one
-    if (!stdout || /^new file mode/m.test(stdout)) {
-      return NO_DIFF;
-    }
-    return stdout;
-  } catch {
-    return NO_DIFF;
-  }
-}
-
-// added to the prompts of rules that should only report problems the change itself adds
-const CAUSED_BY_THIS_CHANGE =
-  'Use diff to tell whether this change caused it: compare its - (removed) and + (added) lines. A line that only moved or was reformatted appears as both - and +, so it already existed. If diff says No diff available., judge from the (new) lines alone.';
-
 const api = {
-  context: {diff},
   rules: {
     addsNewOmittedFields: {
       prompt:
@@ -129,24 +92,18 @@ const api = {
     returnsUnpaginatedList: {
       threshold: 0.8,
       prompt:
-        'Does an endpoint\'s GET method return a list of objects that can keep growing, such as an organization\'s projects, members, issues, releases, or monitors, without paginating it with self.paginate(...) or a paginator class? A list inside a response object (for example {"data": [...]}) counts too. Lists with a small fixed limit, lists of fixed choices or enum values, single objects, and lists that are only built for internal use and never returned do not count. ' +
-        CAUSED_BY_THIS_CHANGE,
+        'Does an endpoint\'s GET method return a list of objects that can keep growing, such as an organization\'s projects, members, issues, releases, or monitors, without paginating it with self.paginate(...) or a paginator class? A list inside a response object (for example {"data": [...]}) counts too. Lists with a small fixed limit, lists of fixed choices or enum values, single objects, and lists that are only built for internal use and never returned do not count.',
       values: [
         {
-          value: 'INTRODUCED',
+          value: 'TRUE',
           description:
-            'This change adds a GET handler, or a newly returned list, whose growing collection nothing paginates or limits, or it removes pagination from a list that had it.',
+            'A GET handler returns a growing collection, at the top level of the response or nested in it, and nothing paginates or limits it.',
           severity: 'warn',
           report:
-            "List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This change returns a list that can keep growing without paginating it. If the endpoint already existed, don't add pagination to it: that changes what existing callers get back.",
+            "List endpoints should paginate with `self.paginate(...)` and a `cursor` parameter. This endpoint returns a list that can keep growing without paginating it. If the endpoint already exists, don't add pagination here: that changes what existing callers get back, so it's a breaking change that needs a deprecation plan.",
         },
         {
-          value: 'PREEXISTING',
-          description:
-            'The endpoint already returned the unpaginated list before this change: its handler and return lines are not added in diff, and the change only touches nearby code.',
-        },
-        {
-          value: 'NONE',
+          value: 'FALSE',
           description:
             'Every growing list the endpoint returns is paginated, or it returns a single object, a fixed set of values, or a list with a small fixed limit.',
         },
@@ -155,24 +112,18 @@ const api = {
     replacesMembershipWithList: {
       threshold: 0.8,
       prompt:
-        'Does a PUT, PATCH, or POST that updates an existing object accept a list of IDs, users, emails, teams, or members (for example a serializers.ListField of user IDs) and use it to replace the whole stored set, by comparing it to the current members and adding or removing the difference, clearing and re-adding, or calling set()? replayAccessMembers in organization_details.py is an example: two people editing the list at the same time overwrite each other. Lists sent once when an object is first created, lists that only add members, and lists of settings or values that are not memberships do not count. ' +
-        CAUSED_BY_THIS_CHANGE,
+        'Does a PUT, PATCH, or POST that updates an existing object accept a list of IDs, users, emails, teams, or members (for example a serializers.ListField of user IDs) and use it to replace the whole stored set, by comparing it to the current members and adding or removing the difference, clearing and re-adding, or calling set()? replayAccessMembers in organization_details.py is an example: two people editing the list at the same time overwrite each other. Lists sent once when an object is first created, lists that only add members, and lists of settings or values that are not memberships do not count.',
       values: [
         {
-          value: 'INTRODUCED',
+          value: 'TRUE',
           description:
-            'This change adds a request list field, or new code that uses one, to replace the whole stored set of members on an existing object, and diff shows no removed line for that field or logic.',
+            'A request field holds a list of members, users, teams, or IDs, and its value replaces the whole stored set on an existing object.',
           severity: 'warn',
           report:
-            "A list field that replaces a whole set of members lets two concurrent edits overwrite each other. Prefer separate endpoints to add and remove one member. Don't change or remove an existing field to fix this, because that breaks its callers.",
+            "A list field that replaces a whole set of members lets two concurrent edits overwrite each other. For new fields, prefer separate endpoints to add and remove one member. Don't change or remove an existing field to fix this, because that breaks its callers.",
         },
         {
-          value: 'PREEXISTING',
-          description:
-            'A list already replaced the stored set before this change: the field and the replacing code are not added in diff, or appear as both removed and added lines.',
-        },
-        {
-          value: 'NONE',
+          value: 'FALSE',
           description:
             'No request list replaces a stored set of members, or the list is only used when creating a new object, only adds members, or is not a membership list.',
         },
@@ -180,24 +131,18 @@ const api = {
     },
     returnsNumericIdAsInteger: {
       prompt:
-        "Does API response code, such as a serializer's serialize() method, a response TypedDict, or the body passed to Response(...), return a numeric ID (id, or a field ending in Id or _id, such as projectId or organization_id) as an integer instead of a string? IDs converted with str(), IDs that are already strings (UUIDs, slugs, hex event IDs), counts and other numbers that are not IDs, and code that does not build an API response do not count. " +
-        CAUSED_BY_THIS_CHANGE,
+        "Does API response code, such as a serializer's serialize() method, a response TypedDict, or the body passed to Response(...), return a numeric ID (id, or a field ending in Id or _id, such as projectId or organization_id) as an integer instead of a string? IDs converted with str(), IDs that are already strings (UUIDs, slugs, hex event IDs), counts and other numbers that are not IDs, and code that does not build an API response do not count.",
       values: [
         {
-          value: 'INTRODUCED',
+          value: 'TRUE',
           description:
-            'An added line returns a numeric ID as an integer, for example "id": obj.id, or declares an ID field as int in a response TypedDict, and no removed line in diff had that field: a new field, serializer, or endpoint.',
+            'A numeric ID is placed in an API response as an integer, for example "id": obj.id, or a response TypedDict declares an ID field as int.',
           severity: 'warn',
           report:
-            "API responses should return numeric IDs as strings, for example `str(obj.id)`. This change adds one returned as an integer. If the field already existed, don't change its type, because callers expect a number.",
+            "API responses should return numeric IDs as strings, for example `str(obj.id)`. This file returns one as an integer. If the field already exists, don't change its type here, because callers expect a number. Only new fields should follow this rule.",
         },
         {
-          value: 'PREEXISTING',
-          description:
-            'An ID is returned as an integer, but it already was before this change: the field also appears in a removed line in diff, or the change only touches nearby code.',
-        },
-        {
-          value: 'NONE',
+          value: 'FALSE',
           description:
             'Every ID in the response is a string, or the code builds no API response.',
         },
@@ -206,20 +151,20 @@ const api = {
     makesExistingInputStricter: {
       threshold: 0.8,
       prompt:
-        'Does the change make an endpoint or serializer that already existed reject input it used to accept, or change what callers get when they leave a field out? Compare the - (removed) and + (added) lines in diff for the same field or method. That includes: a field that becomes required (required=False or a default removed, or required=True added); a new required field added to an existing serializer; new or tighter validation on an existing field (a validate_<field> method, validators=, a smaller max_length or max_value, a larger min_length or min_value, a narrower choices list, or a new ValidationError raised from validate); an allowed value or format removed; or the default of an existing optional field changed. A serializer or endpoint is new, and does not count, when its class or def line is an added line in diff. New optional fields, relaxed validation, and lines that only moved or were reformatted do not count. If diff says No diff available., nothing existed to compare against, so answer FALSE.',
+        'Does the change make an endpoint or serializer that already existed reject input it used to accept? Code already existed when the lines around the change are unchanged or omitted; removed lines are not shown. That includes a (new) field line in an existing serializer that is required (required=True, or no required=False), which covers both a field becoming required and a new required field, new validation on an existing field (a validate_<field> method, validators=, min_value, max_value, max_length, a narrower choices list, or a new ValidationError raised from validate), or an allowed value or format being removed. A new endpoint or serializer where every line is new, and new optional fields, do not count.',
       values: [
         {
           value: 'TRUE',
           description:
-            "Diff shows existing input becoming stricter or changing meaning: a field became required, a required field was added to an existing serializer, validation was added or tightened, an allowed value was removed, or an optional field's default changed.",
+            'Input that an existing endpoint or serializer accepted before is now rejected: a field became required, a required field was added, or new validation was added to existing input.',
           severity: 'warn',
           report:
-            "Rejecting input an endpoint accepted before, or changing a field's default, breaks existing callers, and the API spec often doesn't show it. Make the change backward compatible (keep the field optional, accept the old values, or keep the old default), or treat it as a breaking change and coordinate it.",
+            "Rejecting input an endpoint accepted before breaks existing callers, and the API spec often doesn't show it. Make the change backward compatible (keep the field optional, or accept the old values), or treat it as a breaking change and coordinate it.",
         },
         {
           value: 'FALSE',
           description:
-            'The change adds a new endpoint, serializer, or optional field, relaxes or keeps existing validation and defaults, only moves or reformats lines, or diff is not available.',
+            'The change adds a new endpoint or serializer, adds only optional fields, or relaxes or keeps existing validation.',
         },
       ],
     },
