@@ -101,7 +101,7 @@ class OrganizationReplayIndexEndpoint(OrganizationReplayEndpoint):
             if not isinstance(sort, str):
                 sort = None
 
-            actor = Actor.from_identifier(request.user.id) if has_user(request.user) else None
+            actor = Actor.from_object(request.user) if has_user(request.user) else None
             response = query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
                 start=filter_params["start"],

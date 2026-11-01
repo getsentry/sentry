@@ -136,7 +136,7 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
         **kwargs: object,
     ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, monitor_id_or_slug, *args, **kwargs)
-        environment = cast("str | None", kwargs.get("environment"))
+        environment = cast("str", kwargs.pop("environment"))
         monitor = cast("Monitor", kwargs["monitor"])
         try:
             environment_object = Environment.objects.get(

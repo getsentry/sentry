@@ -77,7 +77,7 @@ class ProposedFixPayload(TypedDict):
 
 class RunPayload(TypedDict):
     groupId: str
-    shortId: str
+    shortId: str | None
     title: str
     rootCause: RootCausePayload | None
     proposedFix: ProposedFixPayload | None

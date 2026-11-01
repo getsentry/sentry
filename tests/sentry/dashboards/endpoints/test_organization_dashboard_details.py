@@ -906,6 +906,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         super().setUp()
         self.project = self.create_project()
         self.create_user_member_role()
+        Dashboard.objects.filter(id=self.dashboard.id).update(created_by_id=self.user.id)
         self.widget_3 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
             order=2,

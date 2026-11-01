@@ -754,9 +754,10 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         )
 
         assert event.group is not None
-        repair_denormalizations(get_caches(), project, [event.for_group(event.group)])
+        group_event = event.for_group(event.group)
+        repair_denormalizations(get_caches(), project, [group_event])
 
-        mock_similarity.record.assert_called_once_with(project, [event])
+        mock_similarity.record.assert_called_once_with(project, [group_event])
 
 
 class StartUnmergeTest(TestCase):

@@ -105,7 +105,8 @@ class VisualStudioRepositoryProviderTest(TestCase):
             "installation": integration.id,
         }
         repository_config = self.provider.build_repository_config(
-            serialize_rpc_organization(organization), data
+            serialize_rpc_organization(organization, include_projects=False, include_teams=False),
+            data,
         )
 
         assert repository_config == {

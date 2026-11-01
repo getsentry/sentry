@@ -323,7 +323,7 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
         assert attributes["region"].string_value == "us-east-1"
         assert attributes["scheduled_check_time_us"].int_value == 1609459200000000
         assert attributes["actual_check_time_us"].int_value == 1609459205000000
-        assert attributes["status_reason_type"].string_value == "missed_window"
+        assert attributes["status_reason_type"].string_value == "miss_produced"
         assert attributes["status_reason_description"].string_value == "Check was not executed"
         assert attributes["check_id"].string_value == "test-guid-123"
         assert attributes["request_sequence"].int_value == 0
@@ -467,7 +467,7 @@ class TestFullDenormalizedConversion(SentryTestCase):
         assert attributes["guid"].string_value == "test-guid-123"
         assert attributes["subscription_id"].string_value == "sub-456"
         assert attributes["check_status"].string_value == "missed_window"
-        assert attributes["status_reason_type"].string_value == "missed_window"
+        assert attributes["status_reason_type"].string_value == "miss_produced"
 
         # Request-specific attributes should NOT be present
         assert "request_type" not in attributes

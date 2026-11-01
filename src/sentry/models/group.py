@@ -952,7 +952,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if not self.times_seen:
+        if cast("int | None", self.times_seen) is None:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,

@@ -277,6 +277,7 @@ class ProjectDebugFile(Model):
             assert self.file_size is not None
             return int(self.file_size)
         if self.file is not None:
+            assert self.file.size is not None
             return self.file.size
         raise ValueError("ProjectDebugFile has neither file nor storage_path")
 

@@ -1600,7 +1600,7 @@ def query(
     totals: Literal[False] | None = False,
     use_cache: bool = False,
     **kwargs: Any,
-) -> dict[str, Any]: ...
+) -> dict[str | int, Any]: ...
 
 
 @overload
@@ -1616,7 +1616,7 @@ def query(
     totals: Literal[True] = True,
     use_cache: bool = False,
     **kwargs: Any,
-) -> tuple[dict[str, Any], Any]: ...
+) -> tuple[dict[str | int, Any], Any]: ...
 
 
 @overload
@@ -1632,7 +1632,7 @@ def query(
     totals: bool | None = None,
     use_cache: bool = False,
     **kwargs: Any,
-) -> dict[str, Any] | tuple[dict[str, Any], Any]: ...
+) -> dict[str | int, Any] | tuple[dict[str | int, Any], Any]: ...
 
 
 def query(
@@ -1647,7 +1647,7 @@ def query(
     totals: bool | None = None,
     use_cache: bool = False,
     **kwargs: Any,
-) -> dict[str, Any] | tuple[dict[str, Any], Any]:
+) -> dict[str | int, Any] | tuple[dict[str | int, Any], Any]:
     parsed_aggregations: list[list[Any]] = (
         [list(a) for a in aggregations] if aggregations else [["count()", "", "aggregate"]]
     )
@@ -1675,6 +1675,7 @@ def query(
                 if conditions is not None
                 else None
             ),
+            # justification: Snuba accepts string event ids in filter_keys despite the int-typed signature.
             filter_keys=cast(dict[str, Sequence[int]], filter_keys),
             aggregations=parsed_aggregations,
             selected_columns=selected_columns,

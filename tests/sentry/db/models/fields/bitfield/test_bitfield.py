@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import pickle
 import unittest
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from django import forms
@@ -26,7 +28,13 @@ class BitFieldTestModel(models.Model):
         bitfield_db_column = "another_name"
 
 
-class BitFieldTestModelForm(forms.ModelForm[BitFieldTestModel]):
+if TYPE_CHECKING:
+    _ModelForm = forms.ModelForm[BitFieldTestModel]
+else:
+    _ModelForm = forms.ModelForm
+
+
+class BitFieldTestModelForm(_ModelForm):
     class Meta:
         model = BitFieldTestModel
         exclude = ()

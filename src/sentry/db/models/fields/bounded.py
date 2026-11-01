@@ -44,7 +44,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField[_ST, _GT]):
         return super().get_prep_value(value)
 
 
-class WrappingU32IntegerField(models.IntegerField[int, int]):
+class WrappingU32IntegerField(models.IntegerField[_ST, _GT]):
     """
     This type allows storing a full unsigned `u32` value by manually wrapping it around,
     so it is stored as a signed `i32` value in the database.

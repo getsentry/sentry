@@ -143,7 +143,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         with self.tasks():
             SlackIntegrationProvider().post_install(
                 self.integration,
-                serialize_rpc_organization(self.organization),
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={},
             )
 
@@ -201,7 +203,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         with self.tasks():
             SlackIntegrationProvider().post_install(
                 self.integration,
-                serialize_rpc_organization(self.organization),
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={},
             )
 
@@ -239,7 +243,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         with self.tasks(), pytest.raises(SlackApiError):
             SlackIntegrationProvider().post_install(
                 self.integration,
-                serialize_rpc_organization(self.organization),
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={},
             )
 
@@ -260,7 +266,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         with self.tasks():
             SlackIntegrationProvider().post_install(
                 self.integration,
-                serialize_rpc_organization(self.organization),
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={},
             )
 
@@ -282,7 +290,9 @@ class SlackIntegrationPostInstallTest(APITestCase):
         with self.tasks():
             SlackIntegrationProvider().post_install(
                 self.integration,
-                serialize_rpc_organization(self.organization),
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={},
             )
 

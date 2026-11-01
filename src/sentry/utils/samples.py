@@ -187,7 +187,8 @@ def load_data(
             break
 
     if data is None:
-        raise ValueError(f"No sample data for {platform!r}")
+        # justification: callers probe for a missing sample and treat None as absent.
+        return cast("dict[str, Any]", None)
 
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data

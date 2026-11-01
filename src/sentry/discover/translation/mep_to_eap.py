@@ -37,7 +37,7 @@ class DroppedOrderby(TypedDict):
 class DroppedFields(TypedDict):
     selected_columns: list[str]
     equations: list[DroppedEquation]
-    orderby: list[DroppedOrderby]
+    orderby: list[DroppedOrderby] | None
 
 
 COLUMNS_TO_DROP = (
@@ -536,7 +536,7 @@ def translate_mep_to_eap(query_parts: QueryParts) -> tuple[QueryParts, DroppedFi
     dropped_fields = DroppedFields(
         selected_columns=dropped_columns,
         equations=dropped_equations or [],
-        orderby=dropped_orderbys or [],
+        orderby=dropped_orderbys,
     )
 
     return eap_query, dropped_fields

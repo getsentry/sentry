@@ -858,7 +858,9 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
         settings_form = auth_provider_settings_form(
             provider,
             self.auth_provider_inst,
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             request,
         )
         assert "x509cert" not in settings_form.fields

@@ -798,7 +798,6 @@ class Factories:
             kwargs["slug"] = slugify(str(kwargs["name"]))
         if not organization and teams:
             organization = teams[0].organization
-        assert organization is not None
 
         with (
             disable_default_detector_creation()
@@ -806,7 +805,11 @@ class Factories:
             else contextlib.nullcontext()
         ):
             with transaction.atomic(router.db_for_write(Project)):
-                project = Project.objects.create(organization=organization, **kwargs)
+                if organization is not None:
+                    project = Project.objects.create(organization=organization, **kwargs)
+                else:
+                    assert "organization_id" in kwargs
+                    project = Project.objects.create(**kwargs)
                 if teams:
                     for team in teams:
                         project.add_team(team)

@@ -18,7 +18,7 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class _TopValue(TypedDict):
-    name: str
+    name: str | None
     value: int | str
     count: int
 
@@ -79,11 +79,9 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 for row in facets:
                     values = resp[row.key]
                     values["key"] = tagstore.backend.get_standardized_key(row.key)
-                    name = tagstore.backend.get_tag_value_label(row.key, row.value)
-                    assert name is not None
                     values["topValues"].append(
                         {
-                            "name": name,
+                            "name": tagstore.backend.get_tag_value_label(row.key, row.value),
                             "value": row.value,
                             "count": row.count,
                         }

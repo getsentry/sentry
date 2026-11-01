@@ -63,6 +63,7 @@ from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     UnknownHostError,
 )
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import control_silo_function
 from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
@@ -1221,7 +1222,7 @@ class GitHubBaseClient(
         """
         return self.get(f"/repos/{repo}/contents/{path}", params={"ref": ref} if ref else {})
 
-    def check_file(self, repo: Repository, path: str, version: str | None) -> object | None:
+    def check_file(self, repo: Repository, path: str, version: str | None) -> BaseApiResponse:
         return self.head_cached(
             path=f"/repos/{repo.name}/contents/{path}",
             params={"ref": version},

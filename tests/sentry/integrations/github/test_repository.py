@@ -96,7 +96,8 @@ class GitHubAppsProviderTest(TestCase):
             "integration_id": integration.id,
         }
         repo_config_data = self.provider.build_repository_config(
-            serialize_rpc_organization(organization), data
+            serialize_rpc_organization(organization, include_projects=False, include_teams=False),
+            data,
         )
         assert repo_config_data == {
             "config": {"name": "getsentry/example-repo"},

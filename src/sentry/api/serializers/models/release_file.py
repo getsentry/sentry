@@ -17,7 +17,7 @@ class ReleaseFileSerializerResponse(TypedDict):
     name: str
     dist: str | None
     headers: dict[str, object]
-    size: int
+    size: int | None
     sha1: str | None
     dateCreated: datetime
 

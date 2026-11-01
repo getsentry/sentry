@@ -109,10 +109,10 @@ class MSTeamsMessageBuilderTest(TestCase):
             external_id="f3ll0wsh1p",
             metadata={},
         )
-        self.create_organization_integration(
-            organization_id=self.org.id, integration=self.rpc_integration
-        )
         self.rpc_integration: RpcIntegration = serialize_integration(self.integration)
+        self.create_organization_integration(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(

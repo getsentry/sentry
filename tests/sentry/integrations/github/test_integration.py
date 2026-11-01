@@ -423,7 +423,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             GitHubIntegrationProvider().post_install(
                 integration=integration,
-                organization=serialize_rpc_organization(self.organization),
+                organization=serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
                 extra={"app_id": self.app_id},
             )
 

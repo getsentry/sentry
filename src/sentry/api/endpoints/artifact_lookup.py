@@ -124,7 +124,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             response = StreamingHttpResponse(
                 iter(lambda: fp.read(4096), b""), content_type="application/octet-stream"
             )
-            response["Content-Length"] = file.size
+            response["Content-Length"] = str(file.size)
             response["Content-Disposition"] = f'attachment; filename="{file.name}"'
             return response
         except OSError:

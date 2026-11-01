@@ -172,7 +172,8 @@ def create_audit_entry_from_user(
 
 
 def get_api_key_for_audit_log(request: HttpRequest) -> ApiKey | None:
-    return request.auth if isinstance(request.auth, ApiKey) else None
+    auth = getattr(request, "auth", None)
+    return auth if isinstance(auth, ApiKey) else None
 
 
 def get_org_auth_token_for_audit_log(request: HttpRequest) -> OrgAuthToken | None:

@@ -456,7 +456,9 @@ class GcpIntegrationTest(TestCase):
 
         self.provider.post_install(
             integration,
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             extra=built["post_install_data"],
         )
 
@@ -568,7 +570,9 @@ class GcpIntegrationTest(TestCase):
 
         self.provider.post_install(
             integration,
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             extra={
                 "sentry_sa_email": _SA_EMAIL,
                 "customer_sa_email": _CUSTOMER_SA,
@@ -603,7 +607,9 @@ class GcpIntegrationTest(TestCase):
 
         self.provider.post_install(
             integration,
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             extra={
                 "sentry_sa_email": _SA_EMAIL,
                 "customer_sa_email": _CUSTOMER_SA,
@@ -648,7 +654,9 @@ class GcpIntegrationTest(TestCase):
 
         self.provider.post_install(
             integration,
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             extra={
                 "sentry_sa_email": _SA_EMAIL,
                 "customer_sa_email": _CUSTOMER_SA,

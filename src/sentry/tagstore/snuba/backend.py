@@ -443,11 +443,13 @@ class SnubaTagStorage(TagStorage):
                 raise TagKeyNotFound if group is None else GroupTagKeyNotFound
 
         output: TagKey | GroupTagKey
+        # justification: tag keys are strings even though Snuba result keys are str | int.
+        tag_results = cast("dict[str, dict[str, Any]]", result)
         if group is None:
             output = _make_result(
                 key=key,
                 totals=totals,
-                result=result,
+                result=tag_results,
                 key_ctor=TagKey,
                 value_ctor=TagValue,
             )
@@ -455,7 +457,7 @@ class SnubaTagStorage(TagStorage):
             snuba_output = _make_result(
                 key=key,
                 totals=totals,
-                result=result,
+                result=tag_results,
                 key_ctor=functools.partial(GroupTagKey, group_id=group.id),
                 value_ctor=functools.partial(GroupTagValue, group_id=group.id),
             )
@@ -1279,7 +1281,7 @@ class SnubaTagStorage(TagStorage):
             tenant_ids=tenant_ids,
         )
 
-        keys_to_check = list(values_by_key.keys()) or [k.key for k in keys_with_counts]
+        keys_to_check = [str(k) for k in values_by_key.keys()] or [k.key for k in keys_with_counts]
         empty_stats_map = self.__get_empty_value_stats_map(
             dataset=dataset,
             filters=filters,
@@ -2225,29 +2227,26 @@ class SnubaTagStorage(TagStorage):
             }
 
         else:
-            results = cast(
-                dict[int | str, Any],  # justification: decoded tag query rows.
-                snuba.query(
-                    dataset=dataset,
-                    start=start,
-                    end=end,
-                    groupby=[snuba_key],
-                    filter_keys=filters,
-                    aggregations=[
-                        ["count()", "", "times_seen"],
-                        ["min", "timestamp", "first_seen"],
-                        ["max", "timestamp", "last_seen"],
-                    ],
-                    conditions=conditions,
-                    orderby=order_by,
-                    # TODO: This means they can't actually paginate all TagValues.
-                    limit=1000,
-                    # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
-                    sample=1_000_000,
-                    arrayjoin=snuba.get_arrayjoin(snuba_key),
-                    referrer="tagstore.get_tag_value_paginator_for_projects",
-                    tenant_ids=tenant_ids,
-                ),
+            results = snuba.query(
+                dataset=dataset,
+                start=start,
+                end=end,
+                groupby=[snuba_key],
+                filter_keys=filters,
+                aggregations=[
+                    ["count()", "", "times_seen"],
+                    ["min", "timestamp", "first_seen"],
+                    ["max", "timestamp", "last_seen"],
+                ],
+                conditions=conditions,
+                orderby=order_by,
+                # TODO: This means they can't actually paginate all TagValues.
+                limit=1000,
+                # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
+                sample=1_000_000,
+                arrayjoin=snuba.get_arrayjoin(snuba_key),
+                referrer="tagstore.get_tag_value_paginator_for_projects",
+                tenant_ids=tenant_ids,
             )
 
         if include_transactions:
@@ -2324,7 +2323,13 @@ class SnubaTagStorage(TagStorage):
         )
 
         snuba_result = [
-            GroupTagValue(group_id=group.id, key=key, value=value, **fix_tag_value_data(data))
+            GroupTagValue(
+                group_id=group.id,
+                key=key,
+                # justification: tag value groups are strings at runtime.
+                value=cast("str", value),
+                **fix_tag_value_data(data),
+            )
             for value, data in results.items()
         ]
         result = snuba_result

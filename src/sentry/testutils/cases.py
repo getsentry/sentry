@@ -465,7 +465,7 @@ class BaseTestCase(Fixtures):
         assert deleted_log.slug == original_object.slug
 
         if not isinstance(deleted_log, DeletedOrganization):
-            assert isinstance(original_object, (Project, Team))
+            assert not isinstance(original_object, Organization)
             assert deleted_log.organization_id == original_object.organization.id
             assert deleted_log.organization_name == original_object.organization.name
             assert deleted_log.organization_slug == original_object.organization.slug

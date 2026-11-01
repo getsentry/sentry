@@ -4440,7 +4440,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             "snuba.search.recommended.severity-weight": 1.0,
             "snuba.search.recommended.user-impact-weight": 0.0,
             "snuba.search.recommended.event-volume-weight": 0.0,
-            "snuba.search.group_for_event(recommended)-type-boost": {},
+            "snuba.search.recommended.group-type-boost": {},
             "snuba.search.recommended.message-penalty-weight": 0.0,
         }
 
@@ -4644,7 +4644,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
 
         # Boost ProfileFileIOGroupType so it outranks the error group
         boost = {ProfileFileIOGroupType.type_id: 0.5}
-        with self.options({"snuba.search.group_for_event(recommended)-type-boost": boost}):
+        with self.options({"snuba.search.recommended.group-type-boost": boost}):
             query_executor = self.backend._get_query_executor()
             results = query_executor.snuba_search(
                 start=UNBOUNDED_DATETIME,
@@ -4748,7 +4748,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             "snuba.search.recommended.severity-weight": 0.0,
             "snuba.search.recommended.user-impact-weight": 0.0,
             "snuba.search.recommended.event-volume-weight": 0.2,
-            "snuba.search.group_for_event(recommended)-type-boost": {},
+            "snuba.search.recommended.group-type-boost": {},
         }
         with self.options(options):
             scores = self._recommended_scores([high.id, low.id])
@@ -4774,7 +4774,7 @@ class EventsRecommendedSortTest(TestCase, SharedSnubaMixin, OccurrenceTestMixin)
             "snuba.search.recommended.severity-weight": 0.0,
             "snuba.search.recommended.user-impact-weight": 0.0,
             "snuba.search.recommended.event-volume-weight": 0.0,
-            "snuba.search.group_for_event(recommended)-type-boost": {1: 0.5},
+            "snuba.search.recommended.group-type-boost": {1: 0.5},
         }
         with self.options(options):
             scores = self._recommended_scores([group_for_event(event).id])

@@ -778,6 +778,7 @@ class ArtifactBundlePostAssembler:
             if existing_artifact_bundle is None:
                 file = self.assemble_result.bundle
 
+                assert file.size is not None
                 metrics.distribution(
                     "storage.put.size",
                     file.size,

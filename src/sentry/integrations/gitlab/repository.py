@@ -31,7 +31,7 @@ class GitLabProject(TypedDict):
 
 
 class GitLabRepositorySetupConfig(TypedDict):
-    installation: int
+    installation: NotRequired[int]
     identifier: str | int
 
 
@@ -71,7 +71,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
     ) -> MutableMapping[str, object]:
         # justification: repository setup config is validated by the provider.
         setup_config = cast(GitLabRepositorySetupConfig, config)
-        installation = self.get_installation(setup_config["installation"], organization.id)
+        installation = self.get_installation(setup_config.get("installation"), organization.id)
         client = installation.get_client()
 
         repo_id = setup_config["identifier"]

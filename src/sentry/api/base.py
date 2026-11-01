@@ -6,7 +6,7 @@ import logging
 import time
 from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Never, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Never, Protocol, TypedDict, cast
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
@@ -144,6 +144,10 @@ def _with_endpoint_scope_declaration(
     return wrapper
 
 
+class _CorsView(Protocol):
+    def _allowed_methods(self) -> list[str]: ...
+
+
 def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
@@ -158,7 +162,7 @@ def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpR
 
     @functools.wraps(func)
     def allow_cors_options_wrapper(
-        self: Endpoint, request: Request, *args: Any, **kwargs: Any
+        self: _CorsView, request: Request, *args: Any, **kwargs: Any
     ) -> HttpResponse:
         response: HttpResponse
         if request.method == "OPTIONS":
@@ -168,7 +172,7 @@ def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpR
             response = func(self, request, *args, **kwargs)
 
         return apply_cors_headers(
-            request=request, response=response, allowed_methods=self.allowed_methods
+            request=request, response=response, allowed_methods=self._allowed_methods()
         )
 
     return allow_cors_options_wrapper

@@ -31,7 +31,7 @@ class IDPMigrationTests(TestCase):
             om = OrganizationMember.objects.create(organization=self.org, user_id=self.user.id)
         link = idpmigration.send_one_time_account_confirm_link(
             self.user,
-            serialize_rpc_organization(self.org),
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
             self.provider,
             self.email,
             self.IDENTITY_ID,
@@ -50,7 +50,7 @@ class IDPMigrationTests(TestCase):
     def test_send_without_org_membership(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user,
-            serialize_rpc_organization(self.org),
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
             self.provider,
             self.email,
             self.IDENTITY_ID,
@@ -71,7 +71,7 @@ class IDPMigrationTests(TestCase):
         with self.tasks():
             idpmigration.send_one_time_account_confirm_link(
                 self.user,
-                serialize_rpc_organization(self.org),
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
                 self.provider,
                 asserted,
                 self.IDENTITY_ID,
@@ -91,7 +91,7 @@ class IDPMigrationTests(TestCase):
         with self.tasks():
             idpmigration.send_one_time_account_confirm_link(
                 self.user,
-                serialize_rpc_organization(self.org),
+                serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
                 self.provider,
                 asserted,
                 self.IDENTITY_ID,
@@ -124,7 +124,7 @@ class IDPMigrationTests(TestCase):
     def test_verify_account(self) -> None:
         link = idpmigration.send_one_time_account_confirm_link(
             self.user,
-            serialize_rpc_organization(self.org),
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
             self.provider,
             self.email,
             self.IDENTITY_ID,
@@ -142,7 +142,7 @@ class IDPMigrationTests(TestCase):
     def test_verify_account_wrong_key(self) -> None:
         idpmigration.send_one_time_account_confirm_link(
             self.user,
-            serialize_rpc_organization(self.org),
+            serialize_rpc_organization(self.org, include_projects=False, include_teams=False),
             self.provider,
             self.email,
             self.IDENTITY_ID,

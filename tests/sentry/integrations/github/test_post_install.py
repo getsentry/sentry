@@ -38,7 +38,9 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
         provider = GitHubIntegrationProvider()
         provider.post_install(
             integration=self.integration,
-            organization=serialize_rpc_organization(self.organization),
+            organization=serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
             extra={"app_id": "app_1"},
         )
 

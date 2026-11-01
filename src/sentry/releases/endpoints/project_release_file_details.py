@@ -101,7 +101,7 @@ class ReleaseFileDetailsMixin:
             fp,
             content_type=file.headers.get("content-type", "application/octet-stream"),
         )
-        response["Content-Length"] = file.size
+        response["Content-Length"] = str(file.size)
         response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
             " ".join(releasefile.name.split())
         )

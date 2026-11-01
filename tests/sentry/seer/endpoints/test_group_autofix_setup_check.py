@@ -285,7 +285,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert self.organization_integration is not None
-        self.organization_integration.delete()
+            self.organization_integration.delete()
 
         group = self.create_group()
         self.login_as(user=self.user)

@@ -114,13 +114,16 @@ class OrganizationEventsEndpointTestBase(
         url: str | None = None,
     ) -> Response:
         """GET helper that defaults statsPeriod for EAP tier-1 routing."""
-        if path is not None:
-            return self.client.get(path, self.with_default_stats_period(query), format="json")
-
-        path = url if url is not None else getattr(self, "url", None)
-        if path is None:
+        target = path if path is not None else url
+        if target is None:
+            target = getattr(self, "url", None)
+        if target is None:
             raise TypeError("client_get requires url= or a path argument")
-        return self.client.get(path, self.with_default_stats_period(data), format="json")
+
+        params = query if path is not None else data
+        if params is None and "?" in target:
+            return self.client.get(target, format="json")
+        return self.client.get(target, self.with_default_stats_period(params), format="json")
 
     def reverse_url(self) -> str:
         return reverse(

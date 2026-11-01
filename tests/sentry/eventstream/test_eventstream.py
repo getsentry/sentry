@@ -268,7 +268,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 groupby=["project_id"],
                 filter_keys={"project_id": [self.project.id]},
                 tenant_ids={"organization_id": 1, "referrer": "r"},
-            ).get(str(self.project.id), 0)
+            ).get(self.project.id, 0)
             == 1
         )
 
@@ -295,7 +295,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             end=now + timedelta(days=1),
             selected_columns=["event_id"],
             groupby=None,
-            # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+            # justification: Snuba accepts string event ids despite the int-typed filter contract.
             filter_keys=cast(
                 "dict[str, Sequence[int]]",
                 {"project_id": [self.project.id], "event_id": [event.event_id]},
@@ -332,7 +332,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
             end=now + timedelta(days=1),
             selected_columns=["event_id", "group_ids"],
             groupby=None,
-            # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+            # justification: Snuba accepts string event ids despite the int-typed filter contract.
             filter_keys=cast(
                 "dict[str, Sequence[int]]",
                 {"project_id": [self.project.id], "event_id": [event.event_id]},

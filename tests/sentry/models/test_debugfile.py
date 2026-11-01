@@ -351,6 +351,9 @@ class CreateDebugFileTest(APITestCase):
         return DifMeta(**args)
 
     def create_dif(self, file: File, **kwargs: object) -> tuple[ProjectDebugFile, bool]:
+        if file.size is None:
+            file.size = 0
+            file.save(update_fields=["size"])
         return create_dif_from_file(self.project, self._create_meta(**kwargs), file)
 
     def create_dif_from_fileobj(
