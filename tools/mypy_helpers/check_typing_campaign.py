@@ -2,7 +2,7 @@
 
 Checks added lines in the current change for:
 
-- new ``Any`` usage in modules that are already off the mypy weaklist
+- new ``Any`` usage in modules that are already off the mypy weaklist at the base
 - casts at trust boundaries without a ``# justification:`` comment
 
 Run without ``--base`` in a pre-commit hook to check staged changes, or with
@@ -57,10 +57,15 @@ def _module_for_path(path: str) -> str | None:
     return module.removesuffix(".__init__")
 
 
-def _weaklist() -> frozenset[str]:
-    with open("pyproject.toml", "rb") as f:
-        data = tomllib.load(f)
-    return _modules_for_override_key(data, "disallow_untyped_defs", "pyproject.toml")
+def _weaklist(ref: str | None = None) -> frozenset[str]:
+    if ref is None:
+        with open("pyproject.toml", "rb") as f:
+            data = tomllib.load(f)
+    else:
+        data = tomllib.loads(_run_git("show", f"{ref}:pyproject.toml"))
+    return _modules_for_override_key(
+        data, "disallow_untyped_defs", f"{ref or 'HEAD'}:pyproject.toml"
+    )
 
 
 def _is_weaklisted(module: str, weaklist: frozenset[str]) -> bool:
@@ -243,7 +248,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(f"unable to read diff: {exc.stderr}", file=sys.stderr)
         return 2
 
-    weaklist = _weaklist()
+    weaklist = _weaklist(args.base)
     errors: list[str] = []
     for path, lines in added.items():
         if not lines or not path.endswith(".py"):

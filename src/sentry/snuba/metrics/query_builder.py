@@ -1347,6 +1347,7 @@ class SnubaResultConverter:
         # QueryBuilder necessary as it contains the constituent instances of
         # SingularEntityDerivedMetric for instances of CompositeEntityDerivedMetric
         for op, metric_mri, alias in self._set_of_constituent_queries:
+            cleaned_value: int | float | list[tuple[float]] | None
             default_null_value = metric_object_factory(
                 op, metric_mri
             ).generate_default_null_values()

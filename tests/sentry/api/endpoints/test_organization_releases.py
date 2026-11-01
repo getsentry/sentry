@@ -1,8 +1,6 @@
 import unittest
-from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
-from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -2412,9 +2410,8 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        # justification: assert_head_commit is typed for CommitFileChange but asserts on ReleaseHeadCommit
         self.assert_head_commit(
-            cast(CommitFileChange, head_commits[0]),
+            head_commits[0],
             "current-commit-id-3",
             release_id=release.id,
         )
@@ -2436,10 +2433,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
                 "commit": "current-commit-id-3",
             },
         ]
-        # justification: assert_fetch_commits is typed for str refs but asserts on ref dicts
-        self.assert_fetch_commits(
-            mock_fetch_commits, None, release.id, cast(Sequence[str], refs_expected)
-        )
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
     @patch("sentry.tasks.commits.fetch_commits")
     def test_simple_with_project_id(self, mock_fetch_commits: MagicMock) -> None:
@@ -2471,9 +2465,8 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        # justification: assert_head_commit is typed for CommitFileChange but asserts on ReleaseHeadCommit
         self.assert_head_commit(
-            cast(CommitFileChange, head_commits[0]),
+            head_commits[0],
             "current-commit-id-3",
             release_id=release.id,
         )
@@ -2495,10 +2488,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
                 "commit": "current-commit-id-3",
             },
         ]
-        # justification: assert_fetch_commits is typed for str refs but asserts on ref dicts
-        self.assert_fetch_commits(
-            mock_fetch_commits, None, release.id, cast(Sequence[str], refs_expected)
-        )
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
     @patch("sentry.tasks.commits.fetch_commits")
     def test_head_commit(self, mock_fetch_commits: MagicMock) -> None:
@@ -2535,9 +2525,8 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_commit(commits[2], "current-commit-id-3")
 
         head_commits = ReleaseHeadCommit.objects.all()
-        # justification: assert_head_commit is typed for CommitFileChange but asserts on ReleaseHeadCommit
         self.assert_head_commit(
-            cast(CommitFileChange, head_commits[0]),
+            head_commits[0],
             "current-commit-id-3",
             release_id=release.id,
         )
@@ -2559,10 +2548,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
                 "commit": "current-commit-id-3",
             },
         ]
-        # justification: assert_fetch_commits is typed for str refs but asserts on ref dicts
-        self.assert_fetch_commits(
-            mock_fetch_commits, None, release.id, cast(Sequence[str], refs_expected)
-        )
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
 
 class OrganizationReleaseListEnvironmentsTest(APITestCase):

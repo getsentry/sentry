@@ -276,7 +276,7 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
     id: str
     # from base response
     shareId: NotRequired[str | None]
-    shortId: NotRequired[str]
+    shortId: NotRequired[str | None]
     title: NotRequired[str]
     culprit: NotRequired[str | None]
     permalink: NotRequired[str]

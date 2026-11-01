@@ -118,7 +118,8 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         """Test that a performance issue properly creates a Jira ticket"""
         event = self.create_performance_issue()
         assert event.group is not None
-        data = self.create_issue_base(event.for_group(event.group))
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
+        data = self.create_issue_base(group_event)
 
         # Make assertions about what would be POSTed to api/2/issue.
         assert data["fields"]["summary"] == "N+1 Query"

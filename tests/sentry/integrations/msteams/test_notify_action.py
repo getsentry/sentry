@@ -14,6 +14,7 @@ from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.actions.notification import MsTeamsNotifyServiceAction
 from sentry.integrations.msteams.analytics import MSTeamsIntegrationNotificationSent
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.analytics import (
@@ -301,7 +302,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     ) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        group_event = event.for_group(event.group)
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
 
         rule = self.get_msteams_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}

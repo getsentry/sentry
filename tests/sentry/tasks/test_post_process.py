@@ -3838,7 +3838,8 @@ class PostProcessGroupPerformanceTest(
         assert fingerprint_values is None or isinstance(fingerprint_values, list)
         fingerprint = fingerprint_values[0] if fingerprint_values else "some_group"
         fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-{fingerprint}"
-        return self.create_performance_issue(fingerprint=fingerprint)
+        # justification: this harness stores an Event, with the occurrence carried alongside it.
+        return cast(Event, self.create_performance_issue(fingerprint=fingerprint))
 
     def call_post_process_group(
         self, is_new: bool, is_regression: bool, is_new_group_environment: bool, event: Event

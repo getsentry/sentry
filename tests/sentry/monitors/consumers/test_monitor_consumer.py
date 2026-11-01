@@ -216,6 +216,7 @@ class MonitorConsumerTest(TestCase):
         self.send_checkin(monitor.slug)
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.expected_time == monitor_environment.next_checkin
+        assert checkin.trace_id is not None
         assert checkin.trace_id.hex == self.trace_id
 
     @mock.patch("sentry.monitors.consumers.monitor_consumer.process_checkin_group")

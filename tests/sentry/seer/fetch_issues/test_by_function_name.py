@@ -45,7 +45,7 @@ class TestLeftTruncatedPaths(CreateEventTestCase):
 
 
 class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEventTestCase):
-    provider = GitHubIntegrationProvider()
+    provider = GitHubIntegrationProvider
 
     def setUp(self) -> None:
         super().setUp()
@@ -281,7 +281,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
 
 
 class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
-    provider = GitHubIntegrationProvider()
+    provider = GitHubIntegrationProvider
 
     def setUp(self) -> None:
         super().setUp()
@@ -453,7 +453,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
 
 
 class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
-    provider = GitHubIntegrationProvider()
+    provider = GitHubIntegrationProvider
 
     def setUp(self) -> None:
         super().setUp()

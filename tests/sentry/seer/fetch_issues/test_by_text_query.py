@@ -62,7 +62,7 @@ class CreateEventTestCase(TestCase):
 
 
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
-    provider = GitHubIntegrationProvider()
+    provider = GitHubIntegrationProvider
 
     def setUp(self) -> None:
         super().setUp()

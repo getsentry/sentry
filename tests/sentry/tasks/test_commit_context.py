@@ -1192,7 +1192,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 )
 @patch("sentry.integrations.source_code_management.tasks.pr_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
-    provider = GitHubIntegrationProvider()
+    provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
 
     def setUp(self) -> None:

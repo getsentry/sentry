@@ -11,7 +11,7 @@ from contextlib import AbstractContextManager, contextmanager
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 from io import BytesIO
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, Union
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, Union, cast
 from unittest import TestLoader, mock
 from urllib.parse import urlencode
 from uuid import UUID, uuid4
@@ -29,8 +29,9 @@ from django.core import signing
 from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
+from django.db.migrations.state import ProjectState
 from django.db.models import QuerySet
-from django.http import HttpRequest, HttpResponseBase
+from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
@@ -119,7 +120,6 @@ from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule, RuleSource
 from sentry.monitors.models import Monitor, MonitorEnvironment, ScheduleType
-from sentry.new_migrations.monkey.state import SentryProjectState
 from sentry.notifications.models.notificationsettingoption import (
     NotificationSettingOption,
 )
@@ -247,7 +247,13 @@ DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, li
 SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 
+class _ElevatedRequest(Protocol):
+    staff: Staff
+
+
 class BaseTestCase(Fixtures):
+    client: Any  # justification: Django and DRF test clients differ across subclasses.
+
     @pytest.fixture(autouse=True)
     def setup_dummy_auth_provider(self) -> Generator[None]:
         auth.register(DummyProvider)
@@ -284,6 +290,7 @@ class BaseTestCase(Fixtures):
 
     def save_session(self) -> None:
         self.session.save()
+        assert self.session.session_key is not None
         self.save_cookie(
             name=settings.SESSION_COOKIE_NAME,
             value=self.session.session_key,
@@ -351,31 +358,31 @@ class BaseTestCase(Fixtures):
     ) -> None:
         if isinstance(user, OrganizationMember):
             with assume_test_silo_mode(SiloMode.CONTROL):
+                assert user.user_id is not None
                 user = User.objects.get(id=user.user_id)
 
         user.backend = settings.AUTHENTICATION_BACKENDS[0]
 
         request = self.make_request()
+        elevated_request = cast(_ElevatedRequest, request)
         with assume_test_silo_mode(SiloMode.CONTROL):
             login(request, user)
         set_request_principal(request, user, request.auth)
 
-        if organization_ids is None:
-            organization_ids = set()
-        else:
-            organization_ids = set(organization_ids)
+        org_ids: set[int] = set(organization_ids) if organization_ids is not None else set()
         if superuser and superuser_sso is not False:
             if SUPERUSER_ORG_ID:
-                organization_ids.add(SUPERUSER_ORG_ID)
+                org_ids.add(SUPERUSER_ORG_ID)
         if staff and staff_sso is not False:
             if STAFF_ORG_ID:
-                organization_ids.add(SUPERUSER_ORG_ID)
+                # justification: this pre-existing path uses the superuser SSO org for staff.
+                org_ids.add(cast(int, SUPERUSER_ORG_ID))
         if organization_id:
-            organization_ids.add(organization_id)
+            org_ids.add(organization_id)
 
         # TODO(dcramer): ideally this would get abstracted
-        if organization_ids:
-            for o in organization_ids:
+        if org_ids:
+            for o in org_ids:
                 sso_session = SsoSession.create(o)
                 self.session[sso_session.session_key] = sso_session.to_dict()
 
@@ -402,13 +409,14 @@ class BaseTestCase(Fixtures):
             )
         # XXX(schew2381): Same as above, but for staff
         if not staff:
-            request.staff._set_logged_out()
+            elevated_request.staff._set_logged_out()
         elif request.user.is_staff and staff:
-            request.staff.set_logged_in(request.user)
+            elevated_request.staff.set_logged_in(request.user)
+            assert elevated_request.staff.token is not None
             self.save_cookie(
                 name=STAFF_COOKIE_NAME,
                 value=signing.get_cookie_signer(salt=STAFF_COOKIE_NAME + STAFF_COOKIE_SALT).sign(
-                    request.staff.token
+                    elevated_request.staff.token
                 ),
                 max_age=None,
                 path=STAFF_COOKIE_PATH,
@@ -425,14 +433,18 @@ class BaseTestCase(Fixtures):
 
     @classmethod
     def _pre_setup(cls) -> None:
-        super()._pre_setup()
+        parent_pre_setup = getattr(super(), "_pre_setup", None)
+        if parent_pre_setup is not None:
+            parent_pre_setup()
 
         cache.clear()
         ProjectOption.objects.clear_local_cache()
         GroupMeta.objects.clear_local_cache()
 
     def _post_teardown(self) -> None:
-        super()._post_teardown()
+        parent_post_teardown = getattr(super(), "_post_teardown", None)
+        if parent_post_teardown is not None:
+            parent_post_teardown()
 
     def options(self, options: Mapping[str, object]) -> AbstractContextManager[None]:
         """
@@ -453,6 +465,7 @@ class BaseTestCase(Fixtures):
         assert deleted_log.slug == original_object.slug
 
         if not isinstance(deleted_log, DeletedOrganization):
+            assert isinstance(original_object, (Project, Team))
             assert deleted_log.organization_id == original_object.organization.id
             assert deleted_log.organization_name == original_object.organization.name
             assert deleted_log.organization_slug == original_object.organization.slug
@@ -530,7 +543,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         project_id: int | None = None,
         detector_option: str = "performance.issues.n_plus_one_db.problem-creation",
         user_data: dict[str, Any] | None = None,
-    ) -> Event:
+    ) -> Event | GroupEvent:
         if issue_type is None:
             issue_type = PerformanceNPlusOneGroupType
         if event_data is None:
@@ -554,7 +567,10 @@ class PerformanceIssueTestCase(BaseTestCase):
         perf_event_manager.normalize()
 
         def detect_performance_problems_interceptor(
-            data: Event, project: Project, standalone: bool = False
+            # justification: the detector consumes the decoded event payload.
+            data: dict[str, Any],
+            project: Project,
+            standalone: bool = False,
         ) -> list[PerformanceProblem]:
             perf_problems = detect_performance_problems(data, project, standalone=standalone)
             if fingerprint:
@@ -580,14 +596,18 @@ class PerformanceIssueTestCase(BaseTestCase):
                 {"performance.issues.all.problem-detection": 1.0, detector_option: 1.0}
             ),
         ):
-            event = perf_event_manager.save(project_id)
+            stored_event = perf_event_manager.save(project_id)
             if mock_eventstream.call_args:
-                event = event.for_group(mock_eventstream.call_args[0][2].group)
-                event.occurrence = mock_eventstream.call_args[0][1]
-            return event
+                group_event = stored_event.for_group(mock_eventstream.call_args[0][2].group)
+                group_event.occurrence = mock_eventstream.call_args[0][1]
+                return group_event
+            return stored_event
 
 
 class APITestCaseMixin:
+    client: Any  # justification: Django and DRF test clients differ across subclasses.
+    method: str
+
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -698,10 +718,12 @@ class APITestCaseMixin:
         return response
 
     def get_cursor_headers(self, response: Response) -> list[str]:
+        link_header = response.get("link")
+        assert link_header is not None
         return [
             link["cursor"]
             for link in requests.utils.parse_header_links(
-                response.get("link").rstrip(">").replace(">,<", ",<")
+                link_header.rstrip(">").replace(">,<", ",<")
             )
         ]
 
@@ -770,7 +792,7 @@ class TwoFactorAPITestCase(APITestCase):
             organization.flags.require_2fa = True
             organization.save()
 
-    def api_enable_org_2fa(self, organization: Organization, user: User) -> Response:
+    def api_enable_org_2fa(self, organization: Organization, user: User) -> HttpResponse:
         self.login_as(user)
         url = reverse(
             "sentry-api-0-organization-details",
@@ -778,7 +800,7 @@ class TwoFactorAPITestCase(APITestCase):
         )
         return self.client.put(url, data={"require2FA": True})
 
-    def api_disable_org_2fa(self, organization: Organization, user: User) -> Response:
+    def api_disable_org_2fa(self, organization: Organization, user: User) -> HttpResponse:
         url = reverse(
             "sentry-api-0-organization-details",
             kwargs={"organization_id_or_slug": organization.slug},
@@ -844,7 +866,9 @@ class RuleTestCase(TestCase):
         return self.event
 
     def get_group_event(self) -> GroupEvent:
-        return GroupEvent.from_event(self.event, self.event.group)
+        group = self.event.group
+        assert group is not None
+        return GroupEvent.from_event(self.event, group)
 
     def get_rule(self, **kwargs: Any) -> EventAction:
         kwargs.setdefault("project", self.project)
@@ -986,9 +1010,11 @@ class AcceptanceTestCase(TransactionTestCase):
 
     def save_session(self) -> None:
         self.session.save()
-        self.save_cookie(name=settings.SESSION_COOKIE_NAME, value=self.session.session_key)
+        assert self.session.session_key is not None
+        session_key = self.session.session_key
+        self.save_cookie(name=settings.SESSION_COOKIE_NAME, value=session_key)
         # Forward session cookie to django client.
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session_key
 
     def dismiss_assistant(self, which: str | Iterable[str] | None = None) -> None:
         if which is None:
@@ -1037,7 +1063,8 @@ class IntegrationTestCase(TestCase):
         self.save_session()
 
     def assertDialogSuccess(self, resp: HttpResponseBase) -> None:
-        assert b'window.opener.postMessage({"success":true' in resp.content
+        # justification: the flow's dialog response is a rendered HttpResponse.
+        assert b'window.opener.postMessage({"success":true' in cast(HttpResponse, resp).content
 
 
 @pytest.mark.snuba
@@ -1054,7 +1081,9 @@ class SnubaTestCase(BaseTestCase):
     reset_snuba_data: bool = True
 
     def setUp(self) -> None:
-        super().setUp()
+        parent_setup = getattr(super(), "setUp", None)
+        if parent_setup is not None:
+            parent_setup()
         self.init_snuba()
 
     @pytest.fixture(autouse=True)
@@ -1267,7 +1296,9 @@ class SnubaTestCase(BaseTestCase):
             == 200
         )
 
-    def to_snuba_time_format(self, datetime_value: datetime) -> str:
+    def to_snuba_time_format(self, datetime_value: datetime | None) -> str | None:
+        if datetime_value is None:
+            return None
         date_format = "%Y-%m-%d %H:%M:%S%z"
         return datetime_value.strftime(date_format)
 
@@ -1583,6 +1614,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         sampling_weight: int | None = None,
     ) -> None:
         parsed = parse_mri(mri)
+        assert parsed is not None
         metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
         if use_case_id is not UseCaseID.SESSIONS:
@@ -1905,6 +1937,9 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
 
 class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
+    features: dict[str, bool] = {}
+    url: str = ""
+
     TYPE_MAP = {
         "metrics_distributions": "distribution",
         "metrics_sets": "set",
@@ -2025,9 +2060,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        if not isinstance(value, list):
-            value = [value]
-        for subvalue in value:
+        values = cast(
+            list[int | dict[str, int]],
+            value if isinstance(value, list) else [value],
+        )
+        for subvalue in values:
             self.store_metric(
                 org_id,
                 project,
@@ -2063,7 +2100,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             metric=self.ON_DEMAND_KEY_MAP[metric_type],
             internal_metric=self.ON_DEMAND_MRI_MAP[metric_type],
             entity=self.ON_DEMAND_ENTITY_MAP[metric_type],
-            tags=tags,
+            tags=cast(dict[str, str], tags),
             timestamp=timestamp,
         )
 
@@ -2092,9 +2129,11 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        if not isinstance(value, list):
-            value = [value]
-        for subvalue in value:
+        values = cast(
+            list[int | dict[str, int]],
+            value if isinstance(value, list) else [value],
+        )
+        for subvalue in values:
             self.store_metric(
                 org_id,
                 project,
@@ -2153,7 +2192,7 @@ class BaseIncidentsTest(SnubaTestCase):
         if fingerprint is None:
             fingerprint = event_id
 
-        data = {
+        data: dict[str, Any] = {  # justification: event payload is decoded JSON.
             "event_id": event_id,
             "fingerprint": [fingerprint],
             "timestamp": timestamp.isoformat(),
@@ -2224,7 +2263,7 @@ class ProfilesSnubaTestCase(
 
         self.store_event(transaction, project_id=project.id)
 
-        timestamp = transaction["timestamp"]
+        receipt_timestamp = transaction["timestamp"]
         functions = [
             {
                 **function,
@@ -2243,7 +2282,7 @@ class ProfilesSnubaTestCase(
             "project_id": project.id,
             "received": int(timezone.now().timestamp()),
             "retention_days": 90,
-            "timestamp": int(timestamp),
+            "timestamp": int(receipt_timestamp),
             "transaction_name": transaction["transaction"],
             "materialization_version": 1,
         }
@@ -2501,6 +2540,8 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
 
 
 class IntegrationRepositoryTestCase(APITestCase):
+    provider_name: str = ""
+
     def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
@@ -2765,7 +2806,8 @@ class TestMigrations(TransactionTestCase):
     def migrate_to(self) -> str:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
-    _project_state_cache: SentryProjectState | None = None
+    current_migration: list[tuple[str, str]] = []
+    _project_state_cache: ProjectState | None = None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -2861,6 +2903,9 @@ class SCIMAzureTestCase(SCIMTestCase):
 
 
 class ActivityTestCase(TestCase):
+    org: Organization
+    project2: Project
+
     @assume_test_silo_mode(SiloMode.CONTROL)
     def another_user(
         self, email_string: str, team: Team | None = None, alt_email_string: str | None = None
@@ -3274,8 +3319,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCaseMixin:
+    addCleanup: Callable[..., None]
+
     def setUp(self) -> None:
-        super().setUp()
+        parent_setup = getattr(super(), "setUp", None)
+        if parent_setup is not None:
+            parent_setup()
         patcher = mock.patch(
             "sentry.uptime.rdap.query.resolve_hostname", return_value="192.168.0.1"
         )
@@ -3343,6 +3392,8 @@ class IntegratedApiTestCase(BaseTestCase):
 
 
 class SpanTestCase(BaseTestCase):
+    ten_mins_ago: datetime
+
     # Some base data for create_span
     base_span: dict[str, Any] = {
         "is_segment": False,
@@ -3851,6 +3902,11 @@ class TraceAttachmentTestCase(BaseTestCase, TraceItemTestCase):
 
 
 class TraceTestCase(SpanTestCase):
+    FEATURES: list[str] = []
+    gen1_project: Project
+    # justification: mirrors SnubaTestCase.store_spans.
+    store_spans: Callable[[Sequence[dict[str, Any]]], None]
+
     def setUp(self) -> None:
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
         self.root_span_ids = [uuid4().hex[:16] for _ in range(3)]

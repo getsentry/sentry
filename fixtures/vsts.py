@@ -18,7 +18,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
-    provider = VstsIntegrationProvider()
+    provider = VstsIntegrationProvider
 
     def _get_integration_and_install(self) -> tuple[Integration, VstsIntegration]:
         integration = Integration.objects.get(provider="vsts")

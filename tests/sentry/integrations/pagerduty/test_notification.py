@@ -13,6 +13,7 @@ from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotifica
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -155,7 +156,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_applies_correctly_performance_issue(self) -> None:
         event = self.create_performance_issue()
         assert event.group is not None
-        group_event = event.for_group(event.group)
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
         rule = self.get_pagerduty_rule(
             data={"account": self.integration.id, "service": self.service["id"]}
         )
