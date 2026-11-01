@@ -1,5 +1,6 @@
 from datetime import timedelta
 from io import BytesIO
+from typing import cast
 from unittest import mock
 from uuid import uuid4
 
@@ -19,7 +20,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 pytestmark = [requires_kafka]
 
 
-def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
+def create_trusted_relay_signature(secret_key: SecretKey) -> str:
     """
     Mimics how the trusted relay signature is built so we can test communication.
     """
@@ -31,7 +32,8 @@ def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
         rustcall(lib.relay_secretkey_sign, secret_key._get_objptr(), data_buf), free=True
     )
 
-    return signature
+    # justification: decode_str decodes the FFI buffer to str; its stub is loose.
+    return cast("str", signature)
 
 
 @thread_leak_allowlist(reason="kafka testutils", issue=97046)
@@ -208,7 +210,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # cases, which *did* have their silo mode changed.
     def test_project_config_compression(self) -> None:
         # Populate redis cache with compressed config:
-        invalidate_project_config(public_key=self.projectkey, trigger="test")
+        invalidate_project_config(public_key=self.projectkey.public_key, trigger="test")
 
         # Disable project config endpoint, to make sure Relay gets its data
         # from redis:

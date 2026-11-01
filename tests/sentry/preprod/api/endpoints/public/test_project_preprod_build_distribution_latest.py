@@ -51,7 +51,7 @@ class LatestBuildTestBase(APITestCase):
     # justification: factory kwargs vary per test case.
     def _create_installable_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an installable artifact with sensible defaults."""
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "installable_app_file_id": self.installable_file.id,

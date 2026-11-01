@@ -23,7 +23,8 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
 
     def setUp(self) -> None:
         # Allows changing the get_response mock for each test.
-        self.middleware.get_response = MagicMock(return_value=HttpResponse(status=200))
+        self.get_response = MagicMock(return_value=HttpResponse(status=200))
+        self.middleware.get_response = self.get_response
 
     @override_options({"devtoolbar.analytics.enabled": True})
     @patch("sentry.analytics.record")
@@ -126,7 +127,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     def test_response_status_code(self, mock_record: MagicMock) -> None:
         request = self.factory.get("/?queryReferrer=devtoolbar")
         request.resolver_match = MagicMock(view_name="my-endpoint", route="/issues/(?P<issue_id>)/")
-        self.middleware.get_response.return_value = HttpResponse(status=420)
+        self.get_response.return_value = HttpResponse(status=420)
         self.middleware(request)
 
         event = cast(DevToolbarApiRequestEvent, get_last_analytics_event(mock_record))

@@ -105,8 +105,8 @@ class AuthSAML2Test(AuthProviderTestCase):
         assert "SAMLRequest" in query
 
     def accept_auth(self, follow: bool = False, **kwargs: Any) -> Any:
-        saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response).decode("utf-8")
+        saml_response_bytes = self.load_fixture("saml2_auth_response.xml")
+        saml_response = base64.b64encode(saml_response_bytes).decode("utf-8")
 
         # Disable validation of the SAML2 mock response
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
@@ -228,7 +228,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         TotpInterface().enroll(self.user)
         with assume_test_silo_mode(SiloMode.CELL):
             self.organization.update(flags=models.F("flags").bitor(Organization.flags.require_2fa))
-        assert self.organization.flags.require_2fa.is_set
+        assert self.organization.flags.require_2fa
 
         self.auth_provider_inst.delete()
         self.login_as(self.user)
@@ -377,8 +377,8 @@ class AuthSAML2Test(AuthProviderTestCase):
     def test_acs_pipeline_step_strips_op_from_post(self) -> None:
         """When SAMLResponse and op are both in the POST body, op should be
         stripped — the ACS endpoint only processes SAMLResponse payloads."""
-        saml_response = self.load_fixture("saml2_auth_response.xml")
-        saml_response = base64.b64encode(saml_response).decode("utf-8")
+        saml_response_bytes = self.load_fixture("saml2_auth_response.xml")
+        saml_response = base64.b64encode(saml_response_bytes).decode("utf-8")
 
         is_valid = "onelogin.saml2.response.OneLogin_Saml2_Response.is_valid"
 

@@ -1,4 +1,3 @@
-import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -24,7 +23,6 @@ from sentry.backup.sanitize import (
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.fields.uuid import UUIDField
 
 FAKE_EMAIL = "test@fake.com"
 FAKE_NAME = "Fake Name"
@@ -60,7 +58,7 @@ class FakeSanitizableModel(DefaultFieldsModel):
     ip_v4 = models.GenericIPAddressField(null=True)
     ip_v6 = models.GenericIPAddressField(null=True)
     url = models.URLField(null=True)
-    uuid = UUIDField[uuid.UUID | None, uuid.UUID | None](null=True)
+    uuid = models.UUIDField(null=True)
 
     class Meta:
         app_label = "test"

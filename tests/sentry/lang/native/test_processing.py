@@ -980,7 +980,6 @@ def test_merge_symbolicator_image_empty() -> None:
 
 def test_merge_symbolicator_image_basic() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
-    sdk_info = {"sdk_name": "linux"}
     complete_image = {
         "debug_status": "found",
         "unwind_status": "found",
@@ -990,7 +989,7 @@ def test_merge_symbolicator_image_basic() -> None:
 
     data: dict[str, Any] = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, data)
+    _merge_image(raw_image, complete_image, "linux", data)
 
     assert not data.get("errors")
     assert raw_image == {
@@ -1004,7 +1003,6 @@ def test_merge_symbolicator_image_basic() -> None:
 
 def test_merge_symbolicator_image_basic_success() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo"}
-    sdk_info = {"sdk_name": "linux"}
     complete_image = {
         "debug_status": "found",
         "unwind_status": "found",
@@ -1013,7 +1011,7 @@ def test_merge_symbolicator_image_basic_success() -> None:
     }
     data: dict[str, Any] = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, data)
+    _merge_image(raw_image, complete_image, "linux", data)
 
     assert not data.get("errors")
     assert raw_image == {
@@ -1028,11 +1026,10 @@ def test_merge_symbolicator_image_basic_success() -> None:
 
 def test_merge_symbolicator_image_remove_unknown_arch() -> None:
     raw_image = {"instruction_addr": 0xFEEBEE}
-    sdk_info = {"sdk_name": "linux"}
     complete_image = {"debug_status": "found", "unwind_status": "found", "arch": "unknown"}
     data: dict[str, Any] = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, data)
+    _merge_image(raw_image, complete_image, "linux", data)
 
     assert not data.get("errors")
     assert raw_image == {
@@ -1060,7 +1057,6 @@ def test_merge_frame_file_revision() -> None:
 )
 def test_merge_symbolicator_image_errors(code_file: str, error: EventErrorType) -> None:
     raw_image = {"instruction_addr": 0xFEEBEE, "other": "foo", "code_file": code_file}
-    sdk_info = {"sdk_name": "macos"}
     complete_image = {
         "debug_status": "found",
         "unwind_status": "missing",
@@ -1069,7 +1065,7 @@ def test_merge_symbolicator_image_errors(code_file: str, error: EventErrorType) 
     }
     data: dict[str, Any] = {}
 
-    _merge_image(raw_image, complete_image, sdk_info, data)
+    _merge_image(raw_image, complete_image, "linux", data)
 
     (e,) = data["errors"]
 
@@ -1119,7 +1115,7 @@ def test_cocoa_function_name(mock_symbolicator: mock.Mock, default_project: Proj
 
 
 def test_filter_frames() -> None:
-    frames = [
+    frames: list[dict[str, Any]] = [
         {
             "instruction_addr": None,
         },
@@ -1132,7 +1128,7 @@ def test_filter_frames() -> None:
         },
     ]
 
-    filtered_frames = get_frames_for_symbolication(frames, {"platform": "native"}, {})
+    filtered_frames = get_frames_for_symbolication(frames, {"platform": "native"}, [])
 
     assert len(filtered_frames) == 0
 
@@ -1143,7 +1139,7 @@ def test_instruction_addr_adjustment_auto() -> None:
         {"instruction_addr": "0xbeefdead", "platform": "native"},
     ]
 
-    processed_frames = get_frames_for_symbolication(frames, None, None, None)
+    processed_frames = get_frames_for_symbolication(frames, {}, [], None)
 
     assert "adjust_instruction_addr" not in processed_frames[0].keys()
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
@@ -1155,7 +1151,7 @@ def test_instruction_addr_adjustment_all() -> None:
         {"instruction_addr": "0xbeefdead", "platform": "native"},
     ]
 
-    processed_frames = get_frames_for_symbolication(frames, None, None, "all")
+    processed_frames = get_frames_for_symbolication(frames, {}, [], "all")
 
     assert processed_frames[0]["adjust_instruction_addr"]
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
@@ -1167,7 +1163,7 @@ def test_instruction_addr_adjustment_all_but_first() -> None:
         {"instruction_addr": "0xbeefdead", "platform": "native"},
     ]
 
-    processed_frames = get_frames_for_symbolication(frames, None, None, "all_but_first")
+    processed_frames = get_frames_for_symbolication(frames, {}, [], "all_but_first")
 
     assert not processed_frames[0]["adjust_instruction_addr"]
     assert "adjust_instruction_addr" not in processed_frames[1].keys()
@@ -1179,7 +1175,7 @@ def test_instruction_addr_adjustment_none() -> None:
         {"instruction_addr": "0xbeefdead", "platform": "native"},
     ]
 
-    processed_frames = get_frames_for_symbolication(frames, None, None, "none")
+    processed_frames = get_frames_for_symbolication(frames, {}, [], "none")
 
     assert not processed_frames[0]["adjust_instruction_addr"]
     assert not processed_frames[1]["adjust_instruction_addr"]

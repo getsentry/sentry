@@ -1,9 +1,13 @@
+from typing import cast
+
+from sentry.rules.actions.base import EventAction
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.testutils.cases import RuleTestCase
 
 
 class AssignedToFilterTest(RuleTestCase):
-    rule_cls = AssignedToFilter
+    # justification: RuleTestCase types rule_cls for actions; conditions and filters share the harness.
+    rule_cls = cast("type[EventAction]", AssignedToFilter)
 
     def test_render_label_team_in_org(self) -> None:
         rule = self.get_rule(data={"targetType": "Team", "targetIdentifier": self.team.id})

@@ -183,6 +183,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
 
             from sentry.tasks.reprocessing2 import reprocess_group
 
+            assert event.group_id is not None
             with BurstTaskRunner() as burst:
                 reprocess_group.delay(project_id=self.project.id, group_id=event.group_id)
 

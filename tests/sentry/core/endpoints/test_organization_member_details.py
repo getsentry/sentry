@@ -1399,7 +1399,7 @@ class ResetOrganizationMember2faTest(APITestCase):
             TotpInterface().enroll(self.owner)
 
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set is True
+        assert self.org.flags.require_2fa
 
         self.assert_cannot_remove_authenticators()
 

@@ -90,7 +90,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "Invalid uptime detector ids provided"
+            assert json.loads(response.content) == "Invalid uptime detector ids provided"
 
     def test_no_detector_id(self) -> None:
         """Test that not sending any detector ID produces a 400 response."""
@@ -104,7 +104,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "Uptime detector ids must be provided"
+            assert json.loads(response.content) == "Uptime detector ids must be provided"
 
     def test_too_many_periods(self) -> None:
         """Test that requesting a high resolution across a large period of time produces a 400 response."""
@@ -118,7 +118,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1m",
             )
             assert response.status_code == 400
-            assert response.json() == "Too many buckets requested. Maximum is 10100"
+            assert json.loads(response.content) == "Too many buckets requested. Maximum is 10100"
 
     def test_invalid_resolution(self) -> None:
         with self.feature(self.features):
@@ -131,7 +131,9 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="3d",
             )
             assert response.status_code == 400
-            assert response.json().startswith("Invalid resolution. Must be one of: 15s, 30s,")
+            assert json.loads(response.content).startswith(
+                "Invalid resolution. Must be one of: 15s, 30s,"
+            )
 
     def test_default_resolution_for_short_range(self) -> None:
         with self.feature(self.features):
@@ -156,7 +158,10 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "Time range must be at least as long as the resolution"
+            assert (
+                json.loads(response.content)
+                == "Time range must be at least as long as the resolution"
+            )
 
     def test_too_many_detector_ids_limit(self) -> None:
         """Test that sending a large number of detector IDs produces a 400."""
@@ -170,7 +175,10 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1h",
             )
             assert response.status_code == 400
-            assert response.json() == "Too many uptime detector ids provided. Maximum is 100"
+            assert (
+                json.loads(response.content)
+                == "Too many uptime detector ids provided. Maximum is 100"
+            )
 
     def test_no_ids_provided_error(self) -> None:
         """Test that providing no IDs produces an error."""
@@ -183,7 +191,7 @@ class OrganizationUptimeStatsBaseTest(APITestCase):
                 resolution="1d",
             )
             assert response.status_code == 400
-            assert response.json() == "Uptime detector ids must be provided"
+            assert json.loads(response.content) == "Uptime detector ids must be provided"
 
 
 @freeze_time(MOCK_DATETIME)

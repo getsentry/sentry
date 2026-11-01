@@ -52,7 +52,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
     # justification: factory kwargs vary per test case.
     def _create_android_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an Android artifact with default values"""
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,
@@ -81,7 +81,7 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         self, build_number_raw: str | None = None, **kwargs: Any
     ) -> PreprodArtifact:
         """Helper to create an iOS artifact with default values"""
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,

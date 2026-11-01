@@ -133,18 +133,20 @@ class DiscoverFunctionTest(unittest.TestCase):
 
     def test_result_type_fn(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None)
-        assert fn.get_result_type("fn()", []) is None
+        assert fn.get_result_type("fn()", {}) is None
 
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: "number")
-        assert fn.get_result_type("fn()", []) == "number"
+        assert fn.get_result_type("fn()", {}) == "number"
 
         fn = DiscoverFunction(
             "fn",
             required_args=[with_type("number", FunctionArg("arg1"))],
             transform="",
-            result_type_fn=lambda args, columns: args[0].get_type(columns[0]),
+            result_type_fn=lambda args, columns: args[0].get_type(
+                str(next(iter(columns.values())))
+            ),
         )
-        assert fn.get_result_type("fn()", ["arg1"]) == "number"
+        assert fn.get_result_type("fn()", {"arg1": "arg1"}) == "number"
 
     def test_private_function(self) -> None:
         fn = DiscoverFunction("fn", transform="", result_type_fn=lambda *_: None, private=True)
@@ -172,7 +174,7 @@ class BaseSemverConverterTest(TestCase):
     ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         filter = SearchFilter(SearchKey(self.key), operator, SearchValue(version))
-        params = {}
+        params: dict[str, int | list[int]] = {}
         if organization_id:
             params["organization_id"] = organization_id
         if project_id:

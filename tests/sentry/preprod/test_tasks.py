@@ -296,6 +296,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum
         )
         assert status == ChunkFileState.ERROR
+        assert details is not None
         assert "Reported checksum mismatch" in details
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, wrong_checksum)
@@ -324,6 +325,7 @@ class AssemblePreprodArtifactTest(BaseAssembleTest):
             AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum
         )
         assert status == ChunkFileState.ERROR
+        assert details is not None
         assert "Not all chunks available for assembling" in details
 
         delete_assemble_status(AssembleTask.PREPROD_ARTIFACT, self.project.id, total_checksum)

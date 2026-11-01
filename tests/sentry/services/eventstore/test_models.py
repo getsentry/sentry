@@ -1,8 +1,9 @@
 import os
 import pickle
 import time
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence
 from contextlib import AbstractContextManager, contextmanager
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -266,7 +267,11 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "username",
                     "timestamp_ms",
                 ],
-                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+                filter_keys=cast(
+                    "dict[str, Sequence[int]]",
+                    {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                ),
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
@@ -339,7 +344,11 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                     "tags.key",
                     "tags.value",
                 ],
-                filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+                filter_keys=cast(
+                    "dict[str, Sequence[int]]",
+                    {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                ),
                 tenant_ids={"referrer": "r", "organization_id": 1234},
             )["data"][0],
         )
@@ -769,7 +778,11 @@ class EventNodeStoreTest(TestCase):
                         "timestamp",
                         "timestamp_ms",
                     ],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["a" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
@@ -804,7 +817,11 @@ class EventNodeStoreTest(TestCase):
                     selected_columns=[
                         "timestamp",
                     ],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["b" * 32]},
+                    # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["b" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )
@@ -841,7 +858,11 @@ class EventNodeStoreTest(TestCase):
                 event_id="c" * 32,
                 snuba_data=snuba.raw_query(
                     selected_columns=["event_id"],
-                    filter_keys={"project_id": [self.project.id], "event_id": ["c" * 32]},
+                    # justification: Snuba accepts string event ids in filter_keys despite the int annotation.
+                    filter_keys=cast(
+                        "dict[str, Sequence[int]]",
+                        {"project_id": [self.project.id], "event_id": ["c" * 32]},
+                    ),
                     tenant_ids={"referrer": "r", "organization_id": 1234},
                 )["data"][0],
             )

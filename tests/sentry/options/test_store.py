@@ -128,6 +128,7 @@ class OptionsStoreTest(TestCase):
                 assert store.get(key) == "bar"
 
         Option.objects.filter(key=key.name).update(value="lol")
+        assert store.cache is not None
         store.cache.delete(key.cache_key)
         # Still within TTL, so don't check database
         assert store.get(key) == "bar"

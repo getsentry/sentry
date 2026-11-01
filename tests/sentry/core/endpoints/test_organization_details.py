@@ -1205,7 +1205,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     def test_org_mapping_already_taken(self) -> None:
         self.create_organization(slug="taken")
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
-        assert res.json()["slug"] == ['The slug "taken" is already in use.']
+        assert orjson.loads(res.content)["slug"] == ['The slug "taken" is already in use.']
 
     def test_org_mapping_already_taken_org_in_other_cell(self) -> None:
         de_cell = cells[1]
@@ -1217,7 +1217,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         Organization.objects.filter(id=conflict.id).delete()
 
         res = self.get_error_response(self.organization.slug, slug="taken", status_code=400)
-        assert res.json()["slug"] == ['The slug "taken" is in use by another organization.']
+        assert orjson.loads(res.content)["slug"] == [
+            'The slug "taken" is in use by another organization.'
+        ]
 
     def test_target_sample_rate_feature(self) -> None:
         with self.feature("organizations:dynamic-sampling-custom"):

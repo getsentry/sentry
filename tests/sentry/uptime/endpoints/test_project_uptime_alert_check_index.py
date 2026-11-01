@@ -197,7 +197,7 @@ class ProjectUptimeAlertCheckIndexEndpointWithEAPTests(
         scheduled_check_time: datetime | None = None,
         http_status: int | None = None,
     ) -> None:
-        create_params = {
+        create_params: dict[str, Any] = {
             "subscription_id": uuid.UUID(subscription_id).hex,
             "guid": uuid.UUID(subscription_id).hex,
             "check_id": uuid.uuid4().hex,

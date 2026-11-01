@@ -844,7 +844,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",
@@ -943,7 +943,7 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=self.widget_1_data_1,
             spec_version=OnDemandMetricSpecVersioning.get_query_spec_version(
-                self.organization
+                self.organization.id
             ).version,
             spec_hashes=["abcd"],
             extraction_state="enabled:manual",

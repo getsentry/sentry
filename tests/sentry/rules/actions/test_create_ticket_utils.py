@@ -17,7 +17,10 @@ class CreateTicketUtilsTest(TestCase):
         installation.get_group_description.return_value = "Test description"
         workflow_id = 123
 
-        description = build_description(self.event, workflow_id, installation, generate_footer)
+        assert self.event.group is not None
+        description = build_description(
+            self.event.for_group(self.event.group), workflow_id, installation, generate_footer
+        )
 
         expected_url = f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
         assert (
@@ -54,6 +57,7 @@ class CreateIssueDescriptionTest(TestCase):
             ),
             patch("sentry.rules.actions.integrations.create_ticket.utils.create_link"),
         ):
+            assert self.event.group is not None
             create_issue(self.event.for_group(self.event.group), [future])
         return data
 
@@ -81,6 +85,7 @@ class CreateIssueDescriptionTest(TestCase):
             data = self._create_issue(origin)
 
         assert data["description"] == "Test description"
+        assert self.event.group is not None
         mock_logger.warning.assert_called_once_with(
             "%s.rule_trigger.missing_workflow_id",
             "github",

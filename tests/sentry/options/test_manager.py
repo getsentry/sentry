@@ -288,6 +288,7 @@ class OptionsManagerTest(TestCase):
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_and_cache_unavailable(self) -> None:
+        assert self.store.cache is not None
         self.store.cache.clear()
         self.manager.set("foo", "bar")
         self.store.flush_local_cache()

@@ -24,7 +24,11 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.skips import requires_kafka
 from sentry.uptime.config_drift import ConfigStore
 from sentry.uptime.config_producer import get_partition_keys
-from sentry.uptime.models import UptimeSubscription, UptimeSubscriptionRegion
+from sentry.uptime.models import (
+    SupportedHTTPMethodsLiteral,
+    UptimeSubscription,
+    UptimeSubscriptionRegion,
+)
 from sentry.uptime.subscriptions.regions import get_region_config
 from sentry.uptime.subscriptions.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
@@ -333,7 +337,7 @@ class UptimeSubscriptionToCheckConfigTest(UptimeTestCase):
     def test_request_fields(self) -> None:
         headers = [["hi", "bye"]]
         body = "some request body"
-        method = "POST"
+        method: SupportedHTTPMethodsLiteral = "POST"
         sub = self.create_uptime_subscription(
             method=method,
             headers=headers,

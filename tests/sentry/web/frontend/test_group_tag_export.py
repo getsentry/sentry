@@ -37,6 +37,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
+        assert self.event.group is not None
         self.group = self.event.group
 
         self.first_seen = datetime.fromisoformat(event_timestamp).strftime("%Y-%m-%dT%H:%M:%S.%fZ")

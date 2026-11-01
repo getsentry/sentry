@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,
 )
@@ -855,7 +856,10 @@ class OrganizationAuthSettingsActiveDirectorySAML2Test(AuthProviderTestCase):
 
         # General settings must not add a second cert field for GenericSAML2 subclasses.
         settings_form = auth_provider_settings_form(
-            provider, self.auth_provider_inst, self.organization, request
+            provider,
+            self.auth_provider_inst,
+            serialize_rpc_organization(self.organization),
+            request,
         )
         assert "x509cert" not in settings_form.fields
 

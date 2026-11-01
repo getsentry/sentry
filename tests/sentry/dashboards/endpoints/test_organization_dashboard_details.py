@@ -933,7 +933,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             organization=self.organization, id=self.dashboard.id
         ).exists()
 
-        widgets = self.get_widgets(self.dashboard)
+        widgets = self.get_widgets(self.dashboard.id)
         assert len(widgets) == len(list(widget_ids))
 
         for widget, id in zip(widgets, widget_ids):
@@ -1425,7 +1425,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {
@@ -1798,7 +1798,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert translated_widget_query.orderby == ""
 
     def test_update_widget_title(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -1964,7 +1964,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_remove_widget_and_add_new(self) -> None:
         # Remove a widget from the middle of the set and put a new widget there
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id)},
@@ -2331,7 +2331,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert spans_widget.dataset_source == DashboardWidgetDatasetSourcesTypes.USER.value
 
     def test_remove_widgets(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "First dashboard",
             "widgets": [
                 {"id": str(self.widget_1.id), "title": "New title"},
@@ -2889,7 +2889,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "False"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2906,7 +2906,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             "permissions": {"isEditableByEveryone": "false"},
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -2926,7 +2926,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         }
 
         assert permission.is_editable_by_everyone is True
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3106,7 +3106,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3142,7 +3142,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3173,7 +3173,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3200,7 +3200,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
         self.create_environment(project=mock_project, name="mock_env")
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -3246,7 +3246,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
             },
         }
 
-        user = User(id=self.dashboard.created_by_id)
+        user = User(id=self.user.id)
         self.login_as(user=user)
         response = self.do_request(
             "put", f"{self.url(self.dashboard.id)}?environment=mock_env", data=data
@@ -5028,9 +5028,9 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
     features = ["organizations:dashboards-starred"]
 
-    def do_request(self, *args: object, **kwargs: object) -> Response:
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         with self.feature(self.features):
-            return super().do_request(*args, **kwargs)
+            return super().do_request(method, url, data)
 
     def setUp(self) -> None:
         super().setUp()

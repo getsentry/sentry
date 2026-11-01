@@ -55,9 +55,9 @@ class UptimeDetectorBaseTest(APITestCase):
 
         self.uptime_subscription = self.create_uptime_subscription(
             url="https://www.google.com",
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            interval_seconds=60,
             timeout_ms=30000,
-            method=UptimeSubscription.SupportedHTTPMethods.GET,
+            method="GET",
             headers=[],
             body=None,
             trace_sampling=False,
@@ -88,7 +88,7 @@ class OrganizationDetectorDetailsPutTest(UptimeDetectorBaseTest):
         # Create a detector with MANUAL mode specifically for this test
         manual_uptime_subscription = self.create_uptime_subscription(
             url="https://manual-test-site.com",
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_MINUTE,
+            interval_seconds=60,
             timeout_ms=30000,
         )
         manual_detector = self.create_uptime_detector(

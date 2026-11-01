@@ -1,6 +1,6 @@
 from functools import cached_property
 from time import sleep, time
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch, sentinel
 
 import orjson
@@ -12,6 +12,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.ratelimit import RatelimitMiddleware
 from sentry.ratelimits.config import RateLimitConfig, get_default_rate_limits_for_group
 from sentry.ratelimits.utils import get_rate_limit_config, get_rate_limit_value
@@ -50,10 +51,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def _populate_public_integration_request(self, request: HttpRequest) -> None:
         install = self.create_sentry_app_installation(organization=self.organization)
         token = install.api_token
+        assert token is not None
 
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=install.sentry_app.proxy_user_id)
-        request.auth = token
+        # justification: the middleware receives raw token models though the request attribute is typed for converted tokens.
+        request.auth = cast("AuthenticatedToken", token)
 
     def _populate_internal_integration_request(self, request: HttpRequest) -> None:
         internal_integration = self.create_internal_integration(
@@ -68,7 +71,8 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         )
         with assume_test_silo_mode_of(User):
             request.user = User.objects.get(id=internal_integration.proxy_user_id)
-        request.auth = token
+        # justification: the middleware receives raw token models though the request attribute is typed for converted tokens.
+        request.auth = cast("AuthenticatedToken", token)
 
     @patch("sentry.middleware.ratelimit.get_rate_limit_value", side_effect=Exception)
     def test_fails_open(self, default_rate_limit_mock: MagicMock) -> None:

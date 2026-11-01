@@ -1301,7 +1301,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         hour_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=4).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.ONE_HOUR,
+            interval_seconds=3600,
         )
         self.create_uptime_detector(uptime_subscription=hour_sub)
         self.run_check_and_update_region_test(
@@ -1324,7 +1324,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub_no_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=6).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub_no_update)
         self.run_check_and_update_region_test(
@@ -1360,7 +1360,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub_with_update = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=18).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub_with_update)
         self.run_check_and_update_region_test(
@@ -1382,7 +1382,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         five_min_sub = self.create_uptime_subscription(
             subscription_id=uuid.UUID(int=66).hex,
             region_slugs=["region1"],
-            interval_seconds=UptimeSubscription.IntervalSeconds.FIVE_MINUTES,
+            interval_seconds=300,
         )
         self.create_uptime_detector(uptime_subscription=five_min_sub)
         self.run_check_and_update_region_test(
@@ -1604,7 +1604,7 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
         UptimeResponseCapture.objects.create(
             uptime_subscription=self.subscription,
             file_id=existing_file.id,
-            scheduled_check_time_ms=result["scheduled_check_time_ms"],
+            scheduled_check_time_ms=int(result["scheduled_check_time_ms"]),
         )
 
         with (

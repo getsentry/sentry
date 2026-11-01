@@ -13,7 +13,6 @@ from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
-from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.cell import override_cells
 from sentry.testutils.factories import Factories
@@ -71,7 +70,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                     ),
                 )
 
-        assert_status_code(resp, 201)
+        assert resp.status_code == 201
         result = json.loads(close_streaming_response(resp))
         team = Team.objects.get(id=result["id"])
         assert team.idp_provisioned

@@ -1415,7 +1415,7 @@ class ValidatingStartTest(RelocationTaskTestCase):
             RelocationValidationAttempt.objects.create(
                 relocation=self.relocation,
                 relocation_validation=self.relocation_validation,
-                build_id=uuid4().hex,
+                build_id=uuid4(),
             )
 
         self.relocation_validation.attempts = 3
@@ -1459,7 +1459,7 @@ class ValidatingPollTest(RelocationTaskTestCase):
             RelocationValidationAttempt.objects.create(
                 relocation=self.relocation,
                 relocation_validation=self.relocation_validation,
-                build_id=uuid4().hex,
+                build_id=uuid4(),
             )
         )
 
@@ -1685,7 +1685,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
             RelocationValidationAttempt.objects.create(
                 relocation=self.relocation,
                 relocation_validation=self.relocation_validation,
-                build_id=uuid4().hex,
+                build_id=uuid4(),
             )
         )
 

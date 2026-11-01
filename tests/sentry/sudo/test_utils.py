@@ -1,5 +1,8 @@
+from typing import cast
+
 import pytest
 from django.core.signing import BadSignature
+from django.http import HttpRequest
 
 from fixtures.sudo_testutils import BaseTestCase
 from sudo.settings import COOKIE_AGE, COOKIE_NAME
@@ -12,13 +15,15 @@ from sudo.utils import (
 
 
 class GrantSudoPrivilegesTestCase(BaseTestCase):
-    def assertRequestHasToken(self, request: _SudoRequest, max_age: int) -> None:
+    def assertRequestHasToken(self, request: HttpRequest, max_age: int) -> None:
         token = request.session[COOKIE_NAME]
 
+        # justification: sudo stashes these attributes on the request object.
+        sudo_request = cast("_SudoRequest", request)
         self.assertRegex(token, r"^\w{12}$")
-        self.assertTrue(request._sudo)
-        self.assertEqual(request._sudo_token, token)
-        self.assertEqual(request._sudo_max_age, max_age)
+        self.assertTrue(sudo_request._sudo)
+        self.assertEqual(sudo_request._sudo_token, token)
+        self.assertEqual(sudo_request._sudo_max_age, max_age)
 
     def test_grant_token_not_logged_in(self) -> None:
         with pytest.raises(ValueError):
@@ -43,8 +48,10 @@ class GrantSudoPrivilegesTestCase(BaseTestCase):
 
 
 class RevokeSudoPrivilegesTestCase(BaseTestCase):
-    def assertRequestNotSudo(self, request: _SudoRequest) -> None:
-        self.assertFalse(self.request._sudo)
+    def assertRequestNotSudo(self, request: HttpRequest) -> None:
+        # justification: sudo stashes these attributes on the request object.
+        sudo_request = cast("_SudoRequest", request)
+        self.assertFalse(sudo_request._sudo)
         self.assertNotIn(COOKIE_NAME, self.request.session)
 
     def test_revoke_sudo_privileges_noop(self) -> None:
@@ -80,7 +87,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
             return "abc123"
 
         self.request.session[COOKIE_NAME] = "abc123"
-        self.request.get_signed_cookie = get_signed_cookie
+        setattr(self.request, "get_signed_cookie", get_signed_cookie)
         self.assertTrue(has_sudo_privileges(self.request))
 
     def test_cookie_and_token_mismatch(self) -> None:
@@ -90,7 +97,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
             return "nope"
 
         self.request.session[COOKIE_NAME] = "abc123"
-        self.request.get_signed_cookie = get_signed_cookie
+        setattr(self.request, "get_signed_cookie", get_signed_cookie)
         self.assertFalse(has_sudo_privileges(self.request))
 
     def test_cookie_bad_signature(self) -> None:
@@ -100,7 +107,7 @@ class HasSudoPrivilegesTestCase(BaseTestCase):
             raise BadSignature
 
         self.request.session[COOKIE_NAME] = "abc123"
-        self.request.get_signed_cookie = get_signed_cookie
+        setattr(self.request, "get_signed_cookie", get_signed_cookie)
         self.assertFalse(has_sudo_privileges(self.request))
 
     def test_missing_keys(self) -> None:

@@ -20,6 +20,7 @@ from sentry.snuba.metrics.naming_layer.public import (
 from sentry.snuba.metrics.query import MetricField
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils import json
 from sentry.utils.cursors import Cursor
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
 
@@ -2495,7 +2496,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             interval="1m",
             status_code=400,
         )
-        result = response.json()
+        result = json.loads(response.content)
         assert "detail" in result
         assert result["detail"] == "You can not use generic metric public field without operation"
 

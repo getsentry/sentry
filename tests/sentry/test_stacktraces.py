@@ -211,7 +211,9 @@ def _thread(**kwargs: object) -> dict[str, object]:
     ],
 )
 def test_get_crash_frame(event: dict[str, object]) -> None:
-    assert get_crash_frame_from_event_data(event)["marco"] == "polo"
+    crash_frame = get_crash_frame_from_event_data(event)
+    assert crash_frame is not None
+    assert crash_frame["marco"] == "polo"
 
 
 @pytest.mark.parametrize(

@@ -22,12 +22,17 @@ from sentry.utils import json
 )
 class JavaScriptSdkLoaderTest(TestCase):
     @cached_property
+    def public_key(self) -> str:
+        assert self.projectkey.public_key is not None
+        return self.projectkey.public_key
+
+    @cached_property
     def path(self) -> str:
-        return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key])
+        return reverse("sentry-js-sdk-loader", args=[self.public_key])
 
     @cached_property
     def min_path(self) -> str:
-        return reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
+        return reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"])
 
     def test_noop_no_pub_key(self) -> None:
         resp = self.client.get(reverse("sentry-js-sdk-loader", args=["abc"]))
@@ -36,7 +41,7 @@ class JavaScriptSdkLoaderTest(TestCase):
 
     @override_settings(JS_SDK_LOADER_DEFAULT_SDK_URL="")
     def test_noop(self) -> None:
-        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
+        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key]))
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader-noop.js.tmpl")
 
@@ -45,7 +50,7 @@ class JavaScriptSdkLoaderTest(TestCase):
         JS_SDK_LOADER_DEFAULT_SDK_URL="https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js",
     )
     def test_no_replace(self) -> None:
-        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key]))
+        resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key]))
         assert resp.status_code == 200
         assert (
             b"https://s3.amazonaws.com/getsentry-cdn/@sentry/browser/0.0.0/bundle.min.js"
@@ -57,18 +62,16 @@ class JavaScriptSdkLoaderTest(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
-        assert self.projectkey.public_key.encode("utf-8") in resp.content
+        assert self.public_key.encode("utf-8") in resp.content
         assert b"bundle.min.js" in resp.content
 
     def test_minified(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        min_resp = self.client.get(
-            reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
-        )
+        min_resp = self.client.get(reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]))
         assert min_resp.status_code == 200
         self.assertTemplateUsed(min_resp, "sentry/js-sdk-loader.min.js.tmpl")
-        assert self.projectkey.public_key.encode("utf-8") in min_resp.content
+        assert self.public_key.encode("utf-8") in min_resp.content
         assert b"bundle.min.js" in min_resp.content
         assert len(resp.content) > len(min_resp.content)
 
@@ -502,12 +505,12 @@ class JavaScriptSdkLoaderTest(TestCase):
 
     def test_absolute_url(self) -> None:
         assert (
-            reverse("sentry-js-sdk-loader", args=[self.projectkey.public_key, ".min"])
+            reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"])
             in self.projectkey.js_sdk_loader_cdn_url
         )
         with self.settings(JS_SDK_LOADER_CDN_URL="https://js.sentry-cdn.com/"):
             assert (
-                "https://js.sentry-cdn.com/%s.min.js" % self.projectkey.public_key
+                "https://js.sentry-cdn.com/%s.min.js" % self.public_key
             ) == self.projectkey.js_sdk_loader_cdn_url
 
     @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["10.0.0"])

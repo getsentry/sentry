@@ -771,6 +771,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -798,6 +799,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -825,6 +827,7 @@ class OrganizationOnboardingTaskTest(TestCase):
         )
         assert task is not None
 
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1022,6 +1025,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(
@@ -1105,6 +1109,7 @@ class OrganizationOnboardingTaskTest(TestCase):
             )
             is not None
         )
+        assert self.organization.default_owner_id is not None
         assert_last_analytics_event(
             record_analytics,
             IntegrationAddedEvent(

@@ -27,7 +27,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         """Helper to create an iOS artifact with default valid extras"""
         from sentry.preprod.models import PreprodArtifact
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,
@@ -49,7 +49,7 @@ class ProjectPreprodInstallDetailsEndpointTest(TestCase):
         """Helper to create an Android artifact with default valid extras"""
         from sentry.preprod.models import PreprodArtifact
 
-        defaults = {
+        defaults: dict[str, Any] = {
             "project": self.project,
             "file_id": self.file.id,
             "state": PreprodArtifact.ArtifactState.PROCESSED,

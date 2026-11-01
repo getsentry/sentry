@@ -1240,7 +1240,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         }
 
     def test_post_widget_with_camel_case_layout_keys_returns_camel_case(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {
@@ -1592,7 +1592,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert response.status_code == 400
 
     def test_add_widget_with_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "title": "Dashboard from Post",
             "widgets": [
                 {

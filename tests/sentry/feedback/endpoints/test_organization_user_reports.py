@@ -176,6 +176,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project_1.id,
         )
+        assert old_event.group is not None
         UserReport.objects.create(
             project_id=self.project_1.id,
             event_id=old_event.event_id,

@@ -255,7 +255,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "heartbeatAt": "2025-01-01T00:00:00+00:00",
         }
 
-    def event(
+    def make_event(
         self,
         sequence: int,
         event_type: str,
@@ -300,12 +300,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "sentry.investigations.services.orchestration_events.timezone.now",
             return_value=started_at,
         ):
-            self.deliver(self.event(1, "report_block_started", payload))
+            self.deliver(self.make_event(1, "report_block_started", payload))
         with patch(
             "sentry.investigations.services.orchestration_events.timezone.now",
             return_value=completed_at,
         ):
-            self.deliver(self.event(2, "report_block_upserted", payload))
+            self.deliver(self.make_event(2, "report_block_upserted", payload))
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         assert block.current_execution is not None
         execution_id = block.current_execution_id
@@ -314,7 +314,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert block.current_execution.input_snapshot["source"] == self.orchestration_run.source
 
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "state_snapshot",
                 {
@@ -334,9 +334,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert block.current_execution.completed_at == completed_at
 
     def test_archived_notebook_is_unchanged_by_projection_responses(self) -> None:
-        self.deliver(self.event(1, "report_block_started", self.report_block()))
+        self.deliver(self.make_event(1, "report_block_started", self.report_block()))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "report_failed",
                 {
@@ -381,7 +381,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_report_move_positions_match_the_final_seer_plan(self) -> None:
         for sequence, key in enumerate(["a", "b", "c", "d"], start=1):
             self.deliver(
-                self.event(
+                self.make_event(
                     sequence, "report_block_upserted", self.report_block(key, position=sequence - 1)
                 )
             )
@@ -389,7 +389,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             [("a", 2), ("b", 3), ("c", 1), ("d", 0)], start=5
         ):
             self.deliver(
-                self.event(
+                self.make_event(
                     sequence,
                     "report_block_moved",
                     {
@@ -420,7 +420,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             }
         )
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
-        self.deliver(self.event(1, "report_block_started", payload))
+        self.deliver(self.make_event(1, "report_block_started", payload))
         self.investigation.refresh_from_db()
         update_investigation(
             investigation=self.investigation,
@@ -428,8 +428,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             fields={},
             project_ids=[other_project.id],
         )
-        completed = self.event(2, "report_block_upserted", payload)
-        replayed = self.event(
+        completed = self.make_event(2, "report_block_upserted", payload)
+        replayed = self.make_event(
             3,
             "state_snapshot",
             {
@@ -441,14 +441,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 "blocks": [payload],
             },
         )
-        preserved = self.event(
+        preserved = self.make_event(
             4,
             "workflow_updated",
             {
                 "projection": self.projection(workflow_version=3, report_revision=1),
             },
         )
-        recovered = self.event(
+        recovered = self.make_event(
             5,
             "state_snapshot",
             {
@@ -461,7 +461,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 "blocks": [{**payload, "reportRevision": 1}],
             },
         )
-        recovered_without_projection = self.event(
+        recovered_without_projection = self.make_event(
             7,
             "state_snapshot",
             {
@@ -474,20 +474,20 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 "blocks": [{**payload, "reportRevision": 2}],
             },
         )
-        preserved_for_replacement = self.event(
+        preserved_for_replacement = self.make_event(
             8,
             "workflow_updated",
             {"projection": self.projection(workflow_version=6, report_revision=3)},
         )
-        replacement_started = self.event(
+        replacement_started = self.make_event(
             9, "report_block_started", {**payload, "reportRevision": 3}
         )
-        replacement_failed = self.event(
+        replacement_failed = self.make_event(
             10,
             "report_failed",
             {"reportRevision": 3, "error": {"code": "failed", "message": "Replacement failed"}},
         )
-        recovered_after_failure = self.event(
+        recovered_after_failure = self.make_event(
             11,
             "state_snapshot",
             {
@@ -547,7 +547,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             source={"type": "manual", "projectScope": {"type": "investigation"}}
         )
         payload = self.report_block(projectIds=[], useInvestigationProjectScope=True)
-        self.deliver(self.event(1, "report_block_upserted", payload))
+        self.deliver(self.make_event(1, "report_block_upserted", payload))
         self.investigation.refresh_from_db()
         update_investigation(
             investigation=self.investigation,
@@ -556,15 +556,15 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             project_ids=[replacement_project.id],
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, report_revision=1)},
             )
         )
         replacement = {**payload, "reportRevision": 1}
-        self.deliver(self.event(3, "report_block_started", replacement))
-        self.deliver(self.event(4, "report_block_upserted", replacement))
+        self.deliver(self.make_event(3, "report_block_started", replacement))
+        self.deliver(self.make_event(4, "report_block_upserted", replacement))
         block = NotebookBlock.objects.get(notebook=self.investigation, deleted_at__isnull=True)
         assert block.content_execution is not None
         assert block.content_execution.input_snapshot["projectIds"] == [replacement_project.id]
@@ -583,7 +583,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_started_report_block_accepts_null_display(self) -> None:
         for sequence, kind in enumerate(["text", "query"], start=1):
             receipt = self.deliver(
-                self.event(
+                self.make_event(
                     sequence,
                     "report_block_started",
                     self.report_block(kind, kind=kind, display=None),
@@ -610,7 +610,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         invalid_displays = [[], ["table"], "table", 1, False]
         for sequence, display in enumerate(invalid_displays, start=1):
             receipt = self.deliver(
-                self.event(
+                self.make_event(
                     sequence,
                     "report_block_started",
                     self.report_block(display=display),
@@ -624,7 +624,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             ).exists()
 
         applied = self.deliver(
-            self.event(len(invalid_displays) + 1, "report_block_upserted", self.report_block())
+            self.make_event(len(invalid_displays) + 1, "report_block_upserted", self.report_block())
         )
         assert applied.application_status == InvestigationOrchestrationEventStatus.APPLIED
         assert applied.last_applied_sequence == len(invalid_displays) + 1
@@ -647,7 +647,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         }
         for sequence, display_type in enumerate(["table", "chart"], start=1):
             self.deliver(
-                self.event(
+                self.make_event(
                     sequence,
                     "report_block_upserted",
                     self.report_block(
@@ -678,7 +678,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert block.display["yAxes"] == ["y"]
 
     def test_kind_replacement_preserves_history_and_recovers_from_snapshot(self) -> None:
-        self.deliver(self.event(1, "report_block_upserted", self.report_block()))
+        self.deliver(self.make_event(1, "report_block_upserted", self.report_block()))
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         assert block.current_execution is not None
         original_execution = block.current_execution
@@ -690,26 +690,26 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "isEmpty": False,
         }
         payload = self.report_block(kind="query", content="", result=result)
-        rejected = self.deliver(self.event(2, "report_block_started", payload))
+        rejected = self.deliver(self.make_event(2, "report_block_started", payload))
         assert rejected.application_status == InvestigationOrchestrationEventStatus.FAILED
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, report_revision=1)},
             )
         )
         payload["reportRevision"] = 1
-        started = self.deliver(self.event(4, "report_block_started", payload))
+        started = self.deliver(self.make_event(4, "report_block_started", payload))
         assert started.application_status == InvestigationOrchestrationEventStatus.APPLIED
         block.refresh_from_db()
         assert block.kind == "query"
         assert block.content == ""
         assert block.content_execution is None
         assert block.current_execution_id != original_execution.id
-        completed = self.deliver(self.event(5, "report_block_upserted", payload))
+        completed = self.deliver(self.make_event(5, "report_block_upserted", payload))
         recovered = self.deliver(
-            self.event(
+            self.make_event(
                 6,
                 "state_snapshot",
                 {
@@ -747,7 +747,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             source={"type": "manual", "projectScope": {"type": "investigation"}}
         )
         original = self.report_block(projectIds=[], useInvestigationProjectScope=True)
-        self.deliver(self.event(1, "report_block_upserted", original))
+        self.deliver(self.make_event(1, "report_block_upserted", original))
         block = NotebookBlock.objects.get(notebook=self.investigation, producer_key="summary")
         original_execution = block.current_execution
         assert original_execution is not None
@@ -759,14 +759,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             project_ids=[replacement_project.id],
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, report_revision=1)},
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "report_block_started",
                 {**original, "reportRevision": 1, "kind": "query"},
@@ -776,14 +776,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         replacement_execution = block.current_execution
         assert replacement_execution is not None
         self.deliver(
-            self.event(
+            self.make_event(
                 4,
                 "report_failed",
                 {"reportRevision": 1, "error": {"code": "failed", "message": "Query failed"}},
             )
         )
         restored = self.deliver(
-            self.event(
+            self.make_event(
                 6,
                 "state_snapshot",
                 {
@@ -827,13 +827,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_out_of_order_events_deduplicate_and_ignore_delayed_responses(self) -> None:
         second_id = uuid4()
-        second = self.event(
+        second = self.make_event(
             2,
             "workflow_updated",
             {"projection": self.projection(workflow_version=3, phase="investigating")},
             event_id=second_id,
         )
-        first = self.event(
+        first = self.make_event(
             1,
             "workflow_updated",
             {"projection": self.projection(workflow_version=2, phase="planning")},
@@ -859,7 +859,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             == 2
         )
 
-        changed = self.event(
+        changed = self.make_event(
             2,
             "workflow_updated",
             {"projection": self.projection(workflow_version=4)},
@@ -903,7 +903,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     ) -> None:
         with self.outer_transaction():
             self.deliver(
-                self.event(
+                self.make_event(
                     1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
                 )
             )
@@ -917,7 +917,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     ) -> None:
         with pytest.raises(RuntimeError), self.outer_transaction():
             self.deliver(
-                self.event(
+                self.make_event(
                     1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
                 )
             )
@@ -929,12 +929,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_contiguous_events_schedule_investigation_updates_once(self, mock_delay: Mock) -> None:
         with self.outer_transaction():
             self.deliver(
-                self.event(
+                self.make_event(
                     2, "workflow_updated", {"projection": self.projection(workflow_version=3)}
                 )
             )
             self.deliver(
-                self.event(
+                self.make_event(
                     1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
                 )
             )
@@ -950,7 +950,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     ) -> None:
         with self.outer_transaction():
             receipt = self.deliver(
-                self.event(
+                self.make_event(
                     3,
                     "state_snapshot",
                     {
@@ -974,7 +974,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     ) -> None:
         with self.outer_transaction():
             self.deliver(
-                self.event(
+                self.make_event(
                     1,
                     "workflow_failed",
                     {
@@ -992,7 +992,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self, mock_delay: Mock
     ) -> None:
         receipt = self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_failed",
                 {"error": {"code": "seer_failed", "message": "Seer gave up."}},
@@ -1011,7 +1011,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
 
         receipt = self.deliver(
-            self.event(1, "workflow_updated", {"projection": self.projection()}, generation=1)
+            self.make_event(1, "workflow_updated", {"projection": self.projection()}, generation=1)
         )
 
         assert receipt.application_status == InvestigationOrchestrationEventStatus.IGNORED
@@ -1019,9 +1019,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     @patch("sentry.seer.entrypoints.operator.process_investigation_updates.delay")
     def test_notebook_event_does_not_schedule_investigation_updates(self, mock_delay: Mock) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "report_block_started",
                 {
@@ -1036,7 +1036,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         receipt = self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "report_text_delta",
                 {"reportRevision": 1, "stableAgentKey": "summary", "delta": "text"},
@@ -1084,6 +1084,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 )
 
         self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.seer_run is not None
         assert self.orchestration_run.seer_run.seer_run_state_id == self.seer_run_id
 
     def test_reconcile_projection_can_authoritatively_replace_state(self) -> None:
@@ -1140,16 +1141,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.orchestration_run.projection = projection
         self.orchestration_run.save(update_fields=["projection", "date_updated"])
 
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "title_delta",
                 {"reportRevision": 1, "delta": "Generated title", "reset": True},
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "metadata_completed",
                 {
@@ -1234,13 +1235,15 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert block.deleted_at is None
         assert block.producer_revision == 1
 
-        fenced = self.deliver(self.event(1, "report_clear", {"reportRevision": 1}, generation=1))
+        fenced = self.deliver(
+            self.make_event(1, "report_clear", {"reportRevision": 1}, generation=1)
+        )
         assert fenced.application_status == InvestigationOrchestrationEventStatus.IGNORED
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.notebook_revision == 0
 
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {
@@ -1252,7 +1255,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                 generation=2,
             )
         )
-        accepted = self.deliver(self.event(3, "report_clear", {"reportRevision": 1}, generation=2))
+        accepted = self.deliver(
+            self.make_event(3, "report_clear", {"reportRevision": 1}, generation=2)
+        )
 
         assert accepted.application_status == InvestigationOrchestrationEventStatus.APPLIED
         self.orchestration_run.refresh_from_db()
@@ -1272,8 +1277,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         manual.current_execution = manual_execution
         manual.save(update_fields=["current_execution", "date_updated"])
         events = [
-            self.event(1, "report_clear", {"reportRevision": 1}),
-            self.event(
+            self.make_event(1, "report_clear", {"reportRevision": 1}),
+            self.make_event(
                 2,
                 "report_block_started",
                 {
@@ -1286,12 +1291,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 3,
                 "report_text_delta",
                 {"reportRevision": 1, "stableAgentKey": "summary", "delta": "stale"},
             ),
-            self.event(
+            self.make_event(
                 4,
                 "report_text_delta",
                 {
@@ -1301,13 +1306,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "reset": True,
                 },
             ),
-            self.event(5, "title_delta", {"reportRevision": 1, "delta": "Stale"}),
-            self.event(
+            self.make_event(5, "title_delta", {"reportRevision": 1, "delta": "Stale"}),
+            self.make_event(
                 6,
                 "title_delta",
                 {"reportRevision": 1, "delta": "Fresh", "reset": True},
             ),
-            self.event(
+            self.make_event(
                 7,
                 "metadata_completed",
                 {
@@ -1362,9 +1367,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.notebook_revision == 7
 
     def test_query_upsert_persists_an_immutable_completed_snapshot(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "report_block_started",
                 {
@@ -1399,7 +1404,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "chartUnavailableReason": "A chart is not useful for one value.",
         }
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "report_block_upserted",
                 {
@@ -1432,7 +1437,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         ]
 
         self.deliver(
-            self.event(
+            self.make_event(
                 4,
                 "workflow_updated",
                 {
@@ -1445,7 +1450,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 5,
                 "report_block_started",
                 {
@@ -1476,9 +1481,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             notebook=self.investigation,
             project=replacement_project,
         )
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "report_block_started",
                 {
@@ -1492,7 +1497,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "report_block_upserted",
                 {
@@ -1511,7 +1516,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         completed_execution_id = block.content_execution_id
 
         self.deliver(
-            self.event(
+            self.make_event(
                 4,
                 "workflow_updated",
                 {
@@ -1524,7 +1529,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 5,
                 "report_block_started",
                 {
@@ -1538,7 +1543,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 6,
                 "report_text_delta",
                 {
@@ -1562,7 +1567,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         ]
 
         self.deliver(
-            self.event(
+            self.make_event(
                 7,
                 "report_block_upserted",
                 {
@@ -1589,7 +1594,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             projection=self.projection(workflow_version=2),
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, phase="planning")},
@@ -1638,7 +1643,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_workflow_failure_fails_the_run_without_a_projection(self) -> None:
         error = {"code": "seer_unavailable", "message": "Seer stopped responding."}
 
-        receipt = self.deliver(self.event(1, "workflow_failed", {"error": error}))
+        receipt = self.deliver(self.make_event(1, "workflow_failed", {"error": error}))
 
         assert receipt.application_status == InvestigationOrchestrationEventStatus.APPLIED
         self.orchestration_run.refresh_from_db()
@@ -1649,14 +1654,15 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_applying_an_event_records_a_heartbeat(self) -> None:
         before = timezone.now()
 
-        self.deliver(self.event(1, "workflow_updated", {"projection": self.projection()}))
+        self.deliver(self.make_event(1, "workflow_updated", {"projection": self.projection()}))
 
         self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.heartbeat_at is not None
         assert self.orchestration_run.heartbeat_at >= before
 
     def test_workflow_failure_carrying_a_projection_may_advance_the_generation(self) -> None:
         receipt = self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_failed",
                 {
@@ -1674,11 +1680,13 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_workflow_failure_does_not_apply_a_stale_projection(self) -> None:
         self.deliver(
-            self.event(1, "workflow_updated", {"projection": self.projection(workflow_version=5)})
+            self.make_event(
+                1, "workflow_updated", {"projection": self.projection(workflow_version=5)}
+            )
         )
 
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_failed",
                 {
@@ -1696,7 +1704,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_stale_and_future_generations_are_consumed_without_mutation(self) -> None:
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, generation=2)},
@@ -1704,10 +1712,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         stale = self.deliver(
-            self.event(2, "workflow_updated", {"projection": self.projection()}, generation=1)
+            self.make_event(2, "workflow_updated", {"projection": self.projection()}, generation=1)
         )
         future_without_projection = self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "workflow_failed",
                 {"error": {"code": "seer_failed", "message": "Seer gave up."}},
@@ -1729,9 +1737,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.last_event_sequence == 3
 
     def test_stale_report_revision_is_consumed_without_mutation(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
 
-        stale = self.deliver(self.event(2, "report_completed", {"reportRevision": 0}))
+        stale = self.deliver(self.make_event(2, "report_completed", {"reportRevision": 0}))
 
         assert stale.application_status == InvestigationOrchestrationEventStatus.IGNORED
         self.orchestration_run.refresh_from_db()
@@ -1746,7 +1754,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             content="stale report",
         )
         waiting = self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "state_snapshot",
                 {
@@ -1760,7 +1768,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert waiting.last_applied_sequence == 0
 
         reconciled = self.deliver(
-            self.event(
+            self.make_event(
                 5,
                 "state_snapshot",
                 {
@@ -1829,7 +1837,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for sequence, (phase, status, report_status) in enumerate(terminal_states, start=1):
             with self.subTest(status=status):
                 delivered = self.deliver(
-                    self.event(
+                    self.make_event(
                         sequence,
                         "state_snapshot",
                         {
@@ -1858,7 +1866,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_failed_terminal_snapshot_is_consumed_after_the_gap_closes(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
         failed = self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "state_snapshot",
                 {
@@ -1889,14 +1897,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert not NotebookBlock.objects.filter(producer_key="invalid").exists()
 
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_updated",
                 {"projection": self.projection()},
             )
         )
         closed = self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, phase="planning")},
@@ -1909,8 +1917,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_targeted_report_revision_preserves_blocks_until_explicit_clear(self) -> None:
         events = [
-            self.event(1, "report_clear", {"reportRevision": 1}),
-            self.event(
+            self.make_event(1, "report_clear", {"reportRevision": 1}),
+            self.make_event(
                 2,
                 "report_block_upserted",
                 {
@@ -1923,7 +1931,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 3,
                 "report_block_upserted",
                 {
@@ -1936,7 +1944,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 4,
                 "workflow_updated",
                 {
@@ -1947,22 +1955,22 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     )
                 },
             ),
-            self.event(
+            self.make_event(
                 5,
                 "report_block_moved",
                 {"reportRevision": 2, "stableAgentKey": "first", "position": 1},
             ),
-            self.event(
+            self.make_event(
                 6,
                 "report_block_moved",
                 {"reportRevision": 2, "stableAgentKey": "second", "position": 0},
             ),
-            self.event(
+            self.make_event(
                 7,
                 "report_block_removed",
                 {"reportRevision": 2, "stableAgentKey": "second"},
             ),
-            self.event(
+            self.make_event(
                 8,
                 "report_block_upserted",
                 {
@@ -1996,7 +2004,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert second.deleted_at is not None
 
         self.deliver(
-            self.event(
+            self.make_event(
                 9,
                 "workflow_updated",
                 {
@@ -2017,14 +2025,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         first.refresh_from_db()
         assert first.producer_revision == 2
         assert first.deleted_at is None
-        self.deliver(self.event(10, "report_clear", {"reportRevision": 3}))
+        self.deliver(self.make_event(10, "report_clear", {"reportRevision": 3}))
         first.refresh_from_db()
         assert first.deleted_at is not None
 
     def test_targeted_report_revision_discards_in_flight_block(self) -> None:
         events = [
-            self.event(1, "report_clear", {"reportRevision": 1}),
-            self.event(
+            self.make_event(1, "report_clear", {"reportRevision": 1}),
+            self.make_event(
                 2,
                 "report_block_upserted",
                 {
@@ -2037,7 +2045,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 3,
                 "report_block_started",
                 {
@@ -2049,7 +2057,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 4,
                 "report_text_delta",
                 {
@@ -2058,7 +2066,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "delta": "unfinished",
                 },
             ),
-            self.event(
+            self.make_event(
                 5,
                 "workflow_updated",
                 {
@@ -2088,8 +2096,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_report_failure_finishes_partial_text_and_query_executions(self) -> None:
         events = [
-            self.event(1, "report_clear", {"reportRevision": 1}),
-            self.event(
+            self.make_event(1, "report_clear", {"reportRevision": 1}),
+            self.make_event(
                 2,
                 "report_block_started",
                 {
@@ -2101,7 +2109,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 3,
                 "report_text_delta",
                 {
@@ -2110,7 +2118,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "delta": "Evidence gathered so far",
                 },
             ),
-            self.event(
+            self.make_event(
                 4,
                 "report_block_started",
                 {
@@ -2122,7 +2130,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
                     "projectIds": [self.project.id],
                 },
             ),
-            self.event(
+            self.make_event(
                 5,
                 "report_failed",
                 {
@@ -2153,7 +2161,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_workflow_failure_finishes_partial_execution(self) -> None:
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "report_block_started",
                 {
@@ -2167,7 +2175,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_failed",
                 {
@@ -2190,7 +2198,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_workflow_cancellation_cancels_partial_execution(self) -> None:
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "report_block_started",
                 {
@@ -2204,7 +2212,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             )
         )
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {
@@ -2228,7 +2236,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_invalid_contiguous_event_does_not_block_later_events(self) -> None:
         foreign_project = self.create_project(organization=self.create_organization())
         failed = self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "report_block_started",
                 {
@@ -2246,7 +2254,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert not NotebookBlockExecution.objects.filter(block__producer_key="invalid").exists()
 
         applied = self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, phase="planning")},
@@ -2268,7 +2276,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.orchestration_run.save(update_fields=["source", "date_updated"])
 
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "report_block_started",
                 {
@@ -2292,7 +2300,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         # position is optional on the schema so an update can keep the stored one,
         # which leaves the requirement for a new block to the apply path.
         receipt = self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "report_block_upserted",
                 {
@@ -2338,12 +2346,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             }
         ]
 
-        invalid_event = self.event(2, "workflow_updated", {"projection": projection})
+        invalid_event = self.make_event(2, "workflow_updated", {"projection": projection})
         waiting = self.deliver(invalid_event)
         assert waiting.application_status == InvestigationOrchestrationEventStatus.PENDING
 
         applied = self.deliver(
-            self.event(1, "workflow_updated", {"projection": self.projection(workflow_version=2)})
+            self.make_event(
+                1, "workflow_updated", {"projection": self.projection(workflow_version=2)}
+            )
         )
         assert applied.application_status == InvestigationOrchestrationEventStatus.APPLIED
         assert applied.last_applied_sequence == 2
@@ -2384,7 +2394,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             }
         ]
 
-        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+        delivered = self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
 
         assert delivered.application_status == InvestigationOrchestrationEventStatus.APPLIED
         self.orchestration_run.refresh_from_db()
@@ -2436,7 +2446,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             }
         ]
 
-        delivered = self.deliver(self.event(1, "workflow_updated", {"projection": projection}))
+        delivered = self.deliver(self.make_event(1, "workflow_updated", {"projection": projection}))
 
         assert delivered.application_status == InvestigationOrchestrationEventStatus.FAILED
         self.orchestration_run.refresh_from_db()
@@ -2463,16 +2473,16 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self, sequence: int, item: Any, *, generation: int = 1
     ) -> OrchestrationEventReceipt:
         return self.deliver(
-            self.event(sequence, "action_requested", {"request": item}, generation=generation)
+            self.make_event(sequence, "action_requested", {"request": item}, generation=generation)
         )
 
     def deliver_withdrawn(self, sequence: int, key: str, reason: str) -> OrchestrationEventReceipt:
         return self.deliver(
-            self.event(sequence, "action_withdrawn", {"key": key, "reason": reason})
+            self.make_event(sequence, "action_withdrawn", {"key": key, "reason": reason})
         )
 
     def test_action_requested_stores_the_request(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.investigation.refresh_from_db()
         self.orchestration_run.refresh_from_db()
         version = self.investigation.version
@@ -2535,7 +2545,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert not NotebookActionRequest.objects.exists()
 
     def test_a_request_for_an_older_report_is_ignored(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 2}))
 
         receipt = self.deliver_request(2, self.action_request("late", reportRevision=1))
 
@@ -2545,7 +2555,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert not NotebookActionRequest.objects.exists()
 
     def test_requests_upsert_by_key(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         action = self.action_request("x")["action"]
         changed = {**action, "target": "b"}
         rows = {}
@@ -2609,7 +2619,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert reloaded["reconsidered"].reason is None
 
     def test_a_new_primary_supersedes_the_last_one(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver_request(2, self.action_request("first", primary=True))
         self.deliver_request(3, self.action_request("side"))
         self.create_notebook_action_request(
@@ -2630,7 +2640,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         }
 
     def test_a_new_primary_keeps_an_anchored_old_primary_as_a_request(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         anchor = {"type": "hypothesis", "id": "hyp-1"}
         self.deliver_request(
             2,
@@ -2656,14 +2666,14 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
     def test_an_anchored_primary_resent_for_the_next_report_stays_live(self) -> None:
         anchor = {"type": "hypothesis", "id": "hyp-1"}
         connect = fake_action("gcp")
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver_request(
             2,
             self.action_request(
                 "connect-telemetry-gcp-r1", primary=True, anchor=anchor, action=connect
             ),
         )
-        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.make_event(3, "report_clear", {"reportRevision": 2}))
 
         self.deliver_request(
             4,
@@ -2687,7 +2697,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         }
 
     def test_a_primary_on_a_terminal_key_still_replaces_the_last_primary(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver_request(2, self.action_request("first", primary=True))
         self.create_notebook_action_request(
             notebook=self.investigation,
@@ -2754,7 +2764,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_action_requests_are_fenced_by_generation(self) -> None:
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "workflow_updated",
                 {"projection": self.projection(workflow_version=2, generation=2)},
@@ -2776,7 +2786,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert not NotebookActionRequest.objects.exists()
 
     def completed_snapshot(self, sequence: int, **payload: Any) -> dict[str, Any]:
-        return self.event(
+        return self.make_event(
             sequence,
             "state_snapshot",
             {
@@ -2881,9 +2891,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert [request.key for request in kind.upserted] == ["winner"]
 
     def test_removing_a_block_supersedes_the_requests_under_it(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(
-            self.event(
+            self.make_event(
                 2,
                 "report_block_upserted",
                 {
@@ -2905,7 +2915,9 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
 
         self.deliver(
-            self.event(5, "report_block_removed", {"reportRevision": 1, "stableAgentKey": "chart"})
+            self.make_event(
+                5, "report_block_removed", {"reportRevision": 1, "stableAgentKey": "chart"}
+            )
         )
 
         assert self.request_states() == {
@@ -2914,7 +2926,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         }
 
     def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 2}))
         self.deliver_request(2, self.action_request("current", reportRevision=2, primary=True))
 
         self.deliver(self.completed_snapshot(3, reportRevision=1, blocks=[], actionRequests=[]))
@@ -2925,7 +2937,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.create_notebook_action_request(notebook=self.investigation, key="current")
 
         self.deliver(
-            self.event(
+            self.make_event(
                 1,
                 "state_snapshot",
                 {
@@ -2942,11 +2954,11 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.request_states() == {"current": NotebookActionRequestState.SUGGESTED}
 
     def test_an_adopted_report_revision_keeps_earlier_requests(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.deliver_request(2, self.action_request("widen-window", primary=True))
 
         self.deliver(
-            self.event(
+            self.make_event(
                 3,
                 "workflow_updated",
                 {
@@ -2961,27 +2973,27 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_a_recheck_leaves_the_notebook_untouched(self) -> None:
         events = [
-            self.event(1, "report_clear", {"reportRevision": 1}),
+            self.make_event(1, "report_clear", {"reportRevision": 1}),
             *(
-                self.event(
+                self.make_event(
                     sequence,
                     "report_block_upserted",
                     self.report_block(key, reportRevision=1, position=sequence - 2),
                 )
                 for sequence, key in [(2, "cause"), (3, "remediation"), (4, "evidence")]
             ),
-            self.event(5, "report_completed", {"reportRevision": 1}),
-            self.event(
+            self.make_event(5, "report_completed", {"reportRevision": 1}),
+            self.make_event(
                 6,
                 "metadata_completed",
                 {"reportRevision": 1, "summary": "Seer summary", "summaryDescription": "Body"},
             ),
-            self.event(
+            self.make_event(
                 7,
                 "action_requested",
                 {"request": self.action_request("widen-window", primary=True)},
             ),
-            self.event(
+            self.make_event(
                 8,
                 "workflow_updated",
                 {
@@ -3032,10 +3044,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             report_status="completed",
         )
         for event in [
-            self.event(9, "workflow_updated", {"projection": reopened}),
-            self.event(10, "action_requested", {"request": refreshed}),
-            self.event(11, "workflow_updated", {"projection": completed}),
-            self.event(
+            self.make_event(9, "workflow_updated", {"projection": reopened}),
+            self.make_event(10, "action_requested", {"request": refreshed}),
+            self.make_event(11, "workflow_updated", {"projection": completed}),
+            self.make_event(
                 12,
                 "state_snapshot",
                 {
@@ -3062,7 +3074,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert row.action_payload == refreshed["action"]
 
     def test_a_requests_only_snapshot_for_another_revision_is_ignored(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
 
         self.deliver(
             self.completed_snapshot(
@@ -3083,7 +3095,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for key, values in requests:
             self.create_notebook_action_request(notebook=self.investigation, key=key, **values)
 
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
 
         assert self.request_states() == {
             "primary": NotebookActionRequestState.SUPERSEDED,
@@ -3121,7 +3133,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.request_states() == {"widen-window": NotebookActionRequestState.WITHDRAWN}
 
     def test_a_newer_request_under_the_same_anchor_replaces_a_stale_one(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         anchor = {"type": "hypothesis", "id": "h-1"}
         self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
         self.stale("elsewhere", anchor_type="hypothesis", anchor_id="h-2")
@@ -3131,7 +3143,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.stale_keys() == {"elsewhere"}
 
     def test_a_newer_primary_replaces_a_stale_primary(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
 
         self.deliver_request(2, self.action_request("new", primary=True))
@@ -3139,7 +3151,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.stale_keys() == set()
 
     def test_a_newer_primary_replaces_a_stale_primary_seer_demoted_first(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         anchor = {"type": "hypothesis", "id": "h-1"}
         self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
 
@@ -3151,7 +3163,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
     def test_seer_sending_a_dropped_stale_request_again_keeps_it_superseded(self) -> None:
         self.stale("old", anchor_type="hypothesis", anchor_id="h-1")
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 2}))
 
         self.deliver_request(
             2,
@@ -3164,7 +3176,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.stale_keys() == set()
 
     def test_seer_sending_a_stale_request_again_keeps_it_stale(self) -> None:
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 1}))
         self.stale("old", primary=True, anchor_type="hypothesis", anchor_id="h-1")
 
         self.deliver_request(
@@ -3188,7 +3200,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.stale("hypothesis", anchor_type="hypothesis", anchor_id="h-1")
         self.stale("unanchored")
 
-        self.deliver(self.event(1, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.make_event(1, "report_clear", {"reportRevision": 2}))
 
         assert self.stale_keys() == set()
         assert set(self.request_states().values()) == {NotebookActionRequestState.SUPERSEDED}
@@ -3207,7 +3219,7 @@ class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase
         )
         return run
 
-    def event(self, run: InvestigationOrchestrationRun, **overrides: Any) -> dict[str, Any]:
+    def make_event(self, run: InvestigationOrchestrationRun, **overrides: Any) -> dict[str, Any]:
         run_id = overrides.pop("run_id", 8128)
         event: dict[str, Any] = {
             "schema_version": 1,
@@ -3247,7 +3259,9 @@ class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase
         run = self.orchestration_run()
         assert run.seer_run is None
 
-        deliver_orchestration_event(organization_id=self.organization.id, event=self.event(run))
+        deliver_orchestration_event(
+            organization_id=self.organization.id, event=self.make_event(run)
+        )
 
         adopted = InvestigationOrchestrationRun.objects.get(id=run.id)
         assert adopted.seer_run is not None
@@ -3266,7 +3280,9 @@ class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase
             seer_run_state_id=8128,
         )
 
-        deliver_orchestration_event(organization_id=self.organization.id, event=self.event(run))
+        deliver_orchestration_event(
+            organization_id=self.organization.id, event=self.make_event(run)
+        )
 
         run.refresh_from_db()
         assert run.seer_run_id == existing.id
@@ -3284,5 +3300,5 @@ class InvestigationOrchestrationSeerRunAdoptionTest(SeerRunMirrorMixin, TestCase
 
         with pytest.raises(serializers.ValidationError):
             deliver_orchestration_event(
-                organization_id=self.organization.id, event=self.event(run, run_id=9999)
+                organization_id=self.organization.id, event=self.make_event(run, run_id=9999)
             )

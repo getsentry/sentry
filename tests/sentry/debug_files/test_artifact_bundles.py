@@ -76,7 +76,7 @@ def make_compressed_zip_file(files: dict[str, _ArtifactFile]) -> bytes:
 def upload_bundle(
     bundle_file: bytes,
     project: Project,
-    release: str | None = None,
+    release: str,
     dist: str | None = None,
 ) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)

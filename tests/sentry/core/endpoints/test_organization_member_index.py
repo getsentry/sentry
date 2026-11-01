@@ -410,8 +410,8 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase, HybridCloudTest
 
         # Two authenticators to ensure the user list is distinct
         with assume_test_silo_mode(SiloMode.CONTROL):
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=1, config={})
-            Authenticator.objects.create(user_id=member_2fa.user_id, type=2, config={})
+            Authenticator.objects.create(user_id=user.id, type=1, config={})
+            Authenticator.objects.create(user_id=user.id, type=2, config={})
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "has2fa:true"}
@@ -674,9 +674,9 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase, Hybri
 
         def get_data(
             email: str, other_team_invite: bool = False, use_team_roles: bool = True
-        ) -> dict[str, str | list[dict[str, str]]]:
+        ) -> dict[str, str | list[dict[str, str]] | list[str]]:
             team_slug = other_team.slug if other_team_invite else self.team.slug
-            data: dict[str, str | list[dict[str, str]]] = {
+            data: dict[str, str | list[dict[str, str]] | list[str]] = {
                 "email": f"{email}@localhost",
                 "role": "member",
             }

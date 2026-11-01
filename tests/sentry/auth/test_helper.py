@@ -1851,14 +1851,16 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
     def test_flag_on_refreshes_pipeline_ttl(self, mock_send: mock.MagicMock) -> None:
         self.state.regenerate({"flow": FLOW_LOGIN})
         client = self.state._client
-        client.expire(self.state.redis_key, 5)
-        assert client.ttl(self.state.redis_key) <= 5
+        redis_key = self.state.redis_key
+        assert redis_key is not None
+        client.expire(redis_key, 5)
+        assert client.ttl(redis_key) <= 5
 
         self.request.POST = _post_data({"op": "newuser"})
         with override_options({"auth.email-verification-at-signup.sso-enabled": True}):
             self.handler.handle_unknown_identity(self.state)
 
-        assert client.ttl(self.state.redis_key) > 5
+        assert client.ttl(redis_key) > 5
 
     @mock.patch("sentry.auth.helper.send_signup_verification_email")
     def test_resubmitting_confirmation_form_does_not_resend_email(

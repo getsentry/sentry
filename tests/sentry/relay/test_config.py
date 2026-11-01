@@ -402,10 +402,10 @@ def test_project_config_with_all_biases_enabled(
     for release_id in release_ids[1:]:
         boosted_releases.append((release_id, ts))
 
-    for release, timestamp in boosted_releases:
+    for release_id, timestamp in boosted_releases:
         redis_client.hset(
             f"ds::p:{default_project.id}:boosted_releases",
-            f"ds::r:{release}:e:prod",
+            f"ds::r:{release_id}:e:prod",
             timestamp,
         )
 
