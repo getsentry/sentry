@@ -68,6 +68,31 @@ describe('CheckoutSuccess', () => {
     expect(screen.queryByTestId('receipt')).not.toBeInTheDocument();
   });
 
+  it('renders scheduled changes when a reserved item has null data', async () => {
+    render(
+      <CheckoutSuccess
+        basePlan={bizPlan}
+        nextQueryParams={[]}
+        previewData={PreviewDataFixture({
+          effectiveAt: moment(mockDate).add(1, 'day').toISOString(),
+          invoiceItems: [
+            {
+              type: 'reserved_errors',
+              description: '50,000 reserved errors',
+              amount: 0,
+              data: null,
+              period_start: '2025-01-02',
+              period_end: '2025-02-01',
+            },
+          ],
+        })}
+      />
+    );
+
+    expect(await screen.findByText('Consider it done (soon)')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /^From /})).toBeInTheDocument();
+  });
+
   it('renders ondemand items in receipt', async () => {
     const invoiceWithOnDemand = InvoiceFixture({
       items: [

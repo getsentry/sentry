@@ -542,7 +542,7 @@ export type Invoice = InvoiceBase & {
 
 type BaseInvoiceItem = {
   amount: number;
-  data: {period?: any; plan?: any; quantity?: any};
+  data: {period?: any; plan?: any; quantity?: any} | null;
   description: string;
   type: InvoiceItemType;
 };

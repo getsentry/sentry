@@ -626,7 +626,7 @@ function AMCheckout(props: Props) {
   if (isSubmitted) {
     const purchasedPlanItem = invoice?.items.find(item => item.type === 'subscription');
     const basePlan = purchasedPlanItem
-      ? getPlan(purchasedPlanItem.data.plan)
+      ? getPlan(purchasedPlanItem.data?.plan)
       : getPlan(formData.plan);
 
     return (
