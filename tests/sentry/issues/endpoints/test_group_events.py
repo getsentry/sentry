@@ -46,6 +46,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -78,6 +79,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -109,6 +111,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -138,6 +141,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -203,6 +207,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -230,7 +235,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         group = event_1.group
+        assert group is not None
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -240,6 +247,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_2.group is not None
         assert group == event_2.group
 
         query_1 = "foo"
@@ -275,6 +283,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event_1.group.id}/events/?query=release:latest"
         response = self.do_request(url)
 
@@ -297,7 +306,11 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             )
 
         # Asserts that all are in the same group
-        (group_id,) = {e.group.id for e in events.values()}
+        group_ids = set()
+        for e in events.values():
+            assert e.group is not None
+            group_ids.add(e.group.id)
+        (group_id,) = group_ids
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group_id}/events/"
         response = self.do_request(url + "?environment=production")
@@ -337,7 +350,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={"fingerprint": ["group_1"], "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event_2.group is not None
         group = event_2.group
+        assert group is not None
 
         with self.options({"system.event-retention-days": 1}):
             response = self.client.get(
@@ -358,6 +373,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         response = self.client.get(
             f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
@@ -374,11 +390,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             data={"timestamp": before_now(days=5).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         event_2 = self.store_event(
             data={"timestamp": before_now(days=1).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event_2.group is not None
         group = event_1.group
+        assert group is not None
         assert group == event_2.group
 
         response = self.client.get(
@@ -444,6 +463,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         )
 
         for event in (event_1, event_2):
+            assert event.group is not None
             url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
             response = self.do_request(url)
             assert response.status_code == 200, response.content
@@ -464,7 +484,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 project_id=self.project.id,
             )
 
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/?per_page=1"
+        group = event.group
+        assert group is not None
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/events/?per_page=1"
         response = self.do_request(url)
         links = self._parse_links(response["Link"])
         assert response.status_code == 200, response.content
@@ -485,7 +507,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 project_id=self.project.id,
             )
         assert event is not None
-        return event.group
+        group = event.group
+        assert group is not None
+        return group
 
     def test_full_clamps_per_page_and_pages_with_cursor(self) -> None:
         self.login_as(user=self.user)
@@ -543,6 +567,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
         response = self.do_request(url)
@@ -552,6 +577,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
 
     def test_perf_issue(self) -> None:
         event_1 = self.create_performance_issue()
+        assert event_1.group is not None
         event_2 = self.create_performance_issue()
         assert event_1.group is not None
 
@@ -574,6 +600,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             before_now(hours=1),
         )
         assert group_info is not None
+        assert group_info.group is not None
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,
@@ -614,6 +641,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/?sample=true"
         response = self.do_request(url)
@@ -630,6 +658,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event_1.group is not None
         event_2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -663,6 +692,7 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/events/"
         response = self.do_request(url)
         assert response.status_code == 504
@@ -682,7 +712,9 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
                 project_id=self.project.id,
             )
             events.append(event)
-        return event.group, events
+        group = event.group
+        assert group is not None
+        return group, events
 
     def test_platform_tag_collision_resolved_correctly(self) -> None:
         self.login_as(user=self.user)
