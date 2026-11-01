@@ -26,6 +26,13 @@ from sentry.models.releases.util import release_order_date
 from sentry.utils import metrics
 
 
+def _version_raw(version: str) -> str:
+    version_raw = parse_release(version, json_loads=orjson.loads).get("version_raw")
+    if not isinstance(version_raw, str):
+        raise RelayError(f"Release {version!r} has no parseable version_raw")
+    return version_raw
+
+
 @cell_silo_model
 class GroupResolution(Model):
     """
@@ -148,12 +155,8 @@ class GroupResolution(Model):
                     # If current_release_version == release.version => 0
                     # If current_release_version < release.version => -1
                     # If current_release_version > release.version => 1
-                    current_release_raw = parse_release(
-                        current_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
-                        "version_raw"
-                    )
+                    current_release_raw = _version_raw(current_release_version)
+                    release_raw = _version_raw(release.version)
                     if compare_version_relay(current_release_raw, release_raw) >= 0:
                         return True
 
@@ -163,9 +166,7 @@ class GroupResolution(Model):
                     # comparing the event release against the resolved-in
                     # release: if the event is on an older version than the fix,
                     # the resolution still holds.
-                    res_release_raw = parse_release(
-                        res_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
+                    res_release_raw = _version_raw(res_release_version)
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...
@@ -209,12 +210,8 @@ class GroupResolution(Model):
                 try:
                     # A resolution only exists if the resolved release is greater (in semver
                     # terms) than the provided release
-                    res_release_raw = parse_release(
-                        res_release_version, json_loads=orjson.loads
-                    ).get("version_raw")
-                    release_raw = parse_release(release.version, json_loads=orjson.loads).get(
-                        "version_raw"
-                    )
+                    res_release_raw = _version_raw(res_release_version)
+                    release_raw = _version_raw(release.version)
                     return compare_version_relay(res_release_raw, release_raw) == 1
                 except RelayError:
                     ...

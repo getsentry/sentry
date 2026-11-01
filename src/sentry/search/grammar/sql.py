@@ -1,4 +1,4 @@
-from typing import Any, Literal, Sequence, TypedDict
+from typing import Any, Literal, Sequence, TypedDict, cast
 
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
@@ -115,19 +115,19 @@ class SqlVisitor(NodeVisitor[ParsedQuery]):
 
     def visit_select_clause(self, node: Node, visited_children: Sequence[Any]) -> list[str]:
         _, _, _, selected_columns = visited_children
-        return selected_columns
+        return cast("list[str]", selected_columns)
 
     def visit_dataset_clause(self, node: Node, visited_children: Sequence[Any]) -> str:
         _, _, _, dataset_literal = visited_children
-        return dataset_literal
+        return cast("str", dataset_literal)
 
     def visit_where_clause(self, node: Node, visited_children: Sequence[Any]) -> list[Condition]:
         _, _, _, or_condition = visited_children
-        return or_condition
+        return cast("list[Condition]", or_condition)
 
     def visit_order_by_clause(self, node: Node, visited_children: Sequence[Any]) -> list[OrderBy]:
         _, _, _, order_list = visited_children
-        return order_list
+        return cast("list[OrderBy]", order_list)
 
     def visit_order_list(self, node: Node, visited_children: Sequence[Any]) -> list[OrderBy]:
         order_list, orderby, _, direction = visited_children
@@ -157,9 +157,9 @@ class SqlVisitor(NodeVisitor[ParsedQuery]):
         columns.append(right_column)
         return columns
 
-    def visit_select_columns(self, node: Node, visited_children: Sequence[Any]) -> list[str]:
+    def visit_select_columns(self, node: Node, visited_children: Sequence[Any]) -> str:
         selected_expression, _, _ = visited_children
-        return selected_expression
+        return cast("str", selected_expression)
 
     def generic_visit(self, node: Node, visited_children: Sequence[Any]) -> Sequence[Any]:
         return visited_children
@@ -168,11 +168,11 @@ class SqlVisitor(NodeVisitor[ParsedQuery]):
 
     def visit_and_expression(self, node: Node, visited_children: Sequence[Any]) -> Condition:
         _, left_condition, and_condition = visited_children
-        return left_condition
+        return cast("Condition", left_condition)
 
     def visit_or_expression(self, node: Node, visited_children: Sequence[Any]) -> Condition:
         _, left_condition, or_condition = visited_children
-        return left_condition
+        return cast("Condition", left_condition)
 
     def visit_main_condition(self, node: Node, visited_children: Sequence[Any]) -> Condition:
         exp, _, op, _, literal = visited_children

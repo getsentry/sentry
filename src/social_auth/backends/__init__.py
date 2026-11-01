@@ -24,6 +24,7 @@ import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, load_backend
 from django.contrib.auth.base_user import AbstractBaseUser
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
@@ -83,9 +84,7 @@ class SocialAuthBackend:
     name = ""  # provider name, it's stored in database
     supports_inactive_user = False
 
-    def authenticate(
-        self, request: HttpRequest | None, *args: Any, **kwargs: Any
-    ) -> RpcUser | None:
+    def authenticate(self, request: HttpRequest | None, *args: Any, **kwargs: Any) -> User | None:
         """Authenticate user using social credentials
 
         Authentication is made if this is the correct backend, backend
@@ -114,15 +113,16 @@ class SocialAuthBackend:
 
         out = self.pipeline(pipeline, request, *args, **kwargs)
         if not isinstance(out, dict):
-            return out
+            # justification: the social auth pipeline returns either a user or pipeline state.
+            return cast("User | None", out)
 
         social_user = out.get("social_user")
         if social_user:
             # define user.social_user attribute to track current social
             # account
-            user = social_user.user
-            user.social_user = social_user
-            user.is_new = out.get("is_new")
+            user: User = social_user.user
+            setattr(user, "social_user", social_user)
+            setattr(user, "is_new", out.get("is_new"))
             return user
         return None
 
@@ -238,7 +238,8 @@ class OAuthBackend(SocialAuthBackend):
 
     def get_user_id(self, details: Mapping[str, Any], response: Mapping[str, Any]) -> str:
         """OAuth providers return an unique user id in response"""
-        return response[self.ID_KEY]
+        # justification: OAuth providers return a string identifier for the ID key.
+        return cast("str", response[self.ID_KEY])
 
     @classmethod
     def extra_data(
@@ -350,7 +351,12 @@ class BaseAuth:
             <backend name in uppercase>_REQUEST_TOKEN_EXTRA_ARGUMENTS.
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
-        return setting(backend_name + "_REQUEST_TOKEN_EXTRA_ARGUMENTS", {})
+        value = setting(backend_name + "_REQUEST_TOKEN_EXTRA_ARGUMENTS", {})
+        if not isinstance(value, dict):
+            raise ImproperlyConfigured(
+                f"{backend_name}_REQUEST_TOKEN_EXTRA_ARGUMENTS must be a dict"
+            )
+        return value
 
     def auth_extra_arguments(self) -> dict[str, Any]:
         """Return extra arguments needed on auth process, setting is per
@@ -360,6 +366,8 @@ class BaseAuth:
         """
         backend_name = self.AUTH_BACKEND.name.upper().replace("-", "_")
         extra_arguments = setting(backend_name + "_AUTH_EXTRA_ARGUMENTS", {})
+        if not isinstance(extra_arguments, dict):
+            raise ImproperlyConfigured(f"{backend_name}_AUTH_EXTRA_ARGUMENTS must be a dict")
         for key, value in extra_arguments.items():
             if key in self.data:
                 extra_arguments[key] = self.data[key]
@@ -650,7 +658,9 @@ class BaseOAuth2(OAuthAuth):
         value if valid."""
         if not self.STATE_PARAMETER and not self.REDIRECT_STATE:
             return None
-        state = self.request.session.get(self.AUTH_BACKEND.name + "_state")
+        state: str | None = self.request.session.get(self.AUTH_BACKEND.name + "_state")
+        if not isinstance(state, str):
+            state = None
         if state:
             request_state = self.data.get("state") or self.data.get("redirect_state")
             if not request_state:
@@ -731,7 +741,7 @@ class BaseOAuth2(OAuthAuth):
 
     @classmethod
     def process_revoke_token_response(cls, response: Any) -> bool:
-        return response.code == 200
+        return bool(response.code == 200)
 
     @classmethod
     def revoke_token(cls, token: str, uid: str) -> bool | None:

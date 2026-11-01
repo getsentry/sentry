@@ -197,7 +197,10 @@ def _apply_search_filters(queryset: Any, filters: Sequence[QueryToken]) -> Any:
         elif key == "provider":
             if op not in ("=", "!=", "IN", "NOT IN"):
                 raise InvalidSearchQuery(f"provider does not support the {op} operator.")
-            normalize = lambda v: v.removeprefix("integrations:")
+
+            def normalize(provider: str) -> str:
+                return provider.removeprefix("integrations:")
+
             if op == "=":
                 queryset = queryset.filter(provider_normalized=normalize(value))
             elif op == "!=":

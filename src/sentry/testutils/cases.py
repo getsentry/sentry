@@ -249,6 +249,8 @@ SessionOrTransactionMRI = Union[SessionMRI, TransactionMRI]
 
 class _ElevatedRequest(Protocol):
     staff: Staff
+    superuser: Superuser
+    successful_authenticator: object | None
 
 
 class BaseTestCase(Fixtures):
@@ -318,7 +320,10 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        # justification: RequestFactory returns an HttpRequest for every HTTP method name.
+        request = cast(
+            "HttpRequest", getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        )
         if subdomain:
             setattr(request, "subdomain", subdomain)
         request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -333,15 +338,19 @@ class BaseTestCase(Fixtures):
         request.session = self.session
         set_request_principal(request, user or AnonymousUser(), auth)
         # must happen after request.user/request.session is populated
-        request.superuser = Superuser(request)
-        request.staff = Staff(request)
+        # justification: make_request attaches the superuser and staff principals below.
+        elevated_request = cast("_ElevatedRequest", request)
+        elevated_request.superuser = Superuser(request)
+        elevated_request.staff = Staff(request)
         if is_superuser:
             # XXX: this is gross, but it's a one-off and apis change only once in a great while
-            request.superuser.set_logged_in(user)
+            # justification: is_superuser is only set by callers that pass a persisted User.
+            elevated_request.superuser.set_logged_in(cast("User", user))
 
         if is_staff:
-            request.staff.set_logged_in(user)
-        request.successful_authenticator = None
+            # justification: is_staff is only set by callers that pass a persisted User.
+            elevated_request.staff.set_logged_in(cast("User", user))
+        elevated_request.successful_authenticator = None
         return request
 
     # TODO(dcramer): ideally superuser_sso would be False by default, but that would require
@@ -391,15 +400,17 @@ class BaseTestCase(Fixtures):
         # superuser-only code
         if not superuser:
             # XXX(dcramer): we're calling the internal method to avoid logging
-            request.superuser._set_logged_out()
+            elevated_request.superuser._set_logged_out()
         elif request.user.is_superuser and superuser:
-            request.superuser.set_logged_in(request.user)
+            elevated_request.superuser.set_logged_in(request.user)
             # XXX(dcramer): awful hack to ensure future attempts to instantiate
             # the Superuser object are successful
             self.save_cookie(
                 name=SU_COOKIE_NAME,
                 value=signing.get_cookie_signer(salt=SU_COOKIE_NAME + SU_COOKIE_SALT).sign(
-                    request.superuser.token
+                    elevated_request.superuser.token
+                    if elevated_request.superuser.token is not None
+                    else ""
                 ),
                 max_age=None,
                 path=SU_COOKIE_PATH,
@@ -656,7 +667,8 @@ class APITestCaseMixin:
         data = raw_data or params
         method = params.pop("method", self.method).lower()
 
-        return getattr(self.client, method)(url, format=format, data=data, **headers)
+        response: Response = getattr(self.client, method)(url, format=format, data=data, **headers)
+        return response
 
     def get_success_response(self, *args: Any, **params: Any) -> Response:
         """
@@ -792,20 +804,22 @@ class TwoFactorAPITestCase(APITestCase):
             organization.flags.require_2fa = True
             organization.save()
 
-    def api_enable_org_2fa(self, organization: Organization, user: User) -> HttpResponse:
+    def api_enable_org_2fa(self, organization: Organization, user: User) -> Response:
         self.login_as(user)
         url = reverse(
             "sentry-api-0-organization-details",
             kwargs={"organization_id_or_slug": organization.slug},
         )
-        return self.client.put(url, data={"require2FA": True})
+        response: Response = self.client.put(url, data={"require2FA": True})
+        return response
 
-    def api_disable_org_2fa(self, organization: Organization, user: User) -> HttpResponse:
+    def api_disable_org_2fa(self, organization: Organization, user: User) -> Response:
         url = reverse(
             "sentry-api-0-organization-details",
             kwargs={"organization_id_or_slug": organization.slug},
         )
-        return self.client.put(url, data={"require2FA": False})
+        response: Response = self.client.put(url, data={"require2FA": False})
+        return response
 
     def assert_can_enable_org_2fa(
         self, organization: Organization, user: User, status_code: int = 200
@@ -905,7 +919,7 @@ class PermissionTestCase(TestCase):
         self, user: User, path: str, method: str = "GET", **kwargs: Any
     ) -> Response:
         self.login_as(user, superuser=user.is_superuser)
-        resp = getattr(self.client, method.lower())(path, **kwargs)
+        resp: Response = getattr(self.client, method.lower())(path, **kwargs)
         assert resp.status_code >= 200 and resp.status_code < 300
         return resp
 
@@ -2576,7 +2590,7 @@ class IntegrationRepositoryTestCase(APITestCase):
                 "identifier": repository_config["id"],
             }
 
-        response = self.client.post(
+        response: Response = self.client.post(
             path=reverse(
                 "sentry-api-0-organization-repositories",
                 args=[organization_slug or self.organization.slug],
@@ -2715,7 +2729,8 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
 
     def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         func = getattr(self.client, method)
-        return func(url, data=data)
+        response: Response = func(url, data=data)
+        return response
 
     def assert_serialized_widget_query(
         self, data: dict[str, Any], widget_data_source: DashboardWidgetQuery
@@ -3356,10 +3371,7 @@ class UptimeTestCaseMixin:
             guid = uuid.uuid4().hex
         if scheduled_check_time is None:
             scheduled_check_time = datetime.now().replace(microsecond=0)
-        optional_fields: _OptionalCheckResult = {}
-        if uptime_region is not None:
-            optional_fields["region"] = uptime_region
-        return {
+        result: CheckResult = {
             "guid": guid,
             "subscription_id": subscription_id,
             "status": status,
@@ -3374,12 +3386,10 @@ class UptimeTestCaseMixin:
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
             "assertion_failure_data": MOCK_ASSERTION_FAILURE_DATA,
-            **optional_fields,
         }
-
-
-class _OptionalCheckResult(TypedDict, total=False):
-    region: str
+        if uptime_region is not None:
+            result["region"] = uptime_region
+        return result
 
 
 class UptimeTestCase(UptimeTestCaseMixin, TestCase):

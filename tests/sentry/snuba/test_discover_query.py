@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 
 import pytest
@@ -1180,7 +1181,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ),
         ]
 
-        similar = lambda a, b: abs(a - b) < 0.001
+        similar: Callable[[float, float], bool] = lambda a, b: abs(a - b) < 0.001
 
         for query, expected_user_misery, col, alias in queries:
             result = discover.query(

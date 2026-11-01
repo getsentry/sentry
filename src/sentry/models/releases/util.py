@@ -254,9 +254,10 @@ class ReleaseQuerySet(BaseQuerySet["Release"]):
         Inputs:
             * kwargs: data of the release that is about to be created
         """
-        if "version" in kwargs:
+        version = kwargs.get("version")
+        if isinstance(version, str):
             try:
-                version_info = parse_release(kwargs["version"])
+                version_info = parse_release(version)
                 package = version_info.get("package")
                 version_parsed = version_info.get("version_parsed")
 

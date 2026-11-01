@@ -64,7 +64,8 @@ def _redirect_url(pipeline: IdentityPipeline) -> str:
     )
 
     # Use configured redirect_url if specified for the pipeline if available
-    return pipeline.config.get("redirect_url", associate_url)
+    redirect_url = pipeline.config.get("redirect_url", associate_url)
+    return redirect_url if isinstance(redirect_url, str) else associate_url
 
 
 class OAuth2Provider(Provider):
@@ -98,7 +99,7 @@ class OAuth2Provider(Provider):
         """
         try:
             prop = getattr(self, f"oauth_{parameter_name}")
-            if prop != "":
+            if isinstance(prop, str) and prop != "":
                 return prop
         except AttributeError:
             pass
@@ -130,7 +131,8 @@ class OAuth2Provider(Provider):
         return self._get_oauth_parameter("client_secret")
 
     def get_oauth_scopes(self) -> tuple[str, ...]:
-        return self.config.get("oauth_scopes", self.oauth_scopes)
+        # justification: provider config stores the scopes list set when the provider is created.
+        return cast("tuple[str, ...]", self.config.get("oauth_scopes", self.oauth_scopes))
 
     def get_refresh_token_headers(self) -> dict[str, str] | None:
         return None
@@ -373,7 +375,10 @@ class OAuth2ApiStep:
             content_type = req.headers.get("Content-Type", "").lower()
             if content_type.startswith("application/x-www-form-urlencoded"):
                 return dict(parse_qsl(body.decode("utf-8")))
-            return orjson.loads(body)
+            data = orjson.loads(body)
+            if not isinstance(data, dict):
+                raise OAuth2ApiStepError("Expected a JSON object response")
+            return data
         except orjson.JSONDecodeError as e:
             raise OAuth2ApiStepError("Could not decode a JSON response, please try again.") from e
 
@@ -513,7 +518,10 @@ class OAuth2CallbackView:
                 content_type = req.headers.get("Content-Type", "").lower()
                 if content_type.startswith("application/x-www-form-urlencoded"):
                     return dict(parse_qsl(body.decode("utf-8")))
-                return orjson.loads(body)
+                data = orjson.loads(body)
+                if not isinstance(data, dict):
+                    raise OAuth2ApiStepError("Expected a JSON object response")
+                return data
             except orjson.JSONDecodeError:
                 lifecycle.record_failure(
                     "json_error",

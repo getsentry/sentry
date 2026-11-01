@@ -99,6 +99,13 @@ class _Field(Protocol):
     def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]: ...
 
 
+def _number(row: Mapping[str, object], key: str) -> float:
+    value = row[key]
+    if not isinstance(value, (int, float)):
+        raise TypeError(f"Expected a numeric {key!r} in the sessions row")
+    return value
+
+
 class SessionsField:
     def get_snuba_columns(self, raw_groupby: Sequence[str]) -> list[str]:
         if "session.status" in raw_groupby:
@@ -118,22 +125,26 @@ class SessionsField:
             return 0
         status = group.get("session.status")
         if status is None:
-            return row["sessions"]
+            return _number(row, "sessions")
         if status == "healthy":
-            healthy_sessions = row["sessions"] - row["sessions_errored"] - row["sessions_unhandled"]
+            healthy_sessions = (
+                _number(row, "sessions")
+                - _number(row, "sessions_errored")
+                - _number(row, "sessions_unhandled")
+            )
             return max(healthy_sessions, 0)
         if status == "abnormal":
-            return row["sessions_abnormal"]
+            return _number(row, "sessions_abnormal")
         if status == "unhandled":
-            return row["sessions_unhandled"]
+            return _number(row, "sessions_unhandled")
         if status == "crashed":
-            return row["sessions_crashed"]
+            return _number(row, "sessions_crashed")
         if status == "errored":
             errored_sessions = (
-                row["sessions_errored"]
-                - row["sessions_unhandled"]
-                - row["sessions_crashed"]
-                - row["sessions_abnormal"]
+                _number(row, "sessions_errored")
+                - _number(row, "sessions_unhandled")
+                - _number(row, "sessions_crashed")
+                - _number(row, "sessions_abnormal")
             )
             return max(errored_sessions, 0)
         return 0
@@ -152,22 +163,26 @@ class UsersField:
             return 0
         status = group.get("session.status")
         if status is None:
-            return row["users"]
+            return _number(row, "users")
         if status == "healthy":
-            healthy_users = row["users"] - row["users_errored"] - row["users_unhandled"]
+            healthy_users = (
+                _number(row, "users")
+                - _number(row, "users_errored")
+                - _number(row, "users_unhandled")
+            )
             return max(healthy_users, 0)
         if status == "abnormal":
-            return row["users_abnormal"]
+            return _number(row, "users_abnormal")
         if status == "unhandled":
-            return row["users_unhandled"]
+            return _number(row, "users_unhandled")
         if status == "crashed":
-            return row["users_crashed"]
+            return _number(row, "users_crashed")
         if status == "errored":
             errored_users = (
-                row["users_errored"]
-                - row["users_crashed"]
-                - row["users_abnormal"]
-                - row["users_unhandled"]
+                _number(row, "users_errored")
+                - _number(row, "users_crashed")
+                - _number(row, "users_abnormal")
+                - _number(row, "users_unhandled")
             )
             return max(errored_users, 0)
         return 0

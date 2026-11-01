@@ -456,7 +456,7 @@ def get_recommended_event(
 
 def _get_replay_id_from_event(event: Event) -> str | None:
     replay_id = get_path(event.data, "contexts", "replay", "replay_id")
-    if replay_id:
+    if isinstance(replay_id, str) and replay_id:
         return replay_id
     return event.get_tag("replayId")
 
@@ -1034,7 +1034,7 @@ class Group(Model):
             return False
 
         cached_has_replays = cache.get(_cache_key(self.id))
-        if cached_has_replays is not None:
+        if isinstance(cached_has_replays, bool):
             metrics.incr(
                 "group.has_replays.cached",
                 tags={
@@ -1262,7 +1262,10 @@ class Group(Model):
 
         See ``sentry.eventtypes``.
         """
-        return self.data["metadata"]
+        metadata = self.data["metadata"]
+        if not isinstance(metadata, dict):
+            raise TypeError("metadata is not a JSON object")
+        return metadata
 
     @property
     def title(self) -> str:
@@ -1270,7 +1273,7 @@ class Group(Model):
         event_type = self.get_event_type()
 
         # TODO: It may be that we don't have to restrict this to just default and error types
-        if title and event_type in ["default", "error"]:
+        if isinstance(title, str) and title and event_type in ["default", "error"]:
             return title
 
         event_type_instance = eventtypes.get(event_type)()
@@ -1289,9 +1292,10 @@ class Group(Model):
         """returns normalized SDK name"""
 
         try:
-            return self.get_event_metadata()["sdk"]["name_normalized"]
+            sdk_name = self.get_event_metadata()["sdk"]["name_normalized"]
         except KeyError:
             return None
+        return sdk_name if isinstance(sdk_name, str) else None
 
     def get_email_subject(self) -> str:
         return f"{self.qualified_short_id} - {self.title}"

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from django.db import models
 from django.db.models.expressions import Combinable
@@ -31,7 +31,8 @@ class BoundedIntegerField(models.IntegerField[_ST, _GT]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
 
 class BoundedPositiveIntegerField(models.PositiveIntegerField[_ST, _GT]):
@@ -41,7 +42,8 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField[_ST, _GT]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
 
 class WrappingU32IntegerField(models.IntegerField[_ST, _GT]):
@@ -61,7 +63,8 @@ class WrappingU32IntegerField(models.IntegerField[_ST, _GT]):
             if value > I32_MAX:
                 value = value - 2**32
 
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
     def from_db_value(
         self, value: int | None, expression: object, connection: object
@@ -80,7 +83,8 @@ class BoundedAutoField(models.AutoField[int, int]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
 
 class BoundedBigIntegerField(models.BigIntegerField[_ST, _GT]):
@@ -95,7 +99,8 @@ class BoundedBigIntegerField(models.BigIntegerField[_ST, _GT]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
 
 class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField[_ST, _GT]):
@@ -110,7 +115,8 @@ class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField[_ST, _GT]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))
 
 
 class BoundedBigAutoField(models.BigAutoField[int, int]):
@@ -128,4 +134,5 @@ class BoundedBigAutoField(models.BigAutoField[int, int]):
         if value:
             value = int(value)
             assert value <= self.MAX_VALUE
-        return super().get_prep_value(value)
+        # justification: django-stubs types Field.get_prep_value as returning Any.
+        return cast("int", super().get_prep_value(value))

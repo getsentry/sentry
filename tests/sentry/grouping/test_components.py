@@ -1,4 +1,5 @@
 from collections import Counter
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -93,7 +94,9 @@ class ComponentTest(TestCase):
             FunctionGroupingComponent(values=["playFetch", "rollOver"])
 
     def test_component_wrappers_can_wrap_multiple_values(self) -> None:
-        get_frame = lambda: FrameGroupingComponent(in_app=True, values=[])
+        get_frame: Callable[[], FrameGroupingComponent] = lambda: FrameGroupingComponent(
+            in_app=True, values=[]
+        )
 
         # Any number of values is fine
         StacktraceGroupingComponent(values=[])

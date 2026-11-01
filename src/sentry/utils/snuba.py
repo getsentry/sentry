@@ -30,6 +30,7 @@ import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
+from django.db.models import Model
 from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
 from snuba_sdk import Column, DeleteQuery, Function, MetricsQuery, Request
@@ -2100,7 +2101,7 @@ def get_snuba_translators(
     forward: Translator = identity
     reverse: Translator = identity
 
-    map_columns = {
+    map_columns: dict[str, tuple[type[Model], str, Translator]] = {
         "environment": (Environment, "name", lambda name: None if name == "" else name),
         "tags[sentry:release]": (Release, "version", identity),
         "release": (Release, "version", identity),
@@ -2371,7 +2372,7 @@ def process_value(
 
 
 def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression]:
-    return Function(
+    function = Function(
         function="toInt64",
         parameters=[
             Function(
@@ -2388,6 +2389,8 @@ def get_upsampled_count_snql_with_alias(alias: str) -> list[SelectableExpression
         ],
         alias=alias,
     )
+    # justification: snuba_sdk is skipped by mypy, so its constructors return Any.
+    return cast("list[SelectableExpression]", function)
 
 
 def _convert_count_aggregations_for_error_upsampling(

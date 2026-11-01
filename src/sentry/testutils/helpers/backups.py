@@ -989,7 +989,7 @@ class ExhaustiveFixtures(Fixtures):
         _, public_key = generate_key_pair()
         relay = str(uuid4())
         Relay.objects.create(relay_id=relay, public_key=str(public_key), is_internal=True)
-        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=public_key)
+        RelayUsage.objects.create(relay_id=relay, version="0.0.1", public_key=str(public_key))
         Option.objects.create(key="foo", value="a")
 
     def create_exhaustive_instance(self, *, is_superadmin: bool = False) -> None:
@@ -1086,7 +1086,7 @@ class ExhaustiveFixtures(Fixtures):
             if model_diff != 0:
                 return model_diff
 
-            return a["pk"] - b["pk"]
+            return int(a["pk"]) - int(b["pk"])
 
         return sorted(
             json_data,

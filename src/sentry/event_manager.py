@@ -7,7 +7,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, overload
+from typing import TYPE_CHECKING, Any, Literal, NotRequired, TypedDict, cast, overload
 
 import orjson
 import psycopg2.errors
@@ -308,7 +308,7 @@ def get_stored_crashreports(cache_key: str | None, event: Event, max_crashreport
         return max_crashreports
 
     cached_reports = cache.get(cache_key, None)
-    if cached_reports is not None and cached_reports >= max_crashreports:
+    if isinstance(cached_reports, int) and cached_reports >= max_crashreports:
         return cached_reports
 
     # Fall-through if max_crashreports was bumped to get a more accurate number.
@@ -347,6 +347,11 @@ def increment_group_tombstone_hit_counter(tombstone_id: int | None, event: Event
 ProjectsMapping = Mapping[int, Project]
 
 Job = MutableMapping[str, Any]
+
+
+def _event_from_job(job: Job) -> Event:
+    # justification: _save stores the Event under "event" before returning the job.
+    return cast("Event", job["event"])
 
 
 def resolve_project(project_id: int) -> Project:
@@ -505,11 +510,11 @@ class EventManager:
         if event_type == "transaction":
             job["data"]["project"] = project.id
             jobs = save_transaction_events([job], projects, skip_send_first_transaction)
-            return jobs[0]["event"]
+            return _event_from_job(jobs[0])
         elif event_type == "generic":
             job["data"]["project"] = project.id
             jobs = save_generic_events([job], projects)
-            return jobs[0]["event"]
+            return _event_from_job(jobs[0])
         else:
             project = job["event"].project
             job["in_grouping_transition"] = is_in_transition(project)
@@ -564,7 +569,7 @@ class EventManager:
             raise
 
         if not group_info:
-            return job["event"]
+            return _event_from_job(job)
 
         # store a reference to the group id to guarantee validation of isolation
         # XXX(markus): No clue what this does
@@ -662,7 +667,7 @@ class EventManager:
 
         self._data = job["event"].data.data
 
-        return job["event"]
+        return _event_from_job(job)
 
 
 @traces.trace

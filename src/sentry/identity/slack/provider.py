@@ -1,6 +1,8 @@
 from collections.abc import Mapping, Sequence
 from typing import TypedDict, cast
 
+from django.core.exceptions import ImproperlyConfigured
+
 from sentry import options
 from sentry.identity.oauth2 import OAuth2CallbackView, OAuth2LoginView, OAuth2Provider
 from sentry.identity.pipeline import IdentityPipeline
@@ -48,13 +50,24 @@ class SlackIdentityProvider(OAuth2Provider):
         return "https://slack.com/api/oauth.v2.access"
 
     def get_oauth_client_id(self) -> str:
-        return options.get("slack.client-id")
+        client_id = options.get("slack.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("slack.client-id is not configured")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("slack.client-secret")
+        client_secret = options.get("slack.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("slack.client-secret is not configured")
+        return client_secret
 
     def get_user_scopes(self) -> Sequence[str]:
-        return self.config.get("user_scopes", self.user_scopes)
+        scopes = self.config.get("user_scopes", self.user_scopes)
+        if isinstance(scopes, str):
+            return (scopes,)
+        if isinstance(scopes, (list, tuple)):
+            return scopes
+        return self.user_scopes
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [
@@ -96,10 +109,16 @@ class SlackStagingIdentityProvider(SlackIdentityProvider):
     name = "Slack (Staging)"
 
     def get_oauth_client_id(self) -> str:
-        return options.get("slack-staging.client-id")
+        client_id = options.get("slack-staging.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("slack-staging.client-id is not configured")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("slack-staging.client-secret")
+        client_secret = options.get("slack-staging.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("slack-staging.client-secret is not configured")
+        return client_secret
 
     def build_identity(self, data: Mapping[str, object]) -> dict[str, object]:
         production_identity = super().build_identity(data)

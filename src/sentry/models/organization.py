@@ -255,7 +255,9 @@ class Organization(ReplicatedCellModel):
             return
 
         target = slugify_target.lower().replace("_", "-").strip("-")
-        pick_slug = lambda: slugify_instance(self, target, reserved=RESERVED_ORGANIZATION_SLUGS)
+        pick_slug: Callable[[], None] = lambda: slugify_instance(
+            self, target, reserved=RESERVED_ORGANIZATION_SLUGS
+        )
 
         if self.slug:
             # Explicit slugs shouldn't be modified or retried if there's a conflict.
