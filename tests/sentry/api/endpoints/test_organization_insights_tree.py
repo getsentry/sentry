@@ -98,11 +98,11 @@ class OrganizationInsightsTreeEndpointTest(
             self.url,
             data={
                 "statsPeriod": "14d",
-                "noPagination": True,
+                "noPagination": "true",
                 "query": "span.op:function.nextjs",
                 "mode": "aggregate",
                 "field": ["span.description", "avg(span.duration)", "count(span.duration)"],
-                "project": self.project.id,
+                "project": str(self.project.id),
                 "dataset": "spans",
             },
         )

@@ -134,8 +134,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
 
     def test_invalid_project(self) -> None:
         # Invalid project id
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -156,8 +156,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["detail"] == "Project does not belong to this organization"
 
     def test_dismiss(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -192,8 +192,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         )
         assert resp.status_code == 201, resp.content
 
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -203,8 +203,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert "dismissed_ts" in resp.data["data"]
 
     def test_snooze(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -228,8 +228,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert "snoozed_ts" in resp.data["data"]
 
     def test_visible(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -253,8 +253,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["data"].get("snoozed_ts") is None
 
     def test_visible_after_dismiss(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": "releases",
         }
         resp = self.client.get(self.path, data)
@@ -288,8 +288,8 @@ class PutPromptsActivityTest(PromptsActivityTestBase):
         assert resp.data["data"].get("snoozed_ts") is None
 
     def test_batched(self) -> None:
-        data = {
-            "project_id": self.project.id,
+        data: dict[str, str | list[str]] = {
+            "project_id": str(self.project.id),
             "feature": ["releases", "alert_stream"],
         }
         resp = self.client.get(self.path, data)
@@ -382,7 +382,9 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
 
     def test_read_scope_can_get(self) -> None:
         self._use_token(["user_preference:read"])
-        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        resp = self.client.get(
+            self.path, {"project_id": str(self.project.id), "feature": "releases"}
+        )
         assert resp.status_code == 200, resp.content
 
     def test_read_scope_cannot_dismiss(self) -> None:
@@ -397,5 +399,7 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
     def test_write_scope_cannot_get(self) -> None:
         # Write does not imply read.
         self._use_token(["user_preference:write"])
-        resp = self.client.get(self.path, {"project_id": self.project.id, "feature": "releases"})
+        resp = self.client.get(
+            self.path, {"project_id": str(self.project.id), "feature": "releases"}
+        )
         assert resp.status_code == 403

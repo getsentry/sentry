@@ -515,14 +515,17 @@ class TestFormulas(BaseFormulaTest):
         params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
         assert len(params) == 3
         assert params[0].name == data["params"][0]["name"]
+        assert params[0].param_type is not None
         assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
         assert params[0].order == data["params"][0]["order"]
         assert params[0].value == data["params"][0]["value"]
         assert params[1].name == data["params"][1]["name"]
+        assert params[1].param_type is not None
         assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
         assert params[1].order == data["params"][1]["order"]
         assert params[1].value == data["params"][1]["value"]
         assert params[2].name == data["params"][2]["name"]
+        assert params[2].param_type is not None
         assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]
@@ -558,14 +561,17 @@ class TestFormulas(BaseFormulaTest):
         params = formula.variables.filter(kind=KindItemTypes.PARAM).order_by("order")
         assert len(params) == 3
         assert params[0].name == data["params"][0]["name"]
+        assert params[0].param_type is not None
         assert ParamItemTypes.get_type_name(params[0].param_type) == data["params"][0]["type"]
         assert params[0].order == data["params"][0]["order"]
         assert params[0].value == data["params"][0]["value"]
         assert params[1].name == data["params"][1]["name"]
+        assert params[1].param_type is not None
         assert ParamItemTypes.get_type_name(params[1].param_type) == data["params"][1]["type"]
         assert params[1].order == data["params"][1]["order"]
         assert params[1].value == data["params"][1]["value"]
         assert params[2].name == data["params"][2]["name"]
+        assert params[2].param_type is not None
         assert ParamItemTypes.get_type_name(params[2].param_type) == data["params"][2]["type"]
         assert params[2].order == data["params"][2]["order"]
         assert params[2].value == data["params"][2]["value"]

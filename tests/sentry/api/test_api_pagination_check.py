@@ -60,7 +60,7 @@ class APIPaginationCheckTestCase(TestCase):
                 pass
 
             # call the pagination method
-            def get(self, request: object, *args: object, **kwargs: object) -> Response:
+            def get(self, request: Request, *args: object, **kwargs: object) -> Response:
                 return self.paginate(
                     request=request,
                     queryset=[],

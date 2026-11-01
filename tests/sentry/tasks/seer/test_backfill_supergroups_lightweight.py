@@ -67,6 +67,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
             data=_make_event_data(),
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         self.group = self.event.group
         self.group.substatus = GroupSubStatus.NEW
         self.group.save(update_fields=["substatus"])

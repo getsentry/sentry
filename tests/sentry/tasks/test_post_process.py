@@ -96,7 +96,7 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = [requires_snuba]
 
 
-def require_group(event: Event) -> Group:
+def require_group(event: Event | GroupEvent) -> Group:
     assert event.group is not None
     return event.group
 
@@ -795,8 +795,9 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
 
         owners = list(GroupOwner.objects.filter(group=require_group(event)))
         assert len(owners) == 2
+        # justification: FlexibleForeignKey(null=True) types team_id as int
         assert {(extra_user.id, None), (self.user.id, None)} == {
-            (o.user_id, o.team_id) for o in owners
+            (o.user_id, cast(int | None, o.team_id)) for o in owners
         }
 
     def test_owner_assignment_existing_owners(self) -> None:
@@ -1770,6 +1771,7 @@ class ProcessCommitsTestMixin(BasePostProcessGroupMixin):
         mock_process_suspect_commits: MagicMock,
     ) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert self.organization_integration is not None
             self.organization_integration.update(status=ObjectStatus.DISABLED)
 
         with self.tasks():
@@ -3870,7 +3872,8 @@ class PostProcessGroupPerformanceTest(
         mock_handle_auto_assignment: MagicMock,
         mock_handle_owner_assignment: MagicMock,
     ) -> None:
-        event = self.create_performance_issue()
+        # justification: create_performance_issue returns a GroupEvent when an occurrence is emitted
+        event = cast(GroupEvent, self.create_performance_issue())
         assert require_group(event)
 
         # TODO(jangjodi): Fix this ordering test; side_effects should be a function (lambda),
@@ -3922,9 +3925,8 @@ class PostProcessGroupAggregateEventTest(
 
         event = self.store_event(data=data, project_id=project_id)
         event.group = group
-        event = event.for_group(group)
-
-        return event
+        # justification: GroupEvent is not an Event subclass but callers use the Event API
+        return cast(Event, event.for_group(group))
 
     def call_post_process_group(
         self, is_new: bool, is_regression: bool, is_new_group_environment: bool, event: Event
@@ -3969,7 +3971,8 @@ class PostProcessGroupGenericTest(
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        return group_event
+        # justification: GroupEvent is not an Event subclass but callers use the Event API
+        return cast(Event, group_event)
 
     def call_post_process_group(
         self, is_new: bool, is_regression: bool, is_new_group_environment: bool, event: Event
@@ -4208,7 +4211,8 @@ class PostProcessGroupFeedbackTest(
 
         group_event = event.for_group(group_info.group)
         group_event.occurrence = occurrence
-        return group_event
+        # justification: GroupEvent is not an Event subclass but callers use the Event API
+        return cast(Event, group_event)
 
     def call_post_process_group(
         self, is_new: bool, is_regression: bool, is_new_group_environment: bool, event: Event

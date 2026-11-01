@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -150,7 +150,8 @@ class DummyPaginationStreamingEndpoint(Endpoint):
             request=request,
             paginator=GenericOffsetPaginator(data_fn),
             on_results=lambda results: iter(results),
-            response_cls=StreamingHttpResponse,
+            # justification: paginate supports streaming responses but is typed for DRF responses
+            response_cls=cast(type[Response], StreamingHttpResponse),
             response_kwargs={"content_type": "application/json"},
         )
 

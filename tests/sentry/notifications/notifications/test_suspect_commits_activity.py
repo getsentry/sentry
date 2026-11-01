@@ -237,7 +237,7 @@ class SuspectCommitsInActivityNotificationsTest(TestCase):
         self._create_suspect_commit_owner(self.commit1)
         self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
         self.organization.refresh_from_db()
-        assert self.organization.flags.enhanced_privacy.is_set is True
+        assert self.organization.flags.enhanced_privacy
 
         activity = Activity.objects.create(
             project=self.project,

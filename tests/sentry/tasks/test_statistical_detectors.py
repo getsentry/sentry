@@ -491,8 +491,8 @@ def test_get_regression_versions_active(
     detector_cls: type[FunctionRegressionDetector],
     object_name: str,
     issue_type: type[GroupType],
-    status: GroupStatus,
-    substatus: GroupSubStatus | None,
+    status: int,
+    substatus: int | None,
     should_emit: bool,
     project: Project,
     timestamp: datetime,
@@ -1502,8 +1502,8 @@ def test_redirect_escalations(
     regressed: int,
     escalated: int,
     issue_type: type[GroupType],
-    status: GroupStatus,
-    substatus: GroupSubStatus | None,
+    status: int,
+    substatus: int | None,
     should_escalate: bool,
     project: Project,
     timestamp: datetime,
@@ -1676,7 +1676,7 @@ class EmitFunctionRegressionOccurrencesTest(TestCase):
         vroom_patch = mock.patch("sentry.tasks.statistical_detectors.get_from_profiling_service")
         self.vroom = vroom_patch.start()
         self.addCleanup(vroom_patch.stop)
-        self.payload = {
+        self.payload: dict[str, Any] = {
             "culprit": "work",
             "detection_time": "2023-08-01T12:00:00.123456789Z",
             "event": {

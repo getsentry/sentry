@@ -26,6 +26,7 @@ from sentry.integrations.source_code_management.metrics import CommitContextHalt
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType, SuspectCommitStrategy
 from sentry.models.pullrequest import (
     CommentType,
@@ -105,6 +106,18 @@ class TestCommitContextIntegration(TestCase):
             },
             project_id=self.project.id,
         )
+
+    @property
+    def event_group(self) -> Group:
+        group = self.event.group
+        assert group is not None
+        return group
+
+    @property
+    def event_platform(self) -> str:
+        platform = self.event.platform
+        assert platform is not None
+        return platform
 
 
 class TestCommitContextAllFrames(TestCommitContextIntegration):
@@ -190,9 +203,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -224,9 +237,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -255,7 +268,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsSuccessfullyFetchedCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_unique_commits=1,
@@ -292,9 +305,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -323,9 +336,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -367,9 +380,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -437,9 +450,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -484,9 +497,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -546,9 +559,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
 
@@ -571,7 +584,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             ],
             extra={
                 "event": self.event.event_id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "organization": self.event.project.organization_id,
             },
         )
@@ -626,9 +639,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event_with_no_inapp_frames)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -642,7 +655,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsFailedToFetchCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=0,
                 num_successfully_mapped_frames=0,
@@ -672,9 +685,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -687,7 +700,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsFailedToFetchCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 num_frames=1,
                 num_successfully_mapped_frames=1,
@@ -699,7 +712,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             "process_commit_context_all_frames.find_commit_context_failed",
             extra={
                 "organization": self.organization.id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
                 "reason": "no_commits_found",
@@ -785,8 +798,8 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                 group_first_seen = datetime.now(tz=datetime_timezone.utc) - timedelta(
                     days=group_first_seen_days_ago
                 )
-                self.event.group.first_seen = group_first_seen
-                self.event.group.save()
+                self.event_group.first_seen = group_first_seen
+                self.event_group.save()
 
                 # Build the mock return value
                 mock_blames = [blame_mapping[blame_name] for blame_name in blames_setup]
@@ -799,9 +812,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
                     with self.options({"issues.suspect-commit-strategy": True}):
                         process_commit_context(
                             event_id=self.event.event_id,
-                            event_platform=self.event.platform,
+                            event_platform=self.event_platform,
                             event_frames=event_frames,
-                            group_id=self.event.group_id,
+                            group_id=self.event_group.id,
                             project_id=self.event.project_id,
                             sdk_name="sentry.python",
                         )
@@ -883,17 +896,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [blame_after_release, blame_before_release]
 
-        self.event.group.first_release = release
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = release
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -923,17 +936,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [self.blame_recent]
 
-        self.event.group.first_release = None
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = None
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -983,17 +996,17 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 
         mock_get_commit_context.return_value = [blame_between_dates]
 
-        self.event.group.first_release = release
-        self.event.group.first_seen = now
-        self.event.group.save()
+        self.event_group.first_release = release
+        self.event_group.first_seen = now
+        self.event_group.save()
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1018,9 +1031,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1049,9 +1062,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1063,7 +1076,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
             extra={
                 "organization": self.organization.id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "event": self.event.event_id,
                 "project_id": self.project.id,
                 "integration_id": self.integration.id,
@@ -1130,9 +1143,9 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=frames_with_dups,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
                 sdk_name="sentry.python",
             )
@@ -1149,7 +1162,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             ],
             extra={
                 "event": self.event.event_id,
-                "group": self.event.group_id,
+                "group": self.event_group.id,
                 "organization": self.organization.id,
             },
         )
@@ -1158,7 +1171,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
             IntegrationsSuccessfullyFetchedCommitContextAllFrames(
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 event_id=self.event.event_id,
                 # 1 was a duplicate, 2 filtered out because of missing properties
                 num_frames=2,
@@ -1179,7 +1192,7 @@ class TestCommitContextAllFrames(TestCommitContextIntegration):
 )
 @patch("sentry.integrations.source_code_management.tasks.pr_comment_workflow.delay")
 class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
-    provider = GitHubIntegrationProvider
+    provider = GitHubIntegrationProvider()
     base_url = "https://api.github.com"
 
     def setUp(self) -> None:
@@ -1244,9 +1257,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1266,9 +1279,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1296,9 +1309,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1326,9 +1339,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_capture_exception.called
@@ -1355,9 +1368,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1380,9 +1393,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1406,9 +1419,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1428,15 +1441,15 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         self.pull_request.save()
 
         self.add_responses()
-        self.event.group.update(level=logging.INFO)
+        self.event_group.update(level=logging.INFO)
 
         with self.tasks():
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1452,7 +1465,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
     ) -> None:
         """No comment on a pr that has a comment with the issue in the same pr list"""
         mock_get_commit_context.return_value = [self.blame]
-        self.pull_request_comment.group_ids.append(self.event.group_id)
+        self.pull_request_comment.group_ids.append(self.event_group.id)
         self.pull_request_comment.save()
 
         self.add_responses()
@@ -1461,9 +1474,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1487,9 +1500,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1519,9 +1532,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1547,9 +1560,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert mock_comment_workflow.called
@@ -1568,9 +1581,9 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
-                event_platform=self.event.platform,
+                event_platform=self.event_platform,
                 event_frames=event_frames,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
                 project_id=self.event.project_id,
             )
             assert not mock_comment_workflow.called
@@ -1591,7 +1604,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
         groupowner = GroupOwner.objects.create(
-            group_id=self.event.group_id,
+            group_id=self.event_group.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             user_id=1,
             project_id=self.event.project_id,
@@ -1616,13 +1629,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             assert mock_comment_workflow.call_count == 1
 
@@ -1648,7 +1661,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
         assert not GroupOwner.objects.filter(group=self.event.group).exists()
 
         groupowner = GroupOwner.objects.create(
-            group_id=self.event.group_id,
+            group_id=self.event_group.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             user_id=1,
             project_id=self.event.project_id,
@@ -1683,13 +1696,13 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextIntegration):
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             install.queue_pr_comment_task_if_needed(
                 project=self.project,
                 commit=self.commit,
                 group_owner=groupowner,
-                group_id=self.event.group_id,
+                group_id=self.event_group.id,
             )
             assert mock_comment_workflow.call_count == 1
 

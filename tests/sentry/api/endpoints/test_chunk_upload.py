@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.views import APIView
 
 from sentry import options
 from sentry.api.endpoints.chunk import (
@@ -336,8 +337,8 @@ class ChunkUploadTest(APITestCase):
         mock_request.successful_authenticator = LaunchpadRpcSignatureAuthentication()
 
         # This should return True for Launchpad auth
-        assert permission.has_permission(mock_request, None)
-        assert permission.has_object_permission(mock_request, None, other_org)
+        assert permission.has_permission(mock_request, APIView())
+        assert permission.has_object_permission(mock_request, APIView(), other_org)
 
     def test_empty_upload(self) -> None:
         response = self.client.post(

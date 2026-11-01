@@ -135,7 +135,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
 
     def org_require_2fa(self) -> None:
         self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        assert self.org.flags.require_2fa.is_set is True
+        assert self.org.flags.require_2fa
 
     def test_regular_user(self) -> None:
         user = self.create_user()

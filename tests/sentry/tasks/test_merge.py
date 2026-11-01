@@ -118,6 +118,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
         group1 = event1.group
+        assert group1 is not None
         event2 = self.store_event(
             data={
                 "event_id": "b" * 32,
@@ -128,6 +129,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
         group2 = event2.group
+        assert group2 is not None
 
         with self.tasks():
             eventstream_state = eventstream.backend.start_merge(project.id, [group1.id], group2.id)
@@ -136,15 +138,15 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
         assert not Group.objects.filter(id=group1.id).exists()
 
-        event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
-        assert event1 is not None
-        assert event1.group_id == group2.id
-        assert event1.data["extra"]["foo"] == "bar"
+        fetched_event1 = eventstore.backend.get_event_by_id(project.id, event1.event_id)
+        assert fetched_event1 is not None
+        assert fetched_event1.group_id == group2.id
+        assert fetched_event1.data["extra"]["foo"] == "bar"
 
-        event2 = eventstore.backend.get_event_by_id(project.id, event2.event_id)
-        assert event2 is not None
-        assert event2.group_id == group2.id
-        assert event2.data["extra"]["foo"] == "baz"
+        fetched_event2 = eventstore.backend.get_event_by_id(project.id, event2.event_id)
+        assert fetched_event2 is not None
+        assert fetched_event2.group_id == group2.id
+        assert fetched_event2.data["extra"]["foo"] == "baz"
 
     def test_merge_creates_redirect(self) -> None:
         groups = [self.create_group() for _ in range(0, 3)]
@@ -189,7 +191,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
             project_id=project.id,
         )
         target = event1.group
+        assert target is not None
         other = event2.group
+        assert other is not None
 
         with self.tasks():
             merge_groups([other.id], target.id)
@@ -200,16 +204,18 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
         group1 = event1.group
+        assert group1 is not None
 
         project2 = self.create_project()
         event2 = self.store_event(data={}, project_id=project2.id)
         group2 = event2.group
+        assert group2 is not None
 
-        GroupMeta.objects.create(group=event1.group, key="github:tid", value="134")
+        GroupMeta.objects.create(group=group1, key="github:tid", value="134")
 
-        GroupMeta.objects.create(group=event1.group, key="other:tid", value="567")
+        GroupMeta.objects.create(group=group1, key="other:tid", value="567")
 
-        GroupMeta.objects.create(group=event2.group, key="other:tid", value="abc")
+        GroupMeta.objects.create(group=group2, key="other:tid", value="abc")
 
         GroupMeta.objects.populate_cache([group1, group2])
 
@@ -235,6 +241,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         project1 = self.create_project()
         event1 = self.store_event(data={}, project_id=project1.id)
         group1 = event1.group
+        assert group1 is not None
 
         project2 = self.create_project()
         group2 = self.create_group(project2)

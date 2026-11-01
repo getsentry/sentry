@@ -589,7 +589,9 @@ class ActivityNotificationTest(APITestCase):
             assert "enhanced privacy" in html_content
 
             assert self.group.title not in msg.subject
-            assert self.group.qualified_short_id in msg.subject
+            qualified_short_id = self.group.qualified_short_id
+            assert qualified_short_id is not None
+            assert qualified_short_id in msg.subject
 
     @patch("sentry.analytics.record")
     def test_sends_resolved_in_release_notification(

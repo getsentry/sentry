@@ -102,8 +102,8 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         This only tests 'GET' since members aren't granted project:write scopes so they 403 before
         reaching any endpoint logic (for PUT/DELETE)
         """
-        self.organization.flags = 0
-        self.organization.save()
+        self.organization.update(flags=0)
+        self.organization.refresh_from_db()
         action = self.create_notification_action(
             organization=self.organization,
             projects=[self.create_project(organization=self.organization)],

@@ -40,6 +40,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 
@@ -121,7 +122,12 @@ class SlackNotificationProviderTest(TestCase):
 
     def test_is_available(self) -> None:
         assert SlackNotificationProvider.is_available() is False
-        assert SlackNotificationProvider.is_available(organization=self.organization) is False
+        assert (
+            SlackNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is False
+        )
 
     def test_staging_resolves_slack_renderers(self) -> None:
         data = MetricAlertNotificationData(

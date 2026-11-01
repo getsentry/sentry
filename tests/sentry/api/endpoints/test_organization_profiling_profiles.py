@@ -763,7 +763,7 @@ class OrganizationProfilingChunksTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+                {"project": [str(self.project.id)], "profiler_id": "not-a-uuid"},
             )
 
         assert response.status_code == 400
@@ -790,7 +790,7 @@ class OrganizationProfilingChunksTest(APITestCase):
             self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -863,7 +863,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
-                {"project": [self.project.id], "profiler_id": "not-a-uuid"},
+                {"project": [str(self.project.id)], "profiler_id": "not-a-uuid"},
             )
 
         assert response.status_code == 400
@@ -884,7 +884,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -916,7 +916,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "statsPeriod": "1d",
                 },
@@ -934,7 +934,7 @@ class OrganizationProfilingChunkAttachmentsTest(APITestCase):
             response = self.client.get(
                 self.url,
                 {
-                    "project": [self.project.id],
+                    "project": [str(self.project.id)],
                     "profiler_id": self.profiler_id,
                     "chunk_id": chunk_id,
                     "statsPeriod": "1d",

@@ -1386,7 +1386,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1399,7 +1399,7 @@ class AuthRecoveryEndpointTest(APITestCase):
     def test_validate_recovery_rejects_invalid_token(self) -> None:
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": "invalid-token"},
+            data={"userId": str(self.user.id), "token": "invalid-token"},
         )
 
         assert response.status_code == 200
@@ -1413,7 +1413,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1425,7 +1425,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1437,7 +1437,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1449,7 +1449,7 @@ class AuthRecoveryEndpointTest(APITestCase):
 
         response = self.client.get(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": password_hash.hash},
+            data={"userId": str(self.user.id), "token": password_hash.hash},
         )
 
         assert response.status_code == 200
@@ -1483,7 +1483,7 @@ class AuthRecoveryEndpointTest(APITestCase):
     ) -> Response:
         return (client or self.client).post(
             reverse("sentry-api-0-auth-recovery-confirm"),
-            data={"userId": self.user.id, "token": token, "password": password},
+            data={"userId": str(self.user.id), "token": token, "password": password},
         )
 
     def test_request_recovery_requires_csrf_token(self) -> None:

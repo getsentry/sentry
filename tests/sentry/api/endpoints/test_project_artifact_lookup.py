@@ -85,7 +85,7 @@ def upload_bundle(
     return assemble_artifacts(
         org_id=project.organization.id,
         project_ids=[project.id],
-        version=release,
+        version=cast(str, release),  # justification: assemble_artifacts treats None as no release
         dist=dist,
         checksum=total_checksum,
         chunks=[blob1.checksum],

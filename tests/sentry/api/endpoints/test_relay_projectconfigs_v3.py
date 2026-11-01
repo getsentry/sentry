@@ -157,6 +157,7 @@ def test_task_writes_config_into_cache(
     default_projectkey: ProjectKey,
     project_config_get_mock: None,
 ) -> None:
+    assert default_projectkey.public_key is not None
     build_project_config(
         public_key=default_projectkey.public_key,
         update_reason="test",
