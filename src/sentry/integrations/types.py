@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Generic, Literal, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -12,10 +12,11 @@ class IntegrationIssueConfigField(TypedDict):
     name: str
     label: str
     type: str
-    default: NotRequired[object]
-    defaultValue: NotRequired[object]
+    default: NotRequired[Any]  # justification: integration form values are arbitrary JSON.
+    defaultValue: NotRequired[Any]  # justification: integration form values are arbitrary JSON.
     required: NotRequired[bool]
-    choices: NotRequired[Sequence[tuple[object, str]]]
+    # justification: choice values are arbitrary JSON.
+    choices: NotRequired[Sequence[tuple[Any, str]]]
     url: NotRequired[str]
     updatesForm: NotRequired[bool]
     multiple: NotRequired[bool]

@@ -39,7 +39,7 @@ class DSN(TypedDict):
 
 
 class BrowserSDK(TypedDict):
-    choices: tuple[tuple[str, str], ...]
+    choices: list[list[str]]
 
 
 class DynamicSDKLoaderOptions(TypedDict):
@@ -115,7 +115,9 @@ class ProjectKeySerializer(Serializer[ProjectKeySerializerResponse]):
                 "otlp_logs": obj.otlp_logs_endpoint,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
-            "browserSdk": {"choices": get_browser_sdk_version_choices(obj.project)},
+            "browserSdk": {
+                "choices": [list(choice) for choice in get_browser_sdk_version_choices(obj.project)]
+            },
             "dateCreated": obj.date_added,
             "dynamicSdkLoaderOptions": {
                 "hasReplay": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_REPLAY),
