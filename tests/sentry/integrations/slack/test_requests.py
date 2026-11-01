@@ -26,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
+from sentry.users.models.identity import Identity
 
 
 @control_silo_test
@@ -461,7 +462,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         return slack_request
 
     def test_identity_not_linked(self) -> None:
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.delete()
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
@@ -497,7 +498,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
 
     def test_user_not_member(self) -> None:
         non_member = self.create_user()
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(user=non_member)
         result = self.slack_request.resolve_seer_organization()
         assert result.organization_id is None
@@ -610,7 +611,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
         self, mock_access: MagicMock, mock_get_thread_history: MagicMock
     ) -> None:
         other_org = self._add_second_org()
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: other_org.id})
 
         slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")
@@ -626,7 +627,7 @@ class SlackEventRequestSeerResolutionTest(TestCase):
     def test_multi_org_ignores_stale_preference(
         self, mock_access: MagicMock, mock_get_thread_history: MagicMock
     ) -> None:
-        with assume_test_silo_mode_of(self.identity):
+        with assume_test_silo_mode_of(Identity):
             self.identity.update(data={PREFERRED_ORGANIZATION_ID_KEY: 9999999})
 
         slack_request = self._build_request(text="<@U_BOT> help", thread_ts="0.9")

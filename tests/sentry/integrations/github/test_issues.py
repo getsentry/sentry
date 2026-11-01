@@ -147,7 +147,6 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         install = self.integration.get_installation(self.organization.id)
         self.install = cast(GitHubIntegration, install)
         self.min_ago = before_now(minutes=1).isoformat()
-        self.repo = "getsentry/sentry"
 
     def _generate_pagination_responses(
         self, api_url: str, data: Sequence[Mapping[str, str]], per_page_limit: int

@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 import responses
 from django.utils import timezone
+from requests import Response
 
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
@@ -142,6 +143,7 @@ class GitHubEnterpriseApiClientTest(TestCase):
         )
 
         resp = self.gh_client.check_file(self.repo, path, version)
+        assert isinstance(resp, Response)
         assert resp.status_code == 200
 
     @responses.activate

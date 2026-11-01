@@ -41,7 +41,7 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
 
     # justification: forwarded to APIClient.post as extra request options.
     def make_post(self, data: dict[str, object] | None = None, **kwargs: Any) -> Response:
-        payload = {
+        payload: dict[str, object] = {
             "project": self.project1.slug,
             "repository": self.repo1.name,
             "defaultBranch": "main",

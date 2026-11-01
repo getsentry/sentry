@@ -772,6 +772,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         # suggested user/suspect commit for user with name
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
             user2.update(name="Scooby Doo")
+        assert commit.author is not None
         commit.author.update(name=user2.name)
         expected_blocks = build_test_message_blocks(
             teams={self.team},
@@ -1342,9 +1343,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
     def test_get_tags(self) -> None:
         # don't use default tags. if we don't pass in tags to get_tags, we don't return any
-        tags = get_tags(
-            self.endpoint_regression_issue, self.endpoint_regression_issue.get_latest_event()
-        )
+        tags = get_tags(self.endpoint_regression_issue.get_latest_event())
         assert not tags
 
 

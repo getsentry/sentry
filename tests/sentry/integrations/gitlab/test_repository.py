@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from functools import cached_property
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
@@ -69,7 +70,7 @@ class GitLabRepositoryProviderTest(IntegrationRepositoryTestCase):
         super().tearDown()
         responses.reset()
 
-    def add_create_repository_responses(self, repository_config: dict[str, Any]) -> None:
+    def add_create_repository_responses(self, repository_config: Mapping[str, Any]) -> None:
         responses.add(
             responses.GET,
             "https://example.gitlab.com/api/v4/projects/%s" % self.gitlab_id,

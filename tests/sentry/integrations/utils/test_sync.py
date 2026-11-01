@@ -107,7 +107,7 @@ class TestSyncAssigneeInbound(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -521,7 +521,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -556,7 +556,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
         )
 
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         assert updated_assignee.email == "test@example.com"
         mock_record_event.assert_called_with(EventLifecycleOutcome.SUCCESS, None, False, None)
@@ -885,12 +885,12 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
 
         # Both groups should be assigned to their respective users
         assignee1 = group1.get_assignee()
-        assert assignee1 is not None
+        assert isinstance(assignee1, RpcUser)
         assert assignee1.id == user1.id
         assert assignee1.email == "test@example.com"
 
         assignee2 = group2.get_assignee()
-        assert assignee2 is not None
+        assert isinstance(assignee2, RpcUser)
         assert assignee2.id == user2.id
         assert assignee2.email == "user2@example.com"
 
@@ -1008,7 +1008,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
 
         assert [group.id for group in groups_assigned] == [self.group.id]
         updated_assignee = self.group.get_assignee()
-        assert updated_assignee is not None
+        assert isinstance(updated_assignee, RpcUser)
         assert updated_assignee.id == self.test_user.id
         mock_record_halt.assert_not_called()
 

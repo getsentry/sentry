@@ -158,7 +158,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.integrations.types import ExternalProviders
         from sentry.users.services.user.serial import serialize_rpc_user
 
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
 
         self.integration.metadata.update(
             {
@@ -191,7 +191,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, self.integration, group
+        return serialize_rpc_user(user), installation, external_issue, self.integration, group
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
@@ -761,6 +761,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test syncing resolved status to GitHub (close issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -804,6 +805,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test syncing unresolved status to GitHub (reopen issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -847,6 +849,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test that no update is made when status is already in desired state."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
         external_issue = self.create_integration_external_issue(
             group=self.group,
             integration=self.integration,
@@ -883,6 +886,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test that sync_status_outbound returns early if no external project mapping exists."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         # Create external issue without project mapping
         with assume_test_silo_mode(SiloMode.CELL):
@@ -906,6 +910,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -941,6 +946,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -981,6 +987,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
@@ -994,6 +1001,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     def test_update_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"

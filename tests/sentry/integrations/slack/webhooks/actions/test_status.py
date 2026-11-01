@@ -10,6 +10,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import (
@@ -282,7 +283,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_ask_linking(self) -> None:
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
         associate_url = build_linking_url(
-            self.integration, "invalid-id", "C065W1189", self.response_url
+            serialize_integration(self.integration), "invalid-id", "C065W1189", self.response_url
         )
 
         assert resp.status_code == 200, resp.content
@@ -844,8 +845,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         perf_issue = self.create_performance_issue(
             event_data=event_data_2, fingerprint=group_fingerprint
         )
+        assert perf_issue.group is not None
         self.group = perf_issue.group
-        assert self.group
 
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue(original_message, "resolved", mock_record)

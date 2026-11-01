@@ -1,12 +1,23 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.perforce.integration import (
+    PerforceIntegration,
+    PerforceIntegrationProvider,
+)
 from sentry.integrations.utils.stacktrace_link import get_stacktrace_config
 from sentry.issues.endpoints.project_stacktrace_link import StacktraceLinkContext
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
+
+
+def organization_integration_id(integration: Integration) -> int:
+    organization_integration = integration.organizationintegration_set.first()
+    assert organization_integration is not None
+    return organization_integration.id
 
 
 class PerforceStacktraceLinkTest(IntegrationTestCase):
@@ -23,7 +34,9 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.project = self.create_project(organization=self.organization)
 
         self.repo = Repository.objects.create(
@@ -40,7 +53,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
         self.code_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -154,7 +167,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="myproject/",
             source_root="/",
@@ -291,7 +304,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
         other_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="other/",
             source_root="/",
@@ -340,7 +353,7 @@ class PerforceStacktraceLinkTest(IntegrationTestCase):
         )
         myproject_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="depot/",  # Same stack_root as depot mapping (but different project)
             source_root="/",
@@ -419,7 +432,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="",
             source_root="/",
@@ -465,7 +478,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",
@@ -510,7 +523,7 @@ class PerforceStacktraceLinkEdgeCasesTest(IntegrationTestCase):
         )
         code_mapping = RepositoryProjectPathConfig.objects.create(
             organization_id=self.organization.id,
-            organization_integration_id=self.integration.organizationintegration_set.first().id,
+            organization_integration_id=organization_integration_id(self.integration),
             integration_id=self.integration.id,
             stack_root="depot/",
             source_root="/",

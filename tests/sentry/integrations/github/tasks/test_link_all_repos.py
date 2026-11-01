@@ -24,7 +24,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
     base_url = "https://api.github.com"
     key = "github"
 
-    def _add_responses(self):
+    def _add_responses(self) -> None:
         responses.add(
             responses.GET,
             self.base_url + "/installation/repositories?per_page=100",

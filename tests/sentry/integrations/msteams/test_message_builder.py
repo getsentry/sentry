@@ -46,6 +46,8 @@ from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
 from sentry.integrations.msteams.utils import ACTION_TYPE
+from sentry.integrations.services.integration import RpcIntegration
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -108,8 +110,9 @@ class MSTeamsMessageBuilderTest(TestCase):
             metadata={},
         )
         self.create_organization_integration(
-            organization_id=self.org.id, integration=self.integration
+            organization_id=self.org.id, integration=self.rpc_integration
         )
+        self.rpc_integration: RpcIntegration = serialize_integration(self.integration)
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(
@@ -336,7 +339,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         body = issue_card["body"]
@@ -363,6 +369,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         issue_id_and_rule = footer["columns"][1]["items"][0]
         assert _is_text_block(issue_id_and_rule)
+        assert self.group1.qualified_short_id is not None
         assert self.group1.qualified_short_id in issue_id_and_rule["text"]
         assert "rule1" in issue_id_and_rule["text"]
         assert "+1 other" in issue_id_and_rule["text"]
@@ -437,7 +444,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             group=self.group1,
             event=self.event1,
             rules=[rule],
-            integration=self.integration,
+            integration=self.rpc_integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
         assert "rules" not in payload
@@ -449,7 +456,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.event1.data["type"] = self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -461,7 +471,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.data["type"] = "error"
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         description = issue_card["body"][1]
@@ -470,7 +483,10 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
@@ -478,7 +494,7 @@ class MSTeamsMessageBuilderTest(TestCase):
     def test_issue_with_only_one_rule(self) -> None:
         one_rule = self.origins[:1]
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=one_rule, integration=self.integration
+            group=self.group1, event=self.event1, rules=one_rule, integration=self.rpc_integration
         ).build_group_card()
 
         assert _is_column_set_block(issue_card["body"][1])
@@ -494,7 +510,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.save()
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -510,7 +529,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         self.group1.substatus = None
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         assert _is_container_block(issue_card["body"][2])
@@ -525,7 +547,10 @@ class MSTeamsMessageBuilderTest(TestCase):
         GroupAssignee.objects.assign(self.group1, self.user)
 
         issue_card = MSTeamsIssueMessageBuilder(
-            group=self.group1, event=self.event1, rules=self.origins, integration=self.integration
+            group=self.group1,
+            event=self.event1,
+            rules=self.origins,
+            integration=self.rpc_integration,
         ).build_group_card()
 
         body = issue_card["body"]

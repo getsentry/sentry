@@ -65,7 +65,7 @@ class TestGetNotificationMessageToSend(TestCase):
             group_link = self.group.get_absolute_url(
                 params={
                     "referrer": "activity_notification",
-                    "notification_uuid": uuid,
+                    "notification_uuid": str(uuid),
                 }
             )
             assert (
@@ -128,7 +128,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -145,7 +145,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -161,7 +161,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -177,7 +177,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 extra={
                     "activity_id": self.activity.id,
                     "project_id": self.activity.project.id,
-                    "group_id": self.activity.group.id,
+                    "group_id": self.group.id,
                     "organization_id": self.organization.id,
                 },
             )
@@ -523,7 +523,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
         group_link = self.group.get_absolute_url(
             params={
                 "referrer": "activity_notification",
-                "notification_uuid": uuid,
+                "notification_uuid": str(uuid),
             }
         )
 

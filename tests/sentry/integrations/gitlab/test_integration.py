@@ -293,7 +293,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             tuple: (user, installation, external_issue, integration, group)
         """
 
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
         integration = Integration.objects.get(provider=self.provider)
 
         installation = get_installation_of_type(
@@ -318,7 +318,7 @@ class GitlabIssueSyncTest(GitLabTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
+        return serialize_rpc_user(user), installation, external_issue, integration, group
 
     @responses.activate
     @with_feature("organizations:integrations-gitlab-project-management")
@@ -1799,6 +1799,7 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
             in_progress=in_progress,
         )
         metadata = integration.metadata
+        assert organization_integration.default_auth_id is not None
         identity = Identity.objects.get(id=organization_integration.default_auth_id)
         identity_data = identity.data
 

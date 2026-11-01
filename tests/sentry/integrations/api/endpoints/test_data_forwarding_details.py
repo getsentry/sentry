@@ -70,7 +70,7 @@ class DataForwardingDetailsPutTest(DataForwardingDetailsEndpointTest):
         assert not response.data["isEnabled"]
         assert response.data["enrollNewProjects"]
 
-        data_forwarder.refresh_from_db()
+        data_forwarder = DataForwarder.objects.get(id=data_forwarder.id)
         assert data_forwarder.config == {"write_key": "new_key"}
         assert not data_forwarder.is_enabled
         assert data_forwarder.enroll_new_projects

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, _patch, patch
 
@@ -38,6 +39,11 @@ pytestmark = [requires_snuba]
 
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
+
+    def get_slack_notify_rule(self, **kwargs: Any) -> SlackNotifyServiceAction:
+        rule = self.get_rule(**kwargs)
+        assert isinstance(rule, SlackNotifyServiceAction)
+        return rule
 
     def mock_list(
         self, list_type: str, channels: object, result_name: str = "channels"
@@ -106,13 +112,13 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_no_upgrade_notice_bot_app(
         self, mock_api_call: MagicMock, mock_post: MagicMock
     ) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
         fake_rule = self.create_project_rule()
         action = self.create_action(integration_id=self.integration.id)
         fake_rule.id = action.id
 
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel"},
             context=create_notification_action_context(fake_rule, with_workflow=False),
         )
@@ -143,11 +149,11 @@ class SlackNotifyActionTest(RuleTestCase):
         # Rule test sends use action_id -1. They are not real issue alerts, so they must
         # not append the reinstall nudge nor consume the per-channel weekly budget, even
         # with the feature flag on and the sampling gate forced open.
-        event = self.get_event()
+        event = self.get_group_event()
 
         fake_rule = self.create_project_rule()
         fake_rule.id = -1
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
@@ -177,7 +183,7 @@ class SlackNotifyActionTest(RuleTestCase):
         assert cache.get(f"slack:alert_nudge:123:{iso_year}:{iso_week}") is None
 
     def test_render_label_with_notes(self) -> None:
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
@@ -196,7 +202,7 @@ class SlackNotifyActionTest(RuleTestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
 
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={
                 "workspace": self.integration.id,
                 "channel": "#my-channel",
@@ -222,7 +228,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={"workspace": integration.id, "channel": "#my-channel", "tags": ""}
         )
 
@@ -234,7 +240,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_valid_member_selected(self) -> None:
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
 
@@ -253,7 +259,7 @@ class SlackNotifyActionTest(RuleTestCase):
                 self.assert_form_valid(form, "morty-id", "@morty")
 
     def test_invalid_channel_selected(self) -> None:
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={"workspace": self.integration.id, "channel": "#my-channel", "tags": ""}
         )
 
@@ -285,7 +291,7 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         with self.mock_msg_schedule_response("channel_not_found"):
-            rule = self.get_rule(
+            rule = self.get_slack_notify_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
@@ -301,7 +307,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_channel_id_provided_sdk(self) -> None:
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
-            rule = self.get_rule(
+            rule = self.get_slack_notify_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
@@ -318,7 +324,7 @@ class SlackNotifyActionTest(RuleTestCase):
             "slack_sdk.web.client.WebClient.conversations_info",
             side_effect=SlackApiError("", response={"ok": False, "error": "channel_not_found"}),
         ):
-            rule = self.get_rule(
+            rule = self.get_slack_notify_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-chanel",
@@ -334,7 +340,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_invalid_channel_name_provided_sdk(self) -> None:
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
-            rule = self.get_rule(
+            rule = self.get_slack_notify_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-chanel",
@@ -352,7 +358,9 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_invalid_workspace(self) -> None:
         # the workspace _should_ be the integration id
 
-        rule = self.get_rule(data={"workspace": "unknown", "channel": "#my-channel", "tags": ""})
+        rule = self.get_slack_notify_rule(
+            data={"workspace": "unknown", "channel": "#my-channel", "tags": ""}
+        )
 
         form = SlackNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert not form.is_valid()
@@ -360,7 +368,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     def test_display_name_conflict(self) -> None:
-        rule = self.get_rule(
+        rule = self.get_slack_notify_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
 
@@ -387,9 +395,11 @@ class SlackNotifyActionTest(RuleTestCase):
         )
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.org_integration.update(status=ObjectStatus.DISABLED)
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+        rule = self.get_slack_notify_rule(
+            data={"workspace": self.integration.id, "channel": "#my-channel"}
+        )
 
         results = list(rule.after(event=event))
         assert len(results) == 0
@@ -412,12 +422,12 @@ class SlackNotifyActionTest(RuleTestCase):
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
-            event = self.get_event()
+            event = self.get_group_event()
 
             fake_rule = self.create_project_rule()
             action = self.create_action(integration_id=self.integration.id)
             fake_rule.id = action.id
-            rule = self.get_rule(
+            rule = self.get_slack_notify_rule(
                 data={
                     "workspace": self.integration.id,
                     "channel": "#my-channel",
@@ -467,9 +477,11 @@ class SlackNotifyActionTest(RuleTestCase):
         org = self.create_organization(owner=self.user)
         self.create_organization_integration(organization_id=org.id, integration=self.integration)
 
-        event = self.get_event()
+        event = self.get_group_event()
 
-        rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
+        rule = self.get_slack_notify_rule(
+            data={"workspace": self.integration.id, "channel": "#my-channel"}
+        )
 
         results = list(rule.after(event=event))
         assert len(results) == 1

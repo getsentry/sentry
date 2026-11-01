@@ -28,27 +28,34 @@ class UpdateAllProjectWebhooksTest(GitLabTestCase):
 
     @patch("sentry.integrations.gitlab.tasks.update_project_webhook.delay")
     def test_debounce_has_ttl_and_force_bypasses_it(self, mock_delay: MagicMock) -> None:
-        kwargs = {"integration_id": self.integration.id, "organization_id": self.organization.id}
-        org_integration = integration_service.get_organization_integration(**kwargs)
+        integration_id = self.integration.id
+        organization_id = self.organization.id
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
         assert org_integration is not None
         config = org_integration.config.copy()
 
-        update_all_project_webhooks(**kwargs)
+        update_all_project_webhooks(integration_id=integration_id, organization_id=organization_id)
         assert mock_delay.call_count == 3
-        update_all_project_webhooks(**kwargs)
+        update_all_project_webhooks(integration_id=integration_id, organization_id=organization_id)
         assert mock_delay.call_count == 3
-        update_all_project_webhooks(**kwargs, force=True)
+        update_all_project_webhooks(
+            integration_id=integration_id, organization_id=organization_id, force=True
+        )
         assert mock_delay.call_count == 6
-        update_all_project_webhooks(**kwargs)
+        update_all_project_webhooks(integration_id=integration_id, organization_id=organization_id)
         assert mock_delay.call_count == 6
 
         key = f"gitlab:webhook-reconcile:{self.organization.id}:{self.integration.id}"
         redis = redis_clusters.get("default")
         assert 0 < redis.ttl(key) <= 600
         redis.delete(key)
-        update_all_project_webhooks(**kwargs)
+        update_all_project_webhooks(integration_id=integration_id, organization_id=organization_id)
         assert mock_delay.call_count == 9
-        refreshed = integration_service.get_organization_integration(**kwargs)
+        refreshed = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
         assert refreshed is not None
         assert refreshed.config == config
 

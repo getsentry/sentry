@@ -141,6 +141,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         """
 
         event = self.create_performance_issue()
+        assert event.group is not None
         # this is a PerformanceNPlusOneGroupType event
         notification = AlertRuleNotification(
             Notification(event=event, rule=self.create_workflow_origin(self.rule)),
@@ -226,6 +227,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
+        assert event.group is not None
         group_event = event.for_group(event.groups[0])
 
         notification = AlertRuleNotification(
@@ -266,6 +268,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
+        assert event.group is not None
         group_event = event.for_group(event.groups[0])
 
         workflow_id = 123

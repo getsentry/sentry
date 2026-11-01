@@ -17,6 +17,7 @@ from sentry.organizations.services.organization.serial import serialize_rpc_orga
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -33,7 +34,9 @@ class PerforceIntegrationTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -650,7 +653,9 @@ class PerforceIntegrationCodeMappingTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,
@@ -712,7 +717,9 @@ class PerforceIntegrationDepotPathTest(IntegrationTestCase):
             name="Perforce",
             external_id="perforce-test",
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
 
     def test_multiple_depots(self) -> None:
         """Test handling multiple depot configurations"""
@@ -784,7 +791,9 @@ class PerforceIntegrationWebViewersTest(IntegrationTestCase):
             external_id="perforce-test",
             metadata={},
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        self.installation = get_installation_of_type(
+            PerforceIntegration, self.integration, self.organization.id
+        )
         self.repo = Repository.objects.create(
             name="//depot",
             organization_id=self.organization.id,

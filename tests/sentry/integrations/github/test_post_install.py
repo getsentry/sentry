@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock, call, patch
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -36,7 +37,9 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
 
         provider = GitHubIntegrationProvider()
         provider.post_install(
-            integration=self.integration, organization=self.organization, extra={"app_id": "app_1"}
+            integration=self.integration,
+            organization=serialize_rpc_organization(self.organization),
+            extra={"app_id": "app_1"},
         )
 
         assert mock_migrate_repo.call_count == 2

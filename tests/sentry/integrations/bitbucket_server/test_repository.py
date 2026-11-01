@@ -354,7 +354,7 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
             status=201,
         )
 
-        organization = self.organization
+        organization = serialize_rpc_organization(self.organization)
         integration = self.integration
 
         data = {
@@ -402,5 +402,5 @@ class BitbucketServerRepositoryProviderTest(APITestCase):
 
     def test_get_repository_data_no_installation_id(self) -> None:
         with pytest.raises(IntegrationError) as e:
-            self.provider.get_repository_data(self.organization, {})
+            self.provider.get_repository_data(serialize_rpc_organization(self.organization), {})
         assert "requires an integration id" in str(e.value)

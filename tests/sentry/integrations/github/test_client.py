@@ -964,7 +964,7 @@ class GitHubApiClientTest(TestCase):
         self.github_client.update_pr_comment(
             repo=self.repo,
             pr=PullRequest(key="1"),
-            pr_comment=PullRequestComment(external_id="1"),
+            pr_comment=PullRequestComment(external_id=1),
             data={"body": "world"},
         )
         assert responses.calls[1].response.status_code == 200
@@ -1457,10 +1457,9 @@ class GithubProxyClientTest(TestCase):
         assert mock_jwt.called
 
         self.integration.refresh_from_db()
-        assert (
-            self.integration.metadata.pop("last_refresh_at")
-            == self.integration.debug_data["last_refresh_at"]
-        )
+        debug_data = self.integration.debug_data
+        assert debug_data is not None
+        assert self.integration.metadata.pop("last_refresh_at") == debug_data["last_refresh_at"]
         assert self.integration.metadata == {
             "access_token": self.access_token,
             "expires_at": self.expires_at.rstrip("Z"),

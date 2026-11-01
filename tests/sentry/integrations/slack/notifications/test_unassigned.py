@@ -62,6 +62,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         and block kit is enabled.
         """
         event = self.create_performance_issue()
+        assert event.group is not None
         with self.tasks():
             self.create_notification(event.group).send()
 

@@ -220,7 +220,7 @@ class UnfurlTest(TestCase):
         # Sharing project ids across tests could result in some race conditions
         self.project = self.create_project()
         self._integration = install_slack(self.organization)
-        self.integration = serialize_integration(self._integration)
+        self.rpc_integration = serialize_integration(self._integration)
 
         self.request = RequestFactory().get("slack/event")
         self.frozen_time = freeze_time(datetime.now() - timedelta(days=1))
@@ -248,7 +248,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -277,7 +277,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
 
         assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
         assert (
@@ -302,7 +302,7 @@ class UnfurlTest(TestCase):
             ),
         ]
 
-        unfurls = link_handlers[LinkType.ISSUES].fn(self.integration, links)
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.rpc_integration, links)
         assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     @patch(
@@ -327,7 +327,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -357,7 +357,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -387,7 +387,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            link_handlers[link_type].fn(self.integration, links, self.user)
+            link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(mock_generate_chart.mock_calls) == 1
         assert api_mock.call_args[1]["params"].getlist("field") == []
@@ -418,7 +418,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -466,7 +466,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -504,7 +504,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -569,7 +569,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -634,7 +634,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -685,7 +685,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -752,7 +752,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -812,7 +812,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -855,7 +855,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -912,7 +912,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -943,7 +943,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -979,7 +979,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1031,7 +1031,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1083,7 +1083,7 @@ class UnfurlTest(TestCase):
                 "organizations:discover-basic",
             ]
         ):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1122,7 +1122,7 @@ class UnfurlTest(TestCase):
         ]
 
         with self.feature(["organizations:discover-basic"]):
-            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+            unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1177,7 +1177,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -1236,7 +1236,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_args[1]["path"].endswith("/events-heatmap/")
@@ -1281,7 +1281,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.mock_calls == []
@@ -1343,7 +1343,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1374,7 +1374,7 @@ class UnfurlTest(TestCase):
             raise AssertionError("Missing link_type/args")
 
         links = [UnfurlableUrl(url=url, args=args)]
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         mock_view.assert_called_once()
         request = mock_view.call_args[0][0]
@@ -1400,7 +1400,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
 
@@ -1428,7 +1428,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1455,7 +1455,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         # Should still unfurl with default yAxis
         assert len(unfurls) == 1
@@ -1490,7 +1490,7 @@ class UnfurlTest(TestCase):
 
         # Step 2: Run handler
         links = [UnfurlableUrl(url=url, args=args)]
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         # Step 3: Verify events-timeseries was called with correct args
         assert mock_client_get.call_count == 1
@@ -1550,7 +1550,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert len(mock_generate_chart.mock_calls) == 1
@@ -1576,7 +1576,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1602,7 +1602,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         # Skip happens before the events-timeseries call, so neither the API
@@ -1631,7 +1631,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]
@@ -1873,7 +1873,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -2023,7 +2023,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2144,7 +2144,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         call_kwargs = mock_client_get.call_args[1]
@@ -2171,7 +2171,7 @@ class UnfurlTest(TestCase):
             UnfurlableUrl(url=url, args=args),
         ]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2215,7 +2215,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2251,7 +2251,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert unfurls == {}
         assert mock_generate_chart.call_count == 0
@@ -2309,7 +2309,7 @@ class UnfurlTest(TestCase):
 
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert (
             unfurls[url]
@@ -2350,7 +2350,7 @@ class UnfurlTest(TestCase):
         assert args is not None
 
         links = [UnfurlableUrl(url=url, args=args)]
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_generate_chart.call_count == 1
@@ -2385,7 +2385,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2409,7 +2409,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2430,7 +2430,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 0
         assert mock_client_get.call_count == 0
@@ -2481,7 +2481,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         assert mock_client_get.call_count == 2
@@ -2538,7 +2538,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2596,7 +2596,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        link_handlers[link_type].fn(self.integration, links, self.user)
+        link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         chart_data = mock_generate_chart.call_args[0][1]
         pairs = chart_data["timeSeries"]
@@ -2624,7 +2624,7 @@ class UnfurlTest(TestCase):
         assert link_type is not None and args is not None
         links = [UnfurlableUrl(url=url, args=args)]
 
-        unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+        unfurls = link_handlers[link_type].fn(self.rpc_integration, links, self.user)
 
         assert len(unfurls) == 1
         chart_data = mock_generate_chart.call_args[0][1]

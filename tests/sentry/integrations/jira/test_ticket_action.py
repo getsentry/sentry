@@ -7,6 +7,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from fixtures.integrations.jira.mock import MockJira
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
 from sentry.models.rule import Rule
@@ -45,7 +46,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 "domain_name": "example.atlassian.net",
             },
         )
-        self.installation = self.integration.get_installation(self.organization.id)
+        installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraIntegration)
+        self.installation = installation
 
         self.login_as(user=self.user)
 
@@ -60,9 +63,9 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent) -> str:
-        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
-            "key", flat=True
-        )[0]
+        return ExternalIssue.objects.get_linked_issues(
+            event, serialize_integration(self.integration)
+        ).values_list("key", flat=True)[0]
 
     def configure_valid_alert_rule(self) -> Rule:
         rule_object = self.create_project_rule(
@@ -149,7 +152,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         ):
             rule_object = self.configure_valid_alert_rule()
 
-            event = self.get_event()
+            event = self.get_group_event()
 
             with pytest.raises(IntegrationConfigurationError):
                 self.trigger(event, rule_object)
@@ -180,7 +183,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         ):
             rule_object = self.configure_valid_alert_rule()
 
-            event = self.get_event()
+            event = self.get_group_event()
 
             with pytest.raises(IntegrationFormError):
                 self.trigger(event, rule_object)
@@ -201,7 +204,7 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         ):
             rule_object = self.configure_valid_alert_rule()
 
-            event = self.get_event()
+            event = self.get_group_event()
 
             with pytest.raises(IntegrationConfigurationError):
                 self.trigger(event, rule_object)

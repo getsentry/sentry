@@ -40,6 +40,7 @@ from sentry.integrations.source_code_management.commit_context import (
 from sentry.integrations.source_code_management.repo_trees import RepoAndBranch, RepoTree
 from sentry.integrations.types import ExternalProviders
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
@@ -124,7 +125,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         Returns:
             tuple: (user, installation, external_issue, integration, group)
         """
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
@@ -158,7 +159,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, integration, group
+        return serialize_rpc_user(user), installation, external_issue, integration, group
 
     @pytest.fixture(autouse=True)
     def stub_get_jwt(self) -> Iterator[None]:
@@ -422,7 +423,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with self.tasks():
             GitHubIntegrationProvider().post_install(
                 integration=integration,
-                organization=self.organization,
+                organization=serialize_rpc_organization(self.organization),
                 extra={"app_id": self.app_id},
             )
 
@@ -1528,6 +1529,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test syncing resolved status to GitHub (close issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1571,6 +1573,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test syncing unresolved status to GitHub (reopen issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1614,6 +1617,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that no update is made when status is already in desired state."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
         external_issue = self.create_integration_external_issue(
             group=self.group,
             integration=self.integration,
@@ -1650,6 +1654,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         """Test that sync_status_outbound returns early if no external project mapping exists."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         # Create external issue without project mapping
         with assume_test_silo_mode(SiloMode.CELL):
@@ -1673,6 +1678,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1708,6 +1714,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -1748,6 +1755,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
@@ -1761,6 +1769,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def test_update_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"

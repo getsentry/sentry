@@ -10,6 +10,7 @@ import responses
 from fixtures.vsts import COMMIT_DETAILS_EXAMPLE, COMPARE_COMMITS_EXAMPLE, FILE_CHANGES_EXAMPLE
 from sentry.integrations.vsts.repository import VstsRepositoryProvider
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationRepositoryTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -103,7 +104,9 @@ class VisualStudioRepositoryProviderTest(TestCase):
             "project": "MyFirstProject",
             "installation": integration.id,
         }
-        repository_config = self.provider.build_repository_config(organization, data)
+        repository_config = self.provider.build_repository_config(
+            serialize_rpc_organization(organization), data
+        )
 
         assert repository_config == {
             "name": "MyFirstProject",

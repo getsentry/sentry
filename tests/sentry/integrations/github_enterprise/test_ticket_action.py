@@ -11,6 +11,7 @@ from sentry.integrations.github_enterprise.actions.create_ticket import (
 )
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
 from sentry.models.rule import Rule
@@ -36,7 +37,7 @@ if GitHubEnterpriseCreateTicketAction.id not in rules:
 
 class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     rule_cls = GitHubEnterpriseCreateTicketAction
-    repo = "foo/bar"
+    repo_name = "foo/bar"
     assignee = "sentry_user"
     labels = ["bug", "invalid"]
     issue_num = 1
@@ -88,9 +89,9 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent) -> str:
-        return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
-            "key", flat=True
-        )[0]
+        return ExternalIssue.objects.get_linked_issues(
+            event, serialize_integration(self.integration)
+        ).values_list("key", flat=True)[0]
 
     @responses.activate()
     def test_ticket_rules(self) -> None:
@@ -100,7 +101,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
 
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
-                name=self.repo,
+                name=self.repo_name,
                 provider="integrations:github_enterprise",
                 organization_id=self.organization.id,
                 integration_id=self.integration.id,
@@ -140,7 +141,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
                     "id": "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
                     "integration": self.integration.id,
                     "dynamic_form_fields": [{"random": "garbage"}],
-                    "repo": self.repo,
+                    "repo": self.repo_name,
                     "assignee": self.assignee,
                     "labels": self.labels,
                 }
@@ -173,7 +174,7 @@ class GitHubEnterpriseEnterpriseTicketRulesTestCase(RuleTestCase, BaseAPITestCas
 
         # assert ticket created in GitHub Enterprise
         data = self.installation.get_issue(
-            key, data={"repo": self.repo, "externalIssue": self.issue_num}
+            key, data={"repo": self.repo_name, "externalIssue": self.issue_num}
         )
         assert sample_description in data["description"]
 

@@ -186,6 +186,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             "identifier": full_repo_name,
             "installation": integration.id,
         }
+        rpc_organization = serialize_rpc_organization(organization)
         data = self.provider.get_repository_data(organization, data)
         assert data == {
             "provider": "integrations:bitbucket",
@@ -194,7 +195,7 @@ class BitbucketRepositoryProviderTest(TestCase):
             "external_id": REPO["uuid"],
             "name": full_repo_name,
         }
-        repository_config = self.provider.build_repository_config(organization, data)
+        repository_config = self.provider.build_repository_config(rpc_organization, data)
 
         assert repository_config == {
             "name": full_repo_name,
