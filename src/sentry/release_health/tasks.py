@@ -55,7 +55,12 @@ def monitor_release_adoption(**kwargs: object) -> None:
 
 
 def get_process_projects_with_sessions_countdown(org_id: int) -> int:
-    jitter_seconds = max(0, options.get(PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION))
+    jitter_option = options.get(PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION)
+    if not isinstance(jitter_option, int):
+        raise TypeError(
+            f"{PROCESS_PROJECTS_WITH_SESSIONS_JITTER_SECONDS_OPTION} must be an integer"
+        )
+    jitter_seconds = max(0, jitter_option)
     if jitter_seconds == 0:
         return 0
 

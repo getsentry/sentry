@@ -30,8 +30,14 @@ class SentryAppAlertRuleActionCreator:
         component = SentryAppComponent.objects.get(
             type="alert-rule-action", sentry_app=self.sentry_app
         )
-        settings = component.schema.get("settings", {})
-        return settings.get("uri")
+        schema = component.schema
+        if not isinstance(schema, Mapping):
+            return None
+        settings = schema.get("settings", {})
+        if not isinstance(settings, Mapping):
+            return None
+        uri = settings.get("uri")
+        return uri if isinstance(uri, str) else None
 
     def _make_external_request(self, uri: str | None = None) -> SentryAppAlertRuleActionResult:
         if uri is None:

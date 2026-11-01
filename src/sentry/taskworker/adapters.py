@@ -10,7 +10,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import threading
-from collections.abc import MutableMapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 import orjson
@@ -94,8 +94,10 @@ class SentryRouter(LibraryRouter):
         # Check global overrides
         overrides = options.get("taskworker.route.overrides")
 
-        if name in overrides:
-            return overrides[name]
+        if isinstance(overrides, Mapping) and name in overrides:
+            route = overrides[name]
+            if isinstance(route, str):
+                return route
 
         # Check for configured mapping
         if name in self._route_map:

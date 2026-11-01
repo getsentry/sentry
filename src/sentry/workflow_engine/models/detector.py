@@ -3,7 +3,7 @@ from __future__ import annotations
 import builtins
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict
+from typing import TYPE_CHECKING, Any, ClassVar, Self, TypedDict, cast
 
 from django.conf import settings
 from django.db import models
@@ -163,7 +163,8 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if detector is None:
             detector = cls.objects.get(project_id=project_id, type=detector_type)
             cache.set(cache_key, detector, cls.CACHE_TTL)
-        return detector
+        # justification: the cache only stores Detector instances under this key.
+        return cast("Detector", detector)
 
     @classmethod
     def get_error_detector_for_project(cls, project_id: int) -> Detector:

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from django.conf import settings
 from django.contrib.auth import get_user as auth_get_user
 from django.contrib.auth.models import AnonymousUser
@@ -112,6 +114,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         if isinstance(exception, AuthUserPasswordExpired):
             from sentry.users.web.accounts import expired
 
-            return expired(request, exception.user)
+            # justification: the expired-account view returns a Django response.
+            return cast("HttpResponseBase", expired(request, exception.user))
         else:
             return None

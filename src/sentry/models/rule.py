@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from enum import IntEnum
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, cast
 
 from django.conf import settings
 from django.db import models
@@ -102,7 +102,8 @@ class Rule(Model):
         if rules_list is None:
             rules_list = list(cls.objects.filter(project=project_id, status=ObjectStatus.ACTIVE))
             cache.set(cache_key, rules_list, 60)
-        return rules_list
+        # justification: the cache only stores rule lists under this key.
+        return cast("list[Rule]", rules_list)
 
     @property
     def owner(self) -> Actor | None:
@@ -166,6 +167,7 @@ class Rule(Model):
                 continue
 
             if action_uuid == rule_action_uuid:
-                return action
+                # justification: rule actions are stored as JSON objects.
+                return action if isinstance(action, dict) else None
 
         return None

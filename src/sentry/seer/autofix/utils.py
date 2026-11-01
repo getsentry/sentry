@@ -465,7 +465,7 @@ def get_repo_url_path(repo: Repository) -> str:
     """
     if repo.provider == "integrations:gitlab":
         path = repo.config.get("path")
-        if not path:
+        if not isinstance(path, str) or not path:
             raise ValueError(
                 f"GitLab repository {repo.id} is missing config['path'] (path_with_namespace)"
             )
@@ -994,7 +994,7 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     """
     cache_key = get_seer_seat_based_tier_cache_key(organization.id)
     cached_value = cache.get(cache_key)
-    if cached_value is not None:
+    if isinstance(cached_value, bool):
         return cached_value
 
     try:

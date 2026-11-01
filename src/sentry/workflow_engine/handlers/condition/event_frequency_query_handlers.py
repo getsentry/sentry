@@ -495,6 +495,8 @@ class PercentSessionsQueryHandler(BaseEventFrequencyQueryHandler):
                 )
 
             cache.set(cache_key, session_count_last_hour, 600)
+        if not isinstance(session_count_last_hour, int):
+            raise TypeError("Session count is not an integer")
         return session_count_last_hour
 
     def get_session_interval(self, session_count: int, duration: timedelta) -> int | None:

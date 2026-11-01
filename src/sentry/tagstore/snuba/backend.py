@@ -140,7 +140,10 @@ def _translate_filter_keys(
         filter_keys["group_id"] = group_ids
 
     forward, reverse = get_snuba_translators(filter_keys, is_grouprelease=False)
-    return forward(filter_keys)
+    translated = forward(filter_keys)
+    if not isinstance(translated, dict):
+        raise TypeError("Snuba translator returned no mapping")
+    return translated
 
 
 def _reasonable_user_counts_match(control: dict[int, int], experimental: dict[int, int]) -> bool:
@@ -1837,13 +1840,17 @@ class SnubaTagStorage(TagStorage):
             .distinct()
         )
 
-        return Release.objects.filter(
-            organization_id=organization_id,
-            package__in=packages,
-            id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
-                "release_id", flat=True
-            ),
-        ).annotate_prerelease_column()  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        # justification: annotate_prerelease_column returns a ReleaseQuerySet at runtime.
+        return cast(
+            "ReleaseQuerySet",
+            Release.objects.filter(
+                organization_id=organization_id,
+                package__in=packages,
+                id__in=ReleaseProject.objects.filter(project_id__in=projects).values_list(
+                    "release_id", flat=True
+                ),
+            ).annotate_prerelease_column(),  # type: ignore[attr-defined]  # mypy doesn't know about ReleaseQuerySet
+        )
 
     def _get_tag_values_for_semver(
         self,

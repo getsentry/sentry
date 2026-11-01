@@ -82,7 +82,8 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
             inst_cache = self.__cache[instance.id]
         except KeyError:
             raise GroupMetaCacheNotPopulated(ERR_CACHE_MISSING % (instance.id,))
-        return inst_cache.get(key, default)
+        # justification: the per-instance cache maps keys to stored GroupMeta values.
+        return cast("str | _Default | None", inst_cache.get(key, default))
 
     def unset_value(self, instance: Group, key: str) -> None:
         self.filter(group=instance, key=key).delete()

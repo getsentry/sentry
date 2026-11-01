@@ -34,7 +34,10 @@ class RolloutRateSelector:
         self.check_new_option = check_new_option
 
     def rate(self) -> float:
-        return options.get(self.rate_option)
+        rate = options.get(self.rate_option)
+        if not isinstance(rate, (int, float)):
+            raise TypeError(f"{self.rate_option} must be a number")
+        return float(rate)
 
     def check_new(self) -> bool:
         return self.rate() > 0 or options.get(self.check_new_option)

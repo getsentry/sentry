@@ -290,7 +290,8 @@ class OrganizationReleaseDetailsPaginationMixin:
 
         if not release:
             return None
-        return release.version
+        version = release.version
+        return version if isinstance(version, str) else None
 
     def get_first_and_last_releases(
         self,

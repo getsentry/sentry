@@ -182,4 +182,4 @@ def should_autodetect_for_organization(organization: Organization) -> bool:
 
 
 def should_autodetect_for_project(project: Project) -> bool:
-    return project.get_option("sentry:uptime_autodetection", True)
+    return bool(project.get_option("sentry:uptime_autodetection", True))

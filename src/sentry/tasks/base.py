@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 import logging
 from collections.abc import Callable
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from django.db.models import Model
 from taskbroker_client.constants import CompressionType
@@ -26,7 +26,8 @@ def load_model_from_db(
     """Utility function to allow a task to transition to passing ids rather than model instances."""
     if isinstance(instance_or_id, int):
         if hasattr(tp.objects, "get_from_cache") and allow_cache:
-            return tp.objects.get_from_cache(pk=instance_or_id)
+            # justification: get_from_cache returns an instance of the given model type.
+            return cast("ModelT", tp.objects.get_from_cache(pk=instance_or_id))
         return tp.objects.get(pk=instance_or_id)
     return instance_or_id
 

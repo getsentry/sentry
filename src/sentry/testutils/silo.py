@@ -316,7 +316,11 @@ class _SiloModeTestModification:
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
 
-        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method)
+        # justification: pytest.mark.parametrize returns a decorator for test methods.
+        return cast(
+            "Callable[..., None]",
+            pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method),
+        )
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)

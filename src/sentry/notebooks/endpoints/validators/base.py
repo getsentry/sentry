@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -56,4 +56,5 @@ class StrictCamelSnakeValidator(serializers.Serializer[InstanceT]):
             unknown = sorted(set(data) - set(self.fields))
             if unknown:
                 raise serializers.ValidationError({field: "Unknown field." for field in unknown})
-        return super().to_internal_value(data)
+        # justification: DRF returns the validated field mapping.
+        return cast("dict[str, Any]", super().to_internal_value(data))

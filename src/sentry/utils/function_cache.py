@@ -6,7 +6,7 @@ from collections.abc import Callable, Sequence
 from datetime import timedelta
 from decimal import Decimal
 from functools import partial, update_wrapper
-from typing import Generic, TypeVar, TypeVarTuple
+from typing import Generic, TypeVar, TypeVarTuple, cast
 
 from django.core.cache import cache
 from django.db import models
@@ -131,7 +131,8 @@ class CachedFunction(Generic[*Ts, R]):
         if cached_val is None:
             cached_val = self.func(*args)
             cache.set(cache_key, cached_val, timeout=self.cache_ttl.total_seconds())
-        return cached_val
+        # justification: this cache only stores values returned by self.func.
+        return cast("R", cached_val)
 
     def batch(self, args_list: Sequence[tuple[*Ts]]) -> list[R]:
         cache_keys = [cache_key_for_cached_func(self.func, *args) for args in args_list]

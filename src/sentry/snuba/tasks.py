@@ -304,7 +304,10 @@ def _create_snql_in_snuba(
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
 
-    return orjson.loads(response.data)["subscription_id"]
+    subscription_id = orjson.loads(response.data)["subscription_id"]
+    if not isinstance(subscription_id, str):
+        raise SnubaError("Snuba returned no subscription id")
+    return subscription_id
 
 
 def _create_rpc_in_snuba(

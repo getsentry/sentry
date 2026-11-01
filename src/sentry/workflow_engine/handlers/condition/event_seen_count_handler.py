@@ -14,4 +14,4 @@ class EventSeenCountConditionHandler(ActionFilterDataConditionHandler[WorkflowEv
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
         group = event_data.group
-        return group.times_seen == comparison
+        return bool(group.times_seen == comparison)

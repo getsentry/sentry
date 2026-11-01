@@ -43,7 +43,7 @@ def parse_token(token: str) -> dict[str, Any] | None:
     try:
         payload_str = b64decode((payload_hashed).encode("ascii")).decode("ascii")
         payload = json.loads(payload_str)
-        if not payload.get("iat"):
+        if not isinstance(payload, dict) or not payload.get("iat"):
             return None
         return payload
     except Exception:

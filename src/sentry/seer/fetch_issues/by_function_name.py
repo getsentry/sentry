@@ -171,7 +171,10 @@ def _get_issues_for_file(
         query=query,
     )
     try:
-        return raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
+        rows = raw_snql_query(request, referrer=Referrer.SEER_RPC.value)["data"]
+        if not isinstance(rows, list):
+            raise ValueError("Snuba returned no data array")
+        return rows
     except Exception:
         logger.exception(
             "Seer fetch issues given patches Snuba query error",

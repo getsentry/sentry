@@ -16,6 +16,8 @@ logger = logging.getLogger("sentry.mail")
 def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: bool = False) -> int:
     connection = get_connection(fail_silently=fail_silently)
     sent = connection.send_messages(messages)
+    if not isinstance(sent, int):
+        raise TypeError("Mail backend returned no sent message count")
     metrics.incr("email.sent", sent, skip_internal=False, tags={"success": True})
     failed = len(messages) - sent
     if failed > 0:

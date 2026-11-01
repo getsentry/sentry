@@ -11,7 +11,7 @@ def in_random_rollout(option_name: str) -> bool:
     Determine if the current operation is in a random % based rollout
     group governed by an option with `option_name`.
     """
-    return random.random() < options.get(option_name)
+    return bool(random.random() < options.get(option_name))
 
 
 def in_rollout_group(option_name: str, key: int | str) -> bool:
@@ -23,4 +23,4 @@ def in_rollout_group(option_name: str, key: int | str) -> bool:
         int_key = int(hashlib.md5(key.encode("utf8")).hexdigest(), base=16)
     else:
         int_key = key
-    return (int_key % 100000) / 100000 < options.get(option_name)
+    return bool((int_key % 100000) / 100000 < options.get(option_name))

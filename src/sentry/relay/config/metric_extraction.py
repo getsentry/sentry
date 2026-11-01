@@ -32,12 +32,17 @@ HashedMetricSpec = tuple[str, MetricSpec, SpecVersion]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
-    if organization.id in options.get("on_demand.extended_widget_spec_orgs") and options.get(
-        "on_demand.extended_max_widget_specs"
+    extended_max_specs = options.get("on_demand.extended_max_widget_specs")
+    if (
+        organization.id in options.get("on_demand.extended_widget_spec_orgs")
+        and isinstance(extended_max_specs, int)
+        and extended_max_specs
     ):
-        return options.get("on_demand.extended_max_widget_specs")
+        return extended_max_specs
 
     max_widget_specs = options.get("on_demand.max_widget_specs")
+    if not isinstance(max_widget_specs, int):
+        raise TypeError("on_demand.max_widget_specs must be an integer")
     return max_widget_specs
 
 

@@ -290,7 +290,7 @@ def extract_filename(frame_dict: Mapping[str, Any]) -> str:
         filename = ""
     if filename == "" and frame_dict["module"] != "":
         filename = frame_dict["module"]
-    return filename
+    return filename if isinstance(filename, str) else ""
 
 
 def is_base64_encoded_frame(frame_dict: Mapping[str, Any]) -> bool:
@@ -311,7 +311,7 @@ def event_content_has_stacktrace(event: GroupEvent | Event) -> bool:
     exception_stacktrace = get_path(event.data, "exception", "values", -1, "stacktrace", "frames")
     threads_stacktrace = get_path(event.data, "threads", "values", -1, "stacktrace", "frames")
     only_stacktrace = get_path(event.data, "stacktrace", "frames")
-    return exception_stacktrace or threads_stacktrace or only_stacktrace
+    return bool(exception_stacktrace or threads_stacktrace or only_stacktrace)
 
 
 def record_did_call_seer_metric(

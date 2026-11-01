@@ -1,4 +1,5 @@
 from collections.abc import Callable, Collection, Mapping
+from typing import cast
 
 from sentry.utils.cache import cache
 
@@ -50,7 +51,8 @@ class CacheMapping[K, V]:
         return base_key
 
     def get(self, input: K) -> V | None:
-        return cache.get(self.key(input))
+        # justification: this cache only stores values of type V.
+        return cast("V | None", cache.get(self.key(input)))
 
     def set(self, input: K, value: V) -> None:
         cache.set(self.key(input), value, self._ttl_seconds)

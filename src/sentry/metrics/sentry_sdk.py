@@ -28,7 +28,9 @@ class SentrySDKMetricsBackend(MetricsBackend):
 
     def _should_sample_experimental(self) -> bool:
         """Sample based on passed in sample rate, can't use options as they hit the db too much."""
-        return self._experimental_sample_rate >= 1.0 or random() < self._experimental_sample_rate
+        return bool(
+            self._experimental_sample_rate >= 1.0 or random() < self._experimental_sample_rate
+        )
 
     def incr(
         self,

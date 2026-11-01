@@ -230,6 +230,8 @@ def process_batch(
     metrics.timing("spans.buffer.process_batch.decode", decode_time)
 
     assert min_timestamp is not None
+    if not isinstance(min_timestamp, int):
+        raise TypeError("Batch minimum timestamp is not an integer")
     buffer.process_spans(spans, now=min_timestamp)
     return min_timestamp
 

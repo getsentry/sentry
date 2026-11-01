@@ -66,7 +66,8 @@ class RedisScriptMinHashIndexBackend(AbstractIndexBackend):
         # cluster client to determine what cluster the script should be
         # executed on. The script itself will use the scope as the hashtag for
         # all redis operations.
-        return index([scope], args, self.cluster)
+        # justification: the embedded redis script returns a list of index results.
+        return cast("list[object]", index([scope], args, self.cluster))
 
     def _as_search_result(
         self, results: Iterable[tuple[bytes | str, Sequence[float]]]

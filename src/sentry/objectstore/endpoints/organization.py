@@ -154,7 +154,10 @@ def is_valid_object_path(path: str) -> bool:
 
 
 def get_target_url(path: str) -> str:
-    base = settings.SENTRY_OBJECTSTORE_CONFIG["base_url"].rstrip("/")
+    base = settings.SENTRY_OBJECTSTORE_CONFIG["base_url"]
+    if not isinstance(base, str):
+        raise TypeError("SENTRY_OBJECTSTORE_CONFIG base_url is not a string")
+    base = base.rstrip("/")
     # `path` should be a relative path, only grab that part
     path = urlparse(path).path
     # Simply concatenate base and path, without resolving URLs

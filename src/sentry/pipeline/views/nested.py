@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -56,4 +56,5 @@ class NestedPipelineView[P1: Pipeline[Any, Any], P2: Pipeline[Any, Any]]:
         if not nested_pipeline.is_valid():
             nested_pipeline.initialize()
 
-        return nested_pipeline.current_step()
+        # justification: pipeline steps render Django responses.
+        return cast("HttpResponseBase", nested_pipeline.current_step())

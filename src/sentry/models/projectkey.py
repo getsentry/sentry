@@ -336,7 +336,7 @@ class ProjectKey(ReplicatedCellModel):
 
         # Apply the org's relay-dsn-endpoint override when set.
         override = self.organization.get_option("sentry:relay_dsn_endpoint")
-        if override:
+        if isinstance(override, str) and override:
             return override
 
         endpoint = settings.SENTRY_ENDPOINT

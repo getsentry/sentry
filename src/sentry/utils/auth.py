@@ -198,14 +198,16 @@ def _get_login_redirect(request: HttpRequest, default: str | None = None) -> str
     # If we have a different URL to go after the 2fa flow we want to go to
     # that now here.
     after_2fa = request.session.pop("_after_2fa", None)
-    if after_2fa is not None:
+    if isinstance(after_2fa, str):
         return after_2fa
 
     login_url = request.session.pop("_next", None)
     if not login_url:
         return default
 
-    if not is_valid_redirect(login_url, allowed_hosts=(request.get_host(),)):
+    if not isinstance(login_url, str) or not is_valid_redirect(
+        login_url, allowed_hosts=(request.get_host(),)
+    ):
         login_url = default
 
     return login_url

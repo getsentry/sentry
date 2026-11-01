@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableMapping
-from typing import Any
+from typing import Any, cast
 
 from django.db import models
 
@@ -27,7 +27,8 @@ class SentryAppComponent(Model):
     @property
     def app_schema(self) -> MutableMapping[str, Any]:
         """Provides consistent interface with RpcSentryAppComponent"""
-        return self.schema
+        # justification: component schemas are stored as JSON objects.
+        return cast("MutableMapping[str, Any]", self.schema)
 
     @classmethod
     def sanitize_relocation_json(

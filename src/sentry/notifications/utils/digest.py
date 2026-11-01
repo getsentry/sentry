@@ -47,7 +47,7 @@ def should_send_as_alert_notification(context: Mapping[str, Any]) -> bool:
 
 
 def get_timestamp(record_param: Any) -> float:
-    return record_param.timestamp
+    return float(record_param.timestamp)
 
 
 def send_as_alert_notification(

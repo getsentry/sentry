@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping
-from typing import NotRequired, TypedDict
+from typing import NotRequired, TypedDict, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -92,7 +92,11 @@ def detect_breakpoints(
 
     if response.status >= 200 and response.status < 300:
         try:
-            return json.loads(response.data)
+            payload = json.loads(response.data)
+            if not isinstance(payload, dict):
+                raise ValueError("breakpoint detection response is not an object")
+            # justification: Seer returns the BreakpointResponse payload.
+            return cast("BreakpointResponse", payload)
         except ValueError as e:
             # seer failed to return valid json, report the error
             # and assume no breakpoints were found

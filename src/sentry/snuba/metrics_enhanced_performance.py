@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 from collections.abc import Sequence
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from snuba_sdk import Column, Condition
@@ -199,18 +199,22 @@ def timeseries_query(
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
             sentry_sdk.set_attribute("performance.dataset", "discover")
-        return dataset.timeseries_query(
-            selected_columns,
-            query,
-            snuba_params,
-            rollup=rollup,
-            referrer=referrer,
-            zerofill_results=zerofill_results,
-            comparison_delta=comparison_delta,
-            functions_acl=functions_acl,
-            has_metrics=has_metrics,
-            query_source=query_source,
-            transform_alias_to_input_format=transform_alias_to_input_format,
+        # justification: dataset modules are chosen at runtime and return SnubaTSResult.
+        return cast(
+            "SnubaTSResult",
+            dataset.timeseries_query(
+                selected_columns,
+                query,
+                snuba_params,
+                rollup=rollup,
+                referrer=referrer,
+                zerofill_results=zerofill_results,
+                comparison_delta=comparison_delta,
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+                query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+            ),
         )
     return SnubaTSResult(
         {
@@ -296,24 +300,28 @@ def top_events_timeseries(
         else:
             sentry_sdk.set_tag("performance.dataset", "discover")
             sentry_sdk.set_attribute("performance.dataset", "discover")
-        return dataset.top_events_timeseries(
-            timeseries_columns,
-            selected_columns,
-            user_query,
-            snuba_params,
-            orderby,
-            rollup,
-            limit,
-            organization,
-            equations,
-            top_events,
-            allow_empty,
-            zerofill_results,
-            include_other,
-            functions_acl,
-            query_source=query_source,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            referrer=referrer,
+        # justification: dataset modules are chosen at runtime and return SnubaTSResult.
+        return cast(
+            "SnubaTSResult | dict[str, Any]",
+            dataset.top_events_timeseries(
+                timeseries_columns,
+                selected_columns,
+                user_query,
+                snuba_params,
+                orderby,
+                rollup,
+                limit,
+                organization,
+                equations,
+                top_events,
+                allow_empty,
+                zerofill_results,
+                include_other,
+                functions_acl,
+                query_source=query_source,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+                referrer=referrer,
+            ),
         )
     return SnubaTSResult(
         {

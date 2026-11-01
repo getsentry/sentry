@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from django.db import models
 from django.utils import timezone
@@ -116,4 +116,5 @@ class ReleaseEnvironment(Model):
         else:
             metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
 
-        return instance
+        # justification: the cache only stores ReleaseEnvironment instances under this key.
+        return cast("ReleaseEnvironment", instance)

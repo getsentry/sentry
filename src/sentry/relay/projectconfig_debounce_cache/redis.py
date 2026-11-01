@@ -100,4 +100,6 @@ class RedisProjectConfigDebounceCache(ProjectConfigDebounceCache):
         client = self._get_redis_client(key)
         ret = client.delete(key)
         metrics.incr("relay.projectconfig_debounce_cache.task_done")
+        if not isinstance(ret, int):
+            raise TypeError("Redis DELETE returned no integer")
         return ret

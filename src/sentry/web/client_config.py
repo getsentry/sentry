@@ -137,7 +137,7 @@ def _get_public_dsn() -> str | None:
         else:
             result = ""
         cache.set(cache_key, result, 60)
-    return result
+    return result if isinstance(result, str) else None
 
 
 def _delete_activeorg(session: SessionBase | None) -> None:
@@ -330,6 +330,8 @@ class _ClientConfig:
 
         (user_details,) = query_result
         user_details = json.loads(json.dumps(user_details))
+        if not isinstance(user_details, dict):
+            return None
         if self._is_superuser():
             user_details["isSuperuser"] = self.user.is_superuser
         return user_details

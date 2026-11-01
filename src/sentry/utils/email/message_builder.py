@@ -72,8 +72,11 @@ def inline_css(value: str) -> str:
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
     # missing, so we force it to HTML5 here.
-    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None).decode("utf-8")
-    return html
+    # justification: lxml returns bytes when encoding is None.
+    html = lxml.html.tostring(tree, doctype="<!DOCTYPE html>", encoding=None)
+    if not isinstance(html, bytes):
+        raise TypeError("HTML serialization returned no bytes")
+    return html.decode("utf-8")
 
 
 def message_to_dict(message: EmailMultiAlternatives) -> dict[str, Any]:

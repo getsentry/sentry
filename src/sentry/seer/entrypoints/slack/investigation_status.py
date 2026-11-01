@@ -86,7 +86,10 @@ def _format_window(start: datetime, end: datetime) -> str:
 
 
 def get_status_title(source: Mapping[str, Any]) -> str:
-    return source["snapshot"]["monitor"]["name"]
+    name = source["snapshot"]["monitor"]["name"]
+    if not isinstance(name, str):
+        raise TypeError("Investigation status monitor name is not a string")
+    return name
 
 
 def _get_endpoint(query: str) -> str | None:

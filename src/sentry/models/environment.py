@@ -1,5 +1,5 @@
 import re
-from typing import TYPE_CHECKING, ClassVar, Self
+from typing import TYPE_CHECKING, ClassVar, Self, cast
 from urllib.parse import unquote
 
 from django.db import models
@@ -89,7 +89,8 @@ class Environment(Model):
             env = cls.objects.get(name=name, organization_id=organization_id)
             cache.set(cache_key, env, 3600)
 
-        return env
+        # justification: the cache only stores Environment instances under this key.
+        return cast("Self", env)
 
     @classmethod
     def get_or_create(
@@ -126,7 +127,8 @@ class Environment(Model):
             # separately as the `environmentproject` model.
             env.add_project(project, metrics_tags=project_metrics_tags)
 
-            return env
+            # justification: the cache only stores Environment instances under this key.
+            return cast("Self", env)
 
     def add_project(
         self,

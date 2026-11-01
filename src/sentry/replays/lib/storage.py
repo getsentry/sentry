@@ -108,7 +108,10 @@ class FilestoreBlob(Blob):
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        return self._segment_file(segment).getfile().read()
+        content = self._segment_file(segment).getfile().read()
+        if not isinstance(content, bytes):
+            raise TypeError("Replay segment read returned no bytes")
+        return content
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
@@ -199,7 +202,7 @@ class SimpleStorageBlob:
             logger.warning("Storage GET error: %s", repr(e))
             return None
         else:
-            return result
+            return result if isinstance(result, bytes) else None
 
     @metrics.wraps("replays.lib.storage.SimpleStorageBlob.set")
     def set(self, key: str, value: bytes) -> None:

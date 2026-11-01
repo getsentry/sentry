@@ -4,7 +4,7 @@ import logging
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 import sentry_sdk
 from sentry_sdk import traces
@@ -1029,7 +1029,8 @@ class _ConfigBase:
         return None  # property not set or path goes beyond the Config defined valid path
 
     def __get_data(self) -> Mapping[str, Any]:
-        return object.__getattribute__(self, "data")
+        # justification: the relay config stores a decoded mapping under "data".
+        return cast("Mapping[str, Any]", object.__getattribute__(self, "data"))
 
     def __str__(self) -> str:
         try:

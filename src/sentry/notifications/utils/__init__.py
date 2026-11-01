@@ -315,7 +315,11 @@ def get_performance_issue_alert_subtitle(event: GroupEvent) -> str:
     repeating_spans_compact = event.occurrence.evidence_data.get("repeating_spans_compact", "")
     if isinstance(repeating_spans_compact, list):
         repeating_spans_compact = repeating_spans_compact[0]
-    return repeating_spans_compact.replace("`", '"')
+    return (
+        repeating_spans_compact.replace("`", '"')
+        if isinstance(repeating_spans_compact, str)
+        else ""
+    )
 
 
 def get_notification_group_title(
@@ -355,7 +359,7 @@ def get_replay_id(event: Event | GroupEvent) -> str | None:
         evidence_contexts = event.occurrence.evidence_data.get("contexts") or {}
         evidence_replay_id = (evidence_contexts.get("replay") or {}).get("replay_id")
 
-        if evidence_replay_id:
+        if isinstance(evidence_replay_id, str) and evidence_replay_id:
             return evidence_replay_id
 
     return replay_id

@@ -169,10 +169,12 @@ def _refers_to_column(expression: Column | Function) -> str | None:
     """
 
     if isinstance(expression, Column):
-        return expression.name
+        # justification: snuba_sdk is exempt from typing.
+        return cast("str", expression.name)
     elif isinstance(expression, Function):
         if expression.function == "ifNull":
-            return expression.parameters[0].name
+            # justification: snuba_sdk is exempt from typing.
+            return cast("str", expression.parameters[0].name)
 
     return None
 

@@ -46,7 +46,7 @@ def send_activity_notification(
 
 def require_config(action: Action, key: str) -> str:
     value = action.config.get(key)
-    if not value:
+    if not isinstance(value, str) or not value:
         raise ValueError(f"No {key} for action {action.id}")
     return value
 

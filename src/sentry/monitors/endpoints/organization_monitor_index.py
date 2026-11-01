@@ -71,7 +71,10 @@ def map_value_to_constant(constant: type[object], value: str) -> int:
         value = "ACTIVE"
     if not hasattr(constant, value):
         raise ValueError(value)
-    return getattr(constant, value)
+    result = getattr(constant, value)
+    if not isinstance(result, int):
+        raise ValueError(value)
+    return result
 
 
 def flip_sort_direction(sort_field: str) -> str:

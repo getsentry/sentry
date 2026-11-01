@@ -176,7 +176,7 @@ def _get_full_trace_id(
 
         data = subquery_result.get("data")
         full_trace_id = data[0].get("trace") if data else None
-        if full_trace_id:
+        if isinstance(full_trace_id, str) and full_trace_id:
             return full_trace_id
 
     return None

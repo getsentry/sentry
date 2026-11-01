@@ -2,7 +2,7 @@ import functools
 import sys
 from collections.abc import Callable
 from types import CodeType, FrameType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db import router, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
@@ -44,7 +44,8 @@ def siloed_atomic(
 
 def siloed_get_connection(using: str | None = None) -> BaseDatabaseWrapper:
     validate_transaction_using_for_silo_mode(using)
-    return _default_get_connection(using=using)
+    # justification: Django's connection handler returns the connection wrapper.
+    return cast("BaseDatabaseWrapper", _default_get_connection(using=using))
 
 
 def siloed_on_commit(func: Callable[..., Any], using: str | None = None) -> None:

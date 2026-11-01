@@ -1053,7 +1053,7 @@ def recommended_v2_strategy() -> PostgresSortStrategy:
             # overflowing the float (1.0 / 2.0**x blows up once x exceeds ~1024).
             newness = 2.0 ** -(hours / newness_halflife_hours)
         regressed = 1.0 if data.get("substatus") == GroupSubStatus.REGRESSED else 0.0
-        return (
+        return float(
             (data.get("recommended") or 0.0)
             + assignment_weight * relevance
             + fixability_weight * (data.get("fixability") or 0.0)

@@ -42,7 +42,8 @@ def _resolve_activeorg(request: HttpRequest) -> str | None:
         # Assume subdomain is an org slug being accessed
         return subdomain
     elif session and "activeorg" in session and _org_exists(session["activeorg"]):
-        return session["activeorg"]
+        activeorg = session["activeorg"]
+        return activeorg if isinstance(activeorg, str) else None
     return None
 
 

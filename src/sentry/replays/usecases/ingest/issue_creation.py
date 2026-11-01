@@ -183,4 +183,4 @@ def _make_clicked_element(node: dict[str, Any]) -> str:  # justification: decode
             elif key == "data-sentry-component":
                 element += f'[data-sentry-component="{value}"]'
 
-    return element
+    return element if isinstance(element, str) else ""

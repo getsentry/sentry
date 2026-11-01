@@ -1,5 +1,5 @@
 from time import time
-from typing import Any
+from typing import Any, cast
 
 from taskbroker_client.retry import Retry
 
@@ -47,7 +47,8 @@ def _get_service_hooks(project_id: int) -> list[tuple[int, list[str]]]:
         hooks = ServiceHook.objects.filter(servicehookproject__project_id=project_id)
         result = [(h.id, h.events) for h in hooks]
         cache.set(cache_key, result, 60)
-    return result
+    # justification: the cache only stores service hook id/event lists.
+    return cast("list[tuple[int, list[str]]]", result)
 
 
 def kick_off_service_hooks(event: GroupEvent, has_alert: bool) -> None:

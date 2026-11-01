@@ -212,8 +212,9 @@ def traces_sampler(sampling_context: dict[str, Any]) -> float:
         return float(custom_sample_rate)
 
     # If there's already a sampling decision, just use that
-    if sampling_context["parent_sampled"] is not None:
-        return sampling_context["parent_sampled"]
+    parent_sampled = sampling_context["parent_sampled"]
+    if parent_sampled is not None:
+        return float(parent_sampled)
 
     if "taskworker" in sampling_context:
         task_name = sampling_context["taskworker"].get("task")
@@ -233,8 +234,8 @@ def profiles_sampler(sampling_context: dict[str, Any]) -> float:
     if "transaction_context" in sampling_context:
         transaction_name = sampling_context["transaction_context"].get("name")
 
-        if transaction_name in PROFILES_SAMPLING_RATE:
-            return PROFILES_SAMPLING_RATE[transaction_name]
+        if isinstance(transaction_name, str) and transaction_name in PROFILES_SAMPLING_RATE:
+            return float(PROFILES_SAMPLING_RATE[transaction_name])
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_PROFILES_SAMPLE_RATE or 0)

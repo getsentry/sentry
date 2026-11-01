@@ -36,5 +36,5 @@ def user_report(
         user_report = UserReport.objects.get(id=report_id)
         serialized_report = serialize(user_report, AnonymousUser(), UserReportWithGroupSerializer())
         safe_execute(mail_adapter.handle_user_report, report=serialized_report, project=project)
-    else:
+    elif report is not None:
         safe_execute(mail_adapter.handle_user_report, report=report, project=project)

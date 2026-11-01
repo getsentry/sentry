@@ -26,4 +26,4 @@ class RegressionEventConditionHandler(WorkflowTriggerDataConditionHandler):
         if state is None:
             return False
 
-        return state["is_regression"] == comparison
+        return bool(state["is_regression"] == comparison)

@@ -37,8 +37,10 @@ def gcp_project_id() -> str:
         if adc_path:
             with open(adc_path) as fp:
                 adc = json.load(fp)
-                if adc.get("quota_project_id") is not None:
-                    return adc.get("quota_project_id")
+                if isinstance(adc, dict):
+                    quota_project_id = adc.get("quota_project_id")
+                    if isinstance(quota_project_id, str):
+                        return quota_project_id
 
     return "__unknown_gcp_project__"
 

@@ -125,7 +125,10 @@ def increment_project_counter_in_database(
                 [project.id, delta, delta],
             )
 
-            project_counter = cur.fetchone()[0]
+            row = cur.fetchone()
+            if row is None or not isinstance(row[0], int):
+                raise TypeError("Project counter returned no integer")
+            project_counter = row[0]
 
             if statement_timeout is not None:
                 cur.execute(

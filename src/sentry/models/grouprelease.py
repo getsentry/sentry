@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db import models
 from django.utils import timezone
@@ -104,4 +104,5 @@ class GroupRelease(Model):
             metrics_tags[DATA_ACCESS_TAG] = data_access
 
         cache.set(cache_key, instance, 3600)
-        return instance
+        # justification: the cache only stores GroupRelease instances under this key.
+        return cast("GroupRelease", instance)

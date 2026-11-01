@@ -26,4 +26,4 @@ class ReappearedEventConditionHandler(WorkflowTriggerDataConditionHandler):
         if has_escalated is None:
             return False
 
-        return has_escalated == comparison
+        return bool(has_escalated == comparison)

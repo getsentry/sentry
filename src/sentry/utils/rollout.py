@@ -326,7 +326,9 @@ class SafeRolloutComparator:
             # just can't validate values inside a dictionary, hence the check above
             sample_rate = options.get(cls._experiment_sample_rate_option())  # Defaults to 1.0
 
-        return random.random() < sample_rate
+        if not isinstance(sample_rate, (int, float)):
+            sample_rate = 1.0
+        return bool(random.random() < sample_rate)
 
     @classmethod
     def should_use_experimental_data(cls, callsite: str) -> bool:

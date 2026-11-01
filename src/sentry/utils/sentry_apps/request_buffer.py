@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, NotRequired, TypedDict, overload
+from typing import TYPE_CHECKING, NotRequired, TypedDict, cast, overload
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -90,9 +90,12 @@ class SentryAppWebhookRequestsBuffer:
         Add the event type to the dict so that the request can be identified correctly
         """
         request = json.loads(redis_request)
+        if not isinstance(request, dict):
+            raise TypeError("Buffered Sentry app request is not an object")
         request["event_type"] = event
 
-        return request
+        # justification: the buffer stores SentryAppRequest payloads.
+        return cast("SentryAppRequest", request)
 
     def _add_to_buffer_pipeline(
         self, buffer_key: str, item: object, pipeline: Pipeline[str]

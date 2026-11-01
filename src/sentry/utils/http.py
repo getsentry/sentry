@@ -248,7 +248,8 @@ def is_mcp_request(request: HttpRequest | Request) -> bool:
     Whether the request originated from the official Sentry MCP server, identified
     by its `sentry-mcp/` user-agent prefix.
     """
-    return request.META.get("HTTP_USER_AGENT", "").startswith(MCP_USER_AGENT_PREFIX)
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    return bool(isinstance(user_agent, str) and user_agent.startswith(MCP_USER_AGENT_PREFIX))
 
 
 def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
@@ -261,10 +262,14 @@ def get_mcp_client_family(request: HttpRequest | Request) -> str | None:
 
     Declared by the client, so untrusted -- unlike `is_mcp_request`, which is derived.
     """
-    family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "").strip().lower()
+    family = request.META.get(MCP_CLIENT_FAMILY_HEADER, "")
+    if not isinstance(family, str):
+        return None
+    family = family.strip().lower()
     if not family or family in MCP_CATCHALL_CLIENT_FAMILIES:
         return None
-    return LEGACY_MCP_CLIENT_FAMILY_ALIASES.get(family, family)
+    alias = LEGACY_MCP_CLIENT_FAMILY_ALIASES.get(family, family)
+    return alias if isinstance(alias, str) else None
 
 
 def percent_encode(val: str) -> str:

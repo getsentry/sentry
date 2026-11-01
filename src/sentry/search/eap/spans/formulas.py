@@ -320,7 +320,8 @@ def get_count_of_vital(vital: str, settings: ResolverSettings) -> float:
         settings["query_result_cache"][cache_key] = response
 
     if len(response["data"]) > 0 and response["data"][0][vital_column] is not None:
-        return response["data"][0][vital_column]
+        vital_value = response["data"][0][vital_column]
+        return float(vital_value) if isinstance(vital_value, (int, float)) else 0
 
     return 0
 

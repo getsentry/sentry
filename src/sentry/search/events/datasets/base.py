@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 if TYPE_CHECKING:
     from sentry.search.events.builder.base import BaseQueryBuilder
@@ -63,7 +63,8 @@ class DatasetConfig(abc.ABC):
             argument = function_arguments[index]
             value = parameter_values[argument.name]
             if (field_type := self.builder.get_field_type(value)) is not None:  # type: ignore[attr-defined]
-                return field_type
+                # justification: field types are metric type names.
+                return cast("str", field_type)
             else:
                 return argument.get_type(value)
 

@@ -346,7 +346,7 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
     stacktrace link. Otherwise, return the link as is.
     """
     source_link = getattr(frame, "source_link", None)
-    if source_link is None:
+    if not isinstance(source_link, str):
         return None
 
     try:

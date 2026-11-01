@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth import logout
@@ -177,7 +177,8 @@ class UserSerializer(BaseUserSerializer):
         for field in settings.SENTRY_MANAGED_USER_FIELDS:
             attrs.pop(field, None)
 
-        return super().validate(attrs)
+        # justification: DRF returns the validated attribute mapping.
+        return cast("dict[str, Any]", super().validate(attrs))
 
 
 class SuperuserUserSerializer(BaseUserSerializer):

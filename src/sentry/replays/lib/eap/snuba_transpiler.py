@@ -777,10 +777,12 @@ def aggregate_operator(op: Op) -> AggregationComparisonFilter.Op.ValueType:
 
 def label(expr: Column | CurriedFunction | Function | ScalarType) -> str:
     if isinstance(expr, Column):
-        return expr.name
+        # justification: snuba_sdk is exempt from typing.
+        return cast("str", expr.name)
     elif isinstance(expr, (CurriedFunction, Function)):
         if expr.alias:
-            return expr.alias
+            # justification: snuba_sdk is exempt from typing.
+            return cast("str", expr.alias)
         else:
             return f"{expr.function}({', '.join(label(p) for p in expr.parameters)})"
     elif isinstance(expr, (date, datetime)):

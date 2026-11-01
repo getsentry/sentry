@@ -54,7 +54,7 @@ def _repo_name_for_feedback(
     organization_id: int,
 ) -> str | None:
     repo_name = getattr(source, "repo_name", None)
-    if repo_name is not None:
+    if isinstance(repo_name, str) and repo_name is not None:
         return repo_name
     if len(state.repo_pr_states) == 1:
         logger.info(

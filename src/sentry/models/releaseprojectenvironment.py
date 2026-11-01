@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 from django.db import models
 from django.utils import timezone
@@ -132,7 +132,8 @@ class ReleaseProjectEnvironment(Model):
         else:
             metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
 
-        return instance
+        # justification: the cache only stores ReleaseProjectEnvironment instances under this key.
+        return cast("ReleaseProjectEnvironment", instance)
 
     @property
     def adoption_stages(self) -> AdoptionStage:

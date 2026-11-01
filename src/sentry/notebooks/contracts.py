@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from django.utils.dateparse import parse_datetime
@@ -32,7 +32,8 @@ class StrictContractSerializer(serializers.Serializer[Any]):
             unknown = sorted(set(data) - set(self.fields))
             if unknown:
                 raise serializers.ValidationError({field: "Unknown field." for field in unknown})
-        return super().to_internal_value(data)
+        # justification: DRF returns the validated field mapping.
+        return cast("dict[str, Any]", super().to_internal_value(data))
 
 
 class QueryTimeRangeSerializer(StrictContractSerializer):

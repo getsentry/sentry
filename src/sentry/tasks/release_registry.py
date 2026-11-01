@@ -35,7 +35,10 @@ def _fetch_registry_url(relative_url: str) -> dict[str, object]:
         with Session() as session:
             response = session.get(full_url, timeout=REQUEST_TIMEOUT)
             response.raise_for_status()
-        return response.json()
+        data = response.json()
+        if not isinstance(data, dict):
+            raise TypeError("Release registry returned a non-object response")
+        return data
 
 
 def _fetch_release_registry_data(**kwargs: object) -> None:

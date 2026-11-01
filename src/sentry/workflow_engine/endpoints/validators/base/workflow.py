@@ -1,4 +1,4 @@
-from typing import Any, NotRequired, TypedDict, TypeVar
+from typing import Any, NotRequired, TypedDict, TypeVar, cast
 
 from django.db import router, transaction
 from rest_framework import serializers
@@ -118,7 +118,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     def validate_config(self, value: Any) -> bool:
         schema = Workflow.config_schema
-        return validate_json_schema(value, schema)
+        return bool(validate_json_schema(value, schema))
 
     def validate_triggers(self, value: InputData) -> InputData:
         if "workflow" in self.context:
@@ -211,7 +211,8 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
 
-        return serializer.save()
+        # justification: the serializer saves and returns the validated model instance.
+        return cast("ModelType", serializer.save())
 
     def _update_or_create_action(
         self,

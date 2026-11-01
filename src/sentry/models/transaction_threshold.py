@@ -64,7 +64,7 @@ def _filter_and_cache(
         cache.set(cache_key, result, PROJECT_TRANSACTION_THRESHOLD_CACHE_TTL)
         return result
     else:
-        return cache_result
+        return cache_result if isinstance(cache_result, list) else []
 
 
 @cell_silo_model

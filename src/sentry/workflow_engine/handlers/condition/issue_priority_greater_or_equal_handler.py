@@ -49,4 +49,4 @@ class IssuePriorityGreaterOrEqualConditionHandler(
                 return False
 
         group = event_data.group
-        return group.priority >= comparison
+        return bool(group.priority >= comparison)

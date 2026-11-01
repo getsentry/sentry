@@ -112,7 +112,8 @@ class RedisSessionStore:
             return None
 
         try:
-            return loads(state_json)
+            state = loads(state_json)
+            return state if isinstance(state, dict) else None
         except Exception as e:
             sentry_sdk.capture_exception(e)
         return None

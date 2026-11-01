@@ -348,7 +348,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
     if not rollout_rate:
         return False
 
-    return random.random() < rollout_rate
+    return bool(random.random() < rollout_rate)
 
 
 @traces.trace

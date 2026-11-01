@@ -639,7 +639,8 @@ class Release(Model):
             metric_tags["cache_hit"] = "true"
             metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
-        return release
+        # justification: the cache stores either a Release or the -1 sentinel, both handled above.
+        return cast("Release | None", release)
 
     @cached_property
     def version_info(self) -> dict[str, Any] | None:  # justification: decoded release JSON
@@ -1064,7 +1065,7 @@ def follows_semver_versioning_scheme(
     # Check release_version that is passed is semver compliant
     if release_version:
         follows_semver = follows_semver and Release.is_semver_version(release_version)
-    return follows_semver
+    return bool(follows_semver)
 
 
 def get_previous_release(release: Release) -> Release | None:

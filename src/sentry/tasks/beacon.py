@@ -42,6 +42,8 @@ def get_install_id() -> str:
         logger.info("beacon.generated-install-id", extra={"install_id": install_id})
         options.set("sentry:install-id", install_id)
 
+    if not isinstance(install_id, str):
+        raise TypeError("sentry:install-id must be a string")
     return install_id
 
 

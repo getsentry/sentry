@@ -248,7 +248,8 @@ class GroupOwner(Model):
 
         Returns the timestamp when ownership rules were last changed, or None if not set.
         """
-        return cache.get(PROJECT_OWNERSHIP_VERSION_KEY(project_id))
+        version = cache.get(PROJECT_OWNERSHIP_VERSION_KEY(project_id))
+        return float(version) if isinstance(version, (int, float)) else None
 
 
 def get_owner_details(group_list: Sequence[Group]) -> dict[int, list[OwnersSerialized]]:

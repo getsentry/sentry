@@ -679,7 +679,8 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         The shape of this id must match the `identifier` returned by
         the integration's Integration.get_repositories() method
         """
-        return repo.name
+        name = repo.name
+        return name if isinstance(name, str) else None
 
     @staticmethod
     def should_ignore_commit(message: str) -> bool:

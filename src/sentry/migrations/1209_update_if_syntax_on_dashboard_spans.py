@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from re import Match
-from typing import Any, Union
+from typing import cast, Any, Union
 
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -268,7 +268,8 @@ class ArithmeticVisitor(NodeVisitor[Any]):
 
     @staticmethod
     def parse_operator(operator: Any) -> str:
-        return operator[0].expr_name
+        # justification: sqlparse nodes expose the operator name as a string.
+        return cast("str", operator[0].expr_name)
 
     def visit_add_sub_operator(self, node: Node, children: Any) -> str:
         return self.parse_operator(self.strip_spaces(children))

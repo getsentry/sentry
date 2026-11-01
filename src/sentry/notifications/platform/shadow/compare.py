@@ -5,7 +5,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import orjson
 import sentry_sdk
@@ -65,7 +65,8 @@ def _as_list(value: Any) -> list[Any]:
     if not value:
         return []
     if isinstance(value, (str, bytes)):
-        return orjson.loads(value)
+        parsed = orjson.loads(value)
+        return parsed if isinstance(parsed, list) else []
     return [item.to_dict() if isinstance(item, Block) else item for item in value]
 
 
@@ -90,7 +91,8 @@ def _normalize(provider: NotificationProviderKey, payload: Mapping[str, Any]) ->
             "text": payload.get("text") or "",
         }
     if provider == NotificationProviderKey.MSTEAMS:
-        return _without_integration_id(payload)
+        # justification: the normalization helper preserves the mapping shape.
+        return cast("Mapping[str, Any]", _without_integration_id(payload))
     return payload
 
 

@@ -644,7 +644,8 @@ def histogram_query(
 
     # TODO: format to match non-metric-result
     if not normalize_results:
-        return results
+        # justification: the builder returns the raw EventsResponse payload.
+        return cast("dict[str, Any] | EventsResponse", results)
 
     result = normalize_histogram_results(fields, histogram_params, results)
     result["meta"] = {"isMetricsData": True}

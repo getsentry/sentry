@@ -59,7 +59,10 @@ def _generate_organization_hostname(org_slug: str) -> str:
 def generate_organization_url(org_slug: str) -> str:
     org_url_template: str | None = settings.SENTRY_ORGANIZATION_URL_TEMPLATE
     if not org_url_template:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        if not isinstance(url_prefix, str):
+            raise TypeError("system.url-prefix is not configured")
+        return url_prefix
     return org_url_template.replace("{hostname}", _generate_organization_hostname(org_slug))
 
 

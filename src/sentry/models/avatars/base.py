@@ -106,7 +106,7 @@ class AvatarBase(Model):
                 image.save(image_file, "PNG")
                 photo = image_file.getvalue()
                 cache.set(cache_key, photo)
-        return photo
+        return photo if isinstance(photo, bytes) else None
 
     def file_class(self) -> type[File] | type[ControlFile]:
         return File
@@ -138,6 +138,8 @@ class AvatarBase(Model):
         silo_limit = getattr(cls._meta, "silo_limit", None)
         if silo_limit is not None and SiloMode.CELL in silo_limit.modes:
             url_base = get_local_locality().to_url("")
+        if not isinstance(url_base, str):
+            raise TypeError("system.url-prefix is not configured")
 
         return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 

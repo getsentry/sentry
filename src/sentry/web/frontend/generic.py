@@ -1,5 +1,6 @@
 import os
 import posixpath
+from typing import cast
 from urllib.parse import unquote
 
 from django.conf import settings
@@ -64,7 +65,8 @@ def frontend_app_static_media(request: HttpRequest, **kwargs: str) -> HttpRespon
     if not settings.DEBUG:
         response["Cache-Control"] = NO_CACHE
 
-    return response
+    # justification: the rendered response is a Django HttpResponseBase.
+    return cast("HttpResponseBase", response)
 
 
 # In-memory stash of the proxied service worker bundle, keyed by the frontend

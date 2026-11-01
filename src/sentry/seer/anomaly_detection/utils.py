@@ -347,4 +347,5 @@ def fetch_historical_data(
             allow_metric_aggregates=True,
             on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
         )
-    return historical_data
+    # justification: the dataset module is selected at runtime and returns SnubaTSResult.
+    return cast("SnubaTSResult | None", historical_data)

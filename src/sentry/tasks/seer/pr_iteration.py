@@ -554,7 +554,7 @@ def consume_queued_autofix_feedback(
 
 def _dropped_drain_reason(dropped: list[dict[str, Any]]) -> str:
     """One reason for a drain that dropped everything."""
-    reasons = {item["reason"] for item in dropped}
+    reasons = {reason for item in dropped if isinstance(reason := item["reason"], str) and reason}
     if reasons <= {"stale_head", "live_head_mismatch"}:
         return PrIterationOutcome.STALE_HEAD.value
 

@@ -40,7 +40,10 @@ def _get_password() -> str:
     rv = click.prompt("Password", hide_input=True, confirmation_prompt=True)
     field = _get_field("password")
     try:
-        return field.clean(rv, None)
+        password = field.clean(rv, None)
+        if not isinstance(password, str):
+            raise click.ClickException("Invalid password")
+        return password
     except ValidationError as e:
         raise click.ClickException("; ".join(e.messages))
 

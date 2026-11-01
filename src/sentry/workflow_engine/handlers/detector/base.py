@@ -186,7 +186,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     def get_event_id(self, event_data: EventData) -> str:
         id_in_event_data = event_data.get("event_id")
 
-        if id_in_event_data:
+        if isinstance(id_in_event_data, str) and id_in_event_data:
             return id_in_event_data
 
         return str(uuid4())

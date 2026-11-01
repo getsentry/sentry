@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import cast
 
 import orjson
 
@@ -29,4 +30,8 @@ def get_supergroups_by_group_ids(
     )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
-    return orjson.loads(response.data)
+    data = orjson.loads(response.data)
+    if not isinstance(data, dict):
+        raise SeerApiError("Seer returned a non-object response", response.status)
+    # justification: Seer returns the SupergroupsByGroupIdsResponse payload.
+    return cast("SupergroupsByGroupIdsResponse", data)

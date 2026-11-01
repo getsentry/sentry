@@ -59,6 +59,8 @@ class RpcSentryAppAvatar(RpcModel):
         Modified from AvatarBase.absolute_url for SentryAppAvatar
         """
         url_base = options.get("system.url-prefix")
+        if not isinstance(url_base, str):
+            raise TypeError("system.url-prefix is not configured")
         return urljoin(url_base, f"/{self.url_path}/{self.ident}/")
 
 

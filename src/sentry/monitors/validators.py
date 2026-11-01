@@ -708,12 +708,16 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
         """Create the Monitor using MonitorValidator."""
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return monitor_validator.create(monitor_validator.validated_data)
+            # justification: the nested monitor serializer creates a Monitor.
+            return cast("Monitor", monitor_validator.create(monitor_validator.validated_data))
 
     def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return monitor_validator.update(instance, monitor_validator.validated_data)
+            # justification: the nested monitor serializer updates and returns a Monitor.
+            return cast(
+                "Monitor", monitor_validator.update(instance, monitor_validator.validated_data)
+            )
 
 
 class MonitorDataSourceListField(serializers.ListField):

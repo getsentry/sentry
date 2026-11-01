@@ -416,6 +416,8 @@ def compare(
             click.echo(f"Invalid {side.name} JSON", err=True)
             raise
 
+        if not isinstance(data, dict):
+            raise click.ClickException(f"Invalid {side.name} JSON")
         return data
 
     try:

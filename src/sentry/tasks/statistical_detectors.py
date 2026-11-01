@@ -168,7 +168,12 @@ class FunctionRegressionDetector(RegressionDetector):
 
     @classmethod
     def min_throughput_threshold(cls) -> int:
-        return options.get("statistical_detectors.throughput.threshold.functions")
+        threshold = options.get("statistical_detectors.throughput.threshold.functions")
+        if not isinstance(threshold, int):
+            raise TypeError(
+                "statistical_detectors.throughput.threshold.functions must be an integer"
+            )
+        return threshold
 
     @classmethod
     def detector_algorithm_factory(cls) -> DetectorAlgorithm:

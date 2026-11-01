@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from pydantic import Field, PrivateAttr, root_validator
 from sentry_sdk import traces
@@ -84,7 +84,8 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
         ``MissingCheckSuiteAutofixRun`` when no run is found.
         """
         if self._autofix_run is not None:
-            return self._autofix_run
+            # justification: the private attr caches a resolved CheckSuiteAutofixRun.
+            return cast("CheckSuiteAutofixRun", self._autofix_run)
 
         autofix_run = resolve_check_suite_autofix_run(self.event)
         if autofix_run is None:

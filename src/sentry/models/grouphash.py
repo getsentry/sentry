@@ -123,7 +123,10 @@ class GroupHash(Model):
             return None
 
         try:
-            return json.loads(self.metadata.hashing_metadata["fingerprint"])
+            fingerprint = json.loads(self.metadata.hashing_metadata["fingerprint"])
+            if not isinstance(fingerprint, list):
+                return None
+            return [value for value in fingerprint if isinstance(value, str)]
 
         # Fingerprints used to be stored by stringifying them rather than jsonifying them, and the
         # stringified ones can't be parsed and will cause this error

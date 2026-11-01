@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Any, Generic, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar, cast
 
 from jsonschema import ValidationError as JsonValidationError
 from rest_framework import serializers
@@ -48,10 +48,11 @@ class BaseDataConditionValidator(
 ):
     @property
     def condition_type(self) -> Condition:
+        # justification: the ChoiceField restricts condition types to Condition members.
         if isinstance(self.initial_data, list) and self.initial_data:
-            return self.initial_data[0].get("type")
+            return cast("Condition", self.initial_data[0].get("type"))
 
-        return self.initial_data.get("type")
+        return cast("Condition", self.initial_data.get("type"))
 
     def _get_handler(self) -> type[DataConditionHandler[Any]] | None:
         if self._is_operator_condition():

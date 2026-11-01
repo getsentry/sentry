@@ -8,7 +8,7 @@ from dataclasses import fields, is_dataclass
 from datetime import datetime
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING, overload
+from typing import TYPE_CHECKING, cast, overload
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import FutureTrackingProducer, KafkaPayload, KafkaProducer
@@ -262,7 +262,8 @@ class EAPEmitter(EvaluationEmitter[dict[str, EAPAttributeValue]]):
             return None
 
         if isinstance(value, Enum):
-            return self.serialize(value.value)
+            # justification: serialization recurses into the enum's raw value.
+            return cast("EAPAttributeValue | None", self.serialize(value.value))
 
         if isinstance(value, datetime):
             return value.isoformat()

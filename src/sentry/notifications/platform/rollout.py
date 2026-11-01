@@ -85,4 +85,4 @@ class NotificationRolloutService:
             )
             return 0.0
 
-        return source_rollout_rate
+        return float(source_rollout_rate)

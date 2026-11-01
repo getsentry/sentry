@@ -1,6 +1,6 @@
 import posixpath
 from collections.abc import Callable, Iterator, Mapping
-from typing import Any
+from typing import Any, cast
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -75,7 +75,8 @@ class ClosesDependentFiles:
             closable.close()
 
     def __iter__(self) -> Iterator[Any]:
-        return self._f
+        # justification: the wrapped file object is its own iterator.
+        return cast("Iterator[Any]", self._f)
 
     def __getattr__(self, attr: str) -> Any:
         return getattr(self._f, attr)

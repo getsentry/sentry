@@ -215,7 +215,7 @@ def is_agent_token_string(token_str: str) -> bool:
     audience, expiry, algorithm, and protected ``typ`` before the credential is trusted.
     """
     try:
-        return jwt.peek_header(token_str).get("typ") == AGENT_TOKEN_TYPE
+        return bool(jwt.peek_header(token_str).get("typ") == AGENT_TOKEN_TYPE)
     except PyJWTError:
         return False
 

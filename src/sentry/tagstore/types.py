@@ -39,7 +39,7 @@ class TagType:
             return True
         if other_val is None:
             return False
-        return self_val < other_val
+        return bool(self_val < other_val)
 
     def __getstate__(self) -> dict[str, Any]:
         return {name: getattr(self, name) for name in self.__slots__}

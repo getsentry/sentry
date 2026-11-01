@@ -147,7 +147,7 @@ class FeatureAdoptionRedisBackend:
 
     def in_cache(self, organization_id: int, feature_id: int) -> bool:
         org_key = self.key_tpl.format(organization_id)
-        return self.get_client(org_key).sismember(org_key, feature_id)
+        return bool(self.get_client(org_key).sismember(org_key, feature_id))
 
     def get_all_cache(self, organization_id: int) -> set[int]:
         org_key = self.key_tpl.format(organization_id)

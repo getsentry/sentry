@@ -176,7 +176,11 @@ class DataCondition(DefaultFieldsModel):
         op = CONDITION_OPS[condition_type]
 
         try:
-            return op(cast(Any, value), self.comparison)
+            # justification: condition ops return the declared evaluation result types.
+            return cast(
+                "DetectorPriorityLevel | int | float | bool | None | ConditionError",
+                op(cast(Any, value), self.comparison),
+            )
         except TypeError:
             logger.exception(
                 "Invalid comparison for data condition",

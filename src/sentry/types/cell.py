@@ -52,6 +52,8 @@ class Locality:
             base_url = options.get("system.url-prefix")
         else:
             base_url = generate_locality_url(self.name)
+        if not isinstance(base_url, str):
+            raise TypeError("system.url-prefix is not configured")
         return urljoin(base_url, path)
 
     def api_serialize(self) -> dict[str, Any]:

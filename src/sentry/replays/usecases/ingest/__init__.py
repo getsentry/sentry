@@ -108,7 +108,10 @@ def parse_recording_data(payload: bytes) -> list[dict[str, Any]]:  # justificati
         # prod. We don't want a huge volume of logs slowing throughput. If there's a
         # significant volume of this metric we'll test against a broader cohort of data.
         metrics.incr("replays.recording_consumer.msgspec_decode_error")
-        return json.loads(payload)
+        decoded = json.loads(payload)
+        if not isinstance(decoded, list):
+            raise TypeError("Replay recording payload is not a JSON array")
+        return decoded
 
 
 class DropEvent(Exception):

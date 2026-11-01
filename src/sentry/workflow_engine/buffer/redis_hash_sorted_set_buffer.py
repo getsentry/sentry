@@ -161,7 +161,10 @@ class RedisHashSortedSetBuffer:
     def get_hash_length(self, model: type[models.Model], filters: Mapping[str, BufferField]) -> int:
         """Get the number of fields in a Redis hash."""
         key = make_key(model, filters)
-        return self._execute_redis_operation(key, "hlen")
+        length = self._execute_redis_operation(key, "hlen")
+        if not isinstance(length, int):
+            raise TypeError("Redis HLEN returned no integer")
+        return length
 
     def delete_hash(
         self,
@@ -269,7 +272,10 @@ class RedisHashSortedSetBuffer:
 
         # Use the cluster client's built-in slot calculation
         try:
-            return self.cluster.connection_pool.nodes.keyslot(key)
+            slot = self.cluster.connection_pool.nodes.keyslot(key)
+            if not isinstance(slot, int):
+                raise TypeError("Redis cluster keyslot returned no integer")
+            return slot
         except AttributeError:
             # Fallback for standalone Redis using cluster client
             return 0  # Treat as single slot

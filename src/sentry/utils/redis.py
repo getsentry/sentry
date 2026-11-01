@@ -122,6 +122,8 @@ class RedisClusterManager:
         if not self._supports(cfg):
             raise KeyError("Invalid cluster type, expected redis cluster")
 
+        if not isinstance(cfg, dict):
+            raise KeyError(f"Invalid cluster config: {key}")
         return cfg
 
     @overload

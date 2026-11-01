@@ -6,7 +6,7 @@ import inspect
 import logging
 import threading
 from collections.abc import Callable, Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from sentry import options
 from sentry.conf.types.service_options import ServiceOptions
@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 def resolve_callable[CallableT: Callable[..., object]](value: str | CallableT) -> CallableT:
     if isinstance(value, str):
-        return import_string(value)
+        # justification: the configured import path names a CallableT.
+        return cast("CallableT", import_string(value))
     elif callable(value):
         return value
     else:

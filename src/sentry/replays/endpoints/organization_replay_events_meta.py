@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -163,7 +163,8 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsEndpointBase):
                 "transform_alias_to_input_format": True,
             }
 
-            return dataset.query(**query_details)
+            # justification: the dataset module is selected at runtime and returns a JSON payload.
+            return cast("dict[str, Any]", dataset.query(**query_details))
 
         with handle_query_errors():
             return self.paginate(

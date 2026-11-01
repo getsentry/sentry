@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
 from snuba_sdk.function import Function
@@ -129,7 +129,8 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 
         results["meta"] = super().process_results(results)["meta"]
 
-        return results
+        # justification: the builder constructs an EventsResponse payload.
+        return cast("EventsResponse", results)
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):

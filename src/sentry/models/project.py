@@ -828,7 +828,7 @@ class Project(Model):
         lock = locks.get(self.get_lock_key(), duration=5, name="project_security_token")
         with TimedRetryPolicy(10)(lock.acquire):
             security_token = self.get_option("sentry:token", None)
-            if security_token is None:
+            if not isinstance(security_token, str):
                 security_token = uuid1().hex
                 self.update_option("sentry:token", security_token)
             return security_token

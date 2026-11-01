@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar, Literal
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, cast
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models, router, transaction
@@ -193,7 +193,8 @@ class Repository(Model):
         provider = self.provider
         assert provider is not None
         provider_cls = bindings.get("integration-repository.provider").get(provider)
-        return provider_cls(provider)
+        # justification: the integration repository binding maps provider ids to provider classes.
+        return cast("IntegrationRepositoryProvider", provider_cls(provider))
 
     def generate_delete_fail_email(self, error_message: str) -> MessageBuilder:
         provider = self.get_provider()

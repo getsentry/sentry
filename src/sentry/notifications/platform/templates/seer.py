@@ -96,7 +96,7 @@ class SeerAutofixUpdate(NotificationData):
                 )
                 if has_coding_enabled is None:
                     has_coding_enabled = ENABLE_SEER_CODING_DEFAULT
-                return has_coding_enabled
+                return bool(has_coding_enabled)
             case AutofixStoppingPoint.OPEN_PR:
                 return False
 

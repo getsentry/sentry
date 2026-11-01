@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from typing import cast
 
 from sentry_sdk import traces
 
@@ -71,7 +72,8 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
         if cached is not _DETECTOR_SENTINEL:
             metrics_tags["cache_hit"] = "true"
             metrics_tags["detector_found"] = "true" if cached is not None else "false"
-            return cached
+            # justification: the cache stores either a Detector or None.
+            return cast("Detector | None", cached)
         result = query_all_projects_detector(organization_id=organization_id)
         metrics_tags["cache_hit"] = "false"
         metrics_tags["detector_found"] = "true" if result is not None else "false"

@@ -310,7 +310,10 @@ class RangeQuerySetWrapperWithProgressBarApprox[V](RangeQuerySetWrapperWithProgr
             "SELECT CAST(GREATEST(reltuples, 0) AS BIGINT) AS estimate FROM pg_class WHERE relname = %s",
             (self.queryset.model._meta.db_table,),
         )
-        return cursor.fetchone()[0]
+        row = cursor.fetchone()
+        if row is None or not isinstance(row[0], int):
+            raise TypeError("Row estimate query returned no integer")
+        return row[0]
 
 
 class WithProgressBar[V]:
