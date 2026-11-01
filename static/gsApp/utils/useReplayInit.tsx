@@ -75,6 +75,7 @@ export function useReplayInit(): boolean {
 
   useEffect(() => {
     async function init(sessionSampleRate: number, errorSampleRate: number) {
+      // oxlint-disable-next-line react/todo
       const {replayIntegration} = await import('@sentry/react');
 
       if (!replayRef) {

@@ -4,6 +4,7 @@ This is only necessary for logic that is shared between the event processing pip
 and thus cannot (yet) be refactored to use the new span schema.
 """
 
+import logging
 import uuid
 from typing import Any
 from urllib.parse import parse_qsl
@@ -20,7 +21,18 @@ from sentry.spans.consumers.process_segments.types import (
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
-EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
+logger = logging.getLogger("issue_detection.shim_event_creation")
+
+FALSY_ATTRIBUTE_VALUE_ALLOWLIST = (False, 0)
+
+# Catch-all prefix for request headers which don't have their own dedicated attribute
+REQUEST_HEADER_ATTRIBUTE_PREFIX = ATTRIBUTE_NAMES.HTTP_REQUEST_HEADER_KEY.removesuffix("<key>")
+
+# The transaction's original `tags`, serialized by Relay when it converts a transaction into a
+# segment. This is the only lossless source for them; Relay also flattens tags into the segment
+# span's attributes, but drops any tag whose key collides with a trace context `data` key.
+# TODO: Add this to sentry-conventions as `ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_TAGS`.
+SENTRY_EVENT_SERIALIZED_TAGS = "sentry.event.serialized_tags"
 
 TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
@@ -28,15 +40,27 @@ TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_DIST: "dist",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
     ATTRIBUTE_NAMES.SENTRY_PLATFORM: "platform",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_CONTEXTS: "contexts",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_EXTRA: "extra",
+    ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_BREADCRUMBS: "breadcrumbs",
+    # TODO: Replace with `ATTRIBUTE_NAMES.SENTRY_EVENT_SERIALIZED_TAGS` once that's been added to
+    # sentry-conventions
+    SENTRY_EVENT_SERIALIZED_TAGS: "tags",
 }
 
+# A few of these have multiple entries per field, because which one of these attributes we get is
+# SDK-dependent. (The `resource`-prefixed ones are from OTel, while the ones without it are us.)
+# They're listed in reverse priority order, with successively-higher-priority attributes overwriting
+# lower-priority ones if they have a value.
 CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
     "browser": {
         ATTRIBUTE_NAMES.BROWSER_NAME: "name",
         ATTRIBUTE_NAMES.BROWSER_VERSION: "version",
     },
     "os": {
+        f"resource.{ATTRIBUTE_NAMES.OS_NAME}": "name",
         ATTRIBUTE_NAMES.OS_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.OS_VERSION}": "version",
         ATTRIBUTE_NAMES.OS_VERSION: "version",
         ATTRIBUTE_NAMES.OS_ROOTED: "rooted",
     },
@@ -47,7 +71,9 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
         ATTRIBUTE_NAMES.DEVICE_NAME: "name",
     },
     "runtime": {
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME}": "name",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_NAME: "name",
+        f"resource.{ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION}": "version",
         ATTRIBUTE_NAMES.PROCESS_RUNTIME_VERSION: "version",
     },
     "profile": {
@@ -73,18 +99,29 @@ SDK_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
 }
 
-# There are multiple entries per field here, because which one of these attributes we get is
-# SDK-dependent. They're listed in reverse priority order, with successively-higher-priority
-# attributes overwriting lower-priority ones if they have a value.
+# As with the `contexts` map above, there are multiple entries per field/header here because SDKs
+# send request data in multiple formats. As before, entries are listed in reverse priority order so
+# the highest-priority one that has a value wins.
 REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
     ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
     ATTRIBUTE_NAMES.URL_PATH: "url",
-    ATTRIBUTE_NAMES.URL_FULL: "url",
     "sentry.transaction.method": "method",
     ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: "method",
     ATTRIBUTE_NAMES.URL_QUERY: "query_string",
     ATTRIBUTE_NAMES.HTTP_REQUEST_BODY_DATA: "data",
+}
+REQUEST_HEADERS_BY_ATTRIBUTE_NAME = {
+    "http.user_agent": "user-agent",
+    ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL: "user-agent",
+}
+REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.URL_SCHEME: "scheme",
+    ATTRIBUTE_NAMES.URL_DOMAIN: "host",
+    ATTRIBUTE_NAMES.SERVER_ADDRESS: "host",
+    ATTRIBUTE_NAMES.URL_PATH: "path",
+    ATTRIBUTE_NAMES.URL_PORT: "port",
+    ATTRIBUTE_NAMES.SERVER_PORT: "port",
 }
 
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
@@ -96,13 +133,17 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     "sentry.system": "system",
 }
 
-KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
+KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset(
+    {"sentry.", "user.", "browser.web_vital.", REQUEST_HEADER_ATTRIBUTE_PREFIX}
+)
 KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
     TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_HEADERS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME.keys(),
     SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
     *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
 )
@@ -134,13 +175,24 @@ def _extract_attribute_values(
     """
     Pull data from the segment span's attributes for every field in the given map.
 
-    Returns a dict of all non-null, non-empty values found, keyed by event field name.
+    Returns a dict of all non-null, non-empty values found, keyed by event field name. Also attempts
+    to reinflate known JSON values.
     """
     values_by_field_name = {}
 
     for attribute_name, field_name in attribute_to_field_map.items():
         value = attribute_value(segment_span, attribute_name)
-        if value not in EMPTY_ATTRIBUTE_VALUES:
+        if value or value in FALSY_ATTRIBUTE_VALUE_ALLOWLIST:
+            if attribute_name.startswith("sentry.event.serialized_"):
+                try:
+                    value = json.loads(value)
+                except Exception:
+                    logger.exception(
+                        f"Failed to parse serialized '{field_name}' attribute for shim transaction event",
+                        extra={"span_id": segment_span["span_id"]},
+                    )
+                    continue
+
             values_by_field_name[field_name] = value
 
     return values_by_field_name
@@ -169,12 +221,18 @@ def _is_tag_like_attribute(key: str, attribute: Attribute) -> bool:
     return True
 
 
-def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
+def _get_event_tags(
+    segment_span: CompatibleSpan, existing_tags_dict: dict[str, Any] | None
+) -> list[list[str]]:
     """
-    Build the transaction event's `tags` value from data in the segment span.
+    Build the transaction event's `tags` value from an existing tags dictionary or from data in the
+    segment span.
+
+    If an existing `tags` value is provided, just performs normalization. If not, collects all
+    unrecognized, string-valued attributes and normalizes their values.
     """
     attributes = segment_span.get("attributes") or {}
-    tags = {
+    tags = existing_tags_dict or {
         key: attribute.get("value")
         for key, attribute in attributes.items()
         if attribute and _is_tag_like_attribute(key, attribute)
@@ -185,20 +243,29 @@ def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
     return [[key, str(value)] for key, value in tags.items() if value is not None]
 
 
-def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
+def _get_event_contexts(
+    segment_span: CompatibleSpan, existing_context_data: dict[str, Any] | None
+) -> dict[str, Any]:
     """
     Build the transaction event's `contexts` value from data in the segment span.
+
+    If existing context data is provided, and a given context type is included, uses that value
+    rather than rederiving one.
     """
-    contexts = {}
+    contexts = existing_context_data or {}
 
     # Reconstruct `contexts` entries we're missing
     for context_name, sub_fields_by_attribute_name in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.items():
+        if context_name in contexts:
+            continue
+
         context = _extract_attribute_values(segment_span, sub_fields_by_attribute_name)
         if context:
             contexts[context_name] = {"type": context_name, **context}
 
-    # This is not included in the loop above because its values mostly come directly from the
-    # segment span rather than from attributes.
+    # This is not included in the loop above because Relay excludes it from the serialized context
+    # value and because its values mostly come directly from the segment span rather than from
+    # attributes, so it can't use either of the loop's branches.
     contexts["trace"] = {
         "trace_id": segment_span["trace_id"],
         "span_id": segment_span["span_id"],
@@ -229,8 +296,95 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     return user_data
 
 
+def _reconstruct_url(segment_span: CompatibleSpan) -> str | None:
+    """
+    Rebuild the request URL from parts, if possible. Useful for spans like those sent by OTel SDKs,
+    which send URL parts but no full URL.
+    """
+    url_data = _extract_attribute_values(segment_span, REQUEST_URL_PARTS_BY_ATTRIBUTE_NAME)
+
+    scheme = url_data.get("scheme", "http")
+    host = url_data.get("host")
+    port = url_data.get("port")
+    path = url_data.get("path", "/")
+
+    if not host or not isinstance(host, str):
+        return None
+
+    # Add brackets to unbracketed IPv6-like values
+    if host.count(":") > 1 and not host.startswith("["):
+        host = f"[{host}]"
+
+    # Include the port if it's something other than the default for the scheme. Wrapped in a
+    # `try-except` in case the port value is something bogus and un-int-able.
+    try:
+        if port and int(port) != (443 if scheme == "https" else 80):
+            host = f"{host}:{port}"
+    except Exception:
+        pass
+
+    # Ensure path has a leading slash
+    if path and not str(path).startswith("/"):
+        path = f"/{path}"
+
+    return f"{scheme}://{host}{path}"
+
+
+def _get_request_headers(segment_span: CompatibleSpan) -> list[list[str]]:
+    """
+    Build the request's `headers` value from the segment span's `http.request.header.<name>`
+    attributes, plus any headers which have their own dedicated attributes.
+    """
+    attributes = segment_span.get("attributes") or {}
+    headers = []
+
+    # Handle headers which have their own, dedicated attribute names
+    header_data = _extract_attribute_values(segment_span, REQUEST_HEADERS_BY_ATTRIBUTE_NAME)
+
+    # Handle headers from `http.request.header.<key>` attributes
+    for attribute_name in filter(
+        lambda attribute_name: attribute_name.startswith(REQUEST_HEADER_ATTRIBUTE_PREFIX),
+        attributes.keys(),
+    ):
+        header_value = attribute_value(segment_span, attribute_name)
+
+        if not header_value:
+            continue
+
+        header_name = attribute_name.removeprefix(REQUEST_HEADER_ATTRIBUTE_PREFIX)
+
+        # Handle cases where the SDK hasn't already joined multi-valued headers into a single string
+        if isinstance(header_value, list):
+            header_value = ", ".join(str(element) for element in header_value)
+
+        header_data[header_name] = header_value
+
+    # Convert header data from a dict to the list of key-value pairs expected by ingest, and header
+    # names from lowercase to the more familiar titlecase format
+    for lowercase_header_name, header_value in header_data.items():
+        titlecase_header_name = "-".join(
+            word.capitalize() for word in lowercase_header_name.split("-")
+        )
+        headers.append([titlecase_header_name, str(header_value)])
+
+    return headers
+
+
 def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    # The `_extract_attribute_values` call above may have already set a `url` value, but a full URL
+    # is better if we either have it or can reconstruct it. (This is handled outside of
+    # `_extract_attribute_values` to allow for the reconstructed fallback.)
+    full_url = attribute_value(segment_span, ATTRIBUTE_NAMES.URL_FULL) or _reconstruct_url(
+        segment_span
+    )
+    if full_url:
+        request_data["url"] = full_url
+
+    headers = _get_request_headers(segment_span)
+    if headers:
+        request_data["headers"] = headers
 
     if "query_string" in request_data:
         # Convert from a single string to a list of key-value pairs
@@ -308,8 +462,20 @@ def build_shim_event_data(
         **_extract_attribute_values(segment_span, TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME),
     }
 
-    event["contexts"] = _get_event_contexts(segment_span)
-    event["tags"] = _get_event_tags(segment_span)
+    # Handle cases in which the legacy breadcrumb format is sent
+    if "breadcrumbs" in event and isinstance(event["breadcrumbs"], list):
+        breadcrumbs = event["breadcrumbs"]
+        event["breadcrumbs"] = {"values": breadcrumbs}
+
+    # If the segment is one Relay has converted from a transaction, both its `contexts` and (in the
+    # future) `tags` values will have been included as JSON blobs in the segment span's attributes,
+    # and will have been added to the event as part of the `_extract_attribute_values` call on
+    # `TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME` above.
+    # TODO: Remove the parentetical from the above comment once we actually are serializing tags.
+    event["contexts"] = _get_event_contexts(
+        segment_span, existing_context_data=event.get("contexts")
+    )
+    event["tags"] = _get_event_tags(segment_span, existing_tags_dict=event.get("tags"))
     event["spans"] = _get_detector_compatible_spans(spans)
 
     user_data = _get_event_user(segment_span)

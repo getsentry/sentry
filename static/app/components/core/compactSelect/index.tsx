@@ -11,7 +11,7 @@ export {
 
 export {CompositeSelect} from './composite';
 
-export {ControlContext} from './controlContext';
+export {ControlContext} from '@sentry/scraps/menu';
 
 export {HighlightText} from './highlightText';
 
@@ -20,10 +20,6 @@ export {MenuComponents} from './menuComponents';
 export {
   LeadWrap,
   SectionSeparator,
-  SectionGroup,
-  SectionHeader,
-  SectionTitle,
-  SectionWrap,
   SizeLimitMessage,
   ListLabel,
   ListSeparator,

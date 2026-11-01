@@ -9,7 +9,7 @@ import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
-import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {AuthPageLoadingProvider} from 'sentry/views/authV2/useAuthPageLoading';
 
 import AuthLogin from './index';
 
@@ -67,14 +67,14 @@ describe('AuthLogin', () => {
 
   function renderWithLoadingState() {
     return render(
-      <BrandedAuthLoadingProvider>
+      <AuthPageLoadingProvider>
         {isLoading => (
           <Fragment>
             <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
             <AuthLogin />
           </Fragment>
         )}
-      </BrandedAuthLoadingProvider>
+      </AuthPageLoadingProvider>
     );
   }
 
@@ -310,14 +310,14 @@ describe('AuthLogin', () => {
     });
 
     render(
-      <BrandedAuthLoadingProvider>
+      <AuthPageLoadingProvider>
         {isLoading => (
           <Fragment>
             <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
             <AuthLogin />
           </Fragment>
         )}
-      </BrandedAuthLoadingProvider>,
+      </AuthPageLoadingProvider>,
       {
         initialRouterConfig: {
           location: {pathname: '/auth/login/acme/'},

@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
@@ -21,8 +21,7 @@ from sentry.utils.hashlib import hash_values
 
 
 class ReleaseSetupStepResponse(TypedDict):
-    # One of: tag, repo, commit, deploy.
-    step: str
+    step: Literal["tag", "repo", "commit", "deploy"]
     complete: bool
 
 
@@ -31,12 +30,22 @@ class ReleaseSetupStepResponse(TypedDict):
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     owner = ApiOwner.COMMUNITY
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (ProjectReleasePermission,)
 
     @extend_schema(
-        operation_id="Retrieve a Project's Release Setup Progress",
+        operation_id="getProjectReleaseSetupCompletion",
+        summary="Retrieve a Project's Release Setup Progress",
+        description=(
+            "Return the project's release-setup progress for these steps:\n\n"
+            "- `tag`: The project has an issue with a recorded first release.\n"
+            "- `repo`: The organization has at least one repository.\n"
+            "- `commit`: At least one of the project's 1,000 most recent releases "
+            "(by release ID) has an associated commit.\n"
+            "- `deploy`: At least one of the project's releases has a deploy.\n\n"
+            "Results are cached for one hour when a step is complete and one minute otherwise."
+        ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.PROJECT_ID_OR_SLUG],
         responses={
             200: inline_sentry_response_serializer(
@@ -49,8 +58,8 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
     )
     def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
         """
-        Return the release-setup onboarding progress for a project: whether the project
-        has tagged an error, linked a repo, associated commits, and reported a deploy.
+        Return release-setup progress based on issues with a first release, organization
+        repositories, commits associated with project releases, and deploys of project releases.
         """
         tag_key = "onboard_tag:1:%s" % (project.id)
         repo_key = "onboard_repo:1:%s" % (project.organization_id)

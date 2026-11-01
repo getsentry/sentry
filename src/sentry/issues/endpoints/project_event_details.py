@@ -13,8 +13,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.serializers import IssueEventSerializer, serialize
-from sentry.api.serializers.models.event import GroupEventDetailsResponse
+from sentry.api.serializers import EventSerializer, IssueEventSerializer, serialize
+from sentry.api.serializers.models.event import EventSerializerResponse, GroupEventDetailsResponse
 from sentry.api.utils import get_date_range_from_params, to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
@@ -32,6 +32,12 @@ from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
+# Shared by the project and issue event-details endpoints so `collapse` means the same thing on
+# both, letting API clients send one value list to either endpoint.
+COLLAPSE_ADJACENT_EVENTS = "adjacentEvents"
+COLLAPSE_FULL_RELEASE = "fullRelease"
+COLLAPSE_STACKTRACE_ONLY = "stacktraceOnly"
+
 
 def wrap_event_response(
     request_user: Any,
@@ -43,6 +49,7 @@ def wrap_event_response(
     start: datetime | None = None,
     end: datetime | None = None,
     use_snql: bool = False,
+    include_adjacent_events: bool = True,
 ) -> GroupEventDetailsResponse | None:
     event_data = serialize(
         event,
@@ -64,7 +71,7 @@ def wrap_event_response(
     if legacy_conditions is None:
         legacy_conditions = []
 
-    if event.group_id:
+    if include_adjacent_events and event.group_id:
         if use_snql or options.get("eventstore.adjacent_event_ids_use_snql"):
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
                 organization_id=event.organization.id,
@@ -128,6 +135,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             GlobalParams.PROJECT_ID_OR_SLUG,
             EventParams.EVENT_ID,
             GlobalParams.ENVIRONMENT,
+            EventParams.EVENT_DETAILS_COLLAPSE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -141,7 +149,11 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
     )
     def get(
         self, request: Request, project: Project, event_id: str
-    ) -> Response[GroupEventDetailsResponse] | Response[DetailResponse]:
+    ) -> (
+        Response[GroupEventDetailsResponse]
+        | Response[EventSerializerResponse]
+        | Response[DetailResponse]
+    ):
         """
         Return details on an individual event.
         """
@@ -166,12 +178,21 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if hasattr(event, "for_group") and event.group:
             event = event.for_group(event.group)
 
+        # `fullRelease` needs no handling: this endpoint always returns the short release.
+        collapse = request.GET.getlist("collapse", [])
+        if COLLAPSE_STACKTRACE_ONLY in collapse:
+            stacktrace_body: EventSerializerResponse = serialize(
+                event, request.user, EventSerializer()
+            )
+            return Response(stacktrace_body)
+
         data = wrap_event_response(
             request_user=request.user,
             event=event,
             environments=list(environments),
             start=start,
             end=end,
+            include_adjacent_events=COLLAPSE_ADJACENT_EVENTS not in collapse,
         )
         if data is None:
             return Response({"detail": "Failed to load event"}, status=500)

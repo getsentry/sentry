@@ -250,6 +250,7 @@ SPAN_EAP_COLUMN_MAP = {
     "user.geo.subregion": "attr_str[sentry.user.geo.subregion]",
     "user.geo.country_code": "attr_str[sentry.user.geo.country_code]",
     "gen_ai.request.reasoning.level": "attr_str[gen_ai.request.reasoning.level]",
+    "gen_ai.tool.call.result.size": "attr_num[gen_ai.tool.call.result.size]",
     "cloudflare.durable_object.query.bindings": "attr_num[cloudflare.durable_object.query.bindings]",
     "cloudflare.durable_object.response.rows_read": "attr_num[cloudflare.durable_object.response.rows_read]",
     "cloudflare.durable_object.response.rows_written": "attr_num[cloudflare.durable_object.response.rows_written]",
@@ -1190,9 +1191,8 @@ def _apply_cache_and_build_results(
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
-    scope = sentry_sdk.get_current_scope()
 
-    span = scope.streamed_span
+    span = sentry_sdk.traces.get_current_span()
     if type(span) is StreamedSpan:
         parent_api = span._segment.name
 

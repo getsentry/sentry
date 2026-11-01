@@ -1,3 +1,5 @@
+import {SEARCH_MCP__TRANSPORT} from '@sentry/conventions/attributes/search';
+
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {
@@ -16,6 +18,20 @@ const MCP_SERVER_FILTER = `${SpanFields.SPAN_OP}:mcp.server`;
 const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_TOOL_NAME}`;
 const MCP_RESOURCE_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_RESOURCE_URI}`;
 const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_PROMPT_NAME}`;
+
+// Match known implementations exactly so custom HTTP transports keep their names.
+const HTTP_TRANSPORTS = [
+  'http',
+  'sse',
+  'StreamableHTTPServerTransport',
+  'NodeStreamableHTTPServerTransport',
+  'WebStandardStreamableHTTPServerTransport',
+  'PerRequestHTTPServerTransport',
+  'SSEServerTransport',
+  'SseServerTransport',
+];
+const STDIO_TRANSPORTS = ['stdio', 'StdioServerTransport'];
+const KNOWN_TRANSPORTS = [...HTTP_TRANSPORTS, ...STDIO_TRANSPORTS];
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -60,17 +76,41 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'mcp-overview-transport-distribution',
       title: t('Transport Distribution'),
+      description: t(
+        'MCP requests by transport: http, stdio, and the most-used custom transport names. Missing values mean the MCP transport was not captured.'
+      ),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
       legendType: 'breakdown',
       queries: [
         {
-          name: '',
-          conditions: `${MCP_SERVER_FILTER} has:${SpanFields.NETWORK_TRANSPORT}`,
-          fields: [SpanFields.NETWORK_TRANSPORT, 'count()'],
+          name: 'http',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${HTTP_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
           aggregates: ['count()'],
-          columns: [SpanFields.NETWORK_TRANSPORT],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'stdio',
+          seriesLabel: 'query',
+          conditions: `${MCP_SERVER_FILTER} ${SEARCH_MCP__TRANSPORT}:[${STDIO_TRANSPORTS.join(',')}]`,
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          fieldAliases: [WIDGET_COLUMN_LABELS.count],
+          orderby: '-count()',
+        },
+        {
+          name: 'custom',
+          seriesLabel: 'group',
+          conditions: `${MCP_SERVER_FILTER} (!has:${SEARCH_MCP__TRANSPORT} OR !${SEARCH_MCP__TRANSPORT}:[${KNOWN_TRANSPORTS.join(',')}])`,
+          fields: [SEARCH_MCP__TRANSPORT, 'count()'],
+          aggregates: ['count()'],
+          columns: [SEARCH_MCP__TRANSPORT],
           fieldAliases: [t('Transport'), WIDGET_COLUMN_LABELS.count],
           orderby: '-count()',
         },

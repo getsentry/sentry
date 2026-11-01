@@ -1,5 +1,7 @@
 import logging
 from collections.abc import Sequence
+from contextlib import nullcontext
+from dataclasses import replace
 from typing import Any
 
 from sentry import options
@@ -13,6 +15,7 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
+from sentry.viewer_context import get_viewer_context, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -78,11 +81,25 @@ def may_schedule_task_to_delete_hashes_from_seer(project_id: int, hashes: Sequen
     ):
         return
 
-    seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+    viewer_context = get_viewer_context()
+    context = (
+        viewer_context_scope(
+            replace(
+                viewer_context,
+                organization_id=project.organization_id,
+                project_id=project.id,
+            )
+        )
+        if viewer_context is not None
+        else nullcontext()
+    )
 
-    for i in range(0, len(hashes), seer_batch_size):
-        hash_chunk = hashes[i : i + seer_batch_size]
-        delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
+    with context:
+        seer_batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
+
+        for i in range(0, len(hashes), seer_batch_size):
+            hash_chunk = hashes[i : i + seer_batch_size]
+            delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hash_chunk, 0])
 
 
 @instrumented_task(

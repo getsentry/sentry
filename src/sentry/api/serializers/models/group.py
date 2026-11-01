@@ -16,6 +16,7 @@ from sentry_sdk import traces
 from sentry import tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.auth.principal import has_user
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.base import IntegrationFeatures
@@ -294,7 +295,7 @@ class GroupSerializerBase(Serializer, ABC):
         # making unnecessary queries.
         prefetch_related_objects(item_list, "project__organization")
 
-        if user.is_authenticated and item_list:
+        if has_user(user) and item_list:
             bookmarks = set(
                 GroupBookmark.objects.filter(user_id=user.id, group__in=item_list).values_list(
                     "group_id", flat=True
@@ -623,13 +624,16 @@ class GroupSerializerBase(Serializer, ABC):
                     {"organization_id": item_list[0].project.organization_id} if item_list else None
                 ),
             )
+            to_cache = {}
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
+                to_cache[f"group-mechanism-handled:{x['group_id']}"] = x["unhandled"]
 
-                # cache the handled flag for 60 seconds.  This is broadly in line with
-                # the time we give for buffer flushes so the user experience is somewhat
-                # consistent here.
-                cache.set("group-mechanism-handled:%d" % x["group_id"], x["unhandled"], 60)
+            # cache the handled flag for 60 seconds.  This is broadly in line with
+            # the time we give for buffer flushes so the user experience is somewhat
+            # consistent here.
+            if to_cache:
+                cache.set_many(to_cache, 60)
 
         return {group_id: {"unhandled": unhandled} for group_id, unhandled in unhandled.items()}
 

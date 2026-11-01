@@ -47,6 +47,11 @@ class AgentLabelSource(StrEnum):
     AGENT_NAME = "gen_ai.agent.name"
 
 
+class ReuseBoundary(StrEnum):
+    CONVERSATION = "gen_ai.conversation.id"
+    TRACE = "trace"
+
+
 class CacheOutcome(StrEnum):
     HEALTHY = "healthy"
     NOT_CACHING = "not_caching"
@@ -64,6 +69,7 @@ class OutcomeReason(StrEnum):
     FEW_STORED_SPANS = "few_stored_spans"
     TOO_FEW_REPEATED_CALLS = "too_few_repeated_calls"
     LOW_REPEATED_CALL_SHARE = "low_repeated_call_share"
+    TRACE_FALLBACK = "trace_fallback"
     TOO_FEW_WARM_CALLS = "too_few_warm_calls"
     LOW_CACHEABLE_SHARE = "low_cacheable_share"
     CACHE_ACTIVITY = "cache_activity"
@@ -92,12 +98,12 @@ class Classification:
 
 @dataclass(frozen=True)
 class WarmthBucket:
-    """One cache-TTL bucket of extrapolated calls, stored spans, and traces."""
+    """One cache-TTL bucket of extrapolated calls and sampled reuse groups."""
 
     start: int
     call_count: float
     sample_count: float
-    unique_trace_count: float
+    unique_reuse_count: float
 
 
 def _warm_call_count(buckets: Iterable[WarmthBucket]) -> float:
@@ -108,7 +114,7 @@ def _warm_call_count(buckets: Iterable[WarmthBucket]) -> float:
         sampling_factor = bucket.call_count / bucket.sample_count
         cold_starts = min(
             bucket.call_count,
-            bucket.unique_trace_count * sampling_factor,
+            bucket.unique_reuse_count * sampling_factor,
         )
         warm_calls += bucket.call_count - cold_starts
     return warm_calls
@@ -141,17 +147,18 @@ class CallSiteWarmth:
 class CallSiteStats:
     """Aggregates for one agent label, span name, and model.
 
-    Call count is extrapolated. Sampled call and unique trace counts describe
-    stored spans behind token sums.
+    Call count is extrapolated. Sampled call and reuse counts describe stored
+    spans behind token sums.
     """
 
     agent_label: str
     agent_label_source: AgentLabelSource
+    reuse_boundary: ReuseBoundary
     span_name: str
     model: str
     call_count: int
     sampled_call_count: int
-    unique_trace_count: int
+    unique_reuse_count: int
     sum_input_tokens: float
     sum_cache_read_tokens: float
     sum_cache_creation_tokens: float
@@ -163,8 +170,8 @@ class CallSiteStats:
 
     @property
     def repeated_sampled_call_count(self) -> int:
-        """Stored calls beyond the first eligible call in each trace."""
-        return max(self.sampled_call_count - self.unique_trace_count, 0)
+        """Stored calls beyond the first call in each reuse group."""
+        return max(self.sampled_call_count - self.unique_reuse_count, 0)
 
     @property
     def repeated_sampled_call_share(self) -> float:
@@ -242,9 +249,18 @@ def classify_call_site(stats: CallSiteStats) -> Classification:
         and stats.sum_cache_creation_tokens
         >= THRASH_MIN_WRITE_READ_RATIO * stats.sum_cache_read_tokens
     ):
+        if stats.repeated_sampled_call_count < MIN_SAMPLED_CALLS:
+            return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS)
+        if (
+            stats.reuse_boundary is ReuseBoundary.TRACE
+            and stats.repeated_sampled_call_share < MIN_REPEATED_CALL_SHARE
+        ):
+            return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_REPEATED_CALL_SHARE)
         return Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
 
     if stats.hit_rate < NOT_CACHING_MAX_HIT_RATE:
+        if stats.reuse_boundary is ReuseBoundary.TRACE:
+            return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TRACE_FALLBACK)
         if stats.repeated_sampled_call_count < MIN_SAMPLED_CALLS:
             return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_REPEATED_CALLS)
         if stats.repeated_sampled_call_share < MIN_REPEATED_CALL_SHARE:
@@ -267,23 +283,21 @@ def reports_only_positive_cache_values(model: str) -> bool:
     return POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN.search(normalized) is not None
 
 
-def _warmth_shortfall(warm_call_count: float, cacheable_share: float) -> OutcomeReason | None:
-    if warm_call_count < MIN_CALLS_FOR_CONFIDENCE:
-        return OutcomeReason.TOO_FEW_WARM_CALLS
-    if cacheable_share < MIN_CACHEABLE_SHARE:
-        return OutcomeReason.LOW_CACHEABLE_SHARE
-    return None
-
-
 def resolve_with_warmth(
-    classification: Classification, warmth: CallSiteWarmth | ProbeGap
+    classification: Classification,
+    warmth: CallSiteWarmth | ProbeGap,
+    reuse_boundary: ReuseBoundary,
 ) -> Classification:
     """Reject findings whose traffic could not have reused cache."""
     if isinstance(warmth, ProbeGap):
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason(warmth.value))
-    shortfall = _warmth_shortfall(warmth.warm_call_count, warmth.cacheable_share)
-    if shortfall is not None:
-        return Classification(CacheOutcome.INELIGIBLE, shortfall)
+    if warmth.warm_call_count < MIN_CALLS_FOR_CONFIDENCE:
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_WARM_CALLS)
+    require_share = (
+        classification.outcome is CacheOutcome.NOT_CACHING or reuse_boundary is ReuseBoundary.TRACE
+    )
+    if require_share and warmth.cacheable_share < MIN_CACHEABLE_SHARE:
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE)
     return classification
 
 

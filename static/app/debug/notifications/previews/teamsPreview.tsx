@@ -1,3 +1,4 @@
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCopy} from '@sentry/icons/copy';
@@ -28,7 +29,7 @@ export function TeamsPreview({
   registration: NotificationTemplateRegistration;
 }) {
   const {body, actions, subject, chart, footer} = registration.example;
-  const previewTime = moment(new Date()).format('h:mm A');
+  const [previewTime] = useState(() => moment(new Date()).format('h:mm A'));
   const card = registration.previews[NotificationProviderKey.TEAMS];
 
   const {copy} = useCopyToClipboard();

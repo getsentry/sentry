@@ -5,7 +5,6 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction
 from sentry.models.projectownership import ProjectOwnership
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -193,150 +192,27 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase, BaseWorkflowTest):
         for x in [out.subject for out in mail.outbox]:
             assert "uh oh" in x
 
-
-class NotifyLegacyEmailTest(NotifyEmailTest):
-    def setUp(self) -> None:
-        super().setUp()
-        self.condition_data = {
-            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
-        }
-
-    def test_legacy_simple(self) -> None:
-        event = self.get_event()
-        rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
-        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
-
-        results = list(rule.after(event=event))
-        assert len(results) == 1
-
-    def test_legacy_full_integration(self) -> None:
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.MEMBER.value,
-            "targetIdentifier": str(self.user.id),
-        }
-        Rule.objects.filter(project=self.event.project).delete()
-        self.create_project_rule(
-            project=self.event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data],
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(mail.outbox) == 1
-        sent = mail.outbox[0]
-        assert sent.to == [self.user.email]
-        assert "uh oh" in sent.subject
-
-    def test_legacy_full_integration_fallthrough(self) -> None:
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.ISSUE_OWNERS.value,
-            "fallthroughType": FallthroughChoiceType.ALL_MEMBERS.value,
-        }
-        Rule.objects.filter(project=self.event.project).delete()
-        self.create_project_rule(
-            project=self.event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data],
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(mail.outbox) == 1
-        sent = mail.outbox[0]
-        assert sent.to == [self.user.email]
-        assert "uh oh" in sent.subject
-
-    def test_legacy_full_integration_noone_fallthrough(self) -> None:
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.ISSUE_OWNERS.value,
-            "fallthroughType": FallthroughChoiceType.NO_ONE.value,
-        }
-        Rule.objects.filter(project=self.event.project).delete()
-        self.create_project_rule(
-            project=self.event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data],
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        assert len(mail.outbox) == 0
-
-    def test_legacy_full_integration_fallthrough_not_provided(self) -> None:
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.ISSUE_OWNERS.value,
-        }
-        Rule.objects.filter(project=self.event.project).delete()
-        self.create_project_rule(
-            project=self.event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data],
-        )
-
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
-
-        # See that the ActiveMembers default results in notifications still being sent
-        assert len(mail.outbox) == 1
-        sent = mail.outbox[0]
-        assert sent.to == [self.user.email]
-        assert "uh oh" in sent.subject
-
-    def test_legacy_full_integration_performance(self) -> None:
+    def test_full_integration_performance(self) -> None:
         event = self.create_performance_issue()
         assert isinstance(event, GroupEvent)
         assert event.group is not None
 
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.MEMBER.value,
-            "targetIdentifier": str(self.user.id),
-        }
-        Rule.objects.filter(project=event.project).delete()
-        self.create_project_rule(
-            project=event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data],
+        action = self.create_action(
+            config={
+                "target_type": ActionTarget.USER.value,
+                "target_display": None,
+                "target_identifier": str(self.user.id),
+            },
+            type="email",
+            data={},
+        )
+        self.create_data_condition_group_action(
+            condition_group=self.condition_group,
+            action=action,
+        )
+        self.create_detector_workflow(
+            detector=self.issue_stream_detector,
+            workflow=self.error_workflow,
         )
 
         with (
@@ -358,46 +234,21 @@ class NotifyLegacyEmailTest(NotifyEmailTest):
         assert sent.to == [self.user.email]
         assert "N+1 Query" in sent.subject
 
-    def test_legacy_hack_mail_workflow(self) -> None:
-        gil_workflow = self.create_user(email="gilbert@workflow.com", is_active=True)
-        dan_workflow = self.create_user(email="dan@workflow.com", is_active=True)
-        team_workflow = self.create_team(
-            organization=self.organization, members=[gil_workflow, dan_workflow]
-        )
-        self.project.add_team(team_workflow)
-        action_data = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.MEMBER.value,
-            "targetIdentifier": str(self.user.id),
-        }
-        inject_workflow = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetType": ActionTargetType.TEAM.value,
-            "targetIdentifier": str(team_workflow.id),
-        }
-        Rule.objects.filter(project=self.event.project).delete()
-        self.create_project_rule(
-            project=self.event.project,
-            condition_data=[self.condition_data],
-            action_data=[action_data, inject_workflow],
-        )
 
-        with self.tasks():
-            post_process_group(
-                is_new=True,
-                is_regression=False,
-                is_new_group_environment=False,
-                group_id=self.event.group_id,
-                event_id=self.event.event_id,
-                project_id=self.project.id,
-                eventstream_type=EventStreamEventType.Error.value,
-            )
+class NotifyLegacyEmailTest(NotifyEmailTest):
+    def setUp(self) -> None:
+        super().setUp()
+        self.condition_data = {
+            "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"
+        }
 
-        assert len(mail.outbox) == 3
-        sent_out_to = sorted(x for out in mail.outbox for x in out.to)
-        assert sent_out_to == sorted([self.user.email, gil_workflow.email, dan_workflow.email])
-        for x in [out.subject for out in mail.outbox]:
-            assert "uh oh" in x
+    def test_legacy_simple(self) -> None:
+        event = self.get_event()
+        rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        results = list(rule.after(event=event))
+        assert len(results) == 1
 
     def test_legacy_render_label_fallback_none(self) -> None:
         # Check that the label defaults to ActiveMembers

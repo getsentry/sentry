@@ -4,39 +4,30 @@ import styled from '@emotion/styled';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {BuildDetailsSidebarAppInfo} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarAppInfo';
 import {BuildDetailsSidebarStatusCheck} from 'sentry/views/preprod/buildDetails/sidebar/buildDetailsSidebarStatusCheck';
 import {BuildVcsInfo} from 'sentry/views/preprod/components/buildVcsInfo';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {BuildDetailsState} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface BuildDetailsSidebarContentProps {
-  artifactId: string;
-  projectId: string | null;
   buildDetailsData?: BuildDetailsApiResponse | null;
   isBuildDetailsPending?: boolean;
 }
 
 export function BuildDetailsSidebarContent(props: BuildDetailsSidebarContentProps) {
-  const {buildDetailsData, isBuildDetailsPending = false, artifactId, projectId} = props;
+  const {buildDetailsData, isBuildDetailsPending = false} = props;
 
   if (isBuildDetailsPending || !buildDetailsData) {
     return <SidebarLoadingSkeleton data-testid="sidebar-loading-skeleton" />;
   }
 
-  /* App info + status check info + VCS info - only show when artifact is processed */
+  /* Status check info + VCS info - only show when artifact is processed */
   if (buildDetailsData.state !== BuildDetailsState.PROCESSED) {
     return null;
   }
 
   return (
     <Stack gap="2xl">
-      <BuildDetailsSidebarAppInfo
-        appInfo={buildDetailsData.app_info}
-        projectId={projectId}
-        artifactId={artifactId}
-      />
-
       {/* Status check info */}
       {buildDetailsData.posted_status_checks?.size && (
         <BuildDetailsSidebarStatusCheck
@@ -54,30 +45,6 @@ function SidebarLoadingSkeleton(props: {['data-testid']: string}) {
   const theme = useTheme();
   return (
     <Stack gap="2xl" {...props}>
-      {/* App info skeleton - matches BuildDetailsSidebarAppInfo structure */}
-      <Stack gap="xl">
-        {/* App icon and name */}
-        <Flex align="center" gap="sm">
-          <Placeholder width="40px" height="40px" style={{borderRadius: '8px'}} />
-          <Placeholder width="120px" height="24px" />
-        </Flex>
-
-        {/* Additional info */}
-        <Stack gap="xs">
-          <Flex align="center" gap="xs">
-            <Placeholder width="16px" height="16px" />
-            <Placeholder width="100px" height="16px" />
-          </Flex>
-          <Flex align="center" gap="xs">
-            <Placeholder width="16px" height="16px" />
-            <Placeholder width="120px" height="16px" />
-          </Flex>
-        </Stack>
-
-        {/* Install button */}
-        <Placeholder width="80px" height="32px" style={{borderRadius: '4px'}} />
-      </Stack>
-
       {/* VCS info skeleton - matches KeyValueTableCard structure */}
       <SkeletonCard>
         <Placeholder

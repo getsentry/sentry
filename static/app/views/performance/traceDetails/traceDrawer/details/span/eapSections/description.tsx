@@ -277,6 +277,8 @@ export function SpanDescription({
         attributes,
         spanId: span.event_id,
         op: span.op,
+        projectId: span.project_id,
+        description: span.description,
       })}
     />
   );

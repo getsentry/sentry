@@ -10,6 +10,8 @@ import {
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
+const NUMERIC_LITERAL = /^-?\d*\.?\d+$/;
+
 type DerivedUpdatedManagedFields = {
   updatedFields?: string[];
   updatedManagedFields?: Set<string>;
@@ -174,9 +176,9 @@ function findAllFieldRefs(
 function getVisualizeFields(visualize: Visualize): string[] {
   if (isVisualizeFunction(visualize)) {
     // Parse conditionally so an `_if` filter query, which is the first argument, is not
-    // mistaken for a visualize field.
+    // mistaken for a visualize field. Formulas can also take plain numbers.
     const field = parseConditionalAggregate(visualize.yAxis)?.arguments?.[0];
-    return defined(field) ? [field] : [];
+    return defined(field) && !NUMERIC_LITERAL.test(field) ? [field] : [];
   }
 
   return []; // TODO: unsupported

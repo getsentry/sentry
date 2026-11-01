@@ -29,7 +29,6 @@ const DEFAULT_ALLOWED_CHARTS = [
   PerformanceWidgetSetting.TPM_AREA,
   PerformanceWidgetSetting.FAILURE_RATE_AREA,
   PerformanceWidgetSetting.USER_MISERY_AREA,
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
 ];
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
@@ -71,7 +70,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
   let wrapper: ReturnType<typeof render> | undefined;
 
   let eventStatsMock: jest.Mock;
-  let eventsTrendsStats: jest.Mock;
   let eventsMock: jest.Mock;
 
   let issuesListMock: jest.Mock;
@@ -114,12 +112,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         ],
       },
       match: [(...args) => issuesPredicate(...args)],
-    });
-
-    eventsTrendsStats = MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/events-trends-stats/',
-      body: [],
     });
 
     MockApiClient.addMockResponse({
@@ -196,80 +188,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
           query: 'transaction.op:pageload',
           statsPeriod: '28d',
           yAxis: 'epm()',
-        }),
-      })
-    );
-  });
-
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <MEPSettingProvider forceTransactions>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-        />
-      </MEPSettingProvider>
-    );
-
-    await waitFor(() => {
-      expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
-    });
-
-    // Change eventView reference
-    data.eventView = data.eventView.clone();
-
-    wrapper.rerender(
-      <MEPSettingProvider forceTransactions>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-        />
-      </MEPSettingProvider>
-    );
-
-    await waitFor(() => {
-      expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
-    });
-
-    // Change eventView statsperiod
-    const modifiedData = initializeData({
-      statsPeriod: '14d',
-    });
-
-    wrapper.rerender(
-      <MEPSettingProvider forceTransactions>
-        <WrappedComponent
-          data={modifiedData}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-        />
-      </MEPSettingProvider>
-    );
-
-    await waitFor(() => {
-      expect(eventsTrendsStats).toHaveBeenCalledTimes(2);
-    });
-
-    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
-      2,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          cursor: '0:0:1',
-          environment: ['prod'],
-          field: ['transaction', 'project'],
-          interval: undefined,
-          middle: undefined,
-          noPagination: true,
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
-          sort: 'trend_percentage()',
-          statsPeriod: '14d',
-          trendFunction: 'p95(transaction.duration)',
-          trendType: 'improved',
         }),
       })
     );
@@ -403,40 +321,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
     );
   });
 
-  it('LCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'LCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
-  it('FCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'FCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
   it('Most errors widget', async () => {
     const data = initializeData();
 
@@ -531,44 +415,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(eventsMock).toHaveBeenCalledTimes(1);
     // Leftover issues list data must not trigger a chart request for errors
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('Most improved trends widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <MEPSettingProvider forceTransactions>
-        <WrappedComponent
-          data={data}
-          defaultChartSetting={PerformanceWidgetSetting.MOST_IMPROVED}
-        />
-      </MEPSettingProvider>
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Improved'
-    );
-    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
-    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['transaction', 'project'],
-          interval: undefined,
-          middle: undefined,
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
-          sort: 'trend_percentage()',
-          statsPeriod: '7d',
-          trendFunction: 'p95(transaction.duration)',
-          trendType: 'improved',
-        }),
-      })
-    );
   });
 
   it('Most time spent in db queries widget', async () => {
@@ -818,42 +664,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
           ],
           query:
             'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,ui.webvital.cls,ui.webvital.lcp,pageload,""] avg(measurements.score.total):>=0',
-        }),
-      })
-    );
-  });
-
-  it('Most regressed trends widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_REGRESSED}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Regressed'
-    );
-    expect(eventsTrendsStats).toHaveBeenCalledTimes(1);
-    expect(eventsTrendsStats).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['transaction', 'project'],
-          interval: undefined,
-          middle: undefined,
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
-          query:
-            'transaction.op:pageload tpm():>0.01 count_percentage():>0.25 count_percentage():<4 trend_percentage():>0% confidence():>6',
-          sort: '-trend_percentage()',
-          statsPeriod: '7d',
-          trendFunction: 'p95(transaction.duration)',
-          trendType: 'regression',
         }),
       })
     );

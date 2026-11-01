@@ -32,6 +32,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.models.activity import Activity
+from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, GroupStatus
@@ -4359,6 +4360,42 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         bookmark4 = GroupBookmark.objects.filter(group=group4, user_id=self.user.id)
         assert not bookmark4.exists()
+
+    def test_bookmark_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isBookmarked": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupBookmark.objects.filter(group=group).exists()
+
+    def test_subscribe_without_user(self) -> None:
+        group = self.create_group()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            key = ApiKey.objects.create(
+                organization_id=self.organization.id, scope_list=["event:write"]
+            )
+
+        response = self.client.put(
+            f"{reverse(self.endpoint, args=[self.organization.slug])}?id={group.id}&project=-1",
+            data={"isSubscribed": "true"},
+            format="json",
+            HTTP_AUTHORIZATION=self.create_basic_auth_header(key.key),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not GroupSubscription.objects.filter(group=group).exists()
 
     def test_subscription(self) -> None:
         group1 = self.create_group()

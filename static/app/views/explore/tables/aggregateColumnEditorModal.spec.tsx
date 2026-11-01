@@ -377,6 +377,45 @@ describe('AggregateColumnEditorModal', () => {
     ]);
   });
 
+  it('keeps the rest of a shared chart together when editing its middle aggregate', async () => {
+    const onColumnsChange = jest.fn();
+    const chartGroup = 'chart-group';
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'span.op'},
+              new VisualizeFunction('p50(span.duration)', {chartGroup}),
+              new VisualizeFunction('p75(span.duration)', {chartGroup}),
+              new VisualizeFunction('p99(span.duration)', {chartGroup}),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const p75Argument = (await screen.findAllByTestId('editor-visualize-argument'))[1]!;
+    await userEvent.click(within(p75Argument).getByRole('button'));
+    await userEvent.click(await screen.findByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'span.op'},
+      {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+      {yAxes: ['p75(span.self_time)']},
+    ]);
+  });
+
   it('allows adding an equation', async () => {
     const {organization} = initializeOrg();
 

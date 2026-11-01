@@ -17,7 +17,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.iterations import get_iterations
+from sentry.seer.autofix.pr_iteration.iterations import Iteration, get_iterations
 from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
@@ -135,9 +135,20 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
 MAX_TOTAL_ITERATIONS = 25
 
 
+def _capped_iterations(run_state: SeerRunState) -> list[Iteration]:
+    """The run's iterations as the caps count them: a branch-moved retry runs another turn under
+    the same index, and it finishes that iteration rather than starting one, so each index counts
+    once."""
+    iterations: list[Iteration] = []
+    for iteration in get_iterations(run_state):
+        if not iterations or iterations[-1].index != iteration.index:
+            iterations.append(iteration)
+    return iterations
+
+
 def total_iteration_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the run has hit ``MAX_TOTAL_ITERATIONS`` iterations."""
-    return len(get_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
+    return len(_capped_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
 
 
 def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
@@ -150,7 +161,7 @@ def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
     if cap <= 0:
         return False
 
-    last_iterations = get_iterations(run_state)[-cap:]
+    last_iterations = _capped_iterations(run_state)[-cap:]
     if len(last_iterations) < cap:
         return False
 

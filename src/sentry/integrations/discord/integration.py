@@ -97,7 +97,7 @@ class DiscordIntegration(IntegrationInstallation, IntegrationNotificationClient)
         except ApiError as e:
             translate_discord_api_error(e)
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: DiscordRenderable,

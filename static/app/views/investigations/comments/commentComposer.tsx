@@ -11,6 +11,10 @@ import {
   useCreateInvestigationCommentMutation,
   useUpdateInvestigationCommentMutation,
 } from 'sentry/views/investigations/api';
+import {
+  loadCommentDraft,
+  saveCommentDraft,
+} from 'sentry/views/investigations/comments/commentDrafts';
 import type {InvestigationComment} from 'sentry/views/investigations/types';
 
 const EMPTY_VALUE: ComposerValue = {text: '', mentions: []};
@@ -21,19 +25,31 @@ function isSubmitKey(event: React.KeyboardEvent) {
 
 export function CommentComposer({
   investigationId,
+  blockId,
   inputRef,
+  alwaysShowButton = false,
 }: {
   investigationId: string;
+  alwaysShowButton?: boolean;
+  blockId?: string;
   inputRef?: React.Ref<HTMLDivElement>;
 }) {
   const organization = useOrganization();
-  const [value, setValue] = useState(EMPTY_VALUE);
+  const [value, setValue] = useState<ComposerValue>(() =>
+    blockId
+      ? {text: loadCommentDraft(investigationId, blockId), mentions: []}
+      : EMPTY_VALUE
+  );
   const {mutate, isPending} = useCreateInvestigationCommentMutation(
     organization.slug,
     investigationId,
     {
-      onSuccess: (_comment, {body: submitted}) =>
-        setValue(current => (current.text.trim() === submitted ? EMPTY_VALUE : current)),
+      onSuccess: (_comment, {body: submitted}) => {
+        setValue(current => (current.text.trim() === submitted ? EMPTY_VALUE : current));
+        if (blockId && loadCommentDraft(investigationId, blockId).trim() === submitted) {
+          saveCommentDraft(investigationId, blockId, '');
+        }
+      },
       onError: () => addErrorMessage(t('Unable to post comment.')),
     }
   );
@@ -43,7 +59,7 @@ export function CommentComposer({
     if (!body || isPending) {
       return;
     }
-    mutate({body});
+    mutate({body, blockId});
   };
 
   return (
@@ -53,7 +69,12 @@ export function CommentComposer({
         aria-label={t('Add a comment')}
         placeholder={t('Add a comment…')}
         value={value}
-        onChange={setValue}
+        onChange={next => {
+          setValue(next);
+          if (blockId) {
+            saveCommentDraft(investigationId, blockId, next.text);
+          }
+        }}
         plugins={[]}
         minHeight={56}
         onKeyDown={event => {
@@ -63,12 +84,12 @@ export function CommentComposer({
           }
         }}
       />
-      {body ? (
+      {body || alwaysShowButton ? (
         <Flex justify="end">
           <Button
             variant="primary"
             size="sm"
-            disabled={isPending}
+            disabled={!body || isPending}
             busy={isPending}
             onClick={submit}
           >

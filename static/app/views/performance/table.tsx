@@ -146,6 +146,7 @@ export function Table({
 
   function sendUnparameterizedAnalytic(project: Project | undefined) {
     const statsPeriod = eventView.statsPeriod ?? 'other';
+    // oxlint-disable-next-line react/todo
     const projectMetadata = getProjectWithinMetadata(project);
 
     trackAnalytics('performance_views.landing.table.unparameterized', {

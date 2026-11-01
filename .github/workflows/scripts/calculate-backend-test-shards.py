@@ -18,7 +18,7 @@ from count_test_items import count_tests_in_file
 
 TESTS_PER_SHARD = 300
 MIN_SHARDS = 1
-MAX_SHARDS = 22
+MAX_SHARDS = 30
 DEFAULT_SHARDS = MAX_SHARDS
 
 IGNORED_DIRS = frozenset(("tests/acceptance/", "tests/apidocs/", "tests/js/", "tests/tools/"))

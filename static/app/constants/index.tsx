@@ -182,13 +182,7 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     resource: 'dashboard',
     label: t('Dashboards'),
     help: t('Dashboards and their widgets'),
-    levels: [
-      GranularPermissionLevel.READ,
-      GranularPermissionLevel.CREATE,
-      GranularPermissionLevel.WRITE,
-      GranularPermissionLevel.DELETE,
-      GranularPermissionLevel.ADMIN,
-    ],
+    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
   },
   {
     resource: 'event',
@@ -933,6 +927,28 @@ export const ORGANIZATION_FETCH_ERROR_TYPES = {
   ORG_NO_ACCESS: 'ORG_NO_ACCESS',
   NO_ORGS: 'NO_ORGS',
 };
+
+// Keep in sync with RESERVED_PROJECT_SLUGS in src/sentry/constants.py
+export const RESERVED_PROJECT_SLUGS: ReadonlySet<string> = new Set([
+  '$all',
+  'api-keys',
+  'audit-log',
+  'auth',
+  'members',
+  'projects',
+  'rate-limits',
+  'repos',
+  'settings',
+  'teams',
+  'billing',
+  'payments',
+  'legal',
+  'subscription',
+  'support',
+  'integrations',
+  'developer-settings',
+  'usage',
+]);
 
 export const CONFIG_DOCS_URL = 'https://develop.sentry.dev/config/';
 export const DISCOVER2_DOCS_URL = 'https://docs.sentry.io/product/discover-queries/';

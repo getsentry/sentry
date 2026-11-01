@@ -10,9 +10,7 @@ from sentry.utils.settings import is_self_hosted
 
 
 def get_supported_scm_providers(organization: Organization | None = None) -> list[str]:
-    providers = list(SEER_SUPPORTED_SCM_PROVIDERS)
-    if organization is not None and features.has("organizations:seer-gitlab-support", organization):
-        providers.extend(SEER_GITLAB_SCM_PROVIDERS)
+    providers = [*SEER_SUPPORTED_SCM_PROVIDERS, *SEER_GITLAB_SCM_PROVIDERS]
     if organization is not None and features.has(
         "organizations:seer-cursor-origin-support", organization
     ):

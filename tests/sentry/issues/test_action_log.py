@@ -16,9 +16,8 @@ from sentry.issues.action_log import (
     get_action_context,
     publish_action,
     publish_actions_from_context_bulk,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,
@@ -86,6 +85,15 @@ class TestResolveActionSource(TestCase):
             },
         )
         assert resolve_action_source(request) == "mcp:claude-code"
+
+    def test_mcp_legacy_claude_desktop_family_is_recorded_as_claude(self) -> None:
+        request = _make_request(
+            meta={
+                "HTTP_USER_AGENT": MCP_USER_AGENT,
+                "HTTP_X_SENTRY_MCP_CLIENT_FAMILY": "claude-desktop",
+            },
+        )
+        assert resolve_action_source(request) == "mcp:claude"
 
     def test_mcp_unrecognized_family_logs_and_falls_back(self) -> None:
         request = _make_request(

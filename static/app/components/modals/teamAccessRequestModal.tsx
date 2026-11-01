@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {
@@ -55,21 +55,15 @@ function CreateTeamAccessRequestModal(props: CreateTeamAccessRequestModalProps) 
         )}
       </Body>
       <Footer>
-        <ButtonGroup>
+        <Grid gap="md" columns="max-content max-content">
           <Button onClick={closeModal}>{t('Cancel')}</Button>
           <Button variant="primary" onClick={handleClick} busy={createBusy} autoFocus>
             {t('Continue')}
           </Button>
-        </ButtonGroup>
+        </Grid>
       </Footer>
     </Fragment>
   );
 }
-
-const ButtonGroup = styled('div')`
-  display: grid;
-  grid-template-columns: max-content max-content;
-  gap: ${p => p.theme.space.md};
-`;
 
 export default withApi(CreateTeamAccessRequestModal);

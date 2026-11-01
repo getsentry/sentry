@@ -244,7 +244,7 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
             organization=self.organization, slug=self.sentry_app.slug
         )
         client = redis.redis_clusters.get(settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER)
-        client.flushall()
+        client.flushdb()
 
     def _make_event(self, install=None):
         return AppPlatformEvent(

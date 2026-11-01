@@ -248,7 +248,7 @@ class JiraServerWebhookEndpointTest(APITestCase):
         vc = captured_contexts[0]
         assert vc is not None
         assert vc.organization_id == self.organization.id
-        assert vc.actor_type == ActorType.INTEGRATION
+        assert vc.actor.type == ActorType.INTEGRATION
 
     @responses.activate
     def test_post_update_status_token_error(self) -> None:

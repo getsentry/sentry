@@ -45,7 +45,6 @@ from sentry.utils.snuba import (
     is_measurement,
     is_span_op_breakdown,
     naiveify_datetime,
-    resolve_column,
     to_naive_timestamp,
 )
 
@@ -71,8 +70,6 @@ PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest",
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 HistogramResults = dict[str, list[dict[str, Any]]]
 
-
-resolve_discover_column = resolve_column(Dataset.Discover)
 
 OTHER_KEY = "Other"
 TOP_KEYS_DEFAULT_LIMIT = 10

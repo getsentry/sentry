@@ -17,6 +17,8 @@ from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
     DROPPED_OUTCOMES,
     Annotation,
+    SuppressedDrop,
+    classify_drop,
     get_dropped_data_annotations,
     record_dropped_events_telemetry,
 )
@@ -40,6 +42,7 @@ class DroppedEventsBucket(TypedDict):
     start: float
     end: float
     count: float
+    tags: list[str]
 
 
 class DroppedEventsMeta(TypedDict):
@@ -47,6 +50,7 @@ class DroppedEventsMeta(TypedDict):
     start: float
     end: float
     interval: float
+    suppressedDrops: list[SuppressedDrop]
 
 
 class DroppedEventsResponse(TypedDict):
@@ -144,6 +148,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                     "start": 0,
                     "end": 0,
                     "interval": 0,
+                    "suppressedDrops": [],
                 },
                 "droppedEvents": [],
                 "acceptedEvents": [],
@@ -158,6 +163,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 
             dropped_events: list[DroppedEventsBucket] = []
             accepted_events: list[DroppedEventsBucket] = []
+            suppressed_drops: list[SuppressedDrop] = []
             with traces.start_span(
                 name=_ENDPOINT,
                 attributes={
@@ -165,14 +171,15 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 },
             ):
                 try:
-                    dropped_raw, accepted_raw = get_dropped_data_annotations(
+                    annotations = get_dropped_data_annotations(
                         dataset, snuba_params, rollup, outcome=outcome, reason=reason
                     )
-                    dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
+                    dropped_events = [_to_bucket(bucket) for bucket in annotations.dropped]
                     accepted_events = [
                         _to_bucket(bucket, outcome=_ACCEPTED, reason=_ACCEPTED)
-                        for bucket in accepted_raw
+                        for bucket in annotations.accepted
                     ]
+                    suppressed_drops = annotations.suppressed
                 except ParseError:
                     # ParseErrors should bubble up so we 400 to the user
                     raise
@@ -193,6 +200,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             "start": snuba_params.start_date.timestamp() * 1000,
             "end": snuba_params.end_date.timestamp() * 1000,
             "interval": rollup * 1000,
+            "suppressedDrops": suppressed_drops,
         }
         response: DroppedEventsResponse = {
             "meta": meta,
@@ -205,12 +213,18 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
 def _to_bucket(
     raw: Annotation, *, outcome: str | None = None, reason: str | None = None
 ) -> DroppedEventsBucket:
+    bucket_outcome = outcome if outcome is not None else raw["outcome"]
+    bucket_reason = reason if reason is not None else raw["reason"]
+    # Accepted buckets (passed an explicit outcome override) are not drops, so
+    # they carry no intentional/unintentional tag.
+    tags = [] if outcome == _ACCEPTED else [classify_drop(bucket_outcome, bucket_reason)]
     return {
         "type": raw["type"],
         "category": raw["category"],
-        "outcome": outcome if outcome is not None else raw["outcome"],
-        "reason": reason if reason is not None else raw["reason"],
+        "outcome": bucket_outcome,
+        "reason": bucket_reason,
         "start": raw["start"],
         "end": raw["end"],
         "count": raw["eventCount"],
+        "tags": tags,
     }

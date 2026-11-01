@@ -39,6 +39,7 @@ describe('Performance > Contexts > pageError', () => {
 
     function RenderCountingComponent() {
       const {setPageDanger} = usePageAlert();
+      // oxlint-disable-next-line react/todo
       renderCount++;
 
       return (

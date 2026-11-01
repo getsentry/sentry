@@ -1,7 +1,9 @@
 import logging
+from typing import Literal, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -16,6 +18,20 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.helpers.projects import ProjectIdOrSlugField
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
@@ -39,21 +55,47 @@ MAX_MAPPINGS = 300
 
 
 class MappingItemSerializer(serializers.Serializer[dict[str, object]]):
-    stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field(validate_source=True)
+    stack_root = gen_path_regex_field(
+        help_text="The path prefix to strip from matching stack frame filenames before adding sourceRoot."
+    )
+    source_root = gen_path_regex_field(
+        validate_source=True,
+        help_text=(
+            "The repository path prefix that replaces stackRoot. For example, "
+            "/app/pkg/file.py with stackRoot=/app/ and sourceRoot=src/ resolves to src/pkg/file.py."
+        ),
+    )
 
 
 class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]]):
-    project = ProjectIdOrSlugField(required=True)
-    repository = serializers.CharField(required=True)
-    provider = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    project = ProjectIdOrSlugField(
+        required=True, help_text="The ID or slug of the project to configure."
+    )
+    repository = serializers.CharField(
+        required=True, help_text="The repository name as it appears in Sentry."
+    )
+    provider = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text=(
+            "Optional repository provider used to disambiguate or find the repository. "
+            "If no matching Sentry repository exists, the repository is created after the "
+            "provider confirms it exists."
+        ),
+    )
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,
         allow_blank=True,  # Perforce allows empty streams
+        help_text="The repository branch to use; inferred from the integration when omitted.",
         error_messages={"invalid": _(BRANCH_NAME_ERROR_MESSAGE)},
     )
-    mappings = MappingItemSerializer(many=True, required=True)
+    mappings = MappingItemSerializer(
+        many=True,
+        required=True,
+        help_text="One or more stack-root and source-root mappings (maximum 300).",
+    )
 
     def validate_mappings(self, mappings: list[dict[str, str]]) -> list[dict[str, str]]:
         if len(mappings) > MAX_MAPPINGS:
@@ -65,11 +107,26 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
         return mappings
 
 
+class BulkCodeMappingResult(TypedDict):
+    stackRoot: str
+    sourceRoot: str
+    status: Literal["created", "updated", "error"]
+    detail: NotRequired[str]
+
+
+class BulkCodeMappingsResponse(TypedDict):
+    created: int
+    updated: int
+    errors: int
+    mappings: list[BulkCodeMappingResult]
+
+
+@extend_schema(tags=["Integrations"])
 @cell_silo_endpoint
 class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
-        "POST": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
 
@@ -141,10 +198,42 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
             ).first()
             return existing, None
 
-    def post(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="bulkUpsertOrganizationCodeMappings",
+        summary="Create or Update Organization Code Mappings in Bulk",
+        description=(
+            "Create or update multiple repository path mappings for a project. "
+            "Mappings with matching project, stack root, and source root are updated."
+        ),
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request=BulkCodeMappingsRequestSerializer,
+        responses={
+            200: inline_sentry_response_serializer(
+                "BulkCodeMappingsResponse", BulkCodeMappingsResponse
+            ),
+            207: OpenApiResponse(
+                response=inline_sentry_response_serializer(
+                    "BulkCodeMappingsPartialResponse", BulkCodeMappingsResponse
+                ),
+                description="One or more mappings could not be saved.",
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
+    )
+    def post(
+        self, request: Request, organization: Organization
+    ) -> (
+        Response[BulkCodeMappingsResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         serializer = BulkCodeMappingsRequestSerializer(data=request.data)
         if not serializer.is_valid():
-            errors = serializer.errors
+            errors = as_validation_errors(serializer)
             mapping_errors = errors.get("mappings")
             invalid_indices: list[int] = []
             if isinstance(mapping_errors, list):
@@ -153,7 +242,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     for i, item_errors in enumerate(mapping_errors)
                     if isinstance(item_errors, dict) and item_errors
                 ]
-            if invalid_indices:
+            if invalid_indices and isinstance(mapping_errors, list):
                 detail = (
                     "Some of the submitted mappings have an invalid format. "
                     f"Check the mappings at the following indices: {invalid_indices}. "
@@ -177,11 +266,11 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                                 {"index": index, "sourceRoot": source_root}
                             )
 
-                response_data = {"detail": detail, **errors}
+                validation_response: ValidationErrorResponse = {"detail": detail, **errors}
                 if rejected_source_roots:
-                    response_data["rejectedSourceRoots"] = rejected_source_roots
+                    validation_response["rejectedSourceRoots"] = rejected_source_roots
                 return Response(
-                    response_data,
+                    validation_response,
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             return Response(errors, status=status.HTTP_400_BAD_REQUEST)
@@ -291,7 +380,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
                     )
 
         mappings = data["mappings"]
-        results = []
+        results: list[BulkCodeMappingResult] = []
         has_errors = False
         last_saved_config = None
 
@@ -367,7 +456,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
         updated_count = sum(1 for r in results if r["status"] == "updated")
         error_count = sum(1 for r in results if r["status"] == "error")
 
-        response_data = {
+        response_data: BulkCodeMappingsResponse = {
             "created": created_count,
             "updated": updated_count,
             "errors": error_count,

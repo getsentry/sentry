@@ -17,6 +17,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaError
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -90,10 +91,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
         task = cast(Any, backfill_supergroups_lightweight_for_org)
         with viewer_context_scope(
-            ViewerContext(
-                organization_id=self.organization.id,
-                actor_type=ActorType.SYSTEM,
-            )
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id)
         ):
             activation = task.create_activation(
                 args=[],
@@ -109,8 +107,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
             key=TEST_SEER_SECRET,
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")

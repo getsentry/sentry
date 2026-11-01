@@ -30,10 +30,10 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
+    get_detector_for_monitor,
 )
 from sentry.monitors.processing_errors.errors import ProcessingErrorsException, ProcessingErrorType
 from sentry.monitors.types import CheckinItem
-from sentry.monitors.utils import get_detector_for_monitor
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -1075,11 +1075,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor.schedule.type == "crontab"
         assert monitor.schedule.crontab == "13 * * * *"
 
-        # Check-in does not upsert resets is_upserting back to false
+        # A check-in without config keeps is_upserting
         self.send_checkin(monitor.slug)
 
         monitor.refresh_from_db()
-        assert not monitor.is_upserting
+        assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
     def test_upsert_with_in_progress_completion(self) -> None:
@@ -1110,12 +1110,11 @@ class MonitorConsumerTest(TestCase):
         assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
-        # Send a NEW check-in without config (creates brand new check-in)
-        # NOW is_upserting should be reset to False
+        # A new check-in without config also keeps is_upserting
         self.send_checkin("my-monitor")
 
         monitor.refresh_from_db()
-        assert not monitor.is_upserting
+        assert monitor.is_upserting
         assert monitor.schedule.crontab == "13 * * * *"
 
     def test_monitor_upsert_empty_timezone(self) -> None:
@@ -1736,6 +1735,9 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert monitor.status == ObjectStatus.DISABLED
+        detector = get_detector_for_monitor(monitor)
+        assert detector is not None
+        assert not detector.enabled
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_seat.assert_called_with(seat_object=monitor)

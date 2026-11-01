@@ -18,6 +18,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.app import env
 from sentry.auth.access import Access
+from sentry.auth.principal import has_user
 from sentry.auth.superuser import is_active_superuser
 from sentry.conf.types.sentry_config import SentryMode
 from sentry.constants import TARGET_SAMPLE_RATE_DEFAULT, ObjectStatus, StatsPeriod
@@ -28,6 +29,7 @@ from sentry.dynamic_sampling.utils import (
     is_project_mode_sampling,
 )
 from sentry.features.base import ProjectFeature
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
@@ -103,7 +105,7 @@ def _get_team_memberships(
     team_list: Collection[int], user: User | RpcUser | AnonymousUser
 ) -> list[OrganizationMemberTeam]:
     """Get memberships the user has in the provided team list"""
-    if not user.is_authenticated:
+    if not has_user(user):
         return []
 
     return list(
@@ -385,7 +387,7 @@ class ProjectSerializer(Serializer):
 
         with measure_span("preamble"):
             project_ids = [i.id for i in item_list]
-            if user.is_authenticated and item_list:
+            if has_user(user) and item_list:
                 bookmarks = set(
                     ProjectBookmark.objects.filter(
                         user_id=user.id, project_id__in=project_ids
@@ -1032,6 +1034,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     defaultEnvironment: str | None
     relayPiiConfig: str | None
     builtinSymbolSources: list[str]
+    enableNativeSourceServerMapping: bool
     dynamicSamplingBiases: list[dict[str, str | bool]] | None
     symbolSources: str
     isDynamicallySampled: bool
@@ -1053,6 +1056,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
         options_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
         for option in queryset.iterator():
             options_by_project[option.project_id][option.key] = option.value
+
+        # A legacy filter list at the v2 stage lives in a custom inbound filter row, which
+        # replaces whatever its option still holds.
+        for project_id, lists in legacy_filter_lists.read_rows(item_list).items():
+            for filter_type, lines in lists.items():
+                options_by_project[project_id][f"sentry:{filter_type}"] = lines
 
         if self._collapse(ORGANIZATION_KEY):
             orgs = {
@@ -1179,6 +1188,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
             "builtinSymbolSources": self.get_value_with_default(
                 attrs, "sentry:builtin_symbol_sources"
+            ),
+            "enableNativeSourceServerMapping": bool(
+                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
             ),
             "dynamicSamplingBiases": self.get_value_with_default(
                 attrs, "sentry:dynamic_sampling_biases"

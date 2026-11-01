@@ -594,6 +594,15 @@ def check_unmatched(label: str, value: str, saved_columns: list[str] | None = No
         )
 
 
+def check_numeric(arg: str, label: str) -> float:
+    float_value = float(arg)
+    if not math.isfinite(float_value):
+        raise InvalidSearchQuery(
+            f"{label} resolved to {float_value}, which is outside the supported number range"
+        )
+    return float_value
+
+
 def parse_formula(
     formula_definition: str,
     arguments: list[str],
@@ -609,11 +618,7 @@ def parse_formula(
         if saved_arg.param_type == ParamItemTypes.NUMBER:
             # Ensure that the user arg is a valid number
             try:
-                float_value = float(arg)
-                if not math.isfinite(float_value):
-                    raise InvalidSearchQuery(
-                        f"{saved_arg.name} resolved to {float_value}, which is outside the supported number range"
-                    )
+                float_value = check_numeric(arg, saved_arg.name)
                 arg = str(float_value)
             except ValueError:
                 raise InvalidSearchQuery(

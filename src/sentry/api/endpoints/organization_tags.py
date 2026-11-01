@@ -27,7 +27,6 @@ from sentry.models.organization import Organization
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.utils.numbers import format_grouped_length
-from sentry.utils.sdk import set_span_attribute
 
 
 @extend_schema(tags=["Discover"])
@@ -105,7 +104,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
         with traces.start_span(
             name="get_tag_keys_for_projects", attributes={"sentry.op": "tagstore"}
-        ):
+        ) as span:
             with handle_query_errors():
                 start = filter_params["start"]
                 end = filter_params["end"]
@@ -163,6 +162,6 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                 )
                 sentry_sdk.set_tag("dataset_queried", dataset.value)
                 sentry_sdk.set_attribute("dataset_queried", dataset.value)
-                set_span_attribute("custom_tags.count", len(final_results))
+                span.set_attribute("custom_tags.count", len(final_results))
 
         return Response(serialize(final_results, request.user, TagKeySerializer()))

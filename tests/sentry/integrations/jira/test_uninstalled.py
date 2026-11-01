@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.http import absolute_uri
-from tests.sentry.utils.test_jwt import RS256_KEY, RS256_PUB_KEY
+from tests.sentry.utils.test_jwt import FUTURE_EXPIRATION, RS256_KEY, RS256_PUB_KEY
 
 
 @control_silo_test
@@ -28,6 +28,7 @@ class JiraUninstalledTest(APITestCase):
                 "iss": self.external_id,
                 "aud": absolute_uri(),
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             self.shared_secret,
             algorithm=jira_signing_algorithm,
@@ -41,6 +42,7 @@ class JiraUninstalledTest(APITestCase):
                 "iss": self.external_id,
                 "aud": absolute_uri(),
                 "qsh": get_query_hash(self.path, method="POST", query_params={}),
+                "exp": FUTURE_EXPIRATION,
             },
             RS256_KEY,
             algorithm=jira_signing_algorithm,

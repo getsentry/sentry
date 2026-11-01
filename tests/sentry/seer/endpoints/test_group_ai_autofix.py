@@ -50,6 +50,9 @@ pytestmark = [requires_snuba]
 
 USER_CONTEXT_MAX_LENGTH = 10000
 
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
+AGENT_TOKEN_FLAG = "organizations:seer-agent-token-flow"
+
 
 def _user_context_length_calls(mock_distribution: Mock) -> list:
     return [
@@ -126,6 +129,24 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["run_id"] == 888
         assert response.data["autofix"]["sentry_run_id"] == str(run.uuid)
+        assert response.data["autofix"]["failure_reason"] is None
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_returns_failure_reason_when_run_errors(self, mock_get_explorer_state):
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="error",
+            failure_reason="timeout",
+            updated_at="2023-07-18T12:00:00Z",
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        assert response.data["autofix"]["failure_reason"] == "timeout"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_pr_iteration_paused(self, mock_get_explorer_state):
@@ -213,43 +234,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.data
         assert response.data["autofix"]["sentry_run_id"] is None
         assert response.data["autofix"]["pr_iteration_paused"] is False
-
-    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
-    def test_get_reports_iteration_flags_independently(self, mock_get_explorer_state):
-        """``pr_iteration_enabled`` tracks automated CI iteration, the ``manual_``
-        field tracks human-triggered iteration, and neither implies the other."""
-        group = self.create_group()
-        mock_get_explorer_state.return_value = SeerRunState(
-            run_id=888,
-            blocks=[],
-            status="completed",
-            updated_at="2023-07-18T12:00:00Z",
-        )
-        self.login_as(user=self.user)
-
-        def get_flags() -> tuple[bool, bool]:
-            response = self.client.get(self._get_url(group.id), format="json")
-            assert response.status_code == 200, response.data
-            return (
-                response.data["autofix"]["pr_iteration_enabled"],
-                response.data["autofix"]["manual_pr_iteration_enabled"],
-            )
-
-        assert get_flags() == (False, False)
-
-        with self.feature("organizations:autofix-pr-iteration"):
-            assert get_flags() == (True, False)
-
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            assert get_flags() == (False, True)
-
-        with self.feature(
-            [
-                "organizations:autofix-pr-iteration",
-                "organizations:autofix-pr-iteration-manual",
-            ]
-        ):
-            assert get_flags() == (True, True)
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_llm_format_adds_formatted_field(self, mock_get_explorer_state):
@@ -473,6 +457,175 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert response.data["run_id"] == 123
         mock_trigger_explorer.assert_called_once()
+
+    def _mint_agent_token(self) -> str:
+        self.login_as(user=self.user)
+        response = self.client.post(
+            f"/api/0/organizations/{self.organization.slug}/agent/token/",
+            data={"sessionId": "agent-session"},
+            format="json",
+        )
+        assert response.status_code == 200, response.content
+        return response.data["token"]
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature(AGENT_TOKEN_FLAG)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_agent_token_runs_analysis_without_approval(self, mock_trigger_explorer):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+        token = self._mint_agent_token()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 202, response.data
+        mock_trigger_explorer.assert_called_once()
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    @with_feature(AGENT_TOKEN_FLAG)
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
+    def test_post_agent_token_open_pr_requires_approval(self, mock_push_changes):
+        group = self.create_group()
+        token = self._mint_agent_token()
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr", "run_id": 123},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_push_changes.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_push_changes")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_runs_analysis_but_cannot_open_pr(
+        self, mock_trigger_explorer, mock_push_changes
+    ):
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+        token = self.create_user_auth_token(user=self.user, scope_list=["seer:write"])
+        bearer = token.plaintext_token
+
+        analysis = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+        open_pr = self.client.post(
+            self._get_url(group.id),
+            data={"step": "open_pr", "run_id": 123},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {bearer}",
+        )
+
+        assert analysis.status_code == 202, analysis.data
+        assert open_pr.status_code == 403, open_pr.data
+        assert (
+            open_pr["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="event:write"'
+        )
+        mock_push_changes.assert_not_called()
+
+    def _seer_write_bearer(self) -> str:
+        token = self.create_user_auth_token(user=self.user, scope_list=["seer:write"])
+        return f"Bearer {token.plaintext_token}"
+
+    def _run_state(self, run_id: int, stopping_point: str | None) -> SeerRunState:
+        return SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            repo_pr_states={},
+            metadata={"stopping_point": stopping_point} if stopping_point else None,
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_handoff_stopping_point_requires_event_write(
+        self, mock_trigger_explorer
+    ):
+        # Root cause headed past itself can hand off to an external coding agent on completion.
+        group = self.create_group()
+        bearer = self._seer_write_bearer()
+
+        for stopping_point in ("solution", "code_changes"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"stopping_point": stopping_point},
+                format="json",
+                HTTP_AUTHORIZATION=bearer,
+            )
+
+            assert response.status_code == 403, (stopping_point, response.data)
+            assert (
+                response["WWW-Authenticate"]
+                == 'Bearer error="insufficient_scope", scope="event:write"'
+            )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_continuing_run_gates_on_stored_stopping_point(
+        self, mock_trigger_explorer, mock_run_state
+    ):
+        # The request names no stopping point, but the run keeps the one it started with.
+        group = self.create_group()
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        bearer = self._seer_write_bearer()
+
+        for step, stored_stopping_point in (
+            ("solution", "open_pr"),
+            ("root_cause", "code_changes"),
+        ):
+            mock_run_state.return_value = self._run_state(123, stored_stopping_point)
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": step, "run_id": 123},
+                format="json",
+                HTTP_AUTHORIZATION=bearer,
+            )
+
+            assert response.status_code == 403, (step, response.data)
+            assert (
+                response["WWW-Authenticate"]
+                == 'Bearer error="insufficient_scope", scope="event:write"'
+            )
+        mock_trigger_explorer.assert_not_called()
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_run_state")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_seer_write_token_continues_analysis_without_event_write(
+        self, mock_trigger_explorer, mock_run_state
+    ):
+        # Steps past root cause on a run that stops at code changes never leave Sentry.
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        mock_trigger_explorer.return_value = run
+        mock_run_state.return_value = self._run_state(123, "code_changes")
+        bearer = self._seer_write_bearer()
+
+        for step in ("solution", "code_changes"):
+            response = self.client.post(
+                self._get_url(group.id),
+                data={"step": step, "run_id": 123},
+                format="json",
+                HTTP_AUTHORIZATION=bearer,
+            )
+
+            assert response.status_code == 202, (step, response.data)
+        assert mock_trigger_explorer.call_count == 2
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_forbidden_when_ai_features_hidden(self, mock_trigger_explorer):
@@ -878,7 +1031,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             insert_index=3,
             user=ANY,
             enable_bash_mode=False,
-            actor_user_id=None,
+            actor_user_id=self.user.id,
         )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -1163,7 +1316,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         action_log.assert_not_logged(TriggerAutofixAction, group_id=group.id)
 
-    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
@@ -1198,30 +1350,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert mock_consume.call_args.kwargs["organization_id"] == group.organization.id
         assert mock_consume.call_args.kwargs["source"] == ConsumeTriggerSource.UI_CONSUME
 
-    @with_feature(
-        {
-            "organizations:autofix-pr-iteration-manual": False,
-            # On, to pin that automated CI iteration does not grant manual iteration.
-            "organizations:autofix-pr-iteration": True,
-        }
-    )
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
-    @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
-    def test_pr_iteration_requires_manual_feature_flag(self, mock_enqueue, mock_consume):
-        group = self.create_group()
-
-        self.login_as(user=self.user)
-        response = self.client.post(
-            self._get_url(group.id),
-            data={"step": "pr_iteration", "run_id": 123, "user_context": "please fix this"},
-            format="json",
-        )
-
-        assert response.status_code == 400, response.data
-        assert response.data["detail"] == "PR iteration is not enabled for this organization"
-        mock_enqueue.assert_not_called()
-
-    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_pr_iteration_requires_run_id(self, mock_trigger_explorer):
         group = self.create_group()
@@ -1236,7 +1364,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 400, response.data
         mock_trigger_explorer.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_requires_existing_pr(self, mock_run_state, mock_enqueue):
@@ -1260,7 +1387,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Cannot iterate on a PR before one has been created"
         mock_enqueue.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_rejected_when_paused(self, mock_run_state, mock_enqueue):
@@ -1292,7 +1418,6 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Seer can no longer iterate on this pull request"
         mock_enqueue.assert_not_called()
 
-    @with_feature("organizations:autofix-pr-iteration-manual")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.trigger_consume_pr_iteration_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.enqueue_autofix_feedback")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")

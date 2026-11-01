@@ -1,4 +1,4 @@
-import styled from '@emotion/styled';
+import {Grid} from '@sentry/scraps/layout';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
@@ -12,20 +12,13 @@ type Props = {
 
 export function ProjectItem({project, organization}: Props) {
   return (
-    <Wrapper>
+    <Grid align="center" gap="lg" columns="max-content 1fr">
       <BookmarkStar organization={organization} project={project} />
       <ProjectBadge
         to={`/settings/${organization.slug}/projects/${project.slug}/`}
         avatarSize={18}
         project={project}
       />
-    </Wrapper>
+    </Grid>
   );
 }
-
-const Wrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.lg};
-`;

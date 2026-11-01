@@ -88,7 +88,18 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
     if isinstance(report.pricing, SavingsEstimate):
         fields.update(asdict(report.pricing))
     if isinstance(report.sample_calls, list):
-        fields["sample_calls"] = [asdict(sample) for sample in report.sample_calls]
+        # Relay scrubs string values matching `token...:`, so these keys must avoid that word.
+        fields["sample_calls"] = [
+            {
+                "trace_id": sample.trace_id,
+                "span_id": sample.span_id,
+                "timestamp": sample.timestamp,
+                "input": sample.input_tokens,
+                "cache_read": sample.cache_read_tokens,
+                "cache_write": sample.cache_creation_tokens,
+            }
+            for sample in report.sample_calls
+        ]
     return fields
 
 

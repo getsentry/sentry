@@ -16,6 +16,7 @@ from sentry.api.serializers.models.discoversavedquery import (
     DiscoverSavedQueryModelSerializer,
     DiscoverSavedQueryResponse,
 )
+from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -47,7 +48,7 @@ class DiscoverSavedQueryBase(OrganizationEndpoint):
         try:
             kwargs["query"] = DiscoverSavedQuery.objects.get(
                 Q(is_homepage=False) | Q(is_homepage__isnull=True),
-                id=query_id,
+                id=to_valid_int_id("query_id", query_id, raise_404=True),
                 organization=kwargs["organization"],
             )
         except DiscoverSavedQuery.DoesNotExist:

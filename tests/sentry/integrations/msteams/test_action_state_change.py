@@ -26,7 +26,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial, assert_slo_metric
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
+from sentry.testutils.helpers.notifications import create_workflow_notification_origin_for_rule
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
@@ -218,8 +218,7 @@ class StatusActionTest(APITestCase):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_rule_lookup_metric_with_rule(self, verify: MagicMock, metrics_incr: MagicMock) -> None:
         rule = self.create_project_rule(project=self.project1)
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
-        rule.save(update_fields=["data"])
+        create_workflow_notification_origin_for_rule(rule)
 
         response = self.post_webhook(
             action_type=ACTION_TYPE.ARCHIVE,
@@ -245,7 +244,7 @@ class StatusActionTest(APITestCase):
         self, verify: MagicMock, metrics_incr: MagicMock
     ) -> None:
         rule = self.create_project_rule(project=self.project1)
-        workflow_id = create_notification_origin(rule).workflow_id
+        workflow_id = create_workflow_notification_origin_for_rule(rule).workflow_id
         assert workflow_id is not None
 
         response = self.post_webhook(
@@ -619,7 +618,11 @@ class StatusActionTest(APITestCase):
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_action_submitted_sets_viewer_context(self, verify: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during action handling."""
-        from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+        from sentry.viewer_context import (
+            ActorType,
+            ViewerContext,
+            get_viewer_context,
+        )
 
         captured_contexts: list[ViewerContext | None] = []
 
@@ -635,9 +638,9 @@ class StatusActionTest(APITestCase):
         assert resp.status_code == 200
         assert len(captured_contexts) == 1
         ctx = captured_contexts[0]
-        assert ctx is not None
+        assert isinstance(ctx, ViewerContext)
         assert ctx.organization_id == self.org.id
-        assert ctx.actor_type == ActorType.INTEGRATION
+        assert ctx.actor.type == ActorType.INTEGRATION
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)

@@ -34,6 +34,11 @@ from tools.api_urls_to_typescript import regexp_to_routes
             r"^(?P<organization_id_or_slug>[^/]+)/events/(?P<project_id_or_slug>[^/]+):(?P<event_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
             ["$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/"],
         ),
+        # Escaped literal characters lose their backslash
+        (
+            r"^scm-git/repositories/(?P<repository_id>[0-9]{1,19})\.git/(?P<route>.+)$",
+            ["scm-git/repositories/$repositoryId.git/$route"],
+        ),
     ),
 )
 def test_regexp_to_route(input_regexp, expected) -> None:

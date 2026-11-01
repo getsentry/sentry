@@ -61,7 +61,7 @@ class ChunkUploadTest(APITestCase):
         assert response.data["concurrency"] == MAX_CONCURRENCY
         assert response.data["hashAlgorithm"] == HASH_ALGORITHM
         assert response.data["url"] == generate_locality_url() + self.url
-        assert response.data["accept"] == CHUNK_UPLOAD_ACCEPT
+        assert response.data["accept"] == list(CHUNK_UPLOAD_ACCEPT)
         assert response.data["compression"] == list(CHUNK_UPLOAD_COMPRESSION)
         assert "gzip" in response.data["compression"]
         assert "zstd" in response.data["compression"]
