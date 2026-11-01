@@ -1,20 +1,27 @@
 from __future__ import annotations
 
+import io
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.models.debugfile import (
     DIF_MIMETYPES,
+    SHADER_GROUP_MAX_LENGTH,
     BadDif,
     DifKind,
+    ProjectDebugFile,
     _dif_file_extension,
     _get_dif_object_name,
+    create_dif_from_fileobj,
     detect_dif_from_path,
     detect_single_dif_from_path,
     determine_dif_kind,
 )
+from sentry.models.project import Project
+from sentry.testutils.pytest.fixtures import django_db_all
 
 DXC_HASH = "731322bf682bdc554eefdd89098b7383"
 DEBUG_ID = "731322bf-682b-dc55-4eef-dd89098b7383"
@@ -117,3 +124,106 @@ def test_detect_dxil_rejects_invalid_code_id(tmp_path: Path) -> None:
 
     with pytest.raises(BadDif, match="Invalid code_id"):
         detect_dif_from_path(path, name="shader.dxil", debug_id=DXC_HASH, code_id="abc")
+
+
+def test_detect_dxil_stores_shader_group(tmp_path: Path) -> None:
+    path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
+
+    meta = detect_single_dif_from_path(
+        path, name="shader.dxil", debug_id=DXC_HASH, shader_group="  GlobalShaders "
+    )
+
+    assert meta.data == {"type": "dxil", "features": ["symtab"], "shader_group": "GlobalShaders"}
+
+
+@pytest.mark.parametrize("shader_group", (None, "", "   "))
+def test_detect_dxil_drops_empty_shader_group(tmp_path: Path, shader_group: str | None) -> None:
+    path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
+
+    meta = detect_single_dif_from_path(
+        path, name="shader.dxil", debug_id=DXC_HASH, shader_group=shader_group
+    )
+
+    assert meta.data == {"type": "dxil", "features": ["symtab"]}
+
+
+def test_detect_dxil_rejects_overlong_shader_group(tmp_path: Path) -> None:
+    path = _write(tmp_path, "shader.dxil", DXIL_BYTES)
+
+    with pytest.raises(BadDif, match="Invalid shader_group"):
+        detect_dif_from_path(
+            path,
+            name="shader.dxil",
+            debug_id=DXC_HASH,
+            shader_group="g" * (SHADER_GROUP_MAX_LENGTH + 1),
+        )
+
+
+def test_detect_dxil_pdb_ignores_shader_group(tmp_path: Path) -> None:
+    path = _write(tmp_path, f"{DXC_HASH}.pdb", DXIL_PDB_BYTES)
+
+    meta = detect_single_dif_from_path(
+        path, name=f"{DXC_HASH}.pdb", debug_id=DXC_HASH, shader_group="GlobalShaders"
+    )
+
+    assert meta.data == {"type": "dxilpdb", "features": ["debug"]}
+
+
+def _create_shader_dif(
+    project: Project, tmp_path: Path, name: str, data: bytes, shader_group: str | None
+) -> tuple[ProjectDebugFile, bool]:
+    path = _write(tmp_path, name, data)
+    meta = detect_single_dif_from_path(
+        path, name=name, debug_id=DXC_HASH, code_id=AFTERMATH_HASH, shader_group=shader_group
+    )
+    session = mock.Mock()
+    session.put.return_value = f"difs/{name}"
+    with mock.patch("sentry.models.debugfile.get_session", return_value=session):
+        return create_dif_from_fileobj(project, meta, io.BytesIO(data))
+
+
+@django_db_all
+def test_create_dxil_stores_shader_group(default_project: Project, tmp_path: Path) -> None:
+    dif, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
+
+    assert created is True
+    dif.refresh_from_db()
+    assert dif.file_type == "dxil"
+    assert dif.data["shader_group"] == "Group A"
+
+
+@django_db_all
+def test_reupload_backfills_missing_shader_group(default_project: Project, tmp_path: Path) -> None:
+    first, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
+    assert created is True
+    assert "shader_group" not in first.data
+
+    second, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
+
+    assert created is False
+    assert second.id == first.id
+    first.refresh_from_db()
+    assert first.data == {"type": "dxil", "features": ["symtab"], "shader_group": "Group A"}
+    assert ProjectDebugFile.objects.filter(project_id=default_project.id).count() == 1
+
+
+@django_db_all
+def test_reupload_keeps_existing_shader_group(default_project: Project, tmp_path: Path) -> None:
+    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
+
+    second, created = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group B")
+
+    assert created is False
+    assert second.id == first.id
+    first.refresh_from_db()
+    assert first.data["shader_group"] == "Group A"
+
+
+@django_db_all
+def test_reupload_without_shader_group_is_noop(default_project: Project, tmp_path: Path) -> None:
+    first, _ = _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, "Group A")
+
+    _create_shader_dif(default_project, tmp_path, "a.dxil", DXIL_BYTES, None)
+
+    first.refresh_from_db()
+    assert first.data["shader_group"] == "Group A"

@@ -77,6 +77,9 @@ _DXIL_PDB_PART = b"ILDN"
 _DXIL_PDB_SCAN_BYTES = 64 * 1024
 _SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
+# Upper bound on the free-text shader group recorded with a dxil debug file.
+SHADER_GROUP_MAX_LENGTH = 512
+
 
 def _dif_file_extension(file_format: str, file_type: str | None) -> str:
     if file_format == "breakpad":
@@ -508,9 +511,12 @@ def detect_single_dif_from_path(
     name: str | None = None,
     debug_id: str | None = None,
     code_id: str | None = None,
+    shader_group: str | None = None,
 ) -> DifMeta:
     """Like :func:`detect_dif_from_path`, but requires exactly one architecture."""
-    result = detect_dif_from_path(path, name=name, debug_id=debug_id, code_id=code_id)
+    result = detect_dif_from_path(
+        path, name=name, debug_id=debug_id, code_id=code_id, shader_group=shader_group
+    )
 
     if len(result) != 1:
         raise BadDif("Object contains %s architectures (1 expected)" % len(result))
@@ -558,6 +564,24 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
     )
 
 
+def _backfill_shader_group(dif: ProjectDebugFile, meta: DifMeta) -> None:
+    """Record the shader group on an existing ``dxil`` row that was uploaded without one.
+
+    Re-uploading the same shader binary is a no-op for the file, but a later cook may
+    know the group the shader belongs to. A group already on the row is kept as-is.
+    """
+    if meta.file_format != "dxil":
+        return
+    shader_group = (meta.data or {}).get("shader_group")
+    if not shader_group:
+        return
+    data = dict(dif.data or {})
+    if data.get("type") != "dxil" or data.get("shader_group"):
+        return
+    data["shader_group"] = shader_group
+    dif.update(data=data)
+
+
 def _get_fileobj_checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
     file_size = 0
     hasher = hashlib.sha1()
@@ -592,6 +616,7 @@ def create_dif_from_file(
     dif = find_existing_dif(project, meta, checksum)
 
     if dif is not None:
+        _backfill_shader_group(dif, meta)
         return dif, False
 
     object_name = _get_dif_object_name(meta)
@@ -678,6 +703,7 @@ def create_dif_from_fileobj(
     dif = find_existing_dif(project, meta, checksum)
 
     if dif is not None:
+        _backfill_shader_group(dif, meta)
         return dif, False
 
     object_name = _get_dif_object_name(meta)
@@ -949,12 +975,24 @@ def _shader_code_id(code_id: str | None) -> str | None:
     return code_id
 
 
+def _shader_group(shader_group: str | None) -> str | None:
+    if shader_group is None:
+        return None
+    shader_group = shader_group.strip()
+    if not shader_group:
+        return None
+    if len(shader_group) > SHADER_GROUP_MAX_LENGTH:
+        raise BadDif(f"Invalid shader_group for dxil (max {SHADER_GROUP_MAX_LENGTH} characters)")
+    return shader_group
+
+
 def detect_dif_from_path(
     path: str,
     name: str | None = None,
     debug_id: str | None = None,
     accept_unknown: bool = False,
     code_id: str | None = None,
+    shader_group: str | None = None,
 ) -> list[DifMeta]:
     """Detects which kind of Debug Information File (DIF) the file at `path` is.
 
@@ -1071,6 +1109,10 @@ def detect_dif_from_path(
             ]
     elif dif_kind == DifKind.Dxil:
         logger.debug("File loaded as dxil: %s", path)
+        data = {"type": "dxil", "features": ["symtab"]}
+        group = _shader_group(shader_group)
+        if group is not None:
+            data["shader_group"] = group
         return [
             DifMeta(
                 file_format="dxil",
@@ -1079,7 +1121,7 @@ def detect_dif_from_path(
                 code_id=_shader_code_id(code_id),
                 name=name,
                 path=path,
-                data={"type": "dxil", "features": ["symtab"]},
+                data=data,
             )
         ]
     elif dif_kind == DifKind.DxilPdb:

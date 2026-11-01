@@ -17,7 +17,12 @@ from sentry.lang.native.shader_difs import (
     missing_shader_difs,
     resolve_shader_difs,
 )
-from sentry.lang.native.teapot import TeapotClient, TeapotRequestError, TeapotUnavailable
+from sentry.lang.native.teapot import (
+    ShaderBinaryRef,
+    TeapotClient,
+    TeapotRequestError,
+    TeapotUnavailable,
+)
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import _try_symbolicate
@@ -28,6 +33,7 @@ DXC_HASH = "731322bf682bdc554eefdd89098b7383"
 DEBUG_ID = "731322bf-682b-dc55-4eef-dd89098b7383"
 DEBUG_NAME = f"{DXC_HASH}.pdb"
 AFTERMATH_HASH = "0123456789abcdef"
+SHADER_GROUP = "GlobalShaders"
 
 FIND_DUMP = "sentry.tasks.gpu_crash.find_gpu_crash_dump_attachment"
 FIND_SHADERS = "sentry.tasks.gpu_crash.find_all_shader_debug_attachments"
@@ -85,9 +91,9 @@ def _completed() -> dict[str, Any]:
     return {"status": "completed", "fault_category": "shader_hang", "missing_difs": []}
 
 
-def _resolved() -> ShaderDifs:
+def _resolved(group: str | None = SHADER_GROUP) -> ShaderDifs:
     return ShaderDifs(
-        binaries=[(AFTERMATH_HASH, "http://objectstore/dxil?sig=x")],
+        binaries=[ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/dxil?sig=x", group)],
         pdbs=[(DEBUG_NAME, "http://objectstore/pdb?sig=x")],
     )
 
@@ -129,10 +135,34 @@ def test_client_second_round_sends_shader_arrays(teapot_session: mock.Mock) -> N
     assert body["event_id"] == "abc"
     assert body["dump"] == {"storage_url": "http://objectstore/dump-obj-id?sig=abc"}
     assert body["shader_binaries"] == [
-        {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/dxil?sig=x"}
+        {
+            "code_id": AFTERMATH_HASH,
+            "storage_url": "http://objectstore/dxil?sig=x",
+            "group": SHADER_GROUP,
+        }
     ]
     assert body["shader_pdbs"] == [
         {"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/pdb?sig=x"}
+    ]
+
+
+@pytest.mark.parametrize("group", (None, ""))
+def test_client_second_round_omits_group_when_absent(
+    teapot_session: mock.Mock, group: str | None
+) -> None:
+    resolved = _resolved(group=group)
+    with mock.patch("sentry.lang.native.teapot.requests.post") as mock_post:
+        mock_post.return_value = _FakeResponse(200, _completed())
+        TeapotClient(_FakeProject(), "abc").symbolicate(
+            _FakeAttachment(),
+            [],
+            shader_binaries=resolved.binaries,
+            shader_pdbs=resolved.pdbs,
+        )
+
+    body = orjson.loads(mock_post.call_args.kwargs["data"])
+    assert body["shader_binaries"] == [
+        {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/dxil?sig=x"}
     ]
 
 
@@ -168,9 +198,7 @@ def test_client_inline_fallback_uploads_uncached_attachment(teapot_session: mock
 
 def test_client_inline_fallback_off_by_default(teapot_session: mock.Mock) -> None:
     with (
-        mock.patch.object(
-            settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", False, create=True
-        ),
+        mock.patch.object(settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", False, create=True),
         mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
     ):
         with pytest.raises(TeapotRequestError):
@@ -218,9 +246,13 @@ def _create_dif(
     dif_type: str,
     code_id: str | None = None,
     storage_path: str | None = "difs/shader",
+    shader_group: str | None = None,
 ) -> ProjectDebugFile:
     content_type = "application/x-dxil" if dif_type == "dxil" else "application/x-dxil-pdb"
     features = ["symtab"] if dif_type == "dxil" else ["debug"]
+    data: dict[str, Any] = {"type": dif_type, "features": features}
+    if shader_group is not None:
+        data["shader_group"] = shader_group
     return ProjectDebugFile.objects.create(
         project_id=project.id,
         debug_id=DEBUG_ID,
@@ -228,7 +260,7 @@ def _create_dif(
         object_name="shader",
         cpu_name="any",
         checksum="0" * 40,
-        data={"type": dif_type, "features": features},
+        data=data,
         storage_path=storage_path,
         content_type=content_type,
         file_size=64,
@@ -252,13 +284,21 @@ def dif_presign() -> Iterator[mock.Mock]:
 def test_resolve_shader_difs_presigns_objectstore_rows(
     default_project: Project, dif_presign: mock.Mock
 ) -> None:
-    _create_dif(default_project, "dxil", code_id=AFTERMATH_HASH, storage_path="difs/dxil")
+    _create_dif(
+        default_project,
+        "dxil",
+        code_id=AFTERMATH_HASH,
+        storage_path="difs/dxil",
+        shader_group=SHADER_GROUP,
+    )
     _create_dif(default_project, "dxilpdb", storage_path="difs/pdb")
 
     resolved = resolve_shader_difs(default_project, _partial())
 
     assert bool(resolved) is True
-    assert resolved.binaries == [(AFTERMATH_HASH, "http://objectstore/difs/dxil?sig=x")]
+    assert resolved.binaries == [
+        ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/difs/dxil?sig=x", SHADER_GROUP)
+    ]
     assert resolved.pdbs == [(DEBUG_NAME, "http://objectstore/difs/pdb?sig=x")]
     # Token validity is the longer DIF one, not the attachment default.
     assert dif_presign.call_args.kwargs["token_validity"] is not None
@@ -273,7 +313,10 @@ def test_resolve_shader_difs_matches_code_id_case_insensitively(
 
     resolved = resolve_shader_difs(default_project, response)
 
-    assert resolved.binaries == [(AFTERMATH_HASH, "http://objectstore/difs/shader?sig=x")]
+    assert resolved.binaries == [
+        ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/difs/shader?sig=x", None)
+    ]
+    assert resolved.binaries[0].group is None
     assert resolved.pdbs == []
 
 

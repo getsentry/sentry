@@ -54,6 +54,7 @@ from sentry.debug_files.debug_files import maybe_renew_debug_files
 from sentry.debug_files.upload import find_missing_chunks
 from sentry.lang.native.sources import record_last_upload
 from sentry.models.debugfile import (
+    SHADER_GROUP_MAX_LENGTH,
     ProguardArtifactRelease,
     ProjectDebugFile,
     build_proguard_reupload_dif_meta,
@@ -588,6 +589,7 @@ class AssembleRequestFile(TypedDict):
     chunks: list[str]
     debug_id: NotRequired[str]
     code_id: NotRequired[str]
+    shader_group: NotRequired[str]
 
 
 AssembleRequestPayload = dict[str, AssembleRequestFile]
@@ -614,6 +616,11 @@ _ASSEMBLE_REQUEST_FILE_SCHEMA: dict[str, object] = {
             "type": "string",
             "pattern": "^[A-Fa-f0-9]+$",
             "description": "The code ID to store the file under, for file types the server cannot read it from.",
+        },
+        "shader_group": {
+            "type": "string",
+            "maxLength": SHADER_GROUP_MAX_LENGTH,
+            "description": "For `dxil` files: the shader group the binary belongs to, as recorded by the engine's shader symbol export.",
         },
         "chunks": {
             "type": "array",
@@ -786,6 +793,7 @@ def batch_assemble(
                 "name": name,
                 "debug_id": debug_id,
                 "code_id": file.get("code_id"),
+                "shader_group": file.get("shader_group"),
                 "checksum": checksum,
                 "chunks": chunks,
             }

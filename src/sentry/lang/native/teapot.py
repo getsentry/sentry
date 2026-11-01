@@ -14,6 +14,7 @@ import hmac
 import logging
 import re
 from collections.abc import Sequence
+from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Protocol
 
@@ -60,6 +61,23 @@ class TeapotAttachment(Protocol):
 ShaderFileRef = tuple[str, str]
 """``(key, storage_url)`` for a shader DIF teapot asked for in ``missing_difs``:
 the dxil ``code_id`` or the dxil_pdb ``debug_name``, plus a presigned GET URL."""
+
+
+@dataclass(frozen=True)
+class ShaderBinaryRef:
+    """A dxil binary teapot asked for: its Aftermath ``code_id``, a presigned GET
+    URL, and the shader group recorded at upload time, if any."""
+
+    code_id: str
+    storage_url: str
+    group: str | None = None
+
+    def as_request_entry(self) -> dict[str, str]:
+        entry = {"code_id": self.code_id, "storage_url": self.storage_url}
+        if self.group:
+            entry["group"] = self.group
+        return entry
+
 
 # Suffix on the idempotency/request ids of the second (shader DIF) round, so
 # teapot's idempotency cache does not replay the first round's response.
@@ -153,7 +171,7 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
-        shader_binaries: Sequence[ShaderFileRef] | None = None,
+        shader_binaries: Sequence[ShaderBinaryRef] | None = None,
         shader_pdbs: Sequence[ShaderFileRef] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
@@ -175,10 +193,7 @@ class TeapotClient:
         }
         request_id = self.event_id
         if shader_binaries or shader_pdbs:
-            body["shader_binaries"] = [
-                {"code_id": code_id, "storage_url": storage_url}
-                for code_id, storage_url in shader_binaries or []
-            ]
+            body["shader_binaries"] = [ref.as_request_entry() for ref in shader_binaries or []]
             body["shader_pdbs"] = [
                 {"debug_name": debug_name, "storage_url": storage_url}
                 for debug_name, storage_url in shader_pdbs or []
@@ -275,7 +290,7 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
-    shader_binaries: Sequence[ShaderFileRef] | None = None,
+    shader_binaries: Sequence[ShaderBinaryRef] | None = None,
     shader_pdbs: Sequence[ShaderFileRef] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.

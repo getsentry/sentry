@@ -21,6 +21,7 @@ from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
 from sentry.debug_files.debug_files import maybe_renew_debug_files
+from sentry.lang.native.teapot import ShaderBinaryRef
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.objectstore import get_internal_download_url
@@ -45,7 +46,7 @@ ShaderFileRef = tuple[str, str]
 
 @dataclass
 class ShaderDifs:
-    binaries: list[ShaderFileRef] = field(default_factory=list)
+    binaries: list[ShaderBinaryRef] = field(default_factory=list)
     pdbs: list[ShaderFileRef] = field(default_factory=list)
 
     def __bool__(self) -> bool:
@@ -81,9 +82,9 @@ def debug_id_from_debug_name(debug_name: str) -> str | None:
 def find_dxil_by_code_id(project: Project, code_id: str) -> ProjectDebugFile | None:
     if not _CODE_ID_RE.match(code_id):
         return None
-    difs = ProjectDebugFile.objects.filter(
-        project_id=project.id, code_id=code_id.lower()
-    ).order_by("-id")
+    difs = ProjectDebugFile.objects.filter(project_id=project.id, code_id=code_id.lower()).order_by(
+        "-id"
+    )
     return next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL), None)
 
 
@@ -91,9 +92,7 @@ def find_dxil_pdb_by_debug_name(project: Project, debug_name: str) -> ProjectDeb
     debug_id = debug_id_from_debug_name(debug_name)
     if debug_id is None:
         return None
-    difs = ProjectDebugFile.objects.filter(project_id=project.id, debug_id=debug_id).order_by(
-        "-id"
-    )
+    difs = ProjectDebugFile.objects.filter(project_id=project.id, debug_id=debug_id).order_by("-id")
     return next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL_PDB), None)
 
 
@@ -103,9 +102,9 @@ def find_sibling_pdb(dxil: ProjectDebugFile) -> tuple[str, ProjectDebugFile] | N
     The decoder requests a shader's PDB only after it has received the binary, so
     sending the sibling PDB along with the binary saves one extra round trip.
     """
-    difs = ProjectDebugFile.objects.filter(project_id=dxil.project_id, debug_id=dxil.debug_id).order_by(
-        "-id"
-    )
+    difs = ProjectDebugFile.objects.filter(
+        project_id=dxil.project_id, debug_id=dxil.debug_id
+    ).order_by("-id")
     pdb = next((dif for dif in difs if dif.file_type == DIF_TYPE_DXIL_PDB), None)
     if pdb is None:
         return None
@@ -113,6 +112,12 @@ def find_sibling_pdb(dxil: ProjectDebugFile) -> tuple[str, ProjectDebugFile] | N
     if not _PDB_SUFFIX_RE.search(name):
         name = f"{dxil.debug_id.replace('-', '')[:32]}.pdb"
     return name, pdb
+
+
+def shader_group_of(dif: ProjectDebugFile) -> str | None:
+    """The shader group recorded at upload time (``data["shader_group"]``), or None."""
+    group = (dif.data or {}).get("shader_group")
+    return group if isinstance(group, str) and group else None
 
 
 def presign_dif(dif: ProjectDebugFile) -> str | None:
@@ -139,12 +144,14 @@ def resolve_shader_difs(project: Project, response: Mapping[str, Any]) -> Shader
         url = presign_dif(dif) if dif is not None else None
         if dif is not None and url is not None:
             found.append(dif)
-            resolved.binaries.append((code_id.lower(), url))
+            resolved.binaries.append(ShaderBinaryRef(code_id.lower(), url, shader_group_of(dif)))
             sibling = find_sibling_pdb(dif)
             if sibling is not None:
                 debug_name, pdb = sibling
                 pdb_url = presign_dif(pdb)
-                if pdb_url is not None and debug_name.lower() not in {n.lower() for n in debug_names}:
+                if pdb_url is not None and debug_name.lower() not in {
+                    n.lower() for n in debug_names
+                }:
                     found.append(pdb)
                     resolved.pdbs.append((debug_name, pdb_url))
 
