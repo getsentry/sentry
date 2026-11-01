@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
@@ -1904,8 +1906,9 @@ class TriggeredRulesFormattingTest(StatusCheckTestBase):
 class MarkdownEscapingTest(StatusCheckTestBase):
     """Untrusted artifact metadata must be escaped before rendering to Markdown."""
 
+    # justification: factory kwargs vary per test case.
     def _analyzed_artifact(
-        self, **kwargs
+        self, **kwargs: Any
     ) -> tuple[PreprodArtifact, dict[int, list[PreprodArtifactSizeMetrics]]]:
         kwargs.setdefault("build_version", "1.0.0")
         kwargs.setdefault("build_number", 1)

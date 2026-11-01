@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.urls import reverse
 
 from sentry.models.orgauthtoken import OrgAuthToken
@@ -28,13 +30,14 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
 
         self.file = self.create_file(name="test_artifact.apk", type="application/octet-stream")
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return reverse(
             "sentry-api-0-project-preprod-check-for-updates",
             args=[self.org.slug, self.project.slug],
         )
 
-    def _get_update_for_current_ios_artifact(self):
+    # justification: decoded JSON payload shape varies per test case.
+    def _get_update_for_current_ios_artifact(self) -> dict[str, Any]:
         response = self.client.get(
             self._get_url()
             + "?app_id=com.example.app&platform=ios&build_version=1.0.0&main_binary_identifier=current-identifier",
@@ -46,7 +49,8 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert update is not None
         return update
 
-    def _create_android_artifact(self, **kwargs):
+    # justification: factory kwargs vary per test case.
+    def _create_android_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an Android artifact with default values"""
         defaults = {
             "project": self.project,
@@ -72,7 +76,10 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         )
         return self.preprod_artifact
 
-    def _create_ios_artifact(self, build_number_raw=None, **kwargs):
+    # justification: factory kwargs vary per test case.
+    def _create_ios_artifact(
+        self, build_number_raw: str | None = None, **kwargs: Any
+    ) -> PreprodArtifact:
         """Helper to create an iOS artifact with default values"""
         defaults = {
             "project": self.project,

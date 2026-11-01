@@ -4,14 +4,14 @@ import contextvars
 import functools
 import logging
 import threading
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from concurrent.futures import Future, InvalidStateError
 from concurrent.futures import ThreadPoolExecutor as _ThreadPoolExecutor  # noqa: S016
 from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import Any, NamedTuple, Never
+from typing import Any, NamedTuple, Never, cast
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -24,11 +24,11 @@ class PriorityTask[T](NamedTuple):
     priority: int
     item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
-    def __eq__(self, b):
-        return self.priority == b.priority
+    def __eq__(self, other: object) -> bool:
+        return self.priority == cast(PriorityTask[object], other).priority
 
-    def __lt__(self, b):
-        return self.priority < b.priority
+    def __lt__(self, other: object) -> bool:
+        return self.priority < cast(PriorityTask[object], other).priority
 
 
 class TimedFuture[T](Future[T]):
@@ -255,39 +255,39 @@ class ContextPropagatingThreadPoolExecutor(_ThreadPoolExecutor):
     available in worker threads without manual propagation.
     """
 
-    def submit(self, fn, /, *args, **kwargs):
+    def submit[T, **P](self, fn: Callable[P, T], /, *args: P.args, **kwargs: P.kwargs) -> Future[T]:
         ctx = contextvars.copy_context()
-        return super().submit(ctx.run, fn, *args, **kwargs)
+        return super().submit(ctx.run, functools.partial(fn, *args, **kwargs))
 
 
-class FutureSet:
+class FutureSet[T]:
     """\
     Coordinates a set of ``Future`` objects (either from
     ``concurrent.futures``, or otherwise API compatible), and allows for
     attaching a callback when all futures have completed execution.
     """
 
-    def __init__(self, futures):
-        self.__pending = set(futures)
-        self.__completed = set()
-        self.__callbacks = []
+    def __init__(self, futures: Iterable[Future[T]]) -> None:
+        self.__pending: set[Future[T]] = set(futures)
+        self.__completed: set[Future[T]] = set()
+        self.__callbacks: list[Callable[[FutureSet[T]], None]] = []
         self.__lock = threading.Lock()
 
         for future in futures:
             future.add_done_callback(self.__mark_completed)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Future[T]]:
         with self.__lock:
             futures = self.__pending | self.__completed
         return iter(futures)
 
-    def __execute_callback(self, callback):
+    def __execute_callback(self, callback: Callable[[FutureSet[T]], None]) -> None:
         try:
             callback(self)
         except Exception as error:
             logger.warning("Error when calling callback %r: %s", callback, error, exc_info=True)
 
-    def __mark_completed(self, future):
+    def __mark_completed(self, future: Future[T]) -> None:
         with self.__lock:
             self.__pending.remove(future)
             self.__completed.add(future)
@@ -297,7 +297,7 @@ class FutureSet:
             for callback in self.__callbacks:
                 self.__execute_callback(callback)
 
-    def add_done_callback(self, callback):
+    def add_done_callback(self, callback: Callable[[FutureSet[T]], None]) -> None:
         with self.__lock:
             remaining = len(self.__pending)
             if remaining > 0:

@@ -1,3 +1,6 @@
+from typing import Any, cast
+
+from sentry_sdk.types import Event
 from symbolic.exceptions import SymbolicError
 
 from sentry.utils.rust import merge_rust_info_frames, starts_with, strip_symbol
@@ -73,7 +76,7 @@ stacktrace: stack backtrace:
 """
 
 
-def get_event(stacktrace):
+def get_event(stacktrace: str) -> dict[str, Any]:
     return {
         "event_id": "fe628bfa48064c9b97ce7e75a19e6197",
         "level": "error",
@@ -102,7 +105,9 @@ def get_event(stacktrace):
     }
 
 
-def get_exc_info(rust_info):
+def get_exc_info(
+    rust_info: str | None,
+) -> tuple[type[BaseException], BaseException, None]:
     exc = SymbolicError("hello world")
     if rust_info is not None:
         exc.rust_info = rust_info
@@ -113,7 +118,7 @@ def test_merge_rust_info() -> None:
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(STACKTRACE)
 
-    merge_rust_info_frames(event, {"exc_info": exc_info})
+    merge_rust_info_frames(cast("Event", event), {"exc_info": exc_info})
 
     assert event["platform"] == "native"
     assert event["logentry"]["formatted"] == "invalid debug identifier"
@@ -146,7 +151,7 @@ def test_merge_rust_info_linux() -> None:
     event = get_event(STACKTRACE_SEMAPHORE_LINUX)
     exc_info = get_exc_info(STACKTRACE_SEMAPHORE_LINUX)
 
-    merge_rust_info_frames(event, {"exc_info": exc_info})
+    merge_rust_info_frames(cast("Event", event), {"exc_info": exc_info})
 
     assert event["platform"] == "native"
     assert event["logentry"]["formatted"] == "invalid debug identifier"
@@ -169,7 +174,7 @@ def test_merge_rust_info_linux() -> None:
 
 def test_without_exc_info() -> None:
     event = get_event(STACKTRACE)
-    merge_rust_info_frames(event, {})
+    merge_rust_info_frames(cast("Event", event), {})
     assert event["platform"] == "python"
 
 
@@ -177,7 +182,7 @@ def test_without_rust_info() -> None:
     event = get_event(STACKTRACE)
     exc_info = get_exc_info(None)
 
-    merge_rust_info_frames(event, {"exc_info": exc_info})
+    merge_rust_info_frames(cast("Event", event), {"exc_info": exc_info})
     assert event["platform"] == "python"
 
 
@@ -186,7 +191,7 @@ def test_without_stacktrace() -> None:
     event = get_event(stacktrace)
     exc_info = get_exc_info(stacktrace)
 
-    merge_rust_info_frames(event, {"exc_info": exc_info})
+    merge_rust_info_frames(cast("Event", event), {"exc_info": exc_info})
 
     assert event["platform"] == "native"
     assert event["logentry"]["formatted"] == "invalid debug identifier"
@@ -203,7 +208,7 @@ def test_without_exception() -> None:
     exc_info = get_exc_info(STACKTRACE)
 
     del event["exception"]
-    merge_rust_info_frames(event, {"exc_info": exc_info})
+    merge_rust_info_frames(cast("Event", event), {"exc_info": exc_info})
     assert event["platform"] == "python"
 
 

@@ -346,8 +346,8 @@ class GroupAssigneeTestCase(TestCase):
 
     @mock.patch.object(ExampleIntegration, "sync_assignee_outbound")
     def test_assignee_sync_outbound_assign_with_matching_source_integration(
-        self, mock_sync_assignee_outbound
-    ):
+        self, mock_sync_assignee_outbound: mock.MagicMock
+    ) -> None:
         group = self.group
         integration = self.create_integration(
             organization=group.organization,

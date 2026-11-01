@@ -8,7 +8,7 @@ import time
 from collections.abc import Callable
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
-from typing import IO, TYPE_CHECKING, TypeVar
+from typing import IO, TYPE_CHECKING, TypeVar, cast
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -22,6 +22,7 @@ from google.api_core.exceptions import (
     InternalServerError,
     ServiceUnavailable,
 )
+from google.auth.credentials import Credentials
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -174,11 +175,18 @@ def safe_join(
 
 
 class FancyBlob(Blob):
-    def __init__(self, download_url, *args, **kwargs):
+    def __init__(self, download_url: str, name: str, bucket: Bucket) -> None:
         self.download_url = download_url
-        super().__init__(*args, **kwargs)
+        super().__init__(name, bucket)
 
-    def _get_download_url(self, *args, **kwargs):
+    def _get_download_url(
+        self,
+        client: Client,
+        if_generation_match: int | None = None,
+        if_generation_not_match: int | None = None,
+        if_metageneration_match: int | None = None,
+        if_metageneration_not_match: int | None = None,
+    ) -> str:
         # media_link is for public objects; we completely ignore it.
         download_url = f"{self.download_url}/download/storage/v1{self.path}?alt=media"
         if self.generation is not None:
@@ -201,10 +209,10 @@ class GoogleCloudFile(_GoogleCloudFileBase):
         self._is_dirty = False
 
     @property
-    def size(self):
+    def size(self) -> int:
         if self.blob.size is None:
             self.blob.reload()
-        return self.blob.size
+        return cast("int", self.blob.size)
 
     @property
     def file(self) -> IO[bytes]:
@@ -264,16 +272,16 @@ class GoogleCloudStorage(Storage):
 
     def __init__(
         self,
-        project_id=None,
-        credentials=None,
-        bucket_name=None,
-        file_name_charset="utf-8",
-        file_overwrite=True,
-        download_url="https://www.googleapis.com",
+        project_id: str | None = None,
+        credentials: Credentials | None = None,
+        bucket_name: str | None = None,
+        file_name_charset: str = "utf-8",
+        file_overwrite: bool = True,
+        download_url: str = "https://www.googleapis.com",
         # The max amount of memory a returned file can take up before being
         # rolled over into a temporary file on disk. Default is 0: Do not roll over.
-        max_memory_size=0,
-    ):
+        max_memory_size: int = 0,
+    ) -> None:
         self.project_id = project_id
         self.credentials = credentials
         self.bucket_name = bucket_name
@@ -282,17 +290,17 @@ class GoogleCloudStorage(Storage):
         self.download_url = download_url
         self.max_memory_size = max_memory_size
 
-        self._bucket = None
-        self._client = None
+        self._bucket: Bucket | None = None
+        self._client: Client | None = None
 
     @property
-    def client(self):
+    def client(self) -> Client:
         if self._client is None:
             self._client = get_client(self.project_id, self.credentials)
         return self._client
 
     @property
-    def bucket(self):
+    def bucket(self) -> Bucket:
         if self._bucket is None:
             self._bucket = Bucket(self.client, name=self.bucket_name)
         return self._bucket
@@ -348,7 +356,7 @@ class GoogleCloudStorage(Storage):
         name = self._normalize_name(clean_name(name))
         return bool(self.bucket.get_blob(self._encode_name(name)))
 
-    def listdir(self, name):
+    def listdir(self, name: str) -> tuple[list[str], list[str]]:
         name = self._normalize_name(clean_name(name))
         # for the bucket.list and logic below name needs to end in /
         # But for the root path "" we leave it as an empty string
@@ -371,7 +379,7 @@ class GoogleCloudStorage(Storage):
                 dirs.add(parts[0])
         return list(dirs), files
 
-    def _get_blob(self, name):
+    def _get_blob(self, name: str) -> Blob:
         # Wrap google.cloud.storage's blob to raise if the file doesn't exist
         blob = self.bucket.get_blob(name)
 
@@ -380,10 +388,10 @@ class GoogleCloudStorage(Storage):
 
         return blob
 
-    def size(self, name):
+    def size(self, name: str) -> int:
         name = self._normalize_name(clean_name(name))
         blob = self._get_blob(self._encode_name(name))
-        return blob.size
+        return cast("int", blob.size)
 
     def modified_time(self, name: str) -> datetime:
         name = self._normalize_name(clean_name(name))
@@ -396,8 +404,9 @@ class GoogleCloudStorage(Storage):
         updated = blob.updated
         return updated if settings.USE_TZ else timezone.make_naive(updated)
 
-    def url(self, name):
+    def url(self, name: str | None) -> str:
         # Preserve the trailing slash after normalizing the path.
+        name = cast("str", name)
         name = self._normalize_name(clean_name(name))
         blob = self._get_blob(self._encode_name(name))
         return blob.public_url

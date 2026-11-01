@@ -4,7 +4,7 @@ import uuid
 import zipfile
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -123,8 +123,8 @@ class AssembleDifTest(BaseAssembleTest):
             )
 
         dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
-        assert dif.file_id is None
-        assert dif.storage_path is not None
+        assert cast("object", dif.file_id) is None
+        assert dif.storage_path
         assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
         assert not FileBlobIndex.objects.exists()
 
@@ -761,7 +761,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_first_release_and_second_no_release_and_same_bundle_id(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -797,7 +797,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_first_no_release_and_second_release_and_same_bundle_id(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -833,7 +833,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     def test_upload_multiple_artifacts_with_existing_bundle_id_duplicate(
         self,
-    ):
+    ) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -1264,7 +1264,14 @@ class AssemblePlaceholderReleaseTest(BaseAssembleTest):
 
 @freeze_time("2023-05-31T10:00:00")
 class ArtifactBundleIndexingTest(TestCase):
-    def _create_bundle_and_bind_to_release(self, release, dist, bundle_id, indexing_state, date):
+    def _create_bundle_and_bind_to_release(
+        self,
+        release: str,
+        dist: str,
+        bundle_id: str,
+        indexing_state: int,
+        date: datetime,
+    ) -> ArtifactBundle:
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
             bundle_id=bundle_id,
@@ -1327,8 +1334,8 @@ class ArtifactBundleIndexingTest(TestCase):
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_lower_bundles_than_threshold(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -1357,8 +1364,8 @@ class ArtifactBundleIndexingTest(TestCase):
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_higher_bundles_than_threshold(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 
@@ -1440,8 +1447,8 @@ class ArtifactBundleIndexingTest(TestCase):
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_newer_bundle_already_stored(
-        self, index_artifact_bundles_for_release
-    ):
+        self, index_artifact_bundles_for_release: MagicMock
+    ) -> None:
         release = "1.0"
         dist = "android"
 

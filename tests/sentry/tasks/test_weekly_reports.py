@@ -1,5 +1,5 @@
 import zoneinfo
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 
 import pytest
@@ -62,6 +62,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
 from sentry.users.services.user_option import user_option_service
 from sentry.utils import redis
@@ -85,13 +86,13 @@ class WeeklyReportsTest(
 
     def store_event_outcomes(
         self,
-        organization_id,
-        project_id,
-        timestamp,
-        num_times,
-        outcome=Outcome.ACCEPTED,
-        category=DataCategory.ERROR,
-    ):
+        organization_id: int,
+        project_id: int,
+        timestamp: datetime,
+        num_times: int,
+        outcome: Outcome = Outcome.ACCEPTED,
+        category: DataCategory = DataCategory.ERROR,
+    ) -> None:
         self.store_outcomes(
             {
                 "org_id": organization_id,
@@ -181,7 +182,7 @@ class WeeklyReportsTest(
                 f"http://{self.organization.slug}.testserver/issues/?referrer=weekly_report" in html
             )
 
-    def _set_option_value(self, value):
+    def _set_option_value(self, value: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             NotificationSettingOption.objects.update_or_create(
                 scope_type="organization",
@@ -191,15 +192,15 @@ class WeeklyReportsTest(
                 defaults={"value": value},
             )
 
-    def _set_timezone(self, user, value):
+    def _set_timezone(self, user: User, value: str) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserOption.objects.set_value(user=user, key="timezone", value=value)
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
     @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
     def test_deliver_reports_respects_settings(
-        self, mock_send_email, mock_prepare_template_context
-    ):
+        self, mock_send_email: mock.MagicMock, mock_prepare_template_context: mock.MagicMock
+    ) -> None:
         self.store_event_outcomes(
             self.organization.id, self.project.id, self.two_days_ago, num_times=2
         )
@@ -1564,8 +1565,8 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_updates_redis_during_processing(
-        self, mock_prepare_organization_report
-    ):
+        self, mock_prepare_organization_report: mock.MagicMock
+    ) -> None:
         """Test that schedule_organizations updates Redis with the current organization ID during processing."""
         timestamp = self.timestamp
 
@@ -1640,8 +1641,8 @@ class WeeklyReportsTest(
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_organization_report")
     def test_schedule_organizations_starts_from_beginning_when_no_redis_key(
-        self, mock_prepare_organization_report
-    ):
+        self, mock_prepare_organization_report: mock.MagicMock
+    ) -> None:
         """Test that schedule_organizations starts from the beginning when no Redis key exists."""
         timestamp = self.timestamp
         redis_cluster = redis.clusters.get("default").get_local_client_for_key(
@@ -2069,10 +2070,10 @@ class WeeklyReportsTest(
         assert template_ctx is not None
         assert template_ctx["spans_chart_url"] is None
 
-    def test_chart_palette_equals_top_spans_limit(self):
+    def test_chart_palette_equals_top_spans_limit(self) -> None:
         assert len(CHART_PALETTE) == TOP_SPANS_LIMIT
 
-    def test_project_breakdown_equals_covers_project_limit(self):
+    def test_project_breakdown_equals_covers_project_limit(self) -> None:
         assert len(project_breakdown_colors) == TOP_SPANS_LIMIT
 
     def test_resolution_url_is_rendered_as_label_link(self) -> None:

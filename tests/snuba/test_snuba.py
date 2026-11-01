@@ -14,7 +14,9 @@ from sentry.utils import snuba
 
 
 class SnubaTest(TestCase, SnubaTestCase):
-    def _insert_event_for_time(self, ts, hash="a" * 32, group_id=None):
+    def _insert_event_for_time(
+        self, ts: datetime, hash: str = "a" * 32, group_id: int | None = None
+    ) -> None:
         self.snuba_insert(
             (
                 2,
@@ -81,7 +83,7 @@ class SnubaTest(TestCase, SnubaTestCase):
         self._insert_event_for_time(base_time - timedelta(minutes=1))
         self._insert_event_for_time(base_time - timedelta(days=2))
 
-        def _get_event_count():
+        def _get_event_count() -> object:
             # attempt to query back 90 days
             return snuba.query(
                 start=base_time - timedelta(days=90),

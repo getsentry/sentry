@@ -1,5 +1,6 @@
 from datetime import timedelta
 from time import time
+from typing import cast
 
 from django.conf import settings
 from django.db import router
@@ -24,6 +25,7 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.types.cell import Cell
+from sentry.users.models.user import User
 
 
 @control_silo_test
@@ -34,7 +36,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             self.organization = self.create_organization(owner=self.create_user("foo@example.com"))
         self.user = self.create_user("bar@example.com")
 
-    def _get_paths(self, args):
+    def _get_paths(self, args: list[int | str]) -> tuple[str, str]:
         return (
             reverse(
                 "sentry-api-0-organization-accept-organization-invite",
@@ -46,28 +48,28 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             ),
         )
 
-    def _get_urls(self):
+    def _get_urls(self) -> tuple[str]:
         return ("sentry-api-0-organization-accept-organization-invite",)
 
-    def _get_path(self, url, args):
+    def _get_path(self, url: str, args: list[int | str]) -> str:
         return reverse(url, args=[self.organization.slug] + args)
 
-    def _require_2fa_for_organization(self):
+    def _require_2fa_for_organization(self) -> None:
         with assume_test_silo_mode_of(Organization):
             self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
         assert self.organization.flags.require_2fa.is_set
 
-    def _assert_pending_invite_details_in_session(self, om):
+    def _assert_pending_invite_details_in_session(self, om: OrganizationMember) -> None:
         assert self.client.session["invite_token"] == om.token
         assert self.client.session["invite_member_id"] == om.id
 
-    def _assert_pending_invite_details_not_in_session(self, response):
+    def _assert_pending_invite_details_not_in_session(self, response: object) -> None:
         session_invite_token = self.client.session.get("invite_token", None)
         session_invite_member_id = self.client.session.get("invite_member_id", None)
         assert session_invite_token is None
         assert session_invite_member_id is None
 
-    def _enroll_user_in_2fa(self, user):
+    def _enroll_user_in_2fa(self, user: User) -> None:
         interface = TotpInterface()
         interface.enroll(user)
         assert user.has_2fa()
@@ -93,7 +95,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
     def test_invite_not_pending(self) -> None:
         user = self.create_user(email="test@gmail.com")
         om = Factories.create_member(token="abc", organization=self.organization, user=user)
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
@@ -104,7 +106,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 400
 
@@ -112,7 +114,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert resp.json()["needsAuthentication"]
@@ -124,7 +126,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert not resp.json()["needsAuthentication"]
@@ -178,7 +180,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             email="newuser@example.com", token="abc", organization=self.organization
         )
 
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert resp.json()["needs2fa"]
@@ -222,7 +224,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                     organization_id=self.organization.id, organizationmember_id=om.id
                 )
 
-            for path in self._get_paths([om.id, om.token]):
+            for path in self._get_paths([om.id, cast("str", om.token)]):
                 resp = self.client.get(path)
                 assert resp.status_code == 200
                 assert resp.json()["needs2fa"]
@@ -239,7 +241,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert not resp.json()["needs2fa"]
@@ -253,7 +255,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", token="abc", organization=self.organization
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.get(path)
             assert resp.status_code == 200
             assert resp.json()["needsSso"]
@@ -305,7 +307,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
                 token_expires_at=om.token_expires_at - timedelta(days=31)
             )
 
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
@@ -324,7 +326,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
             organization=self.organization,
             invite_status=InviteStatus.REQUESTED_TO_JOIN.value,
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.post(path)
             assert resp.status_code == 400
 
@@ -508,7 +510,7 @@ class AcceptInviteTest(TestCase, HybridCloudTestMixin):
         om = Factories.create_member(
             email="newuser@example.com", role="member", token="abc", organization=self.organization
         )
-        for path in self._get_paths([om.id, om.token]):
+        for path in self._get_paths([om.id, cast("str", om.token)]):
             resp = self.client.post(path)
             assert resp.status_code == 400
 

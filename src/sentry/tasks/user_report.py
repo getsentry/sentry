@@ -13,8 +13,11 @@ from sentry.utils.safe import safe_execute
     silo_mode=SiloMode.CELL,
 )
 def user_report(
-    project_id: int, report: Mapping[str, Any] | None = None, report_id: int | None = None, **kwargs
-):
+    project_id: int,
+    report: Mapping[str, Any] | None = None,
+    report_id: int | None = None,
+    **kwargs: object,
+) -> None:
     """
     Create and send a UserReport.
 

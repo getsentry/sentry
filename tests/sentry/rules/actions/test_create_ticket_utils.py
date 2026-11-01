@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.mixins.issues import IssueBasicIntegration
@@ -35,8 +36,8 @@ class CreateIssueDescriptionTest(TestCase):
         self.installation.get_group_title.return_value = "Test title"
         self.installation.get_group_description.return_value = "Test description"
 
-    def _create_issue(self, origin: NotificationOrigin) -> dict:
-        data: dict = {}
+    def _create_issue(self, origin: NotificationOrigin) -> dict[str, Any]:
+        data: dict[str, Any] = {}
         future = RuleFuture(
             context=NotificationActionContext(origin=origin, action_id=1, project=self.project),
             kwargs={

@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
 from unittest import mock
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, _patch, patch
 
 import orjson
 import responses
@@ -39,17 +39,21 @@ pytestmark = [requires_snuba]
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
-    def mock_list(self, list_type, channels, result_name="channels"):
+    def mock_list(
+        self, list_type: str, channels: object, result_name: str = "channels"
+    ) -> _patch[MagicMock]:
         return mock_slack_response(f"{list_type}_list", body={"ok": True, result_name: channels})
 
-    def mock_conversations_info(self, channel):
+    def mock_conversations_info(self, channel: object) -> _patch[MagicMock]:
         return mock_slack_response(
             "conversations_info",
             body={"ok": True, "channel": channel},
             req_args={"channel": channel},
         )
 
-    def mock_msg_schedule_response(self, channel_id, result_name="channel"):
+    def mock_msg_schedule_response(
+        self, channel_id: str, result_name: str = "channel"
+    ) -> _patch[MagicMock]:
         if channel_id == "channel_not_found":
             body = {"ok": False, "error": "channel_not_found"}
         else:
@@ -60,7 +64,9 @@ class SlackNotifyActionTest(RuleTestCase):
             }
         return mock_slack_response("chat_scheduleMessage", body)
 
-    def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
+    def mock_msg_delete_scheduled_response(
+        self, channel_id: str, result_name: str = "channel"
+    ) -> _patch[MagicMock]:
         return mock_slack_response("chat_deleteScheduledMessage", {"ok": True})
 
     def setUp(self) -> None:
@@ -78,7 +84,12 @@ class SlackNotifyActionTest(RuleTestCase):
             provider="slack",
         )
 
-    def assert_form_valid(self, form, expected_channel_id, expected_channel):
+    def assert_form_valid(
+        self,
+        form: SlackNotifyServiceForm,
+        expected_channel_id: str,
+        expected_channel: str,
+    ) -> None:
         assert form.is_valid()
         assert form.cleaned_data["channel_id"] == expected_channel_id
         assert form.cleaned_data["channel"] == expected_channel

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from django.urls import reverse
 
@@ -37,16 +38,18 @@ class LatestBuildTestBase(APITestCase):
             project=self.project, name="release"
         )
 
-    def _get_url(self):
+    def _get_url(self) -> str:
         return reverse(
             self.endpoint,
             args=[self.organization.slug, self.project.slug],
         )
 
-    def _get(self, url, data=None):
+    # justification: Django test client responses are untyped in stubs.
+    def _get(self, url: str, data: dict[str, Any] | None = None) -> Any:
         return self.client.get(url, data, HTTP_AUTHORIZATION=f"Bearer {self.api_token}")
 
-    def _create_installable_artifact(self, **kwargs):
+    # justification: factory kwargs vary per test case.
+    def _create_installable_artifact(self, **kwargs: Any) -> PreprodArtifact:
         """Helper to create an installable artifact with sensible defaults."""
         defaults = {
             "project": self.project,

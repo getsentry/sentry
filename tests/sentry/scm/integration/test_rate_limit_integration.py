@@ -1,11 +1,14 @@
+from typing import Any
+
 from django.conf import settings
+from redis import Redis
 
 from sentry.scm.private.rate_limit import RedisRateLimitProvider, total_limit_key, usage_count_key
 from sentry.testutils.cases import TestCase
 from sentry.utils import redis
 
 
-def _client():
+def _client() -> Redis[Any]:
     return redis.redis_clusters.get(settings.SENTRY_SCM_REDIS_CLUSTER)
 
 

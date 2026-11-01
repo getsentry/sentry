@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import cast
 from unittest.mock import MagicMock, patch
@@ -43,16 +44,16 @@ class MockOrganizationRoles:
         {"id": "carol", "name": "Carol", "desc": "A nanny?"},
     ]
 
-    def __init__(self):
+    def __init__(self) -> None:
         from sentry.roles.manager import RoleManager
 
         self.default_manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
         self.organization_roles = self.default_manager.organization_roles
 
-    def get_all(self):
+    def get_all(self) -> Sequence[object]:
         return self.organization_roles.get_all()
 
-    def get(self, x):
+    def get(self, x: str) -> object:
         return self.organization_roles.get(x)
 
 

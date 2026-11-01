@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -26,8 +27,9 @@ from sentry.testutils.asserts import assert_count_of_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.models.user import User
 from sentry.users.models.useremail import UserEmail
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 TOKEN = "JWT anexampletoken"
 
@@ -163,20 +165,20 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         )
         return group
 
-    def _create_jira_member(self, email: str):
+    def _create_jira_member(self, email: str) -> User:
         member = self.create_user(email=email, is_superuser=False)
         self.create_member(organization=self.organization, user=member, teams=[self.team])
         with assume_test_silo_mode(SiloMode.CONTROL):
             UserEmail.objects.filter(user=member).update(is_verified=True)
         return member
 
-    def _assignee_payload(self, email: str, updated: str) -> dict:
+    def _assignee_payload(self, email: str, updated: str) -> dict[str, Any]:
         data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
         data["issue"]["fields"]["assignee"]["emailAddress"] = email
         data["issue"]["fields"]["updated"] = updated
         return data
 
-    def _post_assignee_payload(self, data: dict) -> None:
+    def _post_assignee_payload(self, data: dict[str, Any]) -> None:
         with patch(
             "sentry.integrations.jira.webhooks.issue_updated.get_integration_from_jwt",
             return_value=self.integration,
@@ -258,10 +260,10 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
 
     @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_status_sync_sets_viewer_context(self) -> None:
-        captured_contexts: list = []
+        captured_contexts: list[ViewerContext] = []
 
-        def capture_viewer_context(*args, **kwargs):
-            captured_contexts.append(get_viewer_context())
+        def capture_viewer_context(*args: object, **kwargs: object) -> None:
+            captured_contexts.append(cast("ViewerContext", get_viewer_context()))
 
         with (
             patch(
@@ -489,13 +491,13 @@ class MockErroringJiraEndpoint(JiraWebhookBase):
     # kwarg we'd like to pass must already be an attibute of the class
     error = BaseException("unreachable")
 
-    def __init__(self, error: Exception = dummy_exception, *args, **kwargs):
+    def __init__(self, error: Exception = dummy_exception, *args: object, **kwargs: object) -> None:
         # We allow the error to be passed in so that we have access to it in the test for use
         # in equality checks
         self.error = error
         super().__init__(*args, **kwargs)
 
-    def get(self, request):
+    def get(self, request: object) -> Response:
         raise self.error
 
 
@@ -516,7 +518,7 @@ class JiraWebhookBaseTest(TestCase):
     @patch("sentry.utils.sdk.capture_exception")
     def test_atlassian_pen_testing_bot(
         self, mock_capture_exception: MagicMock, mock_logger: MagicMock
-    ):
+    ) -> None:
         mock_endpoint = MockErroringJiraEndpoint.as_view(error=MethodNotAllowed("GET"))
 
         request = self.make_request(method="GET")
@@ -623,7 +625,7 @@ class JiraWebhookBaseTest(TestCase):
     @patch("sentry.api.base.Endpoint.handle_exception_with_details", return_value=Response())
     def test_unexpected_jira_errors(
         self, mock_super_handle_exception: MagicMock, mock_logger: MagicMock
-    ):
+    ) -> None:
         unknown_errors = [
             (
                 Exception(
