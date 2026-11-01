@@ -190,6 +190,9 @@ def load_data(
         # justification: callers probe for a missing sample and treat None as absent.
         return cast("dict[str, Any]", None)
 
+    if not isinstance(data, dict):
+        raise ValueError("Sample data is not a JSON object")
+
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 

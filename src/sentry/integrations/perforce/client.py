@@ -6,7 +6,7 @@ import tempfile
 from collections.abc import Generator, Sequence
 from contextlib import contextmanager
 from datetime import datetime, timezone
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -336,7 +336,8 @@ class PerforceClient(RepositoryClient, CommitContextClient):
                 # Verify result contains actual file data (not just warnings)
                 # When exception_level=1, warnings are returned in result list
                 if result and len(result) > 0 and "depotFile" in result[0]:
-                    return result[0]
+                    # justification: p4 returns decoded command output.
+                    return cast("object", result[0])
                 return None
 
             except P4Exception:

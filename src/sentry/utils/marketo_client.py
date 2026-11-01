@@ -38,7 +38,10 @@ class MarketoClient:
         session = http.build_session()
         resp = getattr(session, method.lower())(full_url, *args, **kwargs)
         resp.raise_for_status()
-        return resp.json()
+        data = resp.json()
+        if not isinstance(data, dict):
+            raise ValueError("Marketo returned a non-object response")
+        return data
 
     def make_rest_request(
         self,

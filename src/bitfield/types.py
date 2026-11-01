@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Sequence
-from typing import Protocol, SupportsIndex, SupportsInt, TypeVar
+from typing import Protocol, SupportsIndex, SupportsInt, TypeVar, cast
 
 _IntConvertible = SupportsInt | SupportsIndex | str | bytes | bytearray | float
 
@@ -207,7 +207,8 @@ class BitHandler:
 
     def __getattr__(self, key: str) -> Bit:
         if key.startswith("_"):
-            return object.__getattribute__(self, key)
+            # justification: dunder lookups return their real attribute, not a flag bit.
+            return cast("Bit", object.__getattribute__(self, key))
         if key not in self._keys:
             raise AttributeError("%s is not a valid flag" % key)
         return self.get_bit(self._keys.index(key))

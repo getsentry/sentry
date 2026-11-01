@@ -107,6 +107,8 @@ def count_performance_issues(
             },
         )
 
+    if not isinstance(performance_issues_count, int):
+        raise TypeError("Performance issue count is not an integer")
     return performance_issues_count
 
 

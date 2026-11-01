@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Protocol, TypeGuard
+from typing import Protocol, TypeGuard, cast
 
 from django import template
 from django.conf import settings
@@ -95,7 +95,8 @@ class ScriptNode(template.Node):
         if isinstance(token, str):
             return token
         if isinstance(token, template.base.FilterExpression):
-            return token.resolve(context)
+            # justification: template expressions resolve to arbitrary context values.
+            return cast("object", token.resolve(context))
         return None
 
     def render(self, context: Context) -> str:

@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import orjson
 import redis
@@ -156,6 +156,8 @@ class RedisReprocessingStore(ReprocessingStore):
         pipe.expire(name=sync_counter_key, time=settings.SENTRY_REPROCESSING_SYNC_TTL)
         pipe.decrby(name=sync_counter_key, amount=num_events)
         new_decremented_value = pipe.execute()[2]
+        if not isinstance(new_decremented_value, int):
+            raise TypeError("Reprocessing sync counter is not an integer")
         # It can be that we overshoot and end up with a negative number here as such use `<=` rather than `==`.
         return new_decremented_value <= 0
 
@@ -180,13 +182,21 @@ class RedisReprocessingStore(ReprocessingStore):
         pending_key = _get_sync_counter_key(group_id)
         pending = self.redis.get(pending_key)
         ttl = self.redis.ttl(pending_key)
+        if pending is not None and not isinstance(pending, str):
+            raise TypeError("Reprocessing sync counter is not a string")
+        if not isinstance(ttl, int):
+            raise TypeError("Reprocessing sync counter TTL is not an integer")
         return pending, ttl
 
     def get_progress(self, group_id: int) -> ReprocessingInfo | None:
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
-        return orjson.loads(info)
+        data = orjson.loads(info)
+        if not isinstance(data, dict):
+            raise TypeError("Reprocessing info is not an object")
+        # justification: the info key stores the ReprocessingInfo written by start_reprocessing.
+        return cast("ReprocessingInfo", data)
 
     def try_claim_page(
         self,

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from typing import NoReturn, NotRequired, TypedDict
+from typing import NoReturn, NotRequired, TypedDict, cast
 
 from django.http import HttpRequest
 from drf_spectacular.utils import extend_schema
@@ -194,7 +194,8 @@ class SCIMEndpoint(OrganizationEndpoint):
                 raise ParseError(detail=SCIM_400_INVALID_FILTER)
             raise ParseError(serializer.errors)
 
-        return serializer.validated_data
+        # justification: the serializer's validated data is the SCIM query params schema.
+        return cast("SCIMQueryParams", serializer.validated_data)
 
 
 class SCIMDiscoveryEndpoint(SCIMEndpoint):

@@ -87,6 +87,8 @@ def _sequence_last_value(schema_editor: BaseDatabaseSchemaEditor, table: str) ->
         (sequence,) = cursor.fetchone()
         cursor.execute(f"SELECT last_value FROM {sequence}")
         (last_value,) = cursor.fetchone()
+    if not isinstance(last_value, int):
+        raise TypeError("Sequence last value is not an integer")
     return last_value
 
 

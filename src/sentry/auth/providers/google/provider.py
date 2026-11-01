@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest
 
 from sentry import options
@@ -65,10 +66,16 @@ class GoogleOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        return options.get("auth-google.client-id")
+        client_id = options.get("auth-google.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("auth-google.client-id is not configured")
+        return client_id
 
     def get_client_secret(self) -> str:
-        return options.get("auth-google.client-secret")
+        client_secret = options.get("auth-google.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("auth-google.client-secret is not configured")
+        return client_secret
 
     def get_configure_view(
         self,

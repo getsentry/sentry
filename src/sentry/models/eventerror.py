@@ -126,7 +126,10 @@ class EventError:
 
     @property
     def type(self) -> str:
-        return self._data["type"]
+        error_type = self._data["type"]
+        if not isinstance(error_type, str):
+            raise TypeError("Event error type is not a string")
+        return error_type
 
     @property
     def data(self) -> ErrorData:

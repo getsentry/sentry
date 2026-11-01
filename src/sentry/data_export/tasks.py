@@ -240,7 +240,7 @@ def recoverable_retry_countdown(remaining_export_retries: int) -> int:
     attempt_count = max(0, DEFAULT_EXPORT_RETRIES - remaining_export_retries)
     return min(
         RECOVERABLE_RETRY_MAX_SECONDS,
-        RECOVERABLE_RETRY_BASE_SECONDS * (2**attempt_count),
+        RECOVERABLE_RETRY_BASE_SECONDS * (1 << attempt_count),
     )
 
 
@@ -659,6 +659,8 @@ def process_rows(
             rows = process_explore(processor, batch_size, offset)
         else:
             raise ExportError(f"No processor found for this query type: {data_export.query_type}")
+        if not isinstance(rows, list):
+            raise ExportError("Export processor returned no rows array")
         return rows
     except ExportError as error:
         error_str = str(error)

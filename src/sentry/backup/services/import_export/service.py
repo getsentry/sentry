@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from django.db.models.base import Model
 
@@ -83,7 +83,11 @@ class ImportExportService(RpcService):
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.import_by_model
-        return ImportExportService.get_local_implementation().import_by_model  # type: ignore[attr-defined]
+        # justification: the local implementation provides the import_by_model RPC method.
+        return cast(
+            "Callable[..., Any]",
+            ImportExportService.get_local_implementation().import_by_model,  # type: ignore[attr-defined]
+        )
 
     @rpc_method
     @abstractmethod
@@ -117,7 +121,11 @@ class ImportExportService(RpcService):
 
         if SiloMode.CONTROL in model._meta.silo_limit.modes:  # type: ignore[attr-defined]
             return import_export_service.export_by_model
-        return ImportExportService.get_local_implementation().export_by_model  # type: ignore[attr-defined]
+        # justification: the local implementation provides the export_by_model RPC method.
+        return cast(
+            "Callable[..., Any]",
+            ImportExportService.get_local_implementation().export_by_model,  # type: ignore[attr-defined]
+        )
 
     @rpc_method
     @abstractmethod

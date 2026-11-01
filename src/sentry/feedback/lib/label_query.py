@@ -134,7 +134,7 @@ def query_top_ai_labels_by_feedback_count(
         limit=Limit(limit),
     )
 
-    return raw_snql_query(
+    data = raw_snql_query(
         Request(
             dataset=dataset.value,
             app_id="feedback-backend-web",
@@ -143,6 +143,9 @@ def query_top_ai_labels_by_feedback_count(
         ),
         referrer="feedbacks.label_query",
     )["data"]
+    if not isinstance(data, list):
+        raise ValueError("Snuba returned no data array")
+    return data
 
 
 def query_recent_feedbacks_with_ai_labels(
@@ -240,7 +243,7 @@ def query_recent_feedbacks_with_ai_labels(
         limit=Limit(limit),
     )
 
-    return raw_snql_query(
+    data = raw_snql_query(
         Request(
             dataset=dataset.value,
             app_id="feedback-backend-web",
@@ -249,6 +252,9 @@ def query_recent_feedbacks_with_ai_labels(
         ),
         referrer="feedbacks.label_query",
     )["data"]
+    if not isinstance(data, list):
+        raise ValueError("Snuba returned no data array")
+    return data
 
 
 def query_label_group_counts(

@@ -28,15 +28,6 @@
   "src/bitfield/models.py": {
     "no-any-return": 2
   },
-  "src/bitfield/types.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/ai_monitoring/message_normalizer.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/ai_monitoring/utils.py": {
-    "no-any-return": 1
-  },
   "src/sentry/api/bases/organizationmember.py": {
     "no-any-return": 1
   },
@@ -55,26 +46,14 @@
   "src/sentry/api/endpoints/organization_agentic_onboarding.py": {
     "no-any-return": 1
   },
-  "src/sentry/api/endpoints/organization_on_demand_metrics_estimation_stats.py": {
-    "no-any-return": 1
-  },
   "src/sentry/api/endpoints/organization_project_keys.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/api/endpoints/organization_trace_meta.py": {
     "no-any-return": 1
   },
   "src/sentry/api/endpoints/project_performance_general_settings.py": {
     "no-any-return": 1
   },
-  "src/sentry/api/endpoints/project_repo_path_parsing.py": {
-    "no-any-return": 1
-  },
   "src/sentry/api/endpoints/relay/register_challenge.py": {
     "no-untyped-call": 1
-  },
-  "src/sentry/api/endpoints/release_thresholds/utils/get_errors_counts_timeseries.py": {
-    "no-any-return": 1
   },
   "src/sentry/api/fields/empty_decimal.py": {
     "no-any-return": 1
@@ -88,9 +67,6 @@
   "src/sentry/api/helpers/deprecation.py": {
     "no-any-return": 1,
     "return-value": 1
-  },
-  "src/sentry/api/helpers/events.py": {
-    "no-any-return": 1
   },
   "src/sentry/api/helpers/group_index/update.py": {
     "no-any-return": 2
@@ -158,12 +134,6 @@
   "src/sentry/auth/providers/fly/provider.py": {
     "no-any-return": 2
   },
-  "src/sentry/auth/providers/github/client.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/auth/providers/google/provider.py": {
-    "no-any-return": 2
-  },
   "src/sentry/auth/providers/oauth2.py": {
     "no-any-return": 1
   },
@@ -179,13 +149,7 @@
   "src/sentry/backup/mixins.py": {
     "no-any-return": 1
   },
-  "src/sentry/backup/services/import_export/service.py": {
-    "no-any-return": 2
-  },
   "src/sentry/buffer/redis.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/build/_download.py": {
     "no-any-return": 1
   },
   "src/sentry/charts/chartcuterie.py": {
@@ -200,25 +164,10 @@
   "src/sentry/core/endpoints/project_environments.py": {
     "no-untyped-call": 1
   },
-  "src/sentry/core/endpoints/project_keys.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/core/endpoints/scim/utils.py": {
-    "no-any-return": 1
-  },
   "src/sentry/dashboards/endpoints/organization_dashboard_details.py": {
     "no-any-return": 1
   },
-  "src/sentry/dashboards/models/generate_dashboard_artifact.py": {
-    "no-any-return": 1
-  },
   "src/sentry/data_export/processors/discover.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/data_export/tasks.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/db/analyze.py": {
     "no-any-return": 1
   },
   "src/sentry/db/models/base.py": {
@@ -239,9 +188,6 @@
   "src/sentry/db/models/manager/option.py": {
     "no-any-return": 1
   },
-  "src/sentry/db/postgres/decorators.py": {
-    "return-value": 2
-  },
   "src/sentry/db/postgres/schema.py": {
     "misc": 1,
     "return-value": 1
@@ -258,9 +204,6 @@
   "src/sentry/digests/backends/migrating.py": {
     "no-any-return": 1
   },
-  "src/sentry/digests/backends/redis.py": {
-    "no-any-return": 2
-  },
   "src/sentry/discover/arithmetic.py": {
     "no-any-return": 2
   },
@@ -269,9 +212,6 @@
   },
   "src/sentry/dynamic_sampling/per_org/cache.py": {
     "no-untyped-call": 1
-  },
-  "src/sentry/eventstream/kafka/protocol.py": {
-    "no-any-return": 1
   },
   "src/sentry/eventtypes/base.py": {
     "no-any-return": 1
@@ -284,12 +224,6 @@
   },
   "src/sentry/explore/migrations/0016_update_if_syntax_on_spans.py": {
     "no-any-return": 1
-  },
-  "src/sentry/feedback/endpoints/organization_feedback_summary.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/feedback/lib/label_query.py": {
-    "no-any-return": 2
   },
   "src/sentry/feedback/usecases/label_generation.py": {
     "no-any-return": 1
@@ -315,9 +249,6 @@
   "src/sentry/http.py": {
     "no-any-return": 1
   },
-  "src/sentry/hybridcloud/apigateway/proxy.py": {
-    "no-any-return": 1
-  },
   "src/sentry/hybridcloud/models/outbox.py": {
     "no-any-return": 1
   },
@@ -331,9 +262,6 @@
     "no-any-return": 2
   },
   "src/sentry/hybridcloud/tasks/backfill_outboxes.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/hybridcloud/webhook_mailbox_sizing.py": {
     "no-any-return": 1
   },
   "src/sentry/identity/datadog/provider.py": {
@@ -376,17 +304,8 @@
   "src/sentry/integrations/api/bases/external_actor.py": {
     "no-any-return": 1
   },
-  "src/sentry/integrations/api/endpoints/organization_code_mappings.py": {
-    "no-any-return": 2
-  },
   "src/sentry/integrations/api/endpoints/organization_repositories.py": {
     "no-any-return": 1
-  },
-  "src/sentry/integrations/aws_lambda/integration.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/integrations/aws_lambda/utils.py": {
-    "no-any-return": 2
   },
   "src/sentry/integrations/base.py": {
     "no-any-return": 1
@@ -398,9 +317,6 @@
     "no-any-return": 1
   },
   "src/sentry/integrations/datadog/client.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/integrations/discord/requests/base.py": {
     "no-any-return": 1
   },
   "src/sentry/integrations/gcp/client.py": {
@@ -467,9 +383,6 @@
     "no-any-return": 1
   },
   "src/sentry/integrations/pagerduty/utils.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/integrations/perforce/client.py": {
     "no-any-return": 1
   },
   "src/sentry/integrations/perforce/repository.py": {
@@ -571,9 +484,6 @@
   "src/sentry/issue_detection/detectors/slow_db_query_detector.py": {
     "no-any-return": 1
   },
-  "src/sentry/issue_detection/detectors/span_first/base.py": {
-    "no-any-return": 1
-  },
   "src/sentry/issue_detection/detectors/span_first/run_detectors.py": {
     "no-any-return": 1
   },
@@ -583,17 +493,11 @@
   "src/sentry/issue_detection/detectors/uncompressed_asset_detector.py": {
     "no-any-return": 1
   },
-  "src/sentry/issues/action_log/types.py": {
-    "no-any-return": 1
-  },
   "src/sentry/issues/endpoints/group_events.py": {
     "no-any-return": 1
   },
   "src/sentry/issues/endpoints/group_integration_details.py": {
     "typeddict-item": 2
-  },
-  "src/sentry/issues/endpoints/organization_issue_metrics.py": {
-    "no-any-return": 1
   },
   "src/sentry/issues/endpoints/project_event_details.py": {
     "no-any-return": 1
@@ -634,9 +538,6 @@
   "src/sentry/middleware/customer_domain.py": {
     "no-any-return": 1
   },
-  "src/sentry/middleware/superuser.py": {
-    "no-any-return": 1
-  },
   "src/sentry/migrations/1209_update_if_syntax_on_dashboard_spans.py": {
     "no-any-return": 1
   },
@@ -648,9 +549,6 @@
   },
   "src/sentry/models/environment.py": {
     "no-any-return": 2
-  },
-  "src/sentry/models/eventerror.py": {
-    "no-any-return": 1
   },
   "src/sentry/models/featureadoption.py": {
     "no-any-return": 1
@@ -716,9 +614,6 @@
   "src/sentry/notebooks/endpoints/validators/base.py": {
     "no-any-return": 1
   },
-  "src/sentry/notebooks/migrations/0002_copy_from_investigations.py": {
-    "no-any-return": 1
-  },
   "src/sentry/notifications/notification_action/activity_registry/base.py": {
     "no-any-return": 1
   },
@@ -762,17 +657,11 @@
   "src/sentry/relay/config/__init__.py": {
     "no-any-return": 1
   },
-  "src/sentry/relay/config/ai_model_costs.py": {
-    "no-any-return": 1
-  },
   "src/sentry/relay/config/metric_extraction.py": {
     "no-any-return": 2,
     "no-untyped-call": 1
   },
   "src/sentry/relay/projectconfig_debounce_cache/redis.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/release_health/metrics.py": {
     "no-any-return": 1
   },
   "src/sentry/release_health/tasks.py": {
@@ -782,9 +671,6 @@
     "no-any-return": 1
   },
   "src/sentry/releases/endpoints/project_release_file_details.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/remote_subscriptions/consumers/result_consumer.py": {
     "no-any-return": 1
   },
   "src/sentry/replays/endpoints/organization_replay_events_meta.py": {
@@ -810,9 +696,6 @@
   },
   "src/sentry/runner/commands/backup.py": {
     "no-any-return": 1
-  },
-  "src/sentry/runner/commands/configoptions.py": {
-    "no-any-return": 2
   },
   "src/sentry/runner/commands/createuser.py": {
     "no-any-return": 1
@@ -883,9 +766,6 @@
   "src/sentry/seer/fetch_issues/by_function_name.py": {
     "no-any-return": 1
   },
-  "src/sentry/seer/run_questions.py": {
-    "no-any-return": 1
-  },
   "src/sentry/seer/similarity/utils.py": {
     "no-any-return": 2
   },
@@ -893,9 +773,6 @@
     "no-any-return": 1
   },
   "src/sentry/sentry_apps/alert_rule_action_creator.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/sentry_apps/api/parsers/sentry_app.py": {
     "no-any-return": 1
   },
   "src/sentry/sentry_apps/models/sentry_app_component.py": {
@@ -907,16 +784,10 @@
   "src/sentry/sentry_apps/tasks/service_hooks.py": {
     "no-any-return": 1
   },
-  "src/sentry/sentry_metrics/indexer/cache.py": {
-    "no-any-return": 1
-  },
   "src/sentry/sentry_metrics/querying/data/mapping/project_mapper.py": {
     "no-any-return": 2
   },
   "src/sentry/sentry_metrics/querying/visitors/query_expression.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/services/eventstore/reprocessing/redis.py": {
     "no-any-return": 2
   },
   "src/sentry/silo/patches/silo_aware_transaction_patch.py": {
@@ -945,12 +816,6 @@
   },
   "src/sentry/spans/consumers/process/factory.py": {
     "no-any-return": 1
-  },
-  "src/sentry/spans/consumers/process_segments/enrichment.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/spans/consumers/process_segments/shim.py": {
-    "typeddict-item": 1
   },
   "src/sentry/stacktraces/functions.py": {
     "no-any-return": 1
@@ -991,23 +856,10 @@
   "src/sentry/tasks/store.py": {
     "no-any-return": 2
   },
-  "src/sentry/tasks/summaries/utils.py": {
-    "no-any-return": 2,
-    "no-untyped-call": 1
-  },
   "src/sentry/taskworker/adapters.py": {
     "no-any-return": 1
   },
-  "src/sentry/templatetags/sentry_assets.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/templatetags/sentry_helpers.py": {
-    "no-any-return": 2
-  },
   "src/sentry/testutils/factories.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/testutils/helpers/analytics.py": {
     "no-any-return": 1
   },
   "src/sentry/testutils/helpers/eap.py": {
@@ -1018,9 +870,6 @@
   },
   "src/sentry/testutils/helpers/slack.py": {
     "no-any-return": 2
-  },
-  "src/sentry/testutils/pytest/transactional_flush.py": {
-    "no-any-return": 1
   },
   "src/sentry/testutils/silo.py": {
     "no-any-return": 1
@@ -1035,9 +884,6 @@
     "no-any-return": 1
   },
   "src/sentry/uptime/endpoints/project_uptime_alert_checks_index.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/users/api/endpoints/user_authenticator_details.py": {
     "no-any-return": 2
   },
   "src/sentry/users/api/endpoints/user_details.py": {
@@ -1058,22 +904,13 @@
   "src/sentry/utils/function_cache.py": {
     "no-any-return": 1
   },
-  "src/sentry/utils/github.py": {
-    "no-any-return": 1
-  },
   "src/sentry/utils/http.py": {
     "no-any-return": 2
-  },
-  "src/sentry/utils/integrationdocs.py": {
-    "no-any-return": 1
   },
   "src/sentry/utils/kvstore/bigtable.py": {
     "no-any-return": 1
   },
   "src/sentry/utils/locking/backends/migration.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/utils/marketo_client.py": {
     "no-any-return": 1
   },
   "src/sentry/utils/outcomes.py": {
@@ -1087,9 +924,6 @@
   },
   "src/sentry/utils/rollout.py": {
     "no-any-return": 1
-  },
-  "src/sentry/utils/samples.py": {
-    "no-any-return": 2
   },
   "src/sentry/utils/sdk.py": {
     "no-any-return": 2
@@ -1110,17 +944,11 @@
   "src/sentry/utils/session_store.py": {
     "no-any-return": 1
   },
-  "src/sentry/utils/strings.py": {
-    "no-any-return": 1
-  },
   "src/sentry/web/client_config.py": {
     "no-any-return": 2
   },
   "src/sentry/web/frontend/generic.py": {
     "no-any-return": 1
-  },
-  "src/sentry/web/frontend/setup_wizard.py": {
-    "no-any-return": 2
   },
   "src/sentry/workflow_engine/buffer/redis_hash_sorted_set_buffer.py": {
     "no-any-return": 2
@@ -1139,9 +967,6 @@
   },
   "src/sentry/workflow_engine/handlers/condition/event_created_by_detector_handler.py": {
     "no-any-return": 1
-  },
-  "src/sentry/workflow_engine/handlers/condition/event_frequency_handlers.py": {
-    "no-any-return": 2
   },
   "src/sentry/workflow_engine/handlers/condition/event_frequency_query_handlers.py": {
     "no-any-return": 1
@@ -1180,9 +1005,6 @@
     "no-any-return": 1
   },
   "src/sentry/workflow_engine/types.py": {
-    "no-any-return": 1
-  },
-  "src/social_auth/backends/asana.py": {
     "no-any-return": 1
   },
   "src/social_auth/backends/bitbucket.py": {

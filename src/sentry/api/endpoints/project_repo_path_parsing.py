@@ -72,7 +72,10 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
     @property
     def org_id(self) -> int:
-        return self.context["organization_id"]
+        org_id = self.context["organization_id"]
+        if not isinstance(org_id, int):
+            raise TypeError("organization_id is not an integer")
+        return org_id
 
     def validate_source_url(self, source_url: str) -> str:
         # URLs copied from a provider's UI can be percent-encoded, but stack trace

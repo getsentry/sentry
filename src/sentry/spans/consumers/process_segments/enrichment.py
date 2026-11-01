@@ -185,9 +185,8 @@ class TreeEnricher:
         Returns the first agent name found, or None if no ancestor has one.
         """
         for ancestor in islice(self._iter_ancestors(span), MAX_AGENT_NAME_ANCESTOR_HOPS):
-            if (
-                agent_name := attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME)
-            ) is not None:
+            agent_name = attribute_value(ancestor, ATTRIBUTE_NAMES.GEN_AI_AGENT_NAME)
+            if isinstance(agent_name, str):
                 return agent_name
         return None
 

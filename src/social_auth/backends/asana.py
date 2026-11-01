@@ -56,7 +56,8 @@ class AsanaAuth(BaseOAuth2):
         try:
             resp = requests.get(ASANA_USER_DETAILS_URL, headers=headers)
             resp.raise_for_status()
-            return resp.json()["data"]
+            data = resp.json()["data"]
+            return data if isinstance(data, dict) else None
         except ValueError:
             return None
 

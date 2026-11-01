@@ -212,6 +212,8 @@ def run_group_events_query(
             },
         )
 
+    if not isinstance(results, list):
+        raise TypeError("Event comparison returned no results array")
     return results
 
 

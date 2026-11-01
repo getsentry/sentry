@@ -8,7 +8,7 @@ import logging
 from collections.abc import Callable, Generator
 from http.cookiejar import Cookie
 from threading import local
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urljoin
 from wsgiref.util import is_hop_by_hop
 
@@ -75,7 +75,8 @@ def _get_connection() -> Session:
         session = Session()
         session.cookies = _StatelessCookieJar()
         _connection.session = session
-    return _connection.session
+    # justification: the connection's session is created above when missing.
+    return cast("Session", _connection.session)
 
 
 def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHttpResponse:

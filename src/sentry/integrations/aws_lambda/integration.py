@@ -85,7 +85,10 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
     @property
     def region(self) -> str:
-        return self.metadata["region"]
+        region = self.metadata["region"]
+        if not isinstance(region, str):
+            raise TypeError("AWS Lambda integration metadata has no region")
+        return region
 
     @property
     def client(self) -> Any:
@@ -106,7 +109,10 @@ class AwsLambdaIntegration(IntegrationInstallation, ServerlessMixin):
 
     def get_one_lambda_function(self, name: str) -> dict[str, Any]:
         # https://boto3.amazonaws.com/v1/documentation/api/1.22.12/reference/services/lambda.html
-        return self.client.get_function(FunctionName=name)["Configuration"]
+        configuration = self.client.get_function(FunctionName=name)["Configuration"]
+        if not isinstance(configuration, dict):
+            raise TypeError("AWS Lambda function has no configuration")
+        return configuration
 
     def get_serialized_lambda_function(self, name: str) -> dict[str, Any]:
         function = self.get_one_lambda_function(name)

@@ -347,7 +347,10 @@ def _project_key_performance_issues_snuba(
         query=query,
         tenant_ids={"organization_id": ctx.organization.id},
     )
-    return raw_snql_query(request, referrer=referrer)["data"]
+    rows = raw_snql_query(request, referrer=referrer)["data"]
+    if not isinstance(rows, list):
+        raise ValueError("Snuba returned no data array")
+    return rows
 
 
 def _project_key_performance_issues_eap(
@@ -493,6 +496,8 @@ def project_event_counts_for_organization(
         tenant_ids={"organization_id": ctx.organization.id},
     )
     data = raw_snql_query(request, referrer=referrer)["data"]
+    if not isinstance(data, list):
+        raise ValueError("Snuba returned no data array")
     return data
 
 

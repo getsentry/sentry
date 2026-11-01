@@ -1,13 +1,15 @@
 import contextlib
 from collections.abc import Generator
 from dataclasses import fields
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from sentry.analytics.event import Event
 
 
 def get_last_analytics_event(mock_record: MagicMock) -> Event:
-    return mock_record.call_args_list[-1].args[0]
+    # justification: tests record an Event instance per analytics call.
+    return cast("Event", mock_record.call_args_list[-1].args[0])
 
 
 def get_all_analytics_events(mock_record: MagicMock) -> list[Event]:

@@ -90,7 +90,12 @@ def _load_options(file: str | None) -> dict[str, Any]:
         import yaml
 
         loaded = yaml.safe_load(content)
-    return loaded["options"]
+    if not isinstance(loaded, dict):
+        raise click.UsageError("Config file is not an object")
+    options = loaded.get("options")
+    if not isinstance(options, dict):
+        raise click.UsageError("Config file has no options object")
+    return options
 
 
 def _validate_options(
@@ -240,7 +245,8 @@ def _single_file(ctx: click.Context, command: str) -> str | None:
             f"{command} operates on a single file; pass one -f, "
             f"or use 'validate' to check multiple files at once."
         )
-    return files[0]
+    single_file = files[0]
+    return single_file if isinstance(single_file, str) else None
 
 
 @configoptions.command()

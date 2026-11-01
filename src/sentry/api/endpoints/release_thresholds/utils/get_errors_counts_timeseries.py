@@ -130,6 +130,8 @@ def _get_errors_counts_timeseries_snuba(
         request=request, referrer=Referrer.SNUBA_SESSIONS_CHECK_RELEASES_HAVE_HEALTH_DATA
     )["data"]
 
+    if not isinstance(data, list):
+        raise ValueError("Snuba returned no data array")
     return data
 
 

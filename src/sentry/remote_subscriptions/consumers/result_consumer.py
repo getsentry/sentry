@@ -7,7 +7,7 @@ from collections import defaultdict
 from collections.abc import Mapping
 from concurrent.futures import wait
 from functools import partial
-from typing import Generic, Literal, TypeVar
+from typing import Generic, Literal, TypeVar, cast
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies import BatchStep
@@ -317,7 +317,8 @@ def decode_payload(
 
     try:
         codec = get_topic_codec(topic_for_codec)
-        return codec.decode(payload.value)
+        # justification: the codec is registered for this topic and decodes to the subscribed model.
+        return cast("T | None", codec.decode(payload.value))
     except Exception:
         logger.exception(
             "Failed to decode message payload",

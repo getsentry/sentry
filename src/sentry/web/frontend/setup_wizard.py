@@ -280,7 +280,8 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser) -> str | Mappi
         token_type=AuthTokenType.USER,
         expires_at=None,
     )
-    return serialize(api_token)
+    # justification: the token serializer emits the API token payload.
+    return cast("str | Mapping[str, object]", serialize(api_token))
 
 
 def get_org_token(
@@ -302,4 +303,5 @@ def get_org_token(
         token_last_characters=token_str[-4:],
         token_hashed=token_hashed,
     )
-    return serialize(token, user, token=token_str)
+    # justification: the token serializer emits the API token payload.
+    return cast("Mapping[str, object]", serialize(token, user, token=token_str))

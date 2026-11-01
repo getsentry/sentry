@@ -137,7 +137,9 @@ class StringIndexerCache:
                 self._make_namespaced_cache_key(namespace, key), version=self.version
             )
             return self._validate_result(result)
-        return self.cache.get(self._make_cache_key(key), version=self.version)
+        return self._validate_result(
+            self.cache.get(self._make_cache_key(key), version=self.version)
+        )
 
     def set(self, namespace: str, key: str, value: int) -> None:
         self.cache.set(

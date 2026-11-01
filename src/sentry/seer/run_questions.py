@@ -133,7 +133,7 @@ def _get_answer(
     answer = result.get("answer")
     # A missing answer means the one-shot failed, so retry rather than cache it.
     # An empty string is a real answer (e.g. no follow-ups) and is cached.
-    if answer is None:
+    if not isinstance(answer, str):
         return ""
 
     default_cache.set(cache_key, answer, timeout=_ANSWER_CACHE_TTL)

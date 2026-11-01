@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.db.models import F
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -90,7 +92,11 @@ class ProjectKeysEndpoint(ProjectEndpoint):
             # loaded. Reuse it so building each key's DSNs doesn't load both again.
             for key in keys:
                 key.set_cached_field_value("project", project)
-            return serialize(keys, request.user, request=request)
+            # justification: the serializer emits one payload per project key.
+            return cast(
+                "list[ProjectKeySerializerResponse]",
+                serialize(keys, request.user, request=request),
+            )
 
         return self.paginate(
             request=request,

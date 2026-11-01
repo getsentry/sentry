@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, Concatenate, ParamSpec, TypeVar
+from typing import Any, Concatenate, ParamSpec, TypeVar, cast
 
 from .helpers import can_reconnect
 
@@ -30,7 +30,8 @@ def auto_reconnect_cursor(
 
             return func(self, *args, **kwargs)
 
-    return inner
+    # justification: wraps preserves the wrapped function's signature.
+    return cast("Callable[Concatenate[Any, P], R]", inner)
 
 
 def auto_reconnect_connection(
@@ -53,4 +54,5 @@ def auto_reconnect_connection(
 
             return func(self, *args, **kwargs)
 
-    return inner
+    # justification: wraps preserves the wrapped function's signature.
+    return cast("Callable[Concatenate[Any, P], R]", inner)

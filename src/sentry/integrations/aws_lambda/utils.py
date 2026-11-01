@@ -145,11 +145,16 @@ def get_version_of_arn(arn: str) -> int:
     return int(arn.split(":")[-1])
 
 
-def _get_arn_from_layer(layer: Any) -> str:
+def _get_arn_from_layer(layer: object) -> str:
     # layer could be a string or dict
     if isinstance(layer, dict):
-        return layer["Arn"]
-    return layer
+        arn = layer.get("Arn")
+        if isinstance(arn, str):
+            return arn
+        raise TypeError("Lambda layer has no ARN")
+    if isinstance(layer, str):
+        return layer
+    raise TypeError("Lambda layer is neither a string nor an object")
 
 
 def get_function_layer_arns(function: Mapping[str, Any]) -> list[str]:

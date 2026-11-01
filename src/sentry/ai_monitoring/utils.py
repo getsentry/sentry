@@ -42,7 +42,9 @@ def timestamp_to_float(value: Any) -> float:
     if isinstance(value, (int, float)):
         return float(value)
     if hasattr(value, "timestamp"):
-        return value.timestamp()
+        timestamp = value.timestamp()
+        if isinstance(timestamp, (int, float)):
+            return float(timestamp)
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value.replace("Z", "+00:00")).timestamp()

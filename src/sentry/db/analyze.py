@@ -14,4 +14,4 @@ class AnalyzeQuery:
             analyze {self.model._meta.db_table};
         """
 
-        return connections[self.using].cursor().execute(query)
+        connections[self.using].cursor().execute(query)

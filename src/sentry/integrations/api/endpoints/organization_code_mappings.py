@@ -103,11 +103,13 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer[Repository
 
     @property
     def org_integration(self) -> RpcOrganizationIntegration:
-        return self.context["organization_integration"]
+        # justification: the view context carries the resolved organization integration.
+        return cast("RpcOrganizationIntegration", self.context["organization_integration"])
 
     @property
     def organization(self) -> Organization:
-        return self.context["organization"]
+        # justification: the view context carries the resolved organization.
+        return cast("Organization", self.context["organization"])
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         query = RepositoryProjectPathConfig.objects.filter(

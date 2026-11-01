@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from datetime import datetime, timedelta
 from heapq import nlargest
 from itertools import chain
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from django.db.models import Count, DateTimeField, F, Func, Manager, Q, QuerySet
 from django.db.models.functions import Extract
@@ -295,7 +295,8 @@ def make_timeseries_query(
         .values(*values)
         .annotate(value=Count("id"))
     )
-    return rows
+    # justification: annotate() with dynamic kwargs erases the queryset type.
+    return cast("QuerySet[Group, dict[str, str | int | float]]", rows)
 
 
 def make_timeseries_result(

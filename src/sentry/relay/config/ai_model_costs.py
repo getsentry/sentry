@@ -1,5 +1,5 @@
 import logging
-from typing import Required, TypedDict
+from typing import Required, TypedDict, cast
 
 from django.conf import settings
 
@@ -48,8 +48,9 @@ def ai_model_metadata_config() -> AIModelMetadataConfig | None:
         return None
 
     cached_metadata = cache.get(AI_MODEL_METADATA_CACHE_KEY)
-    if cached_metadata is not None:
-        return cached_metadata
+    if isinstance(cached_metadata, dict):
+        # justification: the cache stores the AIModelMetadataConfig written by the metadata cron job.
+        return cast("AIModelMetadataConfig", cached_metadata)
 
     if not settings.IS_DEV:
         # in dev environment, we don't want to log this

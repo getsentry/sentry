@@ -114,7 +114,8 @@ def org_url(
     """
     if not hasattr(organization, "absolute_url"):
         raise RuntimeError("organization parameter is not an Organization instance")
-    return organization.absolute_url(path, query=query, fragment=fragment)
+    # justification: Organization.absolute_url is present, checked above.
+    return cast("str", organization.absolute_url(path, query=query, fragment=fragment))
 
 
 LOADING_MESSAGES = [
@@ -189,7 +190,8 @@ def system_origin() -> str:
 
 @register.simple_tag
 def security_contact() -> str | None:
-    return options.get("system.security-email") or options.get("system.admin-email")
+    email = options.get("system.security-email") or options.get("system.admin-email")
+    return email if isinstance(email, str) else None
 
 
 @register.filter

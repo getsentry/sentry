@@ -204,6 +204,8 @@ class GeneratedWidgetLayout(BaseModel):
     @validator("w", always=True)
     def fit_within_grid(cls, w: int, values: dict[str, Any]) -> int:
         x = values.get("x", 0)
+        if not isinstance(x, int):
+            x = 0
         if x + w > GRID_WIDTH:
             return GRID_WIDTH - x  # Return the maximum width possible
         return w

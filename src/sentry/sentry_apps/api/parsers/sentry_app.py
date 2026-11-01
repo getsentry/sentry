@@ -221,7 +221,8 @@ class SentryAppParser(Serializer):
             # params might be passed as camel case but we always store as snake case
             mapped_field_name = camel_to_snake_case(field_name)
             if hasattr(self.instance, mapped_field_name):
-                return getattr(self.instance, mapped_field_name)
+                # justification: parsed attributes hold arbitrary API values.
+                return cast("object", getattr(self.instance, mapped_field_name))
             else:
                 return None
 

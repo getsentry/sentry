@@ -30,7 +30,10 @@ class _GitHubClient:
                 )
             except HTTPError as e:
                 raise ApiError.from_response(e.response)
-        return resp.json()
+        data = resp.json()
+        if not isinstance(data, dict):
+            raise ValueError("GitHub returned a non-object response")
+        return data
 
 
 class GitHubKeysPayload(BaseModel):

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 import urllib.request
-from typing import IO
+from typing import IO, cast
 
 
 def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 6) -> IO[bytes]:
@@ -14,7 +14,8 @@ def urlopen_with_retries(url: str, timeout: int = 5, retries: int = 6) -> IO[byt
     """
     for i in range(retries):
         try:
-            return urllib.request.urlopen(url, timeout=timeout)
+            # justification: urlopen returns a binary, read-only response body.
+            return cast("IO[bytes]", urllib.request.urlopen(url, timeout=timeout))
         except Exception:
             if i == retries - 1:
                 raise

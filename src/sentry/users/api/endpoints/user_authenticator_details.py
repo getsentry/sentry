@@ -38,6 +38,8 @@ class UserAuthenticatorDetailsEndpoint(UserEndpoint):
     ) -> dict[str, Any] | None:
         devices = authenticator.config
         for device in devices["devices"]:
+            if not isinstance(device, dict):
+                continue
             # this is for devices registered with webauthn, since the stored data is not a string, we need to decode it
             if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == interface_device_id:

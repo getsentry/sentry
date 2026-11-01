@@ -100,11 +100,11 @@ def _payloads_per_mailbox() -> int:
     validated: the drain reads a zero `worker_threads` as one rather than rejecting
     it, so a zero must not reach the division here either.
     """
-    return max(
-        1,
-        options.get("hybridcloud.webhookpayload.payloads_per_thread")
-        * options.get("hybridcloud.webhookpayload.worker_threads"),
-    )
+    payloads_per_thread = options.get("hybridcloud.webhookpayload.payloads_per_thread")
+    worker_threads = options.get("hybridcloud.webhookpayload.worker_threads")
+    if not isinstance(payloads_per_thread, int) or not isinstance(worker_threads, int):
+        raise TypeError("Webhook payload sizing options must be integers")
+    return max(1, payloads_per_thread * worker_threads)
 
 
 def _max_buckets() -> int:

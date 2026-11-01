@@ -68,4 +68,4 @@ class SpanFirstDetector(ABC):
         Returns whether this detector is allowed to emit problems. By deefault, reads
         `detection_enabled` from settings; override for more nuanced gating.
         """
-        return self._settings["detection_enabled"]
+        return bool(self._settings["detection_enabled"])

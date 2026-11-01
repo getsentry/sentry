@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.workflow_engine.handlers.condition.event_attribute_handler import (
@@ -52,7 +53,10 @@ class EventFrequencyCountHandler(ActionFilterDataConditionHandler[list[int]]):
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
         if not isinstance(value, list) or len(value) != 1:
             return False
-        return value[0] > comparison["value"]
+        threshold = comparison.get("value") if isinstance(comparison, Mapping) else None
+        if not isinstance(threshold, (int, float)):
+            return False
+        return value[0] > threshold
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
@@ -86,7 +90,10 @@ class EventFrequencyPercentHandler(ActionFilterDataConditionHandler[list[int]]):
     def evaluate_value(value: list[int], comparison: Any) -> DataConditionResult:
         if not isinstance(value, list) or len(value) != 2:
             return False
-        return percent_increase(value[0], value[1]) > comparison["value"]
+        threshold = comparison.get("value") if isinstance(comparison, Mapping) else None
+        if not isinstance(threshold, (int, float)):
+            return False
+        return percent_increase(value[0], value[1]) > threshold
 
 
 # Percent sessions values must be between 0-100 (%)

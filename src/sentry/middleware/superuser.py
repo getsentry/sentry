@@ -71,6 +71,6 @@ class SuperuserMiddleware(MiddlewareMixin):
         if not staff_email_suffix:
             return None
         email = getattr(request.user, "email", None)
-        if email and email.endswith(staff_email_suffix):
+        if isinstance(email, str) and email.endswith(staff_email_suffix):
             return email
         return None

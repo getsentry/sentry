@@ -98,7 +98,13 @@ class DiscordRequest:
             user_source = self._data.get("member", None)
             if user_source is None:
                 user_source = self._data
-            return user_source["user"]["id"]  # type: ignore[index]
+            if not isinstance(user_source, Mapping):
+                return None
+            user = user_source.get("user")
+            if not isinstance(user, Mapping):
+                return None
+            user_id = user.get("id")
+            return user_id if isinstance(user_id, str) else None
         except (AttributeError, TypeError, KeyError):
             return None
 

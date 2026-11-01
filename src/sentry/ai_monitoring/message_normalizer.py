@@ -429,12 +429,11 @@ def _text_from_part(
     part: dict[str, Any], *, strip: bool = False, content_first: bool = False
 ) -> str | None:
     fields = ("content", "text") if content_first else ("text", "content")
-    text = next(
-        (part[field] for field in fields if isinstance(part.get(field), str) and part[field]), None
-    )
-    if text is None:
-        return None
-    return text.strip() if strip else text
+    for field in fields:
+        text = part.get(field)
+        if isinstance(text, str) and text:
+            return text.strip() if strip else text
+    return None
 
 
 def _redacted_file_content(part: dict[str, Any]) -> str:
