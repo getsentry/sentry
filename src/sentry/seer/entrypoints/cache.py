@@ -1,5 +1,6 @@
 import logging
 from enum import StrEnum
+from typing import cast
 
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -234,7 +235,8 @@ class SeerOperatorAgentCache[CachePayloadT]:
             if not cache_payload:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
-            return cache_payload
+            # justification: the cache stores the payload type this cache is parameterized with.
+            return cast("CachePayloadT", cache_payload)
 
 
 class SeerOperatorPendingMentionCache[CachePayloadT]:
@@ -301,7 +303,8 @@ class SeerOperatorPendingMentionCache[CachePayloadT]:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
             cache.delete(cache_key)
-            return cache_payload
+            # justification: the cache stores the payload type this cache is parameterized with.
+            return cast("CachePayloadT", cache_payload)
 
 
 class SeerOperatorInvestigationCache[CachePayloadT]:
@@ -337,4 +340,5 @@ class SeerOperatorInvestigationCache[CachePayloadT]:
             if not cache_payload:
                 lifecycle.record_halt(halt_reason=CacheHaltReason.CACHE_MISS)
                 return None
-            return cache_payload
+            # justification: the cache stores the payload type this cache is parameterized with.
+            return cast("CachePayloadT", cache_payload)

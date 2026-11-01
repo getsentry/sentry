@@ -57,7 +57,8 @@ class BitbucketBackend(OAuthBackend):
     def get_user_id(self, details: Mapping[str, Any], response: Mapping[str, Any]) -> str:
         """Return the user id, Bitbucket only provides username as a unique
         identifier"""
-        return response["username"]
+        username = response["username"]
+        return username if isinstance(username, str) else str(username)
 
     @classmethod
     def tokens(cls, instance: UserSocialAuth) -> dict[str, Any]:
@@ -110,6 +111,8 @@ class BitbucketAuth(BaseOAuth1):
             # BITBUCKET_USER_DATA_URL and the user's email
             response = dsa_urlopen(BITBUCKET_USER_DATA_URL + email)
             user_details = json.load(response)["user"]
+            if not isinstance(user_details, dict):
+                return None
             user_details["email"] = email
             return user_details
         except ValueError:

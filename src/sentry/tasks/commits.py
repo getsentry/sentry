@@ -107,7 +107,7 @@ def fetch_commits_for_compare_range(
                 "cache_key": cache_key,
             },
         )
-        if cached_repo_commits is not None:
+        if isinstance(cached_repo_commits, list):
             return cached_repo_commits
 
     repo_commits = provider.fetch_commits_for_compare_range(repo, start_sha, end_sha, actor=user)
@@ -118,6 +118,8 @@ def fetch_commits_for_compare_range(
             repo_commits,
             GITHUB_FETCH_COMMITS_COMPARE_CACHE_TTL_SECONDS,
         )
+    if not isinstance(repo_commits, list):
+        raise TypeError("Provider returned no commits array")
     return repo_commits
 
 
@@ -128,7 +130,10 @@ def fetch_recent_commits(
     end_sha: str,
     user: RpcUser | None,
 ) -> list[dict[str, Any]]:
-    return provider.fetch_recent_commits(repo, end_sha, actor=user)
+    commits = provider.fetch_recent_commits(repo, end_sha, actor=user)
+    if not isinstance(commits, list):
+        raise TypeError("Provider returned no commits array")
+    return commits
 
 
 def get_repo_for_ref(

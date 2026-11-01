@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import string
 from collections.abc import Iterator, Mapping
-from typing import Any, ClassVar, Self, TypeVar
+from typing import Any, ClassVar, Self, TypeVar, cast
 
 import sentry_sdk
 from django.utils.encoding import force_str
@@ -22,7 +22,8 @@ class _IndexFormatter(string.Formatter):
     def format_field(self, value: Any, format_spec: str) -> str:  # justification: decoded JSON
         if not format_spec and isinstance(value, bool):
             return value and "yes" or "no"
-        return super().format_field(value, format_spec)
+        # justification: the base formatter returns the formatted field as a string.
+        return cast("str", super().format_field(value, format_spec))
 
 
 # justification: decoded JSON
@@ -119,7 +120,7 @@ class ContextType:
     # justification: decoded JSON
     def primary_value_for_data(cls, data: Mapping[str, Any]) -> Mapping[str, Any] | None:
         val = get_path(data, "contexts", cls.type)
-        if val and val.get("type") == cls.type:
+        if isinstance(val, Mapping) and val.get("type") == cls.type:
             return val
 
         rv = cls.values_for_data(data)

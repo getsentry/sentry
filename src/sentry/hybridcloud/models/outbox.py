@@ -104,7 +104,10 @@ class OutboxBase(Model):
         using = router.db_for_write(cls)
         with connections[using].cursor() as cursor:
             cursor.execute("SELECT nextval(%s)", [f"{cls._meta.db_table}_id_seq"])
-            return cursor.fetchone()[0]
+            row = cursor.fetchone()
+            if row is None or not isinstance(row[0], int):
+                raise TypeError("Outbox identifier sequence returned no integer")
+            return row[0]
 
     @classmethod
     def find_scheduled_shards(cls, low: int = 0, hi: int | None = None) -> list[Mapping[str, Any]]:

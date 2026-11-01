@@ -47,7 +47,9 @@ def is_system_created_detector(detector: Detector) -> bool:
 
 
 def can_edit_user_created_detectors(request: Request, project: Project) -> bool:
-    return request.access.has_any_project_scope(project, USER_CREATED_DETECTOR_REQUIRED_SCOPES)
+    return bool(
+        request.access.has_any_project_scope(project, USER_CREATED_DETECTOR_REQUIRED_SCOPES)
+    )
 
 
 def can_edit_detectors(detectors: QuerySet[Detector], request: Request) -> bool:
@@ -130,8 +132,10 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     if not detector.project:
         return can_edit_all_project_detector_workflow_connections(request)
 
-    return request.access.has_any_project_scope(
-        detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+    return bool(
+        request.access.has_any_project_scope(
+            detector.linked_project, USER_CREATED_DETECTOR_REQUIRED_SCOPES
+        )
     )
 
 
@@ -541,7 +545,7 @@ def is_workflow_connected_to_all_projects_detector(workflow: Workflow) -> bool:
 
 
 def can_edit_all_project_detector_workflow_connections(request: Request) -> bool:
-    return request.access.has_scope("org:write")
+    return bool(request.access.has_scope("org:write"))
 
 
 def should_include_all_projects_detector(request: Request, organization: Organization) -> bool:

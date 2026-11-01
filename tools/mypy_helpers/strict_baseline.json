@@ -243,25 +243,7 @@
   "src/sentry/grouping/strategies/base.py": {
     "no-any-return": 1
   },
-  "src/sentry/grouping/strategies/newstyle.py": {
-    "no-any-return": 2
-  },
   "src/sentry/http.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/hybridcloud/models/outbox.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/hybridcloud/rpc/caching/impl.py": {
-    "no-any-return": 1
-  },
-  "src/sentry/hybridcloud/rpc/service.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/hybridcloud/rpc/sig.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/hybridcloud/tasks/backfill_outboxes.py": {
     "no-any-return": 1
   },
   "src/sentry/identity/datadog/provider.py": {
@@ -419,9 +401,6 @@
     "no-any-return": 2
   },
   "src/sentry/integrations/vsts/issues.py": {
-    "no-any-return": 2
-  },
-  "src/sentry/interfaces/contexts.py": {
     "no-any-return": 2
   },
   "src/sentry/interfaces/exception.py": {
@@ -724,9 +703,6 @@
   "src/sentry/seer/agent/tools.py": {
     "no-any-return": 1
   },
-  "src/sentry/seer/agent/utils.py": {
-    "no-any-return": 3
-  },
   "src/sentry/seer/agent_token.py": {
     "no-any-return": 1
   },
@@ -751,17 +727,11 @@
   "src/sentry/seer/endpoints/search_agent_state.py": {
     "no-any-return": 1
   },
-  "src/sentry/seer/entrypoints/cache.py": {
-    "no-any-return": 3
-  },
   "src/sentry/seer/entrypoints/slack/cache.py": {
     "no-any-return": 1
   },
   "src/sentry/seer/entrypoints/slack/investigation_status.py": {
     "no-any-return": 1
-  },
-  "src/sentry/seer/entrypoints/slack/mention.py": {
-    "no-any-return": 3
   },
   "src/sentry/seer/fetch_issues/by_function_name.py": {
     "no-any-return": 1
@@ -783,9 +753,6 @@
   },
   "src/sentry/sentry_apps/tasks/service_hooks.py": {
     "no-any-return": 1
-  },
-  "src/sentry/sentry_metrics/querying/data/mapping/project_mapper.py": {
-    "no-any-return": 2
   },
   "src/sentry/sentry_metrics/querying/visitors/query_expression.py": {
     "no-any-return": 2
@@ -835,9 +802,6 @@
   "src/sentry/tasks/beacon.py": {
     "no-any-return": 1
   },
-  "src/sentry/tasks/commits.py": {
-    "no-any-return": 3
-  },
   "src/sentry/tasks/on_demand_metrics.py": {
     "no-any-return": 1
   },
@@ -882,9 +846,6 @@
   },
   "src/sentry/uptime/autodetect/ranking.py": {
     "no-any-return": 1
-  },
-  "src/sentry/uptime/endpoints/project_uptime_alert_checks_index.py": {
-    "no-any-return": 2
   },
   "src/sentry/users/api/endpoints/user_details.py": {
     "no-any-return": 1
@@ -934,10 +895,6 @@
   "src/sentry/utils/sentry_apps/request_buffer.py": {
     "no-any-return": 1
   },
-  "src/sentry/utils/sentry_apps/webhooks.py": {
-    "no-any-return": 2,
-    "return-value": 1
-  },
   "src/sentry/utils/services.py": {
     "no-any-return": 1
   },
@@ -961,9 +918,6 @@
   },
   "src/sentry/workflow_engine/endpoints/validators/base/workflow.py": {
     "no-any-return": 2
-  },
-  "src/sentry/workflow_engine/endpoints/validators/utils.py": {
-    "no-any-return": 3
   },
   "src/sentry/workflow_engine/handlers/condition/event_created_by_detector_handler.py": {
     "no-any-return": 1
@@ -1006,12 +960,6 @@
   },
   "src/sentry/workflow_engine/types.py": {
     "no-any-return": 1
-  },
-  "src/social_auth/backends/bitbucket.py": {
-    "no-any-return": 2
-  },
-  "src/social_auth/backends/github.py": {
-    "no-any-return": 2
   },
   "tests/acceptance/test_accept_organization_invite.py": {
     "no-untyped-call": 2

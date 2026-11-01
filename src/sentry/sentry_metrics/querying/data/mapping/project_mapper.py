@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import cast
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.data.mapping.base import Mapper
@@ -19,7 +20,8 @@ class Project2ProjectIDMapper(Mapper):
             for project in projects:
                 if project.slug == value:
                     self.map[value] = project.id
-        return self.map[value]
+        # justification: the forward map stores project ids.
+        return cast("int", self.map[value])
 
     def backward(self, projects: Sequence[Project], value: int) -> str:
         if value not in self.map:
@@ -27,4 +29,5 @@ class Project2ProjectIDMapper(Mapper):
                 if project.id == value:
                     self.map[value] = project.slug
 
-        return self.map[value]
+        # justification: the backward map stores project slugs.
+        return cast("str", self.map[value])

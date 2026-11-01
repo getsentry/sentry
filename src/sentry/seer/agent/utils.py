@@ -1,7 +1,7 @@
 import logging
 import re
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
 import orjson
 from django.core.exceptions import BadRequest
@@ -116,7 +116,10 @@ def _convert_profile_to_execution_tree(
         Handles both transaction and continuous profiles.
         """
         if "elapsed_since_start_ns" in sample:
-            return sample["elapsed_since_start_ns"]
+            elapsed = sample["elapsed_since_start_ns"]
+            if not isinstance(elapsed, int):
+                raise TypeError("Profile sample elapsed time is not an integer")
+            return elapsed
         elif "timestamp" in sample:
             min_timestamp = min(s["timestamp"] for s in all_samples)
             return int((sample["timestamp"] - min_timestamp) * 1e9)
@@ -167,7 +170,8 @@ def _convert_profile_to_execution_tree(
                 and child["filename"] == frame_data["filename"]
                 and child["lineno"] == frame_data["lineno"]
             ):
-                return child
+                # justification: children are profile frame JSON objects.
+                return cast("JsonObject", child)
 
         parent["children"].append(frame_data)
         return frame_data
@@ -468,7 +472,10 @@ def fetch_profile_data(
         },
     )
     if response.status == 200:
-        return orjson.loads(response.data)
+        data = orjson.loads(response.data)
+        if not isinstance(data, dict):
+            raise TypeError("Profiling service returned a non-object response")
+        return data
     return None
 
 

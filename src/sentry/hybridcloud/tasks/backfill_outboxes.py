@@ -129,7 +129,10 @@ def find_replication_version(
         return coded_version
 
     model_key = f"outbox_replication.{model._meta.db_table}.replication_version"
-    return min(options.get(model_key), coded_version)
+    configured_version = options.get(model_key)
+    if not isinstance(configured_version, int):
+        raise TypeError(f"{model_key} must be an integer")
+    return min(configured_version, coded_version)
 
 
 def _chunk_processing_batch(

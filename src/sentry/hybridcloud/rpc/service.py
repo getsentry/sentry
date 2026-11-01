@@ -531,7 +531,8 @@ def _get_connection(retry_count: int) -> requests.Session:
         http = _create_request_session(retry_count)
         _connections.lookup[retry_count] = http
 
-    return _connections.lookup[retry_count]
+    # justification: the session is created above when missing.
+    return cast("requests.Session", _connections.lookup[retry_count])
 
 
 @dataclass(frozen=True)
@@ -593,7 +594,10 @@ class _RemoteSiloCall:
             # value set for the override is invalid
             sentry_sdk.capture_exception()
 
-        return options.get("hybridcloud.rpc.retries")
+        retries = options.get("hybridcloud.rpc.retries")
+        if not isinstance(retries, int):
+            raise TypeError("hybridcloud.rpc.retries must be an integer")
+        return retries
 
     def get_method_timeout(self) -> float:
         timeout_key = f"{self.service_name}.{self.method_name}"

@@ -92,7 +92,7 @@ def ignore_unpublished_app_errors(
     func: Callable[Concatenate[SentryApp | RpcSentryApp, P], R],
 ) -> Callable[Concatenate[SentryApp | RpcSentryApp, P], R | None]:
     def wrapper(
-        sentry_app: SentryApp | RpcSentryApp, *args: P.args, **kwargs: P.kwargs
+        sentry_app: SentryApp | RpcSentryApp, /, *args: P.args, **kwargs: P.kwargs
     ) -> R | None:
         try:
             return func(sentry_app, *args, **kwargs)
@@ -260,11 +260,15 @@ def _webhook_timeout(
 
 def _get_webhook_timeout(org_id: int) -> float:
     timeout_seconds = options.get("sentry-apps.webhook.timeout.sec")
+    if not isinstance(timeout_seconds, (int, float)):
+        raise TypeError("sentry-apps.webhook.timeout.sec must be a number")
+    timeout_seconds = float(timeout_seconds)
     overrides = options.get("sentry-apps.override.organization_ids.webhook.timeouts.sec").get(
         str(org_id)
     )
     if overrides:
-        return overrides.get("webhook_timeout_override", timeout_seconds)
+        override = overrides.get("webhook_timeout_override", timeout_seconds)
+        return float(override) if isinstance(override, (int, float)) else timeout_seconds
     return timeout_seconds
 
 

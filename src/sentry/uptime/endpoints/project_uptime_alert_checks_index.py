@@ -174,7 +174,8 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             for row_idx in range(len(column_values[0].results))
         ]
 
-        return serialize(entries)
+        # justification: the serializer emits one payload per uptime check entry.
+        return cast("list[EapCheckEntrySerializerResponse]", serialize(entries))
 
     def _transform_row(
         self,
@@ -239,9 +240,11 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
             return None
 
         try:
-            return json.loads(raw)
+            parsed = json.loads(raw)
         except (TypeError, ValueError):
             return None
+        # justification: the stored assertion is the Assertion object written by the uptime consumer.
+        return cast("Assertion", parsed) if isinstance(parsed, dict) else None
 
     def _extract_check_status_reason(
         self, check_status_reason_val: AttributeValue | None

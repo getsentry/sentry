@@ -993,7 +993,7 @@ def _walk_to_non_wrapper_parent(
         parent_id = current.mechanism.parent_id
         parent = exceptions_by_id[parent_id]
         if not _is_diagnostic_wrapper(parent):
-            return parent_id
+            return parent_id if isinstance(parent_id, int) else None
         current = parent
     return None
 
@@ -1021,7 +1021,8 @@ def java_rxjava_framework_exceptions(exceptions: list[SingleException]) -> int |
                 and exception.mechanism.parent_id == rxjava_exception_id
                 and exception.mechanism.exception_id is not None
             ):
-                return exception.mechanism.exception_id
+                exception_id = exception.mechanism.exception_id
+                return exception_id if isinstance(exception_id, int) else None
 
     return None
 

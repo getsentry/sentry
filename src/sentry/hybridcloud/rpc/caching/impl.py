@@ -1,5 +1,5 @@
 from collections.abc import Generator, Mapping
-from typing import TypeVar
+from typing import TypeVar, cast
 
 from django.core.cache import cache
 from django.core.cache.backends.base import DEFAULT_TIMEOUT
@@ -23,7 +23,8 @@ def _consume_generator(g: Generator[None, None, _V]) -> _V:
         try:
             g.send(None)
         except StopIteration as e:
-            return e.value
+            # justification: the generator returns the cached value.
+            return cast("_V", e.value)
 
 
 def _set_cache(

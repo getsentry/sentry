@@ -52,7 +52,7 @@ class GithubBackend(OAuthBackend):
             data = json.load(dsa_urlopen(req))
         except (ValueError, HTTPError):
             data = []
-        return data
+        return data if isinstance(data, list) else []
 
     def get_user_details(self, response: Mapping[str, Any]) -> dict[str, Any]:
         """Return user details from Github account"""
@@ -96,9 +96,10 @@ class GithubAuth(BaseOAuth2):
         req = Request(GITHUB_USER_DATA_URL, headers={"Authorization": "token %s" % access_token})
 
         try:
-            data = json.load(dsa_urlopen(req))
+            loaded = json.load(dsa_urlopen(req))
         except ValueError:
-            data = None
+            loaded = None
+        data = loaded if isinstance(loaded, dict) else None
 
         # if we have a github organization defined, test that the current users
         # is a member of that organization.
