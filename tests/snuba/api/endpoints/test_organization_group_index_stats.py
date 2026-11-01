@@ -1,6 +1,9 @@
 import uuid
 
+from rest_framework.response import Response
+
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -13,7 +16,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: object, **kwargs: object) -> Response:
         return super().get_response(self.project.organization.slug, **kwargs)
 
     def test_simple(self) -> None:
@@ -267,7 +270,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 "could not find upsampled bucket in stats"
             )
 
-    def _store_platform_tag_collision_events(self):
+    def _store_platform_tag_collision_events(self) -> Group:
         for i, ts in enumerate(
             [before_now(seconds=10), before_now(seconds=8), before_now(seconds=6)]
         ):

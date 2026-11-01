@@ -1,9 +1,12 @@
 import uuid
 from datetime import timedelta
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.cases import (
     APITestCase,
@@ -38,7 +41,13 @@ class ProjectTraceItemDetailsEndpointTest(
         self.one_min_ago = before_now(minutes=1)
         self.trace_uuid = str(uuid.uuid4()).replace("-", "")
 
-    def do_request(self, event_type: str, item_id: str, extra_data=None, features=None):
+    def do_request(
+        self,
+        event_type: str,
+        item_id: str,
+        extra_data: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         item_details_url = reverse(
             "sentry-api-0-project-trace-item-details",
             kwargs={
@@ -928,7 +937,7 @@ class ProjectTraceItemDetailsEndpointTest(
             assert trace_details_response.status_code == 400, trace_details_response.content
 
     @mock.patch("sentry.api.endpoints.project_trace_item_details.trace_item_details_rpc")
-    def test_snuba_rate_limit_error_makes_429(self, mock_trace_item_details_rpc):
+    def test_snuba_rate_limit_error_makes_429(self, mock_trace_item_details_rpc: MagicMock) -> None:
         mock_trace_item_details_rpc.side_effect = SnubaRPCRateLimitExceeded("too much traffic")
         log = self.create_ourlog(
             {"body": "debug test", "trace_id": self.trace_uuid},

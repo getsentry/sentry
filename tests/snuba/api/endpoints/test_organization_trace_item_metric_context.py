@@ -1,4 +1,7 @@
+from typing import Any
+
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.explore.models import (
     TraceItemAttributeValueContext,
@@ -37,7 +40,13 @@ class OrganizationTraceItemMetricContextEndpointTest(
             ]
         )
 
-    def do_request(self, metric, data, query=None, features=None):
+    def do_request(
+        self,
+        metric: str,
+        data: dict[str, Any],
+        query: dict[str, Any] | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = self.feature_flags
         if query is None:

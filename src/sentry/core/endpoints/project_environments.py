@@ -28,6 +28,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.environment import EnvironmentProject
+from sentry.models.project import Project
 
 
 @extend_schema(tags=["Environments"])
@@ -59,7 +60,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
     def get(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[DetailResponse]:
         """
         Lists a project's environments.
@@ -119,7 +120,7 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.GET_PROJECT_ENVIRONMENTS,
     )
     def put(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[list[EnvironmentProjectSerializerResponse]] | Response[ValidationErrorResponse]:
         """
         Bulk update the visibility for a project's environments.

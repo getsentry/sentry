@@ -9,6 +9,7 @@ from uuid import uuid4
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 from snuba_sdk import Entity
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
@@ -16,6 +17,7 @@ from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
@@ -83,7 +85,12 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         )
         self.features: dict[str, bool] = {}
 
-    def do_request(self, data, url=None, features=None):
+    def do_request(
+        self,
+        data: dict[str, Any],
+        url: str | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -1326,7 +1333,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
-    def _store_platform_tag_collision_events(self):
+    def _store_platform_tag_collision_events(self) -> Group:
         group = None
         for i in range(3):
             event = self.store_event(
@@ -1339,6 +1346,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 project_id=self.project.id,
             )
             group = event.group
+        assert group is not None
         return group
 
     def test_platform_tag_collision_resolved_correctly(self) -> None:
@@ -3521,7 +3529,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200, response.content
 
-    def test_top_event_with_null_value(self):
+    def test_top_event_with_null_value(self) -> None:
         self.store_event(
             {
                 "message": "null-value",

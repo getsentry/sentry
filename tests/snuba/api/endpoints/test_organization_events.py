@@ -1,13 +1,16 @@
 import math
 import uuid
+from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
@@ -29,6 +32,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.search.events import constants
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import (
     APITransactionTestCase,
     OurLogTestCase,
@@ -83,7 +87,7 @@ class OrganizationEventsEndpointTestBase(
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
         self.features: dict[str, bool] = {}
 
-    def with_default_stats_period(self, data=None):
+    def with_default_stats_period(self, data: dict[str, Any] | None = None) -> dict[str, Any]:
         """Ensure EAP queries stay on tier 1 unless the test sets an explicit window."""
         query = {} if data is None else dict(data)
         has_explicit_window = any(
@@ -102,34 +106,33 @@ class OrganizationEventsEndpointTestBase(
             query["statsPeriod"] = self.default_stats_period
         return query
 
-    def client_get(self, *args, data=None, url=None, **kwargs):
-        """GET helper that defaults statsPeriod for EAP tier-1 routing.
+    def client_get(
+        self,
+        path: str | None = None,
+        query: dict[str, Any] | None = None,
+        data: dict[str, Any] | None = None,
+        url: str | None = None,
+    ) -> Response:
+        """GET helper that defaults statsPeriod for EAP tier-1 routing."""
+        if path is not None:
+            return self.client.get(path, self.with_default_stats_period(query), format="json")
 
-        Supports both styles used by these suites:
-        - client_get(path, query_dict, format="json")
-        - client_get(data=query_dict, url=path)
-        """
-        if url is not None or (not args and data is not None):
-            path = url if url is not None else getattr(self, "url", None)
-            if path is None:
-                raise TypeError("client_get requires url= or a path argument")
-            kwargs.setdefault("format", "json")
-            return self.client.get(path, self.with_default_stats_period(data), **kwargs)
+        path = url if url is not None else getattr(self, "url", None)
+        if path is None:
+            raise TypeError("client_get requires url= or a path argument")
+        return self.client.get(path, self.with_default_stats_period(data), format="json")
 
-        args_list = list(args)
-        if len(args_list) >= 2 and isinstance(args_list[1], dict):
-            args_list[1] = self.with_default_stats_period(args_list[1])
-        elif data is not None and len(args_list) == 1:
-            return self.client.get(args_list[0], self.with_default_stats_period(data), **kwargs)
-        return self.client.get(*args_list, **kwargs)
-
-    def reverse_url(self):
+    def reverse_url(self) -> str:
         return reverse(
             self.viewname,
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def do_request(self, query, features=None, **kwargs):
+    def do_request(
+        self,
+        query: dict[str, Any],
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         features.update(self.features)
@@ -138,8 +141,6 @@ class OrganizationEventsEndpointTestBase(
             return self.client_get(
                 self.reverse_url(),
                 self.with_default_stats_period(query),
-                format="json",
-                **kwargs,
             )
 
     def _setup_user_misery(
@@ -3924,8 +3925,12 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert data[0]["count(id)"] == 2
 
     def run_test_in_query(
-        self, query, expected_events, expected_negative_events=None, dataset="discover"
-    ):
+        self,
+        query: str,
+        expected_events: Sequence[Event],
+        expected_negative_events: Sequence[Event] | None = None,
+        dataset: str = "discover",
+    ) -> None:
         params = {"field": ["id"], "query": query, "orderby": "id", "dataset": dataset}
         response = self.do_request(params, {"organizations:discover-basic": True})
         assert response.status_code == 200, response.content
@@ -4403,7 +4408,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 == self.transaction_data["measurements"]["fcp"]["value"]
             )
 
-    def get_measurement_condition_response(self, query_str, field, dataset="discover"):
+    def get_measurement_condition_response(
+        self, query_str: str, field: list[str] | None, dataset: str = "discover"
+    ) -> Response:
         query = {
             "field": ["transaction", "count()"] + (field if field else []),
             "query": query_str,
@@ -4414,12 +4421,14 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         return response
 
     def assert_measurement_condition_without_results(
-        self, query_str, field=None, dataset="discover"
-    ):
+        self, query_str: str, field: list[str] | None = None, dataset: str = "discover"
+    ) -> None:
         response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 0
 
-    def assert_measurement_condition_with_results(self, query_str, field=None, dataset="discover"):
+    def assert_measurement_condition_with_results(
+        self, query_str: str, field: list[str] | None = None, dataset: str = "discover"
+    ) -> None:
         response = self.get_measurement_condition_response(query_str, field, dataset=dataset)
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["transaction"] == self.transaction_data["metadata"]["title"]
@@ -5264,8 +5273,8 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_removes_unnecessary_default_project_and_transaction_thresholds_keeps_others(
-        self, mock_snql_query
-    ):
+        self, mock_snql_query: MagicMock
+    ) -> None:
         mock_snql_query.side_effect = [{"meta": {}, "data": []}]
 
         ProjectTransactionThreshold.objects.create(
@@ -6133,7 +6142,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert "MATCH" in response.data["meta"]["debug_info"]["query"]
 
     @mock.patch("sentry.utils.snuba_rpc.table_rpc")
-    def test_debug_param_with_error(self, mock_query) -> None:
+    def test_debug_param_with_error(self, mock_query: MagicMock) -> None:
         mock_query.side_effect = SnubaRPCError("test")
         self.user = self.create_user("superuser@example.com", is_superuser=True)
         self.create_team(organization=self.organization, members=[self.user])
@@ -6395,8 +6404,8 @@ class OrganizationEventsProfileFunctionsDatasetEndpointTest(
             f"regression_score(function.duration, 0.95, {int(mid.timestamp())})": None,
         }
 
-        def all_examples_sort_key(example):
-            return example.get("profile_id") or example.get("profiler_id")
+        def all_examples_sort_key(example: dict[str, Any]) -> str:
+            return example.get("profile_id") or example.get("profiler_id") or ""
 
         for row in response.data["data"]:
             row["examples()"].sort()
@@ -7542,7 +7551,7 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
 
 
 class OrganizationEventsIngestionDelayTest(OrganizationEventsEndpointTestBase):
-    def _do_request(self, flagged: bool = True, dataset: str = "spans"):
+    def _do_request(self, flagged: bool = True, dataset: str = "spans") -> Response:
         query: dict[str, Any] = {
             "field": ["count()"],
             "project": [self.project.id],

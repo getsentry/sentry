@@ -21,6 +21,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -67,7 +68,9 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.LIST_CLIENT_KEYS,
     )
-    def get(self, request: Request, project) -> Response[list[ProjectKeySerializerResponse]]:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[ProjectKeySerializerResponse]]:
         """
         Return a list of client keys bound to a project.
         """
@@ -113,7 +116,7 @@ class ProjectKeysEndpoint(ProjectEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def post(
-        self, request: Request, project
+        self, request: Request, project: Project
     ) -> Response[ProjectKeySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Create a new client key bound to a project.  The key's secret and public key

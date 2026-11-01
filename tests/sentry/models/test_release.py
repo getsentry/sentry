@@ -1508,7 +1508,14 @@ class ReleaseFilterBySemverTest(TestCase):
         ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        version: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1599,7 +1606,14 @@ class ReleaseFilterBySemverTest(TestCase):
 
 
 class ReleaseFilterBySemverBuildTest(TestCase):
-    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        build: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(

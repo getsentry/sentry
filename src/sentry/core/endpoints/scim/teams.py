@@ -1,6 +1,7 @@
 import logging
 import re
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -74,7 +75,7 @@ logger = logging.getLogger(__name__)
 class UnsupportedAttributeError(APIException):
     status_code = 400
 
-    def __init__(self, detail=None):
+    def __init__(self, detail: str | Mapping[str, Sequence[str]] | None = None) -> None:
         super().__init__(detail=detail)
 
 
@@ -171,7 +172,7 @@ class SCIMTeamPatchRequestSerializer(serializers.Serializer):
     )
 
 
-def _team_expand(excluded_attributes):
+def _team_expand(excluded_attributes: list[str]) -> list[str] | None:
     return None if "members" in excluded_attributes else ["members"]
 
 
@@ -219,16 +220,16 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint):
         if query_params["filter"]:
             queryset = queryset.filter(slug__iexact=slugify(query_params["filter"]))
 
-        def data_fn(offset, limit):
+        def data_fn(offset: int, limit: int) -> list[Team]:
             return list(queryset[offset : offset + limit])
 
-        def on_results(results):
-            results = serialize(
+        def on_results(results: Sequence[Team]) -> dict[str, object]:
+            serialized = serialize(
                 results,
                 None,
                 TeamSCIMSerializer(expand=_team_expand(query_params["excluded_attributes"])),
             )
-            return self.list_api_format(results, queryset.count(), query_params["start_index"])
+            return self.list_api_format(serialized, queryset.count(), query_params["start_index"])
 
         return self.paginate(
             request=request,
@@ -333,16 +334,23 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
     _allow_idp_changes = True
 
     def convert_args(
-        self, request: Request, organization_id_or_slug: int | str, team_id_or_slug, *args, **kwargs
-    ):
+        self,
+        request: Request,
+        organization_id_or_slug: int | str,
+        team_id_or_slug: int | str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, organization_id_or_slug)
         try:
-            kwargs["team"] = self._get_team(kwargs["organization"], team_id_or_slug)
+            kwargs["team"] = self._get_team(
+                cast("Organization", kwargs["organization"]), team_id_or_slug
+            )
         except Team.DoesNotExist:
             raise ResourceDoesNotExist(detail=SCIM_404_GROUP_RES)
         return (args, kwargs)
 
-    def _get_team(self, organization, team_id_or_slug):
+    def _get_team(self, organization: Organization, team_id_or_slug: int | str) -> Team:
         team = (
             Team.objects.filter(organization=organization, slug__id_or_slug=team_id_or_slug)
             .select_related("organization")
@@ -440,7 +448,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 )
             OrganizationMemberTeam.objects.filter(id__in=[omt.id for omt in omts]).delete()
 
-    def _rename_team_operation(self, request: Request, new_name, team):
+    def _rename_team_operation(self, request: Request, new_name: str, team: Team) -> None:
         serializer = TeamSerializer(
             team,
             data={"name": new_name, "slug": slugify(new_name)},
@@ -490,7 +498,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
             OrganizationMemberTeam.objects.filter(
                 team=team,
                 organizationmember__organization=team.organization,
-                organizationmember_id=member_id,
+                organizationmember_id=cast("str | int", member_id),
             )
             .select_related("organizationmember")
             .first()
@@ -567,7 +575,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         },
     )
     def patch(
-        self, request: Request, organization, team
+        self, request: Request, organization: Organization, team: Team
     ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update a team's attributes with a SCIM Group PATCH Request.
@@ -645,7 +653,7 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
                 user_ids_to_revoke=user_ids_to_revoke_privileges,
             )
 
-        metrics.incr("sentry.scim.team.update", tags={"organization": organization})
+        metrics.incr("sentry.scim.team.update", tags={"organization": cast(str, organization)})
         return self.respond(status=204)
 
     @extend_schema(
@@ -691,15 +699,15 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         # in SCIM Team routes
         return self.http_method_not_allowed(request)
 
-    def _get_member_id_for_remove_op(self, operation):
+    def _get_member_id_for_remove_op(self, operation: dict[str, object]) -> object:
         if "value" in operation:
             # azure sends member ids in this format under the key 'value'
-            return operation["value"][0]["value"]
+            return cast("list[dict[str, object]]", operation["value"])[0]["value"]
 
         try:
             # grab the filter out of the brackets of the string that looks
             # like so: members[value eq "123124"]
-            regex_search = re.search(r"\[(.*?)\]", operation["path"])
+            regex_search = re.search(r"\[(.*?)\]", cast(str, operation["path"]))
             if regex_search is None:
                 raise SCIMFilterError
             filter_path = regex_search.groups()[0]

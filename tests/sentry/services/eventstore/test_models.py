@@ -1,7 +1,8 @@
 import os
 import pickle
 import time
-from contextlib import contextmanager
+from collections.abc import Callable, Iterator
+from contextlib import AbstractContextManager, contextmanager
 from unittest import mock
 
 import pytest
@@ -16,10 +17,12 @@ from sentry.grouping.variants import ComponentVariant
 from sentry.interfaces.user import User
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
@@ -30,7 +33,7 @@ pytestmark = [requires_snuba]
 
 
 @contextmanager
-def timezone_context(tz: str):
+def timezone_context(tz: str) -> Iterator[None]:
     old_tz = os.environ.get("TZ")
     try:
         os.environ["TZ"] = tz
@@ -650,13 +653,17 @@ def test_trace_id_falls_back_to_body() -> None:
 
 
 @django_db_all
-def test_renormalization(factories, task_runner, default_project) -> None:
+def test_renormalization(
+    factories: Factories,
+    task_runner: Callable[[], AbstractContextManager[None]],
+    default_project: Project,
+) -> None:
     from sentry_relay.processing import StoreNormalizer
 
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
 
-    def normalize(*args, **kwargs):
+    def normalize(*args: object, **kwargs: object) -> object:
         normalize_mock_calls.append(1)
         return old_normalize(*args, **kwargs)
 

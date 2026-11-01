@@ -8,7 +8,7 @@ from tests.snuba.api.endpoints.test_organization_events import (
 class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestBase):
     viewname = "sentry-api-0-organization-events-sql"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.features = {"organizations:events-sql-grammar-api": True}
 

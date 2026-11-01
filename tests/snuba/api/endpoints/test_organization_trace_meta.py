@@ -2,6 +2,7 @@ from uuid import uuid4
 
 import pytest
 from django.urls import NoReverseMatch, reverse
+from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.search.eap.occurrences.rollout_utils import (
     EAP_OCCURRENCES_SHOULD_RUN_EXPERIMENT_OPTION,
@@ -275,7 +276,7 @@ class OrganizationEventsTraceMetaEndpointTest(
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
     url_name = "sentry-api-0-organization-trace-meta"
 
-    def create_uptime_check(self, trace_id=None, **kwargs):
+    def create_uptime_check(self, trace_id: str | None = None, **kwargs: object) -> TraceItem:
         defaults = {
             "trace_id": trace_id or self.trace_id,
             "scheduled_check_time": self.day_ago,

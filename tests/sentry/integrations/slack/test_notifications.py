@@ -4,14 +4,18 @@ import orjson
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.integrations.types import ExternalProviders
+from sentry.models.organization import Organization
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
 
 
-def additional_attachment_generator_block_kit(integration, organization):
+def additional_attachment_generator_block_kit(
+    integration: Integration, organization: Organization
+) -> list[dict[str, object]]:
     return [
         {"type": "section", "text": {"type": "mrkdwn", "text": organization.slug}},
         {"type": "section", "text": {"type": "mrkdwn", "text": integration.id}},

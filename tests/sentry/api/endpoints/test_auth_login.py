@@ -1140,7 +1140,9 @@ class AuthLoginEndpointTest(APITestCase):
         "sentry.auth.authenticators.U2fInterface.activate",
         return_value=ActivationChallengeResult(b"challenge"),
     )
-    def test_activate_webauthn_challenge(self, activate, is_available) -> None:
+    def test_activate_webauthn_challenge(
+        self, activate: MagicMock, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         login_response = self.get_response(username=self.user.username, password="admin")
 
@@ -1170,7 +1172,9 @@ class AuthLoginEndpointTest(APITestCase):
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
     @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_complete_webauthn_login(self, validate_response, is_available) -> None:
+    def test_complete_webauthn_login(
+        self, validate_response: MagicMock, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
         webauthn_response = {
@@ -1201,7 +1205,9 @@ class AuthLoginEndpointTest(APITestCase):
         )
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    def test_complete_webauthn_login_rejects_malformed_response(self, is_available) -> None:
+    def test_complete_webauthn_login_rejects_malformed_response(
+        self, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
         session = self.client.session
@@ -1227,7 +1233,9 @@ class AuthLoginEndpointTest(APITestCase):
         assert "_auth_user_id" not in self.client.session
 
     @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    def test_complete_webauthn_login_uses_camel_case_validation_errors(self, is_available) -> None:
+    def test_complete_webauthn_login_uses_camel_case_validation_errors(
+        self, is_available: MagicMock
+    ) -> None:
         U2fInterface().enroll(self.user)
         self.get_response(username=self.user.username, password="admin")
 
@@ -1252,7 +1260,7 @@ class AuthLoginEndpointTest(APITestCase):
         "sentry.auth.authenticators.SmsInterface.activate",
         return_value=ActivationMessageResult("Code sent", expires_in=45),
     )
-    def test_activate_sms_challenge(self, activate, is_available) -> None:
+    def test_activate_sms_challenge(self, activate: MagicMock, is_available: MagicMock) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
         interface.enroll(self.user)
@@ -1275,7 +1283,7 @@ class AuthLoginEndpointTest(APITestCase):
         return_value=ActivationMessageResult("Unable to send code", type="error"),
     )
     def test_activate_challenge_captures_provider_error(
-        self, activate, is_available, capture_message
+        self, activate: MagicMock, is_available: MagicMock, capture_message: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
@@ -1299,7 +1307,7 @@ class AuthLoginEndpointTest(APITestCase):
     @patch("sentry.auth.authenticators.SmsInterface.is_available", return_value=True)
     @patch("sentry.auth.authenticators.SmsInterface.activate", return_value=None)
     def test_activate_challenge_captures_unexpected_result(
-        self, activate, is_available, capture_message
+        self, activate: MagicMock, is_available: MagicMock, capture_message: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"
@@ -1326,7 +1334,7 @@ class AuthLoginEndpointTest(APITestCase):
         return_value=ActivationMessageResult("Code sent"),
     )
     def test_activate_challenge_captures_unsupported_result(
-        self, activate, is_available, capture_exception
+        self, activate: MagicMock, is_available: MagicMock, capture_exception: MagicMock
     ) -> None:
         interface = SmsInterface()
         interface.phone_number = "5555551212"

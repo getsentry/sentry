@@ -47,7 +47,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():
@@ -119,7 +119,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-        response = self.client.get(links["next"]["href"], format="json")
+        next_href = links["next"]["href"]
+        assert next_href is not None
+        response = self.client.get(next_href, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event1.group.id)
@@ -412,7 +414,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def path(self) -> str:
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
-    def assertNoResolution(self, group):
+    def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_global_resolve(self) -> None:

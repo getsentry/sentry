@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+from multiprocessing.process import BaseProcess
 from multiprocessing.sharedctypes import Synchronized
 from time import sleep
 from types import SimpleNamespace
@@ -13,7 +14,7 @@ from arroyo.processing.strategies.noop import Noop
 
 from sentry.spans.buffer import SpansBuffer
 from sentry.spans.buffer_types import Span
-from sentry.spans.consumers.process.flusher import SpanFlusher
+from sentry.spans.consumers.process.flusher import ProduceToPipe, SpanFlusher
 from sentry.testutils.helpers.options import override_options
 from tests.sentry.spans.test_buffer import DEFAULT_OPTIONS
 
@@ -49,8 +50,14 @@ def _buffer_with_segment(
 
 
 def _blocking_main_for_join_test(
-    buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
-):
+    buffer: SpansBuffer,
+    shards: list[int],
+    stopped: Synchronized[int],
+    current_drift: Synchronized[int],
+    backpressure_since: Synchronized[int],
+    healthy_since: Synchronized[int],
+    produce_to_pipe: ProduceToPipe | None,
+) -> None:
     """Module-level function for multiprocessing (must be picklable)."""
     healthy_since.value = int(time.time())
     # Block ignoring stopped to simulate stuck I/O (e.g., blocked on Kafka produce)
@@ -163,7 +170,7 @@ def test_backpressure() -> None:
     with mock.patch("time.sleep"):
         messages = []
 
-        def append(msg):
+        def append(msg: object) -> None:
             messages.append(msg)
             sleep(1.0)
 
@@ -240,8 +247,14 @@ def test_flusher_waits_for_exited_processes_during_startup() -> None:
 
     # exit without setting healthy_since, simulating a process that fails early
     def never_healthy_main(
-        buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
-    ):
+        buffer: SpansBuffer,
+        shards: list[int],
+        stopped: Synchronized[int],
+        current_drift: Synchronized[int],
+        backpressure_since: Synchronized[int],
+        healthy_since: Synchronized[int],
+        produce_to_pipe: ProduceToPipe | None,
+    ) -> None:
         return
 
     with (
@@ -267,8 +280,14 @@ def test_flusher_timeout_waiting_for_processes_startup() -> None:
 
     # block without setting healthy_since, simulating a process that hangs during startup
     def hang_main(
-        buffer, shards, stopped, current_drift, backpressure_since, healthy_since, produce_to_pipe
-    ):
+        buffer: SpansBuffer,
+        shards: list[int],
+        stopped: Synchronized[int],
+        current_drift: Synchronized[int],
+        backpressure_since: Synchronized[int],
+        healthy_since: Synchronized[int],
+        produce_to_pipe: ProduceToPipe | None,
+    ) -> None:
         while not stopped.value:
             sleep(0.05)
 
@@ -307,7 +326,7 @@ def test_flusher_join_timeout_kills_all_processes() -> None:
     # Patch BaseProcess.kill to track calls (SpawnProcess inherits from this)
     original_kill = multiprocessing.process.BaseProcess.kill
 
-    def patched_kill(self):
+    def patched_kill(self: BaseProcess) -> None:
         # Find which process_index this is
         if flusher is not None:
             for idx, proc in flusher.processes.items():

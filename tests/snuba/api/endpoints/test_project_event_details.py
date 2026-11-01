@@ -1,8 +1,10 @@
+from typing import Any
 from unittest import mock
 
 from django.urls import reverse
 
 from sentry.models.release import Release
+from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -16,7 +18,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         self.setup_data()
 
-    def setup_data(self):
+    def setup_data(self) -> None:
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.two_min_ago = before_now(minutes=2).isoformat()
         self.three_min_ago = before_now(minutes=3).isoformat()
@@ -275,7 +277,7 @@ class ProjectEventDetailsReleaseTest(APITestCase, SnubaTestCase):
 
 
 class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTest):
-    def setup_data(self):
+    def setup_data(self) -> None:
         self.one_min_ago = before_now(minutes=1).isoformat()
         self.two_min_ago = before_now(minutes=2).isoformat()
         self.three_min_ago = before_now(minutes=3).isoformat()
@@ -497,7 +499,7 @@ class ProjectEventJsonEndpointTest(APITestCase, SnubaTestCase):
             },
         )
 
-    def assert_event(self, data):
+    def assert_event(self, data: dict[str, Any]) -> None:
         assert data["event_id"] == self.event_id
         assert data["user"]["email"] == self.user.email
         assert data["datetime"] == self.min_ago
@@ -554,7 +556,7 @@ class ProjectEventDetailsTransactionTestScrubbed(APITestCase, SnubaTestCase):
             span["sentry_tags"]["user"] = "ip:127.0.0.1"
         self.event = self.store_event(data=data, project_id=self.project.id)
 
-    def url(self, event):
+    def url(self, event: Event) -> str:
         return reverse(
             "sentry-api-0-event-json",
             kwargs={

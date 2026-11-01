@@ -56,7 +56,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def get(
-        self, request: Request, project_key: ProjectKey, **kwargs
+        self, request: Request, project_key: ProjectKey, **kwargs: object
     ) -> Response[ProjectKeySerializerResponse]:
         """
         Return a client key bound to a project.
@@ -106,7 +106,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=ProjectExamples.CLIENT_KEY_RESPONSE,
     )
     def put(
-        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs: object
     ) -> Response[ProjectKeySerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update various settings for a client key.
@@ -188,7 +188,7 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         examples=None,
     )
     def delete(
-        self, request: Request, project_key: ProjectKey, project: Project, **kwargs
+        self, request: Request, project_key: ProjectKey, project: Project, **kwargs: object
     ) -> Response[None]:
         """
         Delete a client key for a given project.

@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
 from sentry.models.apitoken import ApiToken
@@ -406,7 +407,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             chunks=chunks,
         )
 
-    def _clone_request(self, checksum: str, chunks: list[str]):
+    def _clone_request(self, checksum: str, chunks: list[str]) -> Response:
         return self.client.post(
             self.url,
             data={

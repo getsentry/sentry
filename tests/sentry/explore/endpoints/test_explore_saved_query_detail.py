@@ -750,7 +750,7 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, id):
+    def url(self, id: str) -> str:
         return reverse(
             "sentry-api-0-explore-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "id": id},

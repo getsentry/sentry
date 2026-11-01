@@ -1369,10 +1369,10 @@ def flag_has_changed(org: Organization, flag_name: str) -> bool:
     return bool(getattr(old_value(org, "flags"), flag_name, None) != getattr(org.flags, flag_name))
 
 
-def update_tracked_data(model):
+def update_tracked_data(model: models.Model) -> None:
     "Updates a local copy of attributes values"
-    if model.id:
-        data = {}
+    if model.pk:
+        data: dict[str, object] = {}
         for f in model._meta.fields:
             # XXX(dcramer): this is how Django determines this (copypasta from Model)
             if isinstance(type(f).__dict__.get(f.attname), DeferredAttribute) or f.column is None:
@@ -1386,9 +1386,9 @@ def update_tracked_data(model):
                 if isinstance(v, BitHandler):
                     v = copy(v)
                 data[f.column] = v
-        model.__data = data
+        setattr(model, "__data", data)
     else:
-        model.__data = UNSAVED
+        setattr(model, "__data", UNSAVED)
 
 
 class DeleteConfirmationArgs(TypedDict):
@@ -1433,30 +1433,33 @@ def send_delete_confirmation(delete_confirmation_args: DeleteConfirmationArgs) -
     message.send_async([o.email for o in owners])
 
 
-def get_field_value(model, field):
-    if isinstance(type(field).__dict__.get(field.attname), DeferredAttribute):
+def get_field_value(model: models.Model, field: object) -> object:
+    attname = getattr(field, "attname")
+    if isinstance(type(field).__dict__.get(attname), DeferredAttribute):
         return DEFERRED
     if isinstance(field, models.ForeignKey):
         return getattr(model, field.column, None)
-    return getattr(model, field.attname, None)
+    return getattr(model, attname, None)
 
 
-def has_changed(model, field_name):
+def has_changed(model: models.Model, field_name: str) -> bool:
     "Returns ``True`` if ``field`` has changed since initialization."
-    if model.__data is UNSAVED:
+    tracked = getattr(model, "__data")
+    if tracked is UNSAVED:
         return False
     field = model._meta.get_field(field_name)
     value = get_field_value(model, field)
     if value is DEFERRED:
         return False
-    return model.__data.get(field_name) != value
+    return tracked.get(field_name) != value
 
 
-def old_value(model, field_name):
+def old_value(model: models.Model, field_name: str) -> object | None:
     "Returns the previous value of ``field``"
-    if model.__data is UNSAVED:
+    tracked = getattr(model, "__data")
+    if tracked is UNSAVED:
         return None
-    value = model.__data.get(field_name)
+    value = tracked.get(field_name)
     if value is DEFERRED:
         return None
-    return model.__data.get(field_name)
+    return tracked.get(field_name)
