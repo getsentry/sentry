@@ -340,19 +340,10 @@ plugins = ["pydantic.mypy", "mypy_django_plugin.main", "tools.mypy_helpers.plugi
 files = ["."]
 exclude = ["^.venv/", "^venv/", "^self-hosted/", "^bin/"]
 
-# minimal strictness settings
-check_untyped_defs = true
-no_implicit_reexport = true
+strict = true
 warn_unreachable = true
-warn_unused_configs = true
-warn_unused_ignores = true
-warn_redundant_casts = true
 enable_error_code = ["ignore-without-code", "redundant-self"]
 local_partial_types = true # compat with dmypy
-disallow_any_generics = true
-disallow_untyped_defs = true
-disallow_incomplete_defs = true
-strict_equality = true
 
 [tool.django-stubs]
 django_settings_module = "sentry.conf.server_mypy"
