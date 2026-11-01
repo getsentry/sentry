@@ -51,7 +51,7 @@ class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:
             raise ParseError(
-                f"Invalid value for 'visibility', valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
+                f"Invalid 'visibility'. Valid values are: {sorted(environment_visibility_filter_options.keys())!r}"
             )
         environment_projects = EnvironmentProject.objects.filter(
             project__in=self.get_projects(request, organization)

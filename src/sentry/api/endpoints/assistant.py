@@ -24,7 +24,7 @@ class Status(Enum):
 
 
 class AssistantSerializer(serializers.Serializer):
-    guide = serializers.CharField(required=False)
+    guide = serializers.CharField(required=True)
     guide_id = serializers.IntegerField(required=False)
     status = serializers.ChoiceField(choices=list(zip(VALID_STATUSES, VALID_STATUSES)))
     useful = serializers.BooleanField(required=False)
