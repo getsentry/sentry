@@ -89,12 +89,18 @@ function renderTag(kind: FieldValueKind): React.ReactNode {
 }
 
 /**
- * Aggregate options excluded for the logs dataset
+ * Aggregate options excluded for the logs dataset, because the backend doesn't
+ * define them for logs and can't build a monitor query from them
  */
 const LOGS_EXCLUDED_AGGREGATES = [
   AggregationKey.FAILURE_RATE,
   AggregationKey.FAILURE_COUNT,
   AggregationKey.APDEX,
+  AggregationKey.EPM,
+  AggregationKey.EPS,
+  AggregationKey.P100,
+  AggregationKey.PERFORMANCE_SCORE,
+  AggregationKey.OPPORTUNITY_SCORE,
 ];
 
 const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
