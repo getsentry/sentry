@@ -2,6 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
+from rest_framework.response import Response
 from urllib3.response import HTTPResponse
 
 from sentry.models.apitoken import ApiToken
@@ -23,7 +24,7 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             return ApiToken.objects.create(user=self.user, scope_list=[scope])
 
-    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved"):
+    def _post_with_token(self, token: ApiToken, query: str = "is:unresolved") -> Response:
         return self.client.post(
             self.url,
             data={"query": query},

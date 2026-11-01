@@ -15,17 +15,17 @@ T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
 
 @control_silo_endpoint
-class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint):
+class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint[GitlabIntegration]):
     @property
     def repository_field(self) -> str:
         return "project"
 
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str:
         return IntegrationProviderSlug.GITLAB.value
 
     @property
-    def installation_class(self):
+    def installation_class(self) -> type[GitlabIntegration]:
         return GitlabIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

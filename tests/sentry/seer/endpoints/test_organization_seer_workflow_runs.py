@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
@@ -395,7 +396,9 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert [len(run["executions"]) for run in result["runs"]] == [2, 2, 2]
         assert result["runs"][0]["executions"][0]["seerRunId"] is not None
 
-    def create_run(self, *, project_ids: Sequence[int] | None = None, **kwargs) -> SeerWorkflowRun:
+    def create_run(
+        self, *, project_ids: Sequence[int] | None = None, **kwargs: object
+    ) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)
         kwargs.setdefault(
             "extras",
@@ -527,7 +530,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["status"] == "failed"
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
-    def trigger(self):
+    def trigger(self) -> SeerAgentRun:
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
@@ -536,7 +539,8 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             run__workflow_execution__run_id=response.data["runId"]
         )
 
-    def result(self):
+    # justification: run result payload is decoded JSON.
+    def result(self) -> dict[str, Any]:
         return {
             "schema_version": 1,
             "data": {

@@ -1,6 +1,7 @@
 import gzip
 import math
 from hashlib import sha1
+from typing import TypedDict
 
 import pytest
 import zstandard
@@ -30,9 +31,13 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
 
+class _LaunchpadAuthHeaders(TypedDict):
+    HTTP_AUTHORIZATION: str
+
+
 class ChunkUploadTest(APITestCase):
     @pytest.fixture(autouse=True)
-    def _restore_upload_url_options(self):
+    def _restore_upload_url_options(self) -> None:
         options.delete("system.upload-url-prefix")
 
     def setUp(self) -> None:
@@ -41,7 +46,9 @@ class ChunkUploadTest(APITestCase):
             self.token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
         self.url = reverse("sentry-api-0-chunk-upload", args=[self.organization.slug])
 
-    def _get_launchpad_auth_headers(self, method="GET", data=b""):
+    def _get_launchpad_auth_headers(
+        self, method: str = "GET", data: bytes = b""
+    ) -> _LaunchpadAuthHeaders:
         """Generate Launchpad RPC signature authentication headers."""
         signature = generate_service_request_signature(
             self.url, data, ["test-secret-key"], "Launchpad"

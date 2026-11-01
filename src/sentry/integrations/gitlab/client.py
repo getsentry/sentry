@@ -306,17 +306,19 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         )
         return response
 
-    def search_projects(self, group=None, query=None, simple=True):
+    def search_projects(
+        self, group: str | None = None, query: str | None = None, simple: bool = True
+    ) -> list[Mapping[str, Any]]:
         """Get projects
 
         See https://docs.gitlab.com/ee/api/groups.html#list-a-group-s-projects
         and https://docs.gitlab.com/ee/api/projects.html#list-all-projects
         """
 
-        def gen_params(page_number, page_size):
+        def gen_params(page_number: int, page_size: int) -> Mapping[str, str | int | bool]:
             # Simple param returns limited fields for the project.
             # Really useful, because we often don't need most of the project information
-            params = {
+            params: dict[str, str | int | bool | None] = {
                 "search": query,
                 "simple": simple,
                 "order_by": "last_activity_at",
@@ -329,10 +331,13 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
                 extra_params = {"membership": True}
 
             params.update(extra_params)
-            return params
+            return cast(
+                "Mapping[str, str | int | bool]", params
+            )  # justification: requests drops None query values.
 
-        def get_results(resp):
-            return resp
+        def get_results(resp: object) -> Sequence[Mapping[str, Any]]:
+            # justification: API pages are decoded JSON.
+            return cast("Sequence[Mapping[str, Any]]", resp)
 
         if group:
             path = GitLabApiClientPath.group_projects.format(group=group)

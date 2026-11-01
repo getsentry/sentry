@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any, Optional
 from unittest.mock import patch
 from urllib.parse import urlencode
@@ -38,7 +38,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.WebClient.chat_postMessage",
             return_value=SlackResponse(
@@ -90,7 +90,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
 
     def get_linked_teams(
         self, team_ids: Sequence[int] | None = None, organization: Organization | None = None
-    ) -> QuerySet:
+    ) -> QuerySet[ExternalActor]:
         team_ids = team_ids or [self.team.id]
         organization = organization or self.organization
         return ExternalActor.objects.filter(
@@ -102,7 +102,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
             external_id=self.channel_id,
         )
 
-    def _create_user_valid_through_team_admin(self):
+    def _create_user_valid_through_team_admin(self) -> None:
         user = self.create_user(email="foo@example.com")
         self.create_member(
             team_roles=[(self.team, "admin")],
@@ -222,7 +222,7 @@ class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
         )
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_chat_postMessage(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.WebClient.chat_postMessage",
             return_value=SlackResponse(

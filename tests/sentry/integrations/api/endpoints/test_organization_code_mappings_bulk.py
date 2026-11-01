@@ -1,7 +1,9 @@
+from typing import Any
 from unittest import mock
 
 from django.db import IntegrityError
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     INVALID_SOURCE_ROOT_ERROR_MESSAGE,
@@ -37,7 +39,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    def make_post(self, data=None, **kwargs):
+    # justification: forwarded to APIClient.post as extra request options.
+    def make_post(self, data: dict[str, object] | None = None, **kwargs: Any) -> Response:
         payload = {
             "project": self.project1.slug,
             "repository": self.repo1.name,
@@ -570,7 +573,10 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         original_save = RepositoryProjectPathConfig.save
         call_count = 0
 
-        def failing_save(self_inner, *args, **kwargs):
+        # justification: forwarded verbatim to Model.save.
+        def failing_save(
+            self_inner: RepositoryProjectPathConfig, *args: Any, **kwargs: Any
+        ) -> None:
             nonlocal call_count
             call_count += 1
             if call_count == 2:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
 from urllib.parse import parse_qsl, urlparse, urlunparse
@@ -65,7 +66,7 @@ class SetupWizardView(BaseView):
         return super().handle_auth_required(request, *args, **kwargs)
 
     @allow_cors_options
-    def get(self, request: HttpRequest, wizard_hash) -> HttpResponseBase:
+    def get(self, request: HttpRequest, wizard_hash: str) -> HttpResponseBase:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
@@ -98,9 +99,9 @@ class SetupWizardView(BaseView):
         ).order_by("-date_created")
 
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
-        region_data_map: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+        region_data_map: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
 
-        org_mappings_map = {}
+        org_mappings_map: dict[int, dict[str, object]] = {}
         for mapping in org_mappings:
             region_data_map[mapping.cell_name]["org_ids"].append(mapping.organization_id)
             serialized_mapping = serialize_org_mapping(mapping)
@@ -130,7 +131,7 @@ class SetupWizardView(BaseView):
         return render_to_response("sentry/setup-wizard.html", context, request)
 
     @allow_cors_options
-    def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
+    def post(self, request: HttpRequest, wizard_hash: str | None = None) -> HttpResponse:
         """
         This updates the cache content for a specific hash
         """
@@ -185,15 +186,15 @@ class SetupWizardView(BaseView):
         return HttpResponse(status=200, content="{}", content_type="application/json")
 
     @allow_cors_options
-    def options(self, request, *args, **kwargs):
+    def options(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().options(request, *args, **kwargs)
 
     @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
 
-def serialize_org_mapping(mapping: OrganizationMapping):
+def serialize_org_mapping(mapping: OrganizationMapping) -> dict[str, object]:
     status = OrganizationStatus(mapping.status)
     return {
         "id": mapping.organization_id,
@@ -204,14 +205,18 @@ def serialize_org_mapping(mapping: OrganizationMapping):
     }
 
 
-def serialize_project_key(project_key: RpcProjectKey):
+def serialize_project_key(project_key: RpcProjectKey) -> dict[str, object]:
     return {
         "dsn": {"public": project_key.dsn_public},
         "isActive": project_key.is_active,
     }
 
 
-def serialize_project(project: RpcProject, organization: dict, keys: list[dict]):
+def serialize_project(
+    project: RpcProject,
+    organization: Mapping[str, object],
+    keys: Sequence[Mapping[str, object]],
+) -> dict[str, object]:
     return {
         "slug": project.slug,
         "id": project.id,
@@ -225,7 +230,7 @@ def serialize_project(project: RpcProject, organization: dict, keys: list[dict])
 
 def get_cache_data(
     mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
-):
+) -> dict[str, object]:
     project_key = project_key_service.get_default_project_key(
         organization_id=mapping.organization_id,
         project_id=project.id,
@@ -245,7 +250,7 @@ def get_cache_data(
     return {"apiKeys": serialized_token, "projects": [enriched_project]}
 
 
-def get_token(mappings: list[OrganizationMapping], user: RpcUser):
+def get_token(mappings: list[OrganizationMapping], user: RpcUser) -> str | Mapping[str, object]:
     can_use_org_tokens = len(mappings) == 1
 
     # If only one org, try to generate an org auth token
@@ -257,16 +262,18 @@ def get_token(mappings: list[OrganizationMapping], user: RpcUser):
             return token
 
     # Otherwise, generate a user token
-    token = ApiToken.objects.create(
+    api_token = ApiToken.objects.create(
         user_id=user.id,
         scope_list=["project:releases"],
         token_type=AuthTokenType.USER,
         expires_at=None,
     )
-    return serialize(token)
+    return serialize(api_token)
 
 
-def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
+def get_org_token(
+    mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser
+) -> Mapping[str, object] | None:
     try:
         token_str = generate_token(
             mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.cell_name))

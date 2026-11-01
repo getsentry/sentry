@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -18,7 +19,7 @@ class DataForwardingDetailsEndpointTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def get_response(self, *args, **kwargs):
+    def get_response(self, *args: object, **kwargs: object) -> Response:
         """
         Override get_response to always add the required feature flag.
         """

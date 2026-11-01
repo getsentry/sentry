@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
@@ -109,7 +109,8 @@ def get_stats_period_detail(key: str, choices: Iterable[str]) -> str:
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-def add_environment_to_queryset(queryset, filter_params):
+# justification: querysets carry runtime annotate()/values() shapes the Django plugin cannot express.
+def add_environment_to_queryset(queryset: Any, filter_params: Mapping[str, Any]) -> Any:
     if "environment" in filter_params:
         return queryset.filter(
             releaseprojectenvironment__environment__name__in=filter_params["environment"],
@@ -118,14 +119,21 @@ def add_environment_to_queryset(queryset, filter_params):
     return queryset
 
 
-def add_date_filter_to_queryset(queryset, filter_params):
+# justification: querysets carry runtime annotate()/values() shapes the Django plugin cannot express.
+def add_date_filter_to_queryset(queryset: Any, filter_params: Mapping[str, Any]) -> Any:
     """Once date has been coalesced over released and added, use it to filter releases"""
     if filter_params["start"] and filter_params["end"]:
         return queryset.filter(date__gte=filter_params["start"], date__lte=filter_params["end"])
     return queryset
 
 
-def _filter_releases_by_query(queryset, organization, query, filter_params):
+# justification: querysets carry runtime annotate()/values() shapes the Django plugin cannot express.
+def _filter_releases_by_query(
+    queryset: Any,
+    organization: Organization,
+    query: str,
+    filter_params: Mapping[str, Any],
+) -> Any:
     search_filters = parse_search_query(query)
     for search_filter in search_filters:
         if search_filter.key.name == FINALIZED_KEY:
@@ -515,7 +523,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -693,7 +703,9 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
                     status=400,
                 )
 
-            def qs_load_func(queryset, total_offset, qs_offset, limit):
+            def qs_load_func(
+                queryset: ReleaseQuerySet, total_offset: int, qs_offset: int, limit: int
+            ) -> list[Release]:
                 # We want to fetch at least total_offset + limit releases to check, to make sure
                 # we're not fetching only releases that were on previous pages.
                 release_versions = list(
@@ -1061,16 +1073,16 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
 
     def __init__(
         self,
-        queryset,
-        data_load_func,
-        apply_to_queryset,
+        queryset: ReleaseQuerySet,
+        data_load_func: Callable[..., list[object]],
+        apply_to_queryset: Callable[[ReleaseQuerySet, list[object]], ReleaseQuerySet],
         project_ids: list[int],
-        key_from_data=None,
-        max_limit=MAX_LIMIT,
-        on_results=None,
-        data_count_func=None,
-        queryset_load_func=None,
-    ):
+        key_from_data: Callable[[object], object] | None = None,
+        max_limit: int = MAX_LIMIT,
+        on_results: Callable[[list[Release]], object] | None = None,
+        data_count_func: Callable[[], int] | None = None,
+        queryset_load_func: Callable[[ReleaseQuerySet, int, int, int], list[Release]] | None = None,
+    ) -> None:
         super().__init__(queryset, max_limit=max_limit, on_results=on_results)
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
@@ -1079,7 +1091,15 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         self.queryset_load_func = queryset_load_func
         self.project_ids = project_ids
 
-    def get_result(self, limit=100, cursor=None):  # type: ignore[override]
+    # justification: matches the untyped OffsetPaginator override contract.
+    def get_result(
+        self,
+        limit: int = 100,
+        cursor: Any = None,
+        count_hits: bool = False,
+        known_hits: int | None = None,
+        max_hits: int | None = None,
+    ) -> CursorResult[Release]:
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 
@@ -1112,7 +1132,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
 
         results = []
         for row in primary_results:
-            model = mapping.get(self.key_from_data(row))
+            model = mapping.get(cast("tuple[int, str]", self.key_from_data(row)))
             if model is not None:
                 results.append(model)
 
@@ -1136,6 +1156,6 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         prev_cursor = Cursor(limit, page - 1, True, page > 0)
 
         if self.on_results:
-            results = self.on_results(results)
+            results = cast("list[Release]", self.on_results(results))
 
         return CursorResult(results=results, next=next_cursor, prev=prev_cursor)

@@ -10,6 +10,7 @@ from taskbroker_client.retry import Retry
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.gitlab.client import GitLabApiClient
 from sentry.integrations.gitlab.metrics import (
     GitLabTaskEvent,
     GitLabTaskInteractionType,
@@ -41,7 +42,9 @@ GITLAB_RETRY_CODES = (
 )
 
 
-def _discard_project_webhook(client, project_id: int | str, hook_id: int | str) -> None:
+def _discard_project_webhook(
+    client: GitLabApiClient, project_id: int | str, hook_id: int | str
+) -> None:
     # Retrying the task would not come back here: it re-reads the repository and either
     # halts or reconciles the hook the repository now holds. So this is the only chance
     # to delete the hook, and a failure only leaves it orphaned.

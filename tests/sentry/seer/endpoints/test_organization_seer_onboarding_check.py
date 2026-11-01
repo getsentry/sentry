@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import Any
+
+from rest_framework.response import Response
+
 from sentry.constants import ObjectStatus
 from sentry.seer.endpoints.organization_seer_onboarding_check import (
     has_supported_scm_integration,
@@ -239,7 +243,8 @@ class OrganizationSeerOnboardingCheckTest(APITestCase):
         self.login_as(user=self.user)
         self.project = self.create_project(organization=self.organization)
 
-    def get_response(self, organization_slug, **kwargs):
+    # justification: forwarded to APIClient.get as extra request options.
+    def get_response(self, organization_slug: str, **kwargs: Any) -> Response:
         url = f"/api/0/organizations/{organization_slug}/seer/onboarding-check/"
         return self.client.get(url, format="json", **kwargs)
 

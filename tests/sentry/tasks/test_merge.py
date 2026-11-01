@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry import buffer, eventstream
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -26,7 +26,7 @@ index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 @patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")
-    def test_merge_calls_eventstream(self, mock_eventstream) -> None:
+    def test_merge_calls_eventstream(self, mock_eventstream: MagicMock) -> None:
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
 
@@ -38,7 +38,7 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         mock_eventstream.end_merge.assert_called_once_with(eventstream_state)
 
     @patch("sentry.tasks.merge.current_task")
-    def test_selfchain_skips_when_already_spawned(self, mock_current_task) -> None:
+    def test_selfchain_skips_when_already_spawned(self, mock_current_task: MagicMock) -> None:
         # A prior delivery of this activation already spawned its continuation.
         mock_current_task.return_value = SimpleNamespace(id="merge-act-skip")
         mark_spawned("merge_groups", "merge-act-skip")
@@ -51,7 +51,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
         assert mock_delay.call_count == 0
 
     @patch("sentry.tasks.merge.current_task")
-    def test_selfchain_marks_and_dedupes_across_deliveries(self, mock_current_task) -> None:
+    def test_selfchain_marks_and_dedupes_across_deliveries(
+        self, mock_current_task: MagicMock
+    ) -> None:
         group1 = self.create_group(self.project)
         group2 = self.create_group(self.project)
         target = self.create_group(self.project)
@@ -69,7 +71,9 @@ class MergeGroupTest(TestCase, SnubaTestCase):
 
     @patch("sentry.tasks.merge.mark_spawned")
     @patch("sentry.tasks.merge.current_task", return_value=None)
-    def test_selfchain_noop_without_activation(self, mock_current_task, mock_mark) -> None:
+    def test_selfchain_noop_without_activation(
+        self, mock_current_task: MagicMock, mock_mark: MagicMock
+    ) -> None:
         # Synchronous/eager path (e.g. the initial direct call) has no current activation, so the
         # guard is inert and existing behavior is preserved.
         group1 = self.create_group(self.project)

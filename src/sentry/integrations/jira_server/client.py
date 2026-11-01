@@ -22,6 +22,8 @@ from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewType,
 )
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response import MappingApiResponse, SequenceApiResponse
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
@@ -104,7 +106,7 @@ class JiraServerClient(ApiClient):
     def user_query_param(self) -> str:
         return "username"
 
-    def get_issue(self, issue_id):
+    def get_issue(self, issue_id: str) -> MappingApiResponse:
         return self.get(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query: str) -> dict[str, object]:
@@ -140,16 +142,18 @@ class JiraServerClient(ApiClient):
             self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment}),
         )
 
-    def get_projects_list(self, cached: bool = True):
+    def get_projects_list(self, cached: bool = True) -> SequenceApiResponse:
         if not cached:
             return self.get(self.PROJECT_URL)
         return self.get_cached(self.PROJECT_URL)
 
-    def get_issue_types(self, project_id):
+    def get_issue_types(self, project_id: str | int) -> SequenceApiResponse:
         # Get a list of issue types for the given project
         return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
 
-    def get_issue_fields(self, project_id, issue_type_id):
+    def get_issue_fields(
+        self, project_id: str | int, issue_type_id: str | int
+    ) -> MappingApiResponse:
         # Get a list of fields for the issue type and project
         return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
@@ -165,7 +169,7 @@ class JiraServerClient(ApiClient):
     def get_versions(self, project: str) -> list[dict[str, object]]:
         return cast(list[dict[str, object]], self.get_cached(self.VERSIONS_URL % project))
 
-    def get_priorities(self):
+    def get_priorities(self) -> SequenceApiResponse:
         """
         XXX(schew2381): There is an existing bug where we fetch and show all project priorities instead of scoping
         them to the selected project. This is fine when manually creating a Jira Server issue b/c we surface that
@@ -193,7 +197,7 @@ class JiraServerClient(ApiClient):
             ),
         )
 
-    def search_users_for_issue(self, issue_key, email):
+    def search_users_for_issue(self, issue_key: str, email: str) -> SequenceApiResponse:
         return self.get_cached(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
@@ -205,35 +209,35 @@ class JiraServerClient(ApiClient):
             self.get_cached(self.USER_URL, params={user_id_get_param: user_id}),
         )
 
-    def create_issue(self, raw_form_data):
+    def create_issue(self, raw_form_data: Mapping[str, object]) -> MappingApiResponse:
         data = {"fields": raw_form_data}
         return self.post(self.CREATE_URL, data=data)
 
-    def get_server_info(self):
+    def get_server_info(self) -> MappingApiResponse:
         return self.get(self.SERVER_INFO_URL)
 
-    def get_valid_statuses(self):
+    def get_valid_statuses(self) -> SequenceApiResponse:
         return self.get_cached(self.STATUS_URL)
 
-    def get_transitions(self, issue_key):
+    def get_transitions(self, issue_key: str) -> SequenceApiResponse:
         return self.get(self.TRANSITION_URL % issue_key)["transitions"]
 
-    def transition_issue(self, issue_key, transition_id):
+    def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
         return self.post(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
-    def assign_issue(self, key, name_or_account_id):
+    def assign_issue(self, key: str, name_or_account_id: str) -> MappingApiResponse:
         user_id_field = self.user_id_field()
         return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
-    def set_issue_property(self, issue_key, badge_num):
+    def set_issue_property(self, issue_key: str, badge_num: int) -> MappingApiResponse:
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
-    def get_field_autocomplete(self, name, value):
+    def get_field_autocomplete(self, name: str, value: str) -> MappingApiResponse:
         if name.startswith(CUSTOMFIELD_PREFIX):
             # Transform `customfield_0123` into `cf[0123]`
             cf_id = name[len(CUSTOMFIELD_PREFIX) :]
@@ -353,7 +357,8 @@ class JiraServerSetupClient(ApiClient):
             # justification: Jira webhook creation returns a JSON object.
             return cast(dict[str, object], self.post(webhook_url, auth=auth, data=data))
 
-    def request(self, *args, **kwargs):
+    # justification: forwards arbitrary Django request arguments.
+    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
         """
         Add OAuth1 RSA signatures.
         """

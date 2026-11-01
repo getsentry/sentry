@@ -172,23 +172,23 @@ class DescriptionParsingTest(TestCase):
 
     _endpoint = OrganizationInsightsTreeEndpoint()
 
-    def _parse(self, desc):
+    def _parse(self, desc: str) -> tuple[object, object]:
         response = type("R", (), {"data": {"data": [{"span.description": desc}]}})()
         self._endpoint._separate_span_description_info(response)
         row = response.data["data"][0]
         return row["function.nextjs.component_type"], row["function.nextjs.path"]
 
-    def test_page_simple_route(self):
+    def test_page_simple_route(self) -> None:
         assert self._parse("Page Server Component (/dashboard)") == self._parse(
             'resolve page server component "/dashboard"'
         )
 
-    def test_page_nested_route(self):
+    def test_page_nested_route(self) -> None:
         assert self._parse("Page Server Component (/nested/route)") == self._parse(
             'resolve page server component "/nested/route"'
         )
 
-    def test_layout_simple_route(self):
+    def test_layout_simple_route(self) -> None:
         assert self._parse("Layout Server Component (/settings)") == self._parse(
             'resolve layout server component "/settings"'
         )

@@ -63,6 +63,12 @@ class GroupStatsQueryArgs(NamedTuple):
     stats_period_end: datetime | None = None
 
 
+class _TSDBQueryParams(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+
+
 class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
@@ -85,21 +91,25 @@ class GroupStatsMixin:
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
         user: User | RpcUser | AnonymousUser | None = None,
-        **kwargs,
-    ):
-        pass
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
+        return None
 
     def get_stats(
         self,
         item_list: Sequence[Group],
-        user,
+        user: User | RpcUser | AnonymousUser,
         stats_query_args: GroupStatsQueryArgs,
-        **kwargs,
-    ):
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             if stats_query_args.stats_period == "auto":
@@ -128,7 +138,7 @@ class GroupStatsMixin:
                     delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
                     rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
 
-                query_params = {
+                query_params: _TSDBQueryParams = {
                     "start": stats_query_args.stats_period_start,
                     "end": stats_query_args.stats_period_end,
                     "rollup": max(int(rollup), 1),  # Zero is a bad thing to divide by
@@ -145,9 +155,14 @@ class GroupStatsMixin:
             return self.query_tsdb(
                 item_list,
                 query_params,
+                conditions=conditions,
+                environment_ids=environment_ids,
                 user=user,
+                aggregation_override=aggregation_override,
                 **kwargs,
             )
+
+        return None
 
 
 class _MaybeStats(TypedDict, total=False):
@@ -189,7 +204,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 GroupStatsQueryArgs(self.stats_period, None, None),
             )
             for item in item_list:
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
         return attrs
 
@@ -214,12 +229,13 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
         user: User | RpcUser | AnonymousUser | None = None,
-        **kwargs,
-    ):
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -243,7 +259,7 @@ class _SeenStatsFunc(Protocol):
         item_list: Sequence[Group],
         start: datetime | None = None,
         end: datetime | None = None,
-        conditions=None,
+        conditions: Sequence[Sequence[object]] | None = None,
         environment_ids: list[int] | None = None,
     ) -> _SeenStatsQueryResult: ...
 
@@ -393,7 +409,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 if filtered_stats:
                     attrs[item]["filtered_stats"] = filtered_stats[item.id]
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
             if self._expand("sessions"):
                 uniq_project_ids = list({item.project_id for item in item_list})
@@ -581,15 +597,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: Sequence[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         aggregation_override: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if not groups:
-            return
+            return None
 
         error_issue_ids, generic_issue_ids = [], []
         for group in groups:
@@ -612,7 +628,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             **query_params,
         )
 
-        results = {}
+        results: dict[int, list[tuple[int, int]]] = {}
 
         if error_issue_ids:
             results.update(

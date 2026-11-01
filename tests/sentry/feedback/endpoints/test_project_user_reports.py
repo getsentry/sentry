@@ -473,8 +473,8 @@ class CreateProjectUserReportTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.feedback.usecases.ingest.create_feedback.produce_occurrence_to_kafka")
     def test_simple_shim_to_feedback_no_event_should_not_call(
-        self, mock_produce_occurrence_to_kafka
-    ):
+        self, mock_produce_occurrence_to_kafka: MagicMock
+    ) -> None:
         self.login_as(user=self.user)
 
         url = _make_url(self.project)

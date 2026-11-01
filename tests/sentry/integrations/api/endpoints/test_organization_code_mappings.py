@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.integrations.api.endpoints.organization_code_mappings import (
     BRANCH_NAME_ERROR_MESSAGE,
@@ -42,7 +43,7 @@ class OrganizationCodeMappingsTest(APITestCase):
             args=[self.organization.slug],
         )
 
-    def make_post(self, data=None):
+    def make_post(self, data: dict[str, object] | None = None) -> Response:
         config_data = {
             "repositoryId": self.repo1.id,
             "projectId": self.project1.id,

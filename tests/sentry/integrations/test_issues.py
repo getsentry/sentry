@@ -577,8 +577,8 @@ class IssueSyncIntegrationWebhookTest(TestCase):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.analytics.record")
     def test_status_sync_inbound_resolve_webhook_and_sends_to_sentry_app(
-        self, mock_record, mock_safe_urlopen
-    ):
+        self, mock_record: MagicMock, mock_safe_urlopen: MagicMock
+    ) -> None:
         # Run the sync
         with self.feature("organizations:integrations-issue-sync"), self.tasks():
             assert isinstance(self.installation, IssueSyncIntegrationBase)

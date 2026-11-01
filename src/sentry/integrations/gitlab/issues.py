@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping, Sequence
-from typing import cast
+from typing import Any, cast
 
 from django.urls import reverse
 
+from sentry.integrations.mixins.issues import IssuePayload
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.source_code_management.issues import SourceCodeIssueIntegration
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
@@ -40,7 +42,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         return ["project"]
 
     def get_projects_and_default(
-        self, group: Group | None, params: Mapping[str, object], **kwargs
+        self, group: Group | None, params: Mapping[str, object], **kwargs: object
     ) -> tuple[str, list[tuple[str, str]]]:
         if group:
             defaults = self.get_project_defaults(group.project_id)
@@ -94,7 +96,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             *fields,
         ]
 
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data: IssuePayload, **kwargs: object) -> IssuePayload:
         client = self.get_client()
 
         project_id = data.get("project")
@@ -127,7 +129,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             "metadata": {"display_name": project_and_issue_iid},
         }
 
-    def after_link_issue(self, external_issue, **kwargs):
+    # justification: forwards provider hook context.
+    def after_link_issue(self, external_issue: ExternalIssue, **kwargs: Any) -> None:
         data = kwargs["data"]
         project_id, issue_id = data.get("externalIssue", "").split("#")
         if not (project_id and issue_id):
@@ -144,7 +147,9 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         except ApiError as e:
             raise IntegrationError(self.message_from_error(e))
 
-    def get_link_issue_config(self, group: Group, **kwargs) -> list[IntegrationIssueConfigField]:
+    def get_link_issue_config(
+        self, group: Group, **kwargs: Any
+    ) -> list[IntegrationIssueConfigField]:
         params = kwargs.pop("params", {})
         default_project, project_choices = self.get_projects_and_default(group, params, **kwargs)
 
@@ -197,7 +202,8 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             )
         return {"externalIssue": f"{match[1]}#{match[2]}"}
 
-    def get_issue(self, issue_id, **kwargs):
+    def get_issue(self, issue_id: str | int, **kwargs: object) -> IssuePayload:
+        issue_id = cast(str, issue_id)
         project_id, issue_num = issue_id.split("#")
         client = self.get_client()
 
@@ -223,5 +229,5 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
             "metadata": {"display_name": project_and_issue_iid},
         }
 
-    def get_issue_display_name(self, external_issue):
+    def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         return external_issue.metadata["display_name"]

@@ -40,7 +40,7 @@ class Bit:
     def __bool__(self) -> bool:
         return self.is_set
 
-    def __eq__(self, value):
+    def __eq__(self, value: object) -> bool:
         if isinstance(value, Bit):
             return value.number == self.number and value.is_set == self.is_set
         elif isinstance(value, bool):
@@ -58,52 +58,52 @@ class Bit:
     def __invert__(self) -> Bit:
         return self.__class__(self.number, not self.is_set)
 
-    def __and__(self, value):
+    def __and__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return value & self.mask
 
-    def __rand__(self, value):
+    def __rand__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return self.mask & value
 
-    def __or__(self, value):
+    def __or__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return value | self.mask
 
-    def __ror__(self, value):
+    def __ror__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return self.mask | value
 
-    def __lshift__(self, value):
+    def __lshift__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return value << self.mask
 
-    def __rlshift__(self, value):
+    def __rlshift__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return self.mask << value
 
-    def __rshift__(self, value):
+    def __rshift__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return value >> self.mask
 
-    def __rrshift__(self, value):
+    def __rrshift__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return self.mask >> value
 
-    def __xor__(self, value):
+    def __xor__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return value ^ self.mask
 
-    def __rxor__(self, value):
+    def __rxor__(self, value: int | Bit) -> int:
         if isinstance(value, Bit):
             value = value.mask
         return self.mask ^ value
@@ -150,20 +150,20 @@ class BitHandler:
             return False
         return self._value == other._value
 
-    def __lt__(self, other):
+    def __lt__(self, other: int | BitHandler) -> bool:
         return int(self._value) < other
 
-    def __le__(self, other):
+    def __le__(self, other: int | BitHandler) -> bool:
         return int(self._value) <= other
 
-    def __gt__(self, other):
+    def __gt__(self, other: int | BitHandler) -> bool:
         return int(self._value) > other
 
-    def __ge__(self, other):
+    def __ge__(self, other: int | BitHandler) -> bool:
         return int(self._value) >= other
 
-    def __cmp__(self, other):
-        return cmp(self._value, other)
+    def __cmp__(self, other: int | BitHandler) -> int:
+        return cmp(self._value, int(other))
 
     def __repr__(self) -> str:
         return "<{}: {}>".format(
@@ -205,7 +205,7 @@ class BitHandler:
         bit_number = self._keys.index(key)
         return bool(self.get_bit(bit_number))
 
-    def __getattr__(self, key):
+    def __getattr__(self, key: str) -> Bit:
         if key.startswith("_"):
             return object.__getattribute__(self, key)
         if key not in self._keys:

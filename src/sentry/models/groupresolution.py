@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from datetime import datetime
+
 import orjson
 from django.db import models
 from django.utils import timezone
@@ -15,6 +19,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.group import Group
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.releases.constants import DB_VERSION_LENGTH
 from sentry.models.releases.util import release_order_date
@@ -71,14 +76,16 @@ class GroupResolution(Model):
     __repr__ = sane_repr("group_id", "release_id")
 
     @classmethod
-    def has_resolution(cls, group, release):
+    def has_resolution(cls, group: Group, release: Release | None) -> bool:
         """
         Determine if a resolution exists for the given group and release.
 
         This is used to suggest if a regression has occurred.
         """
 
-        def compare_release_dates_for_in_next_release(res_release, res_release_datetime, release):
+        def compare_release_dates_for_in_next_release(
+            res_release: int, res_release_datetime: datetime, release: Release
+        ) -> bool:
             """
             Helper function that compares release versions based on date for
             `GroupResolution.Type.in_next_release`

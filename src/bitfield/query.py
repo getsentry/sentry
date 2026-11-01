@@ -1,10 +1,24 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db.models.lookups import Exact
 
 from bitfield.types import Bit, BitHandler
 
+if TYPE_CHECKING:
+    from django.db.backends.base.base import BaseDatabaseWrapper
+    from django.db.models.sql.compiler import _AsSqlType, _ParamT
 
-class BitQueryExactLookupStub(Exact):
-    def get_db_prep_lookup(self, value, connection, prepared=False):
+    _ExactBase = Exact[object]
+else:
+    _ExactBase = Exact
+
+
+class BitQueryExactLookupStub(_ExactBase):
+    def get_db_prep_lookup(
+        self, value: _ParamT, connection: BaseDatabaseWrapper, prepared: bool = False
+    ) -> _AsSqlType:
         if isinstance(value, (BitHandler, Bit)):
             raise NotImplementedError("get_db_prep_lookup not supported for Bit, BitHandler")
         return super().get_db_prep_lookup(value, connection)

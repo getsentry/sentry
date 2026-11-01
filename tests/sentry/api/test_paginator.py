@@ -1,5 +1,6 @@
 import base64
 from datetime import UTC, datetime, timedelta
+from typing import Any
 from unittest import TestCase as SimpleTestCase
 
 import pytest
@@ -622,7 +623,7 @@ class SequencePaginatorTestCase(SimpleTestCase):
 
 class GenericOffsetPaginatorTest(SimpleTestCase):
     def test_simple(self) -> None:
-        def data_fn(offset=None, limit=None):
+        def data_fn(offset: int, limit: int) -> list[int]:
             return [i for i in range(offset, limit)]
 
         paginator = GenericOffsetPaginator(data_fn=data_fn)
@@ -989,7 +990,10 @@ class TestChainPaginator(SimpleTestCase):
         assert third.next.has_results is False
 
 
-def dummy_snuba_request_method(limit, offset, org_id, proj_id, timestamp):
+# justification: raw Snuba query response data is decoded JSON.
+def dummy_snuba_request_method(
+    limit: int, offset: int, org_id: int, proj_id: int, timestamp: datetime
+) -> list[Any]:
     referrer = "tests.sentry.api.test_paginator"
     query = Query(
         match=Entity("events"),
@@ -1061,7 +1065,8 @@ class TestEAPPageTokenPaginator:
     cls = EAPPageTokenPaginator
 
     def test_first_page_empty(self) -> None:
-        def data_fn(limit, page_token):
+        # justification: paginator data payload is heterogeneous.
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             return {
                 "data": [],
                 "page_token": PageToken(end_pagination=True),
@@ -1074,7 +1079,8 @@ class TestEAPPageTokenPaginator:
         assert page.next.has_results is False
 
     def test_first_page_all_data(self) -> None:
-        def data_fn(limit, page_token):
+        # justification: paginator data payload is heterogeneous.
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             return {
                 "data": [1, 2, 3],
                 "page_token": PageToken(end_pagination=True),
@@ -1089,7 +1095,8 @@ class TestEAPPageTokenPaginator:
     def test_first_page_partial_data(self) -> None:
         expected_page_token = PageToken(filter_offset=TraceItemFilter(and_filter=AndFilter()))
 
-        def data_fn(limit, page_token):
+        # justification: paginator data payload is heterogeneous.
+        def data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
             if page_token is None:
                 return {
                     "data": [1, 2, 3],

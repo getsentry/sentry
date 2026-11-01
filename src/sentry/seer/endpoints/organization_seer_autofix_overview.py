@@ -265,8 +265,11 @@ def _coding_agent_repo_eligibility(
     return eligibility
 
 
+# justification: serialized group output is a dynamic API payload.
 def _serialize_issue(
-    group: Group, serialized_group: dict, repo_eligibility: dict[int, _RepoEligibility] | None
+    group: Group,
+    serialized_group: dict[str, Any],
+    repo_eligibility: dict[int, _RepoEligibility] | None,
 ) -> IssuePayload:
     project: IssueProjectPayload = {
         "id": str(group.project_id),
@@ -315,7 +318,7 @@ def _serialize_code_changes(artifact: CodeChangesArtifactExtras) -> list[CodeCha
 def _serialize_run(
     group: Group,
     run: _RunMilestones,
-    serialized_group: dict,
+    serialized_group: dict[str, Any],
     pull_requests: list[PullRequestPayload],
     status: str | None,
     repo_eligibility: dict[int, _RepoEligibility] | None,

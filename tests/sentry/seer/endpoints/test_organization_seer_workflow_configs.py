@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.db import connections, router
 from django.test import override_settings
@@ -244,7 +245,8 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert len(response.data["configs"]) == 1
         assert response.data["configs"][0]["projects"] == [accessible.id]
 
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+    # justification: forwarded to the factory's untyped **kwargs.
+    def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
         )
@@ -502,7 +504,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             )
         )
 
-    def create_config(self, **kwargs) -> SeerWorkflowConfig:
+    # justification: forwarded to the factory's untyped **kwargs.
+    def create_config(self, **kwargs: Any) -> SeerWorkflowConfig:
         return Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, **kwargs
         )
