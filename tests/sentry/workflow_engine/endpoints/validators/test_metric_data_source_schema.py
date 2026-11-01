@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 from typing import Any
 
 import jsonschema
@@ -126,3 +127,63 @@ def test_accepted_aggregates(data_source: dict[str, Any], title: str) -> None:
 )
 def test_rejected_aggregates(data_source: dict[str, Any]) -> None:
     assert _matching_titles(data_source) == []
+
+
+_REPO_ROOT = Path(__file__).parents[5]
+_FIELDS_TS = _REPO_ROOT / "static/app/utils/fields/index.ts"
+_MONITOR_VISUALIZE_TSX = (
+    _REPO_ROOT / "static/app/views/detectors/components/forms/metric/visualize.tsx"
+)
+
+# The logs monitor UI offers these, but the logs definitions don't define them, so building the
+# subscription request fails with "Unknown function". Remove entries as the UI stops offering them.
+_OFFERED_BUT_UNSUPPORTED = {
+    "trace_item_log": {"epm", "eps", "p100", "performance_score", "opportunity_score"},
+}
+
+
+def _ts_array(source: str, name: str) -> list[str]:
+    match = re.search(rf"const {name}(?:: \w+\[\])? = \[(.*?)\];", source, re.DOTALL)
+    assert match, f"{name} not found; update this parser to match the frontend source"
+    return re.findall(r"AggregationKey\.(\w+)", match.group(1))
+
+
+def _monitor_ui_aggregates() -> dict[str, set[str]]:
+    """Mirrors getEAPAllowedAggregates in the monitor form: the functions the UI offers per
+    event type, as backend function names."""
+    fields_source = _FIELDS_TS.read_text()
+    enum_match = re.search(r"export enum AggregationKey \{(.*?)\}", fields_source, re.DOTALL)
+    assert enum_match, "AggregationKey not found; update this parser to match the frontend source"
+    function_names = dict(re.findall(r"(\w+) = '([^']+)'", enum_match.group(1)))
+
+    visualize_source = _MONITOR_VISUALIZE_TSX.read_text()
+    offered = _ts_array(fields_source, "ALLOWED_EXPLORE_VISUALIZE_AGGREGATES") + _ts_array(
+        visualize_source, "ADDITIONAL_EAP_AGGREGATES"
+    )
+    logs_excluded = _ts_array(visualize_source, "LOGS_EXCLUDED_AGGREGATES")
+    return {
+        "trace_item_span": {function_names[key] for key in offered},
+        "trace_item_log": {function_names[key] for key in offered if key not in logs_excluded},
+    }
+
+
+@pytest.mark.parametrize(
+    ("event_type", "title"), [("trace_item_span", "Spans"), ("trace_item_log", "Logs")]
+)
+def test_monitor_ui_aggregates_are_in_schema(event_type: str, title: str) -> None:
+    """The monitor UI lists its aggregates in TypeScript, separately from EAP_FUNCTIONS. They
+    drifted before: the UI offered opportunity_score for months while the backend rejected it.
+    A failure means the UI offers a function that EAP_FUNCTIONS (src/sentry/incidents/logic.py)
+    or the dataset's definitions don't support. Add it there, or stop offering it."""
+    offered = _monitor_ui_aggregates()[event_type]
+    assert offered
+
+    unsupported = sorted(
+        function
+        for function in offered - _OFFERED_BUT_UNSUPPORTED.get(event_type, set())
+        if _matching_titles(
+            _data_source("events_analytics_platform", [event_type], f"{function}()")
+        )
+        != [title]
+    )
+    assert unsupported == []
