@@ -3,6 +3,23 @@ OpenAPI schema for the data sources of a metric monitor.
 
 Each entry is built from the constants that `SnubaQueryValidator` validates against, so that API
 clients can read the accepted `aggregate` values from the schema instead of copying them.
+
+Scope: the detector endpoints use one request schema for every detector type, but the public API
+only documents `metric_issue` monitors, so only metric data sources are described here. Cron and
+uptime detectors still send their own data sources, and their validators accept them, but the
+schema doesn't describe them. Adding a catch-all branch for them would make the `oneOf` match
+any object, so clients could no longer use it to check aggregates.
+
+The aggregate lists document what metric monitors support, which is narrower than what the
+validator lets through:
+
+- Errors: the validator accepts any Discover function whose column is empty or allowlisted, as
+  long as a test query runs. The schema lists `count()` and `count_unique()` over the
+  allowlisted columns. The monitor UI offers `count()` and `count_unique(user)`.
+- Spans: `get_column_from_aggregate` also lets through Insights functions such as
+  `http_response_rate`, `cache_miss_rate`, and `count_scores`. That shortcut dates from 2024
+  alerts on the span metrics dataset. Since 2025, Insights creates monitors with comparable
+  `count()` queries instead, because Explore and alerts don't support these functions.
 """
 
 import re

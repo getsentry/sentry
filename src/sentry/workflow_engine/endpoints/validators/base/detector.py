@@ -68,8 +68,8 @@ class DetectorInput(TypedDict):
     enabled: NotRequired[bool]
 
 
-# Each detector type validates its own data sources, so this only documents the metric monitor
-# data sources that the public API describes.
+# Each detector type validates its own data sources. The public API only documents metric
+# monitors, so the schema only describes metric data sources; see metric_data_source_schema.
 @extend_schema_field({"type": "array", "items": METRIC_DATA_SOURCE_SCHEMA})
 class DataSourcesField(serializers.ListField):
     pass

@@ -61,6 +61,14 @@ def test_errors_aggregates_pass_column_support_check(aggregate: str) -> None:
             _data_source("events_analytics_platform", ["trace_item_span"], "p100(span.duration)"),
             "Spans",
         ),
+        (
+            _data_source(
+                "events_analytics_platform",
+                ["trace_item_span"],
+                "opportunity_score(measurements.score.lcp)",
+            ),
+            "Spans",
+        ),
         (_data_source("events_analytics_platform", ["trace_item_log"], "count(message)"), "Logs"),
         (
             _data_source(
@@ -104,6 +112,12 @@ def test_accepted_aggregates(data_source: dict[str, Any], title: str) -> None:
         _data_source("events", ["error"], "p95(transaction.duration)"),
         _data_source(
             "events_analytics_platform", ["trace_item_span"], "percentile(measurements.lcp,0.95)"
+        ),
+        _data_source("events_analytics_platform", ["trace_item_span"], "http_response_rate(5)"),
+        _data_source(
+            "events_analytics_platform",
+            ["trace_item_log"],
+            "performance_score(measurements.score.lcp)",
         ),
         _data_source("events_analytics_platform", ["trace_item_log"], "p100(severity)"),
         _data_source("events_analytics_platform", ["trace_item_log"], "failure_rate()"),
