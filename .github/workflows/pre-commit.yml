@@ -49,15 +49,7 @@ jobs:
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
         with:
           token: ${{ github.token }}
-          # Enable listing of files matching each filter.
-          # Paths to files will be available in `${FILTER_NAME}_files` output variable.
-          list-files: json
-
-          # It doesn't make sense to lint deleted files.
-          # Therefore we specify we are only interested in added or modified files.
           filters: |
-            all:
-              - added|modified: '**/*'
             frontend:
               - 'static/**'
               - 'tests/js/**'
@@ -94,10 +86,18 @@ jobs:
       - name: Run prek on PR commits
         id: prek
         env:
-          ALL_FILES: ${{ steps.changes.outputs.all_files }}
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PULL_REQUEST_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.sha }}
         run: |
-          jq '.[]' --raw-output <<< "$ALL_FILES" |
-            xargs .venv/bin/prek run -q --files
+          if [[ -n "$PULL_REQUEST_NUMBER" ]]; then
+            gh api --paginate "repos/$REPOSITORY/pulls/$PULL_REQUEST_NUMBER/files?per_page=100" \
+              --jq '.[] | select(.status != "removed") | .filename'
+          else
+            git fetch --no-tags --depth=2 origin "$HEAD_SHA"
+            git diff --name-only --diff-filter=AM "$HEAD_SHA^" "$HEAD_SHA"
+          fi | xargs .venv/bin/prek run -q --files
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'
