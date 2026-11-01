@@ -9,7 +9,7 @@ import threading
 from collections.abc import Callable, Generator, Iterator, MutableSequence, Sequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any, Generic, Mapping, TypeVar, cast
 from urllib.parse import urlparse
 
 import pytest
@@ -93,7 +93,10 @@ class Browser:
         Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
         """
 
-        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        # justification: the script returns the integer scrollHeight property.
+        return cast(
+            "int", self.driver.execute_script("return document.body.parentNode.scrollHeight")
+        )
 
     def set_window_size(
         self,
@@ -342,8 +345,10 @@ class Browser:
         Retrieve all items in local storage
         """
 
-        return self.driver.execute_script(
-            "Object.fromEntries(Object.entries(window.localStorage));"
+        # justification: the script returns the string-valued entries of localStorage.
+        return cast(
+            "dict[str, str]",
+            self.driver.execute_script("Object.fromEntries(Object.entries(window.localStorage));"),
         )
 
     def get_local_storage_item(self, key: str) -> str | None:
@@ -351,7 +356,10 @@ class Browser:
         Retrieve key from local storage, this will fail if you use single quotes in your keys.
         """
 
-        return self.driver.execute_script(f"window.localStorage.getItem('{key}')")
+        # justification: the script returns the stored string or null.
+        return cast(
+            "str | None", self.driver.execute_script(f"window.localStorage.getItem('{key}')")
+        )
 
     def save_cookie(
         self,
@@ -470,12 +478,15 @@ def _launch_chrome(config: pytest.Config) -> webdriver.Chrome:
     return driver
 
 
-class _Background:
+_BackgroundResult = TypeVar("_BackgroundResult")
+
+
+class _Background(Generic[_BackgroundResult]):
     """Runs a function on a thread and hands its result back when joined."""
 
-    def __init__(self, name: str, fn: Callable[[], Any]) -> None:
+    def __init__(self, name: str, fn: Callable[[], _BackgroundResult]) -> None:
         self._fn = fn
-        self._result: Any = None
+        self._result: _BackgroundResult | None = None
         self._error: BaseException | None = None
         self._thread = threading.Thread(target=self._run, name=name, daemon=True)
         self._thread.start()
@@ -486,7 +497,7 @@ class _Background:
         except BaseException as e:
             self._error = e
 
-    def join(self) -> Any:
+    def join(self) -> _BackgroundResult | None:
         self._thread.join()
         if self._error is not None:
             raise self._error
@@ -504,7 +515,7 @@ def _populate_url_resolver() -> None:
 # The first Chrome launch on a fresh worker and the URLconf import both take
 # seconds, and neither needs the test databases. Starting them once collection
 # finishes lets them overlap with the test database setup, which runs next.
-_warmup: dict[str, _Background] = {}
+_warmup: dict[str, _Background[webdriver.Chrome | None]] = {}
 
 
 @pytest.hookimpl(trylast=True)

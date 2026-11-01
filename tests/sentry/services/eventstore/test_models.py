@@ -3,9 +3,10 @@ import pickle
 import time
 from collections.abc import Callable, Iterator, Sequence
 from contextlib import AbstractContextManager, contextmanager
-from typing import cast
+from typing import Any, cast
 from unittest import mock
 
+import orjson
 import pytest
 
 from sentry import nodestore
@@ -672,9 +673,14 @@ def test_renormalization(
     old_normalize = StoreNormalizer.normalize_event
     normalize_mock_calls = []
 
-    def normalize(*args: object, **kwargs: object) -> object:
+    def normalize(
+        normalizer: StoreNormalizer,
+        event: Any = None,
+        raw_event: Any = None,
+        json_loads: Callable[[str | bytes], Any] = orjson.loads,
+    ) -> dict[str, Any]:
         normalize_mock_calls.append(1)
-        return old_normalize(*args, **kwargs)
+        return old_normalize(normalizer, event, raw_event, json_loads)
 
     with (
         mock.patch("sentry_relay.processing.StoreNormalizer.normalize_event", normalize),

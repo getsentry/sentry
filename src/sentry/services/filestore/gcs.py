@@ -9,6 +9,7 @@ from collections.abc import Callable
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
 from typing import IO, TYPE_CHECKING, TypeVar, cast
+from typing import cast as typing_cast
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -25,6 +26,9 @@ from google.api_core.exceptions import (
 from google.auth.credentials import Credentials
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
+
+# justification: google.cloud does not annotate the NotFound constructor.
+_NotFound = typing_cast("Callable[[str], NotFound]", NotFound)
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.client import Client
@@ -68,7 +72,7 @@ T = TypeVar("T")
 # _client cache is a 3-tuple of project_id, credentials, Client
 # this is so if any information changes under it, it invalidates
 # the cache. This scenario is possible since `options` are dynamic
-_client: tuple[None, None, None] | tuple[str | None, object | None, object] = None, None, None
+_client: tuple[str | None, object | None, Client | None] = (None, None, None)
 
 
 def try_repeated(func: Callable[[], T]) -> T:
@@ -105,7 +109,7 @@ def try_repeated(func: Callable[[], T]) -> T:
         idx += 1
 
 
-def get_client(project_id: str | None, credentials: object | None) -> object:
+def get_client(project_id: str | None, credentials: object | None) -> Client:
     global _client
     if _client[2] is None or (project_id, credentials) != (_client[0], _client[1]):
         client = Client(project=project_id, credentials=credentials)
@@ -113,9 +117,11 @@ def get_client(project_id: str | None, credentials: object | None) -> object:
         adapter = TimeoutAdapter(timeout=GCS_TIMEOUT)
         session.mount("http://", adapter)
         session.mount("https://", adapter)
-        client_obj: object = client
-        _client = (project_id, credentials, client_obj)
-    return _client[2]
+        _client = (project_id, credentials, client)
+    cached_client = _client[2]
+    if cached_client is None:
+        raise RuntimeError("GCS client was not cached")
+    return cached_client
 
 
 def clean_name(name: str) -> str:
@@ -384,7 +390,7 @@ class GoogleCloudStorage(Storage):
         blob = self.bucket.get_blob(name)
 
         if blob is None:
-            raise NotFound(f"File does not exist: {name}")
+            raise _NotFound(f"File does not exist: {name}")
 
         return blob
 

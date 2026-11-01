@@ -16,6 +16,7 @@ from sentry.integrations.slack.utils.errors import (
     SLACK_SDK_ERROR_CATEGORIES,
     SLACK_SDK_HALT_ERROR_CATEGORIES,
     SlackSdkErrorCategory,
+    TypedSlackApiError,
     unpack_slack_api_error,
 )
 
@@ -30,7 +31,7 @@ def _make_slack_api_error(error: str) -> SlackApiError:
         headers={},
         status_code=200,
     )
-    return SlackApiError(
+    return TypedSlackApiError(
         message=f"The request to the Slack API failed. (error: {error})", response=response
     )
 
@@ -90,7 +91,7 @@ class TestUnpackSlackApiError:
             headers={},
             status_code=200,
         )
-        exc = SlackApiError(message="The request to the Slack API failed.", response=response)
+        exc = TypedSlackApiError(message="The request to the Slack API failed.", response=response)
         result = unpack_slack_api_error(exc)
         assert result is NON_JSON_RESPONSE
         assert result in SLACK_SDK_HALT_ERROR_CATEGORIES

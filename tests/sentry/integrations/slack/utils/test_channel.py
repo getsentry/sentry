@@ -17,6 +17,7 @@ from sentry.integrations.slack.utils.channel import (
     is_input_a_user_id,
     validate_user_id,
 )
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.shared_integrations.exceptions import (
     ApiRateLimitedError,
     DuplicateDisplayNameError,
@@ -283,7 +284,7 @@ def create_user_response(*, user: Mapping[str, object]) -> SlackResponse:
 
 
 def create_user_error(*, error: str, status_code: int = 400) -> SlackApiError:
-    return SlackApiError(
+    return TypedSlackApiError(
         message=error,
         response=SlackResponse(
             client=None,

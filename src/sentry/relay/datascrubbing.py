@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Iterator, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import orjson
 from rest_framework import serializers
@@ -92,7 +92,11 @@ def get_all_pii_configs(project: Project) -> Iterator[_PIIConfig]:
 
     settings = get_datascrubbing_settings(project)
 
-    yield convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads)
+    # justification: relay returns a PII config mapping with the _PIIConfig keys.
+    yield cast(
+        "_PIIConfig",
+        convert_datascrubbing_config(settings, json_dumps=orjson.dumps, json_loads=orjson.loads),
+    )
 
 
 @traces.trace

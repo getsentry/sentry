@@ -1,6 +1,5 @@
 from datetime import timedelta
 from io import BytesIO
-from typing import cast
 from unittest import mock
 from uuid import uuid4
 
@@ -32,8 +31,7 @@ def create_trusted_relay_signature(secret_key: SecretKey) -> str:
         rustcall(lib.relay_secretkey_sign, secret_key._get_objptr(), data_buf), free=True
     )
 
-    # justification: decode_str decodes the FFI buffer to str; its stub is loose.
-    return cast("str", signature)
+    return signature
 
 
 @thread_leak_allowlist(reason="kafka testutils", issue=97046)

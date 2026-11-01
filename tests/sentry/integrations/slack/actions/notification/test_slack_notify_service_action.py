@@ -2,10 +2,10 @@ from copy import deepcopy
 from unittest.mock import MagicMock, patch
 
 import orjson
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
@@ -111,7 +111,7 @@ class TestInit(RuleTestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_after_noa_slo_halt(self, mock_post: MagicMock, mock_record: MagicMock) -> None:
-        mock_post.side_effect = SlackApiError(
+        mock_post.side_effect = TypedSlackApiError(
             message="account_inactive",
             response=SlackResponse(
                 client=None,
@@ -169,7 +169,7 @@ class TestInit(RuleTestCase):
         mock_post: MagicMock,
         mock_record: MagicMock,
     ) -> None:
-        mock_post.side_effect = SlackApiError(
+        mock_post.side_effect = TypedSlackApiError(
             message="asdf",
             response=SlackResponse(
                 client=None,

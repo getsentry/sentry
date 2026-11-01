@@ -6,11 +6,11 @@ import pytest
 from django.db import router
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.slack.webhooks.action import (
@@ -142,7 +142,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Archive", "emoji": True},
             "value": "archive_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=7).timestamp(),
+            "action_ts": str(before_now(minutes=7).timestamp()),
         }
 
     def get_assign_status_action(self, type: str, text: str, id: int) -> dict[str, Any]:
@@ -155,7 +155,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
                 "value": f"{type}:{id}",
             },
             "placeholder": {"type": "plain_text", "text": "Select Assignee...", "emoji": True},
-            "action_ts": before_now(minutes=5).timestamp(),
+            "action_ts": str(before_now(minutes=5).timestamp()),
         }
 
     def get_resolve_status_action(self) -> dict[str, Any]:
@@ -165,7 +165,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Resolve", "emoji": True},
             "value": "resolve_dialog",
             "type": "button",
-            "action_ts": before_now(minutes=3).timestamp(),
+            "action_ts": str(before_now(minutes=3).timestamp()),
         }
 
     def get_mark_ongoing_action(self) -> dict[str, Any]:
@@ -175,7 +175,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "text": {"type": "plain_text", "text": "Mark as Ongoing", "emoji": True},
             "value": "unresolved:ongoing",
             "type": "button",
-            "action_ts": before_now(minutes=1).timestamp(),
+            "action_ts": str(before_now(minutes=1).timestamp()),
         }
 
     def archive_issue(
@@ -606,7 +606,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             status_code=200,
         )
 
-        self.mock_post.side_effect = SlackApiError("error", mock_slack_response)
+        self.mock_post.side_effect = TypedSlackApiError("error", mock_slack_response)
 
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])

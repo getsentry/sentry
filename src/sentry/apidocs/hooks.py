@@ -2,8 +2,8 @@ import json  # noqa: S003
 import os
 import re
 from collections import OrderedDict
-from collections.abc import Mapping
-from typing import Any, Literal, NotRequired, TypedDict
+from collections.abc import Callable, Mapping
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
@@ -104,26 +104,44 @@ def __write_ownership_data(
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
 
+    def get_api_endpoints(
+        self, patterns: object = None, prefix: str = ""
+    ) -> list[tuple[str, str, object]]:
+        # justification: drf-spectacular does not annotate EndpointEnumerator.get_api_endpoints.
+        return cast("Callable[..., list[tuple[str, str, object]]]", super().get_api_endpoints)(
+            patterns, prefix
+        )
+
     def get_path_from_regex(self, path_regex: str) -> str:
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
-        return super().get_path_from_regex(path_regex)
+        # justification: drf-spectacular does not annotate EndpointEnumerator.get_path_from_regex.
+        return cast("Callable[[str], str]", super().get_path_from_regex)(path_regex)
 
 
 class CustomGenerator(SchemaGenerator):
     endpoint_inspector_cls = CustomEndpointEnumerator
 
-    def get_schema(self, request: Any = None, public: bool = False) -> Any:
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        # justification: drf-spectacular does not annotate SchemaGenerator.__init__.
+        cast("Callable[..., None]", super().__init__)(*args, **kwargs)
+
+    def get_schema(self, request: Any = None, public: bool = False) -> dict[str, Any]:
         """Build the schema, then prove its omissions changed only what they declare.
 
         The baseline is a second build, on a fresh registry, with omissions off."""
         baseline_generator = type(self)(
             patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
         )
+        # justification: drf-spectacular does not annotate SchemaGenerator.get_schema.
+        get_schema = cast("Callable[..., Any]", SchemaGenerator.get_schema)
+        super_get_schema = cast("Callable[..., Any]", super().get_schema)
         with omissions_disabled():
-            baseline = SchemaGenerator.get_schema(baseline_generator, request, public)
+            # justification: drf-spectacular returns the generated schema mapping untyped.
+            baseline = cast("dict[str, Any]", get_schema(baseline_generator, request, public))
         with recording_omissions() as recorded:
-            schema = super().get_schema(request, public)
+            # justification: drf-spectacular returns the generated schema mapping untyped.
+            schema = cast("dict[str, Any]", super_get_schema(request, public))
         try:
             check_schema_omissions(baseline, schema, recorded)
         except OmissionError as exc:
@@ -321,7 +339,9 @@ def _validate_request_body(
         )
 
 
-def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> Any:
+def custom_postprocessing_hook(
+    result: dict[str, Any], generator: Any, **kwargs: Any
+) -> dict[str, Any]:
     # Stamp before alias canonicalization so metadata stays with its operation.
     for path, operations in result["paths"].items():
         for method, operation in operations.items():

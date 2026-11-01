@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol, cast
 
 from dateutil import parser as dateutil_parser
 
@@ -46,6 +46,10 @@ class FlusherTraceData:
     segment_count: int
     span_count: int
     bytes_flushed: int
+
+
+class _LoggingClient(Protocol):
+    def list_entries(self, **kwargs: object) -> Iterable[object]: ...
 
 
 @dataclass
@@ -309,7 +313,9 @@ def fetch_logs_from_gcp(
 
     event_type = BUFFER_LOG_MESSAGE if log_type == "buffer" else FLUSHER_LOG_MESSAGE
 
-    client = gcp_logging.Client(project=gcp_project)
+    # justification: google.cloud does not annotate its logging client constructor.
+    logging_client_cls = cast("Callable[..., _LoggingClient]", gcp_logging.Client)
+    client = logging_client_cls(project=gcp_project)
 
     filter_str = build_gcp_filter(
         event_type=event_type,

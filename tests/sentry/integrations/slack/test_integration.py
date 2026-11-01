@@ -17,6 +17,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
 from sentry.integrations.slack.utils.constants import SlackScope
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
 from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.slack.provider import SlackNotificationProvider
@@ -386,7 +387,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_response.data = {"error": "channel_not_found"}
         mock_response.api_url = "https://slack.com/api/chat.postMessage"
 
-        mock_chat_post.side_effect = SlackApiError("channel_not_found", mock_response)
+        mock_chat_post.side_effect = TypedSlackApiError("channel_not_found", mock_response)
 
         with pytest.raises(IntegrationConfigurationError):
             self.installation.send_notification(target=self.target, payload=self.slack_renderable)
@@ -409,7 +410,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_send_threaded_message_error(self, mock_chat_post: MagicMock) -> None:
         error_message = "thread_not_found"
-        mock_chat_post.side_effect = SlackApiError(error_message, MagicMock())
+        mock_chat_post.side_effect = TypedSlackApiError(error_message, MagicMock())
 
         with pytest.raises(IntegrationError, match=error_message):
             self.installation.send_threaded_message(
@@ -443,7 +444,7 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postEphemeral")
     def test_send_threaded_ephemeral_message_error(self, mock_chat_ephemeral: MagicMock) -> None:
         error_message = "user_not_in_channel"
-        mock_chat_ephemeral.side_effect = SlackApiError(error_message, MagicMock())
+        mock_chat_ephemeral.side_effect = TypedSlackApiError(error_message, MagicMock())
 
         with pytest.raises(IntegrationError, match=error_message):
             self.installation.send_threaded_ephemeral_message(
@@ -559,7 +560,9 @@ class SlackIntegrationNotificationPlatformTest(TestCase):
         mock_conversations_info.return_value = MagicMock(
             data={"ok": True, "channel": {"is_channel": True, "is_private": False}}
         )
-        mock_conversations_replies.side_effect = SlackApiError("channel_not_found", MagicMock())
+        mock_conversations_replies.side_effect = TypedSlackApiError(
+            "channel_not_found", MagicMock()
+        )
         result = self.installation.get_thread_history(
             channel_id=self.channel_id, thread_ts=self.thread_ts
         )
@@ -596,7 +599,9 @@ class SlackApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        assert isinstance(oauth_url, str)
+        return oauth_url.split("state=")[1].split("&")[0]
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

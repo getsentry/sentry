@@ -3,13 +3,13 @@ from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
 from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
@@ -1391,7 +1391,9 @@ class SlackInvestigationEntrypointTest(TestCase):
         )
 
     def _updated_blocks(self) -> list[Any]:
-        return self.mock_update.call_args.kwargs["blocks"]
+        blocks = self.mock_update.call_args.kwargs["blocks"]
+        assert isinstance(blocks, list)
+        return blocks
 
     def _quotes(self, blocks: list[Any]) -> list[list[dict[str, Any]]]:
         return [
@@ -1427,7 +1429,9 @@ class SlackInvestigationEntrypointTest(TestCase):
         assert call.kwargs["thread_ts"] == self.message_ts
         section, _divider, actions = call.kwargs["blocks"]
         assert actions.elements[0].url.startswith(self.investigation.get_absolute_url())
-        return section.text.text
+        text = section.text.text
+        assert isinstance(text, str)
+        return text
 
     def test_trigger_success_leaves_status_message_to_updates(self) -> None:
         entrypoint = self._get_entrypoint()
@@ -1615,7 +1619,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         self, mock_record: Mock, mock_record_sent: Mock
     ) -> None:
         cache_payload = self._set_cache()
-        self.mock_update.side_effect = SlackApiError(
+        self.mock_update.side_effect = TypedSlackApiError(
             "error", _slack_response({"ok": False, "error": "message_not_found"})
         )
 
@@ -1737,7 +1741,7 @@ class SlackInvestigationEntrypointTest(TestCase):
         for error, halt_count in (("ratelimited", 2), ("invalid_blocks", 1)):
             self._set_cache()
             mock_record.reset_mock()
-            self.mock_post_message.side_effect = SlackApiError(
+            self.mock_post_message.side_effect = TypedSlackApiError(
                 "error", _slack_response({"ok": False, "error": error})
             )
 

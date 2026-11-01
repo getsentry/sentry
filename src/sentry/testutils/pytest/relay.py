@@ -10,7 +10,7 @@ import time
 from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager
 from os import environ, path
-from typing import TYPE_CHECKING, Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, cast
 from unittest import mock
 from urllib.parse import urlparse
 
@@ -76,17 +76,24 @@ def _wait_until_ready(url: str, timeout: float) -> None:
     raise TimeoutError(last_result)
 
 
+class _Container(Protocol):
+    def stop(self, timeout: int | None = None) -> object: ...
+    def kill(self) -> object: ...
+    def remove(self) -> object: ...
+
+
 def _get_template_dir() -> str:
     return path.abspath(path.join(path.dirname(__file__), "template"))
 
 
 def _remove_container_if_exists(docker_client: docker.DockerClient, container_name: str) -> None:
     try:
-        container = docker_client.containers.get(container_name)
+        # justification: docker does not ship type hints for its container object.
+        container = cast("_Container", docker_client.containers.get(container_name))
     except Exception:
         pass  # container not found
     else:
-        actions = [
+        actions: list[Callable[[], object]] = [
             lambda: container.stop(timeout=1),
             lambda: container.kill(),
             lambda: container.remove(),

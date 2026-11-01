@@ -7,7 +7,6 @@ from unittest.mock import MagicMock, _patch, patch
 
 import orjson
 import responses
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.analytics.events.alert_sent import AlertSentEvent
@@ -16,6 +15,7 @@ from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.analytics import SlackIntegrationNotificationSent
 from sentry.integrations.slack.utils.constants import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin
@@ -279,7 +279,7 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_rate_limited_response(self, mock_api_call: MagicMock) -> None:
         """Should surface a 429 from Slack to the frontend form"""
 
-        mock_api_call.side_effect = SlackApiError(
+        mock_api_call.side_effect = TypedSlackApiError(
             message="ratelimited",
             response=SlackResponse(
                 client=None,
@@ -324,7 +324,9 @@ class SlackNotifyActionTest(RuleTestCase):
     def test_invalid_channel_id_provided_sdk(self) -> None:
         with patch(
             "slack_sdk.web.client.WebClient.conversations_info",
-            side_effect=SlackApiError("", response={"ok": False, "error": "channel_not_found"}),
+            side_effect=TypedSlackApiError(
+                "", response={"ok": False, "error": "channel_not_found"}
+            ),
         ):
             rule = self.get_slack_notify_rule(
                 data={

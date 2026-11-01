@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from unittest import mock
 
 import pytest
@@ -85,7 +85,7 @@ def _build(hooks: Sequence[Hook] = ()) -> dict[str, Any]:
 
 
 def _parameters(result: dict[str, Any], route: str) -> list[dict[str, Any]]:
-    return result["paths"][f"/{route}"]["get"]["parameters"]
+    return cast("list[dict[str, Any]]", result["paths"][f"/{route}"]["get"]["parameters"])
 
 
 def _parameter(result: dict[str, Any], route: str, name: str) -> dict[str, Any]:
@@ -293,7 +293,8 @@ def _build_typed(hooks: Sequence[Hook] = ()) -> dict[str, Any]:
 def _typed_item(result: dict[str, Any], where: str) -> dict[str, Any]:
     """The GuardedItem object inside the response, as the owner or a list item."""
     response = result["components"]["schemas"]["GuardedTypedResponse"]["properties"]
-    return response["owner"] if where == "owner" else response["items"]["items"]
+    value = response["owner"] if where == "owner" else response["items"]["items"]
+    return cast("dict[str, Any]", value)
 
 
 def test_a_typed_dict_omission_passes_the_guard_wherever_it_is_nested() -> None:

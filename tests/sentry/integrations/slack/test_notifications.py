@@ -1,11 +1,11 @@
 from unittest.mock import patch
 
 import orjson
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
 from sentry.notifications.additional_attachment_manager import manager
@@ -124,7 +124,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             ),
             patch(
                 "slack_sdk.web.client.WebClient.chat_postMessage",
-                side_effect=SlackApiError("error", mock_slack_response),
+                side_effect=TypedSlackApiError("error", mock_slack_response),
             ),
         ):
             with self.tasks():

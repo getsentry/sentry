@@ -158,18 +158,6 @@
   "src/sentry/api/utils.py": {
     "no-any-return": 1
   },
-  "src/sentry/apidocs/extensions.py": {
-    "no-any-return": 4,
-    "no-untyped-call": 8
-  },
-  "src/sentry/apidocs/hooks.py": {
-    "no-any-return": 1,
-    "no-untyped-call": 3
-  },
-  "src/sentry/apidocs/schema.py": {
-    "no-any-return": 1,
-    "no-untyped-call": 8
-  },
   "src/sentry/audit_log/services/log/impl.py": {
     "no-any-return": 1
   },
@@ -790,15 +778,6 @@
   "src/sentry/mail/notifications.py": {
     "no-any-return": 1
   },
-  "src/sentry/metrics/datadog.py": {
-    "no-untyped-call": 8
-  },
-  "src/sentry/metrics/dogstatsd.py": {
-    "no-untyped-call": 4
-  },
-  "src/sentry/metrics/precise_dogstatsd.py": {
-    "no-untyped-call": 2
-  },
   "src/sentry/metrics/sentry_sdk.py": {
     "no-any-return": 1
   },
@@ -979,9 +958,6 @@
     "no-any-return": 2,
     "no-untyped-call": 1
   },
-  "src/sentry/relay/datascrubbing.py": {
-    "no-untyped-call": 2
-  },
   "src/sentry/relay/projectconfig_debounce_cache/redis.py": {
     "no-any-return": 1
   },
@@ -1160,11 +1136,6 @@
   "src/sentry/services/eventstore/reprocessing/redis.py": {
     "no-any-return": 2
   },
-  "src/sentry/services/filestore/gcs.py": {
-    "misc": 1,
-    "no-any-return": 1,
-    "no-untyped-call": 1
-  },
   "src/sentry/services/filestore/s3.py": {
     "no-any-return": 7
   },
@@ -1210,9 +1181,6 @@
   },
   "src/sentry/spans/consumers/process_segments/shim.py": {
     "typeddict-item": 1
-  },
-  "src/sentry/spans/log_analyzer/fetchers.py": {
-    "no-untyped-call": 2
   },
   "src/sentry/stacktraces/functions.py": {
     "no-any-return": 1
@@ -1292,13 +1260,6 @@
   "src/sentry/testutils/helpers/slack.py": {
     "no-any-return": 2
   },
-  "src/sentry/testutils/pytest/relay.py": {
-    "no-untyped-call": 2
-  },
-  "src/sentry/testutils/pytest/selenium.py": {
-    "no-any-return": 4,
-    "no-untyped-call": 11
-  },
   "src/sentry/testutils/pytest/transactional_flush.py": {
     "no-any-return": 1
   },
@@ -1346,9 +1307,6 @@
   },
   "src/sentry/utils/function_cache.py": {
     "no-any-return": 1
-  },
-  "src/sentry/utils/geo.py": {
-    "no-untyped-call": 1
   },
   "src/sentry/utils/github.py": {
     "no-any-return": 1
@@ -1536,9 +1494,6 @@
   "tests/apigw/test_proxy.py": {
     "no-untyped-call": 2
   },
-  "tests/relay_integration/test_integration.py": {
-    "no-untyped-call": 6
-  },
   "tests/sentry/api/endpoints/conftest.py": {
     "no-any-return": 1,
     "no-untyped-call": 1
@@ -1626,16 +1581,8 @@
   "tests/sentry/api/test_paginator.py": {
     "no-any-return": 1
   },
-  "tests/sentry/apidocs/__init__.py": {
-    "no-any-return": 1,
-    "no-untyped-call": 3
-  },
   "tests/sentry/apidocs/test_extensions.py": {
     "no-untyped-call": 4
-  },
-  "tests/sentry/apidocs/test_omission_guard.py": {
-    "no-any-return": 6,
-    "no-untyped-call": 8
   },
   "tests/sentry/auth/providers/github/test_views.py": {
     "no-any-return": 1
@@ -1737,42 +1684,14 @@
   "tests/sentry/integrations/msteams/test_integration.py": {
     "no-any-return": 1
   },
-  "tests/sentry/integrations/slack/actions/notification/test_slack_notify_service_action.py": {
-    "no-untyped-call": 2
-  },
-  "tests/sentry/integrations/slack/test_integration.py": {
-    "no-any-return": 1,
-    "no-untyped-call": 4
-  },
-  "tests/sentry/integrations/slack/test_link_identity.py": {
-    "no-untyped-call": 2
-  },
   "tests/sentry/integrations/slack/test_link_team.py": {
     "no-any-return": 2
   },
   "tests/sentry/integrations/slack/test_message_builder.py": {
     "no-any-return": 1
   },
-  "tests/sentry/integrations/slack/test_notifications.py": {
-    "no-untyped-call": 1
-  },
-  "tests/sentry/integrations/slack/test_notify_action.py": {
-    "no-untyped-call": 2
-  },
-  "tests/sentry/integrations/slack/utils/test_channel.py": {
-    "no-untyped-call": 1
-  },
-  "tests/sentry/integrations/slack/utils/test_slack_errors.py": {
-    "no-untyped-call": 2
-  },
   "tests/sentry/integrations/slack/webhooks/actions/__init__.py": {
     "no-any-return": 2
-  },
-  "tests/sentry/integrations/slack/webhooks/actions/test_investigation.py": {
-    "no-untyped-call": 2
-  },
-  "tests/sentry/integrations/slack/webhooks/actions/test_status.py": {
-    "no-untyped-call": 1
   },
   "tests/sentry/integrations/slack/webhooks/commands/__init__.py": {
     "no-any-return": 2
@@ -1785,9 +1704,6 @@
   },
   "tests/sentry/integrations/slack/webhooks/events/test_explore_link_shared.py": {
     "no-any-return": 2
-  },
-  "tests/sentry/integrations/slack/webhooks/events/test_link_shared.py": {
-    "no-untyped-call": 1
   },
   "tests/sentry/integrations/slack/webhooks/options_load/__init__.py": {
     "no-any-return": 1
@@ -1858,9 +1774,6 @@
   "tests/sentry/notifications/notification_action/metric_alert_registry/test_slack_metric_alert_handler.py": {
     "no-any-return": 1
   },
-  "tests/sentry/notifications/platform/slack/test_provider.py": {
-    "no-untyped-call": 1
-  },
   "tests/sentry/pipeline/test_pipeline.py": {
     "no-any-return": 2
   },
@@ -1879,9 +1792,6 @@
   "tests/sentry/receivers/outbox/test_cell.py": {
     "no-any-return": 1
   },
-  "tests/sentry/relay/config/test_experimental.py": {
-    "arg-type": 2
-  },
   "tests/sentry/releases/endpoints/test_organization_release_file_details.py": {
     "no-any-return": 1
   },
@@ -1891,9 +1801,6 @@
   "tests/sentry/releases/endpoints/test_project_release_file_details.py": {
     "no-any-return": 1,
     "no-untyped-call": 3
-  },
-  "tests/sentry/replays/unit/consumers/test_recording.py": {
-    "no-untyped-call": 2
   },
   "tests/sentry/replays/usecases/test_summarize.py": {
     "no-any-return": 1
@@ -1959,10 +1866,6 @@
   "tests/sentry/seer/entrypoints/slack/test_investigation_status.py": {
     "no-any-return": 1
   },
-  "tests/sentry/seer/entrypoints/slack/test_slack.py": {
-    "no-any-return": 2,
-    "no-untyped-call": 2
-  },
   "tests/sentry/seer/similarity/test_utils.py": {
     "no-untyped-call": 1
   },
@@ -1992,9 +1895,6 @@
   },
   "tests/sentry/service_accounts/endpoints/test_organization_service_account_viewer_context.py": {
     "no-any-return": 1
-  },
-  "tests/sentry/services/filestore/test_gcs.py": {
-    "no-untyped-call": 5
   },
   "tests/sentry/services/nodestore/bigtable/test_backend.py": {
     "misc": 1,

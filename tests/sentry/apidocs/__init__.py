@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from drf_spectacular.validation import validate_schema
 
@@ -44,8 +44,13 @@ def generate_schema(
         assert route is None and isinstance(patterns, list)
 
     assert patterns is not None
-    generator = SchemaGenerator(patterns=patterns)
-    schema = generator.get_schema(request=None, public=True)
+    # justification: drf-spectacular does not annotate SchemaGenerator.
+    generator_cls = cast("Callable[..., SchemaGenerator]", SchemaGenerator)
+    generator = generator_cls(patterns=patterns)
+    get_schema = cast("Callable[..., dict[str, Any]]", generator.get_schema)
+    schema = get_schema(request=None, public=True)
     assert schema is not None
-    validate_schema(schema)  # make sure generated schemas are always valid
+    # justification: drf-spectacular does not annotate validate_schema.
+    validate = cast("Callable[[dict[str, Any]], None]", validate_schema)
+    validate(schema)  # make sure generated schemas are always valid
     return schema

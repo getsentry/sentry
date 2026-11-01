@@ -33,7 +33,7 @@ def test_time_checker_noop_on_invalid_timeout(timeout: int) -> None:
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
 def test_add_experimental_config_catches_timeout(mock_logger: MagicMock) -> None:
-    def dummy(timeout: TimeChecker, *args: object, **kwargs: object) -> None:
+    def dummy(timeout: TimeChecker, /, *args: object, **kwargs: object) -> None:
         sleep(1)
         timeout.check()
 
@@ -50,7 +50,7 @@ def test_add_experimental_config_catches_timeout(mock_logger: MagicMock) -> None
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
 def test_build_safe_config_catches_timeout(mock_logger: MagicMock) -> None:
-    def dummy(timeout: TimeChecker, *args: object, **kwargs: object) -> None:
+    def dummy(timeout: TimeChecker, /, *args: object, **kwargs: object) -> None:
         sleep(1)
         timeout.check()
 
@@ -83,7 +83,7 @@ def test_build_safe_config_returns_results_from_function_in_args() -> None:
 @patch("sentry.relay.config.experimental._FEATURE_BUILD_TIMEOUT", timedelta(seconds=1))
 @patch("sentry.relay.config.experimental.logger.exception")
 def test_build_safe_config_returns_none_on_timeout_exception(mock_logger: MagicMock) -> None:
-    def dummy(timeout: TimeChecker, *args: object, **kwargs: object) -> None:
+    def dummy(timeout: TimeChecker, /, *args: object, **kwargs: object) -> None:
         sleep(1)
         timeout.check()
 

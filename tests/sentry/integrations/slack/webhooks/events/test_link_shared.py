@@ -4,10 +4,10 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import responses
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl.types import Handler, make_type_coercer
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.testutils.asserts import assert_slo_metric_calls
 
@@ -140,7 +140,7 @@ class LinkSharedEventTest(BaseEventTest):
     def test_share_links_failure(self, mock_match_link: MagicMock, mock_record: MagicMock) -> None:
         with patch("slack_sdk.web.client.WebClient.chat_unfurl") as custom_mock:
             # Your custom behavior
-            custom_mock.side_effect = SlackApiError(
+            custom_mock.side_effect = TypedSlackApiError(
                 message="beep boop",
                 response=SlackResponse(
                     client=None,
