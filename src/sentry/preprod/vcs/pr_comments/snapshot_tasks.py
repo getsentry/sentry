@@ -137,7 +137,6 @@ def create_preprod_snapshot_pr_comment_task(
         log_prefix="preprod.snapshot_pr_comments",
         enabled_option_key=ENABLED_OPTION_KEY,
         caller=caller,
-        feature_flag=None,
         with_build_configuration=False,
     )
     if ctx is None:
