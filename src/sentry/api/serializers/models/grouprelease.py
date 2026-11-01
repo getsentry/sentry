@@ -81,7 +81,7 @@ class GroupReleaseWithStatsSerializer(GroupReleaseSerializer):
     ) -> dict[GroupRelease, dict[str, object]]:
         attrs = super().get_attrs(item_list, user)
 
-        tenant_ids = (
+        tenant_ids: dict[str, str | int] | None = (
             {
                 "organization_id": Project.objects.get_from_cache(
                     id=item_list[0].project_id

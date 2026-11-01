@@ -1,9 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 from uuid import uuid4
 
 import pytest
 from sentry_relay.auth import PublicKey, SecretKey
 
-from sentry.models.relay import Relay
+if TYPE_CHECKING:
+    from sentry.models.relay import Relay
 
 
 @pytest.fixture
@@ -30,4 +34,6 @@ def relay_id() -> str:
 
 @pytest.fixture
 def relay(relay_id: str | int, public_key: PublicKey) -> Relay:
+    from sentry.models.relay import Relay
+
     return Relay.objects.create(relay_id=relay_id, public_key=str(public_key), is_internal=True)

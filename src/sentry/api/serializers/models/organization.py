@@ -368,6 +368,7 @@ class ControlSiloOrganizationMappingSerializer(
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ControlSiloOrganizationMappingSerializerResponse:
+        assert obj.status is not None
         status = OrganizationStatus(obj.status)
         avatar_replica: OrganizationAvatarReplica | None = attrs["avatar"]
         if avatar_replica is not None:

@@ -26,6 +26,7 @@ from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppW
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
@@ -920,7 +921,7 @@ class TestProcessResourceChange(TestCase):
         # ValueError is in the task's ignore list, this won't be
         # raised in production.
         with pytest.raises(ValueError):
-            process_resource_change_bound("delete", "Group", self.create_group().id)
+            process_resource_change_bound("delete", "Group", str(self.create_group().id))
         assert len(safe_urlopen.mock_calls) == 0
 
         # We got an invalid event prior to lifecycle starting so we would exit early
@@ -939,7 +940,7 @@ class TestProcessResourceChange(TestCase):
         # DOES NOT subscribe to Issue events
         self.create_sentry_app_installation(organization=self.organization)
 
-        process_resource_change_bound("created", "Group", self.create_group().id)
+        process_resource_change_bound("created", "Group", str(self.create_group().id))
 
         assert len(safe_urlopen.mock_calls) == 0
         assert_success_metric(mock_record)
@@ -1866,7 +1867,10 @@ class TestWebhookRequests(TestCase):
         data = {"issue": serialize(self.issue)}
         with pytest.raises(ClientError):
             send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
+                installation=serialize_sentry_app_installation(self.install),
+                event="issue.assigned",
+                data=data,
+                actor=self.user,
             )
 
         requests = self.buffer.get_requests()
@@ -1902,7 +1906,7 @@ class TestWebhookRequests(TestCase):
             }
         ):
             send_webhooks(
-                installation=installation,
+                installation=serialize_sentry_app_installation(installation),
                 event="issue.assigned",
                 data={"issue": serialize(self.issue)},
                 actor=self.user,
@@ -1931,7 +1935,7 @@ class TestWebhookRequests(TestCase):
             }
         ):
             send_webhooks(
-                installation=self.install,
+                installation=serialize_sentry_app_installation(self.install),
                 event="issue.assigned",
                 data={"issue": serialize(self.issue)},
                 actor=self.user,

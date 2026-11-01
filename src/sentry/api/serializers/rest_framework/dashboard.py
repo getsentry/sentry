@@ -521,7 +521,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         widget_type_name = self.context.get("widget_type")
         if widget_type_name is not None and display_type_id is not None:
             widget_type_id = DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
-            config = DATASET_CONFIG.get(widget_type_id)
+            config = DATASET_CONFIG.get(widget_type_id) if widget_type_id is not None else None
             if (
                 config is not None
                 and display_type_id not in config["supported_display_types"]
@@ -561,7 +561,12 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         )
 
     def _validate_widget_type(self, data: dict[str, Any]) -> int:
-        widget_type = DashboardWidgetTypes.get_id_for_type_name(data.get("widget_type"))
+        widget_type_name = data.get("widget_type")
+        widget_type = (
+            DashboardWidgetTypes.get_id_for_type_name(widget_type_name)
+            if widget_type_name is not None
+            else None
+        )
         if widget_type == DashboardWidgetTypes.DISCOVER or widget_type is None:
             sentry_sdk.set_context(
                 "dashboard",

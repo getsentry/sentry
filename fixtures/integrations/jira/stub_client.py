@@ -8,7 +8,7 @@ from sentry.shared_integrations.exceptions import ApiError
 class StubJiraApiClient(StubService):
     service_name = "jira"
 
-    def get_create_meta_for_project(self, project: str) -> dict[str, Any]:
+    def get_create_meta_for_project(self, project: str) -> dict[str, Any] | None:
         response = self._get_stub_data("createmeta_response.json")
         if project == "10001":
             response["projects"][0]["id"] = "10001"
@@ -32,7 +32,7 @@ class StubJiraApiClient(StubService):
     def get_projects_list(self, cached: bool = True) -> list[dict[str, Any]]:
         return self._get_stub_data("project_list_response.json")
 
-    def get_issue(self, issue_key: str) -> dict[str, Any]:
+    def get_issue(self, issue_key: str) -> dict[str, Any] | None:
         return self._get_stub_data("get_issue_response.json")
 
     def create_comment(self, issue_id: str, comment: str) -> str:

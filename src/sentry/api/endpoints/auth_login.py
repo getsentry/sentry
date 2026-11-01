@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from typing import TypedDict
 
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -101,7 +101,7 @@ class AuthLoginEndpoint(Endpoint, OrganizationMixin):
 
         return None
 
-    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> Response:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         self.active_organization = determine_active_organization(request)
         return super().dispatch(request, *args, **kwargs)
 

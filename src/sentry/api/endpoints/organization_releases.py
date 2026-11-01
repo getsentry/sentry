@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.db import IntegrityError
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Model, Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -1079,11 +1079,12 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         project_ids: list[int],
         key_from_data: Callable[[object], object] | None = None,
         max_limit: int = MAX_LIMIT,
-        on_results: Callable[[list[Release]], object] | None = None,
+        on_results: Callable[[Sequence[Model]], Sequence[Model]] | None = None,
         data_count_func: Callable[[], int] | None = None,
         queryset_load_func: Callable[[ReleaseQuerySet, int, int, int], list[Release]] | None = None,
     ) -> None:
         super().__init__(queryset, max_limit=max_limit, on_results=on_results)
+        self.release_queryset = queryset
         self.data_load_func = data_load_func
         self.apply_to_queryset = apply_to_queryset
         self.key_from_data = key_from_data or (lambda x: x)
@@ -1119,7 +1120,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
         # This is the reason we defined our own merging paginator. We need to look up the
         # project_id since it doesn't exist on the model. This was previously accomplished with a
         # join (and a distinct clause for other reasons) but it was horribly slow.
-        queryset = self.apply_to_queryset(self.queryset, primary_results)
+        queryset = self.apply_to_queryset(self.release_queryset, primary_results)
         releases = list(queryset)
         releases_projects = list(
             ReleaseProject.objects.filter(
@@ -1144,7 +1145,7 @@ class ReleasesMergingOffsetPaginator(OffsetPaginator):
             total_offset = offset + len(results)
             qs_offset = max(0, total_offset - total_data_count)
             qs_results = self.queryset_load_func(
-                self.queryset, total_offset, qs_offset, extra_limit
+                self.release_queryset, total_offset, qs_offset, extra_limit
             )
             results.extend(qs_results)
             has_more = len(qs_results) == extra_limit

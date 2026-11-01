@@ -333,7 +333,11 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         if obj.display_type == DashboardWidgetDisplayTypes.TEXT:
             widget_type = None
         else:
-            widget_type = DashboardWidgetTypes.get_type_name(obj.widget_type)
+            widget_type = (
+                DashboardWidgetTypes.get_type_name(obj.widget_type)
+                if obj.widget_type is not None
+                else None
+            )
             if widget_type is None:
                 sentry_sdk.set_context(
                     "dashboard",
@@ -368,11 +372,14 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
             except Exception:
                 explore_urls = None
 
+        display_type_name = DashboardWidgetDisplayTypes.get_type_name(obj.display_type)
+        assert display_type_name is not None
+
         serialized_widget: DashboardWidgetResponse = {
             "id": str(obj.id),
             "title": obj.title,
             "description": obj.description,
-            "displayType": DashboardWidgetDisplayTypes.get_type_name(obj.display_type),
+            "displayType": display_type_name,
             "thresholds": _convert_thresholds_to_camel_case(obj.thresholds),
             # Default value until a backfill can be done.
             "interval": str(obj.interval or "5m"),
@@ -628,12 +635,15 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
             display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
+            assert display_type is not None
             result[dashboard]["widget_display"].append(display_type)
 
         for widget in widgets:
             dashboard = item_dict[widget.dashboard_id]
+            display_type = DashboardWidgetDisplayTypes.get_type_name(widget.display_type)
+            assert display_type is not None
             widget_preview: _WidgetPreview = {
-                "displayType": DashboardWidgetDisplayTypes.get_type_name(widget.display_type),
+                "displayType": display_type,
                 "layout": None,
             }
             if widget.detail:

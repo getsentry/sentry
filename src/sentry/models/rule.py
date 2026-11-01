@@ -66,7 +66,9 @@ class Rule(Model):
         db_default=RuleSource.ISSUE,
         choices=RuleSource.as_choices(),
     )
-    owner_user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    owner_user_id = HybridCloudForeignKey[int | None, int | None](
+        settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL"
+    )
     owner_team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     date_added = models.DateTimeField(default=timezone.now)
@@ -110,7 +112,7 @@ class Rule(Model):
     @owner.setter
     def owner(self, actor: Actor | None) -> None:
         """Part of ActorOwned Protocol"""
-        self.owner_team_id = None
+        setattr(self, "owner_team_id", None)
         self.owner_user_id = None
         if actor and actor.is_user:
             self.owner_user_id = actor.id

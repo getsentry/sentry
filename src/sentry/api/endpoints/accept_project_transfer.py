@@ -119,7 +119,8 @@ class AcceptProjectTransferEndpoint(Endpoint):
         except InvalidPayload as e:
             return Response({"detail": str(e)}, status=400)
 
-        transaction_id = payload["transaction_id"]
+        # justification: `payload` is decoded signed JSON validated against the stored option.
+        transaction_id = cast("int | str | None", payload["transaction_id"])
 
         org_slug = request.data.get("organization")
         # DEPRECATED

@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any, TypeVar, cast
 from uuid import UUID, uuid4
 
 from django.db import models
@@ -42,10 +42,13 @@ from psycopg2.extensions import register_adapter
 
 from sentry.db.models.utils import Creator
 
-
 # Adapted from django-pgfields
 # https://github.com/lukesneeringer/django-pgfields/blob/master/django_pg/models/fields/uuid.py
-class UUIDField(models.Field[UUID, UUID]):
+_SetType = TypeVar("_SetType", default=UUID)
+_GetType = TypeVar("_GetType", default=UUID)
+
+
+class UUIDField(models.Field[_SetType, _GetType]):
     """Field for storing UUIDs."""
 
     description = "Universally unique identifier."

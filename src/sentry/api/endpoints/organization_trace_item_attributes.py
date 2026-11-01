@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import Q
@@ -117,8 +117,8 @@ from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, CursorResult
 
-SCALAR_ATTRIBUTE_TYPES = ["string", "number", "boolean"]
-POSSIBLE_ATTRIBUTE_TYPES = [*SCALAR_ATTRIBUTE_TYPES, "array"]
+SCALAR_ATTRIBUTE_TYPES: list[ColumnType] = ["string", "number", "boolean"]
+POSSIBLE_ATTRIBUTE_TYPES: list[ColumnType] = [*SCALAR_ATTRIBUTE_TYPES, "array"]
 
 # Max whole-array rows the attribute-values RPC will return in one call.
 MAX_ATTRIBUTE_VALUE_ROWS = 10_000
@@ -514,18 +514,24 @@ def attach_custom_attribute_context(
     if scoped_project_id is not None:
         project_scope |= Q(project_id=scoped_project_id)
 
+    item_type_id = TraceItemTypes.get_id_for_type_name(item_type.value)
+    if item_type_id is None:
+        return
+
     rows = TraceItemAttributeContextModel.objects.filter(
         project_scope,
         organization=organization,
-        item_type=TraceItemTypes.get_id_for_type_name(item_type.value),
+        item_type=item_type_id,
         attribute_key__in={name for name, _ in describable},
     )
 
     # Org-wide rows first, so a project-scoped row overwrites them.
     for row in sorted(rows, key=lambda row: row.project_id is not None):
-        attribute = describable.get(
-            (row.attribute_key, TraceItemAttributeTypes.get_type_name(row.attribute_type))
-        )
+        attribute_type = TraceItemAttributeTypes.get_type_name(row.attribute_type)
+        if attribute_type is None:
+            continue
+        # justification: `TraceItemAttributeTypes` names are the `ColumnType` literals.
+        attribute = describable.get((row.attribute_key, cast(ColumnType, attribute_type)))
         if attribute is None:
             continue
         attribute["context"] = build_custom_attribute_context(row)

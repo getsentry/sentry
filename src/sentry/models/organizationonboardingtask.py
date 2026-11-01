@@ -118,7 +118,7 @@ class AbstractOnboardingTask(Model):
         (OnboardingTaskStatus.SKIPPED, "skipped"),
     )
 
-    STATUS_KEY_MAP = dict(STATUS_CHOICES)
+    STATUS_KEY_MAP: dict[int, str] = dict(STATUS_CHOICES)
     STATUS_LOOKUP_BY_KEY = {v: k for k, v in STATUS_CHOICES}
 
     organization = FlexibleForeignKey("sentry.Organization")
@@ -162,7 +162,7 @@ class OrganizationOnboardingTask(AbstractOnboardingTask):
 
     # Used in the API to map IDs to string keys. This keeps things
     # a bit more maintainable on the frontend.
-    TASK_KEY_MAP = dict(TASK_CHOICES)
+    TASK_KEY_MAP: dict[int, str] = dict(TASK_CHOICES)
     TASK_LOOKUP_BY_KEY = {v: k for k, v in TASK_CHOICES}
 
     task = BoundedPositiveIntegerField(choices=TASK_CHOICES)

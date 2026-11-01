@@ -40,7 +40,9 @@ class GroupTombstoneSerializer(Serializer[GroupTombstoneSerializerResponse]):
 
         attrs = {}
         for item in item_list:
-            attrs[item] = {"user": users.get(item.actor_id, {})}
+            attrs[item] = {
+                "user": users.get(item.actor_id, {}) if item.actor_id is not None else {}
+            }
         return attrs
 
     def serialize(

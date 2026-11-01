@@ -839,7 +839,7 @@ class EventSubjectTemplateData(dict[str, str]):
                 raise KeyError
             return str(value)
         elif name == "project":
-            return cast(str, self.event.project.get_full_name())
+            return self.event.project.get_full_name()
         elif name == "projectID":
             return self.event.project.slug
         elif name == "shortID" and self.event.group_id and self.event.group:

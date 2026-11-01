@@ -444,7 +444,7 @@ def check_organization_monitor_limit(organization_id: int) -> None:
 def check_organization_monitor_limits_on_save(
     sender: type[Monitor], instance: Monitor, **kwargs: object
 ) -> None:
-    if instance.pk is None:
+    if getattr(instance, "pk", None) is None:
         check_organization_monitor_limit(instance.organization_id)
 
 
@@ -565,7 +565,7 @@ class MonitorCheckIn(Model):
     configuration at the time of the check-in.
     """
 
-    trace_id = UUIDField[uuid.UUID | None, uuid.UUID | None](null=True)
+    trace_id = UUIDField[str | uuid.UUID | None, uuid.UUID | None](null=True)
     """
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.
@@ -756,7 +756,7 @@ def check_monitor_environment_limits(
     sender: type[MonitorEnvironment], instance: MonitorEnvironment, **kwargs: object
 ) -> None:
     if (
-        instance.pk is None
+        getattr(instance, "pk", None) is None
         and sender.objects.filter(monitor=instance.monitor).count()
         == settings.MAX_ENVIRONMENTS_PER_MONITOR
     ):

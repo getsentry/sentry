@@ -180,7 +180,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
             return Response(result, status=200)
 
     def build_outcomes_query(self, request: Request, organization: Organization) -> QueryDefinition:
-        params = {"organization_id": organization.id}
+        params: dict[str, int | list[int]] = {"organization_id": organization.id}
         project_ids = self._get_projects_for_orgstats_query(request, organization)
 
         query_dict = request.GET.copy()

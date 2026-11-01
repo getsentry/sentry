@@ -1,4 +1,4 @@
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from rest_framework.response import Response
 
@@ -13,9 +13,14 @@ from sentry.shared_integrations.exceptions import ApiError
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
+if TYPE_CHECKING:
+    _SearchEndpointBase = SourceCodeSearchEndpoint[GitlabIntegration]
+else:
+    _SearchEndpointBase = SourceCodeSearchEndpoint
+
 
 @control_silo_endpoint
-class GitlabIssueSearchEndpoint(SourceCodeSearchEndpoint[GitlabIntegration]):
+class GitlabIssueSearchEndpoint(_SearchEndpointBase):
     @property
     def repository_field(self) -> str:
         return "project"

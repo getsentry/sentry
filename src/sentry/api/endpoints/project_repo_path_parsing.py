@@ -131,6 +131,7 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
         # store the repo we found
         self.repo = matching_repos[0]
+        assert self.repo.integration_id is not None
         self.integration = matching_integrations[self.repo.integration_id]
         return source_url
 

@@ -30,7 +30,7 @@ from django.core.cache import cache
 from django.db import connections
 from django.db.migrations.executor import MigrationExecutor
 from django.db.models import QuerySet
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponseBase
 from django.test import RequestFactory, override_settings
 from django.test import TestCase as DjangoTestCase
 from django.test import TransactionTestCase as DjangoTransactionTestCase
@@ -202,6 +202,7 @@ if TYPE_CHECKING:
     from sentry.models.deletedproject import DeletedProject
     from sentry.models.deletedteam import DeletedTeam
     from sentry.models.group import Group
+    from sentry.models.releaseheadcommit import ReleaseHeadCommit
     from sentry.models.team import Team
     from sentry.replays.lib.event_linking import EventLinkKafkaMessage
     from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
@@ -1006,7 +1007,7 @@ class AcceptanceTestCase(TransactionTestCase):
 
 class IntegrationTestCase(TestCase):
     @property
-    def provider(self) -> IntegrationProvider:
+    def provider(self) -> type[IntegrationProvider]:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self) -> None:
@@ -1035,7 +1036,7 @@ class IntegrationTestCase(TestCase):
         self.pipeline.initialize()
         self.save_session()
 
-    def assertDialogSuccess(self, resp: Response) -> None:
+    def assertDialogSuccess(self, resp: HttpResponseBase) -> None:
         assert b'window.opener.postMessage({"success":true' in resp.content
 
 
@@ -1319,7 +1320,14 @@ class SnubaTestCase(BaseTestCase):
             ],
         }
 
-    def snuba_insert(self, events: Mapping[str, Any] | Sequence[Mapping[str, Any]]) -> None:
+    def snuba_insert(
+        self,
+        events: (
+            Mapping[str, Any]
+            | Sequence[Mapping[str, Any]]
+            | tuple[int, str, Mapping[str, Any], Mapping[str, Any]]
+        ),
+    ) -> None:
         "Write a (wrapped) event (or events) to Snuba."
 
         events_to_insert = [events] if not isinstance(events, list) else events
@@ -2593,7 +2601,7 @@ class SetRefsTestCase(APITestCase):
         mock_fetch_commit: mock.Mock,
         prev_release_id: int | None,
         release_id: int,
-        refs: Sequence[str],
+        refs: Sequence[dict[str, Any]],
     ) -> None:
         assert len(mock_fetch_commit.method_calls) == 1
         kwargs = mock_fetch_commit.method_calls[0][2]["kwargs"]
@@ -2605,7 +2613,7 @@ class SetRefsTestCase(APITestCase):
         }
 
     def assert_head_commit(
-        self, head_commit: CommitFileChange, commit_key: str, release_id: int | None = None
+        self, head_commit: ReleaseHeadCommit, commit_key: str, release_id: int | None = None
     ) -> None:
         assert self.org.id == head_commit.organization_id
         assert self.repo.id == head_commit.repository_id

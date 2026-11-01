@@ -87,7 +87,7 @@ class RepositorySerializer(Serializer[RepositorySerializerResponse]):
         if obj.integration_id:
             integration_id = str(obj.integration_id)
         repo_provider = obj.get_provider() if obj.provider else None
-        if repo_provider is not None:
+        if repo_provider is not None and obj.provider is not None:
             provider = {"id": obj.provider, "name": repo_provider.name}
             external_slug = repo_provider.repository_external_slug(obj)
         else:

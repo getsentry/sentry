@@ -214,7 +214,9 @@ def _get_last_commit_metadata(
     result: dict[Release, dict[str, object]] = {}
     for item in item_list:
         result[item] = {
-            "last_commit": commits.get(item.last_commit_id),
+            "last_commit": (
+                commits.get(item.last_commit_id) if item.last_commit_id is not None else None
+            ),
         }
     return result
 
@@ -243,7 +245,11 @@ def _get_last_deploy_metadata(
 
     result: dict[Release, dict[str, object]] = {}
     for item in item_list:
-        result[item] = {"last_deploy": deploys.get(item.last_deploy_id)}
+        result[item] = {
+            "last_deploy": (
+                deploys.get(item.last_deploy_id) if item.last_deploy_id is not None else None
+            )
+        }
     return result
 
 
@@ -787,9 +793,9 @@ class ReleaseSerializer(Serializer):
             "data": obj.data,
             "newGroups": typed_attrs["new_groups"],
             "owner": typed_attrs["owner"],
-            "commitCount": obj.commit_count,
+            "commitCount": obj.commit_count or 0,
             "lastCommit": typed_attrs.get("last_commit"),
-            "deployCount": obj.total_deploys,
+            "deployCount": obj.total_deploys or 0,
             "lastDeploy": typed_attrs.get("last_deploy"),
             "authors": typed_attrs.get("authors", []),
             "projects": [_expose_project(p) for p in typed_attrs["projects"]],
@@ -841,11 +847,11 @@ class GroupEventReleaseSerializer(Serializer):
     ) -> GroupEventReleaseSerializerResponse:
         return {
             "id": obj.id,
-            "commitCount": obj.commit_count,
+            "commitCount": obj.commit_count or 0,
             "data": obj.data,
             "dateCreated": obj.date_added,
             "dateReleased": obj.date_released,
-            "deployCount": obj.total_deploys,
+            "deployCount": obj.total_deploys or 0,
             "ref": obj.ref,
             "lastCommit": cast(dict[str, object] | None, attrs.get("last_commit")),
             "lastDeploy": cast(LastDeploy | None, attrs.get("last_deploy")),

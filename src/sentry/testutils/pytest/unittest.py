@@ -1,15 +1,20 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pytest
 from django.contrib.sessions.backends.base import SessionBase
 
-from sentry.models.activity import Activity
-from sentry.models.environment import Environment
-from sentry.models.group import Group
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.models.projectkey import ProjectKey
-from sentry.models.team import Team
-from sentry.services.eventstore.models import GroupEvent
-from sentry.users.models.user import User
+if TYPE_CHECKING:
+    from sentry.models.activity import Activity
+    from sentry.models.environment import Environment
+    from sentry.models.group import Group
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
+    from sentry.models.team import Team
+    from sentry.services.eventstore.models import GroupEvent
+    from sentry.users.models.user import User
 
 
 @pytest.fixture(scope="function")

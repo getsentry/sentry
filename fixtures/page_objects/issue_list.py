@@ -1,4 +1,6 @@
+from django.test import Client
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support.wait import WebDriverWait
 
 from sentry.testutils.pytest.selenium import Browser
@@ -9,7 +11,7 @@ from .issue_details import IssueDetailsPage
 
 
 class IssueListPage(BasePage):
-    def __init__(self, browser: Browser, client: object) -> None:
+    def __init__(self, browser: Browser, client: Client) -> None:
         super().__init__(browser)
         self.client = client
         self.global_selection = GlobalSelectionPage(browser)
@@ -46,7 +48,7 @@ class IssueListPage(BasePage):
     def wait_for_issue(self) -> None:
         self.browser.wait_until('[data-test-id="group"]')
 
-    def find_resolved_issues(self) -> list[object]:
+    def find_resolved_issues(self) -> list[WebElement]:
         return self.browser.elements('[data-test-id="resolved-issue"]')
 
     def archive_issues(self) -> None:

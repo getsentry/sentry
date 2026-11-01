@@ -40,6 +40,8 @@ class ProjectCreateSampleEndpoint(ProjectEndpoint):
                 default="javascript",
                 tagged=True,
             )
+            assert event is not None
+            assert event.group is not None
             add_group_to_inbox(event.group, GroupInboxReason.NEW)
 
             data = serialize(event, request.user)

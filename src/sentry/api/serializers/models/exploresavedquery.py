@@ -195,11 +195,15 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "agent",
             "errorsOnly",
         ]
+        dataset_name = ExploreSavedQueryDataset.get_type_name(obj.dataset)
+        assert dataset_name is not None
+        # justification: names come from `ExploreSavedQueryDataset.TYPES`, a fixed literal set.
+        dataset_name = cast(ExploreSavedQueryDatasetType, dataset_name)
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
-            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
+            "dataset": dataset_name,
             "expired": False,
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,

@@ -873,7 +873,7 @@ class Project(Model):
 
                     # add settings from other project to self
                     for setting in model.objects.filter(project_id=project_id):
-                        setting.pk = None
+                        setattr(setting, "pk", None)
                         setting.project_id = self.id
                         setting.save()
 
@@ -945,7 +945,7 @@ class Project(Model):
         # A `Global` restore implies a blanket restoration of all data. In such a case, we want to
         # ensure that project IDs remain unchanged, so that recovering users do not need to mint new
         # DSNs post-recovery.
-        if scope == ImportScope.Global:
+        if scope == ImportScope.Global and old_pk is not None:
             self.pk = old_pk
 
         return old_pk

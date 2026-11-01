@@ -37,6 +37,9 @@ class TestCreator(TestCase):
             scopes=("project:read",),
             events=("issue.created",),
         )
+        application = self.sentry_app.application
+        assert application is not None
+        self.application = application
 
     def run_creator(self, **kwargs: Any) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
@@ -84,7 +87,7 @@ class TestCreator(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(organization_id=self.org.id)
 
-        assert hook.application_id == self.sentry_app.application.id
+        assert hook.application_id == self.application.id
         assert hook.actor_id == install.id
         assert hook.organization_id == self.org.id
         assert hook.events == self.sentry_app.events

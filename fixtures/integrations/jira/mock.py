@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import cast
+from typing import Any, cast
 
 from fixtures.integrations.jira.stub_client import StubJiraApiClient
 from fixtures.integrations.mock_service import MockService
@@ -8,7 +8,7 @@ DEFAULT_PROJECT_ID = "10000"
 
 
 class MockJira(StubJiraApiClient, MockService):
-    def get_projects_list(self, cached: bool = True) -> list[dict[str, object]]:
+    def get_projects_list(self, cached: bool = True) -> list[dict[str, Any]]:
         """
         List all projects in the Jira data format.
 
@@ -28,7 +28,7 @@ class MockJira(StubJiraApiClient, MockService):
                 },
                 "simplified": False,
             }
-            for project_name in self._get_project_names() + [DEFAULT_PROJECT_ID]
+            for project_name in [*self._get_project_names(), DEFAULT_PROJECT_ID]
         ]
 
     def set_createmeta(self, project: str, createmeta: object) -> None:
@@ -42,7 +42,7 @@ class MockJira(StubJiraApiClient, MockService):
         """
         return self._set_data(project, "createmeta", createmeta)
 
-    def get_create_meta_for_project(self, project: str) -> dict[str, object] | None:
+    def get_create_meta_for_project(self, project: str) -> dict[str, Any] | None:
         """
         Get the Jira "createmeta" for a project.
 
@@ -53,7 +53,8 @@ class MockJira(StubJiraApiClient, MockService):
 
         createmeta = self._get_data(project, "createmeta")
         if createmeta:
-            return createmeta
+            # justification: seeded fixture data is JSON written through `set_createmeta`.
+            return cast("dict[str, Any]", createmeta)
 
         # Fallback to stub data
         return super().get_create_meta_for_project(project)
@@ -68,12 +69,14 @@ class MockJira(StubJiraApiClient, MockService):
         self._throw_if_broken()
 
         project = cast("Mapping[str, object]", raw_form_data.get("project", {})).get("id")
-        ticket_key = self._get_new_ticket_name(project)
-        self._set_data(project, ticket_key, {"fields": raw_form_data})
+        # justification: Jira project ids are strings in the request fixture payload.
+        project_id = cast("str", project)
+        ticket_key = self._get_new_ticket_name(project_id)
+        self._set_data(project_id, ticket_key, {"fields": raw_form_data})
 
         return {"key": ticket_key}
 
-    def get_issue(self, issue_key: str) -> dict[str, object] | None:
+    def get_issue(self, issue_key: str) -> dict[str, Any] | None:
         """
         Get a saved issue from Jira.
 
@@ -85,10 +88,12 @@ class MockJira(StubJiraApiClient, MockService):
         if not data:
             return None
 
-        data.update(
+        # justification: seeded fixture data is JSON written through `_set_data`.
+        issue = cast("dict[str, Any]", data)
+        issue.update(
             {
                 "id": issue_key,
                 "key": issue_key,
             }
         )
-        return data
+        return issue

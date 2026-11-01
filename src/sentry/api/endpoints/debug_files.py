@@ -694,7 +694,8 @@ def batch_assemble(
                 "state": state,
                 "detail": None,
                 "missingChunks": [],
-                "dif": detail,
+                # justification: assemble status detail is decoded JSON holding the serialized DIF.
+                "dif": cast("DebugFileSerializerResponse", detail),
             }
             files_to_check.pop(checksum)
         elif state is not None and state != ChunkFileState.OK:

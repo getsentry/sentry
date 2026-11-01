@@ -309,17 +309,17 @@ class ProjectOwnership(Model):
                 group.id, project_id, autoassignment_types
             )
 
-            if issue_owner is False:
+            if not isinstance(issue_owner, GroupOwner):
                 return
             logging_extra["issue_owner"] = issue_owner
 
-            owner = issue_owner.owner()
-            if not owner:
+            actor = issue_owner.owner()
+            if not actor:
                 return
 
-            logging_extra["owner"] = owner
+            logging_extra["owner"] = actor
             try:
-                owner = owner.resolve()
+                owner = actor.resolve()
             except (User.DoesNotExist, Team.DoesNotExist):
                 logger.info("handle_auto_assignment.no_resolved_owner", extra=logging_extra)
                 return
@@ -351,11 +351,6 @@ class ProjectOwnership(Model):
                 auto_assigned = latest_assignment.data.get("integration")
                 if not auto_assigned and not force_autoassign:
                     return
-
-            if not isinstance(owner, Team) and not isinstance(owner, RpcUser):
-                logging_extra["owner_type"] = str(type(owner))
-                logger.info("handle_auto_assignment.unknown_owner_type", extra=logging_extra)
-                return
 
             if (
                 isinstance(owner, Team)

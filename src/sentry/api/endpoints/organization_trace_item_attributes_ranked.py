@@ -1,12 +1,13 @@
 import logging
 from collections import defaultdict
-from typing import TypedDict
+from typing import Any, TypedDict, cast
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
 from sentry_protos.snuba.v1.endpoint_trace_item_stats_pb2 import (
+    AttributeDistribution,
     AttributeDistributionsRequest,
     StatsType,
     TraceItemStatsRequest,
@@ -199,9 +200,11 @@ class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointB
         )
 
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=request.user.id)
+        # justification: seer's contract takes `(name, label, value)` tuples; its TypedDict
+        # declares `dict` entries inaccurately.
         scored_attrs_rrr = compare_distributions(
-            baseline=cohort_2_distribution,
-            outliers=cohort_1_distribution,
+            baseline=cast("list[dict[str, Any]]", cohort_2_distribution),
+            outliers=cast("list[dict[str, Any]]", cohort_1_distribution),
             total_outliers=total_outliers,
             total_baseline=total_baseline,
             config={
@@ -437,14 +440,14 @@ def query_attribute_distributions(
         totals_2_future = query_thread_pool.submit(run_table_query_with_error_handling, query_2)
 
         # Merge cohort 1 results
-        cohort_1_data = []
+        cohort_1_data: list[AttributeDistribution] = []
         for future in cohort_1_futures:
             result = future.result()
             if result.results:
                 cohort_1_data.extend(result.results[0].attribute_distributions.attributes)
 
         # Merge cohort 2 results
-        cohort_2_data = []
+        cohort_2_data: list[AttributeDistribution] = []
         for future in cohort_2_futures:
             result = future.result()
             if result.results:

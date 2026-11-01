@@ -389,7 +389,7 @@ class _ArtifactIndexGuard:
         return dict(
             organization_id=self._release.organization_id,
             release_id=self._release.id,
-            dist_id=cast(int, self._dist.id) if self._dist is not None else None,
+            dist_id=self._dist.id if self._dist is not None else None,
             name=ARTIFACT_INDEX_FILENAME,
             ident=self._ident,
         )

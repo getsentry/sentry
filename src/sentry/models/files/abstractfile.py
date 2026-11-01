@@ -238,7 +238,8 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     type = models.CharField(max_length=64)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     headers = LegacyTextJSONField(default=dict)
-    size = WrappingU32IntegerField(null=True)
+    size = WrappingU32IntegerField()
+    size.null = True
     checksum = models.CharField(max_length=40, null=True, db_index=True)
 
     class Meta:

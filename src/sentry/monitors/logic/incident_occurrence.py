@@ -198,8 +198,9 @@ def send_incident_occurrence(
     else:
         trace_id = None
 
-    event_data = {
-        "contexts": {"monitor": get_monitor_environment_context(monitor_env)},
+    contexts: dict[str, object] = {"monitor": get_monitor_environment_context(monitor_env)}
+    event_data: dict[str, object] = {
+        "contexts": contexts,
         "environment": monitor_env.get_environment().name,
         "event_id": occurrence.event_id,
         "fingerprint": [incident.grouphash],
@@ -219,7 +220,7 @@ def send_incident_occurrence(
     }
 
     if trace_id:
-        event_data["contexts"]["trace"] = {"trace_id": trace_id, "span_id": None}
+        contexts["trace"] = {"trace_id": trace_id, "span_id": None}
 
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,

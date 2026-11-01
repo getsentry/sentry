@@ -208,12 +208,14 @@ class DiscoverSavedQueryModelSerializer(Serializer[DiscoverSavedQueryResponse]):
             "topEvents",
             "interval",
         ]
+        dataset_name = DiscoverSavedQueryTypes.get_type_name(obj.dataset)
+        assert dataset_name is not None
         data: DiscoverSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
             "projects": [project.id for project in obj.projects.all()],
             "version": obj.version or obj.query.get("version", 1),
-            "queryDataset": DiscoverSavedQueryTypes.get_type_name(obj.dataset),
+            "queryDataset": dataset_name,
             "datasetSource": DATASET_SOURCES[obj.dataset_source],
             "expired": False,
             "dateCreated": obj.date_created,

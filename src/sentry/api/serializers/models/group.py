@@ -141,7 +141,7 @@ class BaseGroupResponseOptional(TypedDict, total=False):
 class BaseGroupSerializerResponse(BaseGroupResponseOptional):
     id: str
     shareId: str | None
-    shortId: str
+    shortId: str | None
     title: str
     culprit: str | None
     permalink: str
@@ -421,7 +421,11 @@ class GroupSerializerBase(Serializer, ABC):
                 "has_seen": seen_groups.get(item.id, active_date) > active_date,
                 "annotations": annotations_by_group_id[item.id],
                 "ignore_until": ignore_item,
-                "ignore_actor": actors.get(ignore_item.actor_id) if ignore_item else None,
+                "ignore_actor": (
+                    actors.get(ignore_item.actor_id)
+                    if ignore_item and ignore_item.actor_id is not None
+                    else None
+                ),
                 "resolution": resolution,
                 "resolution_type": resolution_type,
                 "resolution_actor": resolution_actor,
@@ -450,11 +454,12 @@ class GroupSerializerBase(Serializer, ABC):
         share_id = attrs["share_id"]
         priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
         issue_category = obj.issue_category.name.lower()
+        qualified_short_id = obj.qualified_short_id
 
         group_dict: BaseGroupSerializerResponse = {
             "id": str(obj.id),
             "shareId": share_id,
-            "shortId": obj.qualified_short_id,
+            "shortId": qualified_short_id,
             "title": obj.title,
             "culprit": obj.culprit,
             "permalink": permalink,
@@ -468,7 +473,7 @@ class GroupSerializerBase(Serializer, ABC):
             "project": _make_group_project_response(obj.project),
             "type": obj.get_event_type(),
             "metadata": obj.get_event_metadata(),
-            "numComments": obj.num_comments,
+            "numComments": obj.num_comments or 0,
             "assignedTo": serialize(attrs["assigned_to"], user, ActorSerializer()),
             "isBookmarked": attrs["is_bookmarked"],
             "isSubscribed": is_subscribed,
@@ -623,12 +628,16 @@ class GroupSerializerBase(Serializer, ABC):
         for item, cache_key in zip(item_list, cache_keys):
             unhandled[item.id] = cache_data.get(cache_key)
 
-        filter_keys: dict[str, list[int]] = {}
+        filter_keys: dict[str, Sequence[int]] = {}
+        project_ids: list[int] = []
+        group_ids: list[int] = []
         for item in item_list:
             if unhandled.get(item.id) is not None:
                 continue
-            filter_keys.setdefault("project_id", []).append(item.project_id)
-            filter_keys.setdefault("group_id", []).append(item.id)
+            project_ids.append(item.project_id)
+            group_ids.append(item.id)
+        if project_ids:
+            filter_keys = {"project_id": project_ids, "group_id": group_ids}
 
         if filter_keys:
             rv = raw_query(
@@ -924,7 +933,9 @@ class GroupSerializer(GroupSerializerBase):
 
         project_id = issue_list[0].project_id
         item_ids = [g.id for g in issue_list]
-        tenant_ids = {"organization_id": issue_list[0].project.organization_id}
+        tenant_ids: dict[str, str | int] = {
+            "organization_id": issue_list[0].project.organization_id
+        }
         user_counts: Mapping[int, int] = user_counts_func(
             [project_id],
             item_ids,
@@ -972,7 +983,7 @@ class SharedGroupSerializerResponse(TypedDict):
     isUnhandled: bool | None
     issueCategory: str
     permalink: str
-    shortId: str
+    shortId: str | None
     title: str
     latestEvent: dict[str, Any]
     project: dict[str, Any]
@@ -1309,12 +1320,13 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
         **kwargs: Any,
     ) -> SimpleGroupSerializerResponse:
         issue_category = obj.issue_category.name.lower()
+        qualified_short_id = obj.qualified_short_id
 
         return SimpleGroupSerializerResponse(
             id=str(obj.id),
             title=obj.title,
             culprit=obj.culprit,
-            shortId=obj.qualified_short_id,
+            shortId=qualified_short_id,
             level=_get_level_label(obj),
             status=_get_status_label(obj),
             substatus=_get_substatus_label(obj),
@@ -1324,7 +1336,7 @@ class SimpleGroupSerializer(Serializer[SimpleGroupSerializerResponse]):
             issueType=obj.issue_type.slug,
             issueCategory=issue_category,
             metadata=obj.get_event_metadata(),
-            numComments=obj.num_comments,
+            numComments=obj.num_comments or 0,
             firstSeen=obj.first_seen,
             lastSeen=obj.last_seen,
         )

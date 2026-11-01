@@ -680,6 +680,7 @@ class Release(Model):
         )
         for release in from_releases:
             for model in model_list:
+                update_kwargs: dict[str, int | Release]
                 if hasattr(model, "release"):
                     update_kwargs = {"release": to_release}
                 else:

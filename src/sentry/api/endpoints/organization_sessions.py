@@ -1,5 +1,6 @@
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -141,16 +142,18 @@ class SessionsDataSeriesPaginator(GenericOffsetPaginator):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         data = self.data_fn(offset=offset, limit=limit + 1)
-
-        if isinstance(data.get("groups"), list):
-            has_more = len(data["groups"]) == limit + 1
+        assert isinstance(data, Mapping)
+        groups = data.get("groups")
+        if isinstance(groups, list):
+            has_more = len(groups) == limit + 1
             if has_more:
-                data["groups"].pop()
+                groups.pop()
         else:
             raise NotImplementedError
 
         return CursorResult(
-            data,
+            # justification: paginator passes its raw mapping payload through to the response.
+            cast("Sequence[object]", data),
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )

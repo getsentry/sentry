@@ -80,7 +80,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
 
         stat_model = None
         stat = request.GET.get("stat", "received")
-        query_kwargs = {}
+        environment_id: int | None = None
         if stat == "received":
             if group == "project":
                 stat_model = TSDBModel.project_total_received
@@ -100,7 +100,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
             if group == "project":
                 stat_model = TSDBModel.project
                 try:
-                    query_kwargs["environment_id"] = get_environment_id(request, organization.id)
+                    environment_id = get_environment_id(request, organization.id)
                 except Environment.DoesNotExist:
                     raise ResourceDoesNotExist
 
@@ -116,7 +116,7 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, StatsMixin):
         data = tsdb.backend.get_range(
             model=stat_model,
             keys=keys,
-            **self._parse_args(request, **query_kwargs),
+            **self._parse_args(request, environment_id=environment_id),
             tenant_ids={"organization_id": organization.id},
         )
 

@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from sentry_sdk import traces
 
 from sentry import features
@@ -705,7 +706,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
             if snuba_params.sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
 
-                def flex_time_data_fn(limit: int, page_token: str | None) -> dict[str, Any]:
+                def flex_time_data_fn(limit: int, page_token: PageToken | None) -> dict[str, Any]:
                     config = get_rpc_config()
 
                     return cast(

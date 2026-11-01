@@ -134,7 +134,7 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         response = StreamingHttpResponse(stream_attachment(), content_type=attachment.content_type)
         if blob_stream.encoding:
             response["Content-Encoding"] = blob_stream.encoding
-        else:
+        elif attachment.size is not None:
             response["Content-Length"] = attachment.size
         response["Content-Disposition"] = f'attachment; filename="{name}"'
         return response

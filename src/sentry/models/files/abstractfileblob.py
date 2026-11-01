@@ -51,7 +51,8 @@ class AbstractFileBlob(Model, _Parent[BlobOwnerType]):
     __relocation_scope__ = RelocationScope.Excluded
 
     path = models.TextField(null=True)
-    size = WrappingU32IntegerField(null=True)
+    size = WrappingU32IntegerField()
+    size.null = True
     checksum = models.CharField(max_length=40, unique=True)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
 

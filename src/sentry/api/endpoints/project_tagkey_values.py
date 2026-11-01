@@ -80,7 +80,7 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint):
         most 1000 values.
         """
         lookup_key = tagstore.backend.prefix_reserved_key(key)
-        tenant_ids = {"organization_id": project.organization_id}
+        tenant_ids: dict[str, str | int] = {"organization_id": project.organization_id}
         try:
             environment_id = get_environment_id(request, project.organization_id)
         except Environment.DoesNotExist:

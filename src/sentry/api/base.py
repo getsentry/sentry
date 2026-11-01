@@ -144,7 +144,7 @@ def _with_endpoint_scope_declaration(
     return wrapper
 
 
-def allow_cors_options(func: Callable[..., Response]) -> Callable[..., HttpResponse]:
+def allow_cors_options(func: Callable[..., HttpResponse]) -> Callable[..., HttpResponse]:
     """
     Decorator that adds automatic handling of OPTIONS requests for CORS
 

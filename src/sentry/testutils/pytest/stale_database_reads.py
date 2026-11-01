@@ -128,7 +128,7 @@ def stale_database_reads() -> Generator[StaleDatabaseReads]:
     def run_and_clear_commit_hooks(self: BaseDatabaseWrapper, *args: Any, **kwargs: Any) -> Any:
         _state.in_run_and_clear_commit_hooks = True
         try:
-            return old_run_and_clear_commit_hooks(*args, **kwargs)
+            return old_run_and_clear_commit_hooks(self, *args, **kwargs)
         finally:
             _state.in_run_and_clear_commit_hooks = False
 

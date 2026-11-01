@@ -97,7 +97,11 @@ def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project) -> I
             return [organization_member.user_id]
         elif monitor.owner_team_id:
             team = Team.objects.get_from_cache(id=monitor.owner_team_id)
-            return team.member_set.values_list("user_id", flat=True)
+            return [
+                user_id
+                for user_id in team.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
     except (OrganizationMember.DoesNotExist, Team.DoesNotExist):
         logger.info(
             "monitors.broken_detection.invalid_owner",
@@ -109,7 +113,11 @@ def get_user_ids_to_notify_from_monitor(monitor: Monitor, project: Project) -> I
         )
 
     project = Project.objects.get_from_cache(id=monitor.project_id)
-    return project.member_set.values_list("user_id", flat=True)
+    return [
+        user_id
+        for user_id in project.member_set.values_list("user_id", flat=True)
+        if user_id is not None
+    ]
 
 
 def get_user_emails_from_monitor(monitor: Monitor, project: Project) -> Iterable[str]:

@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -11,6 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.models.organization import Organization
 from sentry.models.recentsearch import RecentSearch, remove_excess_recent_searches
 from sentry.models.search_common import SearchType
+from sentry.users.models.user import User
 
 
 class RecentSearchSerializer(serializers.Serializer):
@@ -53,7 +56,7 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"detail": "Invalid input for `limit`. Error: %s" % str(e)}, status=400)
 
-        query_kwargs = {
+        query_kwargs: dict[str, object] = {
             "organization": organization,
             "user_id": request.user.id,
             "type": search_type,
@@ -82,7 +85,10 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
                 defaults={"last_seen": timezone.now()},
             )
             if created:
-                remove_excess_recent_searches(organization, request.user, result["type"])
+                # justification: DRF exposes request.user as a SimpleLazyObject proxy around User.
+                remove_excess_recent_searches(
+                    organization, cast(User, request.user), result["type"]
+                )
             status = 201 if created else 204
 
             return Response(status=status)

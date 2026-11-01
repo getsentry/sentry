@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from django.core.cache import cache
 from django.db import models
@@ -952,7 +952,7 @@ class Group(Model):
         self.message = strip(self.message)
         if self.message:
             self.message = truncatechars(self.message.splitlines()[0], 255)
-        if self.times_seen is None:
+        if not self.times_seen:
             self.times_seen = 1
         super().save(
             force_insert=force_insert,
@@ -1247,13 +1247,14 @@ class Group(Model):
             use_cache=use_cache,
         )
 
-    def get_event_type(self) -> str:
+    def get_event_type(self) -> eventtypes.EventTypeStr:
         """
         Return the type of this issue.
 
         See ``sentry.eventtypes``.
         """
-        return self.data.get("type", "default")
+        # justification: `data` is decoded event JSON; the type is validated on ingest.
+        return cast(eventtypes.EventTypeStr, self.data.get("type", "default"))
 
     def get_event_metadata(self) -> dict[str, Any]:
         """
