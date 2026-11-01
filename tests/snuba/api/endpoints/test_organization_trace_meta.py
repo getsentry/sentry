@@ -276,13 +276,14 @@ class OrganizationEventsTraceMetaEndpointTest(
 class OrganizationTraceMetaUptimeTest(OrganizationEventsTraceEndpointBase, UptimeResultEAPTestCase):
     url_name = "sentry-api-0-organization-trace-meta"
 
-    def create_uptime_check(self, trace_id: str | None = None, **kwargs: object) -> TraceItem:
-        defaults = {
-            "trace_id": trace_id or self.trace_id,
-            "scheduled_check_time": self.day_ago,
-        }
-        defaults.update(kwargs)
-        return self.create_eap_uptime_result(**defaults)
+    def create_uptime_check(
+        self, trace_id: str | None = None, check_status: str = "success"
+    ) -> TraceItem:
+        return self.create_eap_uptime_result(
+            trace_id=trace_id or self.trace_id,
+            scheduled_check_time=self.day_ago,
+            check_status=check_status,
+        )
 
     def test_trace_meta_without_uptime_param(self) -> None:
         """Test that uptimeCount field is NOT present when include_uptime is not set"""

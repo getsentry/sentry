@@ -983,7 +983,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             (
                 None,
@@ -1010,7 +1010,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
     intervals = list(
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [
@@ -1104,13 +1104,13 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],
     }
 
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [

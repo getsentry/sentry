@@ -28,6 +28,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
@@ -36,6 +37,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
+        assert group_c is not None
         self.login_as(user=self.user)
         response = self.get_response(query="is:unresolved", groups=[group_a.id, group_c.id])
 
@@ -64,6 +66,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
 
         self.login_as(user=self.user)
         response = self.get_response(query="is:unresolved", groups=[group_a.id])
@@ -136,6 +139,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
         error_group = error_event.group
+        assert error_group is not None
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -170,6 +174,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=2).isoformat(), "fingerprint": ["group-b"]},
             project_id=self.project.id,
@@ -178,6 +183,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             data={"timestamp": before_now(seconds=3).isoformat(), "fingerprint": ["group-c"]},
             project_id=self.project.id,
         ).group
+        assert group_c is not None
         self.login_as(user=self.user)
         response = self.get_response(
             query=f"project:{self.project.slug}", groups=[group_a.id, group_c.id]
@@ -206,6 +212,8 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
 
         group_a = event2.group
         group_c = event4.group
+        assert group_a is not None
+        assert group_c is not None
 
         self.login_as(user=self.user)
         response = self.get_response(
@@ -225,6 +233,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             },
             project_id=self.project.id,
         ).group
+        assert group_a is not None
         self.store_event(
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-a"]},
             project_id=self.project.id,
@@ -256,6 +265,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             )
 
             group = event.group
+            assert group is not None
             self.login_as(user=self.user)
 
             response = self.get_response(groups=[group.id])
@@ -283,6 +293,7 @@ class GroupListTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
                 },
                 project_id=self.project.id,
             )
+        assert event.group is not None
         return event.group
 
     def test_platform_tag_collision_badge_resolved_correctly(self) -> None:

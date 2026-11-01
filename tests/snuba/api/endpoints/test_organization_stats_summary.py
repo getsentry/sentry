@@ -576,15 +576,14 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
             self.client.get,
             reverse("sentry-api-0-organization-stats-summary", args=[self.org.slug]),
         )
-        response = make_request(
-            {
-                "project": self.project.id,
-                "statsPeriod": "1d",
-                "interval": "1d",
-                "field": ["sum(quantity)"],
-                "category": ["error", "transaction"],
-            }
-        )
+        query_params: dict[str, Any] = {
+            "project": self.project.id,
+            "statsPeriod": "1d",
+            "interval": "1d",
+            "field": ["sum(quantity)"],
+            "category": ["error", "transaction"],
+        }
+        response = make_request(query_params)
 
         assert response.status_code == 200, response.content
         assert response.data == {

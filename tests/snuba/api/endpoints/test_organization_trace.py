@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict, Unpack
 from unittest import mock
 from unittest.mock import MagicMock
 from uuid import uuid4
@@ -20,6 +20,8 @@ from sentry.issues.grouptype import (
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams
 from sentry.services.eventstore.models import Event
@@ -35,6 +37,24 @@ from tests.snuba.api.endpoints.test_organization_events_trace import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+class UptimeResultKwargs(TypedDict, total=False):
+    organization: Organization | None
+    project: Project | None
+    trace_id: str | None
+    guid: str | None
+    subscription_id: str | None
+    check_id: str | None
+    check_status: str
+    http_status_code: int
+    request_sequence: int
+    request_url: str
+    scheduled_check_time: datetime | None
+    check_duration_us: int | None
+    request_body_size_bytes: int | None
+    response_body_size_bytes: int | None
+
 
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeValue as ProtoAttributeValue,
@@ -685,17 +705,16 @@ class OrganizationEventsTraceEndpointTest(
         return uptime_checks
 
     def _create_uptime_result_with_original_url(
-        self, original_url: str | None = None, **kwargs: object
+        self, original_url: str | None = None, **kwargs: Unpack[UptimeResultKwargs]
     ) -> TraceItem:
         """Helper to create uptime result with original_url attribute"""
         if original_url is None:
             request_url = kwargs.get("request_url", "https://example.com")
             assert isinstance(request_url, str)
             original_url = request_url
-        kwargs["original_url"] = original_url
         kwargs.setdefault("request_body_size_bytes", None)
         kwargs.setdefault("response_body_size_bytes", None)
-        return self.create_eap_uptime_result(**kwargs)
+        return self.create_eap_uptime_result(original_url=original_url, **kwargs)
 
     def assert_expected_results(
         self,

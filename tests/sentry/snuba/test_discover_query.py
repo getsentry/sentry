@@ -182,10 +182,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["project"] for item in data] == ["a" * 32, "z" * 32]
 
     def test_issue_short_id_mapping(self) -> None:
+        group = self.event.group
+        assert group is not None
         tests = [
-            ("issue", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue", f"issue:{group.qualified_short_id}"),
             ("issue", f"issue.id:{self.event.group_id}"),
-            ("issue.id", f"issue:{self.event.group.qualified_short_id}"),
+            ("issue.id", f"issue:{group.qualified_short_id}"),
             ("issue.id", f"issue.id:{self.event.group_id}"),
         ]
 
@@ -203,10 +205,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item["issue.id"] for item in data] == [self.event.group_id]
 
     def test_issue_filters(self) -> None:
+        group = self.event.group
+        assert group is not None
         tests = [
             "has:issue",
             "has:issue.id",
-            f"issue:[{self.event.group.qualified_short_id}]",
+            f"issue:[{group.qualified_short_id}]",
             f"issue.id:[{self.event.group_id}]",
         ]
 
@@ -582,20 +586,20 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         ]
 
         for transaction in transactions:
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5)),
             )
-            data["transaction"] = transaction
-            self.store_event(data, project_id=self.project.id)
+            event_data["transaction"] = transaction
+            self.store_event(event_data, project_id=self.project.id)
 
         for team, transaction in key_transactions:
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5)),
             )
-            data["transaction"] = transaction
-            self.store_event(data, project_id=self.project.id)
+            event_data["transaction"] = transaction
+            self.store_event(event_data, project_id=self.project.id)
             TeamKeyTransaction.objects.create(
                 organization=self.organization,
                 transaction=transaction,
@@ -655,14 +659,14 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ("d" * 10, 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(3 + idx)),
                 start_timestamp=before_now(minutes=(3 + idx), milliseconds=event[1]),
             )
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = event[0]
-            self.store_event(data, project_id=self.project.id)
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = event[0]
+            self.store_event(event_data, project_id=self.project.id)
 
             if idx % 2:
                 ProjectTransactionThresholdOverride.objects.create(
@@ -673,11 +677,11 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                     metric=TransactionMetric.DURATION.value,
                 )
 
-        data = load_data(
+        event_data = load_data(
             "transaction", timestamp=before_now(minutes=3), start_timestamp=before_now(minutes=4)
         )
-        data["transaction"] = "e" * 10
-        self.store_event(data, project_id=project2.id)
+        event_data["transaction"] = "e" * 10
+        self.store_event(event_data, project_id=project2.id)
 
         expected_transaction = ["a" * 10, "b" * 10, "c" * 10, "d" * 10, "e" * 10]
         expected_project_threshold_config = [
@@ -746,20 +750,20 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/to_other/{i}"
-            data["release"] = "aaaa"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/to_other/{i}"
+            event_data["release"] = "aaaa"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/to_other/y"
-        data["release"] = "yyyy"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/to_other/y"
+        event_data["release"] = "yyyy"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/to_other/z"
-        data["release"] = "zzzz"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/to_other/z"
+        event_data["release"] = "zzzz"
+        self.store_event(event_data, project_id=project.id)
 
         columns1 = ["transaction", 'to_other(release,"aaaa")']
         columns2 = ["transaction", 'to_other(release,"aaaa",old,new)']
@@ -788,17 +792,17 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_count_if_function(self) -> None:
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["release"] = "aaaa"
-            self.store_event(data, project_id=self.project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["release"] = "aaaa"
+            self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = "bbbb"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = "bbbb"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = "cccc"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = "cccc"
+        self.store_event(event_data, project_id=self.project.id)
 
         columns1 = ["count()", "count_if(release,equals,aaaa)", "count_if(release,notEquals,aaaa)"]
         columns2 = ["count()", "count_if(release,less,bbbb)", "count_if(release,lessOrEquals,bbbb)"]
@@ -844,13 +848,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         unicode_phrase1 = "\u716e\u6211\u66f4\u591a\u7684\u98df\u7269\uff0c\u6211\u9913\u4e86"
         unicode_phrase2 = "\u53cd\u6b63\u611b\u60c5\u4e0d\u5c31\u90a3\u6837"
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["release"] = unicode_phrase1
-            self.store_event(data, project_id=self.project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["release"] = unicode_phrase1
+            self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["release"] = unicode_phrase2
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["release"] = unicode_phrase2
+        self.store_event(event_data, project_id=self.project.id)
 
         columns1 = [
             "count()",
@@ -889,25 +893,25 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_failure_count_function(self) -> None:
         project = self.create_project()
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/success"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/success"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/unknown"
-        data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/unknown"
+        event_data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/failure_count/{i}"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/failure_count/{i}"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/0"
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/0"
+        event_data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 8, True),
@@ -967,20 +971,22 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/apdex/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/apdex/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", [0.5, 0.5, 0.25, 0.0, 0.25], ["apdex(100)"], "apdex_100"),
@@ -1042,20 +1048,22 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/count_miserable/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/count_miserable/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             (
@@ -1133,20 +1141,22 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             ("zorp", 3000),
         ]
         for idx, event in enumerate(events):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=(5 + idx)),
                 start_timestamp=before_now(minutes=(5 + idx), milliseconds=event[1]),
             )
-            data["measurements"]["lcp"]["value"] = 3000
-            data["event_id"] = f"{idx}" * 32
-            data["transaction"] = f"/user_misery/{event[0]}"
-            data["user"] = {"email": f"{idx}@example.com"}
+            event_data["measurements"]["lcp"]["value"] = 3000
+            event_data["event_id"] = f"{idx}" * 32
+            event_data["transaction"] = f"/user_misery/{event[0]}"
+            event_data["user"] = {"email": f"{idx}@example.com"}
 
             if event[0] == "zorp":
-                self.store_event(data, project_id=project2.id)  # No custom thresholds for project2
+                self.store_event(
+                    event_data, project_id=project2.id
+                )  # No custom thresholds for project2
             else:
-                self.store_event(data, project_id=project.id)
+                self.store_event(event_data, project_id=project.id)
 
         queries = [
             (
@@ -1196,13 +1206,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/count/6"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/count/6"
+            self.store_event(event_data, project_id=project.id)
         for i in range(8):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/count/8"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/count/8"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 2, (6, 8), True),
@@ -1233,13 +1243,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
                 start_timestamp=before_now(minutes=4 + i),
             )
-            data["transaction"] = "/percentile"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/percentile"
+            self.store_event(event_data, project_id=project.id)
 
         fields = [
             (
@@ -1290,14 +1300,14 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         expected_timestamp = before_now(minutes=3)
         string_condition_timestamp = before_now(minutes=4).strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
-        data = load_data("transaction", timestamp=expected_timestamp)
-        data["transaction"] = "/last_seen"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=expected_timestamp)
+        event_data["transaction"] = "/last_seen"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=i + 4))
-            data["transaction"] = "/last_seen"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=i + 4))
+            event_data["transaction"] = "/last_seen"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -1327,14 +1337,14 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         expected_timestamp = before_now(minutes=3)
-        data = load_data("transaction", timestamp=expected_timestamp)
-        data["transaction"] = "/latest_event"
-        stored_event = self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=expected_timestamp)
+        event_data["transaction"] = "/latest_event"
+        stored_event = self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=i + 4))
-            data["transaction"] = "/latest_event"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=i + 4))
+            event_data["transaction"] = "/latest_event"
+            self.store_event(event_data, project_id=project.id)
 
         result = discover.query(
             selected_columns=["transaction", "latest_event()"],
@@ -1357,23 +1367,23 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/over"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/over"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
         for i in range(4):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/over"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/over"
+            self.store_event(event_data, project_id=project.id)
         for i in range(7):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/under"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/under"
+            self.store_event(event_data, project_id=project.id)
         for i in range(3):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = "/failure_rate/under"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = "/failure_rate/under"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 2, True),
@@ -1405,13 +1415,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for i in range(6):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + i)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            data["transaction"] = "/p50"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/p50"
+            self.store_event(event_data, project_id=project.id)
 
     def test_percentile(self) -> None:
         project = self.create_project()
@@ -1623,15 +1633,15 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for i in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
                 start_timestamp=before_now(minutes=4 + i),
             )
-            data["transaction"] = "/p100"
-            data["measurements"]["frames_total"] = {"value": 100 * i}
-            data["measurements"]["frames_slow"] = {"value": 50 * i}
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/p100"
+            event_data["measurements"]["frames_total"] = {"value": 100 * i}
+            event_data["measurements"]["frames_slow"] = {"value": 50 * i}
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -1664,13 +1674,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_count_unique(self) -> None:
         for idx in range(3):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["user"] = {"email": f"{idx}@example.com"}
-            data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
-            self.store_event(data, project_id=self.project.id)
+            event_data["user"] = {"email": f"{idx}@example.com"}
+            event_data["tags"] = {"foo": "bar" if idx < 1 else "baz"}
+            self.store_event(event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=["count_unique(user.display)", "count_unique(foo)"],
@@ -1694,12 +1704,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for idx in range(3):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + idx)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=[
@@ -1725,12 +1735,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for idx in range(3):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + idx)
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=start,
                 start_timestamp=end,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         queries = [
             ("var(transaction.duration)", "var_transaction_duration", 3600000000),
@@ -1770,12 +1780,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         start_one_minute = end - timedelta(minutes=1)
         start_two_minute = end - timedelta(minutes=2)
         for idx in range(3):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=end,
                 start_timestamp=start_one_minute if idx < 1 else start_two_minute,
             )
-            self.store_event(data, project_id=self.project.id)
+            self.store_event(event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=[
@@ -1801,12 +1811,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for _ in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["transaction"] = "/eps"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/eps"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -1854,12 +1864,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         project = self.create_project()
 
         for _ in range(6):
-            data = load_data(
+            event_data = load_data(
                 "transaction",
                 timestamp=before_now(minutes=3),
             )
-            data["transaction"] = "/epm"
-            self.store_event(data, project_id=project.id)
+            event_data["transaction"] = "/epm"
+            self.store_event(event_data, project_id=project.id)
 
         queries = [
             ("", 1, True),
@@ -1904,20 +1914,20 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 assert data[0]["tpm_60"] == 6
 
     def test_transaction_status(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/success"
-        data["contexts"]["trace"]["status"] = "ok"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/success"
+        event_data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/aborted"
-        data["contexts"]["trace"]["status"] = "aborted"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/aborted"
+        event_data["contexts"]["trace"]["status"] = "aborted"
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/already_exists"
-        data["contexts"]["trace"]["status"] = "already_exists"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/already_exists"
+        event_data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=["transaction.status"],
@@ -1934,16 +1944,16 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         } == {0, 10, 6}
 
     def test_transaction_status_filter(self) -> None:
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/success"
-        data["contexts"]["trace"]["status"] = "ok"
-        self.store_event(data, project_id=self.project.id)
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/success"
+        event_data["contexts"]["trace"]["status"] = "ok"
+        self.store_event(event_data, project_id=self.project.id)
+        self.store_event(event_data, project_id=self.project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=1))
-        data["transaction"] = "/test_transaction/already_exists"
-        data["contexts"]["trace"]["status"] = "already_exists"
-        self.store_event(data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=1))
+        event_data["transaction"] = "/test_transaction/already_exists"
+        event_data["contexts"]["trace"]["status"] = "already_exists"
+        self.store_event(event_data, project_id=self.project.id)
 
         def run_query(query: str, expected_statuses: list[int], message: str) -> None:
             result = discover.query(
@@ -1978,18 +1988,18 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         run_query("!has:transaction.status", [], "status nonexistant")
 
     def test_error_handled_alias(self) -> None:
-        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        event_data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "is handled", True),
             ("c" * 32, "undefined", None),
         )
         for event in events:
-            data["event_id"] = event[0]
-            data["logentry"] = {"formatted": event[1]}
-            data["exception"]["values"][0]["value"] = event[1]
-            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            self.store_event(data=data, project_id=self.project.id)
+            event_data["event_id"] = event[0]
+            event_data["logentry"] = {"formatted": event[1]}
+            event_data["exception"]["values"][0]["value"] = event[1]
+            event_data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=event_data, project_id=self.project.id)
 
         queries: list[tuple[str, list[int]]] = [
             ("", [0, 1, 1]),
@@ -2021,18 +2031,18 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item["error.handled"] for item in data] == expected_data
 
     def test_error_unhandled_alias(self) -> None:
-        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        event_data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "is handled", True),
             ("c" * 32, "undefined", None),
         )
         for event in events:
-            data["event_id"] = event[0]
-            data["logentry"] = {"formatted": event[1]}
-            data["exception"]["values"][0]["value"] = event[1]
-            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            self.store_event(data=data, project_id=self.project.id)
+            event_data["event_id"] = event[0]
+            event_data["logentry"] = {"formatted": event[1]}
+            event_data["exception"]["values"][0]["value"] = event[1]
+            event_data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=event_data, project_id=self.project.id)
 
         queries: list[tuple[str, list[str], list[int]]] = [
             ("error.unhandled:true", ["a" * 32], [1]),
@@ -2062,9 +2072,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert [item["error.unhandled"] for item in data] == error_handled
 
     def test_array_fields(self) -> None:
-        data = load_data("javascript")
-        data["timestamp"] = before_now(minutes=10).isoformat()
-        self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("javascript")
+        event_data["timestamp"] = before_now(minutes=10).isoformat()
+        self.store_event(data=event_data, project_id=self.project.id)
 
         expected_filenames = [
             "../../sentry/scripts/views.js",
@@ -2130,10 +2140,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             "hash": "a" * 16,
             "exclusive_time": 1.2345,
         }
-        data = load_data(
+        event_data = load_data(
             "transaction", timestamp=before_now(minutes=10), trace_context=trace_context, spans=[]
         )
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         queries = [
             ("has:spans_op", 1),
@@ -2156,19 +2166,19 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             assert len(data) == expected_len
 
     def test_orderby_field_alias(self) -> None:
-        data = load_data("android-ndk", timestamp=before_now(minutes=10))
+        event_data = load_data("android-ndk", timestamp=before_now(minutes=10))
         events = (
             ("a" * 32, "not handled", False),
             ("b" * 32, "is handled", True),
             ("c" * 32, "undefined", None),
         )
         for event in events:
-            data["event_id"] = event[0]
-            data["transaction"] = event[0]
-            data["logentry"] = {"formatted": event[1]}
-            data["exception"]["values"][0]["value"] = event[1]
-            data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
-            self.store_event(data=data, project_id=self.project.id)
+            event_data["event_id"] = event[0]
+            event_data["transaction"] = event[0]
+            event_data["logentry"] = {"formatted": event[1]}
+            event_data["exception"]["values"][0]["value"] = event[1]
+            event_data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
+            self.store_event(data=event_data, project_id=self.project.id)
 
         queries = [
             (["error.unhandled"], [0, 0, 1]),
@@ -2197,25 +2207,25 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
     def test_orderby_aggregate_function(self) -> None:
         project = self.create_project()
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/success"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/success"
+        self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/unknown"
-        data["contexts"]["trace"]["status"] = "unknown_error"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/unknown"
+        event_data["contexts"]["trace"]["status"] = "unknown_error"
+        self.store_event(event_data, project_id=project.id)
 
         for i in range(6):
-            data = load_data("transaction", timestamp=before_now(minutes=5))
-            data["transaction"] = f"/failure_count/{i}"
-            data["contexts"]["trace"]["status"] = "unauthenticated"
-            self.store_event(data, project_id=project.id)
+            event_data = load_data("transaction", timestamp=before_now(minutes=5))
+            event_data["transaction"] = f"/failure_count/{i}"
+            event_data["contexts"]["trace"]["status"] = "unauthenticated"
+            self.store_event(event_data, project_id=project.id)
 
-        data = load_data("transaction", timestamp=before_now(minutes=5))
-        data["transaction"] = "/failure_count/0"
-        data["contexts"]["trace"]["status"] = "unauthenticated"
-        self.store_event(data, project_id=project.id)
+        event_data = load_data("transaction", timestamp=before_now(minutes=5))
+        event_data["transaction"] = "/failure_count/0"
+        event_data["contexts"]["trace"]["status"] = "unauthenticated"
+        self.store_event(event_data, project_id=project.id)
 
         orderbys = [
             (["failure_count()"], [0, 1, 1, 1, 1, 1, 1, 2]),
@@ -2714,12 +2724,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
 
     def test_conditions_with_special_columns(self) -> None:
         for val in ["a", "b", "c"]:
-            data = load_data("transaction")
-            data["timestamp"] = self.one_min_ago.isoformat()
-            data["transaction"] = val * 32
-            data["logentry"] = {"formatted": val * 32}
-            data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
-            self.store_event(data=data, project_id=self.project.id)
+            event_data = load_data("transaction")
+            event_data["timestamp"] = self.one_min_ago.isoformat()
+            event_data["transaction"] = val * 32
+            event_data["logentry"] = {"formatted": val * 32}
+            event_data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
+            self.store_event(data=event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=["title", "message"],
@@ -2762,12 +2772,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction")
-                data["timestamp"] = self.one_min_ago.isoformat()
-                data["transaction"] = f"{val}-{i}"
-                data["logentry"] = {"formatted": val}
-                data["tags"] = {"trek": val}
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data("transaction")
+                event_data["timestamp"] = self.one_min_ago.isoformat()
+                event_data["transaction"] = f"{val}-{i}"
+                event_data["logentry"] = {"formatted": val}
+                event_data["tags"] = {"trek": val}
+                self.store_event(data=event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=["trek", "count()"],
@@ -2794,12 +2804,12 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for ev in events:
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction")
-                data["timestamp"] = self.one_min_ago.isoformat()
-                data["transaction"] = f"{val}-{i}"
-                data["logentry"] = {"formatted": val}
-                data["tags"] = {"trek": val}
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data("transaction")
+                event_data["timestamp"] = self.one_min_ago.isoformat()
+                event_data["transaction"] = f"{val}-{i}"
+                event_data["logentry"] = {"formatted": val}
+                event_data["tags"] = {"trek": val}
+                self.store_event(data=event_data, project_id=self.project.id)
 
         result = discover.query(
             selected_columns=["trek", "count()"],
@@ -2843,9 +2853,11 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         for t, ev in enumerate(events):
             val = ev[0] * 32
             for i in range(ev[1]):
-                data = load_data("transaction", timestamp=self.now - timedelta(seconds=3 * t + 1))
-                data["transaction"] = f"{val}"
-                self.store_event(data=data, project_id=self.project.id)
+                event_data = load_data(
+                    "transaction", timestamp=self.now - timedelta(seconds=3 * t + 1)
+                )
+                event_data["transaction"] = f"{val}"
+                self.store_event(data=event_data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["transaction", "count()"],
@@ -2889,9 +2901,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         }
 
     def test_count_with_or(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "a" * 32
-        self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "a" * 32
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["transaction", "count()"],
@@ -2908,13 +2920,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert data[0]["count"] == 1
 
     def test_array_join(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=90))
-        data["measurements"] = {
+        event_data = load_data("transaction", timestamp=before_now(seconds=90))
+        event_data["measurements"] = {
             "fp": {"value": 1000},
             "fcp": {"value": 1000},
             "lcp": {"value": 1000},
         }
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["array_join(measurements_key)"],
@@ -2974,13 +2986,13 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 )
 
     def test_sum_array_combinator(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["measurements"] = {
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["measurements"] = {
             "fp": {"value": 1000},
             "fcp": {"value": 1000},
             "lcp": {"value": 1000},
         }
-        self.store_event(data=data, project_id=self.project.id)
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["sumArray(measurements_value)"],
@@ -2994,9 +3006,9 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         assert results["data"][0]["sumArray_measurements_value"] == 3000.0
 
     def test_any_function(self) -> None:
-        data = load_data("transaction", timestamp=before_now(seconds=3))
-        data["transaction"] = "a" * 32
-        self.store_event(data=data, project_id=self.project.id)
+        event_data = load_data("transaction", timestamp=before_now(seconds=3))
+        event_data["transaction"] = "a" * 32
+        self.store_event(data=event_data, project_id=self.project.id)
 
         results = discover.query(
             selected_columns=["count()", "any(transaction)", "any(user.id)"],

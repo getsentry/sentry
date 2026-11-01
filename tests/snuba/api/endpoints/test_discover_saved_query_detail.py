@@ -603,7 +603,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         self.query.set_projects(self.project_ids)
 
-    def url(self, query_id: str) -> str:
+    def url(self, query_id: int) -> str:
         return reverse(
             "sentry-api-0-discover-saved-query-visit",
             kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},

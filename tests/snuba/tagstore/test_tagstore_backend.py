@@ -91,7 +91,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             project_id=self.proj1.id,
         )
 
-        self.proj1group1 = self.store_event(
+        group1_event = self.store_event(
             data={
                 "event_id": "2" * 32,
                 "message": "message 1",
@@ -109,9 +109,11 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "exception": exception,
             },
             project_id=self.proj1.id,
-        ).group
+        )
+        assert group1_event.group is not None
+        self.proj1group1: Group = group1_event.group
 
-        self.proj1group2 = self.store_event(
+        group2_event = self.store_event(
             data={
                 "event_id": "3" * 32,
                 "message": "message 2",
@@ -123,7 +125,9 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 "user": {"id": "user1"},
             },
             project_id=self.proj1.id,
-        ).group
+        )
+        assert group2_event.group is not None
+        self.proj1group2: Group = group2_event.group
 
         self.store_event(
             data={
@@ -1259,6 +1263,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
             # Get the group from one of the events
             error_upsampling_group = event1.group
+            assert error_upsampling_group is not None
 
             # Test get_top_group_tag_values with error upsampling
             resp = self.group_tag_values(

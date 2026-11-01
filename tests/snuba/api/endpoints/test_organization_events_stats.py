@@ -234,6 +234,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             project_id=self.project.id,
         )
         assert untraced_event.group_id == traced_event.group_id
+        assert traced_event.group is not None
 
         for trace_field in ["trace", "trace.span"]:
             response = self.do_request(
@@ -1590,6 +1591,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
@@ -1959,6 +1961,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         assert len(data) == 6
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[",".join([message, event.project.slug])]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -1972,6 +1975,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def test_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
+        assert event_group is not None
         event_group.delete()
 
         with self.feature(self.enabled_features):
@@ -2001,6 +2005,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             if index == 0 or event.group is None:
                 issue = "unknown"
             else:
+                assert event.group.qualified_short_id is not None
                 issue = event.group.qualified_short_id
 
             results = data[",".join([issue, message])]
@@ -2016,6 +2021,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def test_transactions_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
+        assert event_group is not None
         event_group.delete()
 
         with self.feature(self.enabled_features):
@@ -2064,6 +2070,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
     def test_top_events_with_unknown_issue(self, mock_issues_mapping: mock.MagicMock) -> None:
         event = self.events[0]
         event_data = self.event_data[0]
+        assert event.group is not None
 
         # ensure that the issue mapping returns None for the issue
         mock_issues_mapping.return_value = {event.group.id: None}
@@ -2244,6 +2251,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[1:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[message]
             assert results["order"] == index
             assert [{"count": self.event_data[index + 1]["count"]}] in [
@@ -2276,6 +2284,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
@@ -2310,6 +2319,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
@@ -2353,6 +2363,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[",".join(["False", message])]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -2412,6 +2423,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
         data = response.data
         assert response.status_code == 200, response.content
         assert len(data) == 1
+        assert self.transaction.transaction is not None
 
         results = data[",".join([self.transaction.transaction, "120000"])]
         assert results["order"] == 0
@@ -2499,6 +2511,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             user = self.event_data[index]["data"]["user"]
             results = data[
                 ",".join([message, user.get("email", None) or user.get("ip_address", "None")])
@@ -2542,6 +2555,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
             if event.group is None:
                 issue = "unknown"
             else:
+                assert event.group.qualified_short_id is not None
                 issue = event.group.qualified_short_id
 
             results = data[issue]
@@ -2650,6 +2664,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:3]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[message]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -2725,6 +2740,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[
                 ",".join([message, self.event_data[index]["data"]["user"].get("email", "None")])
             ]
@@ -2843,6 +2859,7 @@ class OrganizationEventsStatsTopNEventsSpans(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             results = data[",".join([message, "yup"])]
             assert results["order"] == index
             assert [{"count": self.event_data[index]["count"]}] in [
@@ -3487,6 +3504,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
 
         for index, event in enumerate(self.events[:5]):
             message = event.message or event.transaction
+            assert message is not None
             exception = event.get_event_metadata()["type"]
             results = data[
                 ",".join(
@@ -3577,20 +3595,21 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         """
 
         with self.feature(self.enabled_features):
+            query_params: dict[str, Any] = {
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "project": self.project.id,
+                "query": "!error.type:*Exception*",
+                "yAxis": "count_unique(user)",
+                "orderby": ["-count_unique(user)"],
+                "field": ["error.type", "count_unique(user)"],
+                "topEvents": "2",
+                "dataset": "errors",
+            }
             response = self.client.get(
                 self.url,
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "project": self.project.id,
-                    "query": "!error.type:*Exception*",
-                    "yAxis": "count_unique(user)",
-                    "orderby": ["-count_unique(user)"],
-                    "field": ["error.type", "count_unique(user)"],
-                    "topEvents": "2",
-                    "dataset": "errors",
-                },
+                data=query_params,
                 format="json",
             )
 
@@ -3609,20 +3628,21 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
         """
 
         with self.feature(self.enabled_features):
+            query_params: dict[str, Any] = {
+                "start": self.day_ago.isoformat(),
+                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+                "interval": "1h",
+                "project": self.project.id,
+                "query": "!error.type:*Exception*",
+                "yAxis": "count_unique(user)",
+                "orderby": ["-count_unique(user)"],
+                "field": ["stack.stack_level", "count_unique(user)"],
+                "topEvents": "2",
+                "dataset": "errors",
+            }
             response = self.client.get(
                 self.url,
-                data={
-                    "start": self.day_ago.isoformat(),
-                    "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                    "interval": "1h",
-                    "project": self.project.id,
-                    "query": "!error.type:*Exception*",
-                    "yAxis": "count_unique(user)",
-                    "orderby": ["-count_unique(user)"],
-                    "field": ["stack.stack_level", "count_unique(user)"],
-                    "topEvents": "2",
-                    "dataset": "errors",
-                },
+                data=query_params,
                 format="json",
             )
 
@@ -3665,6 +3685,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
     def test_top_events_with_issue(self) -> None:
         # delete a group to make sure if this happens the value becomes unknown
         event_group = self.events[0].group
+        assert event_group is not None
         event_group.delete()
 
         with self.feature(self.enabled_features):
@@ -3696,6 +3717,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
             if index == 0 or event.group is None:
                 issue = "unknown"
             else:
+                assert event.group.qualified_short_id is not None
                 issue = event.group.qualified_short_id
 
             results = data[",".join([issue, f"{message} {exception}"])]
@@ -3712,6 +3734,7 @@ class OrganizationEventsStatsTopNEventsErrors(APITestCase, SnubaTestCase):
     def test_top_events_with_unknown_issue(self, mock_issues_mapping: mock.MagicMock) -> None:
         event = self.events[0]
         event_data = self.event_data[0]
+        assert event.group is not None
 
         # ensure that the issue mapping returns None for the issue
         mock_issues_mapping.return_value = {event.group.id: None}
@@ -3912,16 +3935,17 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         mock_options.get.return_value = [self.project.id, self.project2.id]
 
         # Test with count() aggregation
+        query_params: dict[str, Any] = {
+            "start": self.day_ago.isoformat(),
+            "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+            "interval": "1h",
+            "yAxis": "count()",
+            "query": "event.type:error",
+            "project": [self.project.id, self.project2.id],
+        }
         response = self.client.get(
             self.url,
-            data={
-                "start": self.day_ago.isoformat(),
-                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "event.type:error",
-                "project": [self.project.id, self.project2.id],
-            },
+            data=query_params,
             format="json",
         )
 
@@ -3944,16 +3968,17 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         # Set up partial allowlist - only one project is allowlisted
         mock_options.get.return_value = [self.project.id]
 
+        query_params: dict[str, Any] = {
+            "start": self.day_ago.isoformat(),
+            "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+            "interval": "1h",
+            "yAxis": "count()",
+            "query": "event.type:error",
+            "project": [self.project.id, self.project2.id],
+        }
         response = self.client.get(
             self.url,
-            data={
-                "start": self.day_ago.isoformat(),
-                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "event.type:error",
-                "project": [self.project.id, self.project2.id],
-            },
+            data=query_params,
             format="json",
         )
 
@@ -3988,17 +4013,18 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
+        query_params: dict[str, Any] = {
+            "start": self.day_ago.isoformat(),
+            "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+            "interval": "1h",
+            "yAxis": "count()",
+            "query": "event.type:transaction",
+            "project": [self.project.id, self.project2.id],
+            "dataset": "discover",
+        }
         response = self.client.get(
             self.url,
-            data={
-                "start": self.day_ago.isoformat(),
-                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "event.type:transaction",
-                "project": [self.project.id, self.project2.id],
-                "dataset": "discover",
-            },
+            data=query_params,
             format="json",
         )
 
@@ -4016,16 +4042,17 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         # Set up no allowlisted projects
         mock_options.get.return_value = []
 
+        query_params: dict[str, Any] = {
+            "start": self.day_ago.isoformat(),
+            "end": (self.day_ago + timedelta(hours=2)).isoformat(),
+            "interval": "1h",
+            "yAxis": "count()",
+            "query": "event.type:error",
+            "project": [self.project.id, self.project2.id],
+        }
         response = self.client.get(
             self.url,
-            data={
-                "start": self.day_ago.isoformat(),
-                "end": (self.day_ago + timedelta(hours=2)).isoformat(),
-                "interval": "1h",
-                "yAxis": "count()",
-                "query": "event.type:error",
-                "project": [self.project.id, self.project2.id],
-            },
+            data=query_params,
             format="json",
         )
 
@@ -4081,16 +4108,17 @@ class OrganizationEventsStatsErrorUpsamplingTest(APITestCase, SnubaTestCase):
         query_start = self.day_ago
         query_end = self.day_ago + timedelta(hours=2)
 
+        query_params: dict[str, Any] = {
+            "start": query_start.isoformat(),
+            "end": query_end.isoformat(),
+            "interval": "1h",
+            "yAxis": "count_unique(user)",
+            "query": "event.type:error",
+            "project": [self.project.id, self.project2.id],
+        }
         response = self.client.get(
             self.url,
-            data={
-                "start": query_start.isoformat(),
-                "end": query_end.isoformat(),
-                "interval": "1h",
-                "yAxis": "count_unique(user)",
-                "query": "event.type:error",
-                "project": [self.project.id, self.project2.id],
-            },
+            data=query_params,
             format="json",
         )
 

@@ -3,6 +3,8 @@ from unittest import mock
 
 from django.urls import reverse
 
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.models.group import Group
 from sentry.models.release import Release
 from sentry.services.eventstore.models import Event
 from sentry.services.eventstore.snuba.backend import SnubaEventStorage
@@ -24,7 +26,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
         self.three_min_ago = before_now(minutes=3).isoformat()
         self.four_min_ago = before_now(minutes=4).isoformat()
 
-        self.prev_event = self.store_event(
+        self.prev_event: Event | IssueOccurrence = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "timestamp": self.four_min_ago,
@@ -32,7 +34,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.cur_event = self.store_event(
+        self.cur_event: Event | IssueOccurrence = self.store_event(
             data={
                 "event_id": "b" * 32,
                 "timestamp": self.three_min_ago,
@@ -40,7 +42,7 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.next_event = self.store_event(
+        next_event = self.store_event(
             data={
                 "event_id": "c" * 32,
                 "timestamp": self.two_min_ago,
@@ -50,7 +52,9 @@ class ProjectEventDetailsTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
-        self.cur_group = self.next_event.group
+        self.next_event: Event | IssueOccurrence = next_event
+        assert next_event.group is not None
+        self.cur_group: Group = next_event.group
 
         # Event in different group
         self.store_event(
@@ -345,6 +349,7 @@ class ProjectEventDetailsGenericTest(OccurrenceTestMixin, ProjectEventDetailsTes
         assert response.status_code == 200, response.content
         assert response.data["id"] == self.cur_event.event_id
         assert response.data["occurrence"] is not None
+        assert isinstance(self.cur_event, IssueOccurrence)
         assert response.data["occurrence"]["id"] == self.cur_event.id
 
 
@@ -368,6 +373,7 @@ class ProjectEventDetailsTransactionTest(APITestCase, SnubaTestCase, Performance
             ),
             project_id=project.id,
         )
+        assert self.prev_transaction_event.group is not None
         self.group = self.prev_transaction_event.group
 
         self.cur_transaction_event = self.create_performance_issue(
