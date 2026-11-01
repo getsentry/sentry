@@ -133,7 +133,7 @@ def set_filter_state(
         if state:
             inbound_filter_toggled.send(project=project, sender=flt)
 
-        return state.get("active", False)
+        return bool(state.get("active", False))
 
 
 def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
@@ -165,9 +165,10 @@ def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
             return True
         if filter_state == "0":
             return False
-        return filter_state
+        # justification: the stored legacy-browser option holds a JSON list of subfilters.
+        return cast("bool | list[str]", filter_state)
     else:
-        return filter_state == "1"
+        return bool(filter_state == "1")
 
 
 class FilterNotRegistered(Exception):

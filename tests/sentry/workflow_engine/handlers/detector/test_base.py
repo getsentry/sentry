@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from uuid import UUID
 
@@ -119,19 +119,23 @@ class MockDetectorStateHandler(StatefulDetectorHandler[dict[str, Any], int | Non
     """
 
     def extract_dedupe_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("dedupe", 0)
+        value = data_packet.packet.get("dedupe", 0)
+        return value if isinstance(value, int) else 0
 
     def extract_value(
         self, data_packet: DataPacket[dict[str, Any]]
     ) -> int | None | DetectorGroupValues[int | None]:
         if data_packet.packet.get("value"):
-            return data_packet.packet["value"]
+            value = data_packet.packet["value"]
+            assert isinstance(value, int)
+            return value
 
         group_vals = data_packet.packet.get("group_vals", 0)
 
         if isinstance(group_vals, dict):
             return DetectorGroupValues(group_vals)
 
+        assert isinstance(group_vals, int) or group_vals is None
         return group_vals
 
     def create_occurrence(
@@ -146,7 +150,8 @@ class MockTriggeredDetectorHandler(DetectorHandler[dict[str, Any], int]):
     """Triggers at HIGH for every packet, without evaluating its conditions."""
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet.get("value", 0)
+        value: int = data_packet.packet.get("value", 0)
+        return value
 
     def evaluate(
         self,
@@ -184,7 +189,8 @@ class MockDefaultDetectorHandler(DetectorHandler[dict[str, Any], int]):
         if "values" in data_packet.packet:
             return DetectorGroupValues(data_packet.packet["values"])
 
-        return data_packet.packet["value"]
+        # justification: the mock echoes whatever value the test packet carries.
+        return cast("int | DetectorGroupValues[int]", data_packet.packet["value"])
 
     def create_occurrence(
         self,
@@ -217,7 +223,9 @@ class MockUnconditionedDetectorHandler(BaseDetectorHandler[dict[str, Any], int])
     threshold = 5
 
     def extract_value(self, data_packet: DataPacket[dict[str, Any]]) -> int:
-        return data_packet.packet["value"]
+        value = data_packet.packet["value"]
+        assert isinstance(value, int)
+        return value
 
     def evaluate(
         self,

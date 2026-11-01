@@ -104,14 +104,6 @@ def __write_ownership_data(
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
 
-    def get_api_endpoints(
-        self, patterns: object = None, prefix: str = ""
-    ) -> list[tuple[str, str, object]]:
-        # justification: drf-spectacular does not annotate EndpointEnumerator.get_api_endpoints.
-        return cast("Callable[..., list[tuple[str, str, object]]]", super().get_api_endpoints)(
-            patterns, prefix
-        )
-
     def get_path_from_regex(self, path_regex: str) -> str:
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)

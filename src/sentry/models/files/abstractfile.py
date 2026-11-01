@@ -9,7 +9,7 @@ import tempfile
 from collections.abc import Callable, Iterable, Sequence
 from hashlib import sha1
 from types import TracebackType
-from typing import IO, TYPE_CHECKING, Any, Generic, TypeVar, cast
+from typing import IO, TYPE_CHECKING, Any, Generic, Protocol, TypeVar, cast
 
 from django.core.files.base import ContentFile
 from django.core.files.base import File as FileObj
@@ -31,6 +31,17 @@ logger = logging.getLogger(__name__)
 LoggerType = logging.Logger | type[nooplogger]
 
 
+class _Blob(Protocol):
+    size: int | None
+
+    def getfile(self) -> FileObj[bytes]: ...
+
+
+class _BlobIndex(Protocol):
+    offset: int
+    blob: _Blob
+
+
 class ChunkedFileBlobIndexWrapper:
     def __init__(
         self,
@@ -44,8 +55,8 @@ class ChunkedFileBlobIndexWrapper:
         self._indexes: list[Any] = list(
             indexes
         )  # justification: concrete index subclasses provide the blob relation.
-        self._curfile: Any = None
-        self._curidx: Any = None
+        self._curfile: FileObj[bytes] | tempfile._TemporaryFileWrapper[bytes] | None = None
+        self._curidx: _BlobIndex | None = None
         if prefetch:
             self.prefetched = True
             self._prefetch(prefetch_to, delete)

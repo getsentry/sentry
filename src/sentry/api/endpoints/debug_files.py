@@ -115,9 +115,9 @@ def has_download_permission(request: Request, project: Project) -> bool:
 
     if request.user.is_sentry_app:
         if organization_roles.can_manage("member", required_role):
-            return request.access.has_scope("project:read")
+            return bool(request.access.has_scope("project:read"))
         else:
-            return request.access.has_scope("project:write")
+            return bool(request.access.has_scope("project:write"))
 
     try:
         current_role = (
@@ -492,7 +492,8 @@ class DebugFilesEndpoint(ProjectEndpoint):
             if debug_id and not query and not file_formats:
                 maybe_renew_debug_files(difs)
 
-            return serialize(difs, request.user)
+            serialized: list[DebugFileSerializerResponse] = serialize(difs, request.user)
+            return serialized
 
         return self.paginate(
             request=request,
@@ -1126,9 +1127,10 @@ class SourceMapsEndpoint(ProjectEndpoint):
             file_count_map = get_artifact_counts([r["id"] for r in results])
             # In case we didn't find a file count for a specific release, we will return -1, signaling to the
             # frontend that this release doesn't have one or more ReleaseFile.
-            return serialize(
+            serialized: list[dict[str, object]] = serialize(
                 [expose_release(r, file_count_map.get(r["id"], -1)) for r in results], request.user
             )
+            return serialized
 
         sort_by = request.GET.get("sortBy", "-date_added")
         if sort_by not in {"-date_added", "date_added"}:

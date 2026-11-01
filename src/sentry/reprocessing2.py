@@ -290,11 +290,15 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
 
 
 def get_original_group_id(event: Event) -> int:
-    return event.data["contexts"]["reprocessing"]["original_issue_id"]
+    group_id = get_path(event.data, "contexts", "reprocessing", "original_issue_id")
+    if not isinstance(group_id, int):
+        raise ValueError("Event is missing its original issue id")
+    return group_id
 
 
 def get_original_primary_hash(event: Event) -> str | None:
-    return get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    primary_hash = get_path(event.data, "contexts", "reprocessing", "original_primary_hash")
+    return primary_hash if isinstance(primary_hash, str) else None
 
 
 def _send_delete_old_primary_hash_messages(
@@ -511,7 +515,8 @@ def is_reprocessed_event(data: Mapping[str, Any]) -> bool:
 
 
 def _get_original_issue_id(data: Mapping[str, Any]) -> int | None:
-    return get_path(data, "contexts", "reprocessing", "original_issue_id")
+    issue_id = get_path(data, "contexts", "reprocessing", "original_issue_id")
+    return issue_id if isinstance(issue_id, int) else None
 
 
 def buffered_handle_remaining_events(

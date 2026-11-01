@@ -50,7 +50,8 @@ def is_native_image(image: Mapping[str, object]) -> bool:
 
 def native_images_from_data(data: Mapping[str, object]) -> list[dict[str, Any]]:
     # justification: debug images are decoded event JSON
-    return get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
+    images = get_path(data, "debug_meta", "images", default=(), filter=is_native_image)
+    return images if isinstance(images, list) else []
 
 
 def is_native_event(data: Mapping[str, Any], stacktraces: list[StacktraceInfo]) -> bool:
@@ -93,13 +94,15 @@ def get_os_from_event(event: Mapping[str, object]) -> str | None:
     the runtime SDK and *NOT* the Sentry SDK.
     """
     os = get_path(event, "contexts", "os")
-    if os and os.get("type") == "os":
-        if (os_name := os.get("name")) is not None:
+    if isinstance(os, Mapping) and os.get("type") == "os":
+        os_name = os.get("name")
+        if isinstance(os_name, str):
             return os_name.lower()
 
     sdk_info = get_path(event, "debug_meta", "sdk_info")
-    if sdk_info:
-        if (sdk_name := sdk_info.get("sdk_name")) is not None:
+    if isinstance(sdk_info, Mapping):
+        sdk_name = sdk_info.get("sdk_name")
+        if isinstance(sdk_name, str):
             return sdk_name.lower()
 
     return None

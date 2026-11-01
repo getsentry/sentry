@@ -4,7 +4,7 @@ import os
 import time
 from datetime import timedelta
 from hashlib import sha1
-from typing import IO, TYPE_CHECKING, Any, TypeVar
+from typing import IO, TYPE_CHECKING, Any, TypeVar, cast
 
 from django.conf import settings
 from django.core.files.storage import Storage
@@ -89,7 +89,8 @@ def get_storage(
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    # justification: the backend setting names a Storage subclass.
+    storage = cast("type[Storage]", import_string(backend))
     return storage(**options)
 
 
@@ -102,7 +103,8 @@ def get_relocation_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    # justification: the backend setting names a Storage subclass.
+    storage = cast("type[Storage]", import_string(backend))
     return storage(**relocation)
 
 
@@ -115,7 +117,8 @@ def get_profiles_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    # justification: the backend setting names a Storage subclass.
+    storage = cast("type[Storage]", import_string(backend))
     return storage(**profiles)
 
 

@@ -2,7 +2,7 @@
 
 import logging
 from collections.abc import Iterator, Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
 from sentry_redis_tools.clients import RedisCluster
@@ -52,7 +52,8 @@ def get_redis_client() -> RedisCluster:
 
 def _get_all_keys(namespace: ClustererNamespace) -> Iterator[str]:
     client = get_redis_client()
-    return client.sscan_iter(_get_projects_key(namespace))
+    # justification: sentry_redis_tools does not annotate sscan_iter.
+    return cast("Iterator[str]", client.sscan_iter(_get_projects_key(namespace)))
 
 
 def get_active_projects(namespace: ClustererNamespace) -> Iterator[Project]:
@@ -101,7 +102,8 @@ def get_transaction_names(project: Project) -> Iterator[str]:
     client = get_redis_client()
     redis_key = _get_redis_key(ClustererNamespace.TRANSACTIONS, project)
 
-    return client.sscan_iter(redis_key)
+    # justification: sentry_redis_tools does not annotate sscan_iter.
+    return cast("Iterator[str]", client.sscan_iter(redis_key))
 
 
 def clear_samples(namespace: ClustererNamespace, project: Project) -> None:
@@ -145,7 +147,7 @@ def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
     tags = event_data.get("tags") or []
     if HTTP_404_TAG in tags:
         return None
-    return transaction_name
+    return transaction_name if isinstance(transaction_name, str) else None
 
 
 def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:

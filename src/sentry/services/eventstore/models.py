@@ -95,7 +95,8 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # Reuse the Snuba column to avoid loading the full event body from nodestore.
         if "trace_id" in self._snuba_data:
             return cast(str | None, self._snuba_data["trace_id"])
-        return get_path(self.data, "contexts", "trace", "trace_id")
+        trace_id = get_path(self.data, "contexts", "trace", "trace_id")
+        return trace_id if isinstance(trace_id, str) else None
 
     @property
     def platform(self) -> str | None:
@@ -261,7 +262,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         event_type = self.get_event_type()
 
         # TODO: It may be that we don't have to restrict this to just default and error types
-        if title and event_type in ["default", "error"]:
+        if isinstance(title, str) and title and event_type in ["default", "error"]:
             return title
 
         event_type_instance = eventtypes.get(event_type)()
@@ -385,7 +386,7 @@ class BaseEvent(metaclass=abc.ABCMeta):
         # this if we do not force a different config.
         if force_config is None:
             hashes = self.data.get("hashes")
-            if hashes is not None:
+            if isinstance(hashes, list):
                 return hashes
 
         # Create fresh hashes
@@ -848,7 +849,7 @@ class EventSubjectTemplateData(dict[str, str]):
             return self.event.organization.slug
         elif name == "title":
             occurrence = getattr(self.event, "occurrence", None)
-            if occurrence:
+            if occurrence and isinstance(occurrence.issue_title, str):
                 return occurrence.issue_title
             else:
                 return self.event.title

@@ -352,17 +352,26 @@ class QueryResult:
 
     @property
     def modified_start(self) -> datetime:
-        return self.result["modified_start"]
+        value = self.result["modified_start"]
+        if not isinstance(value, datetime):
+            raise MetricsQueryExecutionError("modified_start is not a datetime")
+        return value
 
     @property
     def modified_end(self) -> datetime:
-        return self.result["modified_end"]
+        value = self.result["modified_end"]
+        if not isinstance(value, datetime):
+            raise MetricsQueryExecutionError("modified_end is not a datetime")
+        return value
 
     @property
     def series(self) -> Sequence[Mapping[str, Any]]:
         if "series" not in self.result:
             return []
-        return self.result["series"]["data"]
+        data = self.result["series"]["data"]
+        if not isinstance(data, list):
+            raise MetricsQueryExecutionError("series data is not a list")
+        return data
 
     @series.setter
     def series(self, value: Sequence[Mapping[str, Any]]) -> None:
@@ -372,7 +381,10 @@ class QueryResult:
     def totals(self) -> Sequence[Mapping[str, Any]]:
         if "totals" not in self.result:
             return []
-        return self.result["totals"]["data"]
+        data = self.result["totals"]["data"]
+        if not isinstance(data, list):
+            raise MetricsQueryExecutionError("totals data is not a list")
+        return data
 
     @totals.setter
     def totals(self, value: Sequence[Mapping[str, Any]]) -> None:
@@ -383,7 +395,10 @@ class QueryResult:
         # By default, we extract the metadata from the totals query, if that is not there we extract from the series
         # query.
         meta_source = "totals" if "totals" in self.result else "series"
-        return self.result[meta_source]["meta"]
+        data = self.result[meta_source]["meta"]
+        if not isinstance(data, list):
+            raise MetricsQueryExecutionError("meta is not a list")
+        return data
 
     @property
     def group_bys(self) -> list[str]:
@@ -400,7 +415,8 @@ class QueryResult:
     @property
     def interval(self) -> int | None:
         if self.series_query:
-            return self.series_query.metrics_query.rollup.interval
+            interval = self.series_query.metrics_query.rollup.interval
+            return interval if isinstance(interval, int) else None
 
         return None
 
@@ -417,7 +433,8 @@ class QueryResult:
         # TODO: we might want to return the limit that is actually returned to users. In that, we would need to check
         #  if the queries run have a dynamic interval, since in that case we might need to return limit - 1.
         if self.totals_query:
-            return self.totals_query.metrics_query.limit.limit
+            limit = self.totals_query.metrics_query.limit.limit
+            return limit if isinstance(limit, int) else None
 
         return None
 

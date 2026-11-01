@@ -36,7 +36,7 @@ class StubService:
             return f.read()
 
     @staticmethod
-    def get_stub_data(service_name: str, name: str) -> Any:
+    def get_stub_data(service_name: str, name: str) -> Any:  # justification: see _get_stub_data.
         """
         Get the stubbed data as a python object.
 
@@ -55,5 +55,5 @@ class StubService:
         return deepcopy(data)
 
     def _get_stub_data(self, name: str) -> Any:
-        # justification: decoded JSON fixture data has no fixed schema.
+        # justification: decoded JSON fixture data has no fixed schema; callers declare the expected shape.
         return StubService.get_stub_data(self.service_name, name)

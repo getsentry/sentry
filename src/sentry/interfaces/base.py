@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Iterator, Mapping
 from html import escape
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, cast
 
 from django.conf import settings
 from django.utils.functional import classproperty
@@ -28,7 +28,8 @@ def get_interface(name: str) -> type[Interface]:
     except Exception:
         raise ValueError(f"Unable to load interface: {name}")
 
-    return interface
+    # justification: SENTRY_INTERFACES maps names to Interface subclasses.
+    return cast("type[Interface]", interface)
 
 
 def get_interfaces(event: Mapping[str, Any]) -> dict[str, Interface]:
@@ -71,12 +72,12 @@ class Interface:
         self._data = data or {}
 
     @classproperty
-    def path(cls) -> str:
+    def path(cls: type[Interface]) -> str:
         """The 'path' of the interface which is the root key in the data."""
         return cls.__name__.lower()
 
     @classproperty
-    def external_type(cls) -> str:
+    def external_type(cls: type[Interface]) -> str:
         """The external name of the interface.  This is mostly the same as
         path with some small differences (message, debugmeta).
         Also used as the display name for grouping strategy hints.
@@ -126,7 +127,8 @@ class Interface:
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
     ) -> Mapping[str, Any]:  # justification: decoded JSON
-        return self.to_json()
+        # justification: interface payloads are mappings at this level.
+        return cast("Mapping[str, Any]", self.to_json())
 
     def get_api_meta(
         # justification: decoded JSON

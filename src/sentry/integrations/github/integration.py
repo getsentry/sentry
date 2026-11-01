@@ -391,6 +391,8 @@ class GitHubIntegration(
             )
 
             github_account_id = updated_installation_info["account"]["id"]
+            if not isinstance(github_account_id, (str, int)):
+                raise ValueError("GitHub installation info has no account id")
             installation_metadata["account_id"] = github_account_id
             integration_service.update_integration(
                 integration_id=self.model.id, metadata=installation_metadata
@@ -1027,7 +1029,7 @@ def validate_github_installation(
         pipeline.bind_state("installation_id", chosen_installation_id)
 
     installation_id = pipeline.fetch_state("installation_id")
-    if installation_id is None:
+    if not isinstance(installation_id, str):
         return None
 
     pending_deletion = OrganizationIntegration.objects.filter(

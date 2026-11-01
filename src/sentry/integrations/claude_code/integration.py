@@ -10,7 +10,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from django.conf import settings as django_settings
 from django.http.request import HttpRequest
@@ -66,7 +66,8 @@ def _get_client_class() -> type[Any]:
             "CLAUDE_CODE_CLIENT_CLASS is not configured. "
             "The Claude Code client is not available in this environment."
         )
-    return import_string(class_path)
+    # justification: CLAUDE_CODE_CLIENT_CLASS names the client class configured for this environment.
+    return cast("type[Any]", import_string(class_path))
 
 
 FEATURES = [
@@ -374,6 +375,10 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
             if request.repository.organization_id is not None:
                 vault_metadata["organization_id"] = str(request.repository.organization_id)
             vault_id = client.create_vault(metadata=vault_metadata)
+            if not isinstance(vault_id, str):
+                raise IntegrationConfigurationError(
+                    "Claude Code client returned an invalid vault id"
+                )
             metadata.installation_vault_ids[str(installation_id)] = vault_id
             self._persist_metadata(metadata)
             return vault_id
@@ -424,7 +429,11 @@ class ClaudeCodeAgentIntegration(CodingAgentIntegration):
         client = self.get_client()
         vault_id = self._resolve_vault(client, request)
 
-        state = client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id)
+        # justification: the configured Claude Code client returns a CodingAgentState.
+        state = cast(
+            "CodingAgentState",
+            client.launch(webhook_url=webhook_url, request=request, vault_id=vault_id),
+        )
         state.integration_id = self.model.id
 
         self._sync_client_ids(client)

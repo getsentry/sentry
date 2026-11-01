@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -115,15 +115,19 @@ class SuperuserAgentTokenTest(APITestCase):
             ),
             key=SECRET,
         )
-        return APIClient().post(
+        response: Response = APIClient().post(
             f"/api/0/organizations/{self.org.slug}/agent/token/",
             {"sessionId": "123"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=viewer,
         )
+        return response
 
     def _read(self, token: str, path: str | None = None) -> Response:
-        return APIClient().get(path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}")
+        response: Response = APIClient().get(
+            path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}"
+        )
+        return response
 
     def test_chat_to_mint_to_read_without_membership(self) -> None:
         assert not OrganizationMember.objects.filter(
@@ -369,6 +373,17 @@ def _declared_scopes(view: type[Any], method: str) -> frozenset[str]:
     return frozenset(scopes)
 
 
+def _discover_endpoints(
+    enumerator: CustomEndpointEnumerator,
+) -> list[tuple[str, str, str, Any]]:
+    # justification: drf-spectacular does not annotate EndpointEnumerator._get_api_endpoints.
+    discover = cast(
+        "Callable[[object, str], list[tuple[str, str, str, Any]]]",
+        enumerator._get_api_endpoints,
+    )
+    return discover(enumerator.patterns, "")
+
+
 class _CollectionSafeEndpointEnumerator(CustomEndpointEnumerator):
     """Inspect declared HTTP methods without constructing every endpoint view."""
 
@@ -399,7 +414,7 @@ def _public_get_endpoints() -> tuple[PublicGetEndpoint, ...]:
     """
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicGetEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -440,7 +455,7 @@ def _public_mutation_endpoints() -> tuple[PublicMutationEndpoint, ...]:
     """Return every canonical public non-GET operation and its declared scopes."""
     enumerator = _CollectionSafeEndpointEnumerator()
     endpoints: dict[tuple[str, str], PublicMutationEndpoint] = {}
-    discovered = enumerator._get_api_endpoints(enumerator.patterns, "")
+    discovered = _discover_endpoints(enumerator)
     for path, _path_regex, method, callback in discovered:
         view = callback.view_class
         status = view.publish_status.get(method)
@@ -686,9 +701,10 @@ class OrganizationAgentTokenTest(APITestCase):
         self.org = self.create_organization(owner=self.owner)
 
     def _mint(self, **data: object) -> Response:
-        return self.client.post(
+        response: Response = self.client.post(
             f"/api/0/organizations/{self.org.slug}/agent/token/", data=data, format="json"
         )
+        return response
 
     def _assert_user_global_get_denied(self, endpoint: PublicGetEndpoint) -> None:
         self.login_as(self.owner)
@@ -1509,7 +1525,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
             )
             return str(detector.id)
         if placeholder == "environment":
-            return self._resource("environment").name
+            return str(self._resource("environment").name)
         if placeholder == "issue_id":
             return str(self._resource("group").id)
         if placeholder == "integration_id":
@@ -1531,9 +1547,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if placeholder == "artifact_id":
             return str(self._resource("preprod_artifact").id)
         if placeholder == "key_id":
-            return self._resource("project_key").public_key
+            return str(self._resource("project_key").public_key)
         if placeholder == "version":
-            return self._resource("release").version
+            return str(self._resource("release").version)
         if placeholder == "file_id":
             return str(self._resource("release_file").id)
         if placeholder == "repo_id":
@@ -1566,13 +1582,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 return str(self._resource("custom_inbound_filter").id)
             return "browser-extensions"
         if placeholder == "event_id":
-            return self._resource("event").event_id
+            return str(self._resource("event").event_id)
         if placeholder == "job_id":
             return str(self._resource("replay_deletion_job").id)
         if placeholder == "query_id":
             return str(self._resource("saved_query")["id"])
         if placeholder == "replay_id":
-            return self._resource("replay")
+            return str(self._resource("replay"))
         if placeholder == "segment_id":
             self._resource("replay_recording_segment")
             return "0"
@@ -1777,7 +1793,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         assert approved_scopes <= set(response.data["scopes"]), response.data
         if requested_scopes is not None:
             assert set(response.data["scopes"]) <= requested_scopes, response.data
-        return response.data["token"]
+        token = response.data["token"]
+        assert isinstance(token, str)
+        return token
 
     @staticmethod
     def _listed_ids(response: Response, *, nested_organization: bool = False) -> set[int]:
@@ -2286,14 +2304,16 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         user_token_scopes: frozenset[str] | None = None,
     ) -> Response:
         if authentication is MatrixAuthentication.SESSION:
-            return self.client.get(path)
+            session_response: Response = self.client.get(path)
+            return session_response
 
         client = APIClient()
         if authentication is MatrixAuthentication.USER_TOKEN:
-            return client.get(
+            user_token_response: Response = client.get(
                 path,
                 HTTP_AUTHORIZATION=f"Bearer {self._user_token(user_token_scopes)}",
             )
+            return user_token_response
         if authentication is MatrixAuthentication.VIEWER_CONTEXT:
             viewer_context = encode_viewer_context(
                 ViewerContext(
@@ -2303,15 +2323,20 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
                 key=SECRET,
             )
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            viewer_response: Response = client.get(path, HTTP_X_VIEWER_CONTEXT=viewer_context)
+            return viewer_response
         if authentication is MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT:
-            return client.get(path, HTTP_X_VIEWER_CONTEXT=self._service_account_context)
+            service_account_response: Response = client.get(
+                path, HTTP_X_VIEWER_CONTEXT=self._service_account_context
+            )
+            return service_account_response
         if authentication in {
             MatrixAuthentication.AGENT_TOKEN,
             MatrixAuthentication.SCOPED_DOWN_AGENT_TOKEN,
         }:
             assert agent_bearer is not None
-            return client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            agent_response: Response = client.get(path, HTTP_AUTHORIZATION=f"Bearer {agent_bearer}")
+            return agent_response
         raise AssertionError(f"unsupported authentication {authentication}")
 
     def _mutation_request(
@@ -2363,12 +2388,13 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
                 ),
             }
             request_format = "multipart"
-        return request_method(
+        response: Response = request_method(
             path,
             data=request_payload,
             format=request_format,
             **headers,
         )
+        return response
 
     def _rolled_back_mutation_request(
         self,
@@ -2719,7 +2745,7 @@ def _mark_service_account_gap[F: Callable[..., None]](test: F, test_id: str) -> 
     gap = SERVICE_ACCOUNT_KNOWN_GAPS.get(test_id)
     if gap is None:
         return test
-    return pytest.mark.xfail(strict=True, reason=gap.value)(test)
+    return cast("F", pytest.mark.xfail(strict=True, reason=gap.value)(test))
 
 
 def _install_public_get_matrix_tests() -> None:

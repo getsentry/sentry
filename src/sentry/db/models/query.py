@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import operator
 from functools import reduce
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.db import router
 from django.db.models import F, Model, Q
@@ -32,15 +32,18 @@ class CannotResolveExpression(Exception):
 def resolve_combined_expression(instance: Model, node: CombinedExpression) -> BaseExpression:
     def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
         if isinstance(node, Value):
-            return node.value
+            # justification: Value wraps the raw expression value.
+            return cast("BaseExpression", node.value)
         if isinstance(node, F):
-            return getattr(instance, node.name)
+            # justification: F names a model field, resolved dynamically here.
+            return cast("BaseExpression", getattr(instance, node.name))
         if isinstance(node, CombinedExpression):
             return resolve_combined_expression(instance, node)
         return node
 
     if isinstance(node, Value):
-        return node.value
+        # justification: Value wraps the raw expression value.
+        return cast("BaseExpression", node.value)
     if not isinstance(node, CombinedExpression):
         raise CannotResolveExpression
     op = COMBINED_EXPRESSION_CALLBACKS.get(node.connector, None)

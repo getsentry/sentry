@@ -165,7 +165,10 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
 
     @property
     def size(self) -> int:
-        return self.obj.content_length
+        content_length = self.obj.content_length
+        if not isinstance(content_length, int):
+            raise TypeError("S3 object has no content length")
+        return content_length
 
     @property
     def file(self) -> IO[bytes] | None:
@@ -188,7 +191,10 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
     def read(self, num_bytes: int | None = None) -> bytes:
         if "r" not in self._mode:
             raise AttributeError("File was not opened in read mode.")
-        return super().read(num_bytes)
+        data = super().read(num_bytes)
+        if not isinstance(data, bytes):
+            raise TypeError("S3 file returned a non-bytes read")
+        return data
 
     def write(self, content: object) -> int:
         if "w" not in self._mode:
@@ -207,7 +213,10 @@ class S3Boto3StorageFile(_S3Boto3StorageFileBase):
             self._multipart = self.obj.initiate_multipart_upload(**parameters)
         if self.buffer_size <= self._buffer_file_size:
             self._flush_write_buffer()
-        return super().write(force_bytes(content))
+        written = super().write(force_bytes(content))
+        if not isinstance(written, int):
+            raise TypeError("S3 file returned a non-integer write count")
+        return written
 
     @property
     def _buffer_file_size(self) -> int:
@@ -587,9 +596,15 @@ class S3Boto3Storage(Storage):
         if self.entries:
             entry = self.entries.get(name)
             if entry:
-                return entry.content_length
+                content_length = entry.content_length
+                if not isinstance(content_length, int):
+                    raise TypeError("S3 object has no content length")
+                return content_length
             return 0
-        return self.bucket.Object(self._encode_name(name)).content_length
+        content_length = self.bucket.Object(self._encode_name(name)).content_length
+        if not isinstance(content_length, int):
+            raise TypeError("S3 object has no content length")
+        return content_length
 
     def get_modified_time(self, name: str) -> datetime:
         """
@@ -602,11 +617,14 @@ class S3Boto3Storage(Storage):
         # in the preloaded metadata.
         if entry is None:
             entry = self.bucket.Object(self._encode_name(name))
+        last_modified = entry.last_modified
+        if not isinstance(last_modified, datetime):
+            raise TypeError("S3 object has no last modified time")
         if settings.USE_TZ:
             # boto3 returns TZ aware timestamps
-            return entry.last_modified
+            return last_modified
         else:
-            return localtime(entry.last_modified).replace(tzinfo=None)
+            return localtime(last_modified).replace(tzinfo=None)
 
     def modified_time(self, name: str) -> datetime:
         """Returns a naive datetime object containing the last modified time."""
@@ -659,6 +677,8 @@ class S3Boto3Storage(Storage):
         url = self.bucket.meta.client.generate_presigned_url(
             "get_object", Params=params, ExpiresIn=expire
         )
+        if not isinstance(url, str):
+            raise TypeError("S3 presigned URL is not a string")
         if self.querystring_auth:
             return url
         return self._strip_signing_parameters(url)

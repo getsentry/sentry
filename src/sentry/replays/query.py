@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from snuba_sdk import (
     Column,
@@ -129,18 +129,22 @@ def query_replay_instance(
     else:
         project_ids = [project_id]
 
-    return execute_query(
-        query=make_full_aggregation_query(
-            fields=[],
-            replay_ids=[replay_id],
-            project_ids=project_ids,
-            period_start=start,
-            period_end=end,
-            request_user_id=request_user_id,
-        ),
-        tenant_id={"organization_id": organization.id} if organization else {},
-        referrer="replays.query.details_query",
-    )["data"]
+    # justification: the replay snuba client is untyped.
+    return cast(
+        "list[object]",
+        execute_query(
+            query=make_full_aggregation_query(
+                fields=[],
+                replay_ids=[replay_id],
+                project_ids=project_ids,
+                period_start=start,
+                period_end=end,
+                request_user_id=request_user_id,
+            ),
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.details_query",
+        )["data"],
+    )
 
 
 def query_replay_id_by_prefix(
@@ -231,18 +235,22 @@ def query_replay_viewed_by_ids(
         if project_id in options.get("replay.viewed-by.project-denylist"):
             raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
 
-    return execute_query(
-        query=make_full_aggregation_query(
-            fields=["viewed_by_ids"],
-            replay_ids=[replay_id],
-            project_ids=project_ids,
-            period_start=start,
-            period_end=end,
-            request_user_id=request_user_id,
-        ),
-        tenant_id={"organization_id": organization.id} if organization else {},
-        referrer="replays.query.viewed_by_query",
-    )["data"]
+    # justification: the replay snuba client is untyped.
+    return cast(
+        "list[dict[str, Any]]",
+        execute_query(
+            query=make_full_aggregation_query(
+                fields=["viewed_by_ids"],
+                replay_ids=[replay_id],
+                project_ids=project_ids,
+                period_start=start,
+                period_end=end,
+                request_user_id=request_user_id,
+            ),
+            tenant_id={"organization_id": organization.id} if organization else {},
+            referrer="replays.query.viewed_by_query",
+        )["data"],
+    )
 
 
 def query_replays_count(
@@ -1073,7 +1081,8 @@ def query_trace_connected_events(
     if dataset is None:
         raise ValueError(f"Unknown dataset: {dataset_label}")
 
-    return dataset.query(**query_details)
+    # justification: the dataset implementation is selected at runtime and returns a JSON payload.
+    return cast("dict[str, Any]", dataset.query(**query_details))
 
 
 def get_replay_range(

@@ -6,7 +6,7 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, Self, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
 from uuid import uuid4
 
 import jsonschema
@@ -73,7 +73,11 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = jsonschema.validators.validator_for(MONITOR_CONFIG)
+    # justification: jsonschema's validator_for returns a Validator subclass.
+    validator_cls = cast(
+        "type[jsonschema.protocols.Validator]",
+        jsonschema.validators.validator_for(MONITOR_CONFIG),
+    )
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)
 
@@ -395,7 +399,8 @@ class Monitor(Model):
             logging.warning("Monitor: %s invalid config: %s", self.id, self.config, exc_info=True)
         # We should always return the config here - just log an error if we detect that it doesn't
         # match the schema
-        return self.config
+        # justification: monitor configs are JSON objects written through validated_config.
+        return cast("dict[str, Any]", self.config)
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
@@ -414,7 +419,7 @@ def is_monitor_muted(monitor: Monitor) -> bool:
     A monitor is considered muted if ALL of its environments are muted.
     If a monitor has no environments, it is considered unmuted.
     """
-    env_counts = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
+    env_counts: dict[str, int] = MonitorEnvironment.objects.filter(monitor_id=monitor.id).aggregate(
         total=models.Count("id"), muted=models.Count("id", filter=Q(is_muted=True))
     )
 

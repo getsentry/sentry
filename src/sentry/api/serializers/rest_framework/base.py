@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any, TypeVar, cast, overload
+from typing import Any, TypeVar, cast
 
 from django.db.models import Model
 from django.utils.text import re_camel_case
@@ -70,21 +70,7 @@ def snake_to_camel_case(value: str) -> str:
 _OPAQUE_DICT_KEYS = frozenset({"additional_fields", "additionalFields"})
 
 
-@overload
-def convert_dict_key_case(
-    obj: dict[Any, Any], converter: Callable[[str], str]
-) -> dict[Any, Any]: ...
-
-
-@overload
-def convert_dict_key_case(obj: list[Any], converter: Callable[[str], str]) -> list[Any]: ...
-
-
-@overload
-def convert_dict_key_case(obj: object, converter: Callable[[str], str]) -> object: ...
-
-
-def convert_dict_key_case(obj: object, converter: Callable[[str], str]) -> object:
+def convert_dict_key_case(obj: T, converter: Callable[[str], str]) -> T:
     """
     Recursively converts the keys of a dictionary using the provided converter
     param.
@@ -94,26 +80,28 @@ def convert_dict_key_case(obj: object, converter: Callable[[str], str]) -> objec
     field names.
     """
     if isinstance(obj, list):
-        return [convert_dict_key_case(x, converter) for x in obj]
+        # justification: a list input returns the same list type with converted entries.
+        return cast("T", [convert_dict_key_case(x, converter) for x in obj])
 
     if not isinstance(obj, dict):
         return obj
 
-    obj = obj.copy()
-    for key in list(obj.keys()):
+    result = obj.copy()
+    for key in list(result.keys()):
         converted_key = converter(key)
-        if converted_key != key and converted_key in obj:
+        if converted_key != key and converted_key in result:
             raise ValidationError(
                 {key: f"{key} collides with {converted_key}, please pass only one value"}
             )
-        value = obj.pop(key)
+        value = result.pop(key)
         if key in _OPAQUE_DICT_KEYS and isinstance(value, dict):
             # Convert the container key, keep nested third-party keys as-is.
-            obj[converted_key] = value
+            result[converted_key] = value
         else:
-            obj[converted_key] = convert_dict_key_case(value, converter)
+            result[converted_key] = convert_dict_key_case(value, converter)
 
-    return obj
+    # justification: a dict input returns the same dict type with converted keys.
+    return cast("T", result)
 
 
 class CamelSnakeSerializer(Serializer[T]):

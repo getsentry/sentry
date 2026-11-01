@@ -153,8 +153,8 @@ class Symbolicator:
         task_name: str,
         path: str,
         kwargs_cb: Callable[[], dict[str, Any]] | None = None,
-        **kwargs: Any,
-    ) -> Any:
+        **kwargs: Any,  # justification: symbolicator task results are decoded JSON.
+    ) -> dict[str, Any]:
         """
         This function will submit a symbolication task to a Symbolicator and handle
         polling it using the `SymbolicatorSession`.
@@ -172,7 +172,8 @@ class Symbolicator:
         )
 
         task_id: str | None = None
-        json_response = None
+        # justification: symbolicator task results are decoded JSON.
+        json_response: dict[str, Any] | None = None
 
         backoff = Backoff(BACKOFF_INITIAL, BACKOFF_MAX)
 
@@ -457,10 +458,12 @@ class Symbolicator:
 
         This just reads the "organizations:native-variable-extraction" feature flag.
         """
-        return features.has("organizations:native-variable-extraction", self.project.organization)
+        return bool(
+            features.has("organizations:native-variable-extraction", self.project.organization)
+        )
 
     def _should_apply_source_server_info(self) -> bool:
-        return self.project.get_option("sentry:enable_native_source_server_mapping")
+        return bool(self.project.get_option("sentry:enable_native_source_server_mapping"))
 
 
 class TaskIdNotFound(Exception):
@@ -554,7 +557,10 @@ class SymbolicatorSession:
                     raise ServiceUnavailable()
 
                 if response.ok:
-                    json = response.json()
+                    payload = response.json()
+                    if not isinstance(payload, dict):
+                        raise ValueError("Symbolicator returned a non-object response")
+                    json = payload
 
                     if json["status"] != "pending":
                         metrics.distribution(

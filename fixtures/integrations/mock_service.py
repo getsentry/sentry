@@ -116,4 +116,5 @@ class MockService(StubService):
             return None
 
         with open(path, "rb") as f:
-            return orjson.loads(f.read())
+            data: object = orjson.loads(f.read())
+            return data

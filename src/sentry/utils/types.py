@@ -43,7 +43,8 @@ class Type(typing.Generic[T]):
         raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value: TAny) -> T | None:
-        return value
+        # justification: the base coercion accepts the value unchanged.
+        return typing.cast("T | None", value)
 
     def _default(self) -> T:
         return self.default
@@ -135,9 +136,10 @@ class DictType(Type[dict[str, TAny]]):
 
     def convert(self, value: TAny) -> dict[str, TAny] | None:
         try:
-            return safe_load(value)
+            data = safe_load(value)
         except (AttributeError, ParserError, ScannerError):
             return None
+        return data if isinstance(data, dict) else None
 
 
 class SequenceType(Type[list[TAny]]):
@@ -159,7 +161,7 @@ class SequenceType(Type[list[TAny]]):
                 return None
         if isinstance(value, tuple):
             value = list(value)
-        return value
+        return value if isinstance(value, list) else None
 
 
 # Initialize singletons of each type for easy reuse

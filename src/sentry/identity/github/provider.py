@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping
 from typing import Any, cast
 
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import ImproperlyConfigured, PermissionDenied
 from requests.exceptions import RequestException
 
 from sentry import http, options
@@ -28,19 +28,21 @@ def get_user_info(access_token: str) -> dict[str, object]:
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
         )
         resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise ValueError("GitHub user info is not a JSON object")
+    return data
 
 
 def get_verified_primary_email(emails: list[dict[str, Any]]) -> str | None:
     """Return the verified primary email from GitHub email records, else None."""
-    verified_primary = [
-        e["email"]
-        for e in emails
-        if isinstance(e, dict) and e.get("email") and e.get("verified") and e.get("primary")
-    ]
-    if not verified_primary:
-        return None
-    return verified_primary[0]
+    for entry in emails:
+        if not (entry.get("email") and entry.get("verified") and entry.get("primary")):
+            continue
+        email = entry["email"]
+        if isinstance(email, str):
+            return email
+    return None
 
 
 def fetch_verified_primary_email(access_token: str) -> str | None:
@@ -82,10 +84,16 @@ class GitHubIdentityProvider(OAuth2Provider):
     oauth_scopes = ()
 
     def get_oauth_client_id(self) -> str:
-        return options.get("github-app.client-id")
+        client_id = options.get("github-app.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("github-app.client-id is not configured")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("github-app.client-secret")
+        client_secret = options.get("github-app.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("github-app.client-secret is not configured")
+        return client_secret
 
     def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
         # justification: provider OAuth responses are decoded JSON.

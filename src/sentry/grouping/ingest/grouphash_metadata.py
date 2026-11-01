@@ -331,7 +331,8 @@ def get_grouphash_metadata_data(
             )
 
         if is_hybrid_fingerprint:
-            hashing_metadata.update(
+            # justification: hybrid fingerprinting merges fingerprint fields into the salted metadata variant.
+            cast("dict[str, object]", hashing_metadata).update(
                 _get_fingerprint_hashing_metadata(contributing_variant, is_hybrid=True)
             )
 

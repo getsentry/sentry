@@ -33,7 +33,7 @@ class ValueEqualityEnum(Enum):
         value = other
         if isinstance(other, Enum):
             value = other.value
-        return self.value == value
+        return bool(self.value == value)
 
     def __hash__(self) -> int:
         return hash(self.value)
@@ -228,14 +228,16 @@ def coerce_id_from(m: object | int | None) -> int | None:
         return None
     if isinstance(m, int):
         return m
-    if hasattr(m, "id"):
-        return m.id
+    value = getattr(m, "id", None)
+    if isinstance(value, int):
+        return value
     raise ValueError(f"Cannot coerce {m!r} into id!")
 
 
 def extract_id_from(m: object | int) -> int:
     if isinstance(m, int):
         return m
-    if hasattr(m, "id"):
-        return m.id
+    value = getattr(m, "id", None)
+    if isinstance(value, int):
+        return value
     raise ValueError(f"Cannot extract {m!r} from id!")

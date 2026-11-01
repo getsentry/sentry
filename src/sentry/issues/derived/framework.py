@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from datetime import datetime
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Final, Literal, Protocol, override, runtime_checkable
+from typing import Any, ClassVar, Final, Literal, Protocol, cast, override, runtime_checkable
 
 
 class _Missing:
@@ -66,7 +66,8 @@ class Codec[T]:
     """
 
     def _validate(self, value: Any) -> T:
-        return value
+        # justification: the identity codec accepts and returns the same value.
+        return cast("T", value)
 
     def to_json(self, value: T) -> Any:
         return self._validate(value)
@@ -208,7 +209,8 @@ class Feature[T]:
         self._version: Final[int] = version
         self._default = default
         self._default_factory = default_factory
-        self._codec = codec or IDENTITY_CODEC
+        # justification: the identity codec accepts and returns the same value.
+        self._codec: Codec[T] = codec or cast("Codec[T]", IDENTITY_CODEC)
         self._hash = hash((name, version))
 
     @property
@@ -273,7 +275,8 @@ class _FeatureStore:
         self._data: dict[Feature[Any], Any] = data if data is not None else {}
 
     def __getitem__[T](self, key: Feature[T]) -> T:
-        return self._data[key]
+        # justification: values are stored under the feature that declares their type.
+        return cast("T", self._data[key])
 
     def __setitem__[T](self, key: Feature[T], value: T) -> None:
         self._data[key] = value
@@ -333,7 +336,8 @@ class StateView:
     def __getitem__[T](self, key: Feature[T]) -> T:
         if key not in self._allowed:
             raise KeyError(f"Feature {key.name!r} is not accessible in this view")
-        return self._data[key]
+        # justification: values are stored under the feature that declares their type.
+        return cast("T", self._data[key])
 
     def __contains__(self, key: object) -> bool:
         return key in self._allowed and key in self._data

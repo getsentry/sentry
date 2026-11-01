@@ -438,14 +438,18 @@ class VstsIntegration(RepositoryIntegration[VstsApiClient], VstsIssuesSpec):
 
     @property
     def instance(self) -> str:
-        return self.model.metadata["domain_name"]
+        domain_name = self.model.metadata["domain_name"]
+        if not isinstance(domain_name, str):
+            raise TypeError("VSTS integration metadata has no domain name")
+        return domain_name
 
     @property
     def default_project(self) -> str | None:
         try:
-            return self.model.metadata["default_project"]
+            default_project = self.model.metadata["default_project"]
         except KeyError:
             return None
+        return default_project if isinstance(default_project, str) else None
 
 
 class VstsInitialDataSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -801,7 +805,10 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Authorization": f"Bearer {access_token}",
                 },
             )
-            return response.json()["locationUrl"]
+            location_url = response.json()["locationUrl"]
+            if not isinstance(location_url, str):
+                raise ValueError("VSTS operation response has no location URL")
+            return location_url
 
     def setup(self) -> None:
         from sentry.plugins.base import bindings

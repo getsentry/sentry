@@ -338,7 +338,7 @@ def get_internal_url_prefix() -> str:
         for replacement in replacements:
             internal_url_prefix = internal_url_prefix.replace(replacement, "host.docker.internal")
 
-    assert internal_url_prefix
+    assert isinstance(internal_url_prefix, str)
     return internal_url_prefix.rstrip("/")
 
 
@@ -520,6 +520,9 @@ def parse_sources(config: Any, filter_appconnect: bool) -> list[dict[str, Any]]:
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
+    if not isinstance(sources, list):
+        raise InvalidSourcesError("Sources are not a JSON array")
+
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
         sources = [src for src in sources if src.get("type") != "appStoreConnect"]
@@ -544,6 +547,9 @@ def parse_backfill_sources(
         sources = orjson.loads(sources_json)
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
+
+    if not isinstance(sources, list):
+        raise InvalidSourcesError("Sources are not a JSON array")
 
     orig_by_id = {src["id"]: src for src in original_sources}
 
@@ -703,10 +709,8 @@ def get_gcp_token(client_email: str | None) -> str | None:
 
     target_credentials.refresh(Request())
 
-    if target_credentials.token is None:
-        return None
-
-    return target_credentials.token
+    token = target_credentials.token
+    return token if isinstance(token, str) else None
 
 
 def reverse_aliases_map(builtin_sources: dict[str, dict[str, Any]]) -> dict[str, str]:

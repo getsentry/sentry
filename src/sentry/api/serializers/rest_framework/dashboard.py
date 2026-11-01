@@ -460,6 +460,7 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer[Dashboard]):
         projects = self.context.get("validation_projects")
         if projects is None:
             projects = self.context["projects"]
+        assert isinstance(projects, list)
         return projects
 
     def _get_attr[T](self, data: dict[str, Any], attr: str, empty_value: T) -> T:
@@ -610,7 +611,8 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             additional_context["user"] = self.context["request"].user
 
         queries_serializer.context.update(additional_context)
-        return super().to_internal_value(data)
+        # justification: DRF returns the validated dict from to_internal_value.
+        return cast("dict[str, Any]", super().to_internal_value(data))
 
     def _validate_text_widget(self, data: dict[str, Any]) -> dict[str, Any]:
         if data.get("widget_type"):

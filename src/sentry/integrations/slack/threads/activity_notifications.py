@@ -70,7 +70,7 @@ class _ExternalIssueCreatedActivity:
                 },
             )
             link = ""
-        return link
+        return link if isinstance(link, str) else ""
 
     def get_provider(self) -> str:
         """
@@ -92,7 +92,11 @@ class _ExternalIssueCreatedActivity:
             )
             provider = self.DEFAULT_PROVIDER_FALLBACK_TEXT
 
-        return provider.lower()
+        return (
+            provider.lower()
+            if isinstance(provider, str)
+            else self.DEFAULT_PROVIDER_FALLBACK_TEXT.lower()
+        )
 
     def get_ticket_number(self) -> str:
         """
@@ -112,7 +116,7 @@ class _ExternalIssueCreatedActivity:
             )
             ticket_number = ""
 
-        return ticket_number
+        return ticket_number if isinstance(ticket_number, str) else ""
 
     def get_formatted_provider_name(self) -> str:
         # Make sure to make the proper noun have correct capitalization

@@ -252,7 +252,10 @@ class ArtifactBundleArchive:
 
     def _read_manifest(self) -> dict[str, Any]:
         manifest_bytes = self.read("manifest.json")
-        return json.loads(manifest_bytes.decode("utf-8"))
+        manifest = json.loads(manifest_bytes.decode("utf-8"))
+        if not isinstance(manifest, dict):
+            raise ValueError("Artifact bundle manifest is not a JSON object")
+        return manifest
 
     @staticmethod
     def normalize_headers(headers: dict[str, object]) -> dict[str, object]:
@@ -331,7 +334,10 @@ class ArtifactBundleArchive:
         return bundle_id
 
     def get_files(self) -> dict[str, dict[str, Any]]:
-        return self.manifest.get("files", {})
+        files = self.manifest.get("files", {})
+        if not isinstance(files, dict):
+            raise ValueError("Artifact bundle manifest files are not a JSON object")
+        return files
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, Any]]:
         file_path, info = self._entries_by_url[url]
@@ -409,4 +415,5 @@ class ArtifactBundleArchive:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
 
-        return file_info.get("url")
+        url = file_info.get("url")
+        return url if isinstance(url, str) else None

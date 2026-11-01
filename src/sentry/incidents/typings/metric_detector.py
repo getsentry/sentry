@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import BaseModel
 
@@ -36,7 +36,8 @@ def fetch_threshold_type(
 ) -> AlertRuleThresholdType | AnomalyDetectionThresholdType:
     condition_type = condition["type"]
     if condition_type == Condition.ANOMALY_DETECTION:
-        return condition["comparison"]["threshold_type"]
+        # justification: anomaly detection conditions store this enum's value.
+        return cast("AnomalyDetectionThresholdType", condition["comparison"]["threshold_type"])
     return CONDITION_TO_ALERT_RULE_THRESHOLD_TYPE[condition_type]
 
 
@@ -47,8 +48,7 @@ def fetch_alert_threshold(condition: dict[str, Any], group_status: int) -> float
     comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return None
-    else:
-        return comparison_value
+    return comparison_value if isinstance(comparison_value, (int, float)) else None
 
 
 def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> float | None:
@@ -61,14 +61,14 @@ def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> flo
         return 0
     comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
-        return comparison_value
-    else:
-        return None
+        return comparison_value if isinstance(comparison_value, (int, float)) else None
+    return None
 
 
 def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
     if condition.get("type") == Condition.ANOMALY_DETECTION:
-        return condition.get("comparison", {}).get("sensitivity", None)
+        sensitivity = condition.get("comparison", {}).get("sensitivity", None)
+        return sensitivity if isinstance(sensitivity, str) else None
     return None
 
 

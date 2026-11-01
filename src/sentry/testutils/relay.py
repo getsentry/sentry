@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import IO, TYPE_CHECKING, Any
+from collections.abc import Callable, Iterable, Mapping
+from typing import IO, TYPE_CHECKING, Any, Protocol, cast
 
 import pytest
 import requests
@@ -21,6 +21,21 @@ else:
     RequiredBaseclass = object
 
 
+class _IngestWaiter(Protocol):
+    def __call__[T](
+        self, predicate: Callable[[], T | None], timeout: float | None = None
+    ) -> T | None: ...
+
+
+def _get_event(project_id: int, event_id: str) -> Event | None:
+    return eventstore.backend.get_event_by_id(
+        project_id,
+        event_id,
+        tenant_ids={"referrer": "relay-test", "organization_id": 123},
+        skip_transaction_groupevent=True,
+    )
+
+
 class RelayStoreHelper(RequiredBaseclass):
     """
     Tests that post to the store entry point should use this helper class
@@ -35,7 +50,7 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_store_url: Any
     auth_header: Any
     get_relay_security_url: Any
-    wait_for_ingest_consumer: Any
+    wait_for_ingest_consumer: _IngestWaiter
     get_relay_attachments_url: Any
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
@@ -57,13 +72,7 @@ class RelayStoreHelper(RequiredBaseclass):
         resp_body = resp.json()
         event_id = resp_body["id"]
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
@@ -82,10 +91,11 @@ class RelayStoreHelper(RequiredBaseclass):
 
         def has_new_event() -> Event | None:
             # Hack: security report endpoint does not return event ID
-            for event in eventstore.backend.get_events(
+            events: Iterable[Event] = eventstore.backend.get_events(
                 eventstore.Filter(project_ids=[self.project.id]),
                 tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            ):
+            )
+            for event in events:
                 if event.event_id not in event_ids:
                     return event
             return None
@@ -147,13 +157,7 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
@@ -170,13 +174,7 @@ class RelayStoreHelper(RequiredBaseclass):
         assert resp.ok
         event_id = resp.text.strip().replace("-", "")
 
-        event = self.wait_for_ingest_consumer(
-            lambda: eventstore.backend.get_event_by_id(
-                self.project.id,
-                event_id,
-                tenant_ids={"referrer": "relay-test", "organization_id": 123},
-            )
-        )
+        event = self.wait_for_ingest_consumer(lambda: _get_event(self.project.id, event_id))
         # check that we found it in Snuba
         assert event is not None
         return event
@@ -204,4 +202,5 @@ class RelayStoreHelper(RequiredBaseclass):
         self.get_relay_unreal_url = get_relay_unreal_url
         self.get_relay_security_url = get_relay_security_url
         self.get_relay_attachments_url = get_relay_attachments_url
-        self.wait_for_ingest_consumer = wait_for_ingest_consumer(settings)
+        # justification: the pytest fixture factory returns an untyped callable.
+        self.wait_for_ingest_consumer = cast("_IngestWaiter", wait_for_ingest_consumer(settings))

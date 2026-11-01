@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, TypedDict
+from typing import TYPE_CHECKING, TypedDict, cast
 
 import orjson
 from django.conf import settings
@@ -32,9 +32,11 @@ def load_registry(path: str) -> _SDKRegistry | None:
     fn = os.path.join(LOADER_FOLDER, path + ".json")
     try:
         with open(fn, "rb") as f:
-            return orjson.loads(f.read())
+            registry = orjson.loads(f.read())
     except OSError:
         return None
+    # justification: registry files contain the _SDKRegistry object written by the loader build.
+    return cast("_SDKRegistry", registry) if isinstance(registry, dict) else None
 
 
 def get_highest_browser_sdk_version(versions: Sequence[str]) -> Version:
@@ -97,14 +99,21 @@ def get_browser_sdk_version(project_key: "ProjectKey") -> Version:
 
 
 def get_selected_browser_sdk_version(project_key: "ProjectKey") -> str:
-    return project_key.data.get("browserSdkVersion") or get_default_sdk_version_for_project(
-        project_key.project
-    )
+    version = project_key.data.get("browserSdkVersion")
+    if isinstance(version, str):
+        return version
+    return get_default_sdk_version_for_project(project_key.project)
 
 
 def get_default_sdk_version_for_project(project: "Project") -> str:
-    return project.get_option("sentry:default_loader_version")
+    version = project.get_option("sentry:default_loader_version")
+    if not isinstance(version, str):
+        raise TypeError("sentry:default_loader_version must be a string")
+    return version
 
 
 def get_available_sdk_versions_for_project(project: "Project") -> list[str]:
-    return project.get_option("sentry:loader_available_sdk_versions")
+    versions = project.get_option("sentry:loader_available_sdk_versions")
+    if not isinstance(versions, list):
+        raise TypeError("sentry:loader_available_sdk_versions must be a list")
+    return versions

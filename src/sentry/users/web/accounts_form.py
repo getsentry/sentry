@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, cast
 
 from django import forms
 from django.conf import settings
@@ -60,7 +60,8 @@ class ChangePasswordRecoverForm(forms.Form):
         super().__init__(*args, **kwargs)
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        # justification: the password field's cleaned value is a string.
+        password = cast("str", self.cleaned_data["password"])
         password_validation.validate_password(password, user=self.user)
         return password
 
@@ -96,6 +97,7 @@ class EmailForm(forms.Form):
             raise forms.ValidationError(
                 _("You must confirm your current password to make changes.")
             )
+        assert isinstance(value, str)
         return value
 
 
@@ -126,7 +128,8 @@ class RelocationForm(forms.Form):
         return value.lower()
 
     def clean_password(self) -> str:
-        password = self.cleaned_data["password"]
+        # justification: the password field's cleaned value is a string.
+        password = cast("str", self.cleaned_data["password"])
         password_validation.validate_password(password, user=self.user)
         return password
 

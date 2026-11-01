@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, cast
 
 from snuba_sdk import BooleanCondition, Condition, Formula, Timeseries
 from snuba_sdk.conditions import ConditionGroup
@@ -36,10 +36,12 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         for parameter in formula.parameters:
             parameters.append(self.visit(parameter))
 
-        return formula.set_parameters(parameters)
+        # justification: snuba_sdk is exempt from typing, so set_parameters returns Any.
+        return cast("TVisited", formula.set_parameters(parameters))
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        return timeseries
+        # justification: the default visitor returns the timeseries unchanged.
+        return cast("TVisited", timeseries)
 
     def _visit_int(self, int_number: float) -> TVisited:
         return int_number  # type: ignore[return-value]
@@ -82,7 +84,8 @@ class QueryConditionVisitor(ABC, Generic[TVisited]):
         for condition in boolean_condition.conditions:
             conditions.append(self.visit(condition))
 
-        return BooleanCondition(op=boolean_condition.op, conditions=conditions)
+        # justification: snuba_sdk is exempt from typing, so BooleanCondition is Any.
+        return cast("TVisited", BooleanCondition(op=boolean_condition.op, conditions=conditions))
 
     def _visit_condition(self, condition: Condition) -> TVisited:
         raise condition

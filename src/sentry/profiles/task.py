@@ -1258,11 +1258,11 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
 
 
 def get_event_id(profile: Profile) -> str:
-    if "chunk_id" in profile:
-        return profile["chunk_id"]
-    elif "profile_id" in profile:
-        return profile["profile_id"]
-    return profile["event_id"]
+    for key in ("chunk_id", "profile_id", "event_id"):
+        value = profile.get(key)
+        if isinstance(value, str):
+            return value
+    raise ValueError("Profile is missing an event id")
 
 
 @metrics.wraps("process_profile.track_outcome")

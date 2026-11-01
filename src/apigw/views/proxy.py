@@ -169,10 +169,11 @@ async def proxy_cell_from_id(cell_name: str, subp: str | None = None) -> Any:
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
 )
 async def proxy_cell_from_dsn_qp() -> Any:
-    if not request.query_params.dsn:
+    dsn = request.query_params.dsn
+    if not dsn or not isinstance(dsn, str):
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     try:
-        cell = get_cell_from_dsn(request.query_params.dsn, app.config.cells.default)
+        cell = get_cell_from_dsn(dsn, app.config.cells.default)
     except ValueError:
         abort_with_json(400, {"error": "apigateway", "detail": "Invalid request"})
     except CellResolutionError:
