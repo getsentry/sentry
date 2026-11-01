@@ -719,6 +719,32 @@ class OrganizationEventsStatsSpansEndpointTest(OrganizationEventsEndpointTestBas
         )
         assert response.status_code == 200, response.content
 
+    def test_top_events_without_groupby(self) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"op": "db"}},
+                    start_ts=self.day_ago + timedelta(minutes=1),
+                ),
+            ],
+        )
+
+        response = self._do_request(
+            data={
+                "start": self.day_ago,
+                "end": self.day_ago + timedelta(minutes=6),
+                "interval": "1m",
+                "yAxis": "p95(span.duration)",
+                "field": ["p95(span.duration)"],
+                "query": "span.op:db",
+                "dataset": "spans",
+                "excludeOther": 0,
+                "topEvents": 10,
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "topEvents requires at least one non-aggregate field"
+
     def test_count_unique_nans(self) -> None:
         self.store_span(
             self.create_span(start_ts=self.two_days_ago + timedelta(minutes=1)),
