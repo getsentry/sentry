@@ -678,6 +678,9 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    OrganizationServiceAccountTokenEndpoint,
+)
 from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
     OrganizationServiceAccountViewerContextEndpoint,
 )
@@ -1810,6 +1813,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/$",
         OrganizationServiceAccountDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-service-account-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/tokens/$",
+        OrganizationServiceAccountTokenEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-tokens",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/viewer-context/$",

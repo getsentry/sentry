@@ -49,6 +49,10 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import authenticate_service_account
+from sentry.service_accounts.tokens import (
+    decode_service_account_token,
+    is_service_account_token_string,
+)
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
@@ -58,6 +62,7 @@ from sentry.utils import jwt, metrics
 from sentry.utils.auth import record_suspended_user_rejection
 from sentry.utils.linksign import process_signature
 from sentry.utils.security.orgauthtoken_token import SENTRY_ORG_AUTH_TOKEN_PREFIX, hash_token
+from sentry.viewer_context import Actor, ActorType, ViewerContext
 
 logger = logging.getLogger("sentry.api.authentication")
 
@@ -562,6 +567,8 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         token_str = force_str(auth[1])
         if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
             return False
+        if is_service_account_token_string(token_str):
+            return False
 
         return not agent_token.is_agent_token_string(token_str)
 
@@ -780,6 +787,38 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_org_token=True,
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
+class ServiceAccountTokenAuthentication(StandardAuthentication):
+    """EXPERIMENT: a service account's bearer token, for clients outside Sentry.
+
+    The token only names the account. Like a service-account ``X-Viewer-Context``, it
+    authenticates through ``authenticate_service_account``, which reads the account's
+    scopes from its cell replica and so refuses it in control.
+    """
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return is_service_account_token_string(force_str(auth[1]))
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        try:
+            service_account_id, organization_id = decode_service_account_token(token_str)
+        except PyJWTError:
+            raise AuthenticationFailed("Invalid service account token")
+        service_account_auth = authenticate_service_account(
+            ViewerContext(
+                organization_id=organization_id,
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account_id),
+            )
+        )
+        if service_account_auth is None:
+            raise AuthenticationFailed("Invalid service account token")
+        return service_account_auth
 
 
 @AuthenticationSiloLimit(SiloMode.CELL)

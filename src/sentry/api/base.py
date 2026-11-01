@@ -81,6 +81,7 @@ from .authentication import (
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
     update_token_access_record,
@@ -116,6 +117,7 @@ CURSOR_LINK_HEADER = (
 
 DEFAULT_AUTHENTICATION = (
     *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
     AgentTokenAuthentication,
