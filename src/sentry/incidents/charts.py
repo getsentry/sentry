@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
 
@@ -80,7 +80,8 @@ def fetch_metric_alert_sessions_data(
                 **query_params,
             },
         )
-        return resp.data
+        # justification: the incidents query client returns decoded JSON rows.
+        return cast("list[Any]", resp.data)
     except Exception as exc:
         logger.exception(
             "Failed to load sessions for chart: %s",
@@ -147,7 +148,8 @@ def fetch_metric_issue_open_periods(
             },
         )
 
-        return resp.data
+        # justification: the incidents query client returns decoded JSON rows.
+        return cast("list[Any]", resp.data)
     except Exception as exc:
         logger.error(
             "Failed to load incidents for chart: %s",

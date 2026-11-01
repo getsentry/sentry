@@ -107,11 +107,15 @@ class AdminBroadcastSerializer(BroadcastSerializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> AdminBroadcastSerializerResponse:
-        context: AdminBroadcastSerializerResponse = {
-            **super().serialize(obj, attrs, user),
-            "userCount": cast(int, attrs["user_count"]),
-            "createdBy": obj.created_by_id.email if obj.created_by_id else None,
-            "upstreamId": obj.upstream_id,
-            "syncLocked": obj.sync_locked,
-        }
+        # justification: mypy cannot prove the base spread fills the subclass TypedDict.
+        context = cast(
+            "AdminBroadcastSerializerResponse",
+            {
+                **super().serialize(obj, attrs, user),
+                "userCount": cast(int, attrs["user_count"]),
+                "createdBy": obj.created_by_id.email if obj.created_by_id else None,
+                "upstreamId": obj.upstream_id,
+                "syncLocked": obj.sync_locked,
+            },
+        )
         return context

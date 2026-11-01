@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from http import HTTPStatus
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import urlparse
 
 import rest_framework
@@ -897,10 +897,14 @@ def most_recent_release(project: Project) -> Release | None:
 def most_recent_release_matching_commit(
     projects: Sequence[Project], commit: Commit
 ) -> Release | None:
-    return (
-        Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
-        .extra(select={"sort": "COALESCE(date_released, date_added)"})
-        .order_by("-sort")[0]
+    # justification: extra() erases the queryset element type.
+    return cast(
+        "Release | None",
+        (
+            Release.objects.filter(projects__in=projects, releasecommit__commit=commit)
+            .extra(select={"sort": "COALESCE(date_released, date_added)"})
+            .order_by("-sort")[0]
+        ),
     )
 
 
@@ -918,7 +922,8 @@ def get_semver_releases(project: Project) -> QuerySet[Release]:
         .annotate_prerelease_column()
         .annotate_build_code_column()
     )
-    return qs.order_by(*[f"-{col}" for col in semver_cols])
+    # justification: the semver annotation helpers erase the queryset type.
+    return cast("QuerySet[Release]", qs.order_by(*[f"-{col}" for col in semver_cols]))
 
 
 def handle_is_subscribed(

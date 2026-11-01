@@ -63,7 +63,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             return None
         for pds in oi.config.get("pagerduty_services", []):
             if str(pds["id"]) == str(self.get_option("service")):
-                return pds
+                # justification: org integration config stores PagerDutyService payloads.
+                return cast("PagerDutyService", pds)
         return None
 
     def after(

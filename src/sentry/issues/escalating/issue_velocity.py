@@ -150,7 +150,10 @@ def calculate_threshold(project: Project) -> float | None:
         )
         return None
 
-    return result[0][THRESHOLD_QUANTILE["name"]]
+    value = result[0][THRESHOLD_QUANTILE["name"]]
+    if not isinstance(value, (int, float)):
+        return None
+    return float(value)
 
 
 def update_threshold(

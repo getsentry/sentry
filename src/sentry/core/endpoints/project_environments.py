@@ -96,9 +96,9 @@ class ProjectEnvironmentsEndpoint(ProjectEndpoint):
             )
 
         add_visibility_filters = environment_visibility_filter_options[visibility]
-        queryset = add_visibility_filters(queryset)
+        visible_queryset = add_visibility_filters(queryset)
 
-        items: list[EnvironmentProject] = list(queryset)
+        items: list[EnvironmentProject] = list(visible_queryset)
         return Response(serialize(items, request.user, EnvironmentProjectSerializer()))
 
     @extend_schema(

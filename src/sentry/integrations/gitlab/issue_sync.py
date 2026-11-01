@@ -319,11 +319,15 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         encoded_project_id = quote(project_id, safe="")
 
-        return self.get_client().update_comment(
-            encoded_project_id,
-            parsed_issue_id,
-            group_note.data["external_id"],
-            {"body": quoted_comment},
+        # justification: the GitLab client returns the updated note payload.
+        return cast(
+            "Mapping[str, Any] | None",
+            self.get_client().update_comment(
+                encoded_project_id,
+                parsed_issue_id,
+                group_note.data["external_id"],
+                {"body": quoted_comment},
+            ),
         )
 
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> IssuePayload:
@@ -345,6 +349,10 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         encoded_project_id = quote(project_id, safe="")
 
-        return self.get_client().create_comment(
-            encoded_project_id, parsed_issue_id, {"body": quoted_comment}
+        # justification: the GitLab client returns the created note payload.
+        return cast(
+            "Mapping[str, Any]",
+            self.get_client().create_comment(
+                encoded_project_id, parsed_issue_id, {"body": quoted_comment}
+            ),
         )

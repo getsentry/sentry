@@ -58,7 +58,7 @@ class ProjectPermission(OrganizationPermission):
 
         assert request.method is not None
         allowed_scopes = set(self.scope_map.get(request.method, []))
-        return request.access.has_any_project_scope(project, allowed_scopes)
+        return bool(request.access.has_any_project_scope(project, allowed_scopes))
 
 
 class ProjectAndStaffPermission(StaffPermissionMixin, ProjectPermission):

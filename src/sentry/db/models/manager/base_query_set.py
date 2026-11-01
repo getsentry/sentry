@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Self
+from typing import Any, Self, cast
 
 from django.core import exceptions
 from django.core.exceptions import EmptyResultSet
@@ -30,7 +30,8 @@ class BaseQuerySet(QuerySet[M, R]):
     def _clone(self) -> Self:
         qs = super()._clone()  # type: ignore[misc]
         qs._with_post_update_signal = self._with_post_update_signal
-        return qs
+        # justification: Django returns an instance of the same queryset class.
+        return cast("Self", qs)
 
     def update_with_returning(
         self, returned_fields: list[str], **kwargs: Any
@@ -99,6 +100,8 @@ class BaseQuerySet(QuerySet[M, R]):
 
             self._send_post_update_signal(updated_fields=list(kwargs.keys()), model_ids=model_ids)
 
+        if not isinstance(result_ids, list):
+            raise TypeError("update_with_returning returned no ids array")
         return result_ids
 
     update_with_returning.alters_data = True  # type: ignore[attr-defined]

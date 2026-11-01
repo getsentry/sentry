@@ -114,7 +114,7 @@ class BaseIOMainThreadDetector(PerformanceDetector):
                 )
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
 
 
 class FileIOMainThreadDetector(BaseIOMainThreadDetector):
@@ -173,7 +173,8 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
             )
             return ".".join([func.method for func in functions])
         else:
-            return frame.get("function", "")
+            function = frame.get("function", "")
+            return function if isinstance(function, str) else ""
 
     def _fingerprint(self, span_list: list[Span]) -> str:
         call_stack_strings = []

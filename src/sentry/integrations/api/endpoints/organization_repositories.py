@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -149,4 +151,5 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         except KeyError:
             return Response({"error_type": "validation"}, status=400)
         provider = provider_cls(id=provider_id)
-        return provider.dispatch(request, organization)
+        # justification: repository providers dispatch to a DRF response.
+        return cast("Response[Any]", provider.dispatch(request, organization))

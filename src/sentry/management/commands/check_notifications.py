@@ -10,6 +10,7 @@ from django.core.management.base import (
 from sentry.mail import mail_adapter
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.users.models.user import User
 from sentry.utils.email import get_email_addresses
 
 
@@ -22,7 +23,8 @@ def handle_project(project: Project, stream: OutputWrapper) -> None:
     stream.write("# Project: %s\n" % project)
 
     users = mail_adapter.get_sendable_user_objects(project)
-    users_map = {user.id: user for user in users}
+    # justification: recipients are resolved to User rows before this point.
+    users_map = cast("dict[int, User]", {user.id: user for user in users})
     emails = get_email_addresses(users_map.keys(), project)
     for user_id, email in emails.items():
         stream.write(f"{users_map[user_id].username}: {email}\n")

@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.core.exceptions import ValidationError
 from parsimonious.exceptions import ParseError
@@ -130,7 +130,8 @@ class MetricIssueComparisonConditionValidator(BaseDataConditionValidator):
             return value
 
         elif isinstance(value, dict):
-            return super().validate_comparison(value)
+            # justification: the parent comparison validator returns the comparison payload.
+            return cast("float | dict[str, Any]", super().validate_comparison(value))
 
         else:
             raise serializers.ValidationError("A valid number or dict is required.")

@@ -57,8 +57,10 @@ def get_disallowed_metric_datasets(organization: Organization) -> list[str]:
 
 
 def get_max_metric_alert_subscriptions(organization: Organization) -> int:
-    if organization.id in options.get("metric_alerts.extended_max_subscriptions_orgs") and (
-        extended_max_specs := options.get("metric_alerts.extended_max_subscriptions")
+    if (
+        organization.id in options.get("metric_alerts.extended_max_subscriptions_orgs")
+        and (extended_max_specs := options.get("metric_alerts.extended_max_subscriptions"))
+        and isinstance(extended_max_specs, int)
     ):
         return extended_max_specs
 

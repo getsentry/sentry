@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db import IntegrityError, router, transaction
@@ -116,9 +116,10 @@ class IntegrationIssueConfigSerializer(Serializer[IntegrationIssueConfigResponse
         **kwargs: Any,
     ) -> IntegrationIssueConfigResponse:
         base = IntegrationSerializer().serialize(obj, attrs, user)
+        # justification: mypy cannot prove a spread plus one optional key satisfies the TypedDict.
         if self.action == "link":
-            return {**base, "linkIssueConfig": self.config}
-        return {**base, "createIssueConfig": self.config}
+            return cast("IntegrationIssueConfigResponse", {**base, "linkIssueConfig": self.config})
+        return cast("IntegrationIssueConfigResponse", {**base, "createIssueConfig": self.config})
 
 
 ACTION_PARAM = OpenApiParameter(

@@ -78,7 +78,8 @@ class EventDatastore:
         """
         Pull values from all the spots in the event appropriate to the given match type.
         """
-        return getattr(self, "_get_" + match_type)()
+        # justification: match types map to _get_<match_type> methods on this class.
+        return cast("list[dict[str, Any]]", getattr(self, "_get_" + match_type)())
 
     def _get_messages(self) -> list[_MessageInfo]:
         if self._messages is None:
@@ -289,7 +290,7 @@ def resolve_fingerprint_variable(
         # Turn "tags.some_tag" into just "some_tag"
         requested_tag = variable_key[5:]
         for tag_name, tag_value in event.data.get("tags") or ():
-            if tag_name == requested_tag and tag_value is not None:
+            if tag_name == requested_tag and isinstance(tag_value, str):
                 return tag_value
         return "<no-value-for-tag-%s>" % requested_tag
     else:

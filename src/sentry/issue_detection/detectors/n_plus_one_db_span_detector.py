@@ -72,7 +72,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
             self.potential_parents[root_span.get("span_id")] = root_span
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -236,6 +236,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
 
     def _is_slower_than_threshold(self) -> bool:
         duration_threshold = self.settings["duration_threshold"]
+        if not isinstance(duration_threshold, (int, float)):
+            raise TypeError("Span detector duration_threshold must be a number")
         return total_span_time(self.n_spans) >= duration_threshold
 
     def _metrics_for_extra_matching_spans(self) -> None:

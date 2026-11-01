@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import cast
+
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
@@ -38,4 +40,5 @@ class DataForwarderProject(DefaultFieldsModel):
         effective_config = base_config.copy()
         effective_config.update(self.overrides)
 
-        return effective_config
+        # justification: overrides are string field/value pairs merged into the config.
+        return cast("dict[str, str]", effective_config)

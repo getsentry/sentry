@@ -606,7 +606,8 @@ class JiraServerIntegration(IssueSyncIntegration):
         return ["reporter"]
 
     def get_persisted_ignored_fields(self) -> list[str]:
-        return self.org_integration.config.get(self.issues_ignored_fields_key, [])
+        ignored = self.org_integration.config.get(self.issues_ignored_fields_key, [])
+        return ignored if isinstance(ignored, list) else []
 
     def get_group_description(
         self, group: Group, event: GroupEvent | None, **kwargs: object

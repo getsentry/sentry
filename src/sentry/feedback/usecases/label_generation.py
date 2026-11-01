@@ -52,4 +52,7 @@ def generate_labels(
         raise Exception("Seer returned non-200 response")
 
     # Guaranteed to be a list of strings (validated in Seer)
-    return response.json()["data"]["labels"]
+    labels = response.json()["data"]["labels"]
+    if not isinstance(labels, list):
+        raise ValueError("Seer returned no labels array")
+    return labels

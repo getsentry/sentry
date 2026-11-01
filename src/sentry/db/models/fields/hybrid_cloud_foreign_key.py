@@ -47,7 +47,7 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
-from typing import Any
+from typing import Any, cast
 
 from django.apps import apps
 from django.db import models
@@ -71,7 +71,8 @@ class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
 
     @property
     def foreign_table_name(self) -> str:
-        return self.foreign_model._meta.db_table
+        # justification: Django model metadata exposes the table name as a str.
+        return cast("str", self.foreign_model._meta.db_table)
 
     def __init__(
         self,

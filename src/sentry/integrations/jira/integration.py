@@ -789,7 +789,8 @@ class JiraIntegration(IssueSyncIntegration):
         return ["reporter"]
 
     def get_persisted_ignored_fields(self) -> list[str]:
-        return self.org_integration.config.get(self.issues_ignored_fields_key, [])
+        ignored = self.org_integration.config.get(self.issues_ignored_fields_key, [])
+        return ignored if isinstance(ignored, list) else []
 
     def get_feedback_issue_body(self, occurrence: IssueOccurrence) -> str:
         messages = [
@@ -1085,6 +1086,8 @@ class JiraIntegration(IssueSyncIntegration):
         if not issue_type_meta:
             issue_type_meta = issue_types[0]
 
+        if not isinstance(issue_type_meta, dict):
+            raise TypeError("Jira issue type metadata is not an object")
         return issue_type_meta
 
     def get_issue_create_meta(

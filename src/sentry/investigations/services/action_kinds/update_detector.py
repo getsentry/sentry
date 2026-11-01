@@ -287,7 +287,7 @@ class DetectorState:
 
 def is_dynamic_detector(detector: Detector) -> bool:
     # Saving a dynamic monitor calls Seer's anomaly detection inline, so we leave those alone.
-    return detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC
+    return bool(detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC)
 
 
 def target_detectors(organization_id: int, detector_ids: Collection[int]) -> dict[int, Detector]:

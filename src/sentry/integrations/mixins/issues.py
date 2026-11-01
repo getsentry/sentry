@@ -370,7 +370,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         """
         Takes result of `get_issue` or `create_issue` and returns the formatted key
         """
-        return data["key"]
+        key = data["key"]
+        if not isinstance(key, str):
+            raise TypeError("Issue payload key is not a string")
+        return key
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
         """
@@ -393,7 +396,10 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return annotations
 
     def get_comment_id(self, comment: IssuePayload) -> str:
-        return comment["id"]
+        comment_id = comment["id"]
+        if not isinstance(comment_id, str):
+            raise TypeError("Issue comment id is not a string")
+        return comment_id
 
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> IssuePayload:
         raise NotImplementedError

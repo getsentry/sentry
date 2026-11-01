@@ -537,8 +537,9 @@ class SqlFormatEventSerializer(EventSerializer):
             )
         except Release.DoesNotExist:
             return {"version": version}
+        # justification: the release serializer emits the release payload.
         if include_full_release_data:
-            return serialize(release, user)
+            return cast("GroupEventReleaseSerializerResponse", serialize(release, user))
         else:
             return serialize(release, user, GroupEventReleaseSerializer())
 

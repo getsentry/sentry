@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -28,7 +28,11 @@ def serialize_stage_extra(extra: StageExtra | None) -> dict[str, Any] | None:
     if extra is None:
         return None
 
-    return convert_dict_key_case(json.loads(extra.json()), snake_to_camel_case)
+    # justification: StageExtra serializes to a JSON object of extra fields.
+    return cast(
+        "dict[str, Any]",
+        convert_dict_key_case(json.loads(extra.json()), snake_to_camel_case),
+    )
 
 
 class AgenticOnboardingRunResponse(TypedDict):

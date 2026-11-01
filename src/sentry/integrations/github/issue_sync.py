@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
@@ -218,8 +218,12 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
 
         repo, issue_number = issue_id.rsplit("#", 1)
 
-        return self.get_client().update_comment(
-            repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
+        # justification: the GitHub client returns the updated comment payload.
+        return cast(
+            "dict[str, object]",
+            self.get_client().update_comment(
+                repo, issue_number, group_note.data["external_id"], {"body": quoted_comment}
+            ),
         )
 
     def create_comment(
@@ -231,4 +235,8 @@ class GitHubIssueSyncSpec(IssueSyncIntegration):
 
         repo, issue_number = issue_id.rsplit("#", 1)
 
-        return self.get_client().create_comment(repo, issue_number, {"body": quoted_comment})
+        # justification: the GitHub client returns the created comment payload.
+        return cast(
+            "dict[str, object]",
+            self.get_client().create_comment(repo, issue_number, {"body": quoted_comment}),
+        )

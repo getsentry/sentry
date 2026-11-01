@@ -612,7 +612,7 @@ def is_response_success(resp: Any) -> bool:
 def is_response_error(resp: Any) -> bool:
     if not resp.status_code:
         return False
-    return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
+    return bool(resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500)
 
 
 def get_integration_types(provider: str) -> list[IntegrationDomain]:

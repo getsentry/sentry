@@ -44,7 +44,7 @@ def pop_link_identity_response_url(integration_id: int, slack_user_id: str) -> s
     response_url = cache.get(key)
     if response_url:
         cache.delete(key)
-    return response_url
+    return response_url if isinstance(response_url, str) else None
 
 
 def build_linking_url(

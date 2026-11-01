@@ -60,7 +60,10 @@ def validate_datadog_credentials(api_key: str, app_key: str, site: str) -> str:
 
     try:
         body = orjson.loads(safe_urlread(resp))
-        return body["data"]["relationships"]["org"]["data"]["id"]
+        org_id = body["data"]["relationships"]["org"]["data"]["id"]
+        if not isinstance(org_id, str):
+            raise TypeError("Datadog org id is not a string")
+        return org_id
     except (KeyError, IndexError, TypeError, orjson.JSONDecodeError):
         raise IntegrationConfigurationError(
             "Datadog returned an unexpected response while validating credentials."

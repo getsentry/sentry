@@ -52,7 +52,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
                 self.fcp_value = fcp_value
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
 
     def visit_span(self, span: Span) -> None:
         if not self.fcp:
@@ -151,7 +151,7 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
 
         span_duration = get_span_duration(span)
         fcp_ratio_threshold = self.settings["fcp_ratio_threshold"]
-        return span_duration / self.fcp > fcp_ratio_threshold
+        return bool(span_duration / self.fcp > fcp_ratio_threshold)
 
     def _fingerprint(self, span: Span) -> str:
         resource_url_hash = fingerprint_resource_span(span)

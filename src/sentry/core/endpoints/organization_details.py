@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
-from typing import TypedDict
+from typing import TypedDict, cast
 from urllib.parse import urlsplit
 
 from django.db import models, router, transaction
@@ -1451,7 +1451,7 @@ def has_changed(model: models.Model, field_name: str) -> bool:
     value = get_field_value(model, field)
     if value is DEFERRED:
         return False
-    return tracked.get(field_name) != value
+    return bool(tracked.get(field_name) != value)
 
 
 def old_value(model: models.Model, field_name: str) -> object | None:
@@ -1462,4 +1462,5 @@ def old_value(model: models.Model, field_name: str) -> object | None:
     value = tracked.get(field_name)
     if value is DEFERRED:
         return None
-    return tracked.get(field_name)
+    # justification: tracked option values are arbitrary decoded values.
+    return cast("object | None", value)

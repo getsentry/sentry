@@ -274,7 +274,8 @@ class ArithmeticVisitor(
             return flatten(remaining_adds)
         else:
             # if remaining is a node lhs contains a factor so just return that
-            return maybe_factor
+            # justification: parser children are arithmetic operations.
+            return cast("Operation", maybe_factor)
 
     def visit_factor(self, node: Node, children: Sequence[Any]) -> Operation:
         primary, remaining_muls = children
@@ -321,7 +322,8 @@ class ArithmeticVisitor(
     @staticmethod
     def parse_operator(operator: Sequence[Any]) -> str:
         # operator is a list since the pattern is (a/b) but we'll only ever want the first value
-        return operator[0].expr_name
+        # justification: sqlparse nodes expose the operator name as a string.
+        return cast("str", operator[0].expr_name)
 
     def visit_add_sub_operator(self, node: Node, children: Sequence[Any]) -> str:
         return self.parse_operator(self.strip_spaces(children))

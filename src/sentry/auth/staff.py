@@ -205,7 +205,7 @@ class Staff(ElevatedMode):
             )
             return None
 
-        return data
+        return data if isinstance(data, dict) else None
 
     def _populate(self) -> None:
         current_datetime = django_timezone.now()

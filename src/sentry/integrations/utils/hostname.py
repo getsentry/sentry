@@ -18,10 +18,14 @@ def instance_hostname(integration: Integration | RpcIntegration) -> str:
                 raise InstanceHostnameError(
                     f"Missing domain_name for github_enterprise integration {integration.id}"
                 )
+            if not isinstance(domain_name, str):
+                raise InstanceHostnameError(
+                    f"Missing domain_name for github_enterprise integration {integration.id}"
+                )
             return domain_name.split("/")[0]
         case IntegrationProviderSlug.GITLAB.value:
             instance = integration.metadata.get("instance")
-            if not instance:
+            if not isinstance(instance, str) or not instance:
                 raise InstanceHostnameError(
                     f"Missing instance for gitlab integration {integration.id}"
                 )

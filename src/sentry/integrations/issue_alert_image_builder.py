@@ -87,7 +87,7 @@ class IssueAlertImageBuilder:
             # We don't want to regenerate the image if another type of notification is sending the same one
             # For example slack notification and email notification for the same issue
             cache.set(self.cache_key, image_url, timeout=60 * 5)
-            return image_url
+            return image_url if isinstance(image_url, str) else None
 
         # This would only happen if we support the issue type, but chartcuterie failed to generate the image
         logger.warning(

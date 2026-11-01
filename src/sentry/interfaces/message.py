@@ -50,4 +50,5 @@ class Message(Interface):
         )
 
     def to_string(self, event: Any) -> str:  # justification: decoded JSON
-        return self.formatted or self.message
+        text = self.formatted or self.message
+        return text if isinstance(text, str) else ""

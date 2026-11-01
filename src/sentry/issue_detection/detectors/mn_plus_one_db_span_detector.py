@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from collections import deque
 from collections.abc import Sequence
 from random import randint
-from typing import Any
+from typing import Any, cast
 
 from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
@@ -404,7 +404,8 @@ class ContinuingMNPlusOne(MNPlusOneState):
         all_spans = self.event.get("spans") or []
         for span in all_spans:
             if span.get("span_id") == common_parent_span_id:
-                return span
+                # justification: event spans are decoded Span payloads.
+                return cast("Span", span)
         return None
 
     def _fingerprint(self, db_hash: str, parent_span: Span) -> str:
@@ -453,7 +454,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
 
     def visit_span(self, span: Span) -> None:
         self.state, performance_problem = self.state.next(span)

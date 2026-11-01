@@ -95,7 +95,7 @@ def get_accepted_outcomes(
         organization_id, project_ids, item_type, last_ingested_at, delay_seconds
     )
     cached = cache.get(key)
-    if cached is not None:
+    if isinstance(cached, (bool, type(None))):
         metrics.incr("ingestion_delay.outcomes_cache", tags={"result": "hit"})
         return cached
 

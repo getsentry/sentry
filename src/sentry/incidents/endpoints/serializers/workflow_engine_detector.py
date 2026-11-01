@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Subquery
@@ -439,10 +439,14 @@ class DetailedWorkflowEngineDetectorSerializer(Serializer):
         **kwargs: Any,  # justification: serializer kwargs are dynamic.
     ) -> DetailedAlertRuleSerializerResponse:
         base_data = self.base_serializer.serialize(obj, attrs, user, **kwargs)
-        data: DetailedAlertRuleSerializerResponse = {
-            **base_data,
-            "snooze": not obj.enabled,
-        }
+        # justification: mypy cannot prove the base spread fills the subclass TypedDict.
+        data = cast(
+            "DetailedAlertRuleSerializerResponse",
+            {
+                **base_data,
+                "snooze": not obj.enabled,
+            },
+        )
         if not obj.enabled:
             data["snoozeForEveryone"] = True
         return data

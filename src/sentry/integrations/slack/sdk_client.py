@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 from functools import wraps
 from types import FunctionType
+from typing import cast
 
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
@@ -70,7 +71,8 @@ def wrapper(method: FunctionType) -> Callable[..., SlackResponse]:
             )
             raise
 
-        return response
+        # justification: the wrapped slack_sdk method returns a SlackResponse.
+        return cast("SlackResponse", response)
 
     return wrapped
 

@@ -138,6 +138,8 @@ def verify_signup_link(signed_data: str) -> dict[str, Any]:
         payload = unsign(signed_data, salt=settings.SIGNUP_VERIFICATION_EMAIL_SALT, max_age=None)
     except binascii.Error as e:
         raise BadSignature("Malformed verification link") from e
+    if not isinstance(payload, dict):
+        raise BadSignature("Malformed verification link")
     if time.time() > payload["expires_at"]:
         raise SignupLinkExpired("Verification link expired", email=payload["email"])
     return payload

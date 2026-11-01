@@ -86,6 +86,7 @@ def get_channel(index: int = 0) -> dict[str, Any]:
     data = parse_qs(responses.calls[index].request.body)
     assert "channel" in data
     channel = json.loads(data["channel"][0])
+    assert isinstance(channel, dict)
 
     return channel
 
@@ -107,7 +108,9 @@ def get_attachment_no_text() -> dict[str, Any]:
     assert "attachments" in data
     attachments = json.loads(data["attachments"][0])
     assert len(attachments) == 1
-    return attachments[0]
+    attachment = attachments[0]
+    assert isinstance(attachment, dict)
+    return attachment
 
 
 def get_blocks_and_fallback_text(

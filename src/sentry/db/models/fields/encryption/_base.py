@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import logging
 from collections.abc import Callable
-from typing import Any, Literal, TypedDict, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from cryptography.fernet import InvalidToken
@@ -152,7 +152,8 @@ class EncryptedField(Field[_ST, _GT]):
 
     @traces.trace
     def from_db_value(self, value: Any, expression: Any, connection: Any) -> bytes | str | None:
-        return self.to_python(value)
+        # justification: to_python decodes the stored ciphertext to bytes or str.
+        return cast("bytes | str | None", self.to_python(value))
 
     @traces.trace
     def to_python(self, value: Any) -> Any:

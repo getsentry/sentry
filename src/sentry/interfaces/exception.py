@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import Any, Self
+from typing import Any, Self, cast
 
 from sentry.interfaces.base import Interface
 from sentry.interfaces.stacktrace import Stacktrace
@@ -417,7 +417,8 @@ class Exception(Interface):
     grouping_variants = ["system", "app"]
 
     def exceptions(self) -> list[SingleException | None]:
-        return get_path(self.values, filter=True)
+        exceptions = get_path(self.values, filter=True)
+        return exceptions if isinstance(exceptions, list) else []
 
     def __getitem__(
         self, key: int | slice
@@ -519,12 +520,16 @@ class Exception(Interface):
     ) -> str:
         exc = self.values[-1]
         if exc.stacktrace:
-            return exc.stacktrace.get_stacktrace(
-                event,
-                system_frames=system_frames,
-                newest_first=newest_first,
-                max_frames=max_frames,
-                header=header,
+            # justification: the stacktrace renders to a string.
+            return cast(
+                "str",
+                exc.stacktrace.get_stacktrace(
+                    event,
+                    system_frames=system_frames,
+                    newest_first=newest_first,
+                    max_frames=max_frames,
+                    header=header,
+                ),
             )
         return ""
 

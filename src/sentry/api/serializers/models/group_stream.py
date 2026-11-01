@@ -535,11 +535,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         **kwargs: Any,
     ) -> StreamGroupSerializerSnubaResponse:
         if not self._collapse("base"):
-            result: StreamGroupSerializerSnubaResponse = {**super().serialize(obj, attrs, user)}
+            # justification: mypy cannot prove the base spread fills the subclass TypedDict.
+            result = cast(
+                "StreamGroupSerializerSnubaResponse", {**super().serialize(obj, attrs, user)}
+            )
         else:
             result = {"id": str(obj.id)}
             if is_seen_stats(attrs):
-                result.update(self._convert_seen_stats(attrs))
+                # justification: seen-stats fields are optional members of the response TypedDict.
+                cast("dict[str, Any]", result).update(self._convert_seen_stats(attrs))
             if "is_unhandled" in attrs:
                 result["isUnhandled"] = attrs["is_unhandled"]
 

@@ -45,7 +45,10 @@ def count_hits(queryset: Any, max_hits: int) -> int:
     # and h_params contains the properly escaped parameters that are passed to cursor.execute().
     count_sql = "SELECT COUNT(*) FROM (" + h_sql + ") as t"
     cursor.execute(count_sql, h_params)
-    return cursor.fetchone()[0]
+    row = cursor.fetchone()
+    if row is None or not isinstance(row[0], int):
+        raise TypeError("Count query returned no integer")
+    return row[0]
 
 
 class BadPaginationError(Exception):

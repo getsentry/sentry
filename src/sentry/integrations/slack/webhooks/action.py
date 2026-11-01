@@ -186,7 +186,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     """
     Bot posted messages will not have the type at all.
     """
-    return data.get("original_message", {}).get("type") == "message"
+    return bool(data.get("original_message", {}).get("type") == "message")
 
 
 @all_silo_endpoint  # Only LINK_IDENTITY is handled at control

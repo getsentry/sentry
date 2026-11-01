@@ -194,7 +194,8 @@ class SiloRouter:
     def _silo_limit(self, model: type[Model]) -> SiloLimit | None:
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
-            return silo_limit
+            # justification: model metadata stores a SiloLimit when one is registered.
+            return cast("SiloLimit", silo_limit)
 
         db_table = model._meta.db_table
         if not silo_limit and db_table in self.contrib_models:

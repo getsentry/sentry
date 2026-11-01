@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
@@ -119,7 +119,8 @@ def _validate_projection(projection: dict[str, Any]) -> dict[str, Any]:
     validator = OrchestrationProjectionSerializer(data=projection)
     if not validator.is_valid():
         raise serializers.ValidationError({"payload": validator.errors})  # type: ignore[dict-item]
-    return validator.validated_data
+    # justification: DRF returns the validated projection mapping.
+    return cast("dict[str, Any]", validator.validated_data)
 
 
 def _projection_evidence_project_ids(projection: dict[str, Any]) -> set[int]:
@@ -174,7 +175,8 @@ def _validate_event_payload(
     validator = schema(data=payload, context={"log_drops": log_drops})
     if not validator.is_valid():
         raise serializers.ValidationError({"payload": validator.errors})
-    return validator.validated_data
+    # justification: DRF returns the validated payload mapping.
+    return cast("dict[str, Any]", validator.validated_data)
 
 
 def _stored_event_payload(event: dict[str, Any]) -> dict[str, Any]:

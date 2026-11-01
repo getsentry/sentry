@@ -83,7 +83,8 @@ class BitFieldCreator:
         if self.field.__class__ is BitField:
             # Update flags from class in case they've changed.
             retval._keys = self.field.flags
-        return retval
+        # justification: the descriptor stores the field's flags value.
+        return cast("BitFieldFlags | BitHandler", retval)
 
 
 class BitField(_BigIntegerFieldBase):
@@ -143,7 +144,7 @@ class BitField(_BigIntegerFieldBase):
 
     def pre_save(self, instance: Model, add: bool) -> int:
         value = getattr(instance, self.attname)
-        return value
+        return int(value)
 
     def get_prep_value(
         self,

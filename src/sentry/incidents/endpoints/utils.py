@@ -1,3 +1,5 @@
+from typing import cast
+
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
 from sentry.workflow_engine.models.data_condition import Condition
 
@@ -24,7 +26,8 @@ def translate_threshold(alert_rule: AlertRule, threshold: float | None) -> float
         return threshold
 
     threshold_type = AlertRuleThresholdType(alert_rule.threshold_type)
-    return threshold_translators[threshold_type](threshold)
+    # justification: the translator tables return floats for their threshold kind.
+    return cast("float | None", threshold_translators[threshold_type](threshold))
 
 
 def translate_data_condition_type(
@@ -41,4 +44,5 @@ def translate_data_condition_type(
     if comparison_delta is None:
         return float(threshold)
 
-    return data_condition_type_translators[condition_type](threshold)
+    # justification: the translator tables return floats for their condition kind.
+    return cast("float | None", data_condition_type_translators[condition_type](threshold))

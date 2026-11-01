@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
-from typing import Any
+from typing import Any, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.http import HttpResponse
@@ -20,7 +20,8 @@ class InactiveReason(str, Enum):
         return self.value is not None
 
     def __str__(self) -> str:
-        return self.value
+        # justification: every InactiveReason member is a string.
+        return cast("str", self.value)
 
 
 class ElevatedMode(ABC):

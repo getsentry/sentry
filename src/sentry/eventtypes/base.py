@@ -37,7 +37,7 @@ class BaseEvent:
 
     def get_title(self, metadata: Mapping[str, Any]) -> str:
         title = metadata.get("title")
-        if title is not None:
+        if isinstance(title, str):
             return title
         return self.compute_title(metadata) or "<untitled>"
 

@@ -187,7 +187,8 @@ def get_column_from_aggregate(
 
     function = resolve_field(aggregate)
     if function.aggregate is not None:
-        return function.aggregate[1]
+        metric = function.aggregate[1]
+        return metric if isinstance(metric, str) else None
 
     return None
 

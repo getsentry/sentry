@@ -21,4 +21,5 @@ class EmptyDecimalField(serializers.DecimalField):
     def run_validation(self, data: object = empty) -> Decimal | None:
         if data == "":
             return None
-        return super().run_validation(data)
+        # justification: DRF does not annotate Field.run_validation.
+        return cast("Decimal | None", super().run_validation(data))

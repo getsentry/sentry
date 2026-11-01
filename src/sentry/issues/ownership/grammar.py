@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict, cast
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -318,7 +318,8 @@ class OwnershipVisitor(NodeVisitor):
         return bool(children)
 
     def visit_any_identifier(self, node: Node, children: Sequence[Any]) -> Node:
-        return children[0]
+        # justification: the grammar always parses an identifier into the first child.
+        return cast("Node", children[0])
 
     def visit_identifier(self, node: Node, children: Sequence[Any]) -> str:
         return str(node.text)

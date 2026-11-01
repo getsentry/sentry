@@ -335,7 +335,7 @@ class Frame(Interface):
         # XXX(dcramer): don't compute hash using frames containing the 'Caused by'
         # text as it contains an exception value which may may contain dynamic
         # values (see raven-java#125)
-        return self.filename.startswith("Caused by: ")
+        return bool(self.filename.startswith("Caused by: "))
 
     def is_unhashable_module(self, platform: str | None) -> bool:
         # Fix for the case where module is a partial copy of the URL
@@ -355,7 +355,7 @@ class Frame(Interface):
         # TODO(dcramer): lambda$ is Java specific
         # TODO(dcramer): [Anonymous is PHP specific (used for things like SQL
         # queries and JSON data)
-        return self.function.startswith(("lambda$", "[Anonymous"))
+        return bool(self.function.startswith(("lambda$", "[Anonymous")))
 
     def to_string(self, event: Any) -> str:  # justification: decoded JSON
         if event.platform is not None:

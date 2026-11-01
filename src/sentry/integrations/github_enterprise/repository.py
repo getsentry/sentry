@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.client import GitHubBaseClient
@@ -34,7 +34,8 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         except ApiError:
             raise IntegrationError(f"You must grant Sentry access to {repo}")
 
-        return repo_data
+        # justification: the GitHub client returns the repository payload.
+        return cast("Mapping[str, object]", repo_data)
 
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]

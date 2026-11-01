@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http.request import HttpRequest
@@ -136,7 +136,11 @@ class MsTeamsInitialDataSerializer(CamelSnakeSerializer[MsTeamsInstallParams]):
 
     def validate(self, attrs: dict[str, Any]) -> MsTeamsInstallParams:
         try:
-            return unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            params = unsign(attrs["signed_params"], max_age=INSTALL_EXPIRATION_TIME, salt=SALT)
+            if not isinstance(params, dict):
+                raise BadSignature("Installation link payload is not an object")
+            # justification: the signed payload carries the MsTeamsInstallParams fields.
+            return cast("MsTeamsInstallParams", params)
         except SignatureExpired:
             raise serializers.ValidationError("Installation link expired")
         except BadSignature:

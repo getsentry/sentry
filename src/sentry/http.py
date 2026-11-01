@@ -58,7 +58,10 @@ class CannotFetch(BadSource):
 
 
 def get_server_hostname() -> str:
-    return urlparse(options.get("system.url-prefix")).hostname
+    hostname = urlparse(options.get("system.url-prefix")).hostname
+    if not isinstance(hostname, str):
+        raise ValueError("system.url-prefix has no hostname")
+    return hostname
 
 
 build_session = SafeSession

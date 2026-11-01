@@ -4,7 +4,7 @@ import abc
 import logging
 from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.models import AnonymousUser
@@ -39,7 +39,8 @@ class MigratingIdentityId(namedtuple("MigratingIdentityId", ["id", "legacy_id"])
     __slots__ = ()
 
     def __str__(self) -> str:
-        return force_str(self.id)
+        # justification: force_str returns a str for the Any-typed id.
+        return cast("str", force_str(self.id))
 
 
 class Provider(PipelineProvider["AuthHelper"], abc.ABC):

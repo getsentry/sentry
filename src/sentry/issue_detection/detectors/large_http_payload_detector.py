@@ -139,4 +139,4 @@ class LargeHTTPPayloadDetector(PerformanceDetector):
         return f"1-{PerformanceLargeHTTPPayloadGroupType.type_id}-{hashed_url_paths}"
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])

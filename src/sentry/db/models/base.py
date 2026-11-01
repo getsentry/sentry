@@ -294,7 +294,7 @@ class BaseModel(models.Model):
         old_pk = self.pk
         self.pk = None
 
-        return old_pk
+        return old_pk if isinstance(old_pk, int) else None
 
     def normalize_before_relocation_export(self) -> None:
         """

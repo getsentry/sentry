@@ -139,11 +139,14 @@ class Http(Interface):
     @property
     def full_url(self) -> str | None:
         url = self.url
+        if not isinstance(url, str):
+            return None
         if url:
             if self.query_string:
                 url = url + "?" + safe_urlencode(get_path(self.query_string, filter=True))
-            if self.fragment:
-                url = url + "#" + self.fragment
+            fragment = self.fragment
+            if isinstance(fragment, str) and fragment:
+                url = url + "#" + fragment
         return url
 
     def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs

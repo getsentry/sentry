@@ -113,7 +113,8 @@ def get_installation_metadata(
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
         return None
-    return integration.metadata["installation"]
+    installation = integration.metadata["installation"]
+    return installation if isinstance(installation, Mapping) else None
 
 
 class GitHubEnterpriseWebhook:

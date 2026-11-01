@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.db.models import Count, F
@@ -244,7 +244,8 @@ class FakeRequestDict:
 def promote_request_rpc_user(request: Any) -> User:
     if not hasattr(request, "_promoted_user"):
         setattr(request, "_promoted_user", User.objects.get(id=request.user.id))
-    return request._promoted_user
+    # justification: the attribute is set to a User above.
+    return cast("User", request._promoted_user)
 
 
 promote_request_api_user = promote_request_rpc_user

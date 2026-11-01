@@ -31,7 +31,7 @@ class TeamPermission(OrganizationPermission):
         if has_org_scope:
             # Org-admin has "team:admin", but they can only act on their teams
             # Org-owners and Org-managers have no restrictions due to team memberships
-            return request.access.has_team_access(team)
+            return bool(request.access.has_team_access(team))
 
         return has_team_permission(request, team, self.scope_map)
 

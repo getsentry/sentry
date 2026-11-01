@@ -153,7 +153,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         return f"1-{PerformanceUncompressedAssetsGroupType.type_id}-{resource_span}"
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
 
     @classmethod
     def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:

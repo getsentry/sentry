@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from drf_spectacular.utils import extend_schema
@@ -106,7 +106,8 @@ def wrap_event_response(
 
     event_data["nextEventID"] = next_event_id
     event_data["previousEventID"] = prev_event_id
-    return event_data
+    # justification: the serializer output is the group event details response.
+    return cast("GroupEventDetailsResponse", event_data)
 
 
 @extend_schema(tags=["Events"])

@@ -29,7 +29,7 @@ class DiscoverSavedQueryPermission(OrganizationPermission):
         if isinstance(obj, DiscoverSavedQuery):
             # 1. Saved Query contains certain projects
             if obj.projects.exists():
-                return request.access.has_projects_access(obj.projects.all())
+                return bool(request.access.has_projects_access(obj.projects.all()))
 
             # 2. Saved Query covers all projects or all my projects
 

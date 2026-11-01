@@ -71,7 +71,10 @@ def get_user_info(access_token: str, installation_data: Mapping[str, object]) ->
             },
         )
         raise
-    return resp.json()
+    data = resp.json()
+    if not isinstance(data, dict):
+        raise TypeError("GitLab returned a non-object response")
+    return data
 
 
 class GitlabIdentityProvider(OAuth2Provider):

@@ -143,7 +143,8 @@ class UUIDField(models.Field[_SetType, _GetType]):
             return uuid_value
 
         # This is the standard case; just use the superclass logic.
-        return super().pre_save(instance, add)
+        # justification: Django's UUIDField returns the assigned UUID or None.
+        return cast("UUID | None", super().pre_save(instance, add))
 
     def contribute_to_class(
         self, cls: type[models.Model], name: str, private_only: bool = False

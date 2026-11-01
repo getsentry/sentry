@@ -2,6 +2,7 @@ from collections.abc import Mapping
 from typing import Any, cast
 
 import orjson
+from django.core.exceptions import ImproperlyConfigured
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
@@ -35,10 +36,16 @@ class GoogleIdentityProvider(OAuth2Provider):
     oauth_scopes = ("email",)
 
     def get_oauth_client_id(self) -> str:
-        return options.get("auth-google.client-id")
+        client_id = options.get("auth-google.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("auth-google.client-id is not configured")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("auth-google.client-secret")
+        client_secret = options.get("auth-google.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("auth-google.client-secret is not configured")
+        return client_secret
 
     def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
         # justification: provider OAuth responses are decoded JSON.

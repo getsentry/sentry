@@ -27,7 +27,11 @@ class Chartcuterie(ChartRenderer):
 
     @property
     def service_url(self) -> str | None:
-        return options.get("chart-rendering.chartcuterie", {}).get("url")
+        config = options.get("chart-rendering.chartcuterie", {})
+        if not isinstance(config, dict):
+            return None
+        url = config.get("url")
+        return url if isinstance(url, str) else None
 
     @property
     def storage_options(self) -> dict[str, Any] | None:

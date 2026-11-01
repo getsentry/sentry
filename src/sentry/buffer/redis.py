@@ -6,7 +6,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from time import time
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 import rb
 from django.utils.encoding import force_bytes, force_str
@@ -321,7 +321,8 @@ class RedisBuffer(Buffer):
         if type_ == "n":
             return None
         elif type_ == "s":
-            return force_str(value)
+            # justification: force_str returns a str for the decoded Any value.
+            return cast("str", force_str(value))
         elif type_ == "dt":
             return datetime.fromtimestamp(float(value)).replace(tzinfo=timezone.utc)
         elif type_ == "d":

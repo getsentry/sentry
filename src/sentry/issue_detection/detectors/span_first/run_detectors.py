@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from types import NoneType
-from typing import Any
+from typing import Any, cast
 
 from sentry.issue_detection.base import DetectorType
 from sentry.issue_detection.detectors.span_first.base import SpanFirstDetector
@@ -357,7 +357,8 @@ def _strip_unnecessary_problem_data(
             ):
                 del evidence_data["repeating_spans_compact"]
 
-    return problem_dict
+    # justification: the caller handed in the problem dictionary to strip in place.
+    return cast("dict[str, Any]", problem_dict)
 
 
 def _log_mismatch(

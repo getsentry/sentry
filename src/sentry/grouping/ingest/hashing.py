@@ -206,7 +206,7 @@ def _grouphash_exists_for_hash_value(hash_value: str, project: Project, use_cach
 
             if got_cache_hit:
                 metrics_tags["grouphash_exists"] = grouphash_exists
-                return grouphash_exists
+                return bool(grouphash_exists)
 
         # Get an answer from the database if we didn't find what we needed in the cache (or if
         # caching is turned off)

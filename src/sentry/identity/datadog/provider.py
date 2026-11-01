@@ -92,9 +92,13 @@ def mcp_whoami(mcp_base_url: str, auth_headers: dict[str, str]) -> DatadogWhoami
 
     try:
         body = orjson.loads(safe_urlread(resp))
-        return orjson.loads(body["result"]["contents"][0]["text"])
+        whoami = orjson.loads(body["result"]["contents"][0]["text"])
     except (KeyError, IndexError, orjson.JSONDecodeError) as e:
         raise IdentityNotValid("MCP whoami returned an unexpected response") from e
+    if not isinstance(whoami, dict):
+        raise IdentityNotValid("MCP whoami returned an unexpected response")
+    # justification: the MCP whoami payload carries the DatadogWhoami fields.
+    return cast("DatadogWhoami", whoami)
 
 
 def get_user_info(access_token: str, mcp_base_url: str) -> DatadogWhoami:

@@ -63,7 +63,8 @@ def _take_dashboard_snapshot(
     inside a transaction.
     """
     try:
-        return serialize(dashboard, user)
+        # justification: the dashboard serializer emits the dashboard payload.
+        return cast("dict[str, Any]", serialize(dashboard, user))
     except Exception:
         # Snapshot failures must not block the dashboard save. Log and skip.
         logger.exception(

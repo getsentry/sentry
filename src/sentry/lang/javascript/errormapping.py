@@ -70,6 +70,8 @@ class Processor:
                 # Make sure we only get a 2xx to prevent caching bad data
                 response.raise_for_status()
             data = response.json()
+            if not isinstance(data, dict):
+                raise TypeError("Source map reference response is not an object")
             cache.set(key, orjson.dumps([time.time(), data]).decode(), HARD_TIMEOUT)
         except Exception:
             if cached_rv is None:

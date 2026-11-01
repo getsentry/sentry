@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
@@ -181,9 +181,11 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
 
         def _column_name(group_by: Column | AliasedExpression) -> str:
             if isinstance(group_by, Column):
-                return group_by.name
+                # justification: snuba_sdk is exempt from typing.
+                return cast("str", group_by.name)
             elif isinstance(group_by, AliasedExpression):
-                return group_by.exp.name
+                # justification: snuba_sdk is exempt from typing.
+                return cast("str", group_by.exp.name)
 
             return ""
 

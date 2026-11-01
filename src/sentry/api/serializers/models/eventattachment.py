@@ -54,6 +54,6 @@ class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
 
 def get_mimetype(file: File) -> str:
     rv = file.headers.get("Content-Type")
-    if rv:
+    if isinstance(rv, str) and rv:
         return rv.split(";")[0].strip()
     return mimetypes.guess_type(file.name)[0] or "application/octet-stream"

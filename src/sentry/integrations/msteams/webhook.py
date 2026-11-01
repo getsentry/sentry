@@ -761,11 +761,17 @@ class MsTeamsCommandDispatcher(MessagingIntegrationCommandDispatcher[AdaptiveCar
 
     @property
     def conversation_id(self) -> str:
-        return self.data["conversation"]["id"]
+        conversation_id = self.data["conversation"]["id"]
+        if not isinstance(conversation_id, str):
+            raise TypeError("MSTeams conversation id is not a string")
+        return conversation_id
 
     @property
     def teams_user_id(self) -> str:
-        return self.data["from"]["id"]
+        user_id = self.data["from"]["id"]
+        if not isinstance(user_id, str):
+            raise TypeError("MSTeams user id is not a string")
+        return user_id
 
     def help_handler(self, input: CommandInput) -> IntegrationResponse[AdaptiveCard]:
         return IntegrationResponse(

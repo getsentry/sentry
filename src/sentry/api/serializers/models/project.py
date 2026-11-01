@@ -1152,93 +1152,97 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             sample_rate = quotas.backend.get_blended_sample_rate(
                 organization_id=obj.organization.id
             )
-        data: DetailedProjectResponse = {
-            **base,
-            "latestRelease": attrs["latest_release"],
-            "options": self.format_options(attrs),
-            "digestsMinDelay": attrs["options"].get(
-                "digests:mail:minimum_delay", digests.minimum_delay
-            ),
-            "digestsMaxDelay": attrs["options"].get(
-                "digests:mail:maximum_delay", digests.maximum_delay
-            ),
-            "subjectPrefix": attrs["options"].get(
-                "mail:subject_prefix", options.get("mail.subject-prefix")
-            ),
-            "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
-            "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
-            "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
-            "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
-            "safeFields": attrs["options"].get("sentry:safe_fields", []),
-            "storeCrashReports": convert_crashreport_count(
-                attrs["options"].get("sentry:store_crash_reports"), allow_none=True
-            ),
-            "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
-            "subjectTemplate": attrs["options"].get("mail:subject_template")
-            or DEFAULT_SUBJECT_TEMPLATE.template,
-            "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
-            "securityTokenHeader": attrs["options"].get("sentry:token_header"),
-            "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
-            "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
-            "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
-            "enableAutoReleaseCreation": bool(
-                attrs["options"].get("sentry:enable_auto_release_creation", True)
-            ),
-            "highlightTags": attrs["options"].get(
-                "sentry:highlight_tags",
-                attrs["highlight_preset"].get("tags", []),
-            ),
-            "highlightContext": attrs["options"].get(
-                "sentry:highlight_context",
-                attrs["highlight_preset"].get("context", {}),
-            ),
-            "highlightPreset": attrs["highlight_preset"],
-            "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
-            "groupingEnhancements": self.get_value_with_default(
-                attrs, "sentry:grouping_enhancements"
-            ),
-            "derivedGroupingEnhancements": self.get_value_with_default(
-                attrs, "sentry:derived_grouping_enhancements"
-            ),
-            "secondaryGroupingExpiry": self.get_value_with_default(
-                attrs, "sentry:secondary_grouping_expiry"
-            ),
-            "secondaryGroupingConfig": self.get_value_with_default(
-                attrs, "sentry:secondary_grouping_config"
-            ),
-            "fingerprintingRules": self.get_value_with_default(
-                attrs, "sentry:fingerprinting_rules"
-            ),
-            "organization": attrs["org"],
-            "platforms": attrs["platforms"],
-            "processingIssues": attrs["processing_issues"],
-            "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
-            "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
-            "builtinSymbolSources": self.get_value_with_default(
-                attrs, "sentry:builtin_symbol_sources"
-            ),
-            "enableNativeSourceServerMapping": bool(
-                self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
-            ),
-            "dynamicSamplingBiases": self.get_value_with_default(
-                attrs, "sentry:dynamic_sampling_biases"
-            ),
-            "symbolSources": serialized_sources,
-            "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
-            "autofixAutomationTuning": self.get_value_with_default(
-                attrs, "sentry:autofix_automation_tuning"
-            ),
-            "seerScannerAutomation": self.get_value_with_default(
-                attrs, "sentry:seer_scanner_automation"
-            ),
-            "seerNightshiftTweaks": self.get_value_with_default(
-                attrs, "sentry:seer_nightshift_tweaks"
-            ),
-            "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
-            "scmSourceContextEnabled": self.get_value_with_default(
-                attrs, "sentry:scm_source_context_enabled"
-            ),
-        }
+        # justification: mypy cannot prove the base spread fills the subclass TypedDict.
+        data = cast(
+            "DetailedProjectResponse",
+            {
+                **base,
+                "latestRelease": attrs["latest_release"],
+                "options": self.format_options(attrs),
+                "digestsMinDelay": attrs["options"].get(
+                    "digests:mail:minimum_delay", digests.minimum_delay
+                ),
+                "digestsMaxDelay": attrs["options"].get(
+                    "digests:mail:maximum_delay", digests.maximum_delay
+                ),
+                "subjectPrefix": attrs["options"].get(
+                    "mail:subject_prefix", options.get("mail.subject-prefix")
+                ),
+                "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
+                "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
+                "dataScrubber": bool(attrs["options"].get("sentry:scrub_data", True)),
+                "dataScrubberDefaults": bool(attrs["options"].get("sentry:scrub_defaults", True)),
+                "safeFields": attrs["options"].get("sentry:safe_fields", []),
+                "storeCrashReports": convert_crashreport_count(
+                    attrs["options"].get("sentry:store_crash_reports"), allow_none=True
+                ),
+                "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
+                "subjectTemplate": attrs["options"].get("mail:subject_template")
+                or DEFAULT_SUBJECT_TEMPLATE.template,
+                "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
+                "securityTokenHeader": attrs["options"].get("sentry:token_header"),
+                "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
+                "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
+                "scrapeJavaScript": bool(attrs["options"].get("sentry:scrape_javascript", True)),
+                "enableAutoReleaseCreation": bool(
+                    attrs["options"].get("sentry:enable_auto_release_creation", True)
+                ),
+                "highlightTags": attrs["options"].get(
+                    "sentry:highlight_tags",
+                    attrs["highlight_preset"].get("tags", []),
+                ),
+                "highlightContext": attrs["options"].get(
+                    "sentry:highlight_context",
+                    attrs["highlight_preset"].get("context", {}),
+                ),
+                "highlightPreset": attrs["highlight_preset"],
+                "groupingConfig": self.get_value_with_default(attrs, "sentry:grouping_config"),
+                "groupingEnhancements": self.get_value_with_default(
+                    attrs, "sentry:grouping_enhancements"
+                ),
+                "derivedGroupingEnhancements": self.get_value_with_default(
+                    attrs, "sentry:derived_grouping_enhancements"
+                ),
+                "secondaryGroupingExpiry": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_expiry"
+                ),
+                "secondaryGroupingConfig": self.get_value_with_default(
+                    attrs, "sentry:secondary_grouping_config"
+                ),
+                "fingerprintingRules": self.get_value_with_default(
+                    attrs, "sentry:fingerprinting_rules"
+                ),
+                "organization": attrs["org"],
+                "platforms": attrs["platforms"],
+                "processingIssues": attrs["processing_issues"],
+                "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
+                "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
+                "builtinSymbolSources": self.get_value_with_default(
+                    attrs, "sentry:builtin_symbol_sources"
+                ),
+                "enableNativeSourceServerMapping": bool(
+                    self.get_value_with_default(attrs, "sentry:enable_native_source_server_mapping")
+                ),
+                "dynamicSamplingBiases": self.get_value_with_default(
+                    attrs, "sentry:dynamic_sampling_biases"
+                ),
+                "symbolSources": serialized_sources,
+                "isDynamicallySampled": sample_rate is not None and sample_rate < 1.0,
+                "autofixAutomationTuning": self.get_value_with_default(
+                    attrs, "sentry:autofix_automation_tuning"
+                ),
+                "seerScannerAutomation": self.get_value_with_default(
+                    attrs, "sentry:seer_scanner_automation"
+                ),
+                "seerNightshiftTweaks": self.get_value_with_default(
+                    attrs, "sentry:seer_nightshift_tweaks"
+                ),
+                "debugFilesRole": attrs["options"].get("sentry:debug_files_role"),
+                "scmSourceContextEnabled": self.get_value_with_default(
+                    attrs, "sentry:scm_source_context_enabled"
+                ),
+            },
+        )
 
         if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(

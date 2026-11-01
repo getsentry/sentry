@@ -125,7 +125,10 @@ class OAuth2Callback(AuthView):
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body.decode("utf-8")))
-        return orjson.loads(body)
+        data = orjson.loads(body)
+        if not isinstance(data, Mapping):
+            raise TypeError("OAuth token response is not an object")
+        return data
 
     def dispatch(self, request: HttpRequest, pipeline: AuthHelper) -> HttpResponseBase:
         error = request.GET.get("error")

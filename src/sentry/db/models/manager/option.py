@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from django.core.signals import request_finished
 from django.db.models import Model
@@ -16,7 +16,8 @@ class OptionManager(BaseManager[M]):
         if not hasattr(_local_cache, "option_cache"):
             _local_cache.option_cache = {}
 
-        return _local_cache.option_cache
+        # justification: option_cache is initialized as a dict above.
+        return cast("dict[str, dict[str, Any]]", _local_cache.option_cache)
 
     def clear_local_cache(self, **kwargs: Any) -> None:
         self._option_cache.clear()

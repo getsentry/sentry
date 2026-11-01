@@ -1,5 +1,5 @@
 from collections.abc import MutableMapping
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -82,7 +82,8 @@ class ExternalActorSerializerBase(
 
     @property
     def organization(self) -> Organization:
-        return self.context["organization"]
+        # justification: the view context carries the resolved organization.
+        return cast("Organization", self.context["organization"])
 
     def validate_integration_id(self, integration_id: str) -> str:
         return validate_integration_id(integration_id, self.organization)

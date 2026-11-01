@@ -630,10 +630,10 @@ class AuthIdentityHandler:
         Consumes the marker on read so it can only be used once.
         """
         verified = getattr(state, "verified_email", None)
-        if not verified:
+        if not isinstance(verified, str) or not verified:
             return False
         state.verified_email = None
-        return verified.lower() == self.identity["email"].lower()
+        return bool(verified.lower() == self.identity["email"].lower())
 
     def _send_sso_verification_email_and_redirect(
         self, email: str, state: AuthHelperSessionStore

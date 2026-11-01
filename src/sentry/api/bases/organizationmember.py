@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 from rest_framework import serializers
 from rest_framework.fields import empty
@@ -68,7 +68,8 @@ class MemberIdField(serializers.IntegerField):
     def run_validation(self, data: object | None = empty) -> object | None:
         if data == "me":
             return data
-        return super().run_validation(data)
+        # justification: DRF does not annotate Field.run_validation.
+        return cast("object | None", super().run_validation(data))
 
 
 class MemberSerializer(serializers.Serializer[dict[str, int | Literal["me"]]]):

@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, cast
 from urllib.parse import ParseResult
 
 from django.urls import reverse
@@ -439,14 +439,19 @@ class VstsIssuesSpec(IssueSyncIntegration, SourceCodeIssueIntegration, ABC):
         return {state["name"] for state in all_states if state["category"] in self.done_categories}
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
-        return (external_issue.metadata or {}).get("display_name", "")
+        display_name = (external_issue.metadata or {}).get("display_name", "")
+        return display_name if isinstance(display_name, str) else ""
 
     def create_comment(
         self, issue_id: str, user_id: int, group_note: Activity
     ) -> dict[str, Any]:  # justification: work item payload is decoded JSON.
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
-        return self.get_client().update_work_item(issue_id, comment=quoted_comment)
+        # justification: the VSTS client returns the updated work item payload.
+        return cast(
+            "dict[str, Any]",
+            self.get_client().update_work_item(issue_id, comment=quoted_comment),
+        )
 
     def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         # VSTS uses markdown or xml

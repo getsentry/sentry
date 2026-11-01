@@ -18,7 +18,9 @@ def get_dynamic_sdk_loader_option(
     project_key: "ProjectKey", option: DynamicSdkLoaderOption, default: bool = False
 ) -> bool:
     dynamic_sdk_loader_options = project_key.data.get("dynamicSdkLoaderOptions", {})
-    return dynamic_sdk_loader_options.get(option.value, default)
+    if not isinstance(dynamic_sdk_loader_options, dict):
+        return default
+    return bool(dynamic_sdk_loader_options.get(option.value, default))
 
 
 def get_default_loader_data(project: "Project") -> dict[str, object]:

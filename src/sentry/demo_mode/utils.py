@@ -20,7 +20,7 @@ READONLY_SCOPES = frozenset(
 
 
 def is_demo_mode_enabled() -> bool:
-    return options.get("demo-mode.enabled")
+    return bool(options.get("demo-mode.enabled"))
 
 
 def is_demo_user(user: User | AnonymousUser | None | RpcUser) -> bool:

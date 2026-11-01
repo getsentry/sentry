@@ -30,6 +30,8 @@ def get_system_token() -> str:
     if not token:
         token = secrets.token_hex()
         options.set("sentry:system-token", token, channel=options.UpdateChannel.APPLICATION)
+    if not isinstance(token, str):
+        raise TypeError("sentry:system-token must be a string")
     return token
 
 

@@ -27,4 +27,6 @@ class JiraCreateTicketAction(TicketEventAction):
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         name = integration.metadata.get("domain_name", integration.name)
+        if not isinstance(name, str):
+            name = integration.name
         return name.replace(".atlassian.net", "")

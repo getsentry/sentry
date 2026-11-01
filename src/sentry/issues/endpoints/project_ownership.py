@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -200,7 +200,8 @@ class ProjectOwnershipRequestSerializer(serializers.Serializer):
             ownership.last_updated = now
             ownership.save()
 
-        return ownership
+        # justification: the ownership row is resolved above.
+        return cast("ProjectOwnership", ownership)
 
     def __modify_auto_assignment(self, ownership: ProjectOwnership) -> bool:
         auto_assignment = self.validated_data.get("autoAssignment")

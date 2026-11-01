@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from types import TracebackType
-from typing import Any, Concatenate, ParamSpec
+from typing import Any, Concatenate, ParamSpec, cast
 
 from django.contrib.postgres.constraints import ExclusionConstraint
 from django.db.backends.postgresql.schema import (
@@ -66,7 +66,8 @@ def translate_unsafeoperation_exception(
 
             raise UnsafeOperationException(exc_str.format(*formatted_args))
 
-    return inner
+    # justification: the wrapper preserves the wrapped schema editor method.
+    return cast("Callable[Concatenate[Any, P], None]", inner)
 
 
 class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):

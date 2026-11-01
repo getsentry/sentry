@@ -223,4 +223,4 @@ class GroupEventsEndpoint(GroupEndpoint):
         else:
             query = None
 
-        return query
+        return query if isinstance(query, str) else None

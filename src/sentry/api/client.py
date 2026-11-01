@@ -123,7 +123,8 @@ class ApiClient:
         response = callback(mock_request, *callback_args, **callback_kwargs)
 
         if 200 <= response.status_code < 400:
-            return response
+            # justification: requests_mock callbacks return a PreparedResponse.
+            return cast("Response[Any]", response)
         raise self.ApiError(response.status_code, response.data)
 
     def get(

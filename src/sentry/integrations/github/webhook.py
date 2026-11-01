@@ -9,7 +9,7 @@ from abc import ABC
 from collections.abc import Mapping, MutableMapping, Sequence
 from contextlib import nullcontext
 from datetime import timezone
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import orjson
 import sentry_sdk
@@ -413,7 +413,8 @@ class GitHubWebhook(SCMWebhook, ABC):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+        # justification: the registered option carries the GitHub App id.
+        return cast("str", options.get("github-app.id"))
 
     def maybe_create_external_actor(
         self,
@@ -1436,7 +1437,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         }
 
     def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
+        secret = options.get("github-app.webhook-secret")
+        return secret if isinstance(secret, str) else None
 
     def post(self, request: HttpRequest) -> HttpResponse:
         with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):

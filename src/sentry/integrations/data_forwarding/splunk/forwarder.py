@@ -10,6 +10,7 @@ from sentry.integrations.types import DataForwarderProviderSlug
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiTimeoutError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.utils.anonymizeip import anonymize_ip
 from sentry.utils.hashlib import md5_text
 
@@ -27,9 +28,9 @@ class SplunkApiClient(BaseApiClient):
         self.token = token
         super().__init__(verify_ssl=False)
 
-    def request(self, data: Mapping[str, object]) -> object:
+    def request(self, data: Mapping[str, object]) -> BaseApiResponse:
         headers = {"Authorization": f"Splunk {self.token}"}
-        response: object = self._request(
+        response = self._request(
             path=self.endpoint,
             method="post",
             data=data,
@@ -58,7 +59,7 @@ class SplunkForwarder(BaseDataForwarder):
         user_interface = event.interfaces.get("user")
         if user_interface:
             host = user_interface.ip_address
-            if host:
+            if isinstance(host, str) and host:
                 return host
 
         return None

@@ -179,7 +179,9 @@ class PagerDutyIntegration(IntegrationInstallation):
     @property
     def services(self) -> list[PagerDutyServiceDict]:
         if self.org_integration:
-            return self.org_integration.config.get("pagerduty_services", [])
+            services = self.org_integration.config.get("pagerduty_services", [])
+            if isinstance(services, list):
+                return services
         return []
 
 

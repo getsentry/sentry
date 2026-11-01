@@ -114,9 +114,12 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         )
 
     def get_current_settings(self, project: Project) -> dict[str, object]:
-        return project.get_option(
+        settings = project.get_option(
             SETTINGS_PROJECT_OPTION_KEY, DEFAULT_PROJECT_PERFORMANCE_GENERAL_SETTINGS
         )
+        if not isinstance(settings, dict):
+            raise TypeError(f"{SETTINGS_PROJECT_OPTION_KEY} must be an object")
+        return settings
 
     def update_settings(self, project: Project, new_settings: dict[str, object]) -> None:
         current_settings = self.get_current_settings(project)

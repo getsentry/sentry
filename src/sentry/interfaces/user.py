@@ -96,10 +96,16 @@ class User(Interface):
         }
 
     def get_display_name(self) -> str | None:
-        return self.email or self.username
+        for value in (self.email, self.username):
+            if isinstance(value, str) and value:
+                return value
+        return None
 
     def get_label(self) -> str | None:
-        return self.name or self.email or self.username or self.id or self.ip_address
+        for value in (self.name, self.email, self.username, self.id, self.ip_address):
+            if isinstance(value, str) and value:
+                return value
+        return None
 
     def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs
         context = {

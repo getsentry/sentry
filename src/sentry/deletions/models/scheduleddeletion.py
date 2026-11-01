@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Self
+from typing import Any, Self, cast
 from uuid import uuid4
 
 from django.apps import apps
@@ -128,7 +128,8 @@ class BaseScheduledDeletion(Model):
         query_manager = model.objects
         if isinstance(deletion_task, ModelDeletionTask):
             query_manager = getattr(model, deletion_task.manager_name)
-        return query_manager.get(pk=self.object_id)
+        # justification: the scheduled deletion stores the model instance it deletes.
+        return cast("Model", query_manager.get(pk=self.object_id))
 
     def get_actor(self) -> RpcUser | None:
         if not self.actor_id:

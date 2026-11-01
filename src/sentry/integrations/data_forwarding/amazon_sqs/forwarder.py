@@ -30,9 +30,12 @@ class AmazonSQSForwarder(BaseDataForwarder):
         # We do this since serialize(event) returns datetime objects, and taskbroker doesn't support
         # those as arguments. This dump -> load step gets around it, and leaves the payload being
         # forwarded in the same format it has always been.
-        return orjson.loads(
+        payload = orjson.loads(
             orjson.dumps(serialize(event), option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS)
         )
+        if not isinstance(payload, dict):
+            raise TypeError("Serialized event is not a JSON object")
+        return payload
 
     def is_unrecoverable_client_error(self, error: ClientError) -> bool:
         error_str = str(error)

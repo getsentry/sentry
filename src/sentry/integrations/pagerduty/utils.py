@@ -74,7 +74,8 @@ def get_services(
 ) -> list[PagerDutyServiceDict]:
     if not org_integration:
         return []
-    return org_integration.config.get("pagerduty_services", [])
+    services = org_integration.config.get("pagerduty_services", [])
+    return services if isinstance(services, list) else []
 
 
 def get_service(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from django.db.models import (
@@ -274,10 +274,12 @@ def build_combined_queryset(
         if name not in columns:
             columns.append(name)
 
-    return (
+    # justification: union() erases the queryset's value type.
+    return cast(
+        "QuerySet[DiscoverSavedQuery, dict[str, Any]]",
         discover_queryset.values(*columns)
         .union(explore_queryset.values(*columns), all=True)
-        .order_by(*order_by)
+        .order_by(*order_by),
     )
 
 

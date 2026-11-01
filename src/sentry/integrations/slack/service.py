@@ -450,7 +450,7 @@ class SlackService:
             )
             return None
 
-        return text_description
+        return text_description if isinstance(text_description, str) else None
 
     def notify_recipient(
         self,

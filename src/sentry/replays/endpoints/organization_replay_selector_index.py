@@ -185,7 +185,10 @@ def query_selector_collection(
         sort=sort,
         tenant_ids=tenant_ids,
     )
-    return response["data"]
+    data = response["data"]
+    if not isinstance(data, list):
+        raise TypeError("Replay selector query returned no data array")
+    return data
 
 
 def query_selector_dataset(
@@ -326,6 +329,8 @@ def process_raw_response(response: list[dict[str, Any]]) -> list[dict[str, Any]]
         row: dict[str, Any],  # justification: replay query rows are decoded JSON.
     ) -> str:  # justification: replay query rows are decoded JSON.
         selector = row["click_tag"]
+        if not isinstance(selector, str):
+            raise TypeError("Replay click tag is not a string")
 
         if row["click_id"]:
             selector = selector + f"#{row['click_id']}"

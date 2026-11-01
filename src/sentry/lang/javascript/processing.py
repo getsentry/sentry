@@ -105,7 +105,8 @@ def is_sourcemap_image(image: Any) -> bool:  # justification: decoded javascript
 
 # justification: decoded javascript JSON
 def sourcemap_images_from_data(data: Mapping[str, Any]) -> list[dict[str, Any]]:
-    return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
+    images = get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
+    return images if isinstance(images, list) else []
 
 
 # Most people don't upload release artifacts for their third-party libraries,

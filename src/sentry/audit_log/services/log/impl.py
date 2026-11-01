@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 import logging
+from typing import cast
 
 from django.db import IntegrityError, router, transaction
 
@@ -101,7 +102,8 @@ class DatabaseBackedLogService(LogService):
             logger.error("audit_log.invalid_audit_log_pass_list", extra={"pass_list": pass_list})
             return []
 
-        return pass_list
+        # justification: the isinstance loop above proved every item is an int.
+        return cast("list[int]", pass_list)
 
 
 class OutboxBackedLogService(LogService):

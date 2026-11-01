@@ -599,8 +599,9 @@ class GHEAppInstallSerializer(CamelSnakeSerializer[dict[str, Any]]):
 
 
 def _get_app_install_url(installation_data: Mapping[str, Any]) -> str:
-    if installation_data.get("public_link"):
-        return installation_data["public_link"]
+    public_link = installation_data.get("public_link")
+    if isinstance(public_link, str) and public_link:
+        return public_link
 
     url = installation_data.get("url")
     name = installation_data.get("name")
@@ -725,6 +726,8 @@ class GitHubEnterpriseIntegrationProvider(GitHubIntegrationProvider):
         # verify that user actually has access to the installation
         for installation in user_installations_resp["installations"]:
             if installation["id"] == installation_resp["id"]:
+                if not isinstance(installation_resp, dict):
+                    raise TypeError("GitHub Enterprise installation is not an object")
                 return installation_resp
 
         return None

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import google.auth
 import orjson
@@ -165,7 +165,11 @@ def verify_gcp_connection(
         raise IntegrationError("Failed to verify GCP connection. Please try again.")
 
     try:
-        return orjson.loads(response.data)
+        result = orjson.loads(response.data)
+        if not isinstance(result, dict):
+            raise TypeError("GCP verify connection returned a non-object response")
+        # justification: the verify endpoint returns the GcpVerifyConnectionResult fields.
+        return cast("GcpVerifyConnectionResult", result)
     except orjson.JSONDecodeError:
         logger.error("gcp.verify_connection_invalid_response")
         raise IntegrationError("Failed to verify GCP connection. Please try again.")

@@ -230,4 +230,7 @@ class GitlabIssuesSpec(SourceCodeIssueIntegration):
         }
 
     def get_issue_display_name(self, external_issue: ExternalIssue) -> str:
-        return external_issue.metadata["display_name"]
+        display_name = external_issue.metadata["display_name"]
+        if not isinstance(display_name, str):
+            raise TypeError("GitLab issue display name is not a string")
+        return display_name

@@ -20,4 +20,5 @@ class EmptyIntegerField(serializers.IntegerField):
     def run_validation(self, data: object = empty) -> int | None:
         if data == "":
             return None
-        return super().run_validation(data)
+        # justification: DRF does not annotate Field.run_validation.
+        return cast("int | None", super().run_validation(data))

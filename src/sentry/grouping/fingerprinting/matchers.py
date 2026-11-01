@@ -116,7 +116,7 @@ class FingerprintMatcher:
             return "all" in flags or value in flags
 
         if self.key == "app":
-            return value == bool_from_string(self.pattern)
+            return bool(value == bool_from_string(self.pattern))
 
         if self.key in ["level", "value"]:
             return glob_match(value, self.pattern, ignorecase=True)

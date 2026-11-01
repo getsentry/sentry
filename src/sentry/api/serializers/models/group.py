@@ -495,7 +495,8 @@ class GroupSerializerBase(Serializer, ABC):
         if "derived_data" in attrs:
             group_dict["derivedData"] = attrs["derived_data"]
         if is_seen_stats(attrs):
-            group_dict.update(self._convert_seen_stats(attrs))
+            # justification: seen-stats fields are optional members of the response TypedDict.
+            cast("dict[str, Any]", group_dict).update(self._convert_seen_stats(attrs))
         return group_dict
 
     @abstractmethod

@@ -25,7 +25,10 @@ def get_user_info(access_token: str) -> dict[str, object]:
         )
         resp.raise_for_status()
 
-        user = resp.json()
+        payload = resp.json()
+        if not isinstance(payload, dict):
+            raise TypeError("VSTS returned a non-object profile")
+        user: dict[str, object] = payload
         user["uuid"] = user["id"]
 
         resp = session.get(
@@ -42,7 +45,10 @@ def get_user_info(access_token: str) -> dict[str, object]:
         # profiles/me API above). To get the current user's descriptor, we call the "connection data"
         # REST API (this assumes we are authenticating with an access token issued to the user).
         # We will also see descriptors returned for every user in the "Get users" (Graph) REST API.
-        user["id"] = resp.json()["authenticatedUser"]["subjectDescriptor"]
+        connection_data = resp.json()
+        if not isinstance(connection_data, dict):
+            raise TypeError("VSTS returned a non-object connection data payload")
+        user["id"] = connection_data["authenticatedUser"]["subjectDescriptor"]
 
     return user
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 from sentry.integrations.perforce.client import (
     P4ChangeInfo,
@@ -53,7 +53,8 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider[PerforceIntegrati
             raise NotImplementedError("Integration not found")
 
         installation = integration.get_installation(organization_id=repo.organization_id)
-        return installation.get_client()
+        # justification: the Perforce integration installation returns a PerforceClient.
+        return cast("PerforceClient", installation.get_client())
 
     def get_repository_data(
         self, organization: Organization, config: MutableMapping[str, Any]
@@ -286,4 +287,5 @@ class PerforceRepositoryProvider(IntegrationRepositoryProvider[PerforceIntegrati
 
     def repository_external_slug(self, repo: Repository) -> str:
         """Get external slug for repository."""
-        return repo.config.get("depot_path", repo.name)
+        depot_path = repo.config.get("depot_path", repo.name)
+        return depot_path if isinstance(depot_path, str) else repo.name

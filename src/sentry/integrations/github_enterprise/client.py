@@ -44,7 +44,10 @@ class GitHubEnterpriseApiClient(GitHubBaseClient):
         return super().build_url(path)
 
     def _get_installation_id(self) -> str:
-        return self.integration.metadata["installation_id"]
+        installation_id = self.integration.metadata["installation_id"]
+        if not isinstance(installation_id, str):
+            raise TypeError("GitHub Enterprise installation id is not a string")
+        return installation_id
 
     def _get_jwt(self) -> str:
         return get_jwt(github_id=self.app_id, github_private_key=self.private_key)

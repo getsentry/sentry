@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, cast
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -116,7 +116,8 @@ def deserialize_stage_extra(stage: Stage, value: dict[str, Any]) -> StageExtra:
             {field: "Unknown extra field" for field in sorted(unknown_fields)}
         )
     serializer.is_valid(raise_exception=True)
-    return get_stage_definition(stage).parse_extra(serializer.validated_data)
+    # justification: parse_extra returns the stage's own StageExtra subtype.
+    return cast("StageExtra", get_stage_definition(stage).parse_extra(serializer.validated_data))
 
 
 class AgenticOnboardingStatusRequestSerializer(CamelSnakeSerializer[AgenticOnboardingStatusData]):

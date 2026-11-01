@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from typing import Any, cast
 
 import orjson
+from django.core.exceptions import ImproperlyConfigured
 
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
@@ -56,10 +57,16 @@ class GCPIdentityProvider(McpIdentityProvider, OAuth2Provider):
     )
 
     def get_oauth_client_id(self) -> str:
-        return options.get("gcp.client-id")
+        client_id = options.get("gcp.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("gcp.client-id is not configured")
+        return client_id
 
     def get_oauth_client_secret(self) -> str:
-        return options.get("gcp.client-secret")
+        client_secret = options.get("gcp.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("gcp.client-secret is not configured")
+        return client_secret
 
     def get_pipeline_views(self) -> list[PipelineView[IdentityPipeline]]:
         return [

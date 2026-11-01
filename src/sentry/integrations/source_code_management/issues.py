@@ -94,9 +94,11 @@ class SourceCodeIssueIntegration(IssueBasicIntegration, BaseRepositoryIntegratio
         if not self.org_integration:
             return {}
 
-        return self.org_integration.config.get("project_issue_defaults", {}).get(
-            str(project_id), {}
-        )
+        defaults = self.org_integration.config.get("project_issue_defaults", {})
+        if not isinstance(defaults, dict):
+            return {}
+        project_defaults = defaults.get(str(project_id), {})
+        return project_defaults if isinstance(project_defaults, dict) else {}
 
     def create_default_repo_choice(self, default_repo: str) -> tuple[str, str]:
         """

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from typing import Any
 
+from django.core.exceptions import ImproperlyConfigured
 from django.http.request import HttpRequest
 
 from sentry import options
@@ -29,10 +30,16 @@ class FlyOAuth2Provider(OAuth2Provider):
         super().__init__(**config)
 
     def get_client_id(self) -> str:
-        return options.get("auth-fly.client-id")
+        client_id = options.get("auth-fly.client-id")
+        if not isinstance(client_id, str):
+            raise ImproperlyConfigured("auth-fly.client-id is not configured")
+        return client_id
 
     def get_client_secret(self) -> str:
-        return options.get("auth-fly.client-secret")
+        client_secret = options.get("auth-fly.client-secret")
+        if not isinstance(client_secret, str):
+            raise ImproperlyConfigured("auth-fly.client-secret is not configured")
+        return client_secret
 
     def get_configure_view(
         self,

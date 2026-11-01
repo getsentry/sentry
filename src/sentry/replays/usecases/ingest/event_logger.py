@@ -450,10 +450,12 @@ def _should_report_hydration_error_issue(project_id: int, context: ProcessorCont
     if context["options_cache"]:
         return context["options_cache"][project_id][0]
     else:
-        return ProjectOption.objects.get_value(
-            project_id,
-            "sentry:replay_hydration_error_issues",
-            default=True,
+        return bool(
+            ProjectOption.objects.get_value(
+                project_id,
+                "sentry:replay_hydration_error_issues",
+                default=True,
+            )
         )
 
 
@@ -465,10 +467,12 @@ def _should_report_rage_click_issue(project_id: int, context: ProcessorContext) 
     if context["options_cache"]:
         return context["options_cache"][project_id][1]
     else:
-        return ProjectOption.objects.get_value(
-            project_id,
-            "sentry:replay_rage_click_issues",
-            default=True,
+        return bool(
+            ProjectOption.objects.get_value(
+                project_id,
+                "sentry:replay_rage_click_issues",
+                default=True,
+            )
         )
 
 

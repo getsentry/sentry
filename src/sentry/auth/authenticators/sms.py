@@ -56,7 +56,10 @@ class SmsInterface(OtpMixin):
 
     @property
     def phone_number(self) -> str:
-        return self.config["phone_number"]
+        phone_number = self.config["phone_number"]
+        if not isinstance(phone_number, str):
+            raise TypeError("SMS authenticator phone number is not a string")
+        return phone_number
 
     @phone_number.setter
     def phone_number(self, value: str) -> None:

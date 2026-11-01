@@ -209,4 +209,4 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed(self) -> bool:
-        return self.settings["detection_enabled"]
+        return bool(self.settings["detection_enabled"])
