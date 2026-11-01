@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.endpoints.organization_releases import (
@@ -26,6 +27,7 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.environment import Environment
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
@@ -60,7 +62,7 @@ pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
-    def assert_expected_versions(self, response, expected):
+    def assert_expected_versions(self, response: Response, expected: list[Release]) -> None:
         assert [item["version"] for item in response.data] == [e.version for e in expected]
 
     def test_simple(self) -> None:
@@ -2607,12 +2609,12 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.env2 = env2
         self.org = org
 
-    def make_environment(self, name, project):
+    def make_environment(self, name: str, project: Project) -> Environment:
         env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
-    def assert_releases(self, response, releases):
+    def assert_releases(self, response: Response, releases: list[Release]) -> None:
         assert len(response.data) == len(releases)
 
         response_versions = sorted(r["version"] for r in response.data)
@@ -2719,7 +2721,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
 
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": self.org.slug}
         )
@@ -3160,7 +3162,7 @@ class OrganizationReleasesBaseEndpointGetProjectsTest(TestCase):
 
 
 class DebounceUpdateReleaseHealthDataTest(TestCase):
-    def run_with_health_data(self, project, version="1.0"):
+    def run_with_health_data(self, project: Project, version: str = "1.0") -> None:
         with patch(
             "sentry.api.endpoints.organization_releases.release_health"
         ) as mock_release_health:

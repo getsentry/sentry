@@ -10,7 +10,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class AuthOrganizationChannelLoginTest(TestCase):
-    def create_auth_provider(self, partner_org_id, sentry_org_id):
+    def create_auth_provider(self, partner_org_id: str, sentry_org_id: int) -> None:
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})
         AuthProvider.objects.create(
             organization_id=sentry_org_id, provider="fly", config=config_data
@@ -106,7 +106,7 @@ class AuthOrganizationChannelLoginTest(TestCase):
 
 @control_silo_test
 class AuthNonPartnerOrganizationChannelLoginTest(TestCase):
-    def create_auth_provider(self, partner_org_id, sentry_org_id):
+    def create_auth_provider(self, partner_org_id: str, sentry_org_id: int) -> None:
         config_data = FlyOAuth2Provider.build_config(resource={"id": partner_org_id})
         AuthProvider.objects.create(
             organization_id=sentry_org_id, provider="fly-non-partner", config=config_data

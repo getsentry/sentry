@@ -19,6 +19,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
     SentryInternalAppTokenPermission,
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.utils.audit import create_audit_entry
 
@@ -33,7 +34,14 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
     permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
     allow_disabled_sentry_app_for_methods = {"DELETE"}
 
-    def convert_args(self, request: Request, sentry_app_id_or_slug, api_token_id, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        sentry_app_id_or_slug: int | str,
+        api_token_id: int | str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         # get the sentry_app from the SentryAppBaseEndpoint class
         (args, kwargs) = super().convert_args(request, sentry_app_id_or_slug, *args, **kwargs)
 
@@ -44,7 +52,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
 
         return (args, kwargs)
 
-    def delete(self, request: Request, sentry_app, api_token) -> Response:
+    def delete(self, request: Request, sentry_app: SentryApp, api_token: ApiToken) -> Response:
         # Validate the token is associated with the application
         if api_token.application_id != sentry_app.application_id:
             raise Http404

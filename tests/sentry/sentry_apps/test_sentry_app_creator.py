@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.db import IntegrityError
@@ -185,7 +186,9 @@ class TestInternalCreator(TestCase):
         self.org = self.create_organization(owner=self.user)
         self.project = self.create_project(organization=self.org)
 
-    def run_creator(self, **kwargs):
+    def run_creator(
+        self, **kwargs: Any
+    ) -> SentryApp:  # justification: forwards arbitrary creator overrides.
         return SentryAppCreator(
             is_internal=True,
             verify_install=False,

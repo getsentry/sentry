@@ -1,11 +1,27 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Protocol, TypedDict, cast
 
 import sentry_sdk
 from django.db.models.signals import post_save
 
 from sentry import analytics
+
+
+class PluginLike(Protocol):
+    slug: str
+
+
+class IssueActivityData(TypedDict, total=False):
+    ignoreDuration: int | None
+    ignoreCount: int | None
+    ignoreWindow: int | None
+    ignoreUserCount: int | None
+    ignoreUserWindow: int | None
+    until_escalating: bool
+
+
 from sentry.adoption import manager
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
 from sentry.analytics.events.alert_created import AlertCreatedEvent
@@ -27,17 +43,24 @@ from sentry.analytics.events.repo_linked import RepoLinkedEvent
 from sentry.analytics.events.search_saved import SearchSavedEvent
 from sentry.analytics.events.sso_enabled import SSOEnabledEvent
 from sentry.analytics.events.team_created import TeamCreatedEvent
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.analytics import (
     IntegrationAddedEvent,
     IntegrationIssueCreatedEvent,
     IntegrationIssueLinkedEvent,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
+from sentry.models.deploy import Deploy
 from sentry.models.featureadoption import FeatureAdoption
 from sentry.models.group import Group
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
+from sentry.models.repository import Repository
+from sentry.models.team import Team
+from sentry.monitors.models import MonitorEnvironment
 from sentry.services.eventstore.models import BaseEvent, GroupEvent
 from sentry.signals import (
     advanced_search,
@@ -119,7 +142,7 @@ DEFAULT_TAGS = frozenset(
 
 # First Event
 @first_event_received.connect(weak=False)
-def record_first_event(project, **kwargs):
+def record_first_event(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_event", complete=True
     )
@@ -195,21 +218,21 @@ transaction_processed.connect(record_event_processed, weak=False)
 
 
 @user_feedback_received.connect(weak=False)
-def record_user_feedback(project, **kwargs):
+def record_user_feedback(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="user_feedback", complete=True
     )
 
 
 @project_created.connect(weak=False)
-def record_project_created(project, **kwargs):
+def record_project_created(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="first_project", complete=True
     )
 
 
 @member_joined.connect(weak=False)
-def record_member_joined(organization_id: int, user_id: int, **kwargs):
+def record_member_joined(organization_id: int, user_id: int, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=organization_id, feature_slug="invite_team", complete=True
     )
@@ -220,7 +243,9 @@ def record_member_joined(organization_id: int, user_id: int, **kwargs):
 
 
 @issue_assigned.connect(weak=False)
-def record_issue_assigned(project, group, user, **kwargs):
+def record_issue_assigned(
+    project: Project, group: Group, user: User | RpcUser | None, **kwargs: object
+) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="assignment", complete=True
     )
@@ -245,8 +270,15 @@ def record_issue_assigned(project, group, user, **kwargs):
 
 @issue_resolved.connect(weak=False)
 def record_issue_resolved(
-    organization_id, project, group, user, resolution_type, provider=None, commit_id=None, **kwargs
-):
+    organization_id: int,
+    project: Project,
+    group: Group,
+    user: User | RpcUser | None,
+    resolution_type: str,
+    provider: str | None = None,
+    commit_id: int | None = None,
+    **kwargs: object,
+) -> None:
     """There are three main types of ways to resolve issues
     1) via a release (current release, next release, or other)
     2) via commit (in the UI with the commit hash (marked as "in_commit")
@@ -288,7 +320,13 @@ def record_issue_resolved(
 
 
 @issue_unresolved.connect(weak=False)
-def record_issue_unresolved(project, user, group, transition_type, **kwargs):
+def record_issue_unresolved(
+    project: Project,
+    user: User | RpcUser | None,
+    group: Group,
+    transition_type: str,
+    **kwargs: object,
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -310,14 +348,16 @@ def record_issue_unresolved(project, user, group, transition_type, **kwargs):
 
 
 @advanced_search.connect(weak=False)
-def record_advanced_search(project, **kwargs):
+def record_advanced_search(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="advanced_search", complete=True
     )
 
 
 @advanced_search_feature_gated.connect(weak=False)
-def record_advanced_search_feature_gated(user, organization, **kwargs):
+def record_advanced_search_feature_gated(
+    user: User | RpcUser | None, organization: Organization, **kwargs: object
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -340,7 +380,9 @@ def record_advanced_search_feature_gated(user, organization, **kwargs):
 # those no longer exist and this is no longer connected to anything. We
 # probably want to connect this up to organization level saved searches.
 @save_search_created.connect(weak=False)
-def record_save_search_created(project, user, **kwargs):
+def record_save_search_created(
+    project: Project, user: User | RpcUser | None, **kwargs: object
+) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="saved_search", complete=True
     )
@@ -365,7 +407,7 @@ def record_save_search_created(project, user, **kwargs):
 
 
 @inbound_filter_toggled.connect(weak=False)
-def record_inbound_filter_toggled(project, **kwargs):
+def record_inbound_filter_toggled(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="inbound_filters", complete=True
     )
@@ -373,19 +415,19 @@ def record_inbound_filter_toggled(project, **kwargs):
 
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(
-    user,
+    user: User | RpcUser | None,
     project: Project,
     rule_id: int,
     rule_type: str,
     is_api_token: bool,
-    referrer=None,
-    session_id=None,
-    alert_rule_ui_component=None,
-    duplicate_rule=None,
-    wizard_v3=None,
-    query_type=None,
-    **kwargs,
-):
+    referrer: str | None = None,
+    session_id: str | None = None,
+    alert_rule_ui_component: str | None = None,
+    duplicate_rule: str | None = None,
+    wizard_v3: str | None = None,
+    query_type: str | None = None,
+    **kwargs: object,
+) -> None:
     # NOTE: This intentionally does not fire for the default issue alert rule
     # that gets created on new project creation.
     FeatureAdoption.objects.record(
@@ -420,13 +462,13 @@ def record_alert_rule_created(
 
 @alert_rule_edited.connect(weak=False)
 def record_alert_rule_edited(
-    user,
-    project,
-    rule,
-    rule_type,
-    is_api_token,
-    **kwargs,
-):
+    user: User | RpcUser | None,
+    project: Project,
+    rule: AlertRule,
+    rule_type: str,
+    is_api_token: bool,
+    **kwargs: object,
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -449,7 +491,9 @@ def record_alert_rule_edited(
 
 
 @plugin_enabled.connect(weak=False)
-def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
+def record_plugin_enabled(
+    plugin: PluginLike, project: Project, user: User | None, **kwargs: object
+) -> None:
     try:
         analytics.record(
             PluginEnabledEvent(
@@ -464,7 +508,7 @@ def record_plugin_enabled(plugin, project, user: User | None, **kwargs):
 
 
 @sso_enabled.connect(weak=False)
-def record_sso_enabled(organization_id, user_id, provider, **kwargs):
+def record_sso_enabled(organization_id: int, user_id: int, provider: str, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=organization_id, feature_slug="sso", complete=True
     )
@@ -478,13 +522,13 @@ def record_sso_enabled(organization_id, user_id, provider, **kwargs):
 
 
 @data_scrubber_enabled.connect(weak=False)
-def record_data_scrubber_enabled(organization, **kwargs):
+def record_data_scrubber_enabled(organization: Organization, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=organization.id, feature_slug="data_scrubbers", complete=True
     )
 
 
-def deleted_and_discarded_issue(instance, created, **kwargs):
+def deleted_and_discarded_issue(instance: GroupTombstone, created: bool, **kwargs: object) -> None:
     if created:
         FeatureAdoption.objects.record(
             organization_id=instance.project.organization_id, feature_slug="delete_and_discard"
@@ -492,7 +536,7 @@ def deleted_and_discarded_issue(instance, created, **kwargs):
 
 
 @repo_linked.connect(weak=False)
-def record_repo_linked(repo, user, **kwargs):
+def record_repo_linked(repo: Repository, user: User | RpcUser | None, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=repo.organization_id, feature_slug="repo_linked", complete=True
     )
@@ -510,7 +554,7 @@ def record_repo_linked(repo, user, **kwargs):
                 default_user_id=default_user_id,
                 organization_id=repo.organization_id,
                 repository_id=repo.id,
-                provider=repo.provider,
+                provider=cast("str", repo.provider),
             )
         )
     except Exception as e:
@@ -518,21 +562,21 @@ def record_repo_linked(repo, user, **kwargs):
 
 
 @release_created.connect(weak=False)
-def record_release_created(release, **kwargs):
+def record_release_created(release: Release, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=release.organization_id, feature_slug="release_created", complete=True
     )
 
 
 @deploy_created.connect(weak=False)
-def record_deploy_created(deploy, **kwargs):
+def record_deploy_created(deploy: Deploy, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=deploy.organization_id, feature_slug="deploy_created", complete=True
     )
 
 
 @ownership_rule_created.connect(weak=False)
-def record_ownership_rule_created(project, **kwargs):
+def record_ownership_rule_created(project: Project, **kwargs: object) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id,
         feature_slug="ownership_rule_created",
@@ -541,7 +585,13 @@ def record_ownership_rule_created(project, **kwargs):
 
 
 @issue_ignored.connect(weak=False)
-def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
+def record_issue_ignored(
+    project: Project,
+    user: User | RpcUser | None,
+    group_list: list[Group],
+    activity_data: IssueActivityData,
+    **kwargs: object,
+) -> None:
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="issue_ignored", complete=True
     )
@@ -572,7 +622,13 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_archived.connect(weak=False)
-def record_issue_archived(project, user, group_list, activity_data, **kwargs):
+def record_issue_archived(
+    project: Project,
+    user: User | RpcUser | None,
+    group_list: list[Group],
+    activity_data: IssueActivityData,
+    **kwargs: object,
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -600,8 +656,8 @@ def record_issue_escalating(
     group: Group,
     event: GroupEvent | None,
     was_until_escalating: bool,
-    **kwargs,
-):
+    **kwargs: object,
+) -> None:
     try:
         analytics.record(
             IssueEscalatingEvent(
@@ -624,8 +680,8 @@ def record_update_priority(
     previous_priority: str | None,
     user_id: int | None,
     reason: str | None,
-    **kwargs,
-):
+    **kwargs: object,
+) -> None:
     try:
         analytics.record(
             IssuePriorityUpdatedEvent(
@@ -645,7 +701,13 @@ def record_update_priority(
 
 
 @issue_unignored.connect(weak=False)
-def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
+def record_issue_unignored(
+    project: Project,
+    user_id: int | None,
+    group: Group,
+    transition_type: str,
+    **kwargs: object,
+) -> None:
     if user_id is not None:
         default_user_id = user_id
     else:
@@ -666,7 +728,9 @@ def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
 
 
 @issue_mark_reviewed.connect(weak=False)
-def record_issue_reviewed(project: Project, user: RpcUser | User | None, group: Group, **kwargs):
+def record_issue_reviewed(
+    project: Project, user: RpcUser | User | None, group: Group, **kwargs: object
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -688,18 +752,20 @@ def record_issue_reviewed(project: Project, user: RpcUser | User | None, group: 
 
 @team_created.connect(weak=False)
 def record_team_created(
-    organization=None,
-    user=None,
-    team=None,
-    organization_id=None,
-    user_id=None,
-    team_id=None,
-    **kwargs,
-):
+    organization: Organization | None = None,
+    user: User | RpcUser | None = None,
+    team: Team | None = None,
+    organization_id: int | None = None,
+    user_id: int | None = None,
+    team_id: int | None = None,
+    **kwargs: object,
+) -> None:
     if organization is None:
+        assert organization_id is not None
         organization = Organization.objects.get(id=organization_id)
 
     if team_id is None:
+        assert team is not None
         team_id = team.id
 
     if user_id is None and user and user.is_authenticated:
@@ -724,8 +790,8 @@ def record_team_created(
 
 @integration_added.connect(weak=False)
 def record_integration_added(
-    integration_id: int, organization_id: int, user_id: int | None, **kwargs
-):
+    integration_id: int, organization_id: int, user_id: int | None, **kwargs: object
+) -> None:
     organization = Organization.objects.get(id=organization_id)
     integration = integration_service.get_integration(integration_id=integration_id)
     assert integration, f"integration_added called for missing integration: {integration_id}"
@@ -752,7 +818,12 @@ def record_integration_added(
 
 
 @integration_issue_created.connect(weak=False)
-def record_integration_issue_created(integration, organization, user, **kwargs):
+def record_integration_issue_created(
+    integration: Integration,
+    organization: Organization,
+    user: User | RpcUser | None,
+    **kwargs: object,
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -770,7 +841,12 @@ def record_integration_issue_created(integration, organization, user, **kwargs):
 
 
 @integration_issue_linked.connect(weak=False)
-def record_integration_issue_linked(integration, organization, user, **kwargs):
+def record_integration_issue_linked(
+    integration: Integration,
+    organization: Organization,
+    user: User | RpcUser | None,
+    **kwargs: object,
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -788,7 +864,9 @@ def record_integration_issue_linked(integration, organization, user, **kwargs):
 
 
 @issue_deleted.connect(weak=False)
-def record_issue_deleted(group, user, delete_type, **kwargs):
+def record_issue_deleted(
+    group: Group, user: User | RpcUser | None, delete_type: str, **kwargs: object
+) -> None:
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -810,7 +888,7 @@ def record_issue_deleted(group, user, delete_type, **kwargs):
 
 
 @monitor_environment_failed.connect(weak=False)
-def record_monitor_failure(monitor_environment, **kwargs):
+def record_monitor_failure(monitor_environment: MonitorEnvironment, **kwargs: object) -> None:
     try:
         analytics.record(
             MonitorEnvironmentMarkFailed(

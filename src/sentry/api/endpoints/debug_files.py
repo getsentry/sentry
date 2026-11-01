@@ -2,8 +2,9 @@ import logging
 import posixpath
 import re
 import uuid
-from collections.abc import Iterable, Mapping, Sequence, Set
+from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
+from datetime import datetime
 from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
@@ -84,7 +85,13 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 _release_suffix = re.compile(r"^(.*)\s+\(([^)]+)\)\s*$")
 
 
-def upload_from_request(request: Request, project: Project):
+class _ReleaseRow(TypedDict):
+    id: int
+    version: str
+    date_added: datetime
+
+
+def upload_from_request(request: Request, project: Project) -> Response:
     if "file" not in request.data:
         return Response({"detail": "Missing uploaded file"}, status=400)
     fileobj = request.data["file"]
@@ -92,7 +99,7 @@ def upload_from_request(request: Request, project: Project):
     return Response(serialize(files, request.user), status=201)
 
 
-def has_download_permission(request: Request, project: Project):
+def has_download_permission(request: Request, project: Project) -> bool:
     if is_system_auth(request.auth) or is_active_superuser(request):
         return True
 
@@ -314,7 +321,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectReleasePermission,)
 
-    def download(self, debug_file_id, project: Project):
+    def download(
+        self, debug_file_id: int, project: Project
+    ) -> HttpResponse | StreamingHttpResponse:
         rate_limited = ratelimits.backend.is_limited(
             project=project,
             key=f"rl:DSymFilesEndpoint:download:{debug_file_id}:{project.id}",
@@ -340,7 +349,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
         try:
             fp = debug_file.get_file()
 
-            def stream_debug_file():
+            def stream_debug_file() -> Iterator[bytes]:
                 try:
                     yield from iter(lambda: fp.read(4096), b"")
                 finally:
@@ -381,7 +390,12 @@ class DebugFilesEndpoint(ProjectEndpoint):
     )
     def get(
         self, request: Request, project: Project
-    ) -> Response[list[DebugFileSerializerResponse]] | Response[DetailResponse]:
+    ) -> (
+        Response[list[DebugFileSerializerResponse]]
+        | Response[DetailResponse]
+        | HttpResponse
+        | StreamingHttpResponse
+    ):
         """
         Retrieve a list of debug information files for a given project.
         """
@@ -471,7 +485,9 @@ class DebugFilesEndpoint(ProjectEndpoint):
         else:
             queryset = ProjectDebugFile.objects.filter(q).select_related("file")
 
-        def on_results(difs: Sequence[ProjectDebugFile]):
+        def on_results(
+            difs: Sequence[ProjectDebugFile],
+        ) -> list[DebugFileSerializerResponse]:
             # NOTE: we are only refreshing files if there is direct query for specific files
             if debug_id and not query and not file_formats:
                 maybe_renew_debug_files(difs)
@@ -1094,7 +1110,7 @@ class SourceMapsEndpoint(ProjectEndpoint):
 
             queryset = queryset.filter(query_q)
 
-        def expose_release(release, count: int):
+        def expose_release(release: _ReleaseRow, count: int) -> dict[str, object]:
             return {
                 "type": "release",
                 "id": release["id"],
@@ -1103,7 +1119,9 @@ class SourceMapsEndpoint(ProjectEndpoint):
                 "fileCount": count,
             }
 
-        def serialize_results(results):
+        def serialize_results(
+            results: Sequence[_ReleaseRow],
+        ) -> list[dict[str, object]]:
             file_count_map = get_artifact_counts([r["id"] for r in results])
             # In case we didn't find a file count for a specific release, we will return -1, signaling to the
             # frontend that this release doesn't have one or more ReleaseFile.

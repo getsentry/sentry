@@ -14,8 +14,8 @@ from sentry.monitors.types import CheckinItem, CheckinPayload
 def build_checkin_item(
     ts: datetime | None = None,
     partition: int = 0,
-    message_overrides=None,
-    payload_overrides=None,
+    message_overrides: CheckIn | None = None,
+    payload_overrides: CheckinPayload | None = None,
 ) -> CheckinItem:
     if ts is None:
         ts = datetime.now()
@@ -42,7 +42,11 @@ def build_checkin_item(
 
 
 def build_checkin_processing_error(
-    processing_errors: Sequence[ProcessingError] | None = None, **checkin_item_params
+    processing_errors: Sequence[ProcessingError] | None = None,
+    ts: datetime | None = None,
+    partition: int = 0,
+    message_overrides: CheckIn | None = None,
+    payload_overrides: CheckinPayload | None = None,
 ) -> CheckinProcessingError:
     if processing_errors is None:
         processing_errors = [
@@ -51,4 +55,12 @@ def build_checkin_processing_error(
                 "existingEnvironment": "some-env",
             },
         ]
-    return CheckinProcessingError(processing_errors, build_checkin_item(**checkin_item_params))
+    return CheckinProcessingError(
+        processing_errors,
+        build_checkin_item(
+            ts=ts,
+            partition=partition,
+            message_overrides=message_overrides,
+            payload_overrides=payload_overrides,
+        ),
+    )

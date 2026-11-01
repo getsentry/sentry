@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from unittest import mock
 
 import pytest
@@ -49,7 +50,7 @@ class TestSyncAssigneeInbound(TestCase):
                 user=self.test_user, email="test@example.com", is_verified=True
             ).exists()
 
-    def assign_default_group_to_user(self, user: User, group: Group | None = None):
+    def assign_default_group_to_user(self, user: User, group: Group | None = None) -> None:
         group_to_update: Group = group or self.group
         GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))
         group_to_update.refresh_from_db()
@@ -196,7 +197,7 @@ class TestSyncAssigneeInbound(TestCase):
     def test_assignment_fails(
         self, mock_group_assign: mock.MagicMock, mock_record_failure: mock.MagicMock
     ) -> None:
-        def raise_exception(*args, **kwargs):
+        def raise_exception(*args: object, **kwargs: object) -> None:
             raise Exception("oops, something went wrong")
 
         assert self.group.get_assignee() is None
@@ -410,7 +411,7 @@ class TestSyncAssigneeInbound(TestCase):
 @cell_silo_test
 class TestSyncAssigneeInboundByExternalActor(TestCase):
     @pytest.fixture(autouse=True)
-    def mock_where_should_sync(self):
+    def mock_where_should_sync(self) -> Iterator[mock.MagicMock]:
         with mock.patch(
             "sentry.integrations.utils.sync.where_should_sync"
         ) as mock_where_should_sync:
@@ -441,7 +442,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
                 user=self.test_user, email="test@example.com", is_verified=True
             ).exists()
 
-    def assign_default_group_to_user(self, user: User, group: Group | None = None):
+    def assign_default_group_to_user(self, user: User, group: Group | None = None) -> None:
         group_to_update: Group = group or self.group
         GroupAssignee.objects.assign(group_to_update, serialize_rpc_user(user))
         group_to_update.refresh_from_db()
@@ -722,7 +723,7 @@ class TestSyncAssigneeInboundByExternalActor(TestCase):
     ) -> None:
         """Test handling when assignment operation fails."""
 
-        def raise_exception(*_args, **_kwargs):
+        def raise_exception(*_args: object, **_kwargs: object) -> None:
             raise Exception("oops, something went wrong during assignment")
 
         assert self.group.get_assignee() is None

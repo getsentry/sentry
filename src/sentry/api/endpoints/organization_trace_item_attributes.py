@@ -150,10 +150,12 @@ class TraceItemAttributesNamesPaginator:
     even if it exceeds limit + 1.
     """
 
-    def __init__(self, data_fn):
+    def __init__(self, data_fn: Callable[..., list[TraceItemAttributeKey]]):
         self.data_fn = data_fn
 
-    def get_result(self, limit, cursor=None):
+    def get_result(
+        self, limit: int, cursor: Cursor | None = None
+    ) -> CursorResult[TraceItemAttributeKey]:
         if limit <= 0:
             raise ValueError(f"invalid limit for paginator, expected >0, got {limit}")
 
@@ -801,7 +803,7 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_internal = is_active_superuser(request) or is_active_staff(request)
         include_internal_convention_attributes = request.user.is_staff or request.user.is_superuser
         debug = request.user.is_superuser and request.GET.get("debug", False)
-        debug_infos: list[dict] = []
+        debug_infos: list[dict[str, Any]] = []  # justification: protobuf JSON debug payloads.
 
         # Expand the sentry conventions context when explicitly requested via
         # `expand=context`. The conventions metadata is static with no data
@@ -879,8 +881,8 @@ class OrganizationTraceItemAttributesEndpoint(OrganizationTraceItemAttributesEnd
         include_context: bool = False,
         debug: str | bool = False,
         include_internal_convention_attributes: bool = False,
-    ) -> tuple[list[TraceItemAttributeKey], dict | None]:
-        debug_info: dict | None = None
+    ) -> tuple[list[TraceItemAttributeKey], dict[str, Any] | None]:
+        debug_info: dict[str, Any] | None = None
         value_substring_match = translate_escape_sequences(substring_match)
         attr_type = constants.ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP.get(
             attribute_type, AttributeKey.Type.TYPE_STRING
@@ -1161,7 +1163,7 @@ class OrganizationTraceItemAttributeValuesEndpoint(OrganizationTraceItemAttribut
 
         definitions = get_column_definitions(SupportedTraceItemType(dataset))
 
-        def data_fn(offset: int, limit: int):
+        def data_fn(offset: int, limit: int) -> list[TagValue]:
             executor = TraceItemAttributeValuesAutocompletionExecutor(
                 organization=organization,
                 snuba_params=snuba_params,
@@ -1298,7 +1300,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             if not self.query or self.query in project.slug
         ]
 
-    def release_stage_autocomplete_function(self):
+    def release_stage_autocomplete_function(self) -> list[TagValue]:
         return [
             TagValue(
                 key=self.key,
@@ -1311,7 +1313,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             if not self.query or self.query in stage.value
         ]
 
-    def semver_autocomplete_function(self):
+    def semver_autocomplete_function(self) -> list[TagValue]:
         versions = Release.objects.filter(NON_ARCHIVED_RELEASES, version__contains="@" + self.query)
 
         project_ids = self.snuba_params.project_ids
@@ -1360,7 +1362,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         return formatted_versions
 
-    def semver_build_autocomplete_function(self):
+    def semver_build_autocomplete_function(self) -> list[TagValue]:
         build = self.query if self.query else ""
         if not build.endswith("*"):
             build += "*"
@@ -1399,7 +1401,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             for build in builds
         ]
 
-    def semver_package_autocomplete_function(self):
+    def semver_package_autocomplete_function(self) -> list[TagValue]:
         assert self.snuba_params.organization_id is not None
         packages = (
             Release.objects.filter(

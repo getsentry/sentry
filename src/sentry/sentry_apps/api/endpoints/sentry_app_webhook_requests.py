@@ -46,12 +46,13 @@ class IncomingRequestSerializer(serializers.Serializer):
         format=date_format, default=None, default_timezone=timezone.utc, required=False
     )
 
-    def validate(self, data):
-        if "start" in data and "end" in data and data["start"] > data["end"]:
+    def validate(self, data: dict[str, object]) -> dict[str, object]:
+        start, end = data.get("start"), data.get("end")
+        if isinstance(start, datetime) and isinstance(end, datetime) and start > end:
             raise serializers.ValidationError("Invalid timestamp (start must be before end).")
         return data
 
-    def validate_end(self, end):
+    def validate_end(self, end: datetime | None) -> datetime:
         if end is None:
             end = datetime.now(tz=timezone.utc)
         return end

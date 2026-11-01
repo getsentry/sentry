@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 from functools import cached_property
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -38,6 +38,9 @@ from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_apps.tasks.sentry_apps import installation_webhook
 from sentry.sentry_apps.utils.errors import SentryAppSentryError
 from sentry.sentry_apps.utils.webhooks import InstallationActionType, SentryAppResourceType
+
+if TYPE_CHECKING:
+    from sentry.sentry_apps.services.app.model import RpcSentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import metrics
@@ -236,10 +239,10 @@ class SentryAppInstallationNotifier:
 
 @dataclasses.dataclass
 class SentryAppInstallationUpdater:
-    sentry_app_installation: SentryAppInstallation
+    sentry_app_installation: SentryAppInstallation | RpcSentryAppInstallation
     status: str | None = None
 
-    def run(self) -> SentryAppInstallation:
+    def run(self) -> SentryAppInstallation | RpcSentryAppInstallation:
         with transaction.atomic(router.db_for_write(SentryAppInstallation)):
             self._update_status()
             self.record_analytics()

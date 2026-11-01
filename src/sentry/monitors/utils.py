@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import cast
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -328,7 +329,9 @@ def fetch_associated_groups(
         ).select_related("project")
         for group in groups_queryset:
             for trace_id in group_id_data[group.id]:
-                trace_groups[trace_id].append({"id": group.id, "shortId": group.qualified_short_id})
+                trace_groups[trace_id].append(
+                    {"id": group.id, "shortId": cast("str", group.qualified_short_id)}
+                )
 
     return trace_groups
 

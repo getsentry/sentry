@@ -238,7 +238,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
         responses={204: RESPONSE_NO_CONTENT, 403: RESPONSE_FORBIDDEN},
     )
     def delete(
-        self, request: Request, sentry_app
+        self, request: Request, sentry_app: SentryApp
     ) -> Response[None] | Response[DetailResponse] | Response[_PublishedAppErrorResponse]:
         """
         Delete a custom integration.

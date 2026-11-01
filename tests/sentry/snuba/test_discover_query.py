@@ -8,6 +8,7 @@ from django.utils import timezone
 from sentry.discover.arithmetic import ArithmeticValidationError
 from sentry.discover.models import TeamKeyTransaction
 from sentry.exceptions import InvalidSearchQuery
+from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.releaseprojectenvironment import ReleaseStages
 from sentry.models.transaction_threshold import (
@@ -1400,7 +1401,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
             if expected_length > 1:
                 assert data[1]["failure_rate"] == 0.3
 
-    def _create_percentile_events(self, project):
+    def _create_percentile_events(self, project: Project) -> None:
         for i in range(6):
             start = before_now(minutes=3)
             end = start - timedelta(minutes=1 + i)
@@ -1944,7 +1945,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         data["contexts"]["trace"]["status"] = "already_exists"
         self.store_event(data, project_id=self.project.id)
 
-        def run_query(query, expected_statuses, message):
+        def run_query(query: str, expected_statuses: list[int], message: str) -> None:
             result = discover.query(
                 selected_columns=["transaction.status"],
                 query=query,

@@ -35,6 +35,7 @@ from sentry.lang.native.processing import (
 )
 from sentry.lang.native.symbolicator import SymbolicatorFunction
 from sentry.models.eventerror import EventErrorType
+from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.testutils.helpers.features import Feature
@@ -58,6 +59,11 @@ NATIVE_EXCEPTION = {
     "type": "EXCEPTION_ACCESS_VIOLATION_WRITE",
     "stacktrace": {"frames": [{"instruction_addr": "0x2a2a3d"}]},
 }
+
+FlamegraphPayload = dict[str, Any]  # justification: decoded JSON flamegraph payload.
+EventData = dict[str, Any]  # justification: event payloads are decoded JSON.
+CachedFlamegraph = tuple[EventData, FlamegraphPayload, mock.Mock]
+MultipleFlamegraphs = tuple[EventData, FlamegraphPayload, FlamegraphPayload, mock.Mock]
 
 
 def test_get_required_attachment_types() -> None:
@@ -126,7 +132,7 @@ def test_get_native_symbolication_functions(
 
 
 @django_db_all
-def test_process_native_flamegraph(cached_flamegraph) -> None:
+def test_process_native_flamegraph(cached_flamegraph: CachedFlamegraph) -> None:
     data, _, symbolicator = cached_flamegraph
     payload: dict[str, Any] = {
         "version": "1",
@@ -237,7 +243,7 @@ def test_process_native_flamegraph(cached_flamegraph) -> None:
 
 
 @django_db_all
-def test_flamegraph_symbolication_is_idempotent(cached_flamegraph) -> None:
+def test_flamegraph_symbolication_is_idempotent(cached_flamegraph: CachedFlamegraph) -> None:
     data, _, symbolicator = cached_flamegraph
     with Feature({"organizations:flamegraph-attachments": True}):
         process_native_stacktraces(symbolicator, data)
@@ -253,7 +259,7 @@ def test_route_flamegraph_to_native_symbolication() -> None:
 
 
 @pytest.fixture
-def flamegraph_payload():
+def flamegraph_payload() -> FlamegraphPayload:
     return {
         "version": "1",
         "platform": "cocoa",
@@ -280,7 +286,9 @@ def flamegraph_payload():
         ],
     ],
 )
-def test_flamegraph_indexed_inline_expansion(flamegraph_payload, nodes) -> None:
+def test_flamegraph_indexed_inline_expansion(
+    flamegraph_payload: FlamegraphPayload, nodes: list[dict[str, object]]
+) -> None:
     flamegraph_payload["nodes"] = nodes
     original = deepcopy(flamegraph_payload)
     assert _is_valid_flamegraph(flamegraph_payload)
@@ -307,7 +315,9 @@ def test_flamegraph_indexed_inline_expansion(flamegraph_payload, nodes) -> None:
     assert _is_valid_flamegraph(output)
 
 
-def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(flamegraph_payload) -> None:
+def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(
+    flamegraph_payload: FlamegraphPayload,
+) -> None:
     depth = 31
     flamegraph_payload["nodes"] = [
         {"frame_id": 0, "sample_count": 2 ** (depth - index), "children": [index + 1, index + 1]}
@@ -364,8 +374,10 @@ def test_flamegraph_repeated_child_edges_are_not_materialized_as_paths(flamegrap
         (("trees",), [None], False),
     ],
 )
-def test_flamegraph_validation_preserves_types(flamegraph_payload, path, value, valid) -> None:
-    target = flamegraph_payload
+def test_flamegraph_validation_preserves_types(
+    flamegraph_payload: FlamegraphPayload, path: tuple[str | int, ...], value: object, valid: bool
+) -> None:
+    target: Any = flamegraph_payload  # justification: walking decoded JSON with mixed str keys and int indices.
     for key in path[:-1]:
         target = target[key]
     target[path[-1]] = value
@@ -376,18 +388,24 @@ def test_flamegraph_validation_preserves_types(flamegraph_payload, path, value, 
 
 
 @pytest.mark.parametrize("roots", [[], [-1], [1], [True], [0.0], [{}], "invalid"])
-def test_flamegraph_rejects_invalid_root_indices(flamegraph_payload, roots) -> None:
+def test_flamegraph_rejects_invalid_root_indices(
+    flamegraph_payload: FlamegraphPayload, roots: object
+) -> None:
     flamegraph_payload["trees"][0]["roots"] = roots
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
 @pytest.mark.parametrize("nodes", [[], None, {}, ["invalid"]])
-def test_flamegraph_rejects_invalid_node_tables(flamegraph_payload, nodes) -> None:
+def test_flamegraph_rejects_invalid_node_tables(
+    flamegraph_payload: FlamegraphPayload, nodes: object
+) -> None:
     flamegraph_payload["nodes"] = nodes
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
-def test_flamegraph_rejects_children_exceeding_parent_count(flamegraph_payload) -> None:
+def test_flamegraph_rejects_children_exceeding_parent_count(
+    flamegraph_payload: FlamegraphPayload,
+) -> None:
     flamegraph_payload["nodes"] = [
         {"frame_id": 0, "sample_count": 10, "children": [1, 1]},
         {"frame_id": 0, "sample_count": 6},
@@ -395,13 +413,17 @@ def test_flamegraph_rejects_children_exceeding_parent_count(flamegraph_payload) 
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
-def test_flamegraph_validates_unreferenced_nodes(flamegraph_payload) -> None:
+def test_flamegraph_validates_unreferenced_nodes(
+    flamegraph_payload: FlamegraphPayload,
+) -> None:
     flamegraph_payload["nodes"].append({"frame_id": 1, "sample_count": 10})
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
 @pytest.fixture
-def cached_flamegraph(default_project, flamegraph_payload):
+def cached_flamegraph(
+    default_project: Project, flamegraph_payload: FlamegraphPayload
+) -> CachedFlamegraph:
     payload = flamegraph_payload
     data = {
         "platform": "other",
@@ -440,18 +462,24 @@ def cached_flamegraph(default_project, flamegraph_payload):
     ("field", "value"),
     [("data", "invalid"), ("data", None), ("addr_mode", 1), ("platform", [])],
 )
-def test_flamegraph_rejects_invalid_frame_fields(flamegraph_payload, field, value) -> None:
+def test_flamegraph_rejects_invalid_frame_fields(
+    flamegraph_payload: FlamegraphPayload, field: str, value: object
+) -> None:
     flamegraph_payload["frames"][0][field] = value
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
 @pytest.mark.parametrize("field", ["debug_id", "id", "uuid"])
-def test_flamegraph_rejects_invalid_image_identifiers(flamegraph_payload, field) -> None:
+def test_flamegraph_rejects_invalid_image_identifiers(
+    flamegraph_payload: FlamegraphPayload, field: str
+) -> None:
     flamegraph_payload["debug_meta"]["images"][0][field] = []
     assert not _is_valid_flamegraph(flamegraph_payload)
 
 
-def test_flamegraph_inline_frames_do_not_inherit_captured_metadata(flamegraph_payload) -> None:
+def test_flamegraph_inline_frames_do_not_inherit_captured_metadata(
+    flamegraph_payload: FlamegraphPayload,
+) -> None:
     original = flamegraph_payload["frames"][0]
     original.update(
         filename="captured.cpp",
@@ -482,7 +510,7 @@ def test_flamegraph_inline_frames_do_not_inherit_captured_metadata(flamegraph_pa
 @django_db_all
 @pytest.mark.parametrize("error", [TimeoutError(), Timeout(), ConnectionError()])
 def test_flamegraph_transport_error_does_not_block_event_symbolication(
-    cached_flamegraph, error
+    cached_flamegraph: CachedFlamegraph, error: Exception
 ) -> None:
     data, payload, symbolicator = cached_flamegraph
     data["platform"] = "native"
@@ -509,7 +537,7 @@ def test_flamegraph_transport_error_does_not_block_event_symbolication(
 @django_db_all
 @pytest.mark.parametrize("error", [MissingAttachmentChunks(), FileNotFoundError()])
 def test_flamegraph_unavailable_data_does_not_block_event_symbolication(
-    cached_flamegraph, error
+    cached_flamegraph: CachedFlamegraph, error: Exception
 ) -> None:
     data, _, symbolicator = cached_flamegraph
     data["platform"] = "native"
@@ -530,7 +558,9 @@ def test_flamegraph_unavailable_data_does_not_block_event_symbolication(
 
 
 @django_db_all
-def test_flamegraph_invalid_frame_does_not_block_event_symbolication(cached_flamegraph) -> None:
+def test_flamegraph_invalid_frame_does_not_block_event_symbolication(
+    cached_flamegraph: CachedFlamegraph,
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["frames"][0]["data"] = "invalid"
     raw = orjson.dumps(payload)
@@ -556,7 +586,7 @@ def test_flamegraph_invalid_frame_does_not_block_event_symbolication(cached_flam
 
 
 @django_db_all
-def test_flamegraph_feature_disabled(cached_flamegraph) -> None:
+def test_flamegraph_feature_disabled(cached_flamegraph: CachedFlamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
     with Feature({"organizations:flamegraph-attachments": False}):
         assert process_native_stacktraces(symbolicator, data) is None
@@ -568,7 +598,7 @@ def test_flamegraph_feature_disabled(cached_flamegraph) -> None:
 
 @django_db_all
 @pytest.mark.parametrize("depth", [100, 1000])
-def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
+def test_flamegraph_deep_inline_expansion(cached_flamegraph: CachedFlamegraph, depth: int) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["nodes"] = [
         {"frame_id": 0, "sample_count": 10, "children": [index + 1], "custom": "retained"}
@@ -601,7 +631,9 @@ def test_flamegraph_deep_inline_expansion(cached_flamegraph, depth) -> None:
 
 
 @django_db_all
-def test_flamegraph_large_frame_metadata_is_not_duplicated(cached_flamegraph) -> None:
+def test_flamegraph_large_frame_metadata_is_not_duplicated(
+    cached_flamegraph: CachedFlamegraph,
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["frames"][0]["custom"] = "x" * (6 * 1024 * 1024)
     raw = orjson.dumps(payload)
@@ -620,7 +652,9 @@ def test_flamegraph_large_frame_metadata_is_not_duplicated(cached_flamegraph) ->
 
 
 @django_db_all
-def test_flamegraph_oversized_rewrite_preserves_original(cached_flamegraph) -> None:
+def test_flamegraph_oversized_rewrite_preserves_original(
+    cached_flamegraph: CachedFlamegraph,
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     raw = orjson.dumps(payload)
     with (
@@ -634,7 +668,7 @@ def test_flamegraph_oversized_rewrite_preserves_original(cached_flamegraph) -> N
 
 @pytest.mark.parametrize("addr_mode", ["rel:1", "rel:84a04d24-0e60-3810-a8c0-90a65e2df61a"])
 def test_flamegraph_relative_address_uses_filtered_module_index(
-    flamegraph_payload, addr_mode
+    flamegraph_payload: FlamegraphPayload, addr_mode: str
 ) -> None:
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
@@ -659,7 +693,7 @@ def test_flamegraph_relative_address_uses_filtered_module_index(
     "addr_mode", ["rel:0", "rel:2", "rel:00000000-0000-0000-0000-000000000001"]
 )
 def test_flamegraph_relative_address_without_matching_image_is_preserved(
-    flamegraph_payload, addr_mode
+    flamegraph_payload: FlamegraphPayload, addr_mode: str
 ) -> None:
     flamegraph_payload["debug_meta"]["images"].insert(0, {"type": "macho", "image_addr": "0x2000"})
     flamegraph_payload["frames"][0]["addr_mode"] = addr_mode
@@ -672,7 +706,7 @@ def test_flamegraph_relative_address_without_matching_image_is_preserved(
 
 
 @django_db_all
-def test_flamegraph_frame_limit(cached_flamegraph) -> None:
+def test_flamegraph_frame_limit(cached_flamegraph: CachedFlamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["frames"] *= 2501
     store_attachments_for_event(
@@ -703,7 +737,9 @@ def test_flamegraph_frame_limit(cached_flamegraph) -> None:
     "response",
     [{"status": "failed"}, {"status": "pending"}, {"status": "completed", "stacktraces": []}],
 )
-def test_flamegraph_failure_preserves_attachment(cached_flamegraph, response) -> None:
+def test_flamegraph_failure_preserves_attachment(
+    cached_flamegraph: CachedFlamegraph, response: dict[str, object]
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     symbolicator.process_payload.return_value = response
     with Feature({"organizations:flamegraph-attachments": True}):
@@ -717,7 +753,7 @@ def test_flamegraph_failure_preserves_attachment(cached_flamegraph, response) ->
 @pytest.mark.parametrize(
     "raw", [b"invalid json", b"\xff", b"null", b'{"version":"2"}', b" " * (10 * 1024 * 1024 + 1)]
 )
-def test_flamegraph_invalid_attachment(cached_flamegraph, raw) -> None:
+def test_flamegraph_invalid_attachment(cached_flamegraph: CachedFlamegraph, raw: bytes) -> None:
     data, _, symbolicator = cached_flamegraph
     store_attachments_for_event(
         symbolicator.project,
@@ -753,7 +789,9 @@ def test_flamegraph_invalid_attachment(cached_flamegraph, raw) -> None:
         {"frame_id": 0, "sample_count": 10, "children": [{"frame_id": 0, "sample_count": 11}]},
     ],
 )
-def test_flamegraph_invalid_tree_is_not_symbolicated(cached_flamegraph, root) -> None:
+def test_flamegraph_invalid_tree_is_not_symbolicated(
+    cached_flamegraph: CachedFlamegraph, root: dict[str, object]
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["nodes"] = [root]
     raw = orjson.dumps(payload)
@@ -770,7 +808,9 @@ def test_flamegraph_invalid_tree_is_not_symbolicated(cached_flamegraph, root) ->
 
 
 @django_db_all
-def test_flamegraph_large_payload_is_not_duplicated(cached_flamegraph) -> None:
+def test_flamegraph_large_payload_is_not_duplicated(
+    cached_flamegraph: CachedFlamegraph,
+) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["frames"][0]["custom"] = "x" * (6 * 1024 * 1024)
     store_attachments_for_event(
@@ -795,7 +835,7 @@ def test_flamegraph_large_payload_is_not_duplicated(cached_flamegraph) -> None:
 
 @django_db_all
 @requires_objectstore
-def test_flamegraph_objectstore_attachment(cached_flamegraph) -> None:
+def test_flamegraph_objectstore_attachment(cached_flamegraph: CachedFlamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
     session = get_session(UsecaseId.ATTACHMENTS, symbolicator.project)
     stored_id = session.put(orjson.dumps(payload))
@@ -828,7 +868,7 @@ def test_flamegraph_objectstore_attachment(cached_flamegraph) -> None:
 
 
 @pytest.fixture
-def multiple_flamegraphs(cached_flamegraph):
+def multiple_flamegraphs(cached_flamegraph: CachedFlamegraph) -> MultipleFlamegraphs:
     data, payload, symbolicator = cached_flamegraph
     second = deepcopy(payload)
     second["debug_meta"]["images"][0]["debug_id"] = "502fc0a5-1ec1-3e47-9998-684fa139dca7"
@@ -846,7 +886,7 @@ def multiple_flamegraphs(cached_flamegraph):
 
 
 @django_db_all
-def test_flamegraph_multiple_attachments(multiple_flamegraphs) -> None:
+def test_flamegraph_multiple_attachments(multiple_flamegraphs: MultipleFlamegraphs) -> None:
     data, first, second, symbolicator = multiple_flamegraphs
     with Feature({"organizations:flamegraph-attachments": True}):
         assert process_native_stacktraces(symbolicator, data) is data
@@ -867,7 +907,7 @@ def test_flamegraph_multiple_attachments(multiple_flamegraphs) -> None:
 @django_db_all
 @pytest.mark.parametrize("missing_type", ["event.attachment", "event.flamegraph"])
 def test_flamegraph_checkpoint_does_not_read_missing_attachments(
-    multiple_flamegraphs, missing_type
+    multiple_flamegraphs: MultipleFlamegraphs, missing_type: str
 ) -> None:
     data, _, _, symbolicator = multiple_flamegraphs
     data["_attachments"][1]["type"] = missing_type
@@ -886,7 +926,9 @@ def test_flamegraph_checkpoint_does_not_read_missing_attachments(
 
 @django_db_all
 @requires_objectstore
-def test_flamegraph_checkpoints_do_not_rewrite_processed_objects(multiple_flamegraphs) -> None:
+def test_flamegraph_checkpoints_do_not_rewrite_processed_objects(
+    multiple_flamegraphs: MultipleFlamegraphs,
+) -> None:
     data, first, second, symbolicator = multiple_flamegraphs
     session = get_session(UsecaseId.ATTACHMENTS, symbolicator.project)
     first_id = session.put(orjson.dumps(first))
@@ -911,7 +953,9 @@ def test_flamegraph_checkpoints_do_not_rewrite_processed_objects(multiple_flameg
 
 
 @django_db_all
-def test_flamegraph_checkpoint_survives_later_timeout(multiple_flamegraphs) -> None:
+def test_flamegraph_checkpoint_survives_later_timeout(
+    multiple_flamegraphs: MultipleFlamegraphs,
+) -> None:
     data, _, second, symbolicator = multiple_flamegraphs
     symbolicator.process_payload.side_effect = [
         symbolicator.process_payload.return_value,
@@ -1044,7 +1088,7 @@ def test_merge_symbolicator_image_errors(code_file: str, error: EventErrorType) 
 
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
-def test_cocoa_function_name(mock_symbolicator, default_project) -> None:
+def test_cocoa_function_name(mock_symbolicator: mock.Mock, default_project: Project) -> None:
     data = {
         "platform": "cocoa",
         "project": default_project.id,
@@ -1142,7 +1186,7 @@ def test_instruction_addr_adjustment_none() -> None:
 
 
 def test_rewrite_electron_debug_file() -> None:
-    def rewrite(debug_file):
+    def rewrite(debug_file: str) -> str:
         for rule in ELECTRON_FIRST_MODULE_REWRITE_RULES:
             # Need to patch the regexes and replacement strings here
             # from Rust to Python syntax.
@@ -1181,7 +1225,7 @@ def test_rewrite_electron_debug_file() -> None:
 
 @django_db_all
 @mock.patch("sentry.lang.native.processing.Symbolicator")
-def test_il2cpp_symbolication(mock_symbolicator, default_project) -> None:
+def test_il2cpp_symbolication(mock_symbolicator: mock.Mock, default_project: Project) -> None:
     data = {
         "event_id": "c87700da71534177b92bd912f21a062f",
         "timestamp": "2022-06-15T10:13:46.963575+00:00",

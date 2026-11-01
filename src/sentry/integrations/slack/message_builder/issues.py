@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
@@ -97,7 +97,7 @@ SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, ContextDataFunc] = {
     .title(),
     NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),
     NotificationContextField.APPROX_START_TIME: lambda group, rules: datetime.fromtimestamp(
-        get_approx_start_time(group=group)
+        cast(int, get_approx_start_time(group=group))
     ).strftime("%Y-%m-%d %H:%M:%S"),  # format moment into YYYY-mm-dd h:m:s
 }
 
@@ -223,7 +223,7 @@ def get_context(group: Group, rules: list[NotificationOrigin] | None = None) -> 
 
     for c in context:
         if c in SUPPORTED_CONTEXT_DATA:
-            v = SUPPORTED_CONTEXT_DATA[c](group, rules)
+            v = SUPPORTED_CONTEXT_DATA[NotificationContextField(c)](group, rules)
             if v:
                 context_text += f"{c}: *{v}*   "
 

@@ -25,6 +25,7 @@ from sentry.sentry_apps.api.serializers.sentry_app_component import (
     SentryAppComponentSerializerResponse,
 )
 from sentry.sentry_apps.components import SentryAppComponentPreparer
+from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.utils.errors import SentryAppError, SentryAppIntegratorError
@@ -42,7 +43,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: Request, sentry_app) -> Response:
+    def get(self, request: Request, sentry_app: SentryApp) -> Response:
         return self.paginate(
             request=request,
             queryset=sentry_app.components.all(),

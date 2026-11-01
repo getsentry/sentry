@@ -2,22 +2,25 @@ from __future__ import annotations
 
 import contextlib
 import subprocess
+from pathlib import Path
+
+import pytest
 
 from tools.mypy_helpers.check_typing_campaign import main
 
 
-def _git(cwd, *args: str) -> None:
+def _git(cwd: Path, *args: str) -> None:
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 
 
-def _init_repo(tmp_path) -> None:
+def _init_repo(tmp_path: Path) -> None:
     _git(tmp_path, "init", "-q", "-b", "main")
     _git(tmp_path, "config", "user.email", "test@example.com")
     _git(tmp_path, "config", "user.name", "Test")
     _git(tmp_path, "config", "commit.gpgsign", "false")
 
 
-def _commit_pyproject(tmp_path, weaklist: list[str]) -> None:
+def _commit_pyproject(tmp_path: Path, weaklist: list[str]) -> None:
     modules = ", ".join(f'"{module}"' for module in weaklist)
     contents = f"""\
 [[tool.mypy.overrides]]
@@ -29,14 +32,16 @@ disallow_untyped_defs = false
     _git(tmp_path, "commit", "-q", "-m", "initial")
 
 
-def _stage_file(tmp_path, path: str, contents: str) -> None:
+def _stage_file(tmp_path: Path, path: str, contents: str) -> None:
     file_path = tmp_path / path
     file_path.parent.mkdir(parents=True, exist_ok=True)
     file_path.write_text(contents)
     _git(tmp_path, "add", path)
 
 
-def test_goal_fails_while_weaklist_is_nonempty(tmp_path, capsys) -> None:
+def test_goal_fails_while_weaklist_is_nonempty(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, ["sentry.foo"])
 
@@ -46,7 +51,7 @@ def test_goal_fails_while_weaklist_is_nonempty(tmp_path, capsys) -> None:
     assert "weaklist entries remaining: 1" in capsys.readouterr().out
 
 
-def test_goal_passes_with_empty_weaklist(tmp_path) -> None:
+def test_goal_passes_with_empty_weaklist(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
 
@@ -54,7 +59,7 @@ def test_goal_passes_with_empty_weaklist(tmp_path) -> None:
         assert main(("--goal",)) == 0
 
 
-def test_any_in_graduated_module_fails(tmp_path, capsys) -> None:
+def test_any_in_graduated_module_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(
@@ -69,7 +74,7 @@ def test_any_in_graduated_module_fails(tmp_path, capsys) -> None:
     assert "new Any in graduated module sentry.foo" in capsys.readouterr().err
 
 
-def test_any_with_justification_passes(tmp_path) -> None:
+def test_any_with_justification_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(
@@ -82,7 +87,7 @@ def test_any_with_justification_passes(tmp_path) -> None:
         assert main(("src/sentry/foo.py",)) == 0
 
 
-def test_any_import_alone_passes(tmp_path) -> None:
+def test_any_import_alone_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(tmp_path, "src/sentry/foo.py", "from typing import Any\n\nvalue: int = 1\n")
@@ -91,7 +96,7 @@ def test_any_import_alone_passes(tmp_path) -> None:
         assert main(("src/sentry/foo.py",)) == 0
 
 
-def test_any_in_weaklisted_module_passes(tmp_path) -> None:
+def test_any_in_weaklisted_module_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, ["sentry.foo"])
     _stage_file(
@@ -104,7 +109,9 @@ def test_any_in_weaklisted_module_passes(tmp_path) -> None:
         assert main(("src/sentry/foo.py",)) == 0
 
 
-def test_trust_boundary_cast_needs_justification(tmp_path, capsys) -> None:
+def test_trust_boundary_cast_needs_justification(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(
@@ -119,7 +126,7 @@ def test_trust_boundary_cast_needs_justification(tmp_path, capsys) -> None:
     assert "needs a '# justification:' comment" in capsys.readouterr().err
 
 
-def test_trust_boundary_cast_with_justification_passes(tmp_path) -> None:
+def test_trust_boundary_cast_with_justification_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(
@@ -133,7 +140,7 @@ def test_trust_boundary_cast_with_justification_passes(tmp_path) -> None:
         assert main(("src/sentry/foo.py",)) == 0
 
 
-def test_local_cast_passes(tmp_path) -> None:
+def test_local_cast_passes(tmp_path: Path) -> None:
     _init_repo(tmp_path)
     _commit_pyproject(tmp_path, [])
     _stage_file(
