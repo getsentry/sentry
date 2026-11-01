@@ -260,7 +260,7 @@ class Monitor(Model):
     The user assigned as the owner of this model.
     """
 
-    owner_team_id = BoundedBigIntegerField(null=True, db_index=True)
+    owner_team_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     """
     The team assigned as the owner of this model.
     """
@@ -494,7 +494,7 @@ class MonitorCheckIn(Model):
     The status of the check-in
     """
 
-    duration = BoundedPositiveIntegerField(null=True)
+    duration = BoundedPositiveIntegerField[int | None, int | None](null=True)
     """
     The total number in milliseconds that the check-in took to execute. This is
     generally computed from the difference between the opening and closing
@@ -565,7 +565,7 @@ class MonitorCheckIn(Model):
     configuration at the time of the check-in.
     """
 
-    trace_id = UUIDField(null=True)
+    trace_id = UUIDField[uuid.UUID | None, uuid.UUID | None](null=True)
     """
     Trace ID associated during this check-in. Useful to find associated events
     that occurred during the check-in.

@@ -30,7 +30,7 @@ class OrganizationAvatar(AvatarBase, ReplicatedCellModel):
 
     FILE_TYPE = "avatar.file"
 
-    file_id = BoundedBigIntegerField(unique=True, null=True)
+    file_id = BoundedBigIntegerField[int | None, int | None](unique=True, null=True)
 
     organization = FlexibleForeignKey("sentry.Organization", unique=True, related_name="avatar")
     avatar_type = models.PositiveSmallIntegerField(default=0, choices=AVATAR_TYPES)

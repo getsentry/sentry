@@ -94,7 +94,7 @@ class Notebook(DefaultFieldsModel):
     # The producer's identity for what the notebook covers. A later run for the same
     # source reuses the active notebook, or starts a new revision once it's archived.
     source_key = models.CharField(max_length=256, null=True)
-    source_revision = BoundedPositiveIntegerField(null=True)
+    source_revision = BoundedPositiveIntegerField[int | None, int | None](null=True)
 
     # Saved defaults, like a dashboard's filters. Access is still checked against the
     # viewer when a block runs or an output is returned.

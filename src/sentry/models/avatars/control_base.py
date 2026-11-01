@@ -4,7 +4,7 @@ from sentry.models.files import ControlFile
 
 
 class ControlAvatarBase(AvatarBase):
-    control_file_id = BoundedBigIntegerField(unique=True, null=True)
+    control_file_id = BoundedBigIntegerField[int | None, int | None](unique=True, null=True)
 
     class Meta:
         abstract = True

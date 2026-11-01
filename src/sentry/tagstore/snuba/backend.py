@@ -885,7 +885,7 @@ class SnubaTagStorage(TagStorage):
             group_id: GroupTagValue(
                 group_id=group_id, key=key, value=value, **fix_tag_value_data(data)
             )
-            for group_id, data in result.items()
+            for group_id, data in cast(dict[int, Any], result).items()  # justification: query rows
         }
 
     def get_group_list_tag_value(
@@ -1153,12 +1153,16 @@ class SnubaTagStorage(TagStorage):
         aggregations = [["count()", "", "count"]]
         dataset, filters = self.apply_group_filters(group, filters)
 
-        snuba_result = snuba.query(
-            dataset=dataset,
-            filter_keys=filters,
-            aggregations=aggregations,
-            referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
-            tenant_ids=tenant_ids,
+        # justification: a single ungrouped aggregate lowers to a scalar count.
+        snuba_result = cast(
+            int,
+            snuba.query(
+                dataset=dataset,
+                filter_keys=filters,
+                aggregations=aggregations,
+                referrer=Referrer.TAGSTORE_GET_GROUP_TAG_VALUE_COUNT.value,
+                tenant_ids=tenant_ids,
+            ),
         )
         result = snuba_result
 
@@ -1341,16 +1345,19 @@ class SnubaTagStorage(TagStorage):
         total_filters = dict(filters)
         total_filters.pop(self.key_column, None)
 
-        total_events: int | None = snuba.query(
-            dataset=dataset,
-            start=start,
-            end=end,
-            groupby=None,
-            conditions=conditions,
-            filter_keys=total_filters,
-            aggregations=[["count()", "", "count"]],
-            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
-            tenant_ids=tenant_ids,
+        total_events: int | None = cast(
+            int,
+            snuba.query(
+                dataset=dataset,
+                start=start,
+                end=end,
+                groupby=None,
+                conditions=conditions,
+                filter_keys=total_filters,
+                aggregations=[["count()", "", "count"]],
+                referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
+                tenant_ids=tenant_ids,
+            ),
         )
         if total_events is None:
             return {k: {"count": 0} for k in keys_to_check}
@@ -1358,16 +1365,19 @@ class SnubaTagStorage(TagStorage):
         non_empty_filters = dict(filters)
         non_empty_filters[self.key_column] = keys_to_check
 
-        non_empty_by_key: dict[str, int] = snuba.query(
-            dataset=dataset,
-            start=start,
-            end=end,
-            groupby=[self.key_column],
-            conditions=conditions + [[self.value_column, "!=", ""]],
-            filter_keys=non_empty_filters,
-            aggregations=[["count()", "", "count"]],
-            referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
-            tenant_ids=tenant_ids,
+        non_empty_by_key: dict[str, int] = cast(
+            dict[str, int],
+            snuba.query(
+                dataset=dataset,
+                start=start,
+                end=end,
+                groupby=[self.key_column],
+                conditions=conditions + [[self.value_column, "!=", ""]],
+                filter_keys=non_empty_filters,
+                aggregations=[["count()", "", "count"]],
+                referrer=Referrer.TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES_EMPTY_COUNTS,
+                tenant_ids=tenant_ids,
+            ),
         )
 
         return {
@@ -1389,7 +1399,10 @@ class SnubaTagStorage(TagStorage):
         # release ids which would need to be translated by the snuba util.
         tag = "sentry:release"
         col = f"tags[{tag}]"
-        conditions = [[col, "IN", versions], DEFAULT_TYPE_CONDITION]
+        conditions: list[list[Any]] = [  # justification: heterogeneous Snuba JSON
+            [col, "IN", versions],
+            DEFAULT_TYPE_CONDITION,
+        ]
         aggregations = [
             ["count()", "", "times_seen"],
             ["min", SEEN_COLUMN, "first_seen"],
@@ -1571,17 +1584,20 @@ class SnubaTagStorage(TagStorage):
             ["uniq", "tags[sentry:user]", "count"]
         ]
 
-        result = snuba.query(
-            dataset=dataset,
-            start=start,
-            end=end,
-            groupby=["group_id"],
-            conditions=None,
-            filter_keys=filters,
-            aggregations=aggregations,
-            orderby="-count",
-            referrer=referrer,
-            tenant_ids=tenant_ids,
+        result = cast(
+            dict[int, int],
+            snuba.query(
+                dataset=dataset,
+                start=start,
+                end=end,
+                groupby=["group_id"],
+                conditions=None,
+                filter_keys=filters,
+                aggregations=aggregations,
+                orderby="-count",
+                referrer=referrer,
+                tenant_ids=tenant_ids,
+            ),
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
@@ -2160,7 +2176,7 @@ class SnubaTagStorage(TagStorage):
             projects = [project["id"] for project in project_queryset]
             snuba_key = "project_id"
         else:
-            snuba_name = snuba_key
+            snuba_name: str | list[Any] = snuba_key  # justification: alias resolves to either form
 
             is_user_alias = include_transactions and key == USER_DISPLAY_ALIAS
             if is_user_alias:
@@ -2169,7 +2185,8 @@ class SnubaTagStorage(TagStorage):
                 # and resolve it to the corresponding snuba query
                 resolver = snuba.resolve_column(dataset)
                 snuba_name = FIELD_ALIASES[USER_DISPLAY_ALIAS].get_field()
-                snuba.resolve_complex_column(snuba_name, resolver, [])
+                # justification: user.alias resolves to a coalesce expression list.
+                snuba.resolve_complex_column(cast(list[Any], snuba_name), resolver, [])
             elif snuba_name in BLACKLISTED_COLUMNS:
                 snuba_name = self.format_string.format(key)
 
@@ -2186,8 +2203,9 @@ class SnubaTagStorage(TagStorage):
         if dataset == Dataset.Events:
             conditions.append(DEFAULT_TYPE_CONDITION)
 
+        results: dict[int | str, Any]  # justification: decoded tag query rows.
         if dataset == Dataset.Replays:
-            results = query_replays_dataset_tagkey_values(
+            replay_results = query_replays_dataset_tagkey_values(
                 project_ids=list(filters["project_id"]),
                 start=cast("datetime", start),
                 end=cast("datetime", end),
@@ -2198,42 +2216,45 @@ class SnubaTagStorage(TagStorage):
                 tenant_ids=tenant_ids,
             )
             results = {
-                d["tag_value"]: {
+                cast(int, d["tag_value"]): {
                     "times_seen": d["times_seen"],
                     "first_seen": d["first_seen"],
                     "last_seen": d["last_seen"],
                 }
-                for d in results["data"]
+                for d in replay_results["data"]
             }
 
         else:
-            results = snuba.query(
-                dataset=dataset,
-                start=start,
-                end=end,
-                groupby=[snuba_key],
-                filter_keys=filters,
-                aggregations=[
-                    ["count()", "", "times_seen"],
-                    ["min", "timestamp", "first_seen"],
-                    ["max", "timestamp", "last_seen"],
-                ],
-                conditions=conditions,
-                orderby=order_by,
-                # TODO: This means they can't actually paginate all TagValues.
-                limit=1000,
-                # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
-                sample=1_000_000,
-                arrayjoin=snuba.get_arrayjoin(snuba_key),
-                referrer="tagstore.get_tag_value_paginator_for_projects",
-                tenant_ids=tenant_ids,
+            results = cast(
+                dict[int | str, Any],  # justification: decoded tag query rows.
+                snuba.query(
+                    dataset=dataset,
+                    start=start,
+                    end=end,
+                    groupby=[snuba_key],
+                    filter_keys=filters,
+                    aggregations=[
+                        ["count()", "", "times_seen"],
+                        ["min", "timestamp", "first_seen"],
+                        ["max", "timestamp", "last_seen"],
+                    ],
+                    conditions=conditions,
+                    orderby=order_by,
+                    # TODO: This means they can't actually paginate all TagValues.
+                    limit=1000,
+                    # 1 mill chosen arbitrarily, based it on a query that was timing out, and took 8s once this was set
+                    sample=1_000_000,
+                    arrayjoin=snuba.get_arrayjoin(snuba_key),
+                    referrer="tagstore.get_tag_value_paginator_for_projects",
+                    tenant_ids=tenant_ids,
+                ),
             )
 
         if include_transactions:
             # With transaction_status we need to map the ids back to their names
             if transaction_status:
                 results = {
-                    SPAN_STATUS_CODE_TO_NAME[result_key]: data
+                    SPAN_STATUS_CODE_TO_NAME[cast(int, result_key)]: data
                     for result_key, data in results.items()
                 }
             # With project names we map the ids back to the project slugs
@@ -2241,7 +2262,7 @@ class SnubaTagStorage(TagStorage):
                 results = {
                     project_slugs[value]: data
                     for value, data in results.items()
-                    if value in project_slugs
+                    if isinstance(value, int) and value in project_slugs
                 }
             elif is_fuzzy_numeric_key(key):
                 # numeric keys like measurements and breakdowns are nullable

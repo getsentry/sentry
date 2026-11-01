@@ -80,7 +80,7 @@ class CodeReviewEvent(DefaultFieldsModel):
 
     # Seer callback data
     seer_run_id = models.CharField(max_length=64, null=True)
-    comments_posted = BoundedPositiveIntegerField(null=True)
+    comments_posted = BoundedPositiveIntegerField[int | None, int | None](null=True)
     review_result = models.JSONField(null=True)  # raw Seer response payload
 
     class Meta:

@@ -69,8 +69,8 @@ class ServiceHook(Model):
     installation_id = HybridCloudForeignKey(
         "sentry.SentryAppInstallation", null=True, on_delete="CASCADE"
     )
-    project_id = BoundedBigIntegerField(db_index=True, null=True)
-    organization_id = BoundedBigIntegerField(db_index=True, null=True)
+    project_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
+    organization_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
     events = ArrayField(models.TextField(), default=list)

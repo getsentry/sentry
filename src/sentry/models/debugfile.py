@@ -207,7 +207,7 @@ class ProjectDebugFile(Model):
     checksum = models.CharField(max_length=40, null=True, db_index=True)
     object_name = models.TextField()
     cpu_name = models.CharField(max_length=40)
-    project_id = BoundedBigIntegerField(null=True, db_index=True)
+    project_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     debug_id = models.CharField(max_length=64, db_column="uuid")
     code_id = models.CharField(max_length=64, null=True)
     data = LegacyTextJSONField(default=dict, null=True)
@@ -224,7 +224,7 @@ class ProjectDebugFile(Model):
     # Mirrors `file.headers["Content-Type"]` for files stored in Objectstore.
     content_type = models.TextField(null=True)
     # Mirrors `file.size` for files stored in Objectstore.
-    file_size = BoundedBigIntegerField(null=True)
+    file_size = BoundedBigIntegerField[int | None, int | None](null=True)
     # Mirrors `file.timestamp` for files stored in Objectstore.
     date_created = models.DateTimeField(null=True)
 

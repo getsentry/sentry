@@ -98,7 +98,7 @@ def generate_user(
     email: str | None = None,
     ip_address: str | None = None,
     id: int | None = None,
-) -> str:
+) -> dict[str, Any]:
     if username is None and email is None:
         username = random_username()
         email = f"{username}@example.com"
@@ -128,7 +128,7 @@ def load_data(
     trace_context: dict[str, object] | None = None,
     fingerprint: list[str] | None = None,
     event_id: str | None = None,
-) -> dict[str, Any] | None:
+) -> dict[str, Any]:
     # NOTE: Before editing this data, make sure you understand the context
     # in which its being used. It is NOT only used for local development and
     # has production consequences.
@@ -187,7 +187,7 @@ def load_data(
             break
 
     if data is None:
-        return None
+        raise ValueError(f"No sample data for {platform!r}")
 
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
@@ -524,7 +524,7 @@ def create_trace(
     timestamp: datetime,
     user: object,
     trace_id: str,
-    parent_span_id: str,
+    parent_span_id: str | None,
     data: dict[str, Any],
 ) -> None:
     """A recursive function that creates the events of a trace"""

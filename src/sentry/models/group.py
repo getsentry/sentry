@@ -864,7 +864,7 @@ class Group(Model):
     culprit = models.CharField(
         max_length=MAX_CULPRIT_LENGTH, blank=True, null=True, db_column="view"
     )
-    num_comments = BoundedPositiveIntegerField(default=0, null=True)
+    num_comments = BoundedPositiveIntegerField[int | None, int | None](default=0, null=True)
     platform = models.CharField(max_length=64, null=True)
     status = BoundedPositiveIntegerField(
         default=GroupStatus.UNRESOLVED,
@@ -875,7 +875,7 @@ class Group(Model):
         ),
         db_index=True,
     )
-    substatus = BoundedIntegerField(
+    substatus = BoundedIntegerField[int | None, int | None](
         null=True,
         choices=(
             (GroupSubStatus.UNTIL_ESCALATING, _("Until escalating")),
@@ -897,7 +897,7 @@ class Group(Model):
     # deprecated, do not use. GroupShare has superseded
     is_public = models.BooleanField(default=False, null=True)
     data = LegacyTextJSONField(null=True)
-    short_id = BoundedBigIntegerField(null=True)
+    short_id = BoundedBigIntegerField[int | None, int | None](null=True)
     type = BoundedPositiveIntegerField(
         default=DEFAULT_TYPE_ID, db_default=DEFAULT_TYPE_ID, db_index=True
     )

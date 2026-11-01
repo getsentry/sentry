@@ -31,11 +31,11 @@ class IssueDetailsPage(BasePage):
             data=json.dumps({"guide": "tour.issue_details", "status": "viewed", "useful": True}),
         )
 
-    def visit_issue(self, org: str, groupid: str) -> None:
+    def visit_issue(self, org: str, groupid: int | str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/")
         self.wait_until_loaded()
 
-    def visit_performance_issue(self, org: str, groupid: str) -> None:
+    def visit_performance_issue(self, org: str, groupid: int | str) -> None:
         """
         Wait for the span evidence and the rest of the page to finish loading so
         no requests are still hitting the database when the test tears down.
@@ -45,15 +45,15 @@ class IssueDetailsPage(BasePage):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until_not('[data-test-id="loading-placeholder"]')
 
-    def visit_issue_activity(self, org: str, groupid: str) -> None:
+    def visit_issue_activity(self, org: str, groupid: int | str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/activity/")
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def visit_issue_in_environment(self, org: str, groupid: str, environment: str) -> None:
+    def visit_issue_in_environment(self, org: str, groupid: int | str, environment: str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/?environment={environment}")
         self.browser.wait_until('[data-test-id="group-event-details"]')
 
-    def visit_tag_values(self, org: str, groupid: str, tag: str) -> None:
+    def visit_tag_values(self, org: str, groupid: int | str, tag: str) -> None:
         self.browser.get(f"/organizations/{org}/issues/{groupid}/distributions/{tag}/")
         self.browser.wait_until('[data-test-id="group-tag-value"]')
 

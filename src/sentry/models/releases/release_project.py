@@ -49,7 +49,7 @@ class ReleaseProject(Model):
 
     project = FlexibleForeignKey("sentry.Project")
     release = FlexibleForeignKey("sentry.Release")
-    new_groups = BoundedPositiveIntegerField(null=True, default=0)
+    new_groups = BoundedPositiveIntegerField[int | None, int | None](null=True, default=0)
 
     adopted = models.DateTimeField(null=True, blank=True)
     unadopted = models.DateTimeField(null=True, blank=True)

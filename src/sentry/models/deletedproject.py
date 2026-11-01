@@ -19,7 +19,7 @@ class DeletedProject(DeletedEntry):
     slug = models.CharField(max_length=PROJECT_SLUG_MAX_LENGTH, null=True)
     name = models.CharField(max_length=200, null=True)
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = BoundedBigIntegerField[int | None, int | None](null=True)
     organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.CharField(max_length=50, null=True)
 

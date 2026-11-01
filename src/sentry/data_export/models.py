@@ -46,7 +46,7 @@ class ExportedData(Model):
 
     organization = FlexibleForeignKey("sentry.Organization")
     user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    file_id = BoundedBigIntegerField(null=True, db_index=True)
+    file_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True, db_index=True)

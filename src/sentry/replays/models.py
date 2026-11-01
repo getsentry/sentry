@@ -51,7 +51,7 @@ class ReplayRecordingSegment(Model):
     file_id = BoundedBigIntegerField(db_index=True)
     segment_id = BoundedIntegerField(db_column="sequence_id")
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
-    size = BoundedPositiveIntegerField(null=True)
+    size = BoundedPositiveIntegerField[int | None, int | None](null=True)
 
     class Meta:
         app_label = "replays"

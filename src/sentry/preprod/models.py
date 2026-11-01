@@ -189,7 +189,7 @@ class PreprodArtifact(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project")
 
     # Nullable in case the file upload fails
-    file_id = BoundedBigIntegerField(db_index=True, null=True)
+    file_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
 
     # The date the artifact was built. E.g. an artifact could be built on 05/21/2025,
     # but the user uploaded it on 05/22/2025.
@@ -204,9 +204,13 @@ class PreprodArtifact(DefaultFieldsModel):
     )
 
     # Nullable because we only know the type after the artifact has been processed
-    artifact_type = BoundedPositiveIntegerField(choices=ArtifactType.as_choices(), null=True)
+    artifact_type = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ArtifactType.as_choices(), null=True
+    )
 
-    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_code = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ErrorCode.as_choices(), null=True
+    )
     error_message = models.TextField(null=True)
 
     # Version of tooling used to upload/build the artifact, extracted from metadata files
@@ -227,7 +231,9 @@ class PreprodArtifact(DefaultFieldsModel):
     )
 
     # Installable file like IPA or APK
-    installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
+    installable_app_file_id = BoundedBigIntegerField[int | None, int | None](
+        db_index=True, null=True
+    )
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
@@ -235,7 +241,7 @@ class PreprodArtifact(DefaultFieldsModel):
     # An identifier for the main binary
     main_binary_identifier = models.CharField(max_length=255, db_index=True, null=True)
 
-    installable_app_error_code = BoundedPositiveIntegerField(
+    installable_app_error_code = BoundedPositiveIntegerField[int | None, int | None](
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
@@ -607,7 +613,7 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     preprod_artifact = FlexibleForeignKey("preprod.PreprodArtifact")
-    metrics_artifact_type = BoundedPositiveIntegerField(
+    metrics_artifact_type = BoundedPositiveIntegerField[int | None, int | None](
         choices=MetricsArtifactType.as_choices(), null=True
     )
 
@@ -618,20 +624,22 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     state = BoundedPositiveIntegerField(
         default=SizeAnalysisState.PENDING, choices=SizeAnalysisState.as_choices()
     )
-    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_code = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ErrorCode.as_choices(), null=True
+    )
     error_message = models.TextField(null=True)
 
     # Track which version of size processing determined these values
     processing_version = models.CharField(max_length=255, null=True)
 
     # Size fields are nullable since they won't be available until processing completes
-    min_install_size = BoundedPositiveBigIntegerField(null=True)
-    max_install_size = BoundedPositiveBigIntegerField(null=True)
-    min_download_size = BoundedPositiveBigIntegerField(null=True)
-    max_download_size = BoundedPositiveBigIntegerField(null=True)
+    min_install_size = BoundedPositiveBigIntegerField[int | None, int | None](null=True)
+    max_install_size = BoundedPositiveBigIntegerField[int | None, int | None](null=True)
+    min_download_size = BoundedPositiveBigIntegerField[int | None, int | None](null=True)
+    max_download_size = BoundedPositiveBigIntegerField[int | None, int | None](null=True)
 
     # Size analysis wont necessarily be run on every artifact (based on quotas)
-    analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+    analysis_file_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
 
     class Meta:
         app_label = "preprod"
@@ -700,7 +708,7 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     organization_id = BoundedBigIntegerField(db_index=True)
 
     # File id of the size diff json in filestore
-    file_id = BoundedBigIntegerField(db_index=True, null=True)
+    file_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
 
     class State(IntEnum):
         PENDING = 0
@@ -741,7 +749,9 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
             )
 
     # Set when state is FAILED
-    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_code = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ErrorCode.as_choices(), null=True
+    )
     error_message = models.TextField(null=True)
 
     class Meta:
@@ -773,7 +783,7 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
     # E.g. 1.2.300
     build_version = models.CharField(max_length=255, null=True)
     # E.g. 9999
-    build_number = BoundedBigIntegerField(null=True)
+    build_number = BoundedBigIntegerField[int | None, int | None](null=True)
     # The objectstore id of the app icon
     app_icon_id = models.CharField(max_length=255, null=True)
     # The name of the app, e.g. "My App"

@@ -38,7 +38,7 @@ class DetectorState(DefaultFieldsModel):
     # A unix epoch timestamp in milliseconds that rotates when the detector leaves OK after
     # staying OK for its handler's `regression_timeout`
     # This is used for creating unique fingerprints
-    activation_id = BoundedBigIntegerField(null=True)
+    activation_id = BoundedBigIntegerField[int | None, int | None](null=True)
 
     @property
     def priority_level(self) -> DetectorPriorityLevel:

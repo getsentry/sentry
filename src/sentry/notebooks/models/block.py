@@ -78,9 +78,9 @@ class NotebookBlock(DefaultFieldsModel):
     # A producer's key for the block. Producers that replace their output in
     # revisions also set producer_revision; blocks people add leave both empty.
     producer_key = models.CharField(max_length=128, null=True)
-    producer_revision = BoundedPositiveIntegerField(null=True)
+    producer_revision = BoundedPositiveIntegerField[int | None, int | None](null=True)
     # Not a foreign key: Seer can start runs for a block that Sentry never sees.
-    producing_seer_run_id = BoundedBigIntegerField(null=True)
+    producing_seer_run_id = BoundedBigIntegerField[int | None, int | None](null=True)
 
     # Soft delete keeps execution history and comment targets.
     deleted_at = models.DateTimeField(null=True)

@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import Generic, NotRequired, TypedDict, TypeVar
+from typing import Generic, Literal, NotRequired, TypedDict, TypeVar
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
@@ -185,3 +185,18 @@ class IntegrationResponse(Generic[T]):
     response: T
     outcome_reason: str | Exception | None = None
     context_data: dict[str, object] | None = None
+
+
+HaltReason = Literal[
+    "configuration_error",
+    "connection_reset",
+    "host_timeout",
+    "host_unreachable",
+    "identity_not_found",
+    "identity_not_valid",
+    "installation_suspended",
+    "rate_limited",
+    "too_many_redirects",
+    "unauthorized",
+    "unsupported_response",
+]

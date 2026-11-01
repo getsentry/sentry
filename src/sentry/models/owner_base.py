@@ -17,7 +17,9 @@ class OwnerModel(Model):
     owner_user_id = HybridCloudForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, on_delete="SET_NULL"
     )
-    owner_team_id = BoundedBigIntegerField(null=True, blank=True, db_index=True)
+    owner_team_id = BoundedBigIntegerField[int | None, int | None](
+        null=True, blank=True, db_index=True
+    )
 
     class Meta:
         abstract = True

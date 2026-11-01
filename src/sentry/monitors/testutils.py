@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import datetime
+from typing import Literal, TypedDict
 
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
@@ -8,14 +9,33 @@ from sentry.monitors.processing_errors.errors import (
     ProcessingError,
     ProcessingErrorType,
 )
-from sentry.monitors.types import CheckinItem, CheckinPayload
+from sentry.monitors.types import CheckinContexts, CheckinItem, CheckinPayload
+
+
+class CheckInOverrides(TypedDict, total=False):
+    message_type: Literal["check_in"]
+    payload: bytes
+    start_time: int | float
+    project_id: int
+    sdk: str | None
+    retention_days: int
+
+
+class CheckinPayloadOverrides(TypedDict, total=False):
+    check_in_id: str
+    monitor_slug: str
+    status: str
+    environment: str
+    duration: int
+    monitor_config: dict[str, object]
+    contexts: CheckinContexts
 
 
 def build_checkin_item(
     ts: datetime | None = None,
     partition: int = 0,
-    message_overrides: CheckIn | None = None,
-    payload_overrides: CheckinPayload | None = None,
+    message_overrides: CheckInOverrides | None = None,
+    payload_overrides: CheckinPayloadOverrides | None = None,
 ) -> CheckinItem:
     if ts is None:
         ts = datetime.now()
@@ -45,8 +65,8 @@ def build_checkin_processing_error(
     processing_errors: Sequence[ProcessingError] | None = None,
     ts: datetime | None = None,
     partition: int = 0,
-    message_overrides: CheckIn | None = None,
-    payload_overrides: CheckinPayload | None = None,
+    message_overrides: CheckInOverrides | None = None,
+    payload_overrides: CheckinPayloadOverrides | None = None,
 ) -> CheckinProcessingError:
     if processing_errors is None:
         processing_errors = [

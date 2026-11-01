@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -59,7 +60,7 @@ class FakeSanitizableModel(DefaultFieldsModel):
     ip_v4 = models.GenericIPAddressField(null=True)
     ip_v6 = models.GenericIPAddressField(null=True)
     url = models.URLField(null=True)
-    uuid = UUIDField(null=True)
+    uuid = UUIDField[uuid.UUID | None, uuid.UUID | None](null=True)
 
     class Meta:
         app_label = "test"

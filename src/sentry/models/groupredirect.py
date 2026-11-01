@@ -23,12 +23,12 @@ class GroupRedirect(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = BoundedBigIntegerField[int | None, int | None](null=True)
     group = FlexibleForeignKey(
         "sentry.Group", related_name="primary_group_of_redirect", db_constraint=False
     )
     previous_group_id = BoundedBigIntegerField(unique=True)
-    previous_short_id = BoundedBigIntegerField(null=True)
+    previous_short_id = BoundedBigIntegerField[int | None, int | None](null=True)
     previous_project_slug = models.SlugField(null=True)
     date_added = models.DateTimeField(default=timezone.now, null=True)
 

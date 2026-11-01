@@ -118,8 +118,8 @@ class ProjectKey(ReplicatedCellModel):
     )
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
-    rate_limit_count = BoundedPositiveIntegerField(null=True)
-    rate_limit_window = BoundedPositiveIntegerField(null=True)
+    rate_limit_count = BoundedPositiveIntegerField[int | None, int | None](null=True)
+    rate_limit_window = BoundedPositiveIntegerField[int | None, int | None](null=True)
 
     objects: ClassVar[ProjectKeyManager] = ProjectKeyManager(
         cache_fields=("public_key", "secret_key"),

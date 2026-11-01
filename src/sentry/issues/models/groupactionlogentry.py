@@ -44,7 +44,7 @@ class GroupActionLogEntry(Model):
     # The project the group belongs to.
     project_id = BoundedBigIntegerField()
     # The group_id before any merges, if this entry was migrated.
-    original_group_id = BoundedBigIntegerField(null=True)
+    original_group_id = BoundedBigIntegerField[int | None, int | None](null=True)
 
     # A GroupActionType value.
     type = BoundedPositiveIntegerField(

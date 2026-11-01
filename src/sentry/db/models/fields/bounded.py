@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import TypeVar
+
 from django.db import models
 from django.db.models.expressions import Combinable
 from django.utils.translation import gettext_lazy as _
@@ -14,12 +16,15 @@ __all__ = (
     "WrappingU32IntegerField",
 )
 
+_ST = TypeVar("_ST", contravariant=True, default=int)
+_GT = TypeVar("_GT", covariant=True, default=int)
+
 I32_MAX = 2_147_483_647  # 2**31 - 1
 U32_MAX = 4_294_967_295  # 2**32 - 1
 I64_MAX = 9_223_372_036_854_775_807  # 2**63 - 1
 
 
-class BoundedIntegerField(models.IntegerField[int, int]):
+class BoundedIntegerField(models.IntegerField[_ST, _GT]):
     MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
@@ -29,7 +34,7 @@ class BoundedIntegerField(models.IntegerField[int, int]):
         return super().get_prep_value(value)
 
 
-class BoundedPositiveIntegerField(models.PositiveIntegerField[int, int]):
+class BoundedPositiveIntegerField(models.PositiveIntegerField[_ST, _GT]):
     MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
@@ -78,7 +83,7 @@ class BoundedAutoField(models.AutoField[int, int]):
         return super().get_prep_value(value)
 
 
-class BoundedBigIntegerField(models.BigIntegerField[int, int]):
+class BoundedBigIntegerField(models.BigIntegerField[_ST, _GT]):
     description = _("Big Integer")
 
     MAX_VALUE = I64_MAX
@@ -93,7 +98,7 @@ class BoundedBigIntegerField(models.BigIntegerField[int, int]):
         return super().get_prep_value(value)
 
 
-class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField[int, int]):
+class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField[_ST, _GT]):
     description = _("Positive big integer")
 
     MAX_VALUE = I64_MAX

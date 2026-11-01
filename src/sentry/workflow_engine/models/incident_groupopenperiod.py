@@ -20,7 +20,7 @@ class IncidentGroupOpenPeriod(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    incident_id = BoundedBigIntegerField(null=True, unique=True)
+    incident_id = BoundedBigIntegerField[int | None, int | None](null=True, unique=True)
     incident_identifier = models.IntegerField(null=True)
     group_open_period = FlexibleForeignKey("sentry.GroupOpenPeriod", unique=True)
 

@@ -57,7 +57,7 @@ class Integration(DefaultFieldsModelExisting):
     # Organization-specific metadata is only safe when the provider guarantees that the
     # Integration instance belongs to one organization.
     metadata = EncryptedJSONField(default=dict)
-    status = BoundedPositiveIntegerField(
+    status = BoundedPositiveIntegerField[int | None, int | None](
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
     )
     # A place to store non-senstive data for debugging or querying

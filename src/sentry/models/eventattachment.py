@@ -110,7 +110,7 @@ class EventAttachmentBase(Model):
     # attachment and file metadata:
     name = models.TextField()
     content_type = models.TextField(null=True)
-    size = BoundedIntegerField(null=True)
+    size = BoundedIntegerField[int | None, int | None](null=True)
     sha1 = models.CharField(max_length=40, null=True)
 
     date_expires = models.DateTimeField(
@@ -202,7 +202,7 @@ class EventAttachment(EventAttachmentBase):
     An attachment belonging to an event that has been ingested.
     """
 
-    group_id = BoundedBigIntegerField(null=True, db_index=True)
+    group_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     event_id = models.CharField(max_length=32, db_index=True)
     type = models.CharField(max_length=64, db_index=True)
     date_added = models.DateTimeField(default=timezone.now, db_index=True)
@@ -402,7 +402,7 @@ class PendingEventAttachment(EventAttachmentBase):
             # left to report the drop to.
             return
 
-        kwargs = dict(
+        track_outcome(
             org_id=organization_id,
             project_id=self.project_id,
             key_id=None,  # DSN is unknown at this point
@@ -410,15 +410,17 @@ class PendingEventAttachment(EventAttachmentBase):
             reason="missing_event",
             timestamp=self.date_added,  # matches accepted outcome
             event_id=self.event_id,
-        )
-
-        track_outcome(
-            **kwargs,
             category=DataCategory.ATTACHMENT,
             quantity=self.size or 1,
         )
         track_outcome(
-            **kwargs,
+            org_id=organization_id,
+            project_id=self.project_id,
+            key_id=None,
+            outcome=Outcome.INVALID,
+            reason="missing_event",
+            timestamp=self.date_added,
+            event_id=self.event_id,
             category=DataCategory.ATTACHMENT_ITEM,
             quantity=1,
         )

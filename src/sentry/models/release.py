@@ -251,7 +251,7 @@ class Release(Model):
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
     )
-    status = BoundedPositiveIntegerField(
+    status = BoundedPositiveIntegerField[int | None, int | None](
         default=ReleaseStatus.OPEN,
         null=True,
         choices=(
@@ -274,11 +274,11 @@ class Release(Model):
     owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
     # materialized stats
-    commit_count = BoundedPositiveIntegerField(null=True, default=0)
-    last_commit_id = BoundedBigIntegerField(null=True)
+    commit_count = BoundedPositiveIntegerField[int | None, int | None](null=True, default=0)
+    last_commit_id = BoundedBigIntegerField[int | None, int | None](null=True)
     authors = ArrayField(models.TextField(), default=list, null=True)
-    total_deploys = BoundedPositiveIntegerField(null=True, default=0)
-    last_deploy_id = BoundedBigIntegerField(null=True)
+    total_deploys = BoundedPositiveIntegerField[int | None, int | None](null=True, default=0)
+    last_deploy_id = BoundedBigIntegerField[int | None, int | None](null=True)
 
     # Denormalized semver columns. These will be filled if `version` matches at least
     # part of our more permissive model of semver:

@@ -27,6 +27,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryApp, RpcSentryAppInstallation, app_service
 from sentry.sentry_apps.services.cell.model import RpcSentryAppError
 from sentry.sentry_apps.utils.errors import (
@@ -325,7 +326,7 @@ class SentryAppAndStaffPermission(StaffPermissionMixin, SentryAppPermission):
 class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
     permission_classes: tuple[type[BasePermission], ...] = (SentryAppPermission,)
 
-    def convert_args(
+    def convert_args(  # justification: Django view argument passing is variadic.
         self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
     ) -> tuple[
         tuple[Any, ...], dict[str, Any]  # justification: Django view argument passing is variadic.
@@ -436,7 +437,10 @@ class SentryAppInstallationPermission(SentryPermission):
         return super().has_permission(request, *args, **kwargs)
 
     def has_object_permission(
-        self, request: Request, view: APIView, installation: RpcSentryAppInstallation
+        self,
+        request: Request,
+        view: APIView,
+        installation: RpcSentryAppInstallation | SentryAppInstallation,
     ) -> bool:
         if not hasattr(request, "user") or not request.user or not request.user.is_authenticated:
             return False
@@ -512,7 +516,10 @@ class SentryAppInstallationExternalIssueBaseEndpoint(SentryAppInstallationBaseEn
 
 class SentryAppAuthorizationsPermission(SentryPermission):
     def has_object_permission(
-        self, request: Request, view: APIView, installation: RpcSentryAppInstallation
+        self,
+        request: Request,
+        view: APIView,
+        installation: RpcSentryAppInstallation | SentryAppInstallation,
     ) -> bool:
         if not hasattr(request, "user") or not request.user:
             return False

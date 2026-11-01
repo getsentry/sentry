@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -85,16 +85,24 @@ def signal_monitor_created(
     )
     check_and_signal_first_monitor_created(project, user, from_upsert)
 
-    create_audit_log = create_system_audit_entry if from_upsert else create_audit_entry
-    kwargs = {
-        "organization": project.organization,
-        **({"request": request} if not from_upsert else {}),
-        "target_object": monitor.id,
-        "event": audit_log.get_event_id("MONITOR_ADD"),
-        "data": {"upsert": from_upsert, **monitor.get_audit_log_data()},
-    }
-
-    create_audit_log(**kwargs)
+    event = audit_log.get_event_id("MONITOR_ADD")
+    data = {"upsert": from_upsert, **monitor.get_audit_log_data()}
+    if from_upsert:
+        create_system_audit_entry(
+            organization=project.organization,
+            target_object=monitor.id,
+            event=event,
+            data=data,
+        )
+    else:
+        assert request is not None
+        create_audit_entry(
+            organization=project.organization,
+            request=request,
+            target_object=monitor.id,
+            event=event,
+            data=data,
+        )
 
 
 def get_monitor_environment_ids(monitor: Monitor, environments: Sequence[Environment]) -> list[int]:

@@ -58,7 +58,7 @@ class SeerRun(DefaultFieldsModel):
 
     # FK value from Seer's DbRunState.id.
     # Nullable to support outbox writing
-    seer_run_state_id = BoundedBigIntegerField(null=True, unique=True)
+    seer_run_state_id = BoundedBigIntegerField[int | None, int | None](null=True, unique=True)
 
     type = models.CharField(max_length=256, choices=SeerRunType.choices)
     mirror_status = models.CharField(

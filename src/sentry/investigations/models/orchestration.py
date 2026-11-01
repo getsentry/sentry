@@ -173,7 +173,7 @@ class InvestigationOrchestrationCommand(DefaultFieldsModel):
         "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
     )
     expected_workflow_version = BoundedPositiveIntegerField()
-    resulting_workflow_version = BoundedPositiveIntegerField(null=True)
+    resulting_workflow_version = BoundedPositiveIntegerField[int | None, int | None](null=True)
     type = models.CharField(max_length=64)
     payload: models.Field[dict[str, Any], dict[str, Any]] = models.JSONField(
         default=dict, db_default={}

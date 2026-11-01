@@ -46,7 +46,7 @@ class InboxItemEvent(DefaultFieldsModel):
         max_length=32,
         choices=[(actor_type.value, actor_type.name) for actor_type in InboxActorType],
     )
-    actor_id = BoundedBigIntegerField(null=True)
+    actor_id = BoundedBigIntegerField[int | None, int | None](null=True)
     # Metadata specific to the event type, such as the comment to link to.
     data = models.JSONField(default=dict)
 

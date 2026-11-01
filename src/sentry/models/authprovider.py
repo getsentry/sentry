@@ -43,7 +43,7 @@ class AuthProvider(ReplicatedControlModel):
     config = models.JSONField(default=dict)
 
     date_added = models.DateTimeField(default=timezone.now)
-    sync_time = BoundedPositiveIntegerField(null=True)
+    sync_time = BoundedPositiveIntegerField[int | None, int | None](null=True)
     last_sync = models.DateTimeField(null=True)
 
     default_role = BoundedPositiveIntegerField(default=50)

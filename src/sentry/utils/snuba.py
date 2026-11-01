@@ -21,7 +21,7 @@ from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
 from types import TracebackType
-from typing import Any, Self, cast
+from typing import Any, Literal, Self, cast, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -1587,23 +1587,73 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
             )
 
 
+@overload
 def query(
     dataset: Dataset | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
     groupby: list[str] | None = None,
-    conditions: list[tuple[str, str, Any] | list[Any]] | None = None,
-    filter_keys: dict[str, Sequence[int]] | None = None,
-    aggregations: list[list[Any]] | None = None,
-    selected_columns: list[Any] | None = None,
+    conditions: Sequence[tuple[str, str, Any] | Sequence[Any]] | None = None,
+    filter_keys: Mapping[str, Sequence[Any]] | None = None,
+    aggregations: Sequence[Sequence[Any]] | None = None,
+    selected_columns: Sequence[Any] | None = None,
+    totals: Literal[False] | None = False,
+    use_cache: bool = False,
+    **kwargs: Any,
+) -> dict[str, Any]: ...
+
+
+@overload
+def query(
+    dataset: Dataset | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    groupby: list[str] | None = None,
+    conditions: Sequence[tuple[str, str, Any] | Sequence[Any]] | None = None,
+    filter_keys: Mapping[str, Sequence[Any]] | None = None,
+    aggregations: Sequence[Sequence[Any]] | None = None,
+    selected_columns: Sequence[Any] | None = None,
+    totals: Literal[True] = True,
+    use_cache: bool = False,
+    **kwargs: Any,
+) -> tuple[dict[str, Any], Any]: ...
+
+
+@overload
+def query(
+    dataset: Dataset | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    groupby: list[str] | None = None,
+    conditions: Sequence[tuple[str, str, Any] | Sequence[Any]] | None = None,
+    filter_keys: Mapping[str, Sequence[Any]] | None = None,
+    aggregations: Sequence[Sequence[Any]] | None = None,
+    selected_columns: Sequence[Any] | None = None,
+    totals: bool | None = None,
+    use_cache: bool = False,
+    **kwargs: Any,
+) -> dict[str, Any] | tuple[dict[str, Any], Any]: ...
+
+
+def query(
+    dataset: Dataset | None = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    groupby: list[str] | None = None,
+    conditions: Sequence[tuple[str, str, Any] | Sequence[Any]] | None = None,
+    filter_keys: Mapping[str, Sequence[Any]] | None = None,
+    aggregations: Sequence[Sequence[Any]] | None = None,
+    selected_columns: Sequence[Any] | None = None,
     totals: bool | None = None,
     use_cache: bool = False,
     **kwargs: Any,
 ) -> dict[str, Any] | tuple[dict[str, Any], Any]:
-    aggregations = aggregations or [["count()", "", "aggregate"]]
-    filter_keys = filter_keys or {}
-    selected_columns = selected_columns or []
-    groupby = groupby or []
+    parsed_aggregations: list[list[Any]] = (
+        [list(a) for a in aggregations] if aggregations else [["count()", "", "aggregate"]]
+    )
+    filter_keys = dict(filter_keys) if filter_keys else {}
+    selected_columns = list(selected_columns) if selected_columns else []
+    groupby = list(groupby) if groupby else []
 
     if dataset == Dataset.Events and filter_keys.get("project_id"):
         project_filter = filter_keys.get("project_id")
@@ -1612,7 +1662,7 @@ def query(
             if isinstance(project_filter, (list, tuple))
             else [cast("int", project_filter)]
         )
-        _convert_count_aggregations_for_error_upsampling(aggregations, project_ids)
+        _convert_count_aggregations_for_error_upsampling(parsed_aggregations, project_ids)
 
     try:
         body = raw_query(
@@ -1620,9 +1670,13 @@ def query(
             start=start,
             end=end,
             groupby=groupby,
-            conditions=conditions,
-            filter_keys=filter_keys,
-            aggregations=aggregations,
+            conditions=(
+                cast(list[tuple[str, str, Any] | list[Any]], list(conditions))
+                if conditions is not None
+                else None
+            ),
+            filter_keys=cast(dict[str, Sequence[int]], filter_keys),
+            aggregations=parsed_aggregations,
             selected_columns=selected_columns,
             totals=totals,
             use_cache=use_cache,
@@ -1635,7 +1689,7 @@ def query(
             return {}
 
     # Validate and scrub response, and translate snuba keys back to IDs
-    aggregate_names = [a[2] for a in aggregations]
+    aggregate_names = [a[2] for a in parsed_aggregations]
     selected_names = [c[2] if isinstance(c, (list, tuple)) else c for c in selected_columns]
     expected_cols = set(groupby + aggregate_names + selected_names)
     got_cols = {c["name"] for c in body["meta"]}

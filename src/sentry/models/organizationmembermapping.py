@@ -27,7 +27,7 @@ class OrganizationMemberMapping(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    organizationmember_id = BoundedBigIntegerField(db_index=True, null=True)
+    organizationmember_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))

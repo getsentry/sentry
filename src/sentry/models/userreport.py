@@ -10,9 +10,9 @@ class UserReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
-    group_id = BoundedBigIntegerField(null=True, db_index=True)
+    group_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     event_id = models.CharField(max_length=32)
-    environment_id = BoundedBigIntegerField(null=True, db_index=True)
+    environment_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
     name = models.CharField(max_length=128)
     email = models.EmailField(max_length=75)
     comments = models.TextField(

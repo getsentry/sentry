@@ -39,11 +39,11 @@ class BaseImportChunk(DefaultFieldsModelExisting):
 
     # The minimum assigned pk (inclusive) imported by this chunk. Nullable because it is possible
     # that no insertions were performed, with all writes being merges or overwrites instead.
-    min_inserted_pk = BoundedBigIntegerField(null=True)
+    min_inserted_pk = BoundedBigIntegerField[int | None, int | None](null=True)
 
     # The maximum assigned pk (inclusive) imported by this chunk. Nullable because it is possible
     # that no insertions were performed, with all writes being merges or overwrites instead.
-    max_inserted_pk = BoundedBigIntegerField(null=True)
+    max_inserted_pk = BoundedBigIntegerField[int | None, int | None](null=True)
 
     # A JSON object map from original pks in the source blob to the pks they were assigned when
     # being inserted into the actual database.

@@ -10,7 +10,7 @@ class DeletedEntry(Model):
 
     actor_label = models.CharField(max_length=64, null=True)
     # if the entry was created via a user
-    actor_id = BoundedBigIntegerField(null=True)
+    actor_id = BoundedBigIntegerField[int | None, int | None](null=True)
     # if the entry was created via an api key
     actor_key = models.CharField(max_length=32, null=True)
 

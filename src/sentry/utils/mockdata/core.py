@@ -110,7 +110,9 @@ def make_sentence(words: int | None = None) -> str:
     return " ".join(random.choice(loremipsum.words) for _ in range(words))
 
 
-def create_sample_event(*args: object, **kwargs: object) -> Event | None:
+def create_sample_event(  # justification: dev CLI forwards the sample factory signature.
+    *args: Any, **kwargs: Any
+) -> Event | None:
     try:
         event = _create_sample_event(*args, **kwargs)
     except HashDiscarded as e:
@@ -1221,7 +1223,9 @@ def create_mock_user_feedback(project: Project, has_attachment: bool = True) -> 
     create_feedback_issue(event, project, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE)
 
     if has_attachment:
-        create_mock_attachment(event["event_id"], project)
+        event_id = event["event_id"]
+        assert isinstance(event_id, str)
+        create_mock_attachment(event_id, project)
 
 
 def main(

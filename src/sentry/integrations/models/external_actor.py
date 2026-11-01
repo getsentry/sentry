@@ -52,7 +52,9 @@ class ExternalActor(Model):
     # The unique identifier i.e user ID, channel ID.
     external_id = models.TextField(null=True)
     # Data source used to create the ExternalActor row. None if manually created via the UI / API.
-    source = BoundedPositiveIntegerField(choices=ExternalActorSource.as_choices(), null=True)
+    source = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ExternalActorSource.as_choices(), null=True
+    )
 
     class Meta:
         app_label = "sentry"

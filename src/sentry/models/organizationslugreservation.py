@@ -36,7 +36,7 @@ class OrganizationSlugReservation(ControlOutboxProducingModel):
 
     slug = models.SlugField(unique=True, null=False)
     organization_id = HybridCloudForeignKey("sentry.organization", null=False, on_delete="CASCADE")
-    user_id = BoundedBigIntegerField(db_index=True, null=True)
+    user_id = BoundedBigIntegerField[int | None, int | None](db_index=True, null=True)
     cell_name = models.CharField(max_length=CELL_NAME_LENGTH, null=False, db_column="region_name")
     reservation_type = BoundedBigIntegerField(
         choices=OrganizationSlugReservationType.as_choices(),

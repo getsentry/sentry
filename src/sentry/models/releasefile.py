@@ -91,12 +91,12 @@ class ReleaseFile(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedBigIntegerField[int | None, int | None](null=True)
     release_id = BoundedBigIntegerField(db_index=True)
     file = FlexibleForeignKey("sentry.File")
     ident = models.CharField(max_length=40)
     name = models.TextField()
-    dist_id = BoundedBigIntegerField(null=True, db_index=True)
+    dist_id = BoundedBigIntegerField[int | None, int | None](null=True, db_index=True)
 
     date_accessed = models.DateTimeField(default=timezone.now, db_default=Now())
 
@@ -104,7 +104,7 @@ class ReleaseFile(Model):
     #: For release archives, this field is 0.
     #: For artifact indexes, this field is the number of artifacts contained
     #: in the index.
-    artifact_count = BoundedPositiveIntegerField(null=True, default=1)
+    artifact_count = BoundedPositiveIntegerField[int | None, int | None](null=True, default=1)
 
     __repr__ = sane_repr("release", "ident")
 

@@ -371,17 +371,19 @@ class DashboardWidget(Model):
     __relocation_scope__ = RelocationScope.Organization
 
     dashboard = FlexibleForeignKey("sentry.Dashboard")
-    order = BoundedPositiveIntegerField(null=True)
+    order = BoundedPositiveIntegerField[int | None, int | None](null=True)
     title = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
     thresholds = JSONField(null=True)
     interval = models.CharField(max_length=10, null=True)
     display_type = BoundedPositiveIntegerField(choices=DashboardWidgetDisplayTypes.as_choices())
     date_added = models.DateTimeField(default=timezone.now)
-    widget_type = BoundedPositiveIntegerField(choices=DashboardWidgetTypes.as_choices(), null=True)
+    widget_type = BoundedPositiveIntegerField[int | None, int | None](
+        choices=DashboardWidgetTypes.as_choices(), null=True
+    )
     limit = models.IntegerField(null=True)
     detail: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
-    discover_widget_split = BoundedPositiveIntegerField(
+    discover_widget_split = BoundedPositiveIntegerField[int | None, int | None](
         choices=DashboardWidgetTypes.as_choices(), null=True
     )
 

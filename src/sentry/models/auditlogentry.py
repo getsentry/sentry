@@ -58,7 +58,7 @@ class AuditLogEntry(Model):
     )
     # if the entry was created via an api key
     actor_key = FlexibleForeignKey("sentry.ApiKey", null=True, blank=True)
-    target_object = BoundedBigIntegerField(null=True)
+    target_object = BoundedBigIntegerField[int | None, int | None](null=True)
     target_user = FlexibleForeignKey(
         "sentry.User",
         null=True,

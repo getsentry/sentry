@@ -1049,9 +1049,9 @@ class Fixtures:
 
     def create_data_condition(
         self,
-        comparison: str | int = "10",
+        comparison: str | int | Mapping[str, object] = "10",
         type: Condition = Condition.EQUAL,
-        condition_result: str | int | None = None,
+        condition_result: str | int | Mapping[str, object] | None = None,
         condition_group: DataConditionGroup | None = None,
         **kwargs: Any,
     ) -> DataCondition:

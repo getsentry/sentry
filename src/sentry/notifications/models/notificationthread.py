@@ -60,7 +60,7 @@ class NotificationThread(DefaultFieldsModel):
             (object_type.value, object_type.name) for object_type in NotificationThreadObjectType
         ],
     )
-    object_id = BoundedBigIntegerField(null=True)
+    object_id = BoundedBigIntegerField[int | None, int | None](null=True)
 
     provider_data = models.JSONField(default=dict)
 

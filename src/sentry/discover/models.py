@@ -97,7 +97,7 @@ class DiscoverSavedQuery(Model):
     version = models.IntegerField(null=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
-    visits = BoundedBigIntegerField(null=True, default=1)
+    visits = BoundedBigIntegerField[int | None, int | None](null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
     dataset = BoundedPositiveIntegerField(

@@ -131,6 +131,7 @@ from sentry.notifications.types import FineTuningAPIKey
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.models import ReplayRecordingSegment
+from sentry.rules.actions.base import EventAction
 from sentry.search.events.constants import (
     METRIC_FRUSTRATED_TAG_VALUE,
     METRIC_SATISFACTION_TAG_KEY,
@@ -202,7 +203,6 @@ if TYPE_CHECKING:
     from sentry.models.deletedteam import DeletedTeam
     from sentry.models.group import Group
     from sentry.models.team import Team
-    from sentry.plugins.base import Plugin
     from sentry.replays.lib.event_linking import EventLinkKafkaMessage
     from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
 
@@ -835,7 +835,7 @@ class AuthProviderTestCase(TestCase):
 
 class RuleTestCase(TestCase):
     @property
-    def rule_cls(self) -> type[Rule]:
+    def rule_cls(self) -> type[EventAction]:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def get_event(self) -> Event:
@@ -844,7 +844,7 @@ class RuleTestCase(TestCase):
     def get_group_event(self) -> GroupEvent:
         return GroupEvent.from_event(self.event, self.event.group)
 
-    def get_rule(self, **kwargs: Any) -> Rule:
+    def get_rule(self, **kwargs: Any) -> EventAction:
         kwargs.setdefault("project", self.project)
         kwargs.setdefault("data", {})
         return self.rule_cls(**kwargs)
@@ -927,7 +927,7 @@ class PermissionTestCase(TestCase):
 @requires_snuba
 class PluginTestCase(TestCase):
     @property
-    def plugin(self) -> Plugin:
+    def plugin(self) -> object:
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
 
     def setUp(self) -> None:

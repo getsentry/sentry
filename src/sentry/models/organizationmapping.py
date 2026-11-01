@@ -47,7 +47,9 @@ class OrganizationMapping(Model):
     idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
     cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
-    status = BoundedBigIntegerField(choices=OrganizationStatus.as_choices(), null=True)
+    status = BoundedBigIntegerField[int | None, int | None](
+        choices=OrganizationStatus.as_choices(), null=True
+    )
 
     # Replicated from the Organization.flags attribute
     allow_joinleave = models.BooleanField(default=False, db_default=False)

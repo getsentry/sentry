@@ -81,7 +81,9 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
         related_name="snapshot_comparisons_base_metrics",
     )
 
-    error_code = BoundedPositiveIntegerField(choices=ErrorCode.as_choices(), null=True)
+    error_code = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ErrorCode.as_choices(), null=True
+    )
     error_message = models.TextField(null=True)
 
     # Summary statistics
@@ -95,7 +97,7 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
 
     # Set once by the orchestrator after the plan is written and all chunk tasks dispatched.
     # NULL means orchestration did not finish; also the poll's done-counting denominator.
-    chunks_total = BoundedPositiveIntegerField(null=True)
+    chunks_total = BoundedPositiveIntegerField[int | None, int | None](null=True)
 
     chunks_done_indices = ArrayField(models.IntegerField(), default=list, db_default=[])
 

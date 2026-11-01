@@ -52,11 +52,11 @@ class GroupResolution(Model):
     # This release field represents the future release version associated with a group when the
     # user chooses "resolve in future release"
     future_release_version = models.CharField(max_length=DB_VERSION_LENGTH, null=True, blank=True)
-    type = BoundedPositiveIntegerField(
+    type = BoundedPositiveIntegerField[int | None, int | None](
         choices=((Type.in_next_release, "in_next_release"), (Type.in_release, "in_release")),
         null=True,
     )
-    actor_id = BoundedPositiveIntegerField(null=True)
+    actor_id = BoundedPositiveIntegerField[int | None, int | None](null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
     status = BoundedPositiveIntegerField(
         default=Status.pending,

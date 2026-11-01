@@ -382,11 +382,11 @@ class Dashboard(Model):
     )
     organization = FlexibleForeignKey("sentry.Organization")
     date_added = models.DateTimeField(default=timezone.now)
-    visits = BoundedBigIntegerField(null=True, default=1)
+    visits = BoundedBigIntegerField[int | None, int | None](null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     projects = models.ManyToManyField("sentry.Project", through=DashboardProject)
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
-    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    prebuilt_id = BoundedPositiveIntegerField[int | None, int | None](null=True, db_default=None)
 
     MAX_WIDGETS = 30
 

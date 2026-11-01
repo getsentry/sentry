@@ -89,7 +89,7 @@ class ExploreSavedQuery(DefaultFieldsModel):
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
     query = models.JSONField()
-    visits = BoundedBigIntegerField(null=True, default=1)
+    visits = BoundedBigIntegerField[int | None, int | None](null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     dataset = BoundedPositiveIntegerField(
         choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
@@ -97,10 +97,12 @@ class ExploreSavedQuery(DefaultFieldsModel):
     is_multi_query = models.BooleanField(default=False)
     # The corresponding prebuilt_id found in hardcoded prebuilt queries from src/sentry/explore/endpoints/explore_saved_queries.py
     # If the saved query is not a prebuilt query, this will be None
-    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    prebuilt_id = BoundedPositiveIntegerField[int | None, int | None](null=True, db_default=None)
     # The version of the prebuilt query. If the version found in the explore_saved_queries.py hardcoded list is greater, then the saved
     # query out of date and should be updated..
-    prebuilt_version = BoundedPositiveIntegerField(null=True, db_default=None)
+    prebuilt_version = BoundedPositiveIntegerField[int | None, int | None](
+        null=True, db_default=None
+    )
     # This field is to be used for the discover -> explore migration. This contains the reason why any part
     # of the saved query was changed so we can display our reasonings in the UI
     changed_reason = models.JSONField(null=True, default=None)
@@ -514,7 +516,7 @@ class ExploreSavedFormula(DefaultFieldsModel):
     # The corresponding prebuilt_id found in hardcoded prebuilt formulas from
     # src/sentry/explore/endpoints/organization_explore_formulas.py
     # If the saved query is not a prebuilt query, this will be None
-    prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
+    prebuilt_id = BoundedPositiveIntegerField[int | None, int | None](null=True, db_default=None)
     # Tombstone for prebuilts so we don't recreate them if a user decides to delete it
     prebuilt_deleted = models.BooleanField(db_default=False)
 
@@ -586,9 +588,11 @@ class ExploreSavedVariable(DefaultFieldsModel):
     # Making this 200 to match the max length of a tag
     name = models.CharField(max_length=200)
     # Where does this param go in the list of function arguments
-    order = BoundedPositiveIntegerField(null=True)
+    order = BoundedPositiveIntegerField[int | None, int | None](null=True)
     kind = BoundedPositiveIntegerField(choices=KindItemTypes.as_choices())
-    param_type = BoundedPositiveIntegerField(choices=ParamItemTypes.as_choices(), null=True)
+    param_type = BoundedPositiveIntegerField[int | None, int | None](
+        choices=ParamItemTypes.as_choices(), null=True
+    )
     # TODO(wmak): Should this be longer?
     value = models.CharField(max_length=200)
     explore_saved_formula = FlexibleForeignKey(

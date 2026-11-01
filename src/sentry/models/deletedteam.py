@@ -18,7 +18,7 @@ class DeletedTeam(DeletedEntry):
     name = models.CharField(max_length=64, null=True)
     slug = models.CharField(max_length=50, null=True)
 
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = BoundedBigIntegerField[int | None, int | None](null=True)
     organization_name = models.CharField(max_length=64, null=True)
     organization_slug = models.CharField(max_length=50, null=True)
 

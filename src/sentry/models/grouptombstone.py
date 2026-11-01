@@ -38,7 +38,7 @@ class GroupTombstone(Model):
     data: models.Field[dict[str, object] | None, dict[str, object] | None] = GzippedDictField(
         blank=True, null=True
     )
-    actor_id = BoundedPositiveIntegerField(null=True)
+    actor_id = BoundedPositiveIntegerField[int | None, int | None](null=True)
     times_seen = BoundedPositiveIntegerField(db_default=0)
     last_seen = models.DateTimeField(auto_now_add=True, null=True)
 

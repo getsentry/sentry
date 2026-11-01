@@ -18,7 +18,7 @@ class DataConditionAlertRuleTrigger(DefaultFieldsModel):
 
     __relocation_scope__ = RelocationScope.Organization
 
-    alert_rule_trigger_id = BoundedBigIntegerField(null=True)
+    alert_rule_trigger_id = BoundedBigIntegerField[int | None, int | None](null=True)
     data_condition = FlexibleForeignKey("workflow_engine.DataCondition")
 
     class Meta:

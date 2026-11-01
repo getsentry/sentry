@@ -29,7 +29,7 @@ class OrganizationIntegration(ReplicatedControlModel):
     integration = FlexibleForeignKey("sentry.Integration")
     config = models.JSONField(default=dict)
 
-    default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    default_auth_id = BoundedPositiveIntegerField[int | None, int | None](db_index=True, null=True)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices()
     )

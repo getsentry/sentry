@@ -427,7 +427,9 @@ class SnubaTSDB(DummyTSDB):
                 cast("Mapping[str, Sequence[int]]", keys_map)
             )
             keys_map["project_id"] = project_ids
-            forward, reverse = get_snuba_translators(keys_map, is_grouprelease)
+            forward, reverse = get_snuba_translators(
+                cast("Mapping[str, Sequence[int]]", keys_map), is_grouprelease
+            )
 
             # resolve filter_key values to the right values environment.id -> environment.name, etc.
             mapped_filter_conditions = []
@@ -488,7 +490,11 @@ class SnubaTSDB(DummyTSDB):
         if group_on_time:
             keys_map["time"] = series
 
-        self.zerofill(result, groupby, cast("Mapping[str, Sequence[object] | None]", keys_map))
+        self.zerofill(
+            cast("TSDBResult", result),
+            groupby,
+            cast("Mapping[str, Sequence[object] | None]", keys_map),
+        )
         self.trim(result, groupby, keys)
 
         if group_on_time and manual_group_on_time:
@@ -642,15 +648,19 @@ class SnubaTSDB(DummyTSDB):
             else:
                 keys_map[group_on_time_column_alias] = series
 
-        self.zerofill(result, groupby, cast("Mapping[str, Sequence[object] | None]", keys_map))
+        self.zerofill(
+            cast("TSDBResult", result),
+            groupby,
+            cast("Mapping[str, Sequence[object] | None]", keys_map),
+        )
         self.trim(result, groupby, keys)
 
         if group_on_time and model_requires_manual_group_on_time:
             # unroll aggregated data
             self.unnest(result, aggregated_as)
-            return result
+            return cast("dict[str | int, TSDBResult | int]", result)
         else:
-            return result
+            return cast("dict[str | int, TSDBResult | int]", result)
 
     def zerofill(
         self,

@@ -817,7 +817,7 @@ def _get_project_config(
 
     with traces.start_span(name="get_public_config", attributes={"sentry.op": "get_public_config"}):
         now = datetime.now(timezone.utc)
-        cfg = {
+        cfg: dict[str, Any] = {  # justification: relay config is a dynamic JSON document.
             "disabled": False,
             "slug": project.slug,
             "lastFetch": now,

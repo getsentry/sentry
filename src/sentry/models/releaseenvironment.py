@@ -32,7 +32,7 @@ class ReleaseEnvironment(Model):
 
     organization = FlexibleForeignKey("sentry.Organization", db_index=True, db_constraint=False)
     # DEPRECATED
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedBigIntegerField[int | None, int | None](null=True)
     release = FlexibleForeignKey("sentry.Release", db_index=True, db_constraint=False)
     environment = FlexibleForeignKey("sentry.Environment", db_index=True, db_constraint=False)
     first_seen = models.DateTimeField(default=timezone.now)

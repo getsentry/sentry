@@ -168,7 +168,7 @@ class Repository(Model):
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), db_index=True
     )
     date_added = models.DateTimeField(default=timezone.now)
-    integration_id = BoundedPositiveIntegerField(db_index=True, null=True)
+    integration_id = BoundedPositiveIntegerField[int | None, int | None](db_index=True, null=True)
     languages = ArrayField(models.TextField(), default=list)
 
     objects: ClassVar[RepositoryManager] = RepositoryManager()
