@@ -54,7 +54,7 @@ old_get_tags = get_tags
 def fake_get_tags(
     event_for_tags: Event | GroupEvent | None,
     tags: set[str] | list[tuple[str]] | None,
-) -> Sequence[Mapping[str, str | bool]]:
+) -> Sequence[Mapping[str, str | bool | None]]:
     return old_get_tags(event_for_tags, None)
 
 

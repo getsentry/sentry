@@ -4,7 +4,7 @@ import logging
 import random
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, MutableMapping
 from typing import Any
 from urllib.parse import parse_qsl
 
@@ -36,6 +36,7 @@ REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://[^?]+(?:\?(\S+
 error_processors: dict[str, Processor] = {}
 
 
+# justification: decoded javascript JSON
 ProcessorFunc = Callable[[dict[str, Any], re.Match[str], dict[str, Any]], bool]
 
 
@@ -76,7 +77,7 @@ class Processor:
             return cached_rv
         return data
 
-    def try_process(self, exc: dict[str, Any]) -> bool:
+    def try_process(self, exc: dict[str, Any]) -> bool:  # justification: decoded javascript JSON
         if not exc.get("value"):
             return False
         match = self.regex.search(exc["value"])
@@ -99,7 +100,10 @@ def minified_error(vendor: str, mapping_url: str, regex: str) -> Callable[[Proce
     regex=REACT_ERROR_REGEX,
 )
 def process_react_exception(
-    exc: dict[str, Any], match: re.Match[str], mapping: dict[str, str]
+    # justification: decoded javascript JSON
+    exc: dict[str, Any],
+    match: re.Match[str],
+    mapping: dict[str, str],
 ) -> bool:
     error_id, qs = match.groups()
     msg_format = mapping.get(error_id)
@@ -121,7 +125,8 @@ def process_react_exception(
     return True
 
 
-def rewrite_exception(data: dict[str, Any]) -> bool:
+# justification: decoded javascript JSON
+def rewrite_exception(data: MutableMapping[str, Any]) -> bool:
     """Rewrite an exception in an event if needed.  Updates the exception
     in place and returns `True` if a modification was performed or `False`
     otherwise.

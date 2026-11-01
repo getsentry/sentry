@@ -11,6 +11,7 @@ from sentry.utils.safe import get_path
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
 
 
+# justification: decoded JSON
 def upgrade_legacy_mechanism(data: dict[str, Any] | None) -> dict[str, Any] | None:
     """
     Conversion from mechanism objects sent by old sentry-cocoa SDKs. It assumes
@@ -128,7 +129,7 @@ class Mechanism(Interface):
     """
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         for key in (
             "type",
             "synthetic",
@@ -146,7 +147,7 @@ class Mechanism(Interface):
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "type": self.type,
@@ -173,6 +174,7 @@ class Mechanism(Interface):
         return f"{type(self).__name__} -> id:{self.exception_id}, parent_id:{self.parent_id}, source:{self.source}, type:{self.type}"
 
 
+# justification: decoded JSON
 def uncontribute_non_stacktrace_variants(variants: dict[str, Any]) -> dict[str, Any]:
     """If we have multiple variants and at least one has a stacktrace, we
     want to mark all non stacktrace variants non contributing.  The reason
@@ -237,7 +239,7 @@ class SingleException(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         if get_path(data, "stacktrace", "frames", filter=True):
             stacktrace = Stacktrace.to_python(data["stacktrace"])
         else:
@@ -274,7 +276,7 @@ class SingleException(Interface):
 
         return super().to_python(new_data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         mechanism = (
             isinstance(self.mechanism, Mechanism)
             and self.mechanism.to_json()
@@ -309,7 +311,7 @@ class SingleException(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
         mechanism = (
             isinstance(self.mechanism, Mechanism)
             and self.mechanism.get_api_context(is_public=is_public, platform=platform)
@@ -343,8 +345,12 @@ class SingleException(Interface):
         }
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         mechanism_meta = (
             self.mechanism.get_api_meta(meta["mechanism"], is_public=is_public, platform=platform)
             if isinstance(self.mechanism, Mechanism) and meta.get("mechanism")
@@ -425,7 +431,7 @@ class Exception(Interface):
         return len(self.exceptions())
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         values = []
         for i, v in enumerate(get_path(data, "values", default=[])):
             if not v:
@@ -439,7 +445,7 @@ class Exception(Interface):
     # TODO(ja): Fix all following methods when to_python is refactored. All
     # methods below might throw if None exceptions are in ``values``.
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "values": [v and v.to_json() for v in self.values] or None,
@@ -449,7 +455,7 @@ class Exception(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
         return {
             "values": [
                 v.get_api_context(is_public=is_public, platform=platform) for v in self.values if v
@@ -461,8 +467,12 @@ class Exception(Interface):
         }
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if not meta:
             return meta
 
@@ -480,7 +490,7 @@ class Exception(Interface):
 
         return {"values": result}
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         if not self.values:
             return ""
 
@@ -501,7 +511,7 @@ class Exception(Interface):
 
     def get_stacktrace(
         self,
-        event: Any,
+        event: Any,  # justification: decoded JSON
         system_frames: bool = True,
         newest_first: bool | None = None,
         max_frames: int | None = None,

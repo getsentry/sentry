@@ -20,8 +20,10 @@ NON_BUILTIN_PATH_REGEX = re.compile(r"^((app|webpack|[a-zA-Z]|https?):|/)")
 
 
 def _merge_frame_context(
-    new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]
-) -> dict[str, Any]:
+    # justification: decoded javascript JSON
+    new_frame: Mapping[str, Any],
+    symbolicated: Mapping[str, Any],  # justification: decoded javascript JSON
+) -> dict[str, Any]:  # justification: decoded javascript JSON
     new_frame = dict(new_frame)
     symbolicated = dict(symbolicated)
 
@@ -35,6 +37,7 @@ def _merge_frame_context(
     return new_frame
 
 
+# justification: decoded javascript JSON
 def _merge_frame(new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]) -> dict[str, Any]:
     new_frame = dict(new_frame)
     symbolicated = dict(symbolicated)
@@ -72,6 +75,7 @@ def _merge_frame(new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]) 
 
 
 # TODO: Change this error handling to be JS-specific?
+# justification: decoded javascript JSON
 def _handle_response_status(event_data: Any, response_json: Any) -> bool | None:
     if not response_json:
         error = SymbolicationFailed(type=EventErrorType.NATIVE_INTERNAL_FAILURE)
@@ -90,7 +94,7 @@ def _handle_response_status(event_data: Any, response_json: Any) -> bool | None:
     return None
 
 
-def is_sourcemap_image(image: Any) -> bool:
+def is_sourcemap_image(image: Any) -> bool:  # justification: decoded javascript JSON
     return (
         bool(image)
         and image.get("type") == "sourcemap"
@@ -99,6 +103,7 @@ def is_sourcemap_image(image: Any) -> bool:
     )
 
 
+# justification: decoded javascript JSON
 def sourcemap_images_from_data(data: Mapping[str, Any]) -> list[dict[str, Any]]:
     return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
 
@@ -110,8 +115,8 @@ def should_skip_missing_source_error(abs_path: str) -> bool:
 
 
 def map_symbolicator_process_js_errors(
-    errors: Sequence[dict[str, Any]] | None,
-) -> list[dict[str, Any]]:
+    errors: Sequence[dict[str, Any]] | None,  # justification: decoded javascript JSON
+) -> list[dict[str, Any]]:  # justification: decoded javascript JSON
     if errors is None:
         return []
 
@@ -176,6 +181,7 @@ def map_symbolicator_process_js_errors(
     return mapped_errors
 
 
+# justification: decoded javascript JSON
 def _handles_frame(frame: Mapping[str, Any], data: Mapping[str, Any]) -> bool:
     abs_path = frame.get("abs_path")
     platform = frame.get("platform") or data.get("platform", "unknown")
@@ -208,6 +214,7 @@ def _is_built_in(abs_path: str, platform: str | None) -> bool:
 
 
 # We want to make sure that some specific frames are always marked as non-inapp prior to going into grouping.
+# justification: decoded javascript JSON
 def _normalize_nonhandled_frame(frame: dict[str, Any], data: Mapping[str, Any]) -> dict[str, Any]:
     abs_path = frame.get("abs_path")
 
@@ -220,7 +227,7 @@ def _normalize_nonhandled_frame(frame: dict[str, Any], data: Mapping[str, Any]) 
 FRAME_FIELDS = ("platform", "abs_path", "lineno", "colno", "function")
 
 
-def _normalize_frame(raw_frame: Any) -> dict[str, Any]:
+def _normalize_frame(raw_frame: Any) -> dict[str, Any]:  # justification: decoded javascript JSON
     frame = {}
     for key in FRAME_FIELDS:
         if (value := raw_frame.get(key)) is not None:
@@ -329,7 +336,7 @@ NODE_MODULES_RE = re.compile(r"\bnode_modules/")
 
 
 # Port from symbolicator-js
-def is_in_app(frame: Mapping[str, Any]) -> bool | None:
+def is_in_app(frame: Mapping[str, Any]) -> bool | None:  # justification: decoded javascript JSON
     """
     Determine if a frame is part of the application code.
     Returns None if we can't determine, otherwise returns a boolean.

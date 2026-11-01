@@ -280,7 +280,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
         assert event_from_nodestore.culprit == event_from_snuba.culprit
 
         user_from_nodestore = event_from_nodestore.get_minimal_user()
-        user_from_nodestore = User.to_python(
+        user_from_nodestore_comparison = User.to_python(
             {
                 "id": user_from_nodestore._data.get("id"),
                 "email": user_from_nodestore._data.get("email"),
@@ -288,7 +288,8 @@ class EventTest(TestCase, PerformanceIssueTestCase):
                 "ip_address": user_from_nodestore._data.get("ip_address"),
             }
         )
-        assert user_from_nodestore == event_from_snuba.get_minimal_user()
+        assert user_from_nodestore_comparison is not None
+        assert user_from_nodestore_comparison == event_from_snuba.get_minimal_user()
 
         assert event_from_nodestore.ip_address == event_from_snuba.ip_address
         assert event_from_nodestore.tags == event_from_snuba.tags

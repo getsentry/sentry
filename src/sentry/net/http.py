@@ -35,7 +35,11 @@ class SafeConnectionMixin:
     port: int
 
     def __init__(
-        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        *args: Any,  # justification: requests-style args
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        **kwargs: Any,  # justification: requests-style args
     ) -> None:
         self.is_ipaddress_permitted = is_ipaddress_permitted
         super().__init__(*args, **kwargs)
@@ -117,7 +121,11 @@ class SafeHTTPConnectionPool(HTTPConnectionPool):
     ConnectionCls = SafeHTTPConnection
 
     def __init__(
-        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        *args: Any,  # justification: requests-style args
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        **kwargs: Any,  # justification: requests-style args
     ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = cast(
@@ -130,7 +138,11 @@ class SafeHTTPSConnectionPool(HTTPSConnectionPool):
     ConnectionCls = SafeHTTPSConnection
 
     def __init__(
-        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        *args: Any,  # justification: requests-style args
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        **kwargs: Any,  # justification: requests-style args
     ) -> None:
         super().__init__(*args, **kwargs)
         self.ConnectionCls = cast(
@@ -147,7 +159,11 @@ class SafePoolManager(PoolManager):
     """
 
     def __init__(
-        self, *args: Any, is_ipaddress_permitted: IsIpAddressPermitted = None, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        *args: Any,  # justification: requests-style args
+        is_ipaddress_permitted: IsIpAddressPermitted = None,
+        **kwargs: Any,  # justification: requests-style args
     ) -> None:
         PoolManager.__init__(self, *args, **kwargs)
         self.pool_classes_by_scheme = {
@@ -213,7 +229,7 @@ class TimeoutAdapter(HTTPAdapter):
             timeout = 10.0
         self.default_timeout: float = timeout
 
-    def send(self, *args: Any, **kwargs: Any) -> Response:
+    def send(self, *args: Any, **kwargs: Any) -> Response:  # justification: framework kwargs
         if kwargs.get("timeout") is None:
             kwargs["timeout"] = self.default_timeout
         return HTTPAdapter.send(self, *args, **kwargs)
@@ -223,7 +239,7 @@ USER_AGENT = f"sentry/{SENTRY_VERSION} (https://sentry.io)"
 
 
 class Session(_Session):
-    def request(self, *args: Any, **kwargs: Any) -> Response:
+    def request(self, *args: Any, **kwargs: Any) -> Response:  # justification: framework kwargs
         kwargs.setdefault("timeout", 30)
         response = _Session.request(self, *args, **kwargs)
         # requests' attempts to use chardet internally when no encoding is found
@@ -251,7 +267,7 @@ class SafeSession(Session):
 class UnixHTTPConnection(HTTPConnection):
     default_socket_options = []
 
-    def __init__(self, host: str, **kwargs: Any) -> None:
+    def __init__(self, host: str, **kwargs: Any) -> None:  # justification: framework kwargs
         # We're using the `host` as the socket path, but
         # urllib3 uses this host as the Host header by default.
         # If we send along the socket path as a Host header, this is
@@ -280,6 +296,7 @@ class UnixHTTPConnectionPool(HTTPConnectionPool):
         return f"{type(self).__name__}(host={self.host!r})"
 
 
+# justification: requests-style args
 def connection_from_url(endpoint: str, **kw: Any) -> HTTPConnectionPool:
     if endpoint[:1] == "/":
         return UnixHTTPConnectionPool(endpoint, **kw)

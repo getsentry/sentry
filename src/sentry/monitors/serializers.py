@@ -41,9 +41,9 @@ class MonitorEnvBrokenDetectionSerializer(Serializer[MonitorEnvBrokenDetectionSe
     def serialize(
         self,
         obj: MonitorEnvBrokenDetection,
-        attrs: Mapping[Any, Any],
-        user: Any,
-        **kwargs: Any,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> MonitorEnvBrokenDetectionSerializerResponse:
         return {
             "userNotifiedTimestamp": obj.user_notified_timestamp,
@@ -75,7 +75,12 @@ class MonitorIncidentSerializer(Serializer[MonitorIncidentSerializerResponse]):
         }
 
     def serialize(
-        self, obj: MonitorIncident, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        obj: MonitorIncident,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> MonitorIncidentSerializerResponse:
         return {
             "startingTimestamp": obj.starting_timestamp,
@@ -146,7 +151,12 @@ class MonitorEnvironmentSerializer(Serializer[MonitorEnvironmentSerializerRespon
         }
 
     def serialize(
-        self, obj: MonitorEnvironment, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        obj: MonitorEnvironment,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> MonitorEnvironmentSerializerResponse:
         environment = attrs["environment"]
         return {
@@ -197,8 +207,12 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
         self.environments = environments
 
     def get_attrs(
-        self, item_list: Sequence[Monitor], user: Any, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
+        # justification: framework kwargs
+        self,
+        item_list: Sequence[Monitor],
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
+    ) -> MutableMapping[Any, Any]:  # justification: serializer API
         # TODO(dcramer): assert on relations
         projects = Project.objects.filter(id__in=[i.project_id for i in item_list])
         projects_data = {
@@ -286,7 +300,12 @@ class MonitorSerializer(Serializer[MonitorSerializerResponse]):
         }
 
     def serialize(
-        self, obj: Monitor, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        obj: Monitor,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> MonitorSerializerResponse:
         config = obj.config.copy()
         if "schedule_type" in config:
@@ -344,8 +363,12 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         self.project_id = project_id
 
     def get_attrs(
-        self, item_list: Sequence[MonitorCheckIn], user: Any, **kwargs: Any
-    ) -> MutableMapping[Any, Any]:
+        # justification: framework kwargs
+        self,
+        item_list: Sequence[MonitorCheckIn],
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
+    ) -> MutableMapping[Any, Any]:  # justification: serializer API
         # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment")
 
@@ -401,7 +424,11 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         return attrs
 
     def serialize(
-        self, obj: MonitorCheckIn, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        self,
+        obj: MonitorCheckIn,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> MonitorCheckInSerializerResponse:
         monitor_config = attrs["monitor_config"]
         config = monitor_config.copy() if monitor_config else {}
@@ -440,8 +467,8 @@ class CheckinProcessingErrorSerializer(Serializer[CheckinProcessingErrorData]):
     def serialize(
         self,
         obj: CheckinProcessingError,
-        attrs: Mapping[Any, Any],
-        user: Any,
-        **kwargs: Any,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> CheckinProcessingErrorData:
         return obj.to_dict()

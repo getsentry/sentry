@@ -12,6 +12,7 @@ from sentry.utils.safe import get_path, safe_urlencode
 from sentry.web.helpers import render_to_string
 
 
+# justification: decoded JSON
 def format_headers(value: Any) -> tuple[list[tuple[str, str]], str | None] | tuple[()]:
     if not value:
         return ()
@@ -38,6 +39,7 @@ def format_headers(value: Any) -> tuple[list[tuple[str, str]], str | None] | tup
     return result, cookie_header
 
 
+# justification: decoded JSON
 def format_cookies(value: Any) -> list[tuple[str | bytes, str | bytes]] | tuple[()]:
     if not value:
         return ()
@@ -101,7 +103,7 @@ class Http(Interface):
     FORM_TYPE = "application/x-www-form-urlencoded"
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         data.setdefault("query_string", [])
         for key in (
             "api_target",
@@ -118,7 +120,7 @@ class Http(Interface):
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "apiTarget": self.api_target,
@@ -144,7 +146,7 @@ class Http(Interface):
                 url = url + "#" + self.fragment
         return url
 
-    def to_email_html(self, event: Any, **kwargs: Any) -> str:
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs
         return render_to_string(
             "sentry/partial/interfaces/http_email.html",
             {
@@ -162,7 +164,7 @@ class Http(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
         if is_public:
             return {}
 
@@ -189,8 +191,12 @@ class Http(Interface):
         return data
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if is_public:
             return None
 

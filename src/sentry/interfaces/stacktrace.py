@@ -149,7 +149,7 @@ class Frame(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         for key in (
             "abs_path",
             "colno",
@@ -182,7 +182,7 @@ class Frame(Interface):
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "abs_path": self.abs_path or None,
@@ -219,7 +219,7 @@ class Frame(Interface):
         is_public: bool = False,
         platform: str | None = None,
         pad_addr: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any]:  # justification: decoded JSON
         from sentry.stacktraces.functions import (
             get_function_name_for_frame,
             get_source_link_for_frame,
@@ -227,7 +227,7 @@ class Frame(Interface):
 
         function = get_function_name_for_frame(self, platform)
         source_link = get_source_link_for_frame(self)
-        data: dict[str, Any] = {
+        data: dict[str, Any] = {  # justification: decoded JSON
             "filename": self.filename,
             "absPath": self.abs_path,
             "module": self.module,
@@ -285,8 +285,12 @@ class Frame(Interface):
         return data
 
     def get_meta_context(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if not meta:
             return None
 
@@ -353,7 +357,7 @@ class Frame(Interface):
         # queries and JSON data)
         return self.function.startswith(("lambda$", "[Anonymous"))
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         if event.platform is not None:
             choices = [event.platform]
         else:
@@ -481,7 +485,7 @@ class Stacktrace(Interface):
         return iter(self.frames)
 
     @classmethod
-    def to_python(cls, data: Mapping[str, Any]) -> Self | None:
+    def to_python(cls, data: Mapping[str, Any]) -> Self | None:  # justification: decoded JSON
         data = dict(data)
         frame_list = []
         for i, f in enumerate(data.get("frames") or []):
@@ -511,7 +515,7 @@ class Stacktrace(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
         longest_addr = self.get_longest_address()
 
         frame_list = [
@@ -527,8 +531,12 @@ class Stacktrace(Interface):
         }
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if not meta:
             return meta
 
@@ -546,7 +554,7 @@ class Stacktrace(Interface):
             "registers": meta.get("registers"),
         }
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "frames": [f and f.to_json() for f in self.frames] or None,
@@ -555,12 +563,12 @@ class Stacktrace(Interface):
             }
         )
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         return self.get_stacktrace(event, system_frames=False, max_frames=10)
 
     def get_stacktrace(
         self,
-        event: Any,
+        event: Any,  # justification: decoded JSON
         system_frames: bool = True,
         newest_first: bool | None = None,
         max_frames: int | None = None,

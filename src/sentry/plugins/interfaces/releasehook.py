@@ -52,7 +52,10 @@ class ReleaseHook:
             release = Release.objects.get(organization_id=project.organization_id, version=version)
         release.add_project(project)
 
-        release.set_commits(commit_list)
+        if isinstance(commit_list, list):
+            release.set_commits(commit_list)
+        else:
+            release.set_commits(list(commit_list))
 
     def set_refs(self, release: Release, **values: Unpack[_ReleaseValues]) -> None:
         pass

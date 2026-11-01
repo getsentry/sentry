@@ -65,27 +65,32 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             return Response(as_validation_errors(serializer), status=400)
 
         current_state = inbound_filters.get_filter_state(filter_id, project)
-        if isinstance(current_state, list):
-            current_state = set(current_state)
-
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
-        if isinstance(new_state, list):
-            new_state = set(new_state)
+        current_state_set = set(current_state) if isinstance(current_state, list) else None
+        new_state_set = set(new_state) if isinstance(new_state, list) else None
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
-        returned_state = None
+        returned_state: bool | str | list[str] | set[str] | None = None
         if filter_id == "legacy-browsers":
             if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state
                 if not new_state:
                     audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
-            elif current_state - new_state:
-                returned_state = current_state - new_state
+            elif (
+                current_state_set is not None
+                and new_state_set is not None
+                and current_state_set - new_state_set
+            ):
+                returned_state = current_state_set - new_state_set
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
-            elif new_state - current_state:
-                returned_state = new_state - current_state
+            elif (
+                current_state_set is not None
+                and new_state_set is not None
+                and new_state_set - current_state_set
+            ):
+                returned_state = new_state_set - current_state_set
 
             elif new_state == current_state:
                 returned_state = new_state
@@ -96,6 +101,8 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             FilterStatKeys.WEB_CRAWLER,
             FilterStatKeys.HEALTH_CHECK,
         ):
+            assert isinstance(current_state, bool)
+            assert isinstance(new_state, bool)
             returned_state = filter_id
             removed = current_state - new_state
 

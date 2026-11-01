@@ -19,12 +19,13 @@ context_types: dict[str, type[ContextType]] = {}
 
 
 class _IndexFormatter(string.Formatter):
-    def format_field(self, value: Any, format_spec: str) -> str:
+    def format_field(self, value: Any, format_spec: str) -> str:  # justification: decoded JSON
         if not format_spec and isinstance(value, bool):
             return value and "yes" or "no"
         return super().format_field(value, format_spec)
 
 
+# justification: decoded JSON
 def format_index_expr(format_string: str, data: Mapping[str, Any]) -> str:
     return str(_IndexFormatter().vformat(str(format_string), (), data).strip())
 
@@ -84,9 +85,9 @@ class ContextType:
     type: str
     """This should match the `type` key in context object"""
 
-    def __init__(self, alias: str, data: Mapping[str, Any]) -> None:
+    def __init__(self, alias: str, data: Mapping[str, Any]) -> None:  # justification: decoded JSON
         self.alias = alias
-        ctx_data: dict[str, Any] = {}
+        ctx_data: dict[str, Any] = {}  # justification: decoded JSON
         for key, value in data.items():
             # we use a simple check here, rather than ' in set()' to avoid
             # issues with maps/lists.
@@ -100,12 +101,13 @@ class ContextType:
                 ctx_data[force_str(key)] = self.change_type(value)
         self.data = ctx_data
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         rv = dict(self.data)
         rv["type"] = self.type
         return prune_empty_keys(rv)
 
     @classmethod
+    # justification: decoded JSON
     def values_for_data(cls, data: Mapping[str, Any]) -> list[Mapping[str, Any]]:
         rv = []
         for context in (data.get("contexts") or {}).values():
@@ -114,6 +116,7 @@ class ContextType:
         return rv
 
     @classmethod
+    # justification: decoded JSON
     def primary_value_for_data(cls, data: Mapping[str, Any]) -> Mapping[str, Any] | None:
         val = get_path(data, "contexts", cls.type)
         if val and val.get("type") == cls.type:
@@ -261,7 +264,7 @@ class Contexts(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         rv = {}
 
         # Note the alias is the key of the context entry
@@ -274,6 +277,7 @@ class Contexts(Interface):
         return super().to_python(rv)
 
     @classmethod
+    # justification: decoded JSON
     def normalize_context(cls, alias: str, data: Mapping[str, Any]) -> ContextType:
         ctx_type = data.get("type", alias)
         try:
@@ -288,7 +292,7 @@ class Contexts(Interface):
     def iter_contexts(self) -> Iterator[ContextType]:
         return iter(self._data.values())
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         rv = {}
         for alias, inst in self._data.items():
             rv[alias] = inst.to_json()

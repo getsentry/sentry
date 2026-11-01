@@ -137,7 +137,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> dict[DashboardWidget, dict[str, object]]:
-        result: dict[DashboardWidget, dict[str, Any]] = {}
+        result: dict[DashboardWidget, dict[str, Any]] = {}  # justification: serializer API
         data_sources = serialize(
             list(
                 DashboardWidgetQuery.objects.filter(widget_id__in=[i.id for i in item_list])
@@ -152,6 +152,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
 
         return result
 
+    # justification: serializer API
     def get_explore_urls(self, obj: DashboardWidget, attrs: Mapping[Any, Any]) -> list[str]:
         from sentry.explore.translation.dashboards_translation import (
             translate_dashboard_widget_queries,
@@ -324,7 +325,7 @@ class DashboardWidgetSerializer(Serializer[DashboardWidgetResponse]):
     def serialize(
         self,
         obj: DashboardWidget,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardWidgetResponse:
@@ -399,7 +400,7 @@ class DashboardWidgetQueryOnDemandSerializer(Serializer[OnDemandResponse]):
     def serialize(
         self,
         obj: DashboardWidgetQueryOnDemand,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> OnDemandResponse:
@@ -456,7 +457,7 @@ class DashboardWidgetQuerySerializer(Serializer[DashboardWidgetQueryResponse]):
     def serialize(
         self,
         obj: DashboardWidgetQuery,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardWidgetQueryResponse:
@@ -483,7 +484,7 @@ class DashboardPermissionsSerializer(Serializer[DashboardPermissionsResponse]):
     def serialize(
         self,
         obj: DashboardPermissions,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardPermissionsResponse:
@@ -679,7 +680,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
     def serialize(
         self,
         obj: Dashboard,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardListResponse:
@@ -772,7 +773,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     def serialize(
         self,
         obj: Dashboard,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardDetailsResponse:
@@ -829,7 +830,7 @@ class DashboardRevisionSerializer(Serializer[DashboardRevisionResponse]):
     def serialize(
         self,
         obj: DashboardRevision,
-        attrs: Mapping[Any, Any],
+        attrs: Mapping[Any, Any],  # justification: serializer API
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> DashboardRevisionResponse:

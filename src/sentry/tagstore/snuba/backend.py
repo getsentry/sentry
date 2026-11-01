@@ -117,6 +117,7 @@ def is_fuzzy_numeric_key(key: str) -> bool:
     return key in FUZZY_NUMERIC_KEYS or snuba.is_measurement(key) or snuba.is_span_op_breakdown(key)
 
 
+# justification: heterogeneous Snuba JSON
 def fix_tag_value_data(data: dict[str, Any]) -> dict[str, Any]:
     for key, transformer in tag_value_data_transformers.items():
         if key in data:
@@ -282,7 +283,7 @@ class SnubaTagStorage(TagStorage):
         group: Group,
         environment_id: int | None,
         limit: int | None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> GroupTagKey:
         """
         tag_key should be unformatted (i.e. "foo" rather than "tags[foo]")
@@ -398,9 +399,10 @@ class SnubaTagStorage(TagStorage):
         limit: int | None = 3,
         raise_on_empty: bool = True,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> GroupTagKey | TagKey:
         tag = self.format_string.format(key)
+        # justification: heterogeneous Snuba JSON
         filters: MutableMapping[str, Sequence[Any]] = {"project_id": get_project_list(project_id)}
         if environment_id:
             filters["environment"] = [environment_id]
@@ -566,7 +568,7 @@ class SnubaTagStorage(TagStorage):
         self,
         projects: Sequence[int],
         group: Group | None,
-        environments: Sequence[int] | None,
+        environments: Sequence[str | int] | None,
         start: datetime | None,
         end: datetime | None,
         limit: int | None = 1000,
@@ -574,7 +576,7 @@ class SnubaTagStorage(TagStorage):
         include_values_seen: bool = True,
         use_cache: bool = False,
         dataset: Dataset = Dataset.Discover,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> set[TagKey | GroupTagKey]:
         """Query snuba for tag keys based on projects
 
@@ -598,6 +600,7 @@ class SnubaTagStorage(TagStorage):
 
         aggregations = [["count()", "", "count"]]
 
+        # justification: heterogeneous Snuba JSON
         filters: MutableMapping[str, Sequence[Any]] = {"project_id": sorted(projects)}
         if environments:
             filters["environment"] = sorted(environments)
@@ -697,7 +700,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         status: int = TagKeyStatus.ACTIVE,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> GroupTagKey | TagKey:
         assert status is TagKeyStatus.ACTIVE
         return self.__get_tag_key_and_top_values(
@@ -711,7 +714,7 @@ class SnubaTagStorage(TagStorage):
         status: int = TagKeyStatus.ACTIVE,
         include_values_seen: bool = False,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> set[TagKey | GroupTagKey]:
         assert status is TagKeyStatus.ACTIVE
 
@@ -739,7 +742,7 @@ class SnubaTagStorage(TagStorage):
     def get_tag_keys_for_projects(
         self,
         projects: Sequence[int],
-        environments: Sequence[int] | None,
+        environments: Sequence[str] | None,
         start: datetime,
         end: datetime,
         dataset: Dataset = Dataset.Events,
@@ -809,7 +812,7 @@ class SnubaTagStorage(TagStorage):
         environment_id: int | None,
         key: str,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> GroupTagKey | TagKey:
         return self.__get_tag_key_and_top_values(
             group.project_id,
@@ -828,7 +831,7 @@ class SnubaTagStorage(TagStorage):
         limit: int | None = None,
         keys: list[str] | None = None,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> set[TagKey | GroupTagKey]:
         """Get tag keys for a specific group"""
         return self.__get_tag_keys(
@@ -851,8 +854,8 @@ class SnubaTagStorage(TagStorage):
         key: str,
         value: str,
         dataset: Dataset,
-        extra_conditions: list[Any],
-        extra_aggregations: list[Any],
+        extra_conditions: list[Any],  # justification: heterogeneous Snuba JSON
+        extra_aggregations: list[Any],  # justification: heterogeneous Snuba JSON
         referrer: str,
         tenant_ids: dict[str, int | str] | None = None,
     ) -> dict[int, GroupTagValue]:
@@ -1122,7 +1125,11 @@ class SnubaTagStorage(TagStorage):
             return {}
 
     def apply_group_filters(
-        self, group: Group | None, filters: MutableMapping[str, Sequence[Any]]
+        # justification: heterogeneous Snuba JSON
+        self,
+        group: Group | None,
+        filters: MutableMapping[str, Sequence[Any]],  # justification: heterogeneous Snuba JSON
+        # justification: heterogeneous Snuba JSON
     ) -> tuple[Dataset, MutableMapping[str, Sequence[Any]]]:
         dataset = Dataset.Events
         if group:
@@ -1138,7 +1145,7 @@ class SnubaTagStorage(TagStorage):
         key: str,
         tenant_ids: dict[str, str | int] | None = None,
     ) -> int:
-        filters: MutableMapping[str, Sequence[Any]] = {
+        filters: MutableMapping[str, Sequence[Any]] = {  # justification: heterogeneous Snuba JSON
             "project_id": get_project_list(group.project_id)
         }
         if environment_id:
@@ -1219,7 +1226,7 @@ class SnubaTagStorage(TagStorage):
         keys: list[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids: dict[str, int | str] | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> set[TagKey | GroupTagKey]:
         # Similar to __get_tag_key_and_top_values except we get the top values
         # for all the keys provided. value_limit in this case means the number
@@ -1318,7 +1325,7 @@ class SnubaTagStorage(TagStorage):
         self,
         dataset: Dataset,
         filters: MutableMapping[str, Sequence[Any]],
-        conditions: list[Any],
+        conditions: list[Any],  # justification: heterogeneous Snuba JSON
         keys_to_check: list[str],
         tenant_ids: dict[str, int | str] | None,
         start: datetime | None,
@@ -1552,7 +1559,7 @@ class SnubaTagStorage(TagStorage):
         start: datetime | None = None,
         end: datetime | None = None,
         dataset: Dataset = Dataset.Events,
-        extra_aggregations: list[Any] | None = None,
+        extra_aggregations: list[Any] | None = None,  # justification: heterogeneous Snuba JSON
         referrer: str = Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids: dict[str, int | str] | None = None,
     ) -> dict[int, int]:
@@ -2117,7 +2124,7 @@ class SnubaTagStorage(TagStorage):
                 projects, environments, query
             )
 
-        conditions: list[list[Any]] = []
+        conditions: list[list[Any]] = []  # justification: heterogeneous Snuba JSON
         project_slugs = {}
         # transaction status needs a special case so that the user interacts with the names and not codes
         transaction_status = snuba_key == "transaction_status"
@@ -2139,7 +2146,7 @@ class SnubaTagStorage(TagStorage):
                 conditions.append([snuba_key, ">=", converted_query - FUZZY_NUMERIC_DISTANCE])
                 conditions.append([snuba_key, "<=", converted_query + FUZZY_NUMERIC_DISTANCE])
         elif include_transactions and key == PROJECT_ALIAS:
-            project_filters: dict[str, Any] = {
+            project_filters: dict[str, Any] = {  # justification: heterogeneous Snuba JSON
                 "id__in": projects,
             }
             if query:
@@ -2495,15 +2502,19 @@ class SnubaFlagStorage(SnubaTagStorage):
     value_column = "flags_value"
     format_string = "flags[{}]"
 
+    # justification: framework kwargs
     def get_release_tags(self, *args: Any, **kwargs: Any) -> Never:
         raise NotImplementedError
 
+    # justification: framework kwargs
     def __get_groups_user_counts(self, *args: Any, **kwargs: Any) -> Never:
         raise NotImplementedError
 
+    # justification: framework kwargs
     def get_groups_user_counts(self, *args: Any, **kwargs: Any) -> Never:
         raise NotImplementedError
 
+    # justification: framework kwargs
     def get_generic_groups_user_counts(self, *args: Any, **kwargs: Any) -> Never:
         raise NotImplementedError
 

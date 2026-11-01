@@ -76,6 +76,7 @@ def resolve_activeorg_redirect_url(request: HttpRequest) -> str | None:
 
 
 class ReactMixin:
+    # justification: framework kwargs
     def meta_tags(self, request: HttpRequest, **kwargs: Any) -> dict[str, str]:
         return {}
 
@@ -96,7 +97,7 @@ class ReactMixin:
         request: HttpRequest,
         *,
         organization: Organization | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> HttpResponse:
         org_context = getattr(self, "active_organization", None)
         react_config = get_client_config(request, org_context)
@@ -199,6 +200,7 @@ class ReactMixin:
 # our tests frequently redirect to HTML views
 @control_silo_view
 class ReactPageView(ControlSiloOrganizationView, ReactMixin):
+    # justification: framework kwargs
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         # If user is a superuser (but not active, because otherwise this method would never be called)
         # Then allow client to handle the route and respond to any API request errors
@@ -209,12 +211,17 @@ class ReactPageView(ControlSiloOrganizationView, ReactMixin):
         return super().handle_auth_required(request, *args, **kwargs)
 
     def handle(
-        self, request: HttpRequest, organization: Organization, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        **kwargs: Any,  # justification: Django view args
     ) -> HttpResponse:
         return self.handle_react(request, organization=organization)
 
 
 @control_silo_view
 class GenericReactPageView(BaseView, ReactMixin):
+    # justification: framework kwargs
     def handle(self, request: HttpRequest, **kwargs: Any) -> HttpResponse:
         return self.handle_react(request, **kwargs)

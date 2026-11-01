@@ -1,7 +1,7 @@
 import functools
 import os
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from sentry.utils.safe import get_path
@@ -96,7 +96,8 @@ def translate_message(original_message: object) -> object:
             return format_message(translated_message, format_string_data)
 
 
-def translate_exception(data: dict[str, Any]) -> dict[str, Any]:
+# justification: decoded javascript JSON
+def translate_exception(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     message = get_path(data, "logentry", "message")
     if message:
         data["logentry"]["message"] = translate_message(message)

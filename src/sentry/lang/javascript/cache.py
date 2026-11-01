@@ -71,7 +71,7 @@ class SourceMapCache:
     """
 
     def __init__(self) -> None:
-        self._cache: dict[str, Any] = {}
+        self._cache: dict[str, Any] = {}  # justification: decoded javascript JSON
         self._mapping: dict[str, str] = {}
 
     def __contains__(self, sourcemap_url: str) -> bool:
@@ -80,12 +80,14 @@ class SourceMapCache:
     def link(self, url: str, sourcemap_url: str) -> None:
         self._mapping[url] = sourcemap_url
 
+    # justification: decoded javascript JSON
     def add(self, sourcemap_url: str, sourcemap_view: Any) -> None:
         self._cache[sourcemap_url] = sourcemap_view
 
-    def get(self, sourcemap_url: str) -> Any:
+    def get(self, sourcemap_url: str) -> Any:  # justification: decoded javascript JSON
         return self._cache.get(sourcemap_url)
 
+    # justification: decoded javascript JSON
     def get_link(self, url: str) -> tuple[str | None, Any | None]:
         sourcemap_url = self._mapping.get(url)
         if sourcemap_url:

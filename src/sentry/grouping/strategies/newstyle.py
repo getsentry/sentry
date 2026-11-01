@@ -646,7 +646,10 @@ def chained_exception(
     interface: ChainedException, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     # Get all the exceptions to consider.
-    all_exceptions = interface.exceptions()
+    all_exceptions: list[SingleException] = []
+    for exception in interface.exceptions():
+        assert exception is not None
+        all_exceptions.append(exception)
 
     # For each exception, create a dictionary of grouping components by variant name
     exception_components_by_exception = {

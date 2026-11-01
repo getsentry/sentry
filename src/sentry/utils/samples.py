@@ -94,7 +94,7 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
     if username is None and email is None:
         username = random_username()
         email = f"{username}@example.com"
-    return UserInterface.to_python(
+    user = UserInterface.to_python(
         {
             "id": id,
             "username": username,
@@ -103,7 +103,9 @@ def generate_user(username=None, email=None, ip_address=None, id=None):
             "name": name_for_username(username),
             "geo": random_geo(),
         }
-    ).to_json()
+    )
+    assert user is not None
+    return user.to_json()
 
 
 def load_data(

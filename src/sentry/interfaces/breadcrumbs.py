@@ -30,7 +30,7 @@ class Breadcrumbs(Interface):
     score = 800
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         values = []
         for index, crumb in enumerate(get_path(data, "values", filter=True, default=())):
             # TODO(ja): Handle already invalid and None breadcrumbs
@@ -38,7 +38,7 @@ class Breadcrumbs(Interface):
 
         return super().to_python({"values": values})
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "values": [
@@ -60,6 +60,7 @@ class Breadcrumbs(Interface):
         )
 
     @classmethod
+    # justification: decoded JSON
     def normalize_crumb(cls, crumb: Mapping[str, Any]) -> dict[str, Any]:
         crumb = dict(crumb)
         ts: datetime | None = parse_timestamp(crumb.get("timestamp"))
@@ -75,8 +76,8 @@ class Breadcrumbs(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
-        def _convert(x: Mapping[str, Any]) -> dict[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
+        def _convert(x: Mapping[str, Any]) -> dict[str, Any]:  # justification: decoded JSON
             return {
                 "type": x["type"],
                 "timestamp": x["timestamp"] and to_datetime(x["timestamp"]),
@@ -90,8 +91,12 @@ class Breadcrumbs(Interface):
         return {"values": [_convert(v) for v in self.values]}
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if meta and "values" not in meta:
             return {"values": meta}
         else:

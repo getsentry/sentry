@@ -243,7 +243,7 @@ class Organization(ReplicatedCellModel):
 
     snowflake_redis_key = "organization_snowflake_key"
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
+    def save(self, *args: Any, **kwargs: Any) -> None:  # justification: framework kwargs
         save_callback = lambda: super(Organization, self).save(*args, **kwargs)
         slugify_target = None
         if not self.slug:
@@ -281,6 +281,7 @@ class Organization(ReplicatedCellModel):
     def reserve_snowflake_id(cls) -> int:
         return generate_snowflake_id(cls.snowflake_redis_key)
 
+    # justification: framework kwargs
     def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         if self.is_default:
             raise Exception("You cannot delete the default organization.")
@@ -322,7 +323,7 @@ class Organization(ReplicatedCellModel):
         exists: bool = queryset.exists()
         return exists
 
-    def get_audit_log_data(self) -> dict[str, Any]:
+    def get_audit_log_data(self) -> dict[str, Any]:  # justification: Django hook payloads
         return {
             "id": self.id,
             "slug": self.slug,
@@ -445,7 +446,7 @@ class Organization(ReplicatedCellModel):
         self,
         roles: Collection[str],
         include_null_users: bool = False,
-    ) -> BaseQuerySet[Any]:
+    ) -> BaseQuerySet[Any]:  # justification: Django hook payloads
         members_with_role = self.member_set.filter(role__in=roles)
         if not include_null_users:
             members_with_role = members_with_role.filter(user_id__isnull=False, user_is_active=True)
@@ -459,6 +460,7 @@ class Organization(ReplicatedCellModel):
 
         return OrganizationOption.objects
 
+    # justification: Django hook payloads
     def _handle_requirement_change(self, request: Any, task: Any) -> None:
         from sentry.auth.principal import acting_user_id  # circular import
 
@@ -479,7 +481,7 @@ class Organization(ReplicatedCellModel):
             using=router.db_for_write(Organization),
         )
 
-    def handle_2fa_required(self, request: Any) -> None:
+    def handle_2fa_required(self, request: Any) -> None:  # justification: Django hook payloads
         from sentry.tasks.auth.auth import remove_2fa_non_compliant_members
 
         self._handle_requirement_change(request, remove_2fa_non_compliant_members)

@@ -68,7 +68,11 @@ def schedule_auto_resolution() -> None:
     silo_mode=SiloMode.CELL,
 )
 def auto_resolve_project_issues(
-    project_id: int, cutoff: int | None = None, chunk_size: int = 1000, **kwargs: Any
+    # justification: framework kwargs
+    project_id: int,
+    cutoff: int | None = None,
+    chunk_size: int = 1000,
+    **kwargs: Any,  # justification: Django view args
 ) -> None:
     project = Project.objects.get_from_cache(id=project_id)
     age = project.get_option("sentry:resolve_age", None)
@@ -82,7 +86,7 @@ def auto_resolve_project_issues(
     else:
         cutoff_dt = django_timezone.now() - timedelta(hours=int(age))
 
-    filter_conditions: dict[str, Any] = {
+    filter_conditions: dict[str, Any] = {  # justification: task kwargs
         "project": project,
         "last_seen__lte": cutoff_dt,
         "status": GroupStatus.UNRESOLVED,

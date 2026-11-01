@@ -42,19 +42,26 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             return AdminBroadcastSerializer
         return BroadcastSerializer
 
+    # justification: Django view args
     def _serialize_objects(self, items: Any, request: Request) -> Any:
         serializer_cls = self._get_serializer(request)
         return serialize(items, request.user, serializer=serializer_cls())
 
     def _secondary_filtering(
-        self, request: Request, organization_slug: RpcOrganization | str | None, queryset: Any
+        self,
+        request: Request,
+        organization_slug: RpcOrganization | str | None,
+        queryset: Any,  # justification: Django view args
     ) -> list[Broadcast]:
         # used in the SAAS product
         return list(queryset)
 
     def convert_args(
-        self, request: Request, *args: Any, **kwargs: Any
-    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        self,
+        request: Request,
+        *args: Any,  # justification: Django view args
+        **kwargs: Any,  # justification: framework kwargs
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:  # justification: Django view args
         organization_id_or_slug: int | str | None = None
         if args and args[0] is not None:
             organization_id_or_slug = args[0]
@@ -74,7 +81,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
         self,
         request: Request,
         organization: RpcOrganization | None = None,
-        **kwargs: Any,
+        **kwargs: Any,  # justification: framework kwargs
     ) -> Response:
         limit = None
         if request.GET.get("show") == "all" and request.access.has_permission("broadcasts.admin"):

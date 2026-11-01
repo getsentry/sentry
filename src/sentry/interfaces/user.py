@@ -42,7 +42,7 @@ class User(Interface):
     display_score = 2020
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         data = data.copy()
         for key in ("id", "email", "username", "ip_address", "name", "geo", "data"):
             data.setdefault(key, None)
@@ -51,7 +51,7 @@ class User(Interface):
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "id": self.id,
@@ -78,8 +78,12 @@ class User(Interface):
         }
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         return {
             "": meta.get(""),
             "id": meta.get("id"),
@@ -97,7 +101,7 @@ class User(Interface):
     def get_label(self) -> str | None:
         return self.name or self.email or self.username or self.id or self.ip_address
 
-    def to_email_html(self, event: Any, **kwargs: Any) -> str:
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs
         context = {
             "user_id": self.id,
             "user_email": self.email,

@@ -25,7 +25,7 @@ class DebugMeta(Interface):
     external_type = "debugmeta"
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         return super().to_python(
             {
                 "images": data.get("images", None) or [],
@@ -34,7 +34,7 @@ class DebugMeta(Interface):
             }
         )
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "images": self.images or None,

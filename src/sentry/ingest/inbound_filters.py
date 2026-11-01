@@ -90,7 +90,12 @@ def get_all_filter_specs() -> tuple[_FilterSpec, ...]:
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id: str, project: Project, state: Mapping[str, Any] | None) -> object:
+def set_filter_state(
+    # justification: decoded filter state JSON
+    filter_id: str,
+    project: Project,
+    state: Mapping[str, Any] | None,  # justification: decoded filter state JSON
+) -> bool | list[str]:
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -99,7 +104,7 @@ def set_filter_state(filter_id: str, project: Project, state: Mapping[str, Any] 
         if state is None:
             state = {}
 
-        option_val: object = "0"
+        option_val: str | list[str] = "0"
         if "active" in state:
             if state["active"]:
                 option_val = "1"
@@ -110,7 +115,9 @@ def set_filter_state(filter_id: str, project: Project, state: Mapping[str, Any] 
             project=project, key=f"filters:{filter_id}", value=option_val
         )
 
-        return option_val == "1" if option_val in ("0", "1") else option_val
+        if isinstance(option_val, list):
+            return option_val
+        return option_val == "1"
 
     else:
         # all boolean filters
@@ -129,7 +136,7 @@ def set_filter_state(filter_id: str, project: Project, state: Mapping[str, Any] 
         return state.get("active", False)
 
 
-def get_filter_state(filter_id: str, project: Project) -> bool | str:
+def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
     """
     Returns the filter state
 

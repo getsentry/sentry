@@ -35,6 +35,7 @@ class MailgunInboundWebhookView(View):
         )
 
     @method_decorator(csrf_exempt)
+    # justification: framework kwargs
     def dispatch(self, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(*args, **kwargs)
 

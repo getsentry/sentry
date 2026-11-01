@@ -53,10 +53,11 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
         organization: Organization | RpcOrganization,
         projects: Sequence[Project],
         environments: Sequence[Environment] | None,
+        # justification: heterogeneous query values
         extra_query_kwargs: dict[str, Any] | None = None,
     ) -> int:
         with traces.start_span(name="_count", attributes={"sentry.op": "_count"}):
-            query_kwargs: dict[str, Any] = {
+            query_kwargs: dict[str, Any] = {  # justification: heterogeneous query values
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
             }

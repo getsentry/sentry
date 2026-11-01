@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from functools import cached_property
+from typing import cast
 from unittest import mock
 from uuid import uuid4
 
@@ -23,7 +24,7 @@ from sentry.services.eventstore.models import Event
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.tagstore.exceptions import GroupTagKeyNotFound, TagKeyNotFound
 from sentry.tagstore.snuba.backend import SnubaTagStorage
-from sentry.tagstore.types import GroupTagValue, TagValue
+from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import (
     OccurrenceTestCase,
@@ -187,6 +188,20 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         assert group_info is not None
         return group_info.group, env
 
+    @staticmethod
+    def tag_key_top_values(tag: TagKey | GroupTagKey) -> tuple[GroupTagValue, ...]:
+        assert isinstance(tag, GroupTagKey)
+        assert tag.top_values is not None
+        return tag.top_values
+
+    @staticmethod
+    def group_tag_values(
+        values: tuple[TagValue, ...] | tuple[GroupTagValue, ...] | None,
+    ) -> tuple[GroupTagValue, ...]:
+        assert values is not None
+        assert all(isinstance(value, GroupTagValue) for value in values)
+        return cast("tuple[GroupTagValue, ...]", values)
+
     def test_get_group_tag_keys_and_top_values(self) -> None:
         result = list(
             self.ts.get_group_tag_keys_and_top_values(
@@ -208,12 +223,12 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "baz"
-        assert result[0].top_values[0].value == "quux"
+        assert self.tag_key_top_values(result[0])[0].value == "quux"
         assert result[0].count == 2
 
         assert result[5].key == "sentry:release"
         assert result[5].count == 2
-        top_release_values = result[5].top_values
+        top_release_values = self.tag_key_top_values(result[5])
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -232,10 +247,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "environment"
-        assert result[0].top_values[0].value == "test"
+        assert self.tag_key_top_values(result[0])[0].value == "test"
 
         assert result[1].key == "sentry:release"
-        top_release_values = result[1].top_values
+        top_release_values = self.tag_key_top_values(result[1])
         assert len(top_release_values) == 2
         assert {v.value for v in top_release_values} == {"100", "200"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -274,13 +289,13 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
         # Include-empty-values may surface "" alongside "baz"; don't rely on order
-        biz_values = {tv.value: tv.times_seen for tv in result[0].top_values}
+        biz_values = {tv.value: tv.times_seen for tv in self.tag_key_top_values(result[0])}
         assert biz_values.get("baz") == 1
         assert result[0].count == sum(biz_values.values())
 
         assert result[13].key == "sentry:release"
         assert result[13].count == 2
-        top_release_values = result[13].top_values
+        top_release_values = self.tag_key_top_values(result[13])
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
@@ -299,10 +314,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "environment"
-        assert result[0].top_values[0].value == "test"
+        assert self.tag_key_top_values(result[0])[0].value == "test"
 
         assert result[1].key == "sentry:release"
-        top_release_values = result[1].top_values
+        top_release_values = self.tag_key_top_values(result[1])
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 2 for v in top_release_values)
@@ -327,12 +342,12 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "biz"
-        assert result[0].top_values[0].value == "baz"
+        assert self.tag_key_top_values(result[0])[0].value == "baz"
         assert result[0].count == 1
 
         release = {r.key: r for r in result}["sentry:release"]
         assert release.count == 1
-        top_release_values = release.top_values
+        top_release_values = self.tag_key_top_values(release)
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 1 for v in top_release_values)
@@ -351,22 +366,24 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
         result.sort(key=lambda r: r.key)
         assert result[0].key == "environment"
-        assert result[0].top_values[0].value == "test"
+        assert self.tag_key_top_values(result[0])[0].value == "test"
 
         assert result[1].key == "sentry:release"
-        top_release_values = result[1].top_values
+        top_release_values = self.tag_key_top_values(result[1])
         assert len(top_release_values) == 1
         assert {v.value for v in top_release_values} == {"releaseme"}
         assert all(v.times_seen == 1 for v in top_release_values)
         # assert False
 
     def test_get_top_group_tag_values(self) -> None:
-        resp = self.ts.get_top_group_tag_values(
-            self.proj1group1,
-            self.proj1env1.id,
-            "foo",
-            1,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
+        resp = self.group_tag_values(
+            self.ts.get_top_group_tag_values(
+                self.proj1group1,
+                self.proj1env1.id,
+                "foo",
+                1,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
         )
         assert len(resp) == 1
         assert resp[0].times_seen == 2
@@ -376,12 +393,14 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
     def test_get_top_group_tag_values_perf(self) -> None:
         perf_group, env = self.perf_group_and_env
-        resp = self.ts.get_top_group_tag_values(
-            perf_group,
-            env.id,
-            "foo",
-            2,
-            tenant_ids={"referrer": "r", "organization_id": 1234},
+        resp = self.group_tag_values(
+            self.ts.get_top_group_tag_values(
+                perf_group,
+                env.id,
+                "foo",
+                2,
+                tenant_ids={"referrer": "r", "organization_id": 1234},
+            )
         )
         assert len(resp) == 2
         assert resp[0].times_seen == 1
@@ -395,8 +414,10 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
 
     def test_get_top_group_tag_values_generic(self) -> None:
         group, env = self.generic_group_and_env
-        resp = self.ts.get_top_group_tag_values(
-            group, env.id, "foo", 1, tenant_ids={"referrer": "r", "organization_id": 1234}
+        resp = self.group_tag_values(
+            self.ts.get_top_group_tag_values(
+                group, env.id, "foo", 1, tenant_ids={"referrer": "r", "organization_id": 1234}
+            )
         )
         assert len(resp) == 1
         assert resp[0].times_seen == 1
@@ -1240,31 +1261,33 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
             error_upsampling_group = event1.group
 
             # Test get_top_group_tag_values with error upsampling
-            resp = self.ts.get_top_group_tag_values(
-                error_upsampling_group,
-                self.proj1env1.id,
-                "custom_tag",
-                10,  # limit
-                tenant_ids={"referrer": "r", "organization_id": 1234},
+            resp = self.group_tag_values(
+                self.ts.get_top_group_tag_values(
+                    error_upsampling_group,
+                    self.proj1env1.id,
+                    "custom_tag",
+                    10,  # limit
+                    tenant_ids={"referrer": "r", "organization_id": 1234},
+                )
             )
 
             # Verify we get both tag values
             assert len(resp) == 2
 
             # Sort by times_seen descending to get consistent order
-            resp = sorted(resp, key=lambda x: x.times_seen, reverse=True)
+            sorted_resp = sorted(resp, key=lambda x: x.times_seen, reverse=True)
 
             # First tag value should be "alpha" with times_seen=10 (sample_weight)
-            assert resp[0].key == "custom_tag"
-            assert resp[0].value == "alpha"
-            assert resp[0].times_seen == 10
-            assert resp[0].group_id == error_upsampling_group.id
+            assert sorted_resp[0].key == "custom_tag"
+            assert sorted_resp[0].value == "alpha"
+            assert sorted_resp[0].times_seen == 10
+            assert sorted_resp[0].group_id == error_upsampling_group.id
 
             # Second tag value should be "beta" with times_seen=5 (sample_weight)
-            assert resp[1].key == "custom_tag"
-            assert resp[1].value == "beta"
-            assert resp[1].times_seen == 5
-            assert resp[1].group_id == error_upsampling_group.id
+            assert sorted_resp[1].key == "custom_tag"
+            assert sorted_resp[1].value == "beta"
+            assert sorted_resp[1].times_seen == 5
+            assert sorted_resp[1].group_id == error_upsampling_group.id
 
             # Also test get_group_tag_value_count for total count
             total_count = self.ts.get_group_tag_value_count(
@@ -2127,12 +2150,13 @@ class TestEAPTagStorageQueries(TestCase, SnubaTestCase, OccurrenceTestCase):
         )
 
         assert group.id in eap_result
-        assert eap_result[group.id].times_seen == 2
-        assert eap_result[group.id].key == "environment"
-        assert eap_result[group.id].value == env.name
-        assert eap_result[group.id].first_seen is not None
-        assert eap_result[group.id].last_seen is not None
-        assert eap_result[group.id].first_seen <= eap_result[group.id].last_seen
+        tag_value = eap_result[group.id]
+        assert tag_value.times_seen == 2
+        assert tag_value.key == "environment"
+        assert tag_value.value == env.name
+        assert tag_value.first_seen is not None
+        assert tag_value.last_seen is not None
+        assert tag_value.first_seen <= tag_value.last_seen
 
     @freeze_time(FROZEN_TIME)
     def test_eap_group_list_tag_value_empty_result(self) -> None:

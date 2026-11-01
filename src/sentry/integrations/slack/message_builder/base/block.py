@@ -50,7 +50,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_tags_block(
-        tags: Sequence[Mapping[str, str | bool]], block_id: dict[str, Any] | None = None
+        tags: Sequence[Mapping[str, str | bool | None]], block_id: dict[str, Any] | None = None
     ) -> SlackBlock:
         text = ""
         for tag in tags:

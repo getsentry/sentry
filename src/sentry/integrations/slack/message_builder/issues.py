@@ -167,7 +167,7 @@ def format_release_tag(value: str, event: Event | GroupEvent | None) -> str:
 def get_tags(
     event_for_tags: Event | GroupEvent | None,
     tags: set[str] | list[tuple[str]] | None = None,
-) -> Sequence[Mapping[str, str | bool]]:
+) -> Sequence[Mapping[str, str | bool | None]]:
     """Get tag keys and values for block kit"""
     fields = []
     if not tags:
@@ -186,6 +186,7 @@ def get_tags(
                 continue
             labeled_value = tagstore.backend.get_tag_value_label(key, value)
             if std_key == "release":
+                assert labeled_value is not None
                 labeled_value = format_release_tag(labeled_value, event_for_tags)
             fields.append(
                 {

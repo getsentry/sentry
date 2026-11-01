@@ -781,7 +781,7 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         create_release = should_auto_create_releases(project)
 
         try:
-            resolve_tags: dict[str, str] = {}
+            resolve_tags: dict[str, TagValue] = {}
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
@@ -974,7 +974,7 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
-        resolve_tags: dict[str, str] = {}
+        resolve_tags: dict[str, str | int] = {}
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,

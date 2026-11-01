@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import datetime
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
-from typing import Literal, NotRequired, TypedDict, cast
+from collections.abc import Collection, Mapping, Sequence
+from typing import TYPE_CHECKING, Literal, NotRequired, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -42,6 +42,9 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
+if TYPE_CHECKING:
+    from sentry.tagstore.types import TagValue
+
 
 class _ParsedVersion(TypedDict):
     major: int
@@ -52,34 +55,27 @@ class _ParsedVersion(TypedDict):
     components: int
 
 
-class _RawVersionInfo(TypedDict):
-    version_raw: str
-    version_parsed: _ParsedVersion | None
-    package: str | None
-    description: str
-    build_hash: str | None
-
-
-def expose_version_info(info: _RawVersionInfo | None) -> VersionInfo | None:
+def expose_version_info(info: Mapping[str, object] | None) -> VersionInfo | None:
     if info is None:
         return None
+    version_parsed = cast("_ParsedVersion | None", info["version_parsed"])
     version: dict[str, object] = {"raw": info["version_raw"]}
-    if info["version_parsed"]:
+    if version_parsed:
         version.update(
             {
-                "major": info["version_parsed"]["major"],
-                "minor": info["version_parsed"]["minor"],
-                "patch": info["version_parsed"]["patch"],
-                "pre": info["version_parsed"]["pre"],
-                "buildCode": info["version_parsed"]["build_code"],
-                "components": info["version_parsed"]["components"],
+                "major": version_parsed["major"],
+                "minor": version_parsed["minor"],
+                "patch": version_parsed["patch"],
+                "pre": version_parsed["pre"],
+                "buildCode": version_parsed["build_code"],
+                "components": version_parsed["components"],
             }
         )
     return {
-        "package": info["package"],
+        "package": cast("str | None", info["package"]),
         "version": version,
-        "description": info["description"],
-        "buildHash": info["build_hash"],
+        "description": cast(str, info["description"]),
+        "buildHash": cast("str | None", info["build_hash"]),
     }
 
 
@@ -498,6 +494,7 @@ class ReleaseSerializer(Serializer):
 
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
+        tag_values: Collection[TagValue]
         if no_snuba_for_release_creation:
             tag_values = []
         else:
@@ -509,6 +506,9 @@ class ReleaseSerializer(Serializer):
             )
 
         for tv in tag_values:
+            assert tv.value is not None
+            assert tv.first_seen is not None
+            assert tv.last_seen is not None
             first_val = first_seen.get(tv.value)
             last_val = last_seen.get(tv.value)
             first_seen[tv.value] = min(tv.first_seen, first_val) if first_val else tv.first_seen

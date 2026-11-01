@@ -79,9 +79,11 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsEndpointBase):
                 for row in facets:
                     values = resp[row.key]
                     values["key"] = tagstore.backend.get_standardized_key(row.key)
+                    name = tagstore.backend.get_tag_value_label(row.key, row.value)
+                    assert name is not None
                     values["topValues"].append(
                         {
-                            "name": tagstore.backend.get_tag_value_label(row.key, row.value),
+                            "name": name,
                             "value": row.value,
                             "count": row.count,
                         }

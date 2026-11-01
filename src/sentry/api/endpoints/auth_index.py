@@ -139,6 +139,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
     and simple HTTP authentication.
     """
 
+    # justification: framework kwargs
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
         rv = super().initialize_request(request, *args, **kwargs)
         # Allow Bearer token authentication for GET (whoami) only.
@@ -363,6 +364,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         return self.get(request)
 
+    # justification: framework kwargs
     def delete(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         """
         Logout the Authenticated User

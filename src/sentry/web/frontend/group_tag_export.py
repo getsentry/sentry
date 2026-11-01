@@ -26,7 +26,7 @@ class GroupTagCsvResponder(CsvResponder[GroupTagValueAndEventUser]):
     def get_header(self) -> tuple[str, ...]:
         return tuple(IssuesByTagProcessor.get_header_fields(self.key))
 
-    def get_row(self, item: GroupTagValueAndEventUser) -> tuple[str, ...]:
+    def get_row(self, item: GroupTagValueAndEventUser) -> tuple[str | int | None, ...]:
         fields = IssuesByTagProcessor.get_header_fields(self.key)
         item_dict = IssuesByTagProcessor.serialize_row(item, self.key)
         return tuple(item_dict[field] for field in fields)

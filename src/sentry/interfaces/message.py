@@ -8,7 +8,7 @@ from sentry.interfaces.base import Interface
 from sentry.utils.json import prune_empty_keys
 
 
-def stringify(value: Any) -> str | bytes | None:
+def stringify(value: Any) -> str | bytes | None:  # justification: decoded JSON
     if isinstance(value, str):
         return value
 
@@ -38,16 +38,16 @@ class Message(Interface):
     external_type = "message"
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         for key in ("message", "formatted", "params"):
             data.setdefault(key, None)
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {"message": self.message, "formatted": self.formatted, "params": self.params or None}
         )
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         return self.formatted or self.message

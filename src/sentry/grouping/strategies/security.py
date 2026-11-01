@@ -81,6 +81,8 @@ def csp_v1(
     interface: Csp, event: BaseEvent, context: GroupingContext, **kwargs: Any
 ) -> ComponentsByVariant:
     variant_name = context["variant_name"]
+    normalized_blocked_uri = interface.normalized_blocked_uri
+    assert normalized_blocked_uri is not None
 
     violation_component = ViolationGroupingComponent()
     uri_component = URIGroupingComponent()
@@ -90,13 +92,13 @@ def csp_v1(
         uri_component.update(
             contributes=False,
             hint="ignored because violation takes precedence",
-            values=[interface.normalized_blocked_uri],
+            values=[normalized_blocked_uri],
         )
     else:
         violation_component.update(
             contributes=False, hint="ignored because it's not a local script violation"
         )
-        uri_component.update(values=[interface.normalized_blocked_uri])
+        uri_component.update(values=[normalized_blocked_uri])
 
     return {
         variant_name: CSPGroupingComponent(

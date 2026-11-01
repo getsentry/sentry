@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -1509,8 +1509,9 @@ def _raw_delete_query(
                 "snuba.referrer": referrer,
             },
         ):
-            return _snuba_pool.urlopen(
-                "DELETE", f"/{query.storage_name}", body=body, headers=headers
+            return cast(
+                urllib3.response.HTTPResponse,
+                _snuba_pool.urlopen("DELETE", f"/{query.storage_name}", body=body, headers=headers),
             )
 
 
@@ -1537,8 +1538,9 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
                 "snuba.referrer": referrer,
             },
         ):
-            return _snuba_pool.urlopen(
-                "POST", f"/{request.dataset}/mql", body=body, headers=headers
+            return cast(
+                urllib3.response.HTTPResponse,
+                _snuba_pool.urlopen("POST", f"/{request.dataset}/mql", body=body, headers=headers),
             )
 
 
@@ -1564,8 +1566,9 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
                 "snuba.referrer": referrer,
             },
         ):
-            return _snuba_pool.urlopen(
-                "POST", f"/{request.dataset}/snql", body=body, headers=headers
+            return cast(
+                urllib3.response.HTTPResponse,
+                _snuba_pool.urlopen("POST", f"/{request.dataset}/snql", body=body, headers=headers),
             )
 
 

@@ -88,18 +88,18 @@ class Interface:
             return False
         return self._data == getattr(other, "_data", None)
 
-    def __getstate__(self) -> dict[str, Any]:
+    def __getstate__(self) -> dict[str, Any]:  # justification: decoded JSON
         return {"_data": self._data}
 
-    def __setstate__(self, state: Mapping[str, Any]) -> None:
+    def __setstate__(self, state: Mapping[str, Any]) -> None:  # justification: decoded JSON
         self.__dict__.update(state)
         if not hasattr(self, "_data"):
             self._data = {}
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> Any:  # justification: decoded JSON
         return self._data[name]
 
-    def __setattr__(self, name: str, value: Any) -> None:
+    def __setattr__(self, name: str, value: Any) -> None:  # justification: decoded JSON
         if name == "_data":
             self.__dict__["_data"] = value
         else:
@@ -119,18 +119,22 @@ class Interface:
 
         return cls(data)
 
-    def get_raw_data(self) -> dict[str, Any]:
+    def get_raw_data(self) -> dict[str, Any]:  # justification: decoded JSON
         """Returns the underlying raw data."""
         return self._data
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
         return self.to_json()
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         return meta
 
     # justification: some interfaces serialize to an object and others to a list
@@ -149,10 +153,10 @@ class Interface:
     def iter_tags(self) -> Iterator[tuple[str, str]]:
         return iter(())
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         return ""
 
-    def to_email_html(self, event: Any, **kwargs: Any) -> str:
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs
         body = self.to_string(event)
         if not body:
             return ""

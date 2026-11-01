@@ -47,7 +47,7 @@ class GroupEnvironment(Model):
         cls,
         group_id: int,
         environment_id: int,
-        defaults: dict[str, Any] | None = None,
+        defaults: dict[str, Any] | None = None,  # justification: untyped model defaults
         metrics_tags: dict[str, str | int] | None = None,
     ) -> tuple[GroupEnvironment, bool]:
         cache_key = cls._get_cache_key(group_id, environment_id)

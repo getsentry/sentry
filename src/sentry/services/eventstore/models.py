@@ -216,9 +216,11 @@ class BaseEvent(metaclass=abc.ABCMeta):
             username = self._snuba_data[user_username_column]
             ip_address = self._snuba_data[user_ip_address_column]
 
-            return User.to_python(
+            user = User.to_python(
                 {"id": user_id, "email": email, "username": username, "ip_address": ip_address}
             )
+            assert user is not None
+            return user
 
         return self.get_interface("user")
 

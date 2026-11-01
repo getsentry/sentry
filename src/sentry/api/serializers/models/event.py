@@ -144,7 +144,7 @@ def get_entries(
         if not data and interface.path != "spans":
             continue
 
-        entry = {"data": data, "type": interface.external_type}
+        entry: dict[str, object] = {"data": data, "type": interface.external_type}
 
         api_meta = None
         if meta.get(key):

@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, TypedDict, cast, overload
 
 import orjson
 from django.contrib.postgres.fields.array import ArrayField
@@ -428,7 +428,9 @@ class Release(Model):
             return False
 
     @staticmethod
-    def is_release_newer_or_equal(org_id: int, release: Any, other_release: Any) -> bool:
+    def is_release_newer_or_equal(
+        org_id: int, release: str | None, other_release: str | None
+    ) -> bool:
         if release is None:
             return False
 
@@ -464,7 +466,7 @@ class Release(Model):
         )
 
     @classmethod
-    def get_cache_key(cls, organization_id: int, version: str) -> str:
+    def get_cache_key(cls, organization_id: int, version: str | None) -> str:
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
 
     @classmethod
@@ -472,7 +474,7 @@ class Release(Model):
         return f"releasecommits:{organization_id}:{release_id}"
 
     @classmethod
-    def get(cls, project: Project, version: str) -> Release | None:
+    def get(cls, project: Project, version: str | None) -> Release | None:
         cache_key = cls.get_cache_key(project.organization_id, version)
 
         release: Release | int | None = cache.get(cache_key)
@@ -489,6 +491,42 @@ class Release(Model):
             return None
 
         return cast("Release | None", release)
+
+    @overload
+    @classmethod
+    def get_or_create(
+        cls,
+        project: Project,
+        version: str,
+        date_added: datetime | None = None,
+        *,
+        create: Literal[True] = True,
+        metrics_tags: MutableMapping[str, str | int | float | None] | None = None,
+    ) -> Release: ...
+
+    @overload
+    @classmethod
+    def get_or_create(
+        cls,
+        project: Project,
+        version: str,
+        date_added: datetime | None = None,
+        *,
+        create: Literal[False],
+        metrics_tags: MutableMapping[str, str | int | float | None] | None = None,
+    ) -> Release | None: ...
+
+    @overload
+    @classmethod
+    def get_or_create(
+        cls,
+        project: Project,
+        version: str,
+        date_added: datetime | None = None,
+        *,
+        create: bool,
+        metrics_tags: MutableMapping[str, str | int | float | None] | None = None,
+    ) -> Release | None: ...
 
     @classmethod
     def get_or_create(
@@ -604,7 +642,7 @@ class Release(Model):
         return release
 
     @cached_property
-    def version_info(self) -> dict[str, Any] | None:
+    def version_info(self) -> dict[str, Any] | None:  # justification: decoded release JSON
         try:
             return parse_release(self.version, json_loads=orjson.loads)
         except RelayError:
@@ -695,6 +733,7 @@ class Release(Model):
 
         return obj, created
 
+    # justification: decoded release JSON
     def handle_commit_ranges(self, refs: list[dict[str, Any]]) -> None:
         """
         Takes commit refs of the form:
@@ -711,7 +750,11 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(
-        self, refs: list[dict[str, Any]], user_id: int | None, fetch: bool = False
+        # justification: decoded release JSON
+        self,
+        refs: list[dict[str, Any]],  # justification: decoded release JSON
+        user_id: int | None,
+        fetch: bool = False,
     ) -> None:
         with traces.start_span(name="set_refs", attributes={"sentry.op": "set_refs"}):
             from sentry.api.exceptions import InvalidRepository
@@ -755,7 +798,7 @@ class Release(Model):
                 )
 
     @traces.trace
-    def set_commits(self, commit_list: list[Any]) -> None:
+    def set_commits(self, commit_list: list[Any]) -> None:  # justification: decoded release JSON
         """
         Bind a list of commits to this release.
 

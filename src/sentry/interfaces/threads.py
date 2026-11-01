@@ -9,6 +9,7 @@ from sentry.utils.safe import get_path, trim
 __all__ = ("Threads",)
 
 
+# justification: decoded JSON
 def get_stacktrace(value: Mapping[str, Any], path: Sequence[str | int]) -> Stacktrace | None:
     # Special case: if the thread has no frames we set the
     # stacktrace to none.  Otherwise this will fail really
@@ -24,8 +25,8 @@ class Threads(Interface):
     grouping_variants = ["system", "app"]
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
-        threads: list[dict[str, Any]] = []
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
+        threads: list[dict[str, Any]] = []  # justification: decoded JSON
 
         for i, thread in enumerate(data.get("values") or ()):
             if thread is None:
@@ -47,7 +48,8 @@ class Threads(Interface):
 
         return super().to_python({"values": threads})
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
+        # justification: decoded JSON
         def export_thread(data: Mapping[str, Any] | None) -> dict[str, Any] | None:
             if data is None:
                 return None
@@ -71,8 +73,8 @@ class Threads(Interface):
 
     def get_api_context(
         self, is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any]:
-        def export_thread(data: Mapping[str, Any]) -> dict[str, Any]:
+    ) -> Mapping[str, Any]:  # justification: decoded JSON
+        def export_thread(data: Mapping[str, Any]) -> dict[str, Any]:  # justification: decoded JSON
             rv = {
                 "id": data["id"],
                 "current": data["current"],
@@ -92,8 +94,12 @@ class Threads(Interface):
         return {"values": [export_thread(x) for x in self.values]}
 
     def get_meta_context(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         if meta and "values" not in meta:
             return {"values": meta}
         else:

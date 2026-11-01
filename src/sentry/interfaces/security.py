@@ -169,20 +169,20 @@ class Csp(SecurityReport):
     title = "CSP Report"
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         data.setdefault("document_uri", None)
         data.setdefault("violated_directive", None)
         data.setdefault("blocked_uri", None)
         data.setdefault("effective_directive", None)
         return super().to_python(data)
 
-    def to_string(self, event: Any) -> str:
+    def to_string(self, event: Any) -> str:  # justification: decoded JSON
         return orjson.dumps(
             {"csp-report": self.get_api_context()},
             option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
         ).decode()
 
-    def to_email_html(self, event: Any, **kwargs: Any) -> str:
+    def to_email_html(self, event: Any, **kwargs: Any) -> str:  # justification: framework kwargs
         return render_to_string(
             "sentry/partial/interfaces/csp_email.html", {"data": self.get_api_context()}
         )

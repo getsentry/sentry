@@ -74,7 +74,8 @@ class ProjectTagsEndpoint(ProjectEndpoint):
         except Environment.DoesNotExist:
             tag_keys = []
         else:
-            kwargs: dict[str, datetime.datetime] = {}
+            start: datetime.datetime | None = None
+            end: datetime.datetime | None = None
 
             # Flags are stored on the same table as tags but on a different column. Ideally both
             # could be queried in a single request. But at present we're not sure if we want to
@@ -93,8 +94,6 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                     default_start_end_dates(),
                     datetime.timedelta(days=options.get("visibility.tag-key-max-date-range.days")),
                 )
-                kwargs["start"] = start
-                kwargs["end"] = end
 
             tag_keys = sorted(
                 backend.get_tag_keys(
@@ -105,7 +104,8 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                     # is a pretty old endpoint, so concerned about breaking
                     # existing api consumers.
                     include_values_seen=include_values_seen,
-                    **kwargs,
+                    start=start,
+                    end=end,
                 ),
                 key=lambda x: x.key,
             )
@@ -118,6 +118,7 @@ class ProjectTagsEndpoint(ProjectEndpoint):
                 "canDelete": tag_key.key not in PROTECTED_TAG_KEYS and not use_flag_backend,
             }
             if include_values_seen:
+                assert tag_key.values_seen is not None
                 entry["uniqueValues"] = tag_key.values_seen
             data.append(entry)
 

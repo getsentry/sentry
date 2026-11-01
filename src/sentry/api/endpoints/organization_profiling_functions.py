@@ -47,11 +47,12 @@ class TrendType(Enum):
         raise ValueError(f"Unknown TrendType: {self.value}")
 
 
+# justification: decoded profiling JSON
 class TrendTypeField(serializers.Field[TrendType, Any, str, object]):
     def to_representation(self, trend_type: TrendType) -> str:
         return trend_type.value
 
-    def to_internal_value(self, data: Any) -> TrendType:
+    def to_internal_value(self, data: Any) -> TrendType:  # justification: decoded profiling JSON
         for trend_type in TrendType:
             if data == trend_type.value:
                 return trend_type
@@ -174,6 +175,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
 
             return results
 
+        # justification: decoded profiling JSON
         def get_trends_data(stats_data: Mapping[str, Any]) -> list[BreakpointData]:
             if not stats_data:
                 return []
@@ -242,12 +244,13 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase
             reverse=data["trend"] is TrendType.REGRESSION,
         )
 
+        # justification: decoded profiling JSON
         def paginate_trending_events(offset: int, limit: int) -> dict[str, Any]:
             return {"data": trending_functions[offset : limit + offset]}
 
         def get_stats_data_for_trending_events(
-            results: Mapping[str, Any],
-        ) -> list[dict[str, Any]]:
+            results: Mapping[str, Any],  # justification: decoded profiling JSON
+        ) -> list[dict[str, Any]]:  # justification: decoded profiling JSON
             functions = {
                 f"{function['project.id']},{function['fingerprint']}": function
                 for function in top_functions.get("data", [])

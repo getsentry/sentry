@@ -22,7 +22,11 @@ class ProviderMixin:
     logger = logging.getLogger(__name__)
 
     def link_auth(
-        self, user: User | RpcUser, organization: Organization, data: Mapping[str, Any]
+        # justification: provider installation payload
+        self,
+        user: User | RpcUser,
+        organization: Organization,
+        data: Mapping[str, Any],  # justification: provider installation payload
     ) -> None:
         usa = usersocialauth_service.get_one_or_none(
             filter={
@@ -37,6 +41,7 @@ class ProviderMixin:
         rpc_organization = serialize_rpc_organization(org=organization)
         usersocialauth_service.link_auth(usa=usa, organization=rpc_organization)
 
+    # justification: framework kwargs
     def get_auth(self, user: RpcUser | User, **kwargs: Any) -> RpcUserSocialAuth | None:
         if self.auth_provider is None:
             return None

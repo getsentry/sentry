@@ -647,7 +647,7 @@ class UptimeDomainCheckFailureConfigValidator(
         self,
         field_name: str,
         parent: serializers.BaseSerializer[
-            Any
+            Any  # justification: decoded alert JSON
         ],  # justification: validated alert payload is decoded JSON.
     ) -> None:  # justification: validated alert payload is decoded JSON.
         super().bind(field_name, parent)

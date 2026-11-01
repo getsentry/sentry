@@ -83,9 +83,11 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
+    # justification: framework kwargs
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
         return super().dispatch(request, *args, **kwargs)
 
+    # justification: framework kwargs
     def post(self, request: Request, token: str, *args: Any, **kwargs: Any) -> Response:
         clear_organization_info()
         extra: dict[str, object] = {}

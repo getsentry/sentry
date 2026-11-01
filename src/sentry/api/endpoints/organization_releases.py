@@ -7,7 +7,7 @@ from typing import Any, TypedDict, cast
 
 import sentry_sdk
 from django.db import IntegrityError
-from django.db.models import F, Q
+from django.db.models import F, Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -453,7 +453,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
         # health data in the last 24 hours.
         debounce_update_release_health_data(organization, filter_params["project_id"])
 
-        queryset = Release.objects.filter(organization_id=organization.id)
+        queryset: QuerySet[Release] = Release.objects.filter(organization_id=organization.id)
         queryset = filter_releases_by_environments(
             queryset,
             filter_params["project_id"],
@@ -490,7 +490,11 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
             queryset = queryset.filter(build_number__isnull=False).order_by("-build_number")
             paginator_kwargs["order_by"] = "-build_number"
         elif sort == "semver":
-            queryset = queryset.annotate_prerelease_column().annotate_build_code_column()
+            queryset = (
+                cast(ReleaseQuerySet, queryset)
+                .annotate_prerelease_column()
+                .annotate_build_code_column()
+            )
 
             semver_cols = Release.SEMVER_COLS_WITH_BUILD_CODE
             order_by = [F(col).desc(nulls_last=True) for col in semver_cols]

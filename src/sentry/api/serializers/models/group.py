@@ -931,8 +931,8 @@ class GroupSerializer(GroupSerializerBase):
             environment_ids=[environment.id] if environment is not None else None,
             tenant_ids=tenant_ids,
         )
-        first_seen: MutableMapping[int, datetime] = {}
-        last_seen: MutableMapping[int, datetime] = {}
+        first_seen: MutableMapping[int, datetime | None] = {}
+        last_seen: MutableMapping[int, datetime | None] = {}
         times_seen: MutableMapping[int, int] = {}
 
         if environment is not None:

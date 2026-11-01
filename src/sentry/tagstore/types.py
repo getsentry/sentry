@@ -145,7 +145,12 @@ class TagKeySerializerResponse(TagKeySerializerResponseOptional):
 @register(TagKey)
 class TagKeySerializer(Serializer[TagKeySerializerResponse]):
     def serialize(
-        self, obj: TagKey | GroupTagKey, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        obj: TagKey | GroupTagKey,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> TagKeySerializerResponse:
         from sentry import tagstore
 
@@ -180,7 +185,12 @@ class TagValueSerializerResponse(TagValueSerializerResponseOptional):
 @register(TagValue)
 class TagValueSerializer(Serializer[TagValueSerializerResponse]):
     def serialize(
-        self, obj: TagValue | GroupTagValue, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
+        # justification: framework kwargs
+        self,
+        obj: TagValue | GroupTagValue,
+        attrs: Mapping[Any, Any],  # justification: serializer API
+        user: Any,  # justification: serializer API
+        **kwargs: Any,  # justification: framework kwargs
     ) -> TagValueSerializerResponse:
         from sentry import tagstore
 

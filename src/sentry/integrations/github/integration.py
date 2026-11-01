@@ -371,6 +371,7 @@ class GitHubIntegration(
             return False
         return True
 
+    # justification: framework kwargs
     def search_issues(self, query: str | None, **kwargs: Any) -> dict[str, Any]:
         if query is None:
             query = ""
@@ -418,7 +419,7 @@ class GitHubIntegration(
 
         return False
 
-    def get_config_data(self) -> dict[str, Any]:
+    def get_config_data(self) -> dict[str, Any]:  # justification: decoded GitHub JSON
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id

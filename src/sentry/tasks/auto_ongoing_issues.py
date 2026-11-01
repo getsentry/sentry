@@ -85,7 +85,7 @@ def schedule_auto_transition_to_ongoing() -> None:
 )
 def schedule_auto_transition_issues_new_to_ongoing(
     first_seen_lte: int,
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     We will update NEW Groups to ONGOING that were created before the
@@ -153,7 +153,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
 )
 def run_auto_transition_issues_new_to_ongoing(
     group_ids: list[int],
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     Child task of `auto_transition_issues_new_to_ongoing`
@@ -179,7 +179,7 @@ def run_auto_transition_issues_new_to_ongoing(
 )
 def schedule_auto_transition_issues_regressed_to_ongoing(
     date_added_lte: int,
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     We will update REGRESSED Groups to ONGOING that were created before the
@@ -252,7 +252,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
 )
 def run_auto_transition_issues_regressed_to_ongoing(
     group_ids: list[int],
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     Child task of `auto_transition_issues_regressed_to_ongoing`
@@ -278,7 +278,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
 )
 def schedule_auto_transition_issues_escalating_to_ongoing(
     date_added_lte: int,
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     We will update ESCALATING Groups to ONGOING that were created before the
@@ -351,7 +351,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
 )
 def run_auto_transition_issues_escalating_to_ongoing(
     group_ids: list[int],
-    **kwargs: Any,
+    **kwargs: Any,  # justification: framework kwargs
 ) -> None:
     """
     Child task of `auto_transition_issues_escalating_to_ongoing`

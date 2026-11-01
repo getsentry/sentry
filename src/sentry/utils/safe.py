@@ -38,12 +38,12 @@ def safe_execute(func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R |
 
 
 def trim(
-    value: Any,
+    value: Any,  # justification: dynamic decoded JSON
     max_size: int = settings.SENTRY_MAX_VARIABLE_SIZE,
     max_depth: int = 6,
     _depth: int = 0,
     _size: int = 0,
-) -> Any:
+) -> Any:  # justification: dynamic decoded JSON
     """
     Truncates a value to ```MAX_VARIABLE_SIZE```.
 
@@ -424,6 +424,7 @@ def _trim_to_json_size(string_to_trim: str, max_json_bytes: int) -> str:
     return longest_okay_slice + "..."
 
 
+# justification: framework kwargs
 def get_path(data: PathSearchable, *path: Any, should_log: bool = False, **kwargs: Any) -> Any:
     """
     Safely resolves data from a recursive data structure. A value is only
@@ -473,7 +474,7 @@ def get_path(data: PathSearchable, *path: Any, should_log: bool = False, **kwarg
     return data if data is not None else default
 
 
-def set_path(data: Any, *path: Any, **kwargs: Any) -> bool:
+def set_path(data: Any, *path: Any, **kwargs: Any) -> bool:  # justification: framework kwargs
     """
     Recursively traverses or creates the specified path and sets the given value
     argument. `None` is treated like a missing value. If a non-mapping item is
@@ -513,6 +514,7 @@ def set_path(data: Any, *path: Any, **kwargs: Any) -> bool:
     return False
 
 
+# justification: framework kwargs
 def setdefault_path(data: Any, *path: Any, **kwargs: Any) -> bool:
     """
     Recursively traverses or creates the specified path and sets the given value
@@ -526,7 +528,7 @@ def setdefault_path(data: Any, *path: Any, **kwargs: Any) -> bool:
     return set_path(data, *path, **kwargs)
 
 
-def safe_urlencode(query: Any, **kwargs: Any) -> str:
+def safe_urlencode(query: Any, **kwargs: Any) -> str:  # justification: framework kwargs
     """
     django.utils.http.urlencode wrapper that replaces query parameter values
     of None with empty string so that urlencode doesn't raise TypeError

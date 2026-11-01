@@ -43,7 +43,7 @@ class Span(Interface):
     """
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         for key in SPAN_KEYS:
             data.setdefault(key, None)
 
@@ -60,12 +60,12 @@ class Spans(Interface):
     path = "spans"
 
     @classmethod
-    def to_python(cls, data: list[Any]) -> Self | None:
+    def to_python(cls, data: list[Any]) -> Self | None:  # justification: decoded JSON
         spans = [Span.to_python(span) for span in data if span is not None]
         return super().to_python({"spans": spans})
 
     def __iter__(self) -> Iterator[Span]:
         return iter(self.spans)
 
-    def to_json(self) -> list[Any]:
+    def to_json(self) -> list[Any]:  # justification: decoded JSON
         return [span.to_json() for span in self]

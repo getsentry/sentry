@@ -123,6 +123,9 @@ class TagStorage(Service):
         status: int = TagKeyStatus.ACTIVE,
         include_values_seen: bool = False,
         tenant_ids: dict[str, int | str] | None = None,
+        *,
+        start: datetime | None = None,
+        end: datetime | None = None,
     ) -> set[TagKey | GroupTagKey]:
         """
         >>> get_tag_keys(1, 2)
@@ -132,7 +135,7 @@ class TagStorage(Service):
     def get_tag_keys_for_projects(
         self,
         projects: Sequence[int],
-        environments: Sequence[int] | None,
+        environments: Sequence[str] | None,
         start: datetime,
         end: datetime,
         dataset: Dataset = Dataset.Events,

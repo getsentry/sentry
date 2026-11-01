@@ -30,13 +30,13 @@ class Sdk(Interface):
     """
 
     @classmethod
-    def to_python(cls, data: dict[str, Any]) -> Self | None:
+    def to_python(cls, data: dict[str, Any]) -> Self | None:  # justification: decoded JSON
         for key in ("name", "version", "integrations", "packages"):
             data.setdefault(key, None)
 
         return super().to_python(data)
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:  # justification: decoded JSON
         return prune_empty_keys(
             {
                 "name": self.name,
@@ -52,6 +52,10 @@ class Sdk(Interface):
         return {"name": self.name, "version": self.version}
 
     def get_api_meta(
-        self, meta: Mapping[str, Any], is_public: bool = False, platform: str | None = None
-    ) -> Mapping[str, Any] | None:
+        # justification: decoded JSON
+        self,
+        meta: Mapping[str, Any],  # justification: decoded JSON
+        is_public: bool = False,
+        platform: str | None = None,
+    ) -> Mapping[str, Any] | None:  # justification: decoded JSON
         return {"": meta.get(""), "name": meta.get("name"), "version": meta.get("version")}
