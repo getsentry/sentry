@@ -504,7 +504,7 @@ class GitlabIssuesTest(GitLabTestCase):
         responses.add(
             responses.POST,
             "https://example.gitlab.com/api/v4/projects/2/issues/321/notes",
-            json=[],
+            json={},
         )
         data = {"externalIssue": "2#321", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(

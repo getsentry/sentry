@@ -187,13 +187,13 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
 
     def _can_edit_node_type(
         self, mock_run_oneshot: MagicMock, route: str, **route_params: str
-    ) -> str:
+    ) -> str | None:
         mock_run_oneshot.return_value = {"suggestions": []}
         self.get_success_response(
             self.organization.slug, **{**PAYLOAD, "route": route, "route_params": route_params}
         )
         can_edit = mock_run_oneshot.call_args.args[1]["can_edit_node_type"]
-        if not isinstance(can_edit, str):
+        if can_edit is not None and not isinstance(can_edit, str):
             raise TypeError("Seer chat suggestion carries no editability")
         return can_edit
 

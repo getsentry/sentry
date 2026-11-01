@@ -147,9 +147,9 @@ class JiraServerClient(ApiClient):
             return self.get_sequence(self.PROJECT_URL)
         return self.get_cached_sequence(self.PROJECT_URL)
 
-    def get_issue_types(self, project_id: str | int) -> SequenceApiResponse:
-        # Get a list of issue types for the given project
-        return self.get_cached_sequence(self.ISSUE_TYPES_URL % (project_id))
+    def get_issue_types(self, project_id: str | int) -> MappingApiResponse:
+        # Get the issue types for the given project, wrapped in a values list.
+        return self.get_cached_mapping(self.ISSUE_TYPES_URL % (project_id))
 
     def get_issue_fields(
         self, project_id: str | int, issue_type_id: str | int

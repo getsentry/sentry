@@ -62,7 +62,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.shared_integrations.response import MappingApiResponse
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
@@ -872,8 +871,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         }
 
         try:
-            # justification: Jira's createmeta endpoint returns a mapping with a values list.
-            issue_type_choices = cast("MappingApiResponse", client.get_issue_types(project_id))
+            issue_type_choices = client.get_issue_types(project_id)
         except ApiError as e:
             logger.info(
                 "get_create_issue_config.get_issue_types.error",

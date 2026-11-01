@@ -1583,7 +1583,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         groups = raw_result["groups"]
         if len(groups) > 0:
             value = get_path(groups[0], "totals", "value", default=0)
-            return value if isinstance(value, int) else 0
+            return int(value) if isinstance(value, (int, float)) else 0
         else:
             return 0
 

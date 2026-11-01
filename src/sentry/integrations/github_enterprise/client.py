@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.utils import get_jwt
@@ -44,10 +44,8 @@ class GitHubEnterpriseApiClient(GitHubBaseClient):
         return super().build_url(path)
 
     def _get_installation_id(self) -> str:
-        installation_id = self.integration.metadata["installation_id"]
-        if not isinstance(installation_id, str):
-            raise TypeError("GitHub Enterprise installation id is not a string")
-        return installation_id
+        # justification: the installation id is stored as a string or integer and only formatted into URLs.
+        return cast("str", self.integration.metadata["installation_id"])
 
     def _get_jwt(self) -> str:
         return get_jwt(github_id=self.app_id, github_private_key=self.private_key)

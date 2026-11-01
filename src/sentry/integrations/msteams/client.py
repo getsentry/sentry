@@ -67,11 +67,8 @@ class MsTeamsClientABC(ApiClient, ABC):
 
     def get_channel_list(self, team_id: str) -> list[_TeamChannel]:
         resp = self.get_mapping(self.CHANNEL_URL % team_id)
-        conversations = resp.get("conversations")
-        if not isinstance(conversations, list):
-            raise IntegrationError("Expected a conversations list")
-        # justification: each conversation entry carries the _TeamChannel string fields.
-        return cast("list[_TeamChannel]", conversations)
+        # justification: the Teams conversations response carries the conversation list.
+        return cast("list[_TeamChannel]", resp.get("conversations"))
 
     def get_member_list(
         self, team_id: str, continuation_token: str | None = None

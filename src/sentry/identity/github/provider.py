@@ -34,9 +34,11 @@ def get_user_info(access_token: str) -> dict[str, object]:
     return data
 
 
-def get_verified_primary_email(emails: list[dict[str, Any]]) -> str | None:
+def get_verified_primary_email(emails: list[Any]) -> str | None:
     """Return the verified primary email from GitHub email records, else None."""
     for entry in emails:
+        if not isinstance(entry, dict):
+            continue
         if not (entry.get("email") and entry.get("verified") and entry.get("primary")):
             continue
         email = entry["email"]

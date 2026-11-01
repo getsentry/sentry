@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import md5
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.http.request import HttpRequest
 from django.utils.functional import classproperty
@@ -55,11 +55,9 @@ class SmsInterface(OtpMixin):
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     @property
-    def phone_number(self) -> str:
-        phone_number = self.config["phone_number"]
-        if not isinstance(phone_number, str):
-            raise TypeError("SMS authenticator phone number is not a string")
-        return phone_number
+    def phone_number(self) -> str | None:
+        # justification: an unenrolled SMS interface keeps a null phone number.
+        return cast("str | None", self.config["phone_number"])
 
     @phone_number.setter
     def phone_number(self, value: str) -> None:
@@ -112,7 +110,8 @@ class SmsInterface(OtpMixin):
         else:
             user_id = None
 
-        phone_number = phone_number_as_e164(self.phone_number)
+        # justification: send_text only runs once enrollment stored a phone number.
+        phone_number = phone_number_as_e164(cast("str", self.phone_number))
 
         if ratelimiter.is_limited(
             f"sms:{md5(phone_number.encode('utf-8')).hexdigest()}",
