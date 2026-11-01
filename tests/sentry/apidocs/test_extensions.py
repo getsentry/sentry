@@ -63,9 +63,15 @@ class BasicSerializer(Serializer):
         raise NotImplementedError
 
 
-class FailSerializer(Serializer):
-    def serialize(self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any):
-        raise NotImplementedError
+FailSerializer = type(
+    "FailSerializer",
+    (Serializer,),
+    {
+        "serialize": lambda self, obj, attrs, user, **kwargs: (_ for _ in ()).throw(
+            NotImplementedError()
+        )
+    },
+)
 
 
 def test_sentry_response_serializer_extension() -> None:
