@@ -118,6 +118,7 @@ class ProjectPreprodArtifactAssembleGenericEndpoint(ProjectEndpoint):
                 return Response({"error": error_message}, status=400)
 
             checksum = data.get("checksum")
+            assert isinstance(checksum, str)
             chunks = data.get("chunks", [])
 
             # Check if all requested chunks have been uploaded

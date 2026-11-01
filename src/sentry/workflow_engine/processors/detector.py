@@ -81,7 +81,7 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
 
 
 def invalidate_all_projects_detector_cache(instance: Detector) -> None:
-    if instance.project_id is None:
+    if not instance.project_id:
         organization_id = instance.config.get("organization_id")
         if organization_id is not None:
             cache_key = _get_all_projects_detector_cache_key(organization_id)

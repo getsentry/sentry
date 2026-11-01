@@ -91,7 +91,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
-        tenant_ids = {"organization_id": group.project.organization_id}
+        tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
         try:
             tagstore.backend.get_group_tag_key(
                 group,

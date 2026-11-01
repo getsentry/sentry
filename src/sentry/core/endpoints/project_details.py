@@ -1397,11 +1397,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             common_audit_data = {
                 "organization": project.organization,
                 "target_object": project.id,
-                "transaction_id": scheduled.id,
             }
 
             if request.data.get("origin"):
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE_WITH_ORIGIN"),
@@ -1412,6 +1412,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             else:
                 self.create_audit_entry(
+                    transaction_id=scheduled.id,
                     **common_audit_data,
                     request=request,
                     event=audit_log.get_event_id("PROJECT_REMOVE"),

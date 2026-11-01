@@ -62,6 +62,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.shared_integrations.response import MappingApiResponse
 from sentry.silo.base import all_silo_function
 from sentry.users.models.identity import Identity
 from sentry.users.models.user import User
@@ -634,7 +635,7 @@ class JiraServerIntegration(IssueSyncIntegration):
         Jira installation's implementation of IssueSyncIntegration's `get_issue`.
         """
         client = self.get_client()
-        issue = client.get_issue(issue_id)
+        issue = client.get_issue(str(issue_id))
         fields = issue.get("fields", {})
         return {
             "key": issue_id,
@@ -747,15 +748,15 @@ class JiraServerIntegration(IssueSyncIntegration):
         ):
             fieldtype = "select"
             if group is not None:
-                organization = group.organization
+                organization_slug = group.organization.slug
             else:
                 ctx = organization_service.get_organization_by_id(
                     id=self.organization_id, include_teams=False, include_projects=False
                 )
                 assert ctx is not None
-                organization = ctx.organization
+                organization_slug = ctx.organization.slug
 
-            fkwargs["url"] = self.search_url(organization.slug)
+            fkwargs["url"] = self.search_url(organization_slug)
             fkwargs["choices"] = []
         elif schema["type"] in ["timetracking"]:
             # TODO: Implement timetracking (currently unsupported altogether)
@@ -870,7 +871,8 @@ class JiraServerIntegration(IssueSyncIntegration):
         }
 
         try:
-            issue_type_choices = client.get_issue_types(project_id)
+            # justification: Jira's createmeta endpoint returns a mapping with a values list.
+            issue_type_choices = cast("MappingApiResponse", client.get_issue_types(project_id))
         except ApiError as e:
             logger.info(
                 "get_create_issue_config.get_issue_types.error",
@@ -1319,7 +1321,10 @@ class JiraServerIntegration(IssueSyncIntegration):
                 raise IntegrationSyncTargetNotFound("No matching Jira Server user found")
         try:
             id_field = client.user_id_field()
-            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
+            # justification: Jira unassigns when the assignee is None; the client signature is narrower than the API.
+            client.assign_issue(
+                external_issue.key, cast("str", jira_user and jira_user.get(id_field))
+            )
         except ApiUnauthorized as e:
             logger.info(
                 "jira_server.user-assignment-unauthorized",

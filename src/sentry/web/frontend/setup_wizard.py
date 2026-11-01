@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import date
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
@@ -11,6 +11,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
 
 from sentry.api.base import allow_cors_options
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
@@ -45,6 +46,16 @@ from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
 
+def _allow_cors_options(
+    view: Callable[..., HttpResponseBase],
+) -> Callable[..., HttpResponseBase]:
+    # justification: the shared decorator is typed for DRF endpoints but only passes the request through.
+    return cast(
+        "Callable[..., HttpResponseBase]",
+        allow_cors_options(cast("Callable[..., Response]", view)),
+    )
+
+
 @control_silo_view
 class SetupWizardView(BaseView):
     def handle_auth_required(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
@@ -65,7 +76,7 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(redirect_to, request.GET))
         return super().handle_auth_required(request, *args, **kwargs)
 
-    @allow_cors_options
+    @_allow_cors_options
     def get(self, request: HttpRequest, wizard_hash: str) -> HttpResponseBase:
         """
         This opens a page where with an active session fill stuff into the cache
@@ -130,7 +141,7 @@ class SetupWizardView(BaseView):
 
         return render_to_response("sentry/setup-wizard.html", context, request)
 
-    @allow_cors_options
+    @_allow_cors_options
     def post(self, request: HttpRequest, wizard_hash: str | None = None) -> HttpResponse:
         """
         This updates the cache content for a specific hash
@@ -185,16 +196,17 @@ class SetupWizardView(BaseView):
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
         return HttpResponse(status=200, content="{}", content_type="application/json")
 
-    @allow_cors_options
+    @_allow_cors_options
     def options(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().options(request, *args, **kwargs)
 
-    @allow_cors_options
+    @_allow_cors_options
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
 
 
 def serialize_org_mapping(mapping: OrganizationMapping) -> dict[str, object]:
+    assert mapping.status is not None
     status = OrganizationStatus(mapping.status)
     return {
         "id": mapping.organization_id,

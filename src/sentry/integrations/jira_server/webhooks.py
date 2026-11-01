@@ -4,7 +4,7 @@ import logging
 from typing import Any
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.http.request import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -84,7 +84,7 @@ class JiraServerIssueUpdatedWebhook(Endpoint):
 
     @csrf_exempt
     # justification: framework kwargs
-    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Response:
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return super().dispatch(request, *args, **kwargs)
 
     # justification: framework kwargs

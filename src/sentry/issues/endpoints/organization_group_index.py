@@ -160,7 +160,7 @@ def inbox_search(
     # We want to return groups from the endpoint, but have the cursor be related to the
     # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
     # the group_ids out and use them to get the actual groups.
-    group_ids = [cast(int, r.group_id) for r in cast(Sequence[GroupInbox], results.results)]
+    group_ids = [r.group_id for r in cast(Sequence[GroupInbox], results.results)]
     group_qs = Group.objects.filter(
         id__in=group_ids,
         project__in=projects,

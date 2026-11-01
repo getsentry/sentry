@@ -81,7 +81,7 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
             return Response(users)
 
         try:
-            response = jira_client.get_field_autocomplete(name=field, value=query)
+            autocomplete = jira_client.get_field_autocomplete(name=field, value=query)
         except (ApiUnauthorized, ApiError):
             return Response(
                 {"detail": f"Unable to fetch autocomplete for {field} from Jira"},
@@ -93,6 +93,6 @@ class JiraServerSearchEndpoint(IntegrationEndpoint):
                 # Jira's response will highlight the matching substring in the name using HTML formatting.
                 "label": BeautifulSoup(result["displayName"], "html.parser").get_text(),
             }
-            for result in response["results"]
+            for result in autocomplete["results"]
         ]
         return Response(choices)

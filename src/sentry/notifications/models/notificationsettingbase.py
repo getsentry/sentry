@@ -34,7 +34,7 @@ class NotificationSettingBase(DefaultFieldsModelExisting):
         update_fields: Iterable[str] | None = None,
     ) -> None:
         try:
-            assert not (self.user_id is None and self.team_id is None), (
+            assert not (not self.user_id and not self.team_id), (
                 "Notification setting missing user & team"
             )
         except AssertionError as err:

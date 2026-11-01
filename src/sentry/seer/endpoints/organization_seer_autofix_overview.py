@@ -342,6 +342,7 @@ def _serialize_run(
     if run.furthest_milestone == SeerRunMilestoneType.CODE_CHANGES and run.code_changes_artifact:
         code_changes = _serialize_code_changes(run.code_changes_artifact)
 
+    assert group.qualified_short_id is not None
     return {
         "groupId": str(group.id),
         "shortId": group.qualified_short_id,
@@ -497,13 +498,18 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
                 group = groups.get(group_id)
                 if group is None:
                     continue
+                seer_run = run.seer_run
+                seer_run_id = seer_run.id
+                seer_run_state_id = seer_run.seer_run_state_id
+                assert seer_run_id is not None
+                assert seer_run_state_id is not None
                 runs_by_milestone[milestone].append(
                     _serialize_run(
                         group,
                         run,
                         serialized_by_id[str(group_id)],
-                        pull_requests_by_seer_run_id.get(run.seer_run.id, []),
-                        status_by_state_id.get(run.seer_run.seer_run_state_id),
+                        pull_requests_by_seer_run_id.get(seer_run_id, []),
+                        status_by_state_id.get(seer_run_state_id),
                         issue_repo_eligibility,
                     )
                 )

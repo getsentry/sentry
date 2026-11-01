@@ -92,7 +92,9 @@ ContextDataFunc = Callable[[Group, list[NotificationOrigin] | None], str | int |
 SUPPORTED_CONTEXT_DATA: dict[NotificationContextField, ContextDataFunc] = {
     NotificationContextField.EVENTS: lambda group, rules: get_group_global_count(group),
     NotificationContextField.USERS_AFFECTED: get_group_users_count,
-    NotificationContextField.STATE: lambda group, rules: SUBSTATUS_TO_STR.get(group.substatus, "")
+    NotificationContextField.STATE: lambda group, rules: (
+        SUBSTATUS_TO_STR.get(group.substatus, "") if group.substatus is not None else ""
+    )
     .replace("_", " ")
     .title(),
     NotificationContextField.FIRST_SEEN: lambda group, rules: time_since(group.first_seen),

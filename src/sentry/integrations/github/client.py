@@ -1169,7 +1169,7 @@ class GitHubBaseClient(
         pr_comment: PullRequestComment,
         data: dict[str, Any],
     ) -> Any:
-        return self.update_comment(repo.name, pr.key, pr_comment.external_id, data)
+        return self.update_comment(repo.name, pr.key, str(pr_comment.external_id), data)
 
     def get_comment_reactions(self, repo: str, comment_id: str) -> list[Any]:
         """

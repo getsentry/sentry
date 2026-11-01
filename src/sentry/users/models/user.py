@@ -260,10 +260,10 @@ class User(Model, AbstractBaseUser):
                 # for testing purposes, we want to be able to create new users with existing emails
                 # if we're relocating a user, then we would have handled email_unique in the relocation logic
                 if not is_test_user:
-                    if self.pk is None and not is_relocated_user:
+                    if not self.pk and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
-                    elif self.pk is None and is_relocated_user:
+                    elif not self.pk and is_relocated_user:
                         # If the user is new, relocated blank email_unique to dodge
                         # integrity errors.
                         self.email_unique = None

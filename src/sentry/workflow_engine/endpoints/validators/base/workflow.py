@@ -357,7 +357,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
                 )
 
                 # Bind new condition group to workflow if it didn't have one before
-                if instance.when_condition_group_id is None:
+                if not instance.when_condition_group_id:
                     instance.when_condition_group = when_condition_group
 
             # Update the Action Filters and Actions

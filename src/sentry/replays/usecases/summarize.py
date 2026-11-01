@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -581,7 +581,8 @@ def rpc_get_replay_summary_logs(
         request_user_id=None,  # This is for the viewed_by_me field which is unused for summaries.
     )
     processed_response = process_raw_response(
-        snuba_response,
+        # justification: Snuba replay rows are decoded JSON objects.
+        cast("list[dict[str, Any]]", snuba_response),
         fields=[],  # Defaults to all fields.
     )
 

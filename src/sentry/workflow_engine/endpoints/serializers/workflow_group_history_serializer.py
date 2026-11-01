@@ -1,9 +1,9 @@
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast
 
-from django.db.models import Count, Max, OuterRef, Subquery
+from django.db.models import Count, Max, Model, OuterRef, QuerySet, Subquery
 from rest_framework.exceptions import ParseError
 
 from sentry.api.paginator import OffsetPaginator
@@ -175,8 +175,9 @@ def fetch_workflow_groups_paginated(
     return cast(
         CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
-            qs,
+            # justification: values() yields typed dict rows; the paginator only slices them and hands them to on_results.
+            cast("QuerySet[Model]", qs),
             order_by=order_by,
-            on_results=convert_results,
+            on_results=cast("Callable[[Sequence[Model]], Sequence[Model]]", convert_results),
         ).get_result(per_page, cursor, known_hits=group_count),
     )

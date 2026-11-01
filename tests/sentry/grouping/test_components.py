@@ -13,8 +13,14 @@ from sentry.grouping.component import (
     StacktraceGroupingComponent,
     ThreadsGroupingComponent,
 )
+from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+
+
+def component_variant(variant: BaseVariant) -> ComponentVariant:
+    assert isinstance(variant, ComponentVariant)
+    return variant
 
 
 def find_given_child_component[T](
@@ -106,7 +112,7 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         for variant_name in ["app", "system"]:
-            exception_component = variants[variant_name].root_component.values[0]
+            exception_component = component_variant(variants[variant_name]).root_component.values[0]
             assert isinstance(exception_component, ExceptionGroupingComponent)
             stacktrace_component = find_given_child_component(
                 exception_component, StacktraceGroupingComponent
@@ -140,7 +146,7 @@ class ComponentTest(TestCase):
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
         for variant_name in ["app", "system"]:
-            exception_component = variants[variant_name].root_component.values[0]
+            exception_component = component_variant(variants[variant_name]).root_component.values[0]
             assert isinstance(exception_component, ExceptionGroupingComponent)
             stacktrace_component = find_given_child_component(
                 exception_component, StacktraceGroupingComponent
@@ -160,8 +166,8 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].root_component.values[0]
-        app_exception_component = variants["app"].root_component.values[0]
+        system_exception_component = component_variant(variants["system"]).root_component.values[0]
+        app_exception_component = component_variant(variants["app"]).root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
 
@@ -197,8 +203,8 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].root_component.values[0]
-        app_exception_component = variants["app"].root_component.values[0]
+        system_exception_component = component_variant(variants["system"]).root_component.values[0]
+        app_exception_component = component_variant(variants["app"]).root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
 
@@ -237,8 +243,8 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        system_exception_component = variants["system"].root_component.values[0]
-        app_exception_component = variants["app"].root_component.values[0]
+        system_exception_component = component_variant(variants["system"]).root_component.values[0]
+        app_exception_component = component_variant(variants["app"]).root_component.values[0]
         assert isinstance(app_exception_component, ExceptionGroupingComponent)
         assert isinstance(system_exception_component, ExceptionGroupingComponent)
 
@@ -278,8 +284,8 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        app_threads_component = variants["app"].root_component.values[0]
-        system_threads_component = variants["system"].root_component.values[0]
+        app_threads_component = component_variant(variants["app"]).root_component.values[0]
+        system_threads_component = component_variant(variants["system"]).root_component.values[0]
         assert isinstance(app_threads_component, ThreadsGroupingComponent)
         assert isinstance(system_threads_component, ThreadsGroupingComponent)
 
@@ -330,8 +336,12 @@ class ComponentTest(TestCase):
         # `normalize_stacktraces=True` forces the custom stacktrace enhancements to run
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
 
-        app_chained_exception_component = variants["app"].root_component.values[0]
-        system_chained_exception_component = variants["system"].root_component.values[0]
+        app_chained_exception_component = component_variant(variants["app"]).root_component.values[
+            0
+        ]
+        system_chained_exception_component = component_variant(
+            variants["system"]
+        ).root_component.values[0]
         assert isinstance(app_chained_exception_component, ChainedExceptionGroupingComponent)
         assert isinstance(system_chained_exception_component, ChainedExceptionGroupingComponent)
 
@@ -371,7 +381,7 @@ class ComponentTest(TestCase):
         )
 
     def test_get_subcomponent(self) -> None:
-        root_component = self.event.get_grouping_variants()["app"].root_component
+        root_component = component_variant(self.event.get_grouping_variants()["app"]).root_component
 
         # When `recursive` isn't specified, it should find direct children but not grandchildren
         exception_component = root_component.get_subcomponent("exception")
@@ -410,7 +420,7 @@ class ComponentTest(TestCase):
 
         self.project.update_option("sentry:grouping_config", WINTER_2023_GROUPING_CONFIG)
         variants = self.event.get_grouping_variants()
-        exception_component = variants["app"].root_component.values[0]
+        exception_component = component_variant(variants["app"]).root_component.values[0]
         assert isinstance(exception_component, ExceptionGroupingComponent)
         assert [subcomponent.id for subcomponent in exception_component.values] == [
             "stacktrace",
@@ -420,7 +430,7 @@ class ComponentTest(TestCase):
 
         self.project.update_option("sentry:grouping_config", FALL_2025_GROUPING_CONFIG)
         variants = self.event.get_grouping_variants()
-        exception_component = variants["app"].root_component.values[0]
+        exception_component = component_variant(variants["app"]).root_component.values[0]
         assert isinstance(exception_component, ExceptionGroupingComponent)
         assert [subcomponent.id for subcomponent in exception_component.values] == [
             "type",

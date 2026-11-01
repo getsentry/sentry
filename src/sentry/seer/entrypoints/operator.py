@@ -321,6 +321,7 @@ class SeerAutofixOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             # Let the entrypoint signal to the external service that the run started
@@ -589,7 +590,7 @@ class SeerAgentOperator[CachePayloadT]:
                 # Discovery uses the local run mirror; continue/start stays remote.
                 existing_run = client.latest_run(only_current_user=False)
 
-                if existing_run is not None:
+                if existing_run is not None and existing_run.run.seer_run_state_id is not None:
                     run_id = client.continue_run(
                         run_id=existing_run.run.seer_run_state_id,
                         prompt=prompt,
@@ -611,6 +612,7 @@ class SeerAgentOperator[CachePayloadT]:
                 lifecycle.record_failure(failure_reason=e)
                 return None
 
+            assert run_id is not None
             lifecycle.add_extra("run_id", str(run_id))
 
             with SeerOperatorEventLifecycleMetric(

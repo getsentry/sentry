@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from time import time
-from typing import Any
+from typing import Any, cast
 
 import orjson
 from sentry_relay.processing import StoreNormalizer
@@ -168,6 +168,7 @@ def _do_preprocess_event(
     original_data = data
     event_id = data["event_id"]
     project_id = data["project"]
+    # justification: the SDK accepts None when no project is known; the helper is typed as int.
     set_current_event_project(project_id)
 
     if project is None:
@@ -387,6 +388,7 @@ def do_process_event(
     )
 
     project_id = data["project"]
+    # justification: the SDK accepts None when no project is known; the helper is typed as int.
     set_current_event_project(project_id)
 
     data_event_id = data["event_id"]
@@ -566,7 +568,8 @@ def _do_save_event(
     Saves an event to the database.
     """
 
-    set_current_event_project(project_id)
+    # justification: the SDK accepts None when no project is known; the helper is typed as int.
+    set_current_event_project(cast("int", project_id))
 
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded

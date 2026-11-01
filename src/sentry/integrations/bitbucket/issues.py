@@ -11,6 +11,8 @@ from sentry.integrations.source_code_management.issues import SourceCodeIssueInt
 from sentry.integrations.types import IntegrationIssueConfigField
 from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
@@ -59,6 +61,7 @@ class BitbucketIssuesSpec(SourceCodeIssueIntegration):
     ) -> list[IntegrationIssueConfigField]:
         kwargs["link_referrer"] = "bitbucket_integration"
 
+        org: Organization | RpcOrganization
         if group:
             fields = super().get_create_issue_config(group, user, **kwargs)
             org = group.organization

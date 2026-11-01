@@ -179,7 +179,7 @@ def create_uptime_response_capture(
     capture = UptimeResponseCapture.objects.create(
         uptime_subscription=subscription,
         file_id=file.id,
-        scheduled_check_time_ms=result["scheduled_check_time_ms"],
+        scheduled_check_time_ms=int(result["scheduled_check_time_ms"]),
     )
 
     metrics.incr("uptime.response_capture.created", sample_rate=1.0)

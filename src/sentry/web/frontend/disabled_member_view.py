@@ -1,6 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import (
@@ -20,7 +21,7 @@ class DisabledMemberView(ReactPageView):
         return False
 
     def handle(
-        self, request: HttpRequest, organization: RpcOrganization, **kwargs: object
+        self, request: HttpRequest, organization: Organization, **kwargs: object
     ) -> HttpResponse:
         user = request.user
         # if org member is not restricted, redirect user out of the disabled view

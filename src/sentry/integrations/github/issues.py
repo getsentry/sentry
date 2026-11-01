@@ -18,7 +18,9 @@ from sentry.integrations.utils.issue_url import get_issue_url_path
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.organizations.services.organization.service import organization_service
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import (
@@ -176,6 +178,7 @@ class GitHubIssuesSpec(SourceCodeIssueIntegration):
         """
         kwargs["link_referrer"] = "github_integration"
 
+        org: Organization | RpcOrganization
         if group:
             fields = super().get_create_issue_config(group, user, **kwargs)
             org = group.organization

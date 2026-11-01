@@ -986,7 +986,10 @@ class SeerAgentClient:
         run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
         if run is None:
             return None
-        return self.get_run(run.run.seer_run_state_id)
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return None
+        return self.get_run(run_state_id)
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(

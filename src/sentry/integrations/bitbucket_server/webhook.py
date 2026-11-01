@@ -275,7 +275,7 @@ class BitbucketServerWebhookEndpoint(Endpoint):
         return self._handlers.get(event_type)
 
     @method_decorator(csrf_exempt)
-    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args: object, **kwargs: object) -> HttpResponse:
         if request.method != "POST":
             return HttpResponse(status=405)
 

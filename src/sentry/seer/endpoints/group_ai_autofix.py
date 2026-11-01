@@ -386,7 +386,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
 
         referrer = _parse_autofix_referrer(data.get("referrer"), request)
 
-        run_id: int
+        run_id: int | None
         sentry_run_id: str | None
 
         match step:

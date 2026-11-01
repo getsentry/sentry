@@ -70,12 +70,12 @@ def serialize(
     """
     return {
         "authors": authors,
-        "commitCount": release.commit_count,
+        "commitCount": release.commit_count or 0,
         "currentProjectMeta": current_project_meta,
         "data": release.data,
         "dateCreated": release.date_added,
         "dateReleased": release.date_released,
-        "deployCount": release.total_deploys,
+        "deployCount": release.total_deploys or 0,
         "firstEvent": first_event,
         "id": release.id,
         "lastCommit": last_commit,

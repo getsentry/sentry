@@ -25,13 +25,12 @@ from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.url import url_is_under
 from sentry.integrations.tasks.migrate_repo import migrate_repo
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.integrations.utils.metrics import (
     IntegrationPipelineViewEvent,
     IntegrationPipelineViewType,

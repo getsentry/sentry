@@ -183,7 +183,7 @@ def _query_workflows_by_detector_ids(
     env_by_detector: dict[int, set[Workflow]] = {d_id: set() for d_id in detector_ids}
 
     for dw in detector_workflow_mappings:
-        if dw.workflow.environment_id is None:
+        if not dw.workflow.environment_id:
             global_by_detector[dw.detector_id].add(dw.workflow)
         else:
             env_by_detector[dw.detector_id].add(dw.workflow)

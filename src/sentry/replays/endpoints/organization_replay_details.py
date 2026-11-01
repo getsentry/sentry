@@ -302,13 +302,16 @@ class OrganizationReplayDetailsEndpoint(OrganizationReplayEndpoint):
                     )
                     snuba_response[0]["urls_sorted"] = urls
             else:
-                snuba_response = query_replay_instance(
-                    project_id=project_ids,
-                    replay_id=replay_id,
-                    start=filter_params["start"],
-                    end=filter_params["end"],
-                    organization=organization,
-                    request_user_id=acting_user_id(request.user),
+                snuba_response = cast(
+                    list[dict[str, Any]],  # justification: replay query rows are decoded JSON.
+                    query_replay_instance(
+                        project_id=project_ids,
+                        replay_id=replay_id,
+                        start=filter_params["start"],
+                        end=filter_params["end"],
+                        organization=organization,
+                        request_user_id=acting_user_id(request.user),
+                    ),
                 )
 
         replay_data = process_raw_response(

@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
+from django.http import QueryDict
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
@@ -120,7 +121,8 @@ def get_crash_free_historical_data(
         }
     )
     query = QueryDefinition(
-        query=query_params,
+        # justification: QueryDefinition only reads get/getlist, which MultiValueDict provides.
+        query=cast("QueryDict", query_params),
         params=params,
         offset=None,
         limit=None,

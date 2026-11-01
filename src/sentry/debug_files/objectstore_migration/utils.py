@@ -35,7 +35,7 @@ def migrate_debug_file(
 
     def attempt() -> None:
         source_file_id = debug_file.file_id
-        if source_file_id is None:
+        if not source_file_id:
             return
 
         if debug_file.storage_path is not None:
@@ -263,7 +263,7 @@ def upload_and_verify(debug_file: ProjectDebugFile) -> PostMigrationMetadata | N
             extra={"debug_file_id": debug_file.id, "file_id": file.id},
         )
 
-    if recorded_size is None:
+    if not recorded_size:
         logger.warning(
             "debug_files.objectstore_migration.size_missing",
             extra={"debug_file_id": debug_file.id, "file_id": file.id},

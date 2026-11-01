@@ -23,10 +23,12 @@ from urllib.request import Request
 import requests
 from django.conf import settings
 from django.contrib.auth import authenticate, load_backend
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.http import HttpRequest
 from django.utils.crypto import constant_time_compare, get_random_string
 from requests_oauthlib import OAuth1
 
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
@@ -169,7 +171,7 @@ class SocialAuthBackend:
 
     def extra_data(
         self,
-        user: RpcUser,
+        user: RpcUser | AbstractBaseUser,
         uid: str,
         response: Mapping[str, Any],
         details: Mapping[str, Any] | None = None,
@@ -241,7 +243,7 @@ class OAuthBackend(SocialAuthBackend):
     @classmethod
     def extra_data(
         cls,
-        user: RpcUser,
+        user: RpcUser | AbstractBaseUser,
         uid: str,
         response: Mapping[str, Any],
         details: Mapping[str, Any] | None = None,
@@ -376,7 +378,7 @@ class BaseAuth:
         """Return backend enabled status, all enabled by default"""
         return True
 
-    def disconnect(self, user: RpcUser, association_id: int | None = None) -> None:
+    def disconnect(self, user: User, association_id: int | None = None) -> None:
         """Deletes current backend from user if associated.
         Override if extra operations are needed.
         """

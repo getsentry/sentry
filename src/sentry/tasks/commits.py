@@ -169,8 +169,11 @@ def get_provider_for_repo(
         if repo.has_integration_provider()
         else "repository.provider"
     )
+    provider_name = repo.provider
+    if provider_name is None:
+        return None
     try:
-        provider_cls = bindings.get(binding_key).get(repo.provider)
+        provider_cls = bindings.get(binding_key).get(provider_name)
     except KeyError:
         return None
 

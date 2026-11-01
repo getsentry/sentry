@@ -1,4 +1,5 @@
 import uuid
+from typing import Any, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -94,7 +95,8 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
             )
 
         replay_data = process_raw_response(
-            snuba_response,
+            # justification: Snuba replay rows are decoded JSON objects.
+            cast("list[dict[str, Any]]", snuba_response),
             fields=fields,
         )
 

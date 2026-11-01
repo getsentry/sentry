@@ -37,13 +37,12 @@ from sentry.integrations.source_code_management.commit_context import (
     PRCommentWorkflow,
 )
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.source_code_management.url import url_is_under
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest

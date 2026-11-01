@@ -207,7 +207,11 @@ def _trigger_autofix_task(
         except NoSeerQuotaException:
             pass
 
-        if run and SeerAutofixOperator.has_access(organization=group.project.organization):
+        if (
+            run
+            and run.seer_run_state_id is not None
+            and SeerAutofixOperator.has_access(organization=group.project.organization)
+        ):
             SeerOperatorAutofixCache.migrate(
                 from_group_id=group_id, to_run_id=run.seer_run_state_id
             )

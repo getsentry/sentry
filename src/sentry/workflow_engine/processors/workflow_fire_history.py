@@ -45,7 +45,7 @@ def create_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
-    event_id = (
+    event_id = str(
         event_data.event.event_id
         if isinstance(event_data.event, GroupEvent)
         else event_data.event.id

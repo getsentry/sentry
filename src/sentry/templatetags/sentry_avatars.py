@@ -58,6 +58,7 @@ def email_avatar(
 def avatar(user: User | RpcUser | OrganizationMember, size: int = 36) -> dict[str, object]:
     # user can be User or OrganizationMember
     email: str | None
+    user_id: int | None
     if isinstance(user, (User, RpcUser)):
         user_id = user.id
         email = user.email
@@ -83,6 +84,7 @@ def avatar_for_email(
 ) -> dict[str, object]:
     # user can be User or OrganizationMember
     email: str | None
+    user_id: int | None
     if isinstance(user, (User, RpcUser)):
         user_id = user.id
         email = user.email

@@ -86,7 +86,7 @@ def process_commit_context(
             group = Group.objects.get_from_cache(id=group_id)
             set_tag("organization.slug", project.organization.slug)
             sentry_sdk.set_attribute("organization.slug", project.organization.slug)
-            basic_logging_details = {
+            basic_logging_details: dict[str, str | int] = {
                 "event": event_id,
                 "group": group_id,
                 "organization": project.organization_id,
@@ -106,8 +106,8 @@ def process_commit_context(
                     IntegrationsFailedToFetchCommitContextAllFrames(
                         organization_id=project.organization_id,
                         project_id=project_id,
-                        group_id=basic_logging_details["group"],
-                        event_id=basic_logging_details["event"],
+                        group_id=group_id,
+                        event_id=event_id,
                         num_frames=0,
                         num_successfully_mapped_frames=0,
                         reason="could_not_find_in_app_stacktrace_frame",

@@ -33,9 +33,10 @@ class Command(BaseCommand):
                     "Project must be specified as team-slug/project-slug or a project id"
                 )
 
-        platform = options["platform"]
+        platform = cast(str | None, options["platform"])
         event = create_sample_event(project, platform)
         if not event:
             raise CommandError(f"Unable to create an event for platform {platform!r}")
 
+        assert event.group is not None
         self.stdout.write(f"Event created: {event.group.get_absolute_url()}")

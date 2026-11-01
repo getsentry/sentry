@@ -38,12 +38,11 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.source_code_management.commit_context import CommitContextIntegration
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.source_code_management.url import url_is_under
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.organizations.services.organization import organization_service
 from sentry.organizations.services.organization.model import RpcOrganization

@@ -1,5 +1,6 @@
 import logging
 from datetime import datetime
+from typing import Any, cast
 
 import orjson
 import sentry_sdk
@@ -283,7 +284,11 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 )
 
             # Extract start and end times from the replay (pass None if missing or invalid).
-            replay = process_raw_response(snuba_response, fields=[])[0]
+            replay = process_raw_response(
+                # justification: Snuba replay rows are decoded JSON objects.
+                cast("list[dict[str, Any]]", snuba_response),
+                fields=[],
+            )[0]
 
             def validate_iso_timestamp(timestamp: str | None) -> str | None:
                 """Validate that timestamp is a valid ISO format string, return None if invalid."""

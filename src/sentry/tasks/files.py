@@ -62,6 +62,9 @@ def delete_file(
 ) -> None:
     from sentry.models.files.utils import get_storage
 
+    if path is None:
+        return
+
     # check that the fileblob with *this* path exists, as its possible
     # that a concurrent re-upload added the same chunk once again, with a
     # different path that time

@@ -94,7 +94,7 @@ class PreprodArtifactRerunAnalysisEndpoint(PreprodArtifactEndpoint):
 
         return success_response(
             artifact_id=str(head_artifact_id),
-            state=head_artifact.state,
+            state=PreprodArtifact.ArtifactState(head_artifact.state),
         )
 
 
@@ -177,7 +177,7 @@ class PreprodArtifactAdminRerunAnalysisEndpoint(Endpoint):
 
         return success_response(
             artifact_id=str(preprod_artifact_id),
-            state=preprod_artifact.state,
+            state=PreprodArtifact.ArtifactState(preprod_artifact.state),
             cleanup_stats=cleanup_stats,
         )
 
@@ -295,15 +295,21 @@ def cleanup_old_metrics(preprod_artifact: PreprodArtifact) -> CleanupStats:
     if size_metrics:
         size_metric_ids = [sm.id for sm in size_metrics]
 
-        file_ids_to_delete = [sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id]
+        file_ids_to_delete = [
+            sm.analysis_file_id for sm in size_metrics if sm.analysis_file_id is not None
+        ]
 
         comparisons = PreprodArtifactSizeComparison.objects.filter(
             head_size_analysis_id__in=size_metric_ids
         ) | PreprodArtifactSizeComparison.objects.filter(base_size_analysis_id__in=size_metric_ids)
 
-        comparison_file_ids = list(
-            comparisons.exclude(file_id__isnull=True).values_list("file_id", flat=True)
-        )
+        comparison_file_ids = [
+            file_id
+            for file_id in comparisons.exclude(file_id__isnull=True).values_list(
+                "file_id", flat=True
+            )
+            if file_id is not None
+        ]
         file_ids_to_delete.extend(comparison_file_ids)
 
         with transaction.atomic(using=router.db_for_write(PreprodArtifactSizeMetrics)):

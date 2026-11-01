@@ -203,14 +203,14 @@ class GroupInfo:
     is_new_group_environment: bool = False
 
 
-def pop_tag(data: dict[str, Any], key: str) -> None:
+def pop_tag(data: MutableMapping[str, Any], key: str) -> None:
     if "tags" not in data:
         return
 
     data["tags"] = [kv for kv in data["tags"] if kv is None or kv[0] != key]
 
 
-def set_tag(data: dict[str, Any], key: str, value: Any) -> None:
+def set_tag(data: MutableMapping[str, Any], key: str, value: Any) -> None:
     pop_tag(data, key)
     if value is not None:
         data.setdefault("tags", []).append((key, trim(value, MAX_TAG_VALUE_LENGTH)))
@@ -1078,7 +1078,7 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
-            resolve_tags: dict[str, str] = {}
+            resolve_tags: dict[str, str | int | float | None] = {}
             group_info.group_release = GroupRelease.get_or_create(
                 group=group_info.group,
                 release=release,

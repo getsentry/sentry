@@ -60,11 +60,13 @@ class VSTSIdentityProvider(OAuth2Provider):
     oauth_access_token_url = "https://app.vssps.visualstudio.com/oauth2/token"
     oauth_authorize_url = "https://app.vssps.visualstudio.com/oauth2/authorize"
 
-    def get_oauth_client_id(self) -> str | None:
-        return options.get("vsts.client-id")
+    def get_oauth_client_id(self) -> str:
+        # justification: registered option values are strings; the option has no static default.
+        return cast("str", options.get("vsts.client-id"))
 
-    def get_oauth_client_secret(self) -> str | None:
-        return options.get("vsts.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        # justification: registered option values are strings; the option has no static default.
+        return cast("str", options.get("vsts.client-secret"))
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url
@@ -165,11 +167,13 @@ class VSTSNewIdentityProvider(OAuth2Provider):
     oauth_authorize_url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize"
 
     # Using a new option
-    def get_oauth_client_id(self) -> str | None:
-        return options.get("vsts_new.client-id")
+    def get_oauth_client_id(self) -> str:
+        # justification: registered option values are strings; the option has no static default.
+        return cast("str", options.get("vsts_new.client-id"))
 
-    def get_oauth_client_secret(self) -> str | None:
-        return options.get("vsts_new.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        # justification: registered option values are strings; the option has no static default.
+        return cast("str", options.get("vsts_new.client-secret"))
 
     def get_refresh_token_url(self) -> str:
         return self.oauth_access_token_url

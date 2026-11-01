@@ -1,5 +1,6 @@
 import logging
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, cast
 
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -151,6 +152,8 @@ class MetricsDataSeriesPaginator(GenericOffsetPaginator):
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         data = self.data_fn(offset=offset, limit=limit + 1)
+        if not isinstance(data, dict):
+            raise NotImplementedError
 
         if isinstance(data.get("groups"), list):
             has_more = len(data["groups"]) == limit + 1
@@ -160,7 +163,8 @@ class MetricsDataSeriesPaginator(GenericOffsetPaginator):
             raise NotImplementedError
 
         return CursorResult(
-            data,
+            # justification: the data_fn returns a dict payload that CursorResult only stores.
+            cast("Sequence[Any]", data),
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, has_more),
         )

@@ -153,7 +153,7 @@ class UptimeSubscriptionRegion(DefaultFieldsModel):
 
 
 def get_org_from_detector(detector: Detector) -> tuple[Organization] | None:
-    if detector.project_id is None:
+    if not detector.project_id:
         return None
     try:
         return (detector.linked_project.organization,)

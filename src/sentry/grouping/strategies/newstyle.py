@@ -244,7 +244,7 @@ def get_function_component(
     else:
         func = function or raw_function
         if not raw_function and function:
-            func = trim_function_name(func, platform)
+            func = trim_function_name(function, platform)
 
     if not func:
         return FunctionGroupingComponent()

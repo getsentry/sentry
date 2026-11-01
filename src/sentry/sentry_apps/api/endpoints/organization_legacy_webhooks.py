@@ -37,5 +37,5 @@ class OrganizationLegacyWebhooksEndpoint(OrganizationEndpoint):
                 }
             )
 
-        result.sort(key=lambda x: x["projectSlug"])
+        result.sort(key=lambda x: str(x["projectSlug"]))
         return Response({"projects": result})

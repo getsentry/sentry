@@ -1606,7 +1606,7 @@ class _IssueCommitters:
             # repository and pull request queries per invocation, so serializing one
             # commit at a time would be an N+1.
             commits_by_id: dict[int, Commit] = {
-                cast(int, commit.id): commit
+                commit.id: commit
                 for entry in author_commits
                 for commit, _ in entry.get("commits", list[tuple[Commit, int]]())
             }
@@ -1624,7 +1624,7 @@ class _IssueCommitters:
                 {
                     "author": entry.get("author"),
                     "commits": [
-                        {**serialized_by_id[cast(int, commit.id)], "score": score}
+                        {**serialized_by_id[commit.id], "score": score}
                         for commit, score in entry.get("commits", list[tuple[Commit, int]]())
                     ],
                 }
@@ -2260,7 +2260,8 @@ def get_replay_metadata(
         request_user_id=None,
     )
     response = process_raw_response(
-        snuba_response,
+        # justification: Snuba replay rows are decoded JSON objects.
+        cast("list[dict[str, Any]]", snuba_response),
         fields=[],
     )
     if not response:

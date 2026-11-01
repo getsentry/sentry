@@ -15,6 +15,7 @@ from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 
+from sentry.users.services.user import RpcUser
 from sentry.web.frontend.base import control_silo_view
 from social_auth.backends import BaseAuth
 from social_auth.decorators import dsa_view
@@ -102,7 +103,7 @@ def auth_complete(
     user: AbstractBaseUser | None,
     *args: object,
     **kwargs: object,
-) -> AbstractBaseUser | HttpResponse | None:
+) -> AbstractBaseUser | RpcUser | HttpResponse | None:
     """Complete auth process. Return authenticated user or None."""
     if request.session.get(PIPELINE_KEY):
         data = request.session.pop(PIPELINE_KEY)

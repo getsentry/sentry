@@ -268,9 +268,10 @@ def compare_preprod_artifact_size_analysis(
                     )
 
             try:
-                artifact_type_name = PreprodArtifact.ArtifactType(
-                    artifact.artifact_type
-                ).name.lower()
+                artifact_type = artifact.artifact_type
+                if artifact_type is None:
+                    raise ValueError("Artifact type is not set")
+                artifact_type_name = PreprodArtifact.ArtifactType(artifact_type).name.lower()
             except (ValueError, AttributeError, TypeError):
                 artifact_type_name = "unknown"
 
@@ -467,7 +468,10 @@ def _run_size_analysis_comparison(
         return
 
     try:
-        head_analysis_file = File.objects.get(id=head_size_metric.analysis_file_id)
+        head_analysis_file_id = head_size_metric.analysis_file_id
+        if head_analysis_file_id is None:
+            raise File.DoesNotExist
+        head_analysis_file = File.objects.get(id=head_analysis_file_id)
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.head_analysis_file_not_found",
@@ -482,7 +486,10 @@ def _run_size_analysis_comparison(
         return
 
     try:
-        base_analysis_file = File.objects.get(id=base_size_metric.analysis_file_id)
+        base_analysis_file_id = base_size_metric.analysis_file_id
+        if base_analysis_file_id is None:
+            raise File.DoesNotExist
+        base_analysis_file = File.objects.get(id=base_analysis_file_id)
     except File.DoesNotExist:
         logger.exception(
             "preprod.size_analysis.compare.base_analysis_file_not_found",

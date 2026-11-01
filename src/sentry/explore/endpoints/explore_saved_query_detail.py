@@ -208,7 +208,8 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        query.visits = F("visits") + 1
+        # justification: the ORM resolves F expressions against the numeric column at save time.
+        query.visits = cast(int, F("visits") + 1)
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

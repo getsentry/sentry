@@ -4,7 +4,7 @@ import logging
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import IO, Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import orjson
 from django.apps import apps
@@ -383,7 +383,9 @@ def _import(
             # can't be races here, since there is only one task running at a time, pushing
             # updates in a synchronous manner.
             existing_control_import_chunk_replica = ControlImportChunkReplica.objects.filter(
-                import_uuid=flags.import_uuid, model=model_name_str, min_ordinal=result.min_ordinal
+                import_uuid=UUID(flags.import_uuid),
+                model=model_name_str,
+                min_ordinal=result.min_ordinal,
             ).first()
             if existing_control_import_chunk_replica is not None:
                 logger.info("import_by_model.control_replica_already_exists", extra=extra)
@@ -404,7 +406,7 @@ def _import(
                 ]
 
                 control_import_chunk_replica = ControlImportChunkReplica(
-                    import_uuid=flags.import_uuid,
+                    import_uuid=UUID(flags.import_uuid),
                     model=model_name_str,
                     min_ordinal=result.min_ordinal,
                     max_ordinal=result.max_ordinal,

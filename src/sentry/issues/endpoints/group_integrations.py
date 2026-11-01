@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict
+from typing import Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -33,6 +33,7 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+from sentry.utils.cursors import CursorResult
 
 
 class LinkedExternalIssueResponse(TypedDict):
@@ -177,5 +178,10 @@ class GroupIntegrationsEndpoint(GroupEndpoint):
             )
         )
 
-        self.add_cursor_headers(request, response, result)
+        self.add_cursor_headers(
+            # justification: the RPC pagination result mirrors CursorResult's cursor fields.
+            request,
+            response,
+            cast("CursorResult[Any]", result),
+        )
         return response

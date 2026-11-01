@@ -236,11 +236,14 @@ def sync_prebuilt_queries(organization: Organization) -> None:
                 }
             else:
                 continue
+            prebuilt_version = prebuilt_query["prebuilt_version"]
+            assert isinstance(prebuilt_version, int)
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
                     prebuilt_id=prebuilt_query["prebuilt_id"]
                 )
-                if prebuilt_query["prebuilt_version"] > saved_prebuilt_query.prebuilt_version:
+                saved_prebuilt_version = saved_prebuilt_query.prebuilt_version
+                if saved_prebuilt_version is not None and prebuilt_version > saved_prebuilt_version:
                     queries_to_update.append(
                         ExploreSavedQuery(
                             id=saved_prebuilt_query.id,

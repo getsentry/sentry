@@ -1,5 +1,5 @@
 import functools
-from typing import Any
+from typing import Any, cast
 
 from django.http import StreamingHttpResponse
 from drf_spectacular.utils import extend_schema
@@ -66,7 +66,7 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
         with handle_query_errors():
             return self.paginate(
                 request=request,
-                response_cls=StreamingHttpResponse,
+                response_cls=cast("type[Response[Any]]", StreamingHttpResponse),
                 response_kwargs={"content_type": "application/json"},
                 paginator_cls=GenericOffsetPaginator,
                 data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),

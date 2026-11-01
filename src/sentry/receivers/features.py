@@ -250,6 +250,8 @@ def record_issue_assigned(
         organization_id=project.organization_id, feature_slug="assignment", complete=True
     )
 
+    user_id: int | None
+    default_user_id: int | str
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -294,6 +296,8 @@ def record_issue_resolved(
             organization_id=organization_id, feature_slug="resolved_with_commit", complete=True
         )
 
+    user_id: int | None
+    default_user_id: int | str
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:
@@ -327,6 +331,8 @@ def record_issue_unresolved(
     transition_type: str,
     **kwargs: object,
 ) -> None:
+    user_id: int | None
+    default_user_id: int | str
     if user and user.is_authenticated:
         user_id = default_user_id = user.id
     else:

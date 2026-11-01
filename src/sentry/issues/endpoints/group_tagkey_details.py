@@ -77,7 +77,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         Returns the values and aggregate details of a given tag key related to an issue.
         """
         lookup_key = tagstore.backend.prefix_reserved_key(key)
-        tenant_ids = {"organization_id": group.project.organization_id}
+        tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
         try:
             environment_id = get_environment_id(request, group.project.organization_id)
         except Environment.DoesNotExist:

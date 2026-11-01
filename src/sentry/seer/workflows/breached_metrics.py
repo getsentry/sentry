@@ -289,7 +289,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         projects = Project.objects.filter(
             organization_id=config.organization_id, status=ObjectStatus.ACTIVE
         )
-        if config.backing_workflow_id is None:
+        if not config.backing_workflow_id:
             return projects.none()
         return projects.filter(
             id__in=DetectorWorkflow.objects.filter(

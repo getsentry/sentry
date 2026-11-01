@@ -699,7 +699,7 @@ def render_template_context(
 
     def _multi_project_substatus_url(project_ctxs: list[ProjectContext], query: str) -> str:
         path = f"/organizations/{ctx.organization.slug}/issues/"
-        params = [
+        params: list[tuple[str, str | int]] = [
             ("referrer", "weekly_report"),
             ("notification_uuid", notification_uuid),
             ("query", query),

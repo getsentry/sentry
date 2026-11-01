@@ -802,7 +802,7 @@ def accept_orchestration_command(
                 raise InvestigationConflictError(
                     "Request ID was already used for a different command."
                 )
-            if run.seer_run_id is None and _is_run_retry(existing.type, existing.payload):
+            if not run.seer_run_id and _is_run_retry(existing.type, existing.payload):
                 _schedule_orchestration_create(run.id)
             elif (
                 existing.status == InvestigationOrchestrationCommandStatus.FAILED
@@ -825,7 +825,7 @@ def accept_orchestration_command(
             run, request_id=request_id, command_type=command_type, payload=payload
         )
 
-        if run.seer_run_id is None and _is_run_retry(command_type, payload):
+        if not run.seer_run_id and _is_run_retry(command_type, payload):
             command = InvestigationOrchestrationCommand.objects.create(
                 orchestration_run=run,
                 request_id=request_id,

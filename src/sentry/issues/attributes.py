@@ -208,7 +208,7 @@ def _bulk_retrieve_snapshot_values(
             "priority": group_value.priority,
             "first_release": group_value.first_release_id,
             "first_seen": group_value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            "num_comments": group_value.num_comments,
+            "num_comments": group_value.num_comments or 0,
             "timestamp": datetime.now().isoformat(),
             "assignee_user_id": assignee["user_id"] if assignee else None,
             "assignee_team_id": assignee["team_id"] if assignee else None,

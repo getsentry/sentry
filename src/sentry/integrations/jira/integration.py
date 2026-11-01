@@ -747,8 +747,6 @@ class JiraIntegration(IssueSyncIntegration):
     def sync_metadata(self) -> None:
         client = self.get_client()
 
-        server_info = {}
-        projects = []
         try:
             server_info = client.get_server_info()
             projects = client.get_projects_list()
@@ -885,7 +883,7 @@ class JiraIntegration(IssueSyncIntegration):
         """
         client = self.get_client()
         try:
-            issue = client.get_issue(issue_id)
+            issue = client.get_issue(str(issue_id))
         except ApiError as e:
             self.raise_error(e)
 
@@ -1135,7 +1133,9 @@ class JiraIntegration(IssueSyncIntegration):
             "Ensure that your project permissions are correct."
         )
 
-    def fetch_issue_create_meta(self, client: JiraCloudClient, project_id: str) -> dict[str, Any]:
+    def fetch_issue_create_meta(
+        self, client: JiraCloudClient, project_id: str
+    ) -> dict[str, Any] | None:
         try:
             meta = client.get_create_meta_for_project(project_id)
         except ApiUnauthorized:
@@ -1461,7 +1461,10 @@ class JiraIntegration(IssueSyncIntegration):
                 raise IntegrationSyncTargetNotFound("No matching Jira user found.")
         try:
             id_field = client.user_id_field()
-            client.assign_issue(external_issue.key, jira_user and jira_user.get(id_field))
+            # justification: Jira unassigns when the assignee is None; the client signature is narrower than the API.
+            client.assign_issue(
+                external_issue.key, cast("str", jira_user and jira_user.get(id_field))
+            )
         except ApiUnauthorized as e:
             raise IntegrationConfigurationError(
                 "Insufficient permissions to assign user to the Jira issue."

@@ -234,7 +234,9 @@ class SentryAppInstallationNotifier:
 
     @cached_property
     def api_grant(self) -> ApiGrant | None:
-        return self.sentry_app_installation.api_grant_id and self.sentry_app_installation.api_grant
+        if not self.sentry_app_installation.api_grant_id:
+            return None
+        return self.sentry_app_installation.api_grant
 
 
 @dataclasses.dataclass

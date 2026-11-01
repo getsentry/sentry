@@ -533,7 +533,7 @@ def _get_pull_request_activity_type_from_state(
 def pull_request_state_changing(instance: PullRequest, **kwargs: object) -> None:
     """Emit group activities when a linked PR moves between open and non-open states."""
     try:
-        if instance.pk is None:
+        if not instance.pk:
             return
 
         old_state = (

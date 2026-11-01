@@ -103,7 +103,7 @@ def _mark_create_dispatch_failed(run_id: int) -> None:
     database = router.db_for_write(InvestigationOrchestrationRun)
     with transaction.atomic(using=database):
         run = _lock_orchestration_run(run_id)
-        if run is None or run.seer_run_id is not None:
+        if run is None or run.seer_run_id:
             return
         detail = {
             "code": "seer_dispatch_failed",
@@ -310,7 +310,7 @@ def _reconcile_command_version_conflict(
     reason: CommandRejectionCode,
 ) -> None:
     run.refresh_from_db()
-    if run.seer_run_id is None:
+    if not run.seer_run_id:
         raise SeerApiError("Investigation orchestration run is missing", 502)
     response = get_investigation_orchestration_run(
         run,
@@ -379,7 +379,7 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
     )
     if run is None:
         return
-    if run.seer_run_id is not None:
+    if run.seer_run_id:
         dispatch_investigation_orchestration_commands.delay(run.id)
         return
     viewer_context = SeerViewerContext(organization_id=run.investigation.organization_id)
@@ -424,7 +424,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
     )
     if run is None:
         return
-    if run.seer_run_id is None:
+    if not run.seer_run_id:
         dispatch_investigation_orchestration_create.delay(run.id)
         return
 

@@ -423,9 +423,13 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
                     0,
                 )
 
+        dataset = ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"])
+        if dataset is None:
+            raise serializers.ValidationError("Invalid dataset")
+
         return {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
-            "dataset": ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"]),
+            "dataset": dataset,
         }

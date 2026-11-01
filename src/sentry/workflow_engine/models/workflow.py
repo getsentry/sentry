@@ -139,7 +139,7 @@ class Workflow(DefaultFieldsModel, OwnerModel, JSONConfigBase):
             process_data_condition_group,
         )
 
-        if self.when_condition_group_id is None:
+        if not self.when_condition_group_id:
             return (
                 DataConditionGroupEvaluation(
                     result=True,

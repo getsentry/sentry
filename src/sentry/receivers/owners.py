@@ -12,7 +12,7 @@ def _assert_org_has_owner_not_from_team(organization: Organization, top_role: st
 
 def prevent_demoting_last_owner(instance: OrganizationMember, **kwargs: object) -> None:
     # if a member is being created
-    if instance.id is None:
+    if not instance.id:
         return
 
     try:
