@@ -4,6 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
+
+jest.mock('sentry/utils/demoMode');
 
 // Service workers and the Notification API do not exist in jsdom, and
 // `supportsNotifications` is read once at module scope, so there is no store or
@@ -33,6 +36,7 @@ describe('SeerEnableNotifications', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    jest.mocked(isDemoModeActive).mockReturnValue(false);
     promptsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       body: {data: {}},
@@ -40,12 +44,19 @@ describe('SeerEnableNotifications', () => {
   });
 
   it('offers to notify while a run is processing', async () => {
-    render(<SeerEnableNotifications status="processing" />, {
-      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
-    });
+    render(<SeerEnableNotifications status="processing" />);
 
     expect(await screen.findByRole('button', {name: NOTIFY_BUTTON})).toBeInTheDocument();
     expect(promptsRequest).toHaveBeenCalled();
+  });
+
+  it('stays quiet in the demo sandbox', () => {
+    jest.mocked(isDemoModeActive).mockReturnValue(true);
+
+    render(<SeerEnableNotifications status="processing" />);
+
+    expect(promptsRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: NOTIFY_BUTTON})).not.toBeInTheDocument();
   });
 
   it('stays quiet in code mode, where the agent owns the run', () => {
@@ -54,14 +65,10 @@ describe('SeerEnableNotifications', () => {
         <SeerEnableNotifications status="processing" />
       </AutofixChatProvider>,
       {
-        // Code mode needs the Explorer's own prerequisites alongside its flag,
-        // and a chat that can take the run.
+        // Code mode needs the Explorer's own prerequisites, and a chat that can
+        // take the run.
         organization: OrganizationFixture({
-          features: [
-            'autofix-browser-notifications',
-            'seer-explorer-code-mode-tools',
-            'seer-explorer',
-          ],
+          features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
           openMembership: true,
           hideAiFeatures: false,
         }),
