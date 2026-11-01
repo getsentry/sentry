@@ -1152,6 +1152,7 @@ class AgentTokenPublicGetMatrixTest(APITestCase):
         if name in self._matrix_resources:
             return self._matrix_resources[name]
 
+        resource: Any
         if name == "dashboard":
             resource = self.create_dashboard(organization=self.org, created_by=self.owner)
         elif name == "custom_inbound_filter":

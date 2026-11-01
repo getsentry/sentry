@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import TypeVar
+from typing import Any, TypeVar
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -520,7 +520,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         key: str = "123",
         name: str = "getsentry/sentry",
         integration_id: int = 123,
-        **updates: object,
+        **updates: Any,
     ) -> PullRequest:
         repo = self.create_repo(
             project=group.project,

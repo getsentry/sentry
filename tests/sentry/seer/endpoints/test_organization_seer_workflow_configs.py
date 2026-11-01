@@ -22,6 +22,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
+from sentry.utils import json
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -164,7 +165,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert "lastRunStatus" not in response.data["configs"][2]
 
         assert (
-            datetime.fromisoformat(response.json()["configs"][0]["dateLastRun"])
+            datetime.fromisoformat(json.loads(response.content)["configs"][0]["dateLastRun"])
             == latest.date_added
         )
         filtered = self.get_success_response(self.organization.slug, id=config.id)

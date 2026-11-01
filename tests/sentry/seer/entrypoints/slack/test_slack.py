@@ -8,6 +8,7 @@ from slack_sdk.models.blocks import LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
 from fixtures.seer.webhooks import MOCK_RUN_ID, MOCK_SEER_WEBHOOKS
+from sentry.integrations.slack.integration import SlackIntegration
 from sentry.integrations.slack.message_builder.types import SlackAction
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.investigations.models import InvestigationOrchestrationRun
@@ -95,6 +96,11 @@ class SlackAutofixEntrypointTest(TestCase):
             action_id=SlackAction.SEER_AUTOFIX_START.value,
             value=AutofixStoppingPoint.ROOT_CAUSE.value,
         )
+
+    def _get_installation(self) -> SlackIntegration:
+        installation = self.integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, SlackIntegration)
+        return installation
 
     def _create_update(
         self,
@@ -266,7 +272,7 @@ class SlackAutofixEntrypointTest(TestCase):
         self, mock_send_threaded_message: MagicMock, mock_send_threaded_ephemeral_message: MagicMock
     ) -> None:
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
 
         assert send_thread_update(install=install, thread=self.thread, data=data) == (
             "1234567890.000100"
@@ -298,7 +304,7 @@ class SlackAutofixEntrypointTest(TestCase):
         side_effect=TimeoutError,
     )
     def test_send_thread_update_normalizes_timeout(self, _mock_send_ephemeral: MagicMock) -> None:
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
 
         with pytest.raises(IntegrationError):
             send_thread_update(
@@ -337,7 +343,7 @@ class SlackAutofixEntrypointTest(TestCase):
         }
 
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,
@@ -556,7 +562,7 @@ class SlackAutofixEntrypointTest(TestCase):
         }
 
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,
@@ -581,7 +587,7 @@ class SlackAutofixEntrypointTest(TestCase):
         }
 
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,
@@ -605,7 +611,7 @@ class SlackAutofixEntrypointTest(TestCase):
         }
 
         data = self._create_update(AutofixStoppingPoint.SOLUTION)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,
@@ -644,7 +650,7 @@ class SlackAutofixEntrypointTest(TestCase):
             "message": {"ts": self.thread_ts, "text": "Issue notification", "blocks": []}
         }
 
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,
@@ -693,7 +699,7 @@ class SlackAutofixEntrypointTest(TestCase):
         self.slack_request.data = {"message": None}
 
         data = self._create_update(AutofixStoppingPoint.ROOT_CAUSE)
-        install = self.integration.get_installation(organization_id=self.organization.id)
+        install = self._get_installation()
         update_existing_message(
             request=self.slack_request,
             install=install,

@@ -69,8 +69,8 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             euser = EventUser.for_projects([self.project], {"id": ["2"]}, result_limit=1)
 
         assert len(euser) == 1
-        assert euser[0].user_ident == self.event_2.data.get("user").get("id")
-        assert euser[0].email == self.event_2.data.get("user").get("email")
+        assert euser[0].user_ident == self.event_2.data["user"].get("id")
+        assert euser[0].email == self.event_2.data["user"].get("email")
 
         assert_analytics_events_recorded(
             mock_record,
@@ -102,22 +102,22 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
     def test_for_projects_query_filter_username(self) -> None:
         euser = EventUser.for_projects([self.project], {"username": ["minion"]}, result_limit=1)
         assert len(euser) == 1
-        assert euser[0].user_ident == self.event_3.data.get("user").get("id")
-        assert euser[0].email == self.event_3.data.get("user").get("email")
+        assert euser[0].user_ident == self.event_3.data["user"].get("id")
+        assert euser[0].email == self.event_3.data["user"].get("email")
 
     def test_for_projects_query_filter_email(self) -> None:
         euser = EventUser.for_projects(
             [self.project], {"email": ["foo@example.com"]}, result_limit=1
         )
         assert len(euser) == 1
-        assert euser[0].user_ident == self.event_1.data.get("user").get("id")
-        assert euser[0].email == self.event_1.data.get("user").get("email")
+        assert euser[0].user_ident == self.event_1.data["user"].get("id")
+        assert euser[0].email == self.event_1.data["user"].get("email")
 
     def test_for_projects_query_filter_ip(self) -> None:
         euser = EventUser.for_projects([self.project], {"ip": ["8.8.8.8"]}, result_limit=1)
         assert len(euser) == 1
-        assert euser[0].user_ident == self.event_3.data.get("user").get("id")
-        assert euser[0].email == self.event_3.data.get("user").get("email")
+        assert euser[0].user_ident == self.event_3.data["user"].get("id")
+        assert euser[0].email == self.event_3.data["user"].get("email")
 
     def test_for_projects_query_multiple_OR_filters(self) -> None:
         eusers = EventUser.for_projects(
@@ -133,8 +133,8 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             {"username": ["minion"], "email": ["minion@universal.com"], "ip": ["8.8.8.8"]},
         )
         assert len(eusers) == 1
-        assert eusers[0].user_ident == self.event_3.data.get("user").get("id")
-        assert eusers[0].email == self.event_3.data.get("user").get("email")
+        assert eusers[0].user_ident == self.event_3.data["user"].get("id")
+        assert eusers[0].email == self.event_3.data["user"].get("email")
 
     def test_for_projects_query_with_multiple_eventuser_entries_different_ips(self) -> None:
         for i in range(10):
@@ -157,9 +157,9 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             filter_boolean=BooleanOp.OR,
         )
         assert len(eusers) == 1
-        assert eusers[0].user_ident == self.event_2.data.get("user").get("id")
-        assert eusers[0].email == self.event_2.data.get("user").get("email")
-        assert eusers[0].ip_address == self.event_2.data.get("user").get("ip_address")
+        assert eusers[0].user_ident == self.event_2.data["user"].get("id")
+        assert eusers[0].email == self.event_2.data["user"].get("email")
+        assert eusers[0].ip_address == self.event_2.data["user"].get("ip_address")
 
     def test_for_projects_query_with_multiple_eventuser_entries_different_ips_query_by_ip(
         self,
@@ -277,12 +277,12 @@ class EventUserTestCase(APITestCase, SnubaTestCase):
             )
 
         assert len(eusers) == 2
-        assert eusers[0].user_ident == self.event_2.data.get("user").get("id")
-        assert eusers[0].email == self.event_2.data.get("user").get("email")
-        assert eusers[0].ip_address == self.event_2.data.get("user").get("ip_address")
-        assert eusers[1].user_ident == self.event_3.data.get("user").get("id")
-        assert eusers[1].email == self.event_3.data.get("user").get("email")
-        assert eusers[1].ip_address == self.event_3.data.get("user").get("ip_address")
+        assert eusers[0].user_ident == self.event_2.data["user"].get("id")
+        assert eusers[0].email == self.event_2.data["user"].get("email")
+        assert eusers[0].ip_address == self.event_2.data["user"].get("ip_address")
+        assert eusers[1].user_ident == self.event_3.data["user"].get("id")
+        assert eusers[1].email == self.event_3.data["user"].get("email")
+        assert eusers[1].ip_address == self.event_3.data["user"].get("ip_address")
 
         assert_analytics_events_recorded(
             mock_record,

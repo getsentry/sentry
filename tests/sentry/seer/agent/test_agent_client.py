@@ -1321,11 +1321,11 @@ class TestSeerAgentClientPushChanges(TestCase):
         mock_time.side_effect = [0, 0, 200]  # Exceeds 120s timeout
 
         # get_option call in client init interferes with the mock time.time() - patch it
-        self.organization.get_option = MagicMock(return_value=True)
-        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
+        with patch.object(self.organization, "get_option", return_value=True):
+            client = SeerAgentClient(self.organization, self.user, enable_coding=True)
 
-        with pytest.raises(TimeoutError, match="PR creation timed out"):
-            client.push_changes(123, poll_timeout=120.0)
+            with pytest.raises(TimeoutError, match="PR creation timed out"):
+                client.push_changes(123, poll_timeout=120.0)
 
 
 class TestSeerRunStateCodeChanges(TestCase):

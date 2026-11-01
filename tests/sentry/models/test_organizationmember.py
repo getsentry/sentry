@@ -141,6 +141,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             rpc_user = user_service.get_user(user_id=user.id)
+            assert rpc_user is not None
             member.send_sso_unlink_email(rpc_user, provider)
 
         context = builder.call_args[1]["context"]

@@ -31,7 +31,6 @@ from sentry.workflow_engine.processors import (
 from sentry.workflow_engine.registry import data_source_type_registry, detector_settings_registry
 from sentry.workflow_engine.types import (
     ConditionError,
-    DataConditionResult,
     DataSourceTypeHandler,
     DetectorGroupKey,
     DetectorPriorityLevel,
@@ -354,7 +353,7 @@ class ConditionDetectorHandlerTest(BaseGroupTypeTest):
         self.handler = MockDefaultDetectorHandler(self.detector)
 
     def create_condition_detector(
-        self, condition_result: DataConditionResult = DetectorPriorityLevel.HIGH
+        self, condition_result: int | None = DetectorPriorityLevel.HIGH
     ) -> Detector:
         detector = self.create_detector(
             project=self.project,

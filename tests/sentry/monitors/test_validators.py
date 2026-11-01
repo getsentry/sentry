@@ -210,7 +210,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.config["checkin_margin"] == 1
 
     def test_max_runtime_limit(self) -> None:
-        data = {
+        data: dict[str, Any] = {
             "project": self.project.slug,
             "name": "My Monitor",
             "slug": "cron_job",

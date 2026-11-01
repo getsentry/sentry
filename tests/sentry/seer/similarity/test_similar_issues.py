@@ -123,7 +123,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_record_circuit_breaker_error: MagicMock,
     ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         cases: list[tuple[Any, str]] = [
             (None, "AttributeError"),
@@ -351,7 +351,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         mock_seer_deletion_request: MagicMock,
     ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         # Set the grouphash creation date to yesterday
         GroupHashMetadata.objects.get_or_create(
@@ -380,7 +380,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         newly_created_grouphash = GroupHash.objects.create(
             hash="adopt_dont_shop", project=self.project
         )
-        assert newly_created_grouphash.group_id is None
+        assert newly_created_grouphash.group is None
 
         # Set the grouphash creation date to today
         GroupHashMetadata.objects.get_or_create(
@@ -409,7 +409,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         # grouphash metadata was a thing
 
         very_old_grouphash = GroupHash.objects.create(hash="maisey", project=self.project)
-        assert very_old_grouphash.group_id is None
+        assert very_old_grouphash.group is None
         assert very_old_grouphash.metadata is None
 
         mock_seer_similarity_request.return_value = self._make_response(
@@ -442,7 +442,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             hash="dogs_are_great", project=self.project
         )
         GroupHashMetadata.objects.create(grouphash=existing_grouphash_no_group)
-        assert existing_grouphash_no_group.group_id is None
+        assert existing_grouphash_no_group.group is None
         existing_grouphash_with_group = GroupHash.objects.create(
             hash="adopt_dont_shop", project=self.project, group=self.group
         )
@@ -499,7 +499,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
     ) -> None:
         existing_grouphash = GroupHash.objects.create(hash="dogs_are_great", project=self.project)
         GroupHashMetadata.objects.create(grouphash=existing_grouphash)
-        assert existing_grouphash.group_id is None
+        assert existing_grouphash.group is None
 
         mock_seer_similarity_request.return_value = self._make_response(
             {

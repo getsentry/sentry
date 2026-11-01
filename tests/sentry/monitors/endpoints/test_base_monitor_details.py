@@ -445,10 +445,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         mark_ok(check_in, check_in.date_added)
 
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=1)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=1) == monitor_environment.next_checkin_latest
 
         resp = self.get_error_response(
             self.organization.slug,
@@ -471,10 +470,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         # check that next_checkin_latest was updated appropriately
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=30)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=30) == monitor_environment.next_checkin_latest
 
         # check that unsetting the parameter works
         resp = self.get_success_response(
@@ -489,10 +487,9 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         assert monitor.config["checkin_margin"] is None
 
         monitor_environment.refresh_from_db()
-        assert (
-            monitor_environment.next_checkin + timedelta(minutes=1)
-            == monitor_environment.next_checkin_latest
-        )
+        next_checkin = monitor_environment.next_checkin
+        assert next_checkin is not None
+        assert next_checkin + timedelta(minutes=1) == monitor_environment.next_checkin_latest
 
     def test_max_runtime(self) -> None:
         monitor = self._create_monitor()

@@ -1298,6 +1298,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
 
         result = get_issue_details(
             organization_id=self.organization.id,
@@ -1315,6 +1316,7 @@ class TestGetIssueDetails(APITransactionTestCase, SnubaTestCase, SearchIssueTest
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
 
         other_project = self.create_project(organization=self.organization, name="other project")
 
@@ -1723,6 +1725,7 @@ class TestGetIssueCommitters(APITransactionTestCase, SnubaTestCase, SearchIssueT
         event = self._make_error_event()
         group = event.group
         assert isinstance(group, Group)
+        assert group.qualified_short_id is not None
         self._add_suspect_commit(group)
 
         result = get_issue_committers(
@@ -1920,6 +1923,7 @@ class TestGetIssueOwnership(APITransactionTestCase, SnubaTestCase, SearchIssueTe
 
     def test_resolves_by_qualified_short_id(self) -> None:
         group = self._make_event_on_path("src/app/checkout.py")
+        assert group.qualified_short_id is not None
         self._set_ownership(
             [Rule(Matcher("path", "*checkout.py"), [Owner("user", self.user.email)])]
         )

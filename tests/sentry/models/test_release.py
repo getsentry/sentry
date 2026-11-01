@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -789,6 +790,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -836,6 +838,7 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -904,6 +907,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -1160,7 +1164,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": "previous-commit-id",
@@ -1209,7 +1213,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": None,

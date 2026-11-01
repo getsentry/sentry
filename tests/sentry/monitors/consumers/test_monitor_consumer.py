@@ -1035,7 +1035,7 @@ class MonitorConsumerTest(TestCase):
             date_added=monitor.date_added - timedelta(weeks=52),
         )
 
-        self.send_checkin("my-monitor", guid=old_checkin.guid)
+        self.send_checkin("my-monitor", guid=str(old_checkin.guid))
 
         checkin = MonitorCheckIn.objects.get(guid=old_checkin.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS

@@ -13,6 +13,7 @@ from fixtures.gitlab import (
     MERGE_REQUEST_OPENED_EVENT,
     GitLabTestCase,
 )
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organization import Organization
 from sentry.models.repositorysettings import CodeReviewTrigger
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -152,7 +153,7 @@ class _MergeRequestHandlerTestBase(GitLabTestCase):
             event=event,
             organization=_rpc_org(self.organization),
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
 
@@ -778,7 +779,7 @@ class MergeRequestNoteEventTest(GitLabTestCase):
                 name=self.organization.name,
             ),
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
     @with_feature("organizations:code-review-beta")

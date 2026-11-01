@@ -36,7 +36,9 @@ class TriggerLightweightRCAClusterTest(TestCase):
             data=EVENT_DATA_WITH_STACKTRACE,
             project_id=self.project.id,
         )
-        self.group = self.event.group
+        group = self.event.group
+        assert group is not None
+        self.group = group
 
     @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
     def test_calls_seer_with_correct_payload(self, mock_request: MagicMock) -> None:

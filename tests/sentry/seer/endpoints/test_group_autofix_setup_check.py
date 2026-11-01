@@ -284,7 +284,8 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         # Note: has_project_connected_repos is not called when integration check fails
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.organization_integration.delete()
+            assert self.organization_integration is not None
+        self.organization_integration.delete()
 
         group = self.create_group()
         self.login_as(user=self.user)

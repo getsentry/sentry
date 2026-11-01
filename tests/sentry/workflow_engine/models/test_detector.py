@@ -7,6 +7,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.testutils.helpers.options import override_options
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.models import Detector
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
 from sentry.workflow_engine.types import DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -52,7 +53,7 @@ class DetectorTest(BaseWorkflowTest):
         self.detector.save()
 
         self.create_data_condition(
-            type="eq",
+            type=Condition.EQUAL,
             comparison="HIGH",
             condition_group=self.detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,
@@ -74,7 +75,7 @@ class DetectorTest(BaseWorkflowTest):
         self.detector.workflow_condition_group = self.create_data_condition_group()
         self.detector.save()
         self.create_data_condition(
-            type="eq",
+            type=Condition.EQUAL,
             comparison="HIGH",
             condition_group=self.detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,
@@ -96,7 +97,7 @@ class DetectorTest(BaseWorkflowTest):
         self.detector.save()
 
         self.create_data_condition(
-            type="eq",
+            type=Condition.EQUAL,
             comparison="HIGH",
             condition_group=self.detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,

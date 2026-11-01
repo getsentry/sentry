@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -79,7 +80,7 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         group: Group,
         *,
         key: str = "123",
-        updates: dict[str, object] | None = None,
+        updates: dict[str, Any] | None = None,
     ) -> PullRequest:
         repo = self.create_repo(
             project=group.project,

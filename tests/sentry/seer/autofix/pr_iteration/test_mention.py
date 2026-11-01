@@ -20,7 +20,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        self.integration = MagicMock(id=42, provider="github")
+        self.integration: Any = MagicMock(id=42, provider="github")
 
     def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict[str, Any]:
         return {

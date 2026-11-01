@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
+from typing import Any
 
 from django.utils import timezone
 
@@ -232,7 +233,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
 
     def test_serializes_monitor_config_correctly(self) -> None:
         monitor = self.create_monitor(project=self.project)
-        config = {
+        config: dict[str, Any] = {
             "schedule": "0 0 * * *",
             "schedule_type": ScheduleType.CRONTAB,
             "timezone": "US/Arizona",

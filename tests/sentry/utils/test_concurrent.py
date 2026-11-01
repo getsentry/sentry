@@ -20,7 +20,7 @@ from sentry.utils.concurrent import (
 
 
 def test_future_set_callback_success() -> None:
-    future_set = FutureSet([Future() for i in range(3)])
+    future_set: FutureSet[object] = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
@@ -40,14 +40,14 @@ def test_future_set_callback_success() -> None:
 
 
 def test_future_set_callback_error() -> None:
-    future_set = FutureSet([Future() for i in range(3)])
+    future_set: FutureSet[object] = FutureSet([Future() for i in range(3)])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
 
     for i, future in enumerate(list(future_set)):
         assert callback.call_count == 0
-        future.set_exception(Exception)
+        future.set_exception(Exception())
 
     assert callback.call_count == 1
     assert callback.call_args == mock.call(future_set)
@@ -60,7 +60,7 @@ def test_future_set_callback_error() -> None:
 
 
 def test_future_set_callback_empty() -> None:
-    future_set = FutureSet([])
+    future_set: FutureSet[object] = FutureSet([])
 
     callback = mock.Mock()
     future_set.add_done_callback(callback)
@@ -70,7 +70,7 @@ def test_future_set_callback_empty() -> None:
 
 
 def test_future_broken_callback() -> None:
-    future_set = FutureSet([])
+    future_set: FutureSet[object] = FutureSet([])
 
     callback = mock.Mock(side_effect=Exception("Boom!"))
 

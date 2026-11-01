@@ -1,3 +1,5 @@
+from typing import cast
+
 from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 
@@ -55,7 +57,9 @@ class CreateAuditEntryTest(TestCase):
         apikey = self.create_api_key(org, allowed_origins="*")
 
         req = fake_http_request(AnonymousUser())
-        req.auth = apikey
+        # justification: request.auth holds whichever auth class Django authenticated with,
+        # and audit logging branches on ApiKey specifically.
+        req.auth = cast("AuthenticatedToken", apikey)
 
         entry = create_audit_entry(req, organization_id=org.id, data={"thing": "to True"})
         assert entry.actor_key == apikey

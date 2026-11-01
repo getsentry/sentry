@@ -1043,8 +1043,10 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         env_two.refresh_from_db()
         assert is_monitor_muted(monitor_one)
         assert is_monitor_muted(monitor_two)
-        assert env_one.is_muted
-        assert env_two.is_muted
+        muted_one = env_one.is_muted
+        muted_two = env_two.is_muted
+        assert muted_one
+        assert muted_two
         assert_org_audit_log_exists(
             organization=self.organization,
             event=audit_log.get_event_id("MONITOR_EDIT"),

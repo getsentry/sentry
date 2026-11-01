@@ -55,10 +55,11 @@ class DebugFileTest(TestCase):
         )
 
         dif_id = dif.id
+        file_id = dif.file_id
         dif.delete()
 
         assert not ProjectDebugFile.objects.filter(id=dif_id).exists()
-        assert not File.objects.filter(id=dif.file.id).exists()
+        assert not File.objects.filter(id=file_id).exists()
 
     def test_delete_shared_file_keeps_file_until_last_reference_removed(self) -> None:
         file = self.create_file(
@@ -166,6 +167,7 @@ class DebugFileTest(TestCase):
 
     def test_find_missing(self) -> None:
         dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
+        assert dif.checksum is not None
         ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
         assert ret == ["a" * 40]
 
@@ -349,9 +351,6 @@ class CreateDebugFileTest(APITestCase):
         return DifMeta(**args)
 
     def create_dif(self, file: File, **kwargs: object) -> tuple[ProjectDebugFile, bool]:
-        if file.size is None:
-            file.size = 0
-            file.save(update_fields=["size"])
         return create_dif_from_file(self.project, self._create_meta(**kwargs), file)
 
     def create_dif_from_fileobj(
@@ -429,7 +428,7 @@ class CreateDebugFileTest(APITestCase):
             dif, created = self.create_dif_from_fileobj(BytesIO(content))
 
         assert created
-        assert dif.file_id is None
+        assert dif.file is None
         assert dif.storage_path is not None
         assert dif.checksum == checksum
         assert dif.content_type == "application/x-mach-binary"

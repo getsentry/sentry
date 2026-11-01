@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import Any
 from unittest import mock
 from unittest.mock import ANY, MagicMock, patch
 
@@ -30,7 +31,7 @@ from sentry.testutils.helpers.analytics import (
     assert_not_analytics_event,
 )
 
-TASK_KWARGS = {
+TASK_KWARGS: dict[str, Any] = {
     "integration_id": 123,
     "channel_id": "C1234567890",
     "ts": "1234567890.654321",
@@ -49,7 +50,7 @@ _SEER_SLACK_FEATURES = {
 
 class ProcessMentionForSlackTest(TestCase):
     def _run_task(self, **overrides: object) -> None:
-        kwargs = {
+        kwargs: dict[str, Any] = {
             **TASK_KWARGS,
             "organization_id": self.organization.id,
             **overrides,
@@ -461,7 +462,7 @@ class LinkedMessagesContextTest(TestCase):
         self.mock_operator_cls.return_value = self.mock_operator
 
     def _run(self, *, text: str, **overrides: object) -> None:
-        kwargs = {
+        kwargs: dict[str, Any] = {
             **TASK_KWARGS,
             "organization_id": self.organization.id,
             "text": text,
@@ -810,7 +811,7 @@ class BuildInaccessibleLinksRenderableTest(TestCase):
         assert "<#C0PRIV>" in renderable["text"]
 
 
-REACTION_TASK_KWARGS = {
+REACTION_TASK_KWARGS: dict[str, Any] = {
     "channel_id": "C1234567890",
     "message_ts": "1234567890.654321",
     "reaction": "+1",
@@ -835,7 +836,7 @@ class ProcessReactionForSlackTest(TestCase):
             identity_provider=self.idp,
             external_id=REACTION_TASK_KWARGS["reactor_slack_user_id"],
         )
-        self.defaults = {
+        self.defaults: dict[str, Any] = {
             **REACTION_TASK_KWARGS,
             "integration_id": self.integration.id,
             "organization_id": self.organization.id,

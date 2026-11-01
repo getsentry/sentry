@@ -32,6 +32,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -134,7 +135,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        (serialized_run,) = response.json()["runs"]
+        (serialized_run,) = json.loads(response.content)["runs"]
         (serialized_execution,) = serialized_run["executions"]
         assert serialized_run["status"] == serialized_execution["status"] == "failed"
         assert serialized_run["error"] == error
@@ -157,7 +158,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             run.update(extras={"error": error})
             execution.update(extras={"error": error})
             response = self.get_success_response(self.organization.slug, config=self.config.id)
-            (serialized_run,) = response.json()["runs"]
+            (serialized_run,) = json.loads(response.content)["runs"]
             assert serialized_run["error"] == {
                 "code": "unknown",
                 "message": "No error details are available.",
@@ -190,7 +191,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        runs = response.json()["runs"]
+        runs = json.loads(response.content)["runs"]
         assert [run["status"] for run in runs] == [None, "complete", "running", "queued"]
         for run_data in runs:
             assert "error" not in run_data

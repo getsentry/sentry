@@ -1,6 +1,7 @@
 import unittest
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -66,7 +67,12 @@ class SnubaUtilsTest(TestCase):
 
     def test_translation_no_translation(self) -> None:
         # Case 1: No translation
-        filter_keys = {"sdk": ["python", "js"]}
+        filter_keys = cast(
+            "Mapping[str, Sequence[int]]",
+            # justification: get_snuba_translators only translates mapped columns, so
+            # unrelated string columns are passed through untouched.
+            {"sdk": ["python", "js"]},
+        )
         forward, reverse = get_snuba_translators(filter_keys)
         assert forward(filter_keys) == filter_keys
         result = [{"sdk": "python", "count": 123}, {"sdk": "js", "count": 234}]
@@ -288,7 +294,10 @@ class PrepareQueryParamsTest(TestCase):
             _prepare_query_params(query_params)
 
     def test_invalid_dataset_provided(self) -> None:
-        query_params = SnubaQueryParams(dataset="invalid_dataset")
+        query_params = SnubaQueryParams(
+            # justification: deliberately invalid dataset decoded from an untrusted query string
+            dataset=cast(Dataset, "invalid_dataset")
+        )
 
         with pytest.raises(UnqualifiedQueryError):
             _prepare_query_params(query_params)
@@ -304,7 +313,7 @@ class PrepareQueryParamsTest(TestCase):
             aggregations=[],
             rollup=86400,
             is_grouprelease=False,
-            **{"selected_columns": ["sessions"]},
+            selected_columns=["sessions"],
         )
         conditions = [[["environment", "IN", {"development", "abc"}]]]
         kwargs = {"selected_columns": ["sessions"]}
@@ -338,7 +347,7 @@ class PrepareQueryParamsTest(TestCase):
             previous_group_id=g3.id,
         )
 
-        params = SnubaQueryParams(dataset=Dataset.Events, filter_keys={"group_id": {g1.id}})
+        params = SnubaQueryParams(dataset=Dataset.Events, filter_keys={"group_id": [g1.id]})
         assert params.conditions[0] == ["group_id", "IN", {g1.id, g2.id, g3.id}]
 
         params = SnubaQueryParams(dataset=Dataset.Events, conditions=[["group_id", "=", g1.id]])
@@ -346,7 +355,7 @@ class PrepareQueryParamsTest(TestCase):
 
         params = SnubaQueryParams(
             dataset=Dataset.Events,
-            filter_keys={"group_id": {g4.id}},
+            filter_keys={"group_id": [g4.id]},
             conditions=[["group_id", "IN", [g1.id, g4.id]]],
         )
         assert params.conditions[0] == ["group_id", "IN", {g4.id}]
@@ -371,15 +380,15 @@ class PrepareQueryParamsTest(TestCase):
         assert len(params.conditions) == 1
 
         # Should not mutate inputs
-        filter_keys = {"group_id": {g4.id}}
-        conditions = [["group_id", "IN", [g1.id, g4.id]]]
+        filter_keys: dict[str, Sequence[int]] = {"group_id": [g4.id]}
+        conditions: list[tuple[str, str, Any] | list[Any]] = [["group_id", "IN", [g1.id, g4.id]]]
 
         SnubaQueryParams(
             dataset=Dataset.Events,
             filter_keys=filter_keys,
             conditions=conditions,
         )
-        assert filter_keys == {"group_id": {g4.id}}
+        assert filter_keys == {"group_id": [g4.id]}
         assert conditions == [["group_id", "IN", [g1.id, g4.id]]]
 
 

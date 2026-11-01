@@ -104,6 +104,7 @@ def test_group_creation_with_stuck_project_counter(
 
         # Get the short_id that would conflict (one of the existing group's short_ids)
         conflicting_short_id = existing_groups[0].short_id
+        assert conflicting_short_id is not None
 
         # Populate Redis with the conflicting short_id and some additional values
         # This will cause the Redis-based counter to return the conflicting short_id
@@ -170,6 +171,7 @@ def test_group_creation_with_stuck_project_counter(
         # We successfully created a new group
         assert isinstance(group_creation_results[0], Group)
         new_new_group = group_creation_results[0]
+        assert new_new_group.short_id is not None
         assert hopefully_normal_event.group_id == new_new_group.id
         assert new_new_group.id not in [group.id for group in existing_groups]
 
