@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from io import BytesIO
-from typing import Literal
+from typing import Literal, cast
 from unittest import mock
 from unittest.mock import MagicMock, call
 
@@ -123,7 +123,8 @@ class ProcessResultTest(ConfigPusherTestMixin, metaclass=abc.ABCMeta):
     def decode_trace_item(self, payload_value: bytes) -> TraceItem:
         """Helper to decode a TraceItem from the produced Kafka payload."""
         codec = get_topic_codec(KafkaTopic.SNUBA_ITEMS)
-        return codec.decode(payload_value)
+        # justification: the produced topic carries TraceItem payloads.
+        return cast("TraceItem", codec.decode(payload_value))
 
     def test(self) -> None:
         fingerprint = build_detector_fingerprint_component(self.detector).encode("utf-8")

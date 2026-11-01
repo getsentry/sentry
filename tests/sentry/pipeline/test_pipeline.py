@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from functools import cached_property
-from typing import Any, Never
+from typing import Any, Never, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -69,7 +69,8 @@ class ChooseThingView:
     def dispatch(self, request: HttpRequest, pipeline: Any) -> HttpResponseBase:
         if "thing" in request.POST:
             pipeline.bind_state("thing", request.POST["thing"])
-            return pipeline.next_step()
+            # justification: pipeline steps render Django responses.
+            return cast("HttpResponseBase", pipeline.next_step())
         return HttpResponse('<form method="POST"><input name="thing" /></form>')
 
 
@@ -79,7 +80,8 @@ class ConfirmView:
     def dispatch(self, request: HttpRequest, pipeline: Any) -> HttpResponseBase:
         if request.method == "POST":
             pipeline.bind_state("confirmed", True)
-            return pipeline.next_step()
+            # justification: pipeline steps render Django responses.
+            return cast("HttpResponseBase", pipeline.next_step())
         thing = pipeline.fetch_state("thing")
         return HttpResponse(
             f"<p>Confirm {thing}?</p><form method='POST'><button>OK</button></form>"

@@ -1,6 +1,6 @@
 import hashlib
 import hmac
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -51,7 +51,10 @@ class TestCursorWebhook(APITestCase):
     def _post_with_headers(self, body: bytes, headers: dict[str, str]) -> Response:
         # mypy: The DRF APIClient stubs can misinterpret **extra headers as a positional arg.
         client: Any = self.client
-        return client.post(self._url(), data=body, content_type="application/json", **headers)
+        response: Response[Any] = client.post(
+            self._url(), data=body, content_type="application/json", **headers
+        )
+        return response
 
     def _build_status_payload(
         self,
@@ -81,7 +84,8 @@ class TestCursorWebhook(APITestCase):
             if c.args and c.args[0] == "cursor_webhook.attribution_skipped"
         ]
         assert len(calls) == 1
-        return calls[0].kwargs["extra"]
+        # justification: Mock records the kwargs the logger was called with.
+        return cast("dict[str, Any]", calls[0].kwargs["extra"])
 
     @patch("sentry.integrations.cursor.webhooks.handler.sync_coding_agent_status")
     def test_happy_path_finished(self, mock_update_state: MagicMock) -> None:

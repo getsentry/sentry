@@ -53,7 +53,7 @@ class GroupAssigneeTestCase(TestCase):
 
         assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
         logger.exception.assert_called_once()
-        context = logger.exception.call_args.kwargs["extra"]
+        context: dict[str, Any] = logger.exception.call_args.kwargs["extra"]
         assert context["group_id"] == self.group.id
         assert context["operation"] == "assign"
         assert context["stage"] == "decode"
@@ -114,7 +114,7 @@ class GroupAssigneeTestCase(TestCase):
         replay.assert_called_once()
         assert list(GroupDerivedData.objects.filter(group_id=self.group.id).values()) == before
         logger.exception.assert_called_once()
-        context = logger.exception.call_args.kwargs["extra"]
+        context: dict[str, Any] = logger.exception.call_args.kwargs["extra"]
         assert context["group_id"] == self.group.id
         assert context["operation"] == "assign"
         assert context["stage"] == "aggregate"

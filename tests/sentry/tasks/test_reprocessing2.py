@@ -95,7 +95,7 @@ def process_and_save(
         mgr = EventManager(data=data, project=default_project)
         mgr.normalize()
         data = cast("dict[str, Any]", mgr.get_data())
-        event_id = data["event_id"]
+        event_id: str = data["event_id"]
         cache_key = event_processing_store.store(dict(data))
 
         with task_runner():

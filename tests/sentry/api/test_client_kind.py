@@ -1,5 +1,5 @@
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -513,7 +513,8 @@ class DispatchWiringTest(APITestCase):
     def tags_for(self, url: str) -> list[Any]:
         with mock.patch("sentry.api.client_kind.sentry_sdk") as sdk:
             assert self.client.get(url).status_code == 200
-        return sdk.set_tag.call_args_list
+        # justification: Mock records plain positional tuples.
+        return cast("list[Any]", sdk.set_tag.call_args_list)
 
     def test_an_organization_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/"

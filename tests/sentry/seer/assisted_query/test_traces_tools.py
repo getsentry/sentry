@@ -1,4 +1,5 @@
 from collections.abc import Mapping
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.assisted_query.traces_tools import get_attribute_names
@@ -40,7 +41,8 @@ class TestGetAttributeNames(TestCase):
         string_response.data = string_attrs
         number_response.data = number_attrs or []
         mock_client.get.side_effect = [string_response, number_response]
-        return mock_client
+        # justification: the patched client class returns a MagicMock instance.
+        return cast("MagicMock", mock_client)
 
     @patch("sentry.seer.assisted_query.traces_tools.ApiClient")
     def test_custom_context_goes_to_custom_fields(self, mock_client_cls: MagicMock) -> None:

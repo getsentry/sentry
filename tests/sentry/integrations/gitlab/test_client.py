@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 from time import time
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import quote
 
@@ -74,7 +74,11 @@ class GitLabClientTest(GitLabTestCase):
         identity.save()
 
     def get_stored_identity_data(self) -> dict[str, Any]:
-        return Identity.objects.get(id=self.gitlab_client.identity.id).data
+        # justification: Identity.data stores the provider payload as a JSON object.
+        return cast(
+            "dict[str, Any]",
+            Identity.objects.get(id=self.gitlab_client.identity.id).data,
+        )
 
 
 @control_silo_test

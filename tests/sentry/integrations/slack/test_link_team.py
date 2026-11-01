@@ -56,7 +56,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
     def get_success_response(self, data: Mapping[str, Any] | None = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
         if data is not None:
-            response = self.client.post(
+            response: HttpResponseBase = self.client.post(
                 self.url, urlencode(data), content_type="application/x-www-form-urlencoded"
             )
         else:
@@ -70,7 +70,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         status_code: int = status.HTTP_404_NOT_FOUND,
     ) -> HttpResponseBase:
         if data:
-            response = self.client.post(
+            response: HttpResponseBase = self.client.post(
                 self.url, urlencode(data), content_type="application/x-www-form-urlencoded"
             )
         else:

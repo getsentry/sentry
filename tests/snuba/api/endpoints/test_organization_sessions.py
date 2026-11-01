@@ -144,7 +144,8 @@ class OrganizationSessionsEndpointTest(APITestCase, BaseMetricsTestCase):
             "sentry-api-0-organization-sessions",
             kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
-        return self.client.get(url, query, format="json")
+        response: Response[Any] = self.client.get(url, query, format="json")
+        return response
 
     def test_empty_request(self) -> None:
         response = self.do_request({})

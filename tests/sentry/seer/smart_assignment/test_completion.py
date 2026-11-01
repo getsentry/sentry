@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.utils import timezone
 
@@ -49,7 +49,8 @@ class ProcessSmartAssignmentCompletionTest(TestCase):
 
     def _extras(self) -> dict[str, Any]:
         self.mirror.refresh_from_db()
-        return self.mirror.extras
+        # justification: the mirror extras column stores a JSON object.
+        return cast("dict[str, Any]", self.mirror.extras)
 
     def _member(self, username: str = "alice") -> User:
         user = self.create_user(username=username)

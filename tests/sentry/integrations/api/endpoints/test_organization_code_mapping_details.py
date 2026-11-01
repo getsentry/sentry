@@ -65,10 +65,11 @@ class OrganizationCodeMappingDetailsTest(APITestCase):
     def make_put(self, data: dict[str, object]) -> Response:
         # reconstruct the original object
         config_data = serialize(self.config, self.user)
-        return self.client.put(
+        response: Response = self.client.put(
             self.url,
             {**config_data, **data, "repositoryId": self.repo.id},
         )
+        return response
 
     def test_non_project_member_permissions(self) -> None:
         non_member = self.create_user()

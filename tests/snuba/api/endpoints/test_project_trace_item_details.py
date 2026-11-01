@@ -65,10 +65,11 @@ class ProjectTraceItemDetailsEndpointTest(
         if extra_data is not None:
             data.update(extra_data)
         with self.feature(features):
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 item_details_url,
                 data,
             )
+            return response
 
     def test_invalid_routing_hint(self) -> None:
         response = self.do_request(

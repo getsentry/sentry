@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from contextlib import AbstractContextManager, nullcontext
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -534,7 +534,8 @@ class QueuedCommandsTest(TestCase):
                 request_id=json.loads(body)["requestId"]
             )
             self.seer_sends_rerun_updated(command, name)
-            return answer(pool, path, body=body, **kwargs)
+            # justification: the fake Seer transport answers with a mock response.
+            return cast("mock.Mock", answer(pool, path, body=body, **kwargs))
 
         seer.side_effect = respond
 

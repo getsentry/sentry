@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -67,7 +67,8 @@ class FetchUserTest(TestCase):
 
         key, bound_user = pipeline.bind_state.call_args.args
         assert key == "user"
-        return bound_user
+        # justification: the bound pipeline user is a decoded attribute mapping.
+        return cast("dict[str, Any]", bound_user)
 
     def test_verified_primary_sets_email_verified(self) -> None:
         bound_user = self._run(

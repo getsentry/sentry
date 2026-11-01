@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import orjson
@@ -239,7 +239,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         assert condition.comparison == 100
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-        return static_detector
+        # justification: the validator persists and returns a Detector.
+        return cast("Detector", static_detector)
 
     def create_dynamic_detector(self) -> Detector:
         validator = MetricIssueDetectorValidator(
@@ -269,7 +270,8 @@ class TestMetricAlertsDetectorValidator(BaseValidatorTest):
         }
         assert condition.condition_result == DetectorPriorityLevel.HIGH
 
-        return detector
+        # justification: the validator persists and returns a Detector.
+        return cast("Detector", detector)
 
     def get_snuba_query(self, detector: Detector) -> SnubaQuery:
         data_source = DataSource.objects.get(detector=detector)

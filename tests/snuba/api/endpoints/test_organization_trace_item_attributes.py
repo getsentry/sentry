@@ -126,7 +126,8 @@ class OrganizationTraceItemAttributesEndpointTestBase(APITestCase, SnubaTestCase
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.get(url, query, format="json")
+            response: Response = self.client.get(url, query, format="json")
+            return response
 
 
 class OrganizationTraceItemAttributesEndpointLogsTest(
@@ -2015,7 +2016,8 @@ class OrganizationTraceItemAttributeValuesEndpointBaseTest(APITestCase, SnubaTes
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug, "key": key},
             )
-            return self.client.get(url, query, format="json")
+            response: Response = self.client.get(url, query, format="json")
+            return response
 
 
 class OrganizationTraceItemAttributeValuesEndpointLogsTest(
@@ -3171,7 +3173,10 @@ class OrganizationTraceItemAttributeValidateEndpointTest(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.post(url, payload, format="json", query_params=query_params)
+            response: Response = self.client.post(
+                url, payload, format="json", query_params=query_params
+            )
+            return response
 
     def test_no_feature(self) -> None:
         response = self.do_request(

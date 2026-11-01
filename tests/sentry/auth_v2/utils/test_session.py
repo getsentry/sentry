@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import cast
 from unittest.mock import Mock
 
 from django.contrib.sessions.backends.base import SessionBase
@@ -115,7 +116,8 @@ class SessionBuilderTest(TestCase):
             mock_attributes[key] = value
 
         self.request.user = Mock(**mock_attributes)
-        return self.request.user
+        # justification: the request user was just replaced with a Mock above.
+        return cast("Mock", self.request.user)
 
     def test_initialize_does_not_override_flags(self) -> None:
         """

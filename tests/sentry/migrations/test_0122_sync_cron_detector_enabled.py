@@ -52,7 +52,7 @@ class SyncCronDetectorEnabledTest(TestMigrations):
                 config={},
             )
             DataSourceDetector.objects.create(data_source=data_source, detector=detector)
-            return detector.id
+            return int(detector.id)
 
         self.disabled_shown_enabled = create("disabled-enabled", ObjectStatus.DISABLED, True)
         self.active_shown_disabled = create("active-disabled", ObjectStatus.ACTIVE, False)

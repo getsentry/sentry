@@ -125,4 +125,5 @@ class RelayPublicKeysConfigTest(APITestCase):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        return orjson.loads(resp.content)
+        # justification: the relay public keys endpoint returns its response payload.
+        return cast("RelayPublicKeysResponse", orjson.loads(resp.content))

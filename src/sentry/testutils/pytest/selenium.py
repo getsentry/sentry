@@ -154,6 +154,12 @@ class Browser:
     def mobile_viewport(self, width: int = 375, height: int = 812) -> Iterator[ViewportSize]:
         return self.set_viewport(width, height, fit_content=True)
 
+    def find_element(self, by: str = By.ID, value: str | None = None) -> WebElement:
+        return self.driver.find_element(by=by, value=value)
+
+    def find_elements(self, by: str = By.ID, value: str | None = None) -> list[WebElement]:
+        return self.driver.find_elements(by=by, value=value)
+
     def element(self, selector: str | None = None, xpath: str | None = None) -> WebElement:
         """
         Get an element from the page. This method will wait for the element to show up.

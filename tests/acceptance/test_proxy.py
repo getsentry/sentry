@@ -42,7 +42,10 @@ class EndToEndAPIProxyTest(TransactionTestCase):
     def get_response(self, *args: str, **params: Any) -> HttpResponse | StreamingHttpResponse:
         url = reverse(self.endpoint, args=args)
         headers = params.pop("extra_headers", {})
-        return getattr(self.client, self.method)(url, format="json", data=params, **headers)
+        response: HttpResponse | StreamingHttpResponse = getattr(self.client, self.method)(
+            url, format="json", data=params, **headers
+        )
+        return response
 
     # https://storage.googleapis.com/rca-analysis-sentry/rca-reports/ci-rca-02db8025.html
     @pytest.mark.skip(reason="flaky")

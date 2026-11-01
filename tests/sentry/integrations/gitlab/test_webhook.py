@@ -1036,6 +1036,8 @@ class WebhookTest(GitLabWebhookTestCase):
 
     def _assigned_event(self, username: str, external_id: int, updated_at: str) -> dict[str, Any]:
         event = orjson.loads(ISSUE_ASSIGNED_EVENT)
+        if not isinstance(event, dict):
+            raise TypeError("Issue assigned event is not a JSON object")
         event["object_attributes"]["updated_at"] = updated_at
         event["assignees"] = [{"id": external_id, "username": username}]
         return event

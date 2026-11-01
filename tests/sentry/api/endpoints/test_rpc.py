@@ -49,7 +49,7 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.status_code == 403
 
     def _send_post_request(self, path: str, data: Mapping[str, object] | str) -> Response:
-        response = self.client.post(
+        response: Response = self.client.post(
             path, data=data, HTTP_AUTHORIZATION=self.auth_header(path, data)
         )
         return response

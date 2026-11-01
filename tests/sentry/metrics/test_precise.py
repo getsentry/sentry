@@ -33,9 +33,9 @@ def test_precise_constant_tags() -> None:
         tags={"metrics_source": "dd-agent"},
         statsd_constant_tags=["component:web", "service:getsentry"],
     )
-    backend.statsd._send = mock.Mock()
+    setattr(backend.statsd, "_send", mock.Mock())
 
     backend.incr("foo", tags={"service": "billing"})
-    backend.statsd._send.assert_called_once_with(
+    getattr(backend.statsd, "_send").assert_called_once_with(
         "sentrytest.foo:1|c|#service:billing,metrics_source:dd-agent,component:web,service:getsentry"
     )

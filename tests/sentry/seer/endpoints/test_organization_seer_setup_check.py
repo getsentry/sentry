@@ -19,7 +19,8 @@ class OrganizationSeerSetupCheckTestBase(APITestCase, SnubaTestCase):
     # justification: forwarded to APIClient.get as extra request options.
     def get_response(self, organization_slug: str, **kwargs: Any) -> Response:
         url = f"/api/0/organizations/{organization_slug}/seer/setup-check/"
-        return self.client.get(url, format="json", **kwargs)
+        response: Response[Any] = self.client.get(url, format="json", **kwargs)
+        return response
 
 
 class OrganizationSeerSetupCheckSuccessTest(OrganizationSeerSetupCheckTestBase):

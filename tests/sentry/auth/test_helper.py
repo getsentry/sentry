@@ -597,7 +597,8 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert context["provider"] == self.auth_provider_inst.get_provider().name
         assert context["identity_display_name"] == self.identity["name"]
         assert context["identity_identifier"] == self.email
-        return context
+        # justification: the rendered template context is a mapping.
+        return cast("dict[str, object]", context)
 
     @mock.patch("sentry.auth.helper.render_to_response")
     def test_unauthenticated(self, mock_render: mock.MagicMock) -> None:

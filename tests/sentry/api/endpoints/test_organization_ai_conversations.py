@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -1576,7 +1576,8 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 1
-        return response.data[0]
+        # justification: the conversations endpoint serializes one payload per row.
+        return cast("dict[str, Any]", response.data[0])
 
     def test_agent_messages_populate_input_and_output(self) -> None:
         now = before_now(days=20).replace(microsecond=0)

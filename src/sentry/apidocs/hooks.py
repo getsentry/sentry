@@ -5,6 +5,7 @@ from collections import OrderedDict
 from collections.abc import Callable, Mapping
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
+from django.http import HttpResponseBase
 from drf_spectacular.generators import EndpointEnumerator, SchemaGenerator
 
 from sentry.api.api_owners import ApiOwner
@@ -103,6 +104,14 @@ def __write_ownership_data(
 
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
+
+    def collect_endpoints(self) -> list[tuple[str, str, str, Callable[..., HttpResponseBase]]]:
+        # justification: drf-spectacular does not annotate the inherited endpoint enumerator.
+        enumerate_endpoints = cast(
+            "Callable[[], list[tuple[str, str, str, Callable[..., HttpResponseBase]]]]",
+            self.get_api_endpoints,
+        )
+        return enumerate_endpoints()
 
     def get_path_from_regex(self, path_regex: str) -> str:
         # django 4.x changes to simplify_regex breaks these urls

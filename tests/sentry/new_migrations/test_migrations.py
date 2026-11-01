@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 from django.core.exceptions import FieldDoesNotExist
 from django.db import connection, models
@@ -31,7 +33,8 @@ def _state_with_model() -> SentryProjectState:
 
 def _migration(*operations: Operation) -> Migration:
     migration_class = type("Migration", (CheckedMigration,), {"operations": list(operations)})
-    return migration_class("0002_move_to_pending", "fakeapp")
+    # justification: the synthesized class is a Migration with the given operations.
+    return cast("Migration", migration_class("0002_move_to_pending", "fakeapp"))
 
 
 @pytest.mark.parametrize("preserve", [True, False], ids=["preserve", "in_place"])

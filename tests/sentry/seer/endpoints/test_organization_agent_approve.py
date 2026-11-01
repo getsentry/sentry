@@ -38,18 +38,20 @@ class OrganizationAgentApproveTest(APITestCase):
     ) -> Response:
         if feature_enabled:
             with self.feature(agent_token.FEATURE_FLAG):
-                return self.client.post(
+                response: Response[Any] = self.client.post(
                     self._url(),
                     data={"sessionId": session_id, "scopes": list(scopes)},
                     format="json",
                     **kwargs,
                 )
-        return self.client.post(
+                return response
+        response = self.client.post(
             self._url(),
             data={"sessionId": session_id, "scopes": list(scopes)},
             format="json",
             **kwargs,
         )
+        return response
 
     # ----- happy path -----
 

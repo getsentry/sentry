@@ -1,3 +1,5 @@
+from typing import cast
+
 import pytest
 
 from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
@@ -122,7 +124,8 @@ def test_enable_two_integrations() -> None:
     ]
 )
 def some_dotnet_sdk(request: pytest.FixtureRequest) -> str:
-    return request.param
+    # justification: the fixture parameters are declared as strings above.
+    return cast("str", request.param)
 
 
 def test_add_aspnetcore_sdk(some_dotnet_sdk: str) -> None:

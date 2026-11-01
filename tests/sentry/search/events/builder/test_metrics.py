@@ -74,7 +74,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "end": end,
             }
             query = MetricsQueryBuilder(params)
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)
@@ -137,7 +137,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
                 "end": end,
             }
             query = MetricsQueryBuilder(params)
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # See resolve_granularity on the MQB to see what these boundaries are
 
@@ -220,7 +220,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 },
                 interval=interval,
             )
-            return query.granularity.granularity
+            return int(query.granularity.granularity)
 
         # If we're doing atleast day and its midnight we should use the daily bucket
         start = datetime.datetime(2015, 5, 18, 0, 0, 0, tzinfo=timezone.utc)

@@ -251,7 +251,7 @@ class IntegrationProxyClientTest(TestCase):
         client = self.client_cls(org_integration_id=self.oi_id)
 
         with self.options({"hybridcloud.integrationproxy.retries": 1}):
-            assert client.post("/some/endpoint") == {"ok": True}
+            assert client.post("/some/endpoint").json == {"ok": True}
 
         assert len(responses.calls) == 2
 

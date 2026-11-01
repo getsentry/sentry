@@ -1,5 +1,5 @@
 import json  # noqa: S003 - urllib3 raises stdlib JSONDecodeError, not simplejson's
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import orjson
@@ -50,7 +50,8 @@ class BackfillScmIntegrationConfigReceiverTest(TestCase):
 
     def _read_config(self, oi: OrganizationIntegration) -> dict[str, Any]:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            return OrganizationIntegration.objects.get(id=oi.id).config
+            # justification: OrganizationIntegration.config stores a JSON object.
+            return cast("dict[str, Any]", OrganizationIntegration.objects.get(id=oi.id).config)
 
     def test_backfills_github_keys(self) -> None:
         oi = self._create_oi(provider="github", external_id="gh")

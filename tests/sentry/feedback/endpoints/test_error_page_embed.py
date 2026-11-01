@@ -415,7 +415,10 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
 
     @property
     def app_host(self) -> str:
-        return urlparse(options.get("system.url-prefix")).netloc
+        host = urlparse(options.get("system.url-prefix")).netloc
+        if not isinstance(host, str) or not host:
+            raise TypeError("system.url-prefix has no hostname")
+        return host
 
     def _cell_dsn(self, project_key: ProjectKey, cell: Cell, port: int | None = None) -> str:
         """Build a cell-style ingest DSN (``o{org_id}.ingest.{cell}.{app_host}``)."""

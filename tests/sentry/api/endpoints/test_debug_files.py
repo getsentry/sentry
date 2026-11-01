@@ -52,7 +52,7 @@ class DebugFilesTestCases(APITestCase):
         f.writestr("proguard/%s.txt" % uuid, PROGUARD_SOURCE)
         f.close()
 
-        return self.client.post(
+        response: Response = self.client.post(
             url,
             {
                 "file": SimpleUploadedFile(
@@ -61,6 +61,7 @@ class DebugFilesTestCases(APITestCase):
             },
             format="multipart",
         )
+        return response
 
     def _upload_wasm(self) -> Response:
         """Uploads a WASM fixture."""
@@ -73,7 +74,7 @@ class DebugFilesTestCases(APITestCase):
             f.writestr("index.wasm", wasm.read())
             f.close()
 
-        return self.client.post(
+        response: Response = self.client.post(
             self.url,
             {
                 "file": SimpleUploadedFile(
@@ -82,6 +83,7 @@ class DebugFilesTestCases(APITestCase):
             },
             format="multipart",
         )
+        return response
 
     def _upload_wasm_legacy(self) -> None:
         """
@@ -533,7 +535,11 @@ class DebugFileObjectstoreRedirectTest(DebugFilesTestCases):
         with self.feature({"organizations:objectstore-debugfiles-write": True}):
             response = self._upload_proguard(self.url, PROGUARD_UUID)
         assert response.status_code == 201, response.content
-        return self.client.get(self.url).data[0]["id"]
+        download_response: Response = self.client.get(self.url)
+        download_id = download_response.data[0]["id"]
+        if not isinstance(download_id, str):
+            raise TypeError("Debug file download has no id")
+        return download_id
 
     def test_internal_request_redirects_to_objectstore(self) -> None:
         download_id = self._upload_and_get_download_id()

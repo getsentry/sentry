@@ -276,7 +276,8 @@ class TransactionCheckingRedisTest(SentryTestCase):
             def shared_helper() -> tuple[str, ...]:
                 return _redis_transaction_callers()
 
-            return mock.Mock(wraps=shared_helper)()
+            # justification: the mock wraps the helper and returns its result.
+            return cast("tuple[str, ...]", mock.Mock(wraps=shared_helper)())
 
         callers = outer_caller()
 

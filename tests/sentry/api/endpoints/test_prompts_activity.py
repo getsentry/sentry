@@ -370,7 +370,7 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     def dismiss(self) -> Response:
-        return self.client.put(
+        response: Response = self.client.put(
             self.path,
             {
                 "organization_id": self.org.id,
@@ -379,6 +379,7 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
                 "status": "dismissed",
             },
         )
+        return response
 
     def test_read_scope_can_get(self) -> None:
         self._use_token(["user_preference:read"])

@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Sequence
 from datetime import datetime, timedelta
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -441,7 +442,8 @@ class GroupTestSnubaErrorIssue(TestCase, SnubaTestCase):
                 for call in mock_get_events_snql.call_args_list
                 if call.kwargs["referrer"] == "Group.get_helpful"
             ]
-            return helpful_call.kwargs["inner_limit"]
+            # justification: the mock records the inner limit it was called with.
+            return cast("int", helpful_call.kwargs["inner_limit"])
 
         self.group.get_recommended_event(verify_replay_exists=True)
         assert _helpful_inner_limit() == 10000

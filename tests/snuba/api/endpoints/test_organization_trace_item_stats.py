@@ -38,7 +38,7 @@ class OrganizationTraceItemStatsEndpointTest(
         if query:
             query.setdefault("sampling", "HIGHEST_ACCURACY")
 
-        return self.client.get(
+        response: Response[Any] = self.client.get(
             reverse(
                 self.view,
                 kwargs={"organization_id_or_slug": self.organization.slug},
@@ -46,6 +46,7 @@ class OrganizationTraceItemStatsEndpointTest(
             query,
             format="json",
         )
+        return response
 
     def _store_span(
         self,

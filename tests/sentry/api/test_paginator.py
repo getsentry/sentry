@@ -1013,7 +1013,10 @@ def dummy_snuba_request_method(
         query=query,
         tenant_ids={"referrer": referrer, "organization_id": org_id},
     )
-    return raw_snql_query(request, referrer)["data"]
+    rows = raw_snql_query(request, referrer)["data"]
+    if not isinstance(rows, list):
+        raise TypeError("Snuba returned no data array")
+    return rows
 
 
 class CallbackPaginatorTest(APITestCase, SnubaTestCase):

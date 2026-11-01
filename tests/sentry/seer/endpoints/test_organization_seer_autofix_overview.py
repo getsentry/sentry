@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -556,20 +556,29 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         kwargs = {"qs_params": {"expand": expand}} if expand is not None else {}
         resp = self.get_success_response(self.organization.slug, **kwargs)
         run_data = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE][0]
-        return run_data["pullRequests"]
+        # justification: the overview serializer emits pull request payloads.
+        return cast("list[dict[str, object]]", run_data["pullRequests"])
 
     def _issue_project(
         self, resp: Response, milestone: SeerRunMilestoneType = SeerRunMilestoneType.ROOT_CAUSE
     ) -> dict[str, object]:
-        return resp.data["runsByMilestone"][milestone][0]["issue"]["project"]
+        # justification: the overview serializer emits the nested project payload.
+        return cast(
+            "dict[str, object]",
+            resp.data["runsByMilestone"][milestone][0]["issue"]["project"],
+        )
 
     def _projects_by_id(
         self, resp: Response, milestone: SeerRunMilestoneType = SeerRunMilestoneType.ROOT_CAUSE
     ) -> dict[str, dict[str, object]]:
-        return {
-            r["issue"]["project"]["id"]: r["issue"]["project"]
-            for r in resp.data["runsByMilestone"][milestone]
-        }
+        # justification: the overview serializer emits nested project payloads.
+        return cast(
+            "dict[str, dict[str, object]]",
+            {
+                r["issue"]["project"]["id"]: r["issue"]["project"]
+                for r in resp.data["runsByMilestone"][milestone]
+            },
+        )
 
     def test_scm_info_marks_project_with_github_repo_eligible(self) -> None:
         group = self.create_group()
@@ -1223,7 +1232,11 @@ class OrganizationSeerAutofixOverviewStatusExpandTest(APITestCase, SnubaTestCase
         return run
 
     def _root_cause_runs(self, resp: Response) -> list[dict[str, object]]:
-        return resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        # justification: the overview serializer emits run payloads per milestone.
+        return cast(
+            "list[dict[str, object]]",
+            resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE],
+        )
 
     def test_status_absent_without_expand(self) -> None:
         group = self.create_group()

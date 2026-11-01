@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from unittest import mock
 from unittest.mock import MagicMock
 
@@ -24,7 +25,8 @@ def request_with_host(host: str) -> tuple[HttpRequest, HttpResponseBase]:
     def get_response(request: HttpRequest) -> HttpResponseBase:
         nonlocal got_request
         got_request = request
-        return mock.sentinel.response
+        # justification: the middleware test stubs the view response with a sentinel.
+        return cast("HttpResponseBase", mock.sentinel.response)
 
     subdomain_middleware = SubdomainMiddleware(get_response)
     request = RequestFactory().get("/", HTTP_HOST=host)

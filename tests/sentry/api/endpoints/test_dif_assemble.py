@@ -408,7 +408,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
         )
 
     def _clone_request(self, checksum: str, chunks: list[str]) -> Response:
-        return self.client.post(
+        response: Response = self.client.post(
             self.url,
             data={
                 checksum: {
@@ -418,6 +418,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
+        return response
 
     def test_clone_file_backed_source_remains_file_backed(self) -> None:
         """A file-backed source produces a file-backed clone regardless of the active write flag."""

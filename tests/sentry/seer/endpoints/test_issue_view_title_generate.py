@@ -25,12 +25,13 @@ class IssueViewTitleGenerateEndpointTest(APITestCase):
             return ApiToken.objects.create(user=self.user, scope_list=[scope])
 
     def _post_with_token(self, token: ApiToken, query: str = "is:unresolved") -> Response:
-        return self.client.post(
+        response: Response = self.client.post(
             self.url,
             data={"query": query},
             format="json",
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
+        return response
 
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")

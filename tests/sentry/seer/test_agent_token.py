@@ -3,7 +3,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Iterable
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
@@ -420,7 +420,8 @@ class AgentTokenAuthAndGateTest(TestCase):
 
     def _access_for(self, request: Request) -> Access:
         OrganizationPermission().has_object_permission(request, APIView(), self.org)
-        return request.access
+        # justification: Django authentication attaches the resolved Access to the request.
+        return cast("Access", request.access)
 
     def test_agent_access_mirrors_member_projects(self) -> None:
         # Access derives from the delegating member: a plain (non-global) member sees only

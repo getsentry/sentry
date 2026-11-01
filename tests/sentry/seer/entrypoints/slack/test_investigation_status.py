@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, cast
 
 from sentry.notifications.platform.templates.seer import SeerInvestigationStatus
 from sentry.seer.entrypoints.slack.investigation_status import build_investigation_status
@@ -44,7 +44,8 @@ class BuildInvestigationStatusTest(TestCase):
         )
 
     def _snapshot(self) -> dict[str, Any]:
-        return self.investigation.source["snapshot"]
+        # justification: the investigation source carries the snapshot payload.
+        return cast("dict[str, Any]", self.investigation.source["snapshot"])
 
     def _build(
         self, hypotheses: list[dict[str, Any]], updated_at: datetime | None = None

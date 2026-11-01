@@ -385,7 +385,10 @@ class DiscordApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("Discord pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

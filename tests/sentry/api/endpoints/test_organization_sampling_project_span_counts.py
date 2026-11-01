@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
@@ -50,7 +50,8 @@ class OrganizationSamplingProjectSpanCountsTest(APITestCase, SnubaTestCase, Span
             response = self.get_success_response(
                 self.organization.slug, qs_params={"statsPeriod": "24h", **params}
             )
-        return response.data
+        # justification: the sampling counts endpoint serializes a JSON object.
+        return cast("dict[str, Any]", response.data)
 
     @staticmethod
     def row(root: Project, project: Project, totals: int) -> dict[str, Any]:

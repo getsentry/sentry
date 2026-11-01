@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 from django.test import override_settings
 
@@ -49,7 +49,8 @@ class UpdateWithNewestVersionOrCreateTest(TestCase):
         assert project_sdk.event_type == event_type.value
         assert project_sdk.sdk_name == sdk_name
         assert project_sdk.sdk_version == sdk_version
-        return project_sdk
+        # justification: the cache stores the ProjectSDK row created for this key.
+        return cast("ProjectSDK", project_sdk)
 
     def test_first_sdk_version(self) -> None:
         ProjectSDK.update_with_newest_version_or_create(

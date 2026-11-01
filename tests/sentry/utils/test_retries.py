@@ -1,3 +1,4 @@
+from typing import cast
 from unittest import TestCase, mock
 
 import pytest
@@ -84,7 +85,8 @@ class TimedRetryPolicyTestCase(TestCase):
 
             @TimedRetryPolicy.wrap(0.3, delay=lambda i: 0.1)
             def retrying_func() -> mock._Sentinel:
-                return callable()
+                # justification: the mock returns the sentinel this test declares.
+                return cast("mock._Sentinel", callable())
 
             assert retrying_func() is mock.sentinel.OK
 

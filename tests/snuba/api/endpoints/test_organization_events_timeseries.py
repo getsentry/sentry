@@ -142,7 +142,10 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         if features is None:
             features = {"organizations:discover-basic": True}
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            response: Response = self.client.get(
+                self.url if url is None else url, data=data, format="json"
+            )
+            return response
 
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -546,12 +549,13 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
     def _api_token_request(self, data: dict[str, Any], features: dict[str, bool]) -> Response:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         with self.feature(features):
-            return self.client.get(
+            response: Response = self.client.get(
                 self.url,
                 data=data,
                 format="json",
                 HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
+            return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
     def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
@@ -686,7 +690,8 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "dataset": dataset,
         }
         with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
+            response: Response = self.client.get(self.url, data=data, format="json")
+            return response
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:

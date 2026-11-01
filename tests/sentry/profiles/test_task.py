@@ -99,7 +99,10 @@ PROGUARD_BUG_SOURCE = b"x"
 def load_profile(name: str) -> dict[str, Any]:
     path = join(PROFILES_FIXTURES_PATH, name)
     with open(path) as f:
-        return json.loads(f.read())
+        profile = json.loads(f.read())
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture
@@ -136,7 +139,7 @@ def android_profile() -> dict[str, Any]:
 
 @pytest.fixture
 def sample_v1_profile() -> dict[str, Any]:
-    return json.loads(
+    profile = json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
   "version": "1",
@@ -222,6 +225,9 @@ def sample_v1_profile() -> dict[str, Any]:
   }
 }"""
     )
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture
@@ -234,7 +240,7 @@ def sample_v1_profile_without_transaction_timestamps(
 
 
 def generate_sample_v2_profile() -> dict[str, Any]:
-    return json.loads(
+    profile = json.loads(
         """{
   "event_id": "41fed0925670468bb0457f61a74688ec",
   "version": "2",
@@ -291,6 +297,9 @@ def generate_sample_v2_profile() -> dict[str, Any]:
   }
 }"""
     )
+    if not isinstance(profile, dict):
+        raise TypeError("Profile fixture is not a JSON object")
+    return profile
 
 
 @pytest.fixture

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import responses
@@ -17,7 +17,8 @@ def _get_metadata_from_cache() -> AIModelMetadataConfig | None:
     """
     Utility function to retrieve LLM model metadata from cache.
     """
-    return cache.get(AI_MODEL_METADATA_CACHE_KEY)
+    # justification: this cache key only ever stores AIModelMetadataConfig payloads.
+    return cast("AIModelMetadataConfig | None", cache.get(AI_MODEL_METADATA_CACHE_KEY))
 
 
 MOCK_OPENROUTER_API_RESPONSE = {

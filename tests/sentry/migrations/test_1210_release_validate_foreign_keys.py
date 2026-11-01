@@ -16,7 +16,7 @@ def fetch_release_foreign_keys() -> list[tuple[Any, ...]]:
             ORDER BY 1, 2
             """
         )
-        return cursor.fetchall()
+        return list(cursor.fetchall())
 
 
 @pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")

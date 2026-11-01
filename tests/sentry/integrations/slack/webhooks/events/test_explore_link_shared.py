@@ -1,6 +1,6 @@
 import re
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import orjson
@@ -70,7 +70,8 @@ class ExploreLinkSharedEvent(BaseEventTest):
     ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
-        return self.mock_unfurl.call_args[1]
+        # justification: Mock records the kwargs the webhook handler passed.
+        return cast("dict[str, Any]", self.mock_unfurl.call_args[1])
 
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
@@ -96,7 +97,8 @@ class ExploreLinkSharedEvent(BaseEventTest):
     ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
-        return self.mock_post.call_args[1]
+        # justification: Mock records the kwargs the webhook handler passed.
+        return cast("dict[str, Any]", self.mock_post.call_args[1])
 
     def test_share_explore_links_unlinked_user(self) -> None:
         with self.feature("organizations:visibility-explore-view"):

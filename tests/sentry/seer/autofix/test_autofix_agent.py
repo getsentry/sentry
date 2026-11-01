@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -1648,7 +1648,8 @@ class TestTriggerPushChanges(TestCase):
                 **kwargs,
             )
 
-        return mock_post.call_args[0][0]["payload"]
+        # justification: the mock records the request payload as its first argument.
+        return cast("dict[str, Any]", mock_post.call_args[0][0]["payload"])
 
     def _fixes_line(self) -> str:
         issue_url = self.group.get_absolute_url(params={"seerDrawer": "true"})

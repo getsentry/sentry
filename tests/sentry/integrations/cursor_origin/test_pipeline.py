@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from urllib.parse import urlencode
 
@@ -315,7 +315,8 @@ class PipelineAdvancerTest(IntegrationTestCase):
             self.options({"cursor-origin-app.id": APP_ID}),
             mock.patch(KEYS, return_value=[self.public]),
         ):
-            return self.client.get(f"{self.setup_path}?{urlencode(params)}")
+            response: HttpResponseBase = self.client.get(f"{self.setup_path}?{urlencode(params)}")
+            return response
 
     def _org_picker(self, receipt: str) -> str:
         return reverse(
@@ -386,7 +387,8 @@ class ExternalInstallSerializerTest(TestCase):
         ):
             serializer = ExternalInstallSerializer(data=data)
             serializer.is_valid(raise_exception=True)
-            return serializer.validated_data
+            # justification: DRF returns the validated attribute mapping.
+            return cast("dict[str, str]", serializer.validated_data)
 
     def test_binds_only_the_installation_the_receipt_names(self) -> None:
         receipt = _receipt(self.private, state=None)

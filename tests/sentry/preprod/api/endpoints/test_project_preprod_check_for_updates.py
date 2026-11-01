@@ -46,7 +46,8 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         )
         assert response.status_code == 200
         update = response.json()["update"]
-        assert update is not None
+        if not isinstance(update, dict):
+            raise TypeError("Preprod update is not a JSON object")
         return update
 
     # justification: factory kwargs vary per test case.

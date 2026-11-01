@@ -1,6 +1,6 @@
 from collections import namedtuple
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import orjson
@@ -273,7 +273,8 @@ class WebhookCircuitBreakerNotifyTest(TestCase):
         mock_breaker_instance.is_open.return_value = is_open
         mock_breaker_instance.broken_state_duration = 300
         mock_breaker_instance.recovery_duration = 600
-        return mock_breaker_instance
+        # justification: MockBreaker.return_value is the configured breaker mock.
+        return cast("Mock", mock_breaker_instance)
 
     @with_feature("organizations:notification-platform.internal-testing")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
@@ -483,7 +484,8 @@ class ClaudeRoutineTextSummaryTest(TestCase):
         mock_safe_urlopen.return_value = mock_response
 
         send_and_save_webhook_request(sentry_app, event)
-        return orjson.loads(mock_safe_urlopen.call_args.kwargs["data"])
+        # justification: the webhook sender serializes its payload as a JSON object.
+        return cast("dict[str, Any]", orjson.loads(mock_safe_urlopen.call_args.kwargs["data"]))
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")

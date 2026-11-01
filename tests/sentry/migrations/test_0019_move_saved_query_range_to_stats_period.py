@@ -18,7 +18,9 @@ class MoveSavedQueryRangeToStatsPeriodTest(TestMigrations):
             organization = Organization.objects.create(slug="range-migration", name="Range")
 
         def create(model: Any, name: str, query: dict[str, object]) -> int:
-            return model.objects.create(organization_id=organization.id, name=name, query=query).id
+            return int(
+                model.objects.create(organization_id=organization.id, name=name, query=query).id
+            )
 
         self.explore_range = create(ExploreSavedQuery, "explore-range", {"range": "24h"})
         self.explore_both = create(

@@ -1120,7 +1120,10 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         return self._advance_step(data)
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("GitHub Enterprise pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _stub_ghe_oauth(self) -> None:
         responses.add(

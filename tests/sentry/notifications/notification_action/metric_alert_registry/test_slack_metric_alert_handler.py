@@ -229,7 +229,8 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
             )
             self.handler.invoke_legacy_registry(invocation)
             payload = mock_client.return_value.chat_postMessage.call_args.kwargs
-        return payload["attachments"][0]["blocks"]
+        # justification: the Slack payload carries its block list under attachments.
+        return cast("list[Any]", payload["attachments"][0]["blocks"])
 
     def test_send_alert_via_platform_includes_workflow_link(self) -> None:
         blocks = self._send_platform_alert_and_get_blocks(self._invocation())

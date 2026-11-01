@@ -420,10 +420,11 @@ class OrganizationAuthLoginDemoModeTest(AuthProviderTestCase):
         ]
 
     def fetch_org_login_page(self, org: Organization) -> RedirectChainResponse:
-        return self.client.get(
+        response: RedirectChainResponse = self.client.get(
             reverse("sentry-auth-organization", args=[org.slug]),
             follow=True,
         )
+        return response
 
     def test_auto_login_demo_mode_disabled(self) -> None:
         with override_options(

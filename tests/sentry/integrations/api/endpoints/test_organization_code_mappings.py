@@ -54,7 +54,8 @@ class OrganizationCodeMappingsTest(APITestCase):
         }
         if data:
             config_data.update(data)
-        return self.client.post(self.url, data=config_data, format="json")
+        response: Response = self.client.post(self.url, data=config_data, format="json")
+        return response
 
     def test_basic_get_with_integrationId(self) -> None:
         path_config1 = self.create_code_mapping(

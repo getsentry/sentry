@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Any, cast
 
 from sentry_sdk.types import Event
@@ -108,7 +109,9 @@ def get_event(stacktrace: str) -> dict[str, Any]:
 def get_exc_info(
     rust_info: str | None,
 ) -> tuple[type[BaseException], BaseException, None]:
-    exc = SymbolicError("hello world")
+    # justification: symbolic does not annotate SymbolicError.__init__.
+    make_error = cast("Callable[[str], SymbolicError]", SymbolicError)
+    exc = make_error("hello world")
     if rust_info is not None:
         exc.rust_info = rust_info
     return type(exc), exc, None

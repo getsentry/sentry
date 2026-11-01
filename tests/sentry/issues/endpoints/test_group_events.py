@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
@@ -25,7 +26,8 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         self.two_min_ago = before_now(minutes=2)
 
     def do_request(self, url: str) -> Response:
-        return self.client.get(url, format="json")
+        response: Response[Any] = self.client.get(url, format="json")
+        return response
 
     def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}

@@ -7,7 +7,7 @@ for the agent service map feature.
 
 from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 from uuid import uuid4
 
@@ -333,7 +333,8 @@ class TestQueryServiceDependenciesIntegration(SnubaTestCase, SpanTestCase):
         )
         if expected_count:
             assert matching[0]["count"] == expected_count
-        return matching[0]
+        # justification: service map edges are decoded JSON objects.
+        return cast("dict[str, Any]", matching[0])
 
     def _create_service_topology(
         self, topology_map: Any, start_ts: Any

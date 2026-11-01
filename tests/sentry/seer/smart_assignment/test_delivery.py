@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
@@ -35,7 +35,8 @@ class DeliverSmartAssignmentResultTest(TestCase):
 
     def _extras(self) -> dict[str, Any]:
         self.mirror.refresh_from_db()
-        return self.mirror.extras
+        # justification: the mirror extras column stores a JSON object.
+        return cast("dict[str, Any]", self.mirror.extras)
 
     def _deliver(
         self,

@@ -1,6 +1,6 @@
 import re
 from collections.abc import Iterator
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock, patch
 from urllib.parse import parse_qsl
 
@@ -125,7 +125,8 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
-        return self.mock_unfurl.call_args[1]
+        # justification: Mock records the kwargs the webhook handler passed.
+        return cast("dict[str, Any]", self.mock_unfurl.call_args[1])
 
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
@@ -154,7 +155,8 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
 
-        return self.mock_post.call_args[1]
+        # justification: Mock records the kwargs the webhook handler passed.
+        return cast("dict[str, Any]", self.mock_post.call_args[1])
 
     def test_share_discover_links_unlinked_user_sdk(self) -> None:
         with self.feature("organizations:discover-basic"):

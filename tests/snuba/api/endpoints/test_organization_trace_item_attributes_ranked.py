@@ -36,7 +36,7 @@ class OrganizationTraceItemsAttributesRankedEndpointTest(
             query.setdefault("sampling", "HIGHEST_ACCURACY")
 
         with self.feature(features):
-            response = self.client.get(
+            response: Response = self.client.get(
                 reverse(
                     self.view,
                     kwargs={"organization_id_or_slug": self.organization.slug},

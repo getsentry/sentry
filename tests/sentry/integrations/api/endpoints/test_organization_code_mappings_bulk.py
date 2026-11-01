@@ -54,7 +54,8 @@ class OrganizationCodeMappingsBulkTest(APITestCase):
         }
         if data:
             payload.update(data)
-        return self.client.post(self.url, data=payload, format="json", **kwargs)
+        response: Response[Any] = self.client.post(self.url, data=payload, format="json", **kwargs)
+        return response
 
     def test_create_single_mapping(self) -> None:
         response = self.make_post()

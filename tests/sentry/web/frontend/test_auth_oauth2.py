@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import namedtuple
 from collections.abc import Mapping
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
@@ -57,7 +57,8 @@ class DummyOAuth2Provider(OAuth2Provider):
     def build_identity(
         self, state: Mapping[str, Any]
     ) -> Mapping[str, Any]:  # justification: pipeline state is decoded JSON.
-        return state["data"]
+        # justification: the pipeline state's data field is a decoded JSON object.
+        return cast("Mapping[str, Any]", state["data"])
 
 
 MockResponse = namedtuple("MockResponse", ["headers", "content"])
@@ -109,7 +110,10 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert query["client_id"][0] == "my_client_id"
         assert "state" in query
 
-        return query["state"][0]
+        state = query["state"][0]
+        if not isinstance(state, str):
+            raise TypeError("OAuth authorize redirect carries no state")
+        return state
 
     @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
     def initiate_callback(
@@ -165,7 +169,8 @@ class AuthOAuth2Test(AuthProviderTestCase):
                 "client_id": "my_client_id",
                 "client_secret": "my_client_secret",
             }
-        return resp
+        # justification: the test client returns a requests-style response.
+        return cast("_MonkeyPatchedWSGIResponse", resp)
 
     def test_oauth2_flow(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}

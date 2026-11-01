@@ -187,13 +187,14 @@ class SentryAppsTest(APITestCase):
         method: str = "get",
         data: Mapping[str, Any] | None = None,
     ) -> Response:
-        return getattr(self.client, method)(
+        response: Response[Any] = getattr(self.client, method)(
             reverse(endpoint),
             format="json",
             **(data or {}),
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
             headers={"Content-Type": "application/json"},
         )
+        return response
 
 
 @control_silo_test

@@ -26,7 +26,8 @@ class OrganizationEventsEndpointTest(APITestCase):
     def client_get(
         self, *args: Any, **kwargs: Any
     ) -> Response:  # justification: variadic forwarding to the test client.
-        return self.client.get(*args, **kwargs)
+        response: Response[Any] = self.client.get(*args, **kwargs)
+        return response
 
     def reverse_url(self) -> str:
         return reverse(

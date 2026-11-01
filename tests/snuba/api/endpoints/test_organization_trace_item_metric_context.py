@@ -56,12 +56,13 @@ class OrganizationTraceItemMetricContextEndpointTest(
             kwargs={"organization_id_or_slug": self.organization.slug, "metric": metric},
         )
         with self.feature(features):
-            return self.client.put(
+            response: Response[Any] = self.client.put(
                 url,
                 data,
                 format="json",
                 QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
+            return response
 
     def test_creates_context(self) -> None:
         self.store_metric("checkout.requests")

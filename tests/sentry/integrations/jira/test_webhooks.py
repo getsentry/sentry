@@ -176,7 +176,8 @@ class JiraIssueUpdatedWebhookTest(APITestCase):
         data = StubService.get_stub_data("jira", "edit_issue_assignee_payload.json")
         data["issue"]["fields"]["assignee"]["emailAddress"] = email
         data["issue"]["fields"]["updated"] = updated
-        return data
+        # justification: the stub service returns the decoded fixture payload.
+        return cast("dict[str, Any]", data)
 
     def _post_assignee_payload(self, data: dict[str, Any]) -> None:
         with patch(

@@ -484,7 +484,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             format="json",
         )
         assert response.status_code == 200, response.content
-        return response.data["token"]
+        token = response.data["token"]
+        if not isinstance(token, str):
+            raise TypeError("Agent token endpoint returned no token")
+        return token
 
     @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
     @with_feature(AGENT_TOKEN_FLAG)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -55,7 +55,8 @@ class SlackCommandsTest(APITestCase, TestCase):
                 **kwargs,
             }
         )
-        return orjson.loads(response.content)
+        # justification: the Slack command response is a JSON object of strings.
+        return cast("dict[str, str]", orjson.loads(response.content))
 
     def link_user(self) -> None:
         return link_user(user=self.user, idp=self.idp, slack_id=self.slack_id)
@@ -80,7 +81,8 @@ class SlackCommandsTest(APITestCase, TestCase):
             **set_signing_secret(options.get("slack.signing-secret"), data),
         )
         assert response.status_code == (status_code or status.HTTP_200_OK)
-        return response
+        # justification: the Django test client returns an HttpResponse here.
+        return cast("HttpResponse", response)
 
     @pytest.fixture(autouse=True)
     def mock_webhook_send(self) -> Generator[None]:

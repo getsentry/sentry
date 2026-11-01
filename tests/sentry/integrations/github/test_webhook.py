@@ -506,7 +506,7 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
             HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        return response.status_code
+        return int(response.status_code)
 
     def _add_refresh_response(self) -> None:
         responses.add(
@@ -2476,6 +2476,8 @@ class IssuesEventWebhookTest(APITestCase):
 
     def _assigned_event(self, login: str, updated_at: str) -> dict[str, Any]:
         event = json.loads(ISSUES_ASSIGNED_EVENT_EXAMPLE)
+        if not isinstance(event, dict):
+            raise TypeError("Issues assigned event is not a JSON object")
         event["issue"]["updated_at"] = updated_at
         event["issue"]["assignees"] = [{"login": login}]
         return event

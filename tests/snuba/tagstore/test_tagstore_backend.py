@@ -1150,7 +1150,8 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin, PerformanceI
                 tenant_ids={"organization_id": self.proj1.organization_id},
             ).get_result(1)
             assert len(result) == 1
-            return result[0]
+            # justification: the tag value paginator returns TagValue rows.
+            return cast("TagValue", result[0])
 
         assert get_top_value().value == "quux"
 

@@ -28,7 +28,7 @@ from sentry.utils.services import Delegator
 def _hgetall_decode_keys(
     client: "RedisCluster[bytes] | rb.RoutingClient", key: str, is_redis_cluster: bool
 ) -> dict[Any, Any]:
-    ret = client.hgetall(key)
+    ret: dict[Any, Any] = client.hgetall(key)
     if not is_redis_cluster:
         return {k.decode(): v for k, v in ret.items()}
     else:

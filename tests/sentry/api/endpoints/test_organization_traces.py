@@ -283,7 +283,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
         query["dataset"] = "spans"
 
         with self.feature(features):
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 reverse(
                     self.view,
                     kwargs={"organization_id_or_slug": self.organization.slug},
@@ -292,6 +292,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 format="json",
                 **kwargs,
             )
+            return response
 
     def test_no_feature(self) -> None:
         response = self.do_request({}, features=[])

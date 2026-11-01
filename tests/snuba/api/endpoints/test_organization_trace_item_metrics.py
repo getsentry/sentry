@@ -71,10 +71,11 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             query = {"project": self.project.id}
         url = reverse(self.viewname, kwargs={"organization_id_or_slug": self.organization.slug})
         with self.feature(features):
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 url,
                 QUERY_STRING="&".join(f"{name}={value}" for name, value in query.items()),
             )
+            return response
 
     def test_lists_metrics(self) -> None:
         self.store_metric("checkout.requests", "counter")

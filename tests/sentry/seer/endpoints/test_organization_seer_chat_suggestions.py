@@ -192,7 +192,10 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_success_response(
             self.organization.slug, **{**PAYLOAD, "route": route, "route_params": route_params}
         )
-        return mock_run_oneshot.call_args.args[1]["can_edit_node_type"]
+        can_edit = mock_run_oneshot.call_args.args[1]["can_edit_node_type"]
+        if not isinstance(can_edit, str):
+            raise TypeError("Seer chat suggestion carries no editability")
+        return can_edit
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_dashboard_edit_access_when_user_can_edit(

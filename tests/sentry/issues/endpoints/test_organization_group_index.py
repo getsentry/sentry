@@ -1084,7 +1084,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
 
         def api_request() -> Response:
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 reverse(
                     "sentry-api-0-organization-group-index",
                     args=[self.project.organization.slug],
@@ -1093,6 +1093,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
                 data={"query": "is:unresolved"},
                 HTTP_AUTHORIZATION=f"Bearer {token.token}",
             )
+            return response
 
         # API (bearer token) requests get the api-specific referrer...
         response = api_request()

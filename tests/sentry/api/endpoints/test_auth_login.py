@@ -1470,10 +1470,11 @@ class AuthRecoveryEndpointTest(APITestCase):
     def request_recovery(
         self, user: str | None = None, client: APIClient | None = None
     ) -> Response:
-        return (client or self.client).post(
+        response: Response[Any] = (client or self.client).post(
             reverse("sentry-api-0-auth-recovery"),
             data={"user": user or self.user.email},
         )
+        return response
 
     def confirm_recovery(
         self,
@@ -1481,10 +1482,11 @@ class AuthRecoveryEndpointTest(APITestCase):
         password: str = "new-secure-password",
         client: APIClient | None = None,
     ) -> Response:
-        return (client or self.client).post(
+        response: Response[Any] = (client or self.client).post(
             reverse("sentry-api-0-auth-recovery-confirm"),
             data={"userId": str(self.user.id), "token": token, "password": password},
         )
+        return response
 
     def test_request_recovery_requires_csrf_token(self) -> None:
         client = APIClient(enforce_csrf_checks=True)

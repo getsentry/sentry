@@ -1,4 +1,5 @@
 from base64 import b64encode
+from typing import cast
 
 from django.conf import settings
 from django.test import override_settings
@@ -27,7 +28,8 @@ class SentryAppAvatarTestBase(APITestCase):
         avatars = resp.data["avatars"]
         for avatar in avatars:
             if avatar.get("color") == is_color:
-                return avatar
+                # justification: the avatar serializer emits one payload per avatar.
+                return cast("SentryAppAvatarSerializerResponse", avatar)
         raise AssertionError("Invariant violation: expect avatar to be returned")
 
     def create_avatar(self, is_color: bool) -> Response:

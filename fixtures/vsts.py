@@ -235,7 +235,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert resp.data["step"] == "account_selection"
 
         resp = self.client.post(pipeline_url, data={"account": account_id}, format="json")
-        return resp
+        assert resp.status_code == 200, resp.content
 
 
 COMPARE_COMMITS_EXAMPLE = b"""

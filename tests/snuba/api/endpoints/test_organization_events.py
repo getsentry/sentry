@@ -122,8 +122,10 @@ class OrganizationEventsEndpointTestBase(
 
         params = query if path is not None else data
         if params is None and "?" in target:
-            return self.client.get(target, format="json")
-        return self.client.get(target, self.with_default_stats_period(params), format="json")
+            response: Response[Any] = self.client.get(target, format="json")
+            return response
+        response = self.client.get(target, self.with_default_stats_period(params), format="json")
+        return response
 
     def reverse_url(self) -> str:
         return reverse(

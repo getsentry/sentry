@@ -228,7 +228,8 @@ class ReleaseFileDetailsTest(APITestCase):
             },
         )
 
-        return self.client.get(url)
+        response: Response = self.client.get(url)
+        return response
 
     def test_invalid_id(self) -> None:
         self.login_as(user=self.user)

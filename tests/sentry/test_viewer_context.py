@@ -238,7 +238,10 @@ class TestObserve:
         assert m.call_count == 1
         args, kwargs = m.call_args
         assert args == ("viewer_context.observation", 1)
-        return kwargs["attributes"]
+        attributes = kwargs["attributes"]
+        if not isinstance(attributes, dict):
+            raise TypeError("viewer context attributes are not a mapping")
+        return attributes
 
     def test_no_context_tags_actor_none(self, patch_metrics: mock.MagicMock) -> None:
         observe_viewer_context_propagation("seer_rpc_out")

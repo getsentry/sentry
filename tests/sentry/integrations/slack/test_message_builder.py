@@ -1354,7 +1354,10 @@ class SlackAppUpdateNudgeBlockTest(TestCase):
             group,
             has_mentions_read_scope=has_mentions_read_scope,
         ).get_slack_app_update_nudge_block()
-        return block["elements"][0]["text"]
+        text = block["elements"][0]["text"]
+        if not isinstance(text, str):
+            raise TypeError("Nudge block text is not a string")
+        return text
 
     def test_updated_app_has_app_mentions_scope(self) -> None:
         # app_mentions:read present -> app is up to date.

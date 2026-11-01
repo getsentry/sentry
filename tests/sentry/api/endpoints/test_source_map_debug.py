@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zipfile
 from io import BytesIO
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import orjson
@@ -1582,7 +1582,11 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             self.project.slug,
             event_id,
         )
-        return resp.data["exceptions"][0]["frames"][0]["release_process"]
+        # justification: the event endpoint serializes the release process payload.
+        return cast(
+            "dict[str, Any]",
+            resp.data["exceptions"][0]["frames"][0]["release_process"],
+        )
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
     def test_frame_release_process_artifact_bundle_url_match_by_bundle_successful(self) -> None:

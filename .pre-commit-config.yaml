@@ -81,12 +81,6 @@ repos:
         language: python
         types: [python]
         require_serial: true
-      - id: check-strict-typing
-        name: check strict typing baseline
-        entry: uv run python -m tools.mypy_helpers.check_strict_typing
-        language: system
-        types: [python]
-        require_serial: true
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]

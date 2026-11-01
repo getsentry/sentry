@@ -98,7 +98,10 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         # Trigger rule callback
         rule_future = RuleFuture(context=self.jira_rule.action_context, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
-        return json.loads(responses.calls[1].request.body)
+        body = json.loads(responses.calls[1].request.body)
+        if not isinstance(body, dict):
+            raise TypeError("Jira notification request is not a JSON object")
+        return body
 
     @responses.activate
     def test_creates_issue(self) -> None:

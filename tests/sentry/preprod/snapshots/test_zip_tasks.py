@@ -67,7 +67,10 @@ class BuildSnapshotImagesZipTest(TestCase):
         def upload(contents: BinaryIO, **kwargs: Any) -> str:
             nonlocal archive_bytes
             archive_bytes = contents.read()
-            return kwargs["key"]
+            key = kwargs["key"]
+            if not isinstance(key, str):
+                raise TypeError("Objectstore key is not a string")
+            return key
 
         session.put.side_effect = upload
         build_snapshot_images_zip(

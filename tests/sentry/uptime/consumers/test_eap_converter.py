@@ -1,4 +1,4 @@
-from typing import TypedDict, Unpack
+from typing import Any, TypedDict, Unpack, cast
 from unittest import TestCase
 
 import pytest
@@ -91,7 +91,8 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             "region": "us-east-1",
             "assertion_failure_data": None,
         }
-        base.update(overrides)
+        # justification: overrides are partial members of the same TypedDict.
+        cast("dict[str, Any]", base).update(overrides)
         return base
 
     def _create_base_request_info(self, **overrides: Unpack[RequestInfoOverrides]) -> RequestInfo:
@@ -103,7 +104,8 @@ class TestDenormalizedUptimeConverter(SentryTestCase):
             "response_body_size_bytes": 1024,
             "request_duration_us": 125000,
         }
-        request_info.update(overrides)
+        # justification: overrides are partial members of the same TypedDict.
+        cast("dict[str, Any]", request_info).update(overrides)
         return request_info
 
     def _assert_trace_item_base_fields(
@@ -369,7 +371,8 @@ class TestFullDenormalizedConversion(SentryTestCase):
             "region": "us-east-1",
             "assertion_failure_data": None,
         }
-        base.update(overrides)
+        # justification: overrides are partial members of the same TypedDict.
+        cast("dict[str, Any]", base).update(overrides)
         return base
 
     def test_convert_redirect_chain_denormalized(self) -> None:

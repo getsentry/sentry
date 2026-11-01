@@ -151,7 +151,8 @@ class RequestReviewFromContextTest(TestCase):
 
     def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{REVIEW_REQUEST_PATH}.scm_actions")
     @patch("sentry.scm.factory.new", return_value=MagicMock())
@@ -562,7 +563,8 @@ class RequestReviewFromCandidatesTest(TestCase):
 
     def _marker(self, extra_key: str = REVIEW_REQUESTS_EXTRA) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(extra_key, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     def test_requests_top_candidate_and_records_provenance(
         self,

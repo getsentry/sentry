@@ -31,6 +31,8 @@ def test_processor_runs_before_code_review_handler() -> None:
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    if not isinstance(event, dict):
+        raise TypeError("Merge request event is not a JSON object")
     event["object_attributes"]["action"] = action
     for key, value in overrides.items():
         event["object_attributes"][key] = value

@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 import orjson
@@ -66,7 +66,8 @@ DIAGNOSIS_LABELS = ["out_of_scope_or_unwanted"]
 
 
 def _last_row(mock_record: Any) -> PrCloseMetricsEvent:
-    return mock_record.call_args_list[-1].args[0]
+    # justification: the mock records the emitted metrics events positionally.
+    return cast("PrCloseMetricsEvent", mock_record.call_args_list[-1].args[0])
 
 
 @cell_silo_test

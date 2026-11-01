@@ -228,9 +228,10 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
                 self.viewname,
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
-            return self.client.get(
+            response: Response[Any] = self.client.get(
                 url, {"project": self.project.id, **(query or {})}, format="json"
             )
+            return response
 
     def _store_span_and_log(self) -> None:
         self.store_segment(

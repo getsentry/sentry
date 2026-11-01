@@ -151,7 +151,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.HIGH,
         )
-        return critical_detector_trigger.comparison
+        return float(critical_detector_trigger.comparison)
 
     @cached_property
     def warning_threshold(self) -> int | float:
@@ -159,7 +159,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.MEDIUM,
         )
-        return warning_detector_trigger.comparison
+        return float(warning_detector_trigger.comparison)
 
     @cached_property
     def resolve_threshold(self) -> int | float:
@@ -167,7 +167,7 @@ class ProcessUpdateBaseClass(TestCase, SpanTestCase, SnubaTestCase):
             condition_group=self.metric_detector.workflow_condition_group,
             condition_result=DetectorPriorityLevel.OK,
         )
-        return resolve_detector_trigger.comparison
+        return float(resolve_detector_trigger.comparison)
 
     def get_snuba_query(self, detector: Detector) -> SnubaQuery:
         data_source_detector = DataSourceDetector.objects.get(detector=detector)

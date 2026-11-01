@@ -1242,7 +1242,10 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         return self._advance_step(data, organization)
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("GitLab pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _run_pipeline(self, organization: Organization | None = None, **overrides: Any) -> Any:
         self._stub_gitlab_oauth()

@@ -69,4 +69,5 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        return self.client.post("/extensions/slack/options-load/", payload)
+        response: Response = self.client.post("/extensions/slack/options-load/", payload)
+        return response

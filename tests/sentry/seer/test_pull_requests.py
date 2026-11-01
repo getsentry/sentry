@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from unittest.mock import Mock, patch
 
 from sentry.models.pullrequest import (
@@ -36,7 +36,8 @@ def _warning_extra(mock_logger: Mock, event: str) -> dict[str, Any]:
         call.kwargs["extra"] for call in mock_logger.warning.call_args_list if call.args[0] == event
     ]
     assert len(extras) == 1, f"expected exactly one {event} warning, got {len(extras)}"
-    return extras[0]
+    # justification: the logger is called with a JSON object of extras.
+    return cast("dict[str, Any]", extras[0])
 
 
 class LinkSeerRunPullRequestsTest(TestCase):

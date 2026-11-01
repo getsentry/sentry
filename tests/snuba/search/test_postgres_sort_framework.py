@@ -226,7 +226,7 @@ class TestPostgresSortWithoutSnuba(PostgresSortTestBase):
         def score_fn(data: dict[str, Any]) -> float:
             if data["fix"] == bad_id:
                 raise OverflowError("boom")
-            return data["fix"]
+            return float(data["fix"])
 
         strategy = PostgresSortStrategy(
             postgres_fields={"fix": "seer_fixability_score"},

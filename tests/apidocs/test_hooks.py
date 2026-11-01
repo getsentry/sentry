@@ -32,7 +32,7 @@ from sentry.issues.endpoints.group_details import GroupDetailsEndpoint
 @pytest.mark.django_db
 def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     with patched_settings({"PREPROCESSING_HOOKS": []}):
-        endpoints = CustomEndpointEnumerator().get_api_endpoints()
+        endpoints = CustomEndpointEnumerator().collect_endpoints()
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(

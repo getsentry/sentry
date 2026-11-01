@@ -1,3 +1,4 @@
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -327,7 +328,8 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
         )
 
         assert response.status_code == status.HTTP_202_ACCEPTED
-        return orjson.loads(mock_request.call_args[0][2])["payload"]
+        # justification: the Seer request body serializes its payload as a JSON object.
+        return cast("dict[str, object]", orjson.loads(mock_request.call_args[0][2])["payload"])
 
     @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
     @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")

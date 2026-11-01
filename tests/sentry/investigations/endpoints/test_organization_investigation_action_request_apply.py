@@ -285,7 +285,8 @@ class OrganizationInvestigationActionRequestApplyTest(APITestCase):
         )
         assert response.status_code == 200
         [action_request] = response.data["actionRequests"]
-        return action_request
+        # justification: the endpoint serializes action requests as JSON objects.
+        return cast("dict[str, Any]", action_request)
 
     def test_details_say_the_viewer_can_apply_a_change_to_the_monitor(self) -> None:
         self.suggest(

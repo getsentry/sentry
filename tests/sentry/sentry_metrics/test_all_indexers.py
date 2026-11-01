@@ -33,7 +33,8 @@ USE_CASE_IDS = [UseCaseID.SESSIONS]
 
 @pytest.fixture(params=BACKENDS)
 def indexer_cls(request: pytest.FixtureRequest) -> type[StringIndexer]:
-    return request.param
+    # justification: the fixture parameters are declared as indexer classes above.
+    return cast("type[StringIndexer]", request.param)
 
 
 @pytest.fixture
@@ -55,7 +56,8 @@ def indexer_cache() -> Generator[StringIndexerCache]:
 
 @pytest.fixture(params=USE_CASE_IDS)
 def use_case_id(request: pytest.FixtureRequest) -> UseCaseID:
-    return request.param
+    # justification: the fixture parameters are declared as UseCaseID members above.
+    return cast("UseCaseID", request.param)
 
 
 @pytest.fixture

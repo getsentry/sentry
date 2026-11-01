@@ -547,7 +547,7 @@ class OrganizationReleaseHealthDataTest(MetricsAPIBaseTestCase):
             groups = response.data["groups"]
             assert len(groups) == 1
 
-            return groups[0]["totals"]["sum(sentry.sessions.session)"]
+            return int(groups[0]["totals"]["sum(sentry.sessions.session)"])
 
         # Request for entire org gives a counter of two:
         assert count_sessions(project_id=None) == 2
