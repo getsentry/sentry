@@ -1,5 +1,7 @@
 import re
+from collections.abc import Callable, Mapping
 from functools import wraps
+from typing import Any
 
 import sentry_sdk
 from django.conf import settings
@@ -87,7 +89,7 @@ def parse_arn(arn: str) -> dict[str, str | None]:
     }
 
 
-def get_option_value(function, option):
+def get_option_value(function: Mapping[str, Any], option: str) -> Any:
     region = parse_arn(function["FunctionArn"])["region"]
     runtime = function["Runtime"]
 
@@ -143,24 +145,24 @@ def get_version_of_arn(arn: str) -> int:
     return int(arn.split(":")[-1])
 
 
-def _get_arn_from_layer(layer):
+def _get_arn_from_layer(layer: Any) -> str:
     # layer could be a string or dict
     if isinstance(layer, dict):
         return layer["Arn"]
     return layer
 
 
-def get_function_layer_arns(function):
+def get_function_layer_arns(function: Mapping[str, Any]) -> list[str]:
     layers = function.get("Layers", [])
     return [_get_arn_from_layer(layer) for layer in layers]
 
 
-def get_latest_layer_for_function(function):
+def get_latest_layer_for_function(function: Mapping[str, Any]) -> str:
     region = parse_arn(function["FunctionArn"])["region"]
     return f"arn:aws:lambda:{region}:{get_option_value(function, OPTION_ACCOUNT_NUMBER)}:layer:{get_option_value(function, OPTION_LAYER_NAME)}:{get_option_value(function, OPTION_VERSION)}"
 
 
-def get_latest_layer_version(function):
+def get_latest_layer_version(function: Mapping[str, Any]) -> int:
     return int(get_option_value(function, OPTION_VERSION))
 
 
@@ -180,7 +182,7 @@ def get_index_of_sentry_layer(layers: list[str], arn_to_match: str) -> int:
     return -1
 
 
-def get_supported_functions(lambda_client):
+def get_supported_functions(lambda_client: Any) -> list[dict[str, Any]]:
     paginator = lambda_client.get_paginator("list_functions")
     response_iterator = paginator.paginate()
     functions = []
@@ -195,7 +197,7 @@ def get_supported_functions(lambda_client):
     )
 
 
-def get_dsn_for_project(organization_id, project_id):
+def get_dsn_for_project(organization_id: int, project_id: int) -> str:
     enabled_dsn = project_key_service.get_project_key(
         organization_id=organization_id, project_id=project_id, role=ProjectKeyRole.store
     )
@@ -251,7 +253,12 @@ def get_node_options_for_layer(layer_name: str | None, layer_version: int | None
     return "--import @sentry/aws-serverless/awslambda-auto"
 
 
-def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_left=3):
+def enable_single_lambda(
+    lambda_client: Any,
+    function: Mapping[str, Any],
+    sentry_project_dsn: str,
+    retries_left: int = 3,
+) -> Any:
     # find the latest layer for this function
     layer_arn = get_latest_layer_for_function(function)
 
@@ -317,7 +324,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
     return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
-def disable_single_lambda(lambda_client, function, layer_arn):
+def disable_single_lambda(lambda_client: Any, function: Mapping[str, Any], layer_arn: str) -> Any:
     name = function["FunctionName"]
     runtime = function["Runtime"]
     layers = get_function_layer_arns(function)
@@ -353,7 +360,7 @@ def disable_single_lambda(lambda_client, function, layer_arn):
     return update_lambda_with_retries(lambda_client, **lambda_kwargs)
 
 
-def update_lambda_with_retries(lambda_client, **kwargs):
+def update_lambda_with_retries(lambda_client: Any, **kwargs: Any) -> Any:
     num_retries = DEFAULT_NUM_RETRIES
     if "num_retries" in kwargs:
         num_retries = kwargs.pop("num_retries")
@@ -422,7 +429,7 @@ def get_exceeded_env_vars_limit_error(err_message: str) -> bool:
     return env_vars_limit_error in err_message
 
 
-def get_sentry_err_message(err_message):
+def get_sentry_err_message(err_message: str) -> tuple[bool, str]:
     """
     Check to see if an error matches a custom error and customizes the error
     message if it is a custom error
@@ -441,15 +448,15 @@ def get_sentry_err_message(err_message):
     return False, err_message
 
 
-def wrap_lambda_updater():
+def wrap_lambda_updater() -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """
     Wraps any function that updates a layer
     Throws an IntegrationError for specific known errors
     """
 
-    def inner(func):
+    def inner(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
-        def wrapped(*args, **kwargs):
+        def wrapped(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
             except Exception as e:

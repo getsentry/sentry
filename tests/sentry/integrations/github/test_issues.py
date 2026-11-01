@@ -1,5 +1,5 @@
 import datetime
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from functools import cached_property
 from typing import Any, cast
 from unittest import mock
@@ -59,7 +59,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
         self.install = cast(GitHubIntegration, install)
 
     @fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
@@ -132,7 +132,7 @@ class GitHubIssueBasicAllSiloTest(TestCase):
 
 class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTestCase):
     @cached_property
-    def request(self):
+    def request(self) -> Any:
         return RequestFactory()
 
     def setUp(self) -> None:
@@ -169,7 +169,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
             )
 
     @fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
@@ -774,7 +774,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
         assert isinstance(resp[0]["default"], str)
 
     @responses.activate
-    def after_link_issue(self):
+    def after_link_issue(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/getsentry/sentry/issues/321/comments",

@@ -1,4 +1,5 @@
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.db.models import Q, QuerySet
@@ -82,7 +83,9 @@ class _ReleaseDateQueryAndOrder(TypedDict):
     order_by: list[str]
 
 
-def add_status_filter_to_queryset(queryset, status_filter):
+def add_status_filter_to_queryset(
+    queryset: QuerySet[Release], status_filter: str
+) -> QuerySet[Release]:
     """
     Function that adds status filter on a queryset
     """
@@ -98,7 +101,9 @@ def add_status_filter_to_queryset(queryset, status_filter):
     return queryset
 
 
-def add_query_filter_to_queryset(queryset, query):
+def add_query_filter_to_queryset(
+    queryset: QuerySet[Release], query: str | None
+) -> QuerySet[Release]:
     """
     Function that adds a query filtering to a queryset
     """
@@ -261,7 +266,9 @@ class OrganizationReleaseDetailsPaginationMixin:
         }
 
     @staticmethod
-    def __get_top_of_queryset_release_version_based_on_order_by(org, proj_and_env_dict, order_by):
+    def __get_top_of_queryset_release_version_based_on_order_by(
+        org: Organization, proj_and_env_dict: Mapping[str, Any], order_by: list[str]
+    ) -> str | None:
         """
         Helper function that executes a query on Release table orders that query based on `order_by`
         input provided

@@ -2,7 +2,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import cast
+from typing import Any
 
 from django.db import router, transaction
 from django.http.request import HttpRequest
@@ -50,7 +50,7 @@ def get_request_attribution(request: HttpRequest | Request) -> dict[str, str | b
     }
 
 
-def signal_first_checkin(project: Project, monitor: Monitor):
+def signal_first_checkin(project: Project, monitor: Monitor) -> None:
     if not project.flags.has_cron_checkins:
         # Backfill users that already have cron monitors
         check_and_signal_first_monitor_created(project, None, False)
@@ -65,13 +65,21 @@ def signal_first_checkin(project: Project, monitor: Monitor):
         )
 
 
-def check_and_signal_first_monitor_created(project: Project, user, from_upsert: bool):
+def check_and_signal_first_monitor_created(
+    project: Project, user: object | None, from_upsert: bool
+) -> None:
     set_project_flag_and_signal(
         project, "has_cron_monitors", first_cron_monitor_created, user=user, from_upsert=from_upsert
     )
 
 
-def signal_monitor_created(project: Project, user, from_upsert: bool, monitor: Monitor, request):
+def signal_monitor_created(
+    project: Project,
+    user: object | None,
+    from_upsert: bool,
+    monitor: Monitor,
+    request: Request | None,
+) -> None:
     cron_monitor_created.send_robust(
         project=project, user=user, from_upsert=from_upsert, sender=Project
     )
@@ -109,7 +117,7 @@ def get_max_runtime(max_runtime: int | None) -> timedelta:
 
 # Generates a timeout_at value for new check-ins
 def get_timeout_at(
-    monitor_config: dict | None, status: int, date_added: datetime | None
+    monitor_config: dict[str, Any] | None, status: int, date_added: datetime | None
 ) -> datetime | None:
     if status == CheckInStatus.IN_PROGRESS and date_added is not None:
         return date_added.replace(second=0, microsecond=0) + get_max_runtime(
@@ -371,7 +379,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
     return None
 
 
-def ensure_cron_detector_deletion(monitor: Monitor):
+def ensure_cron_detector_deletion(monitor: Monitor) -> None:
     with atomic_transaction(using=router.db_for_write(DataSource)):
         try:
             data_source = DataSource.objects.get(

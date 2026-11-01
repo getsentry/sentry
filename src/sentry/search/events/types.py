@@ -38,6 +38,7 @@ class ParamsType(TypedDict, total=False):
     organization_id: NotRequired[int | None]
     use_case_id: NotRequired[str]
     team_id: NotRequired[list[int]]
+    aliases: NotRequired[Mapping[str, Alias]]
     environment_objects: NotRequired[list[Environment]]
     statsPeriod: NotRequired[str]
     user_id: NotRequired[int | None]

@@ -226,7 +226,9 @@ class GroupEventDetailsResponse(IssueEventSerializerResponse):
 @register(GroupEvent)
 @register(Event)
 class EventSerializer(Serializer):
-    def _get_interface_with_meta(self, event, name, is_public=False):
+    def _get_interface_with_meta(
+        self, event: Event | GroupEvent, name: str, is_public: bool = False
+    ) -> tuple[Any, Any]:
         interface = event.get_interface(name)
         if not interface:
             return (None, None)
@@ -244,12 +246,14 @@ class EventSerializer(Serializer):
 
         return (data, meta_with_chunks(data, api_meta))
 
-    def _get_attr_with_meta(self, event, attr, default=None):
+    def _get_attr_with_meta(
+        self, event: Event | GroupEvent, attr: str, default: Any = None
+    ) -> tuple[Any, Any]:
         value = event.data.get(attr, default)
         meta = get_path(event.data, "_meta", attr)
         return (value, meta_with_chunks(value, meta))
 
-    def _get_legacy_message_with_meta(self, event):
+    def _get_legacy_message_with_meta(self, event: Event | GroupEvent) -> tuple[str | None, Any]:
         meta = event.data.get("_meta")
 
         message: str | None = get_path(event.data, "logentry", "formatted")
@@ -329,7 +333,7 @@ class EventSerializer(Serializer):
     def serialize(
         self,
         obj: Event | GroupEvent,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> EventSerializerResponse:
@@ -412,20 +416,24 @@ class EventSerializer(Serializer):
                 **self.__serialize_error_attrs(attrs, obj),
             }
 
-    def __serialize_transaction_attrs(self, attrs, obj) -> TransactionEventFields:
+    def __serialize_transaction_attrs(
+        self, attrs: Mapping[str, Any], obj: Event | GroupEvent
+    ) -> TransactionEventFields:
         """
         Add attributes that are only present on transaction events.
         """
         transaction_attrs: TransactionEventFields = {
-            "startTimestamp": obj.data.get("start_timestamp"),
-            "endTimestamp": obj.data.get("timestamp"),
+            "startTimestamp": cast("float", obj.data.get("start_timestamp")),
+            "endTimestamp": cast("float", obj.data.get("timestamp")),
             "measurements": obj.data.get("measurements"),
             "breakdowns": obj.data.get("breakdowns"),
         }
 
         return transaction_attrs
 
-    def __serialize_error_attrs(self, attrs, obj: Event | GroupEvent) -> ErrorEventFields:
+    def __serialize_error_attrs(
+        self, attrs: Mapping[str, Any], obj: Event | GroupEvent
+    ) -> ErrorEventFields:
         """
         Add attributes that are present on error and default event types
         """
@@ -562,9 +570,9 @@ class SqlFormatEventSerializer(EventSerializer):
     def serialize(
         self,
         obj: Event | GroupEvent,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: Any,
     ) -> SqlFormatEventSerializerResponse:
         include_full_release_data = bool(kwargs.pop("include_full_release_data", False))
         result = super().serialize(obj, attrs, user, **kwargs)
@@ -586,7 +594,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
         self,
         item_list: Sequence[Event | GroupEvent],
         user: User | RpcUser | AnonymousUser,
-        **kwargs,
+        **kwargs: object,
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         is_public = bool(kwargs.pop("is_public", False))
         return super().get_attrs(item_list, user, is_public=is_public, **kwargs)
@@ -612,7 +620,7 @@ class IssueEventSerializer(SqlFormatEventSerializer):
     def serialize(
         self,
         obj: Event | GroupEvent,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> IssueEventSerializerResponse:
@@ -635,7 +643,13 @@ class SharedEventSerializer(EventSerializer):
     ) -> dict[Event | GroupEvent, dict[str, object]]:
         return super().get_attrs(item_list, user, is_public=True, **kwargs)
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> EventSerializerResponse:
         base = super().serialize(obj, attrs, user)
         result: dict[str, Any] = {
             k: v
@@ -643,7 +657,7 @@ class SharedEventSerializer(EventSerializer):
             if k not in {"context", "contexts", "user", "tags", "sdk", "errors"}
         }
         result["entries"] = [e for e in result["entries"] if e["type"] != "breadcrumbs"]
-        return result
+        return cast("EventSerializerResponse", result)
 
 
 SimpleEventSerializerResponse = TypedDict(
@@ -682,7 +696,12 @@ class SimpleEventSerializer(EventSerializer):
     organization event search API gets real slow.
     """
 
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[Event | GroupEvent],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> dict[Event | GroupEvent, dict[str, Any]]:
         # Batch-fetch event bodies from nodestore in a single multi-get RPC.
         # serialize() accesses properties (tags, message, title,
         # get_event_metadata, etc.) that fall through to nodestore when the
@@ -694,7 +713,7 @@ class SimpleEventSerializer(EventSerializer):
         if options.get("issues.group_events.batch_nodestore_enabled"):
             unbound = [e for e in item_list if e.data._node_data is None]
             if unbound:
-                eventstore.backend.bind_nodes(unbound)
+                eventstore.backend.bind_nodes(cast("list[Event]", unbound))
 
         crash_files = get_crash_files(item_list)
         serialized_files = {
@@ -712,7 +731,7 @@ class SimpleEventSerializer(EventSerializer):
     def serialize(  # type: ignore[override]  # intentionally different shape
         self,
         obj: Event | GroupEvent,
-        attrs,
+        attrs: Mapping[str, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: object,
     ) -> SimpleEventSerializerResponse:
@@ -769,17 +788,25 @@ class ExternalEventSerializer(EventSerializer):
     should be used for Integrations that need to include event data.
     """
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(  # type: ignore[override]  # justification: external payload intentionally differs.
+        self,
+        obj: Event | GroupEvent,
+        attrs: Mapping[str, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> ExternalEventSerializerResponse:
         from sentry.notifications.utils import get_notification_group_title
 
-        tags = [{"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags]
+        tags: list[EventTag] = [
+            {"key": key.split("sentry:", 1)[-1], "value": value} for key, value in obj.tags
+        ]
         for tag in tags:
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
-        map_device_class_tags(cast(list[EventTag], tags))
+        map_device_class_tags(tags)
 
-        user = obj.get_minimal_user()
+        minimal_user = obj.get_minimal_user()
 
         return {
             "groupID": str(obj.group_id) if obj.group_id else None,
@@ -791,7 +818,7 @@ class ExternalEventSerializer(EventSerializer):
             "title": get_notification_group_title(obj.group, obj, 1024),
             "location": obj.location,
             "culprit": obj.culprit,
-            "user": user and user.get_api_context(),
+            "user": minimal_user.get_api_context() if minimal_user is not None else None,
             "tags": tags,
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),

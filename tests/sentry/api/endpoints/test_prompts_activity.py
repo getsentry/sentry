@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -368,7 +369,7 @@ class PromptsActivityScopeTest(PromptsActivityTestBase):
             token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
-    def dismiss(self):
+    def dismiss(self) -> Response:
         return self.client.put(
             self.path,
             {

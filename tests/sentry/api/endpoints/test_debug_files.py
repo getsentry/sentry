@@ -6,7 +6,9 @@ from uuid import uuid4
 
 import requests
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.http import HttpResponse
 from django.urls import reverse
+from rest_framework.response import Response
 from symbolic.debuginfo import Archive
 
 from sentry.models.debugfile import (
@@ -44,7 +46,7 @@ class DebugFilesTestCases(APITestCase):
         )
         self.login_as(user=self.user)
 
-    def _upload_proguard(self, url, uuid):
+    def _upload_proguard(self, url: str, uuid: str) -> Response:
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
         f.writestr("proguard/%s.txt" % uuid, PROGUARD_SOURCE)
@@ -60,7 +62,7 @@ class DebugFilesTestCases(APITestCase):
             format="multipart",
         )
 
-    def _upload_wasm(self):
+    def _upload_wasm(self) -> Response:
         """Uploads a WASM fixture."""
 
         out = BytesIO()
@@ -81,7 +83,7 @@ class DebugFilesTestCases(APITestCase):
             format="multipart",
         )
 
-    def _upload_wasm_legacy(self):
+    def _upload_wasm_legacy(self) -> None:
         """
         Uploads the same WASM fixture as `_upload_wasm`, but
         with its legacy code and debug IDs.
@@ -105,18 +107,20 @@ class DebugFilesTestCases(APITestCase):
         file.checksum = "foobar"
         create_dif_from_file(self.project, meta, file)
 
-    def _assert_successful_download(self, response, content: bytes, filename=None) -> None:
+    def _assert_successful_download(
+        self, response: HttpResponse, content: bytes, filename: str | None = None
+    ) -> None:
         if response.status_code == 302:
             location = response["Location"]
             # In dev/test the host may be rewritten to the Docker-internal `objectstore` hostname
             # (so Symbolicator can reach it); rewrite it back so this host-side test can follow it.
             location = location.replace("://objectstore:", "://127.0.0.1:")
-            response = requests.get(location)
-            assert response.status_code == 200, response.text
-            assert response.content == content
+            download = requests.get(location)
+            assert download.status_code == 200, download.text
+            assert download.content == content
             if filename is not None:
                 assert (
-                    response.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
+                    download.headers["Content-Disposition"] == f'attachment; filename="{filename}"'
                 )
         else:
             assert response.status_code == 200, response.content
@@ -242,7 +246,9 @@ class DebugFilesTest(DebugFilesTestCases):
             # The file that we find should have the legacy debug ID.
             assert response.data[0]["debugId"] == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
 
-    def _do_test_dsyms_by_debugid_and_codeid(self, query, files):
+    def _do_test_dsyms_by_debugid_and_codeid(
+        self, query: tuple[str, ...], files: list[tuple[bool, str, str]]
+    ) -> None:
         for _, debug_id, code_id in files:
             self.create_dif_file(debug_id=debug_id, code_id=code_id)
 

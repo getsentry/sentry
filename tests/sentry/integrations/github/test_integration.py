@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -116,7 +117,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         external_id: str = "octocat",
         issue_key: str = "Test-Organization/foo#123",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[Any, ...]:
         """
         Common setup for assignee sync tests.
 
@@ -160,16 +161,16 @@ class GitHubIntegrationTest(IntegrationTestCase):
         return user, installation, external_issue, integration, group
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 
-    def _stub_github(self):
+    def _stub_github(self) -> Any:
         """This stubs the calls related to a Github App"""
         self.gh_org = "Test-Organization"
         pp = 1
@@ -343,7 +344,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 status=values["status_code"],
             )
 
-    def _setup_with_existing_installations(self):
+    def _setup_with_existing_installations(self) -> None:
         self.installation_info = {
             "installations": [
                 {
@@ -370,7 +371,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             json=self.installation_info,
         )
 
-    def assert_setup_flow(self):
+    def assert_setup_flow(self) -> Any:
         """Create the Integration and OrganizationIntegration directly via ORM,
         matching what the pipeline would have produced."""
         integration = Integration.objects.create(
@@ -714,8 +715,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
     def set_rate_limit(
-        self, remaining=MINIMUM_REQUESTS + 100, limit=5000, json_body=None, status=200
-    ):
+        self,
+        remaining: int = MINIMUM_REQUESTS + 100,
+        limit: int = 5000,
+        json_body: dict[str, Any] | None = None,
+        status: int = 200,
+    ) -> None:
         """Helper class to set the rate limit.
         A status code different than 200 requires a json_body
         """
@@ -749,7 +754,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         return installation
 
-    def _expected_trees(self, repo_info_list=None):
+    def _expected_trees(self, repo_info_list: list[Any] | None = None) -> Any:
         result = {}
         repo_ids = {"xyz": "1234567", "foo": "1296269", "bar": "9876574", "baz": "1276555"}
         # bar (409 empty repo) returns an empty RepoTree since we cache the result
@@ -766,7 +771,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
         return result
 
-    def _expected_cached_repos(self):
+    def _expected_cached_repos(self) -> Any:
         return [
             {
                 "full_name": f"{self.gh_org}/xyz",
@@ -1867,12 +1872,12 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         super().tearDown()
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with mock.patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 

@@ -1,3 +1,5 @@
+from collections.abc import Iterator
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -12,6 +14,7 @@ from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_
 from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
+from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
@@ -60,11 +63,11 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         with patch.object(client, "get_jwt", return_value="jwt_token_1"):
             yield
 
-    def trigger(self, event, rule_object):
+    def trigger(self, event: GroupEvent, rule_object: Rule) -> Any:
         action = rule_object.data.get("actions", ())[0]
         context = create_notification_action_context(rule_object)
         action_inst = self.get_rule(data=action, context=context)
@@ -74,7 +77,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         rule_future = RuleFuture(context=context, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
-    def get_key(self, event: GroupEvent):
+    def get_key(self, event: GroupEvent) -> Any:
         return ExternalIssue.objects.get_linked_issues(event, self.integration).values_list(
             "key", flat=True
         )[0]

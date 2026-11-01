@@ -24,10 +24,10 @@ class GitHubIntegrationPostInstallTest(IntegrationTestCase):
     @patch("sentry.integrations.github.tasks.link_all_repos.link_all_repos.apply_async")
     def test_post_install_migrates_existing_repos(
         self,
-        mock_link_repos,
-        mock_migrate_repo,
-        mock_get_repositories,
-    ):
+        mock_link_repos: MagicMock,
+        mock_migrate_repo: MagicMock,
+        mock_get_repositories: MagicMock,
+    ) -> None:
         mock_repo1 = MagicMock()
         mock_repo1.id = 1
         mock_repo2 = MagicMock()

@@ -1,3 +1,5 @@
+from typing import Any
+
 import responses
 
 from fixtures.integrations.stub_service import StubService
@@ -5,6 +7,7 @@ from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
+from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import (
@@ -56,7 +59,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         self.jira_rule.data["key"] = "APP-123"
 
-    def create_issue_base(self, event):
+    def create_issue_base(self, event: Event) -> dict[str, Any]:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",

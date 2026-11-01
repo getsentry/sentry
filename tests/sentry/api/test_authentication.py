@@ -554,7 +554,7 @@ class TestOrgScopedAppTokenAuthentication(TestCase):
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_registered_relay(internal) -> None:
+def test_registered_relay(internal: bool) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 
@@ -587,7 +587,7 @@ def test_registered_relay(internal) -> None:
 
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
-def test_statically_configured_relay(internal) -> None:
+def test_statically_configured_relay(internal: bool) -> None:
     sk, pk = generate_key_pair()
     relay_id = str(uuid.uuid4())
 

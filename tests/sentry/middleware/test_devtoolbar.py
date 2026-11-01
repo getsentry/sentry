@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 from django.http import HttpResponse
@@ -18,7 +18,7 @@ class DevToolbarAnalyticsMiddlewareUnitTest(TestCase):
     analytics_event_name = DevToolbarApiRequestEvent.type
 
     @cached_property
-    def factory(self):
+    def factory(self) -> RequestFactory:
         return RequestFactory()
 
     def setUp(self) -> None:
@@ -173,11 +173,11 @@ class DevToolbarAnalyticsMiddlewareIntegrationTest(APITestCase, SnubaTestCase):
         expected_view_name: str,
         expected_route: str,
         mock_record: MagicMock,
-        expected_org_id=None,
-        expected_org_slug=None,
-        expected_proj_id=None,
-        expected_proj_slug=None,
-    ):
+        expected_org_id: Any = None,
+        expected_org_slug: Any = None,
+        expected_proj_id: Any = None,
+        expected_proj_slug: Any = None,
+    ) -> None:
         url = path + query_string
         response: HttpResponse = getattr(self.client, method.lower())(
             url,

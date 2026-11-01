@@ -34,7 +34,7 @@ class PerforceCodeMappingTest(IntegrationTestCase):
         self.org_integration = self.integration.organizationintegration_set.first()
         assert self.org_integration is not None
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
 
     def test_code_mapping_depot_root_to_slash(self) -> None:
@@ -386,7 +386,7 @@ class PerforceEndToEndCodeMappingTest(IntegrationTestCase):
         )
         self.check_file_patcher.start()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         self.check_file_patcher.stop()
         super().tearDown()
 

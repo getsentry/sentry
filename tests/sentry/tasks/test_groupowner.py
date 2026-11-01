@@ -75,7 +75,7 @@ class TestGroupOwners(TestCase):
             group_id=self.event.group.id, project_id=self.project.id, release_id=self.release.id
         )
 
-    def set_release_commits(self, author_email):
+    def set_release_commits(self, author_email: str) -> None:
         self.commitSha = "a" * 40
         self.release.set_commits(
             [

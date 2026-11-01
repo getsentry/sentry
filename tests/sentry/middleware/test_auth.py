@@ -2,6 +2,7 @@ from functools import cached_property
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
@@ -16,6 +17,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, cell_silo_test
+from sentry.users.models.user import User
 from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
 from sentry.utils import jwt
@@ -27,11 +29,11 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer
 class AuthenticationMiddlewareTestCase(TestCase):
     middleware = cached_property(AuthenticationMiddleware)
 
-    def assert_user_equals(self, request):
+    def assert_user_equals(self, request: HttpRequest) -> None:
         assert request.user == user_service.get_user(user_id=self.user.id)
 
     @cached_property
-    def request(self):
+    def request(self) -> Any:
         rv = RequestFactory().get("/")
         rv.session = self.session
         return rv
@@ -113,7 +115,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         assert request.user.is_anonymous
         assert request.auth is None
 
-    def _agent_token(self, user) -> str:
+    def _agent_token(self, user: User) -> str:
         token, _ = agent_token.encode_agent_token(
             user_id=user.id,
             organization_id=self.organization.id,

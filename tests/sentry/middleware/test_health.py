@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any
 from unittest import TestCase
 from unittest.mock import MagicMock, patch
 
@@ -13,7 +14,7 @@ class HealthCheckTest(TestCase):
     middleware = cached_property(HealthCheck)
 
     @cached_property
-    def factory(self):
+    def factory(self) -> Any:
         return RequestFactory()
 
     @patch("sentry.status_checks.check_all")
