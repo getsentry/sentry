@@ -99,7 +99,7 @@ class BaseDetectorTypeValidator(CamelSnakeSerializer[Any]):
         required=False,
         help_text="The IDs of the alerts to connect this monitor to. Use the 'Fetch Alerts' endpoint to find the IDs.",
     )
-    data_sources = DataSourcesField(
+    data_sources: serializers.ListField = DataSourcesField(
         required=False,
         help_text=DATA_SOURCES_HELP_TEXT,
     )
