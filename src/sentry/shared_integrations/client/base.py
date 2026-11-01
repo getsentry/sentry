@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from types import TracebackType
-from typing import Any, Literal, NotRequired, Self, TypedDict, TypeVar, overload
+from typing import Any, Literal, NotRequired, Self, TypedDict, TypeVar, cast, overload
 
 import sentry_sdk
 from django.core.cache import cache
@@ -26,6 +26,8 @@ from ..exceptions import (
     ApiTimeoutError,
 )
 from ..response.base import BaseApiResponse
+from ..response.mapping import MappingApiResponse
+from ..response.sequence import SequenceApiResponse
 
 
 class SessionSettings(TypedDict):
@@ -39,6 +41,26 @@ class SessionSettings(TypedDict):
 
 
 _TPaginatedResult = TypeVar("_TPaginatedResult")
+
+
+def _mapping_response(response: object) -> MappingApiResponse:
+    from ..response.mapping import MappingApiResponse
+
+    if isinstance(response, MappingApiResponse):
+        return response
+    if isinstance(response, Mapping):
+        return MappingApiResponse(response)
+    raise ApiError("Expected a JSON object response")
+
+
+def _sequence_response(response: object) -> SequenceApiResponse:
+    from ..response.sequence import SequenceApiResponse
+
+    if isinstance(response, SequenceApiResponse):
+        return response
+    if isinstance(response, (list, tuple)):
+        return SequenceApiResponse(response)
+    raise ApiError("Expected a JSON array response")
 
 
 class BaseApiClient:
@@ -66,7 +88,10 @@ class BaseApiClient:
 
     @property
     def name(self) -> str:
-        return getattr(self, f"{self.integration_type}_name")
+        name = getattr(self, f"{self.integration_type}_name")
+        if not isinstance(name, str):
+            raise AttributeError(f"{self.integration_type}_name is not a string")
+        return name
 
     def __init__(
         self,
@@ -252,7 +277,8 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
-        raw_response: Literal[True] = ...,
+        *,
+        raw_response: Literal[True],
         api_request_type: str | None = None,
     ) -> Response: ...
 
@@ -272,9 +298,10 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
-        raw_response: bool = ...,
+        *,
+        raw_response: Literal[False] = ...,
         api_request_type: str | None = None,
-    ) -> Any: ...
+    ) -> BaseApiResponse: ...
 
     def _request(
         self,
@@ -291,9 +318,10 @@ class BaseApiClient:
         ignore_webhook_errors: bool = False,
         prepared_request: PreparedRequest | None = None,
         stream: bool | None = None,
+        *,
         raw_response: bool = False,
         api_request_type: str | None = None,
-    ) -> Any | Response:
+    ) -> BaseApiResponse | Response:
         if allow_redirects is None:
             allow_redirects = self.allow_redirects
 
@@ -414,7 +442,7 @@ class BaseApiClient:
         self.track_response_data(resp.status_code, None, resp, extra=extra)
 
         if resp.status_code == 204:
-            return {}
+            return MappingApiResponse({}, resp.headers, resp.status_code)
 
         # BaseApiResponse.from_response returns MappingApiResponse (subclass of dict)
         # or SequenceApiResponse (subclass of list), or TextApiResponse (has str .text)
@@ -428,10 +456,11 @@ class BaseApiClient:
         return session.send(request, **session_settings)
 
     # subclasses should override ``request``
-    def request(self, *args: Any, **kwargs: Any) -> Any:
-        return self._request(*args, **kwargs)
+    def request(self, *args: Any, **kwargs: Any) -> BaseApiResponse:
+        # justification: forwarding *args defeats the _request overloads.
+        return cast("Callable[..., BaseApiResponse]", self._request)(*args, **kwargs)
 
-    def delete(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def delete(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
         return self.request("DELETE", path, *args, **kwargs)
 
     def get_cache_key(self, path: str, method: str, query: str = "", data: str | None = "") -> str:
@@ -479,26 +508,70 @@ class BaseApiClient:
             self.set_cache(key, result, cache_time)
         return result
 
-    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
-        return self._get_cached(path, "GET", *args, **kwargs)
+    @overload
+    def get_cached(
+        self, path: str, *args: Any, raw_response: Literal[True], **kwargs: Any
+    ) -> Response: ...
+    @overload
+    def get_cached(
+        self, path: str, *args: Any, raw_response: Literal[False] = ..., **kwargs: Any
+    ) -> BaseApiResponse: ...
+    def get_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse | Response:
+        # justification: forwarding *args defeats the _request overloads.
+        return cast("BaseApiResponse | Response", self._get_cached(path, "GET", *args, **kwargs))
 
-    def get(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    @overload
+    def get(
+        self, path: str, *args: Any, raw_response: Literal[True], **kwargs: Any
+    ) -> Response: ...
+    @overload
+    def get(
+        self, path: str, *args: Any, raw_response: Literal[False] = ..., **kwargs: Any
+    ) -> BaseApiResponse: ...
+    def get(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse | Response:
         return self.request("GET", path, *args, **kwargs)
 
-    def patch(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def get_mapping(self, path: str, *args: Any, **kwargs: Any) -> MappingApiResponse:
+        return _mapping_response(self.get(path, *args, **kwargs))
+
+    def post_mapping(self, path: str, *args: object, **kwargs: object) -> MappingApiResponse:
+        return _mapping_response(self.post(path, *args, **kwargs))
+
+    def put_mapping(self, path: str, *args: object, **kwargs: object) -> MappingApiResponse:
+        return _mapping_response(self.put(path, *args, **kwargs))
+
+    def patch_mapping(self, path: str, *args: object, **kwargs: object) -> MappingApiResponse:
+        return _mapping_response(self.patch(path, *args, **kwargs))
+
+    def delete_mapping(self, path: str, *args: object, **kwargs: object) -> MappingApiResponse:
+        return _mapping_response(self.delete(path, *args, **kwargs))
+
+    def get_sequence(self, path: str, *args: Any, **kwargs: Any) -> SequenceApiResponse:
+        return _sequence_response(self.get(path, *args, **kwargs))
+
+    def get_cached_mapping(self, path: str, *args: Any, **kwargs: Any) -> MappingApiResponse:
+        return _mapping_response(self.get_cached(path, *args, **kwargs))
+
+    def get_cached_sequence(self, path: str, *args: Any, **kwargs: Any) -> SequenceApiResponse:
+        return _sequence_response(self.get_cached(path, *args, **kwargs))
+
+    def patch(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
         return self.request("PATCH", path, *args, **kwargs)
 
-    def post(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def post(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
         return self.request("POST", path, *args, **kwargs)
 
-    def put(self, path: str, *args: Any, **kwargs: Any) -> Any:
+    def put(self, path: str, *args: object, **kwargs: object) -> BaseApiResponse:
         return self.request("PUT", path, *args, **kwargs)
 
     def head(self, path: str, *args: Any, **kwargs: Any) -> Any:
         return self.request("HEAD", path, *args, **kwargs)
 
-    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> Any:
-        return self._get_cached(path, "HEAD", *args, **kwargs)
+    def head_cached(self, path: str, *args: Any, **kwargs: Any) -> BaseApiResponse:
+        response = self._get_cached(path, "HEAD", *args, **kwargs)
+        if isinstance(response, BaseApiResponse):
+            return response
+        raise ApiError("Expected a HEAD response")
 
     def get_with_pagination(
         self,

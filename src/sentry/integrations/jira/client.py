@@ -116,7 +116,7 @@ class JiraCloudClient(ApiClient):
         return "query"
 
     def get_issue(self, issue_id: str) -> MappingApiResponse:
-        return self.get(self.ISSUE_URL % (issue_id,))
+        return self.get_mapping(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query: str) -> MappingApiResponse:
         issue_key = parse_jira_issue_key(query, self.base_url)
@@ -126,36 +126,39 @@ class JiraCloudClient(ApiClient):
         else:
             q = query.replace('"', '\\"')
             jql = f'text ~ "{q}"'
-        return self.get(self.SEARCH_URL, params={"jql": jql, "fields": "*all"})
+        return self.get_mapping(self.SEARCH_URL, params={"jql": jql, "fields": "*all"})
 
     def create_comment(self, issue_key: str, comment: str) -> MappingApiResponse:
-        return self.post(self.COMMENTS_URL % issue_key, data={"body": comment})
+        return self.post_mapping(self.COMMENTS_URL % issue_key, data={"body": comment})
 
     def update_comment(self, issue_key: str, comment_id: str, comment: str) -> MappingApiResponse:
-        return self.put(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
+        return self.put_mapping(self.COMMENT_URL % (issue_key, comment_id), data={"body": comment})
 
     def get_projects_paginated(
         self, params: Mapping[str, object] | None = None
     ) -> MappingApiResponse:
-        response = self.get(self.PROJECTS_PAGINATED_URL, params=params)
-        return response
+        return self.get_mapping(self.PROJECTS_PAGINATED_URL, params=params)
 
     def get_projects_list(self) -> SequenceApiResponse:
         """deprecated - please use paginated projects endpoint"""
-        return self.get_cached(self.PROJECT_URL)
+        return self.get_cached_sequence(self.PROJECT_URL)
 
     def get_project_key_for_id(self, project_id: str | int) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
         for project in projects:
-            if project["id"] == project_id:
-                return project["key"]
+            if not isinstance(project, Mapping):
+                continue
+            if project.get("id") == project_id:
+                key = project.get("key")
+                if isinstance(key, str):
+                    return key
         return ""
 
     def get_create_meta_for_project(self, project: str | int) -> MappingApiResponse | None:
         params = {"expand": "projects.issuetypes.fields", "projectIds": project}
-        metas = self.get_cached(self.META_URL, params=params)
+        metas = self.get_cached_mapping(self.META_URL, params=params)
         # We saw an empty JSON response come back from the API :(
         if not metas:
             logger.info(
@@ -165,11 +168,17 @@ class JiraCloudClient(ApiClient):
             return None
 
         # XXX(dcramer): document how this is possible, if it even is
-        if len(metas["projects"]) > 1:
+        projects = metas.get("projects")
+        if not isinstance(projects, list):
+            raise ApiError("Expected a projects list")
+        if len(projects) > 1:
             raise ApiError(f"More than one project found matching {project}.")
 
         try:
-            return metas["projects"][0]
+            first_project = projects[0]
+            if not isinstance(first_project, Mapping):
+                raise ApiError("Expected a project object")
+            return MappingApiResponse(first_project)
         except IndexError:
             logger.info(
                 "jira.get-create-meta.key-error",
@@ -178,59 +187,63 @@ class JiraCloudClient(ApiClient):
             return None
 
     def get_versions(self, project: str | int) -> SequenceApiResponse:
-        return self.get_cached(self.VERSIONS_URL % project)
+        return self.get_cached_sequence(self.VERSIONS_URL % project)
 
     def get_priorities(self) -> SequenceApiResponse:
-        return self.get_cached(self.PRIORITIES_URL)
+        return self.get_cached_sequence(self.PRIORITIES_URL)
 
     def search_users_for_project(self, project: str | int, username: str) -> SequenceApiResponse:
         # Jira Server wants a project key, while cloud is indifferent.
         project_key = self.get_project_key_for_id(project)
-        return self.get_cached(
+        return self.get_cached_sequence(
             self.USERS_URL, params={"project": project_key, self.user_query_param(): username}
         )
 
     def search_users_for_issue(self, issue_key: str, email: str) -> SequenceApiResponse:
-        return self.get_cached(
+        return self.get_cached_sequence(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
 
     def get_user(self, user_id: str) -> MappingApiResponse:
         user_id_get_param = self.user_id_get_param()
-        return self.get_cached(self.USER_URL, params={user_id_get_param: user_id})
+        return self.get_cached_mapping(self.USER_URL, params={user_id_get_param: user_id})
 
     def create_issue(self, raw_form_data: Mapping[str, object]) -> MappingApiResponse:
         data = {"fields": raw_form_data}
-        return self.post(self.CREATE_URL, data=data)
+        return self.post_mapping(self.CREATE_URL, data=data)
 
     def get_server_info(self) -> MappingApiResponse:
-        return self.get(self.SERVER_INFO_URL)
+        return self.get_mapping(self.SERVER_INFO_URL)
 
     def get_valid_statuses(self) -> SequenceApiResponse:
-        return self.get_cached(self.STATUS_URL)
+        return self.get_cached_sequence(self.STATUS_URL)
 
     def get_transitions(self, issue_key: str) -> SequenceApiResponse:
-        return self.get(self.TRANSITION_URL % issue_key)["transitions"]
+        response = self.get_mapping(self.TRANSITION_URL % issue_key)
+        transitions = response.get("transitions")
+        if not isinstance(transitions, list):
+            raise ApiError("Expected a transitions list")
+        return SequenceApiResponse(transitions)
 
     def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
-        return self.post(
+        return self.post_mapping(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
     def assign_issue(self, key: str, name_or_account_id: str) -> MappingApiResponse:
         user_id_field = self.user_id_field()
-        return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+        return self.put_mapping(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
     def set_issue_property(self, issue_key: str, badge_num: int) -> MappingApiResponse:
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
-        return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
+        return self.put_mapping(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
     def get_email(self, account_id: str | None) -> str | None:
-        user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
-        email: str | None = user.get("email")
-        return email
+        user = self.get_cached_mapping(self.EMAIL_URL, params={"accountId": account_id})
+        email = user.get("email")
+        return email if isinstance(email, str) else None
 
     def get_field_autocomplete(self, name: str, value: str) -> MappingApiResponse:
         if name.startswith(CUSTOMFIELD_PREFIX):
@@ -239,14 +252,16 @@ class JiraCloudClient(ApiClient):
             jql_name = f"cf[{cf_id}]"
         else:
             jql_name = name
-        return self.get_cached(
+        return self.get_cached_mapping(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
 
     def get_project_statuses(self, project_id: str, paginate: bool = False) -> dict[str, Any]:
         if not paginate:
             # TODO: Remove this after rolling out lazy status feature flag fully
-            return dict(self.get_cached(self.STATUS_SEARCH_URL, params={"projectId": project_id}))
+            return dict(
+                self.get_cached_mapping(self.STATUS_SEARCH_URL, params={"projectId": project_id})
+            )
 
         values = self.get_with_pagination(
             self.STATUS_SEARCH_URL,

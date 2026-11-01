@@ -107,7 +107,7 @@ class JiraServerClient(ApiClient):
         return "username"
 
     def get_issue(self, issue_id: str) -> MappingApiResponse:
-        return self.get(self.ISSUE_URL % (issue_id,))
+        return self.get_mapping(self.ISSUE_URL % (issue_id,))
 
     def search_issues(self, query: str) -> dict[str, object]:
         issue_key = parse_jira_issue_key(query, self.base_url)
@@ -144,26 +144,30 @@ class JiraServerClient(ApiClient):
 
     def get_projects_list(self, cached: bool = True) -> SequenceApiResponse:
         if not cached:
-            return self.get(self.PROJECT_URL)
-        return self.get_cached(self.PROJECT_URL)
+            return self.get_sequence(self.PROJECT_URL)
+        return self.get_cached_sequence(self.PROJECT_URL)
 
     def get_issue_types(self, project_id: str | int) -> SequenceApiResponse:
         # Get a list of issue types for the given project
-        return self.get_cached(self.ISSUE_TYPES_URL % (project_id))
+        return self.get_cached_sequence(self.ISSUE_TYPES_URL % (project_id))
 
     def get_issue_fields(
         self, project_id: str | int, issue_type_id: str | int
     ) -> MappingApiResponse:
         # Get a list of fields for the issue type and project
-        return self.get_cached(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
+        return self.get_cached_mapping(self.ISSUE_FIELDS_URL % (project_id, issue_type_id))
 
     def get_project_key_for_id(self, project_id: str) -> str:
         if not project_id:
             return ""
         projects = self.get_projects_list()
         for project in projects:
-            if project["id"] == project_id:
-                return project["key"]
+            if not isinstance(project, Mapping):
+                continue
+            if project.get("id") == project_id:
+                key = project.get("key")
+                if isinstance(key, str):
+                    return key
         return ""
 
     def get_versions(self, project: str) -> list[dict[str, object]]:
@@ -185,7 +189,7 @@ class JiraServerClient(ApiClient):
         https://docs.atlassian.com/software/jira/docs/api/REST/9.11.0/#api/2/project/{projectKeyOrId}/priorityscheme-getAssignedPriorityScheme
 
         """
-        return self.get_cached(self.PRIORITIES_URL)
+        return self.get_cached_sequence(self.PRIORITIES_URL)
 
     def search_users_for_project(self, project: str, username: str) -> list[dict[str, object]]:
         # Jira Server wants a project key, while cloud is indifferent.
@@ -198,7 +202,7 @@ class JiraServerClient(ApiClient):
         )
 
     def search_users_for_issue(self, issue_key: str, email: str) -> SequenceApiResponse:
-        return self.get_cached(
+        return self.get_cached_sequence(
             self.USERS_URL, params={"issueKey": issue_key, self.user_query_param(): email}
         )
 
@@ -211,31 +215,35 @@ class JiraServerClient(ApiClient):
 
     def create_issue(self, raw_form_data: Mapping[str, object]) -> MappingApiResponse:
         data = {"fields": raw_form_data}
-        return self.post(self.CREATE_URL, data=data)
+        return self.post_mapping(self.CREATE_URL, data=data)
 
     def get_server_info(self) -> MappingApiResponse:
-        return self.get(self.SERVER_INFO_URL)
+        return self.get_mapping(self.SERVER_INFO_URL)
 
     def get_valid_statuses(self) -> SequenceApiResponse:
-        return self.get_cached(self.STATUS_URL)
+        return self.get_cached_sequence(self.STATUS_URL)
 
     def get_transitions(self, issue_key: str) -> SequenceApiResponse:
-        return self.get(self.TRANSITION_URL % issue_key)["transitions"]
+        response = self.get_mapping(self.TRANSITION_URL % issue_key)
+        transitions = response.get("transitions")
+        if not isinstance(transitions, list):
+            raise ApiError("Expected a transitions list")
+        return SequenceApiResponse(transitions)
 
     def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
-        return self.post(
+        return self.post_mapping(
             self.TRANSITION_URL % issue_key, data={"transition": {"id": transition_id}}
         )
 
     def assign_issue(self, key: str, name_or_account_id: str) -> MappingApiResponse:
         user_id_field = self.user_id_field()
-        return self.put(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
+        return self.put_mapping(self.ASSIGN_URL % key, data={user_id_field: name_or_account_id})
 
     def set_issue_property(self, issue_key: str, badge_num: int) -> MappingApiResponse:
         module_key = "sentry-issues-glance"
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
-        return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
+        return self.put_mapping(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
 
     def get_field_autocomplete(self, name: str, value: str) -> MappingApiResponse:
         if name.startswith(CUSTOMFIELD_PREFIX):
@@ -244,7 +252,7 @@ class JiraServerClient(ApiClient):
             jql_name = f"cf[{cf_id}]"
         else:
             jql_name = name
-        return self.get_cached(
+        return self.get_cached_mapping(
             self.AUTOCOMPLETE_URL, params={"fieldName": jql_name, "fieldValue": value}
         )
 
@@ -343,7 +351,7 @@ class JiraServerSetupClient(ApiClient):
             webhook_url = self.WEBHOOK_URL
 
             # Query the server version to determine which webhook endpoint to use
-            server_info = self.get(self.SERVER_INFO_URL, auth=auth)
+            server_info = self.get_mapping(self.SERVER_INFO_URL, auth=auth)
             server_version = server_info.get("version")
             server_major_version = server_version.split(".")[0] if server_version else None
             lifecycle.add_extra("server_major_version", server_major_version)
@@ -370,4 +378,5 @@ class JiraServerSetupClient(ApiClient):
                 signature_type="auth_header",
                 decoding=None,
             )
-        return self._request(*args, **kwargs)
+        # justification: forwarding *args defeats the typed _request overloads.
+        return cast("BaseApiResponse", self._request(*args, **kwargs))

@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import Any, cast
 
-from requests import Response
-
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
@@ -81,11 +79,13 @@ def get_team(
     if not org_integration:
         return None
     teams = org_integration.config.get("team_table")
-    if not teams:
+    if not isinstance(teams, list):
         return None
     for team in teams:
-        if team["id"] == team_id:
-            return team
+        if not isinstance(team, dict):
+            continue
+        if team.get("id") == team_id:
+            return {str(key): str(value) for key, value in team.items()}
     return None
 
 
@@ -133,8 +133,7 @@ def send_incident_alert_notification(
         logger.info(
             "rule.success.opsgenie_incident_alert",
             extra={
-                # justification: a sent alert returns the HTTP response.
-                "status_code": cast(Response, resp).status_code,
+                "status_code": resp.status_code,
                 "organization_id": organization.id,
                 "data": attachment,
                 "status": metric_issue_context.new_status.value,

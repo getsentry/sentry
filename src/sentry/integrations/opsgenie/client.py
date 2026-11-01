@@ -4,8 +4,6 @@ import logging
 from collections.abc import Mapping, Sequence
 from typing import Literal, NotRequired, TypedDict
 
-from requests import Response
-
 from sentry.integrations.client import ApiClient
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.on_call.metrics import OnCallInteractionType
@@ -18,6 +16,7 @@ from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.response.base import BaseApiResponse
 
 OPSGENIE_API_VERSION = "v2"
 # Defaults to P3 if null, but we can be explicit - https://docs.opsgenie.com/docs/alert-api
@@ -161,7 +160,7 @@ class OpsgenieClient(ApiClient):
             }
         return payload
 
-    def send_notification(self, data: Mapping[str, object]) -> Response:
+    def send_notification(self, data: Mapping[str, object]) -> BaseApiResponse:
         headers = self._get_auth_headers()
         with record_event(OnCallInteractionType.CREATE).capture() as lifecycle:
             try:
@@ -171,7 +170,7 @@ class OpsgenieClient(ApiClient):
                 raise
 
     # TODO(iamrajjoshi): We need to delete this method during notification platform
-    def send_metric_alert_notification(self, data: Mapping[str, object]) -> Response | None:
+    def send_metric_alert_notification(self, data: Mapping[str, object]) -> BaseApiResponse:
         headers = self._get_auth_headers()
 
         # If closing an alert (when Sentry alert was resolved)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -732,11 +732,11 @@ class GitHubIntegrationTest(IntegrationTestCase):
             if status != 200
             else {
                 "resources": {
-                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123},
+                    "core": {"limit": limit, "remaining": remaining, "used": 1, "reset": 123},
                     "graphql": {
                         "limit": limit,
                         "remaining": remaining,
-                        "used": "foo",
+                        "used": 1,
                         "reset": 123,
                     },
                 }
@@ -802,7 +802,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         self.set_rate_limit()
         expected_trees = self._expected_trees()
         repos_key = f"githubtrees:repositories:{self.organization.id}"
-        repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
+        repo_key: Callable[[str], str] = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
         assert cache.get(repos_key) is None
         assert cache.get(repo_key("foo")) is None
@@ -2001,7 +2001,9 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
 
     def _get_pipeline_signature(self, init_resp: Any) -> str:
         """Extract the pipeline signature (OAuth state) from an initialize response."""
-        return init_resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = init_resp.data["data"]["oauthUrl"]
+        assert isinstance(oauth_url, str)
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _stub_user_installations(self, installations: list[dict[str, Any]] | None = None) -> None:
         """Stub the GitHub /user/installations endpoint."""

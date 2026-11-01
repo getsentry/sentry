@@ -100,4 +100,5 @@ class BaseEventTest(APITestCase):
             assert isinstance(event_payload, dict)
             event_payload.update(event_data)
 
-        return self.client.post("/extensions/slack/event/", payload)
+        response: Response = self.client.post("/extensions/slack/event/", payload)
+        return response

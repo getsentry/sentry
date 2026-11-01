@@ -19,6 +19,7 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient, infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.response.base import BaseApiResponse
 from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 
@@ -65,8 +66,12 @@ class MsTeamsClientABC(ApiClient, ABC):
     MEMBER_URL = "/v3/conversations/%s/pagedmembers"
 
     def get_channel_list(self, team_id: str) -> list[_TeamChannel]:
-        resp = self.get(self.CHANNEL_URL % team_id)
-        return resp.get("conversations")
+        resp = self.get_mapping(self.CHANNEL_URL % team_id)
+        conversations = resp.get("conversations")
+        if not isinstance(conversations, list):
+            raise IntegrationError("Expected a conversations list")
+        # justification: each conversation entry carries the _TeamChannel string fields.
+        return cast("list[_TeamChannel]", conversations)
 
     def get_member_list(
         self, team_id: str, continuation_token: str | None = None
@@ -75,11 +80,12 @@ class MsTeamsClientABC(ApiClient, ABC):
         params: dict[str, int | str] = {"pageSize": 500}
         if continuation_token:
             params["continuationToken"] = continuation_token
-        return self.get(url, params=params)
+        # justification: the paged members endpoint returns the declared shape.
+        return cast("_PagedMembersResponse", self.get_mapping(url, params=params))
 
     def get_user_conversation_id(self, user_id: str, tenant_id: str) -> str:
         data = {"members": [{"id": user_id}], "channelData": {"tenant": {"id": tenant_id}}}
-        resp: dict[str, object] = self.post(self.CONVERSATION_URL, data=data)
+        resp = self.post_mapping(self.CONVERSATION_URL, data=data)
         # justification: the conversations response contract includes an id string.
         return cast(str, resp["id"])
 
@@ -130,24 +136,22 @@ class MsTeamsPreInstallClient(MsTeamsClientABC):
         path: str,
         data: Mapping[str, object] | None = None,
         params: Mapping[str, str | int] | None = None,
-    ) -> object:
+    ) -> BaseApiResponse:
         headers = {"Authorization": f"Bearer {self.access_token}"}
-        response: object = self._request(method, path, headers=headers, data=data, params=params)
-        return response
+        return self._request(method, path, headers=headers, data=data, params=params)
 
 
 # MsTeamsClient is used with an existing integration object and handles token refreshing
 class MsTeamsClient(MsTeamsClientABC, IntegrationProxyClient):
     integration_name = IntegrationProviderSlug.MSTEAMS.value
 
-    def request(self, *args: object, **kwargs: object) -> object:
+    def request(self, *args: object, **kwargs: object) -> BaseApiResponse:
         try:
             return super().request(*args, **kwargs)
         except ApiError as error:
             if kwargs.get("raw_response"):
                 raise
             translate_msteams_api_error(error)
-            return None
 
     def __init__(self, integration: Integration | RpcIntegration) -> None:
         self.integration = integration
@@ -218,7 +222,11 @@ class OAuthMsTeamsClient(ApiClient):
             "grant_type": "client_credentials",
             "scope": "https://api.botframework.com/.default",
         }
-        return self.post(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False)
+        # justification: the token endpoint returns the declared response shape.
+        return cast(
+            "_TokenResponse",
+            self.post_mapping(self.TOKEN_URL, data=urlencode(data), headers=headers, json=False),
+        )
 
 
 class TokenData(TypedDict):
@@ -267,4 +275,5 @@ class MsTeamsJwtClient(ApiClient):
     OPEN_ID_CONFIG_URL = "https://login.botframework.com/v1/.well-known/openidconfiguration"
 
     def get_open_id_config(self) -> _OpenIDConfig:
-        return self.get_cached(self.OPEN_ID_CONFIG_URL)
+        # justification: the OpenID configuration endpoint returns the declared shape.
+        return cast("_OpenIDConfig", self.get_cached_mapping(self.OPEN_ID_CONFIG_URL))

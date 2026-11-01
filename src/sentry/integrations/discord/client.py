@@ -76,8 +76,13 @@ class DiscordClient(ApiClient):
         return bool(response)
 
     def get_guild_name(self, guild_id: str) -> str:
-        response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
-        return response["name"]
+        response = self.get_mapping(
+            GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header()
+        )
+        name = response.get("name")
+        if not isinstance(name, str):
+            raise ApiError("Expected a guild name")
+        return name
 
     def get_access_token(self, code: str, url: str) -> str:
         data = {
@@ -91,16 +96,22 @@ class DiscordClient(ApiClient):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
-        return response["access_token"]
+        response = self.post_mapping(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
+        access_token = response.get("access_token")
+        if not isinstance(access_token, str):
+            raise ApiError("Expected an access token")
+        return access_token
 
     def get_user_id(self, access_token: str) -> str:
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = self.get(
+        response = self.get_mapping(
             USER_URL,
             headers=headers,
         )
-        return response["id"]
+        user_id = response.get("id")
+        if not isinstance(user_id, str):
+            raise ApiError("Expected a user id")
+        return user_id
 
     def check_user_bot_installation_permission(self, access_token: str, guild_id: str) -> bool:
         headers = {"Authorization": f"Bearer {access_token}"}

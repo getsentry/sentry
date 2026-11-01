@@ -114,7 +114,8 @@ class BaseEventTest(APITestCase):
 
         payload = {"payload": orjson.dumps(payload).decode()}
 
-        return self.client.post("/extensions/slack/action/", data=payload)
+        response: Response = self.client.post("/extensions/slack/action/", data=payload)
+        return response
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -281,4 +282,5 @@ class BaseEventTest(APITestCase):
             payload.update(data)
 
         payload = {"payload": orjson.dumps(payload).decode()}
-        return self.client.post("/extensions/slack/action/", data=payload)
+        response: Response = self.client.post("/extensions/slack/action/", data=payload)
+        return response

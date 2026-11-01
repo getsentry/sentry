@@ -1,6 +1,6 @@
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 from urllib.parse import parse_qsl
 
 from oauthlib.oauth1 import SIGNATURE_RSA
@@ -23,6 +23,8 @@ logger = logging.getLogger("sentry.integrations.bitbucket_server")
 
 class _ValuesResponse(TypedDict):
     values: list[Mapping[str, object]]
+    isLastPage: NotRequired[bool]
+    nextPageStart: NotRequired[int]
 
 
 class BitbucketServerWebhookFields(TypedDict):
@@ -171,38 +173,44 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         return prepared_request
 
     def get_repos(self) -> MappingApiResponse:
-        response: MappingApiResponse = self.get(
+        return self.get_mapping(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN"},
         )
-        return response
 
     def search_repositories(self, query_string: str) -> MappingApiResponse:
-        response: MappingApiResponse = self.get(
+        return self.get_mapping(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
         )
-        return response
 
     def get_repo(self, project: str, repo: str) -> dict[str, Any]:
-        return self.get(
+        return self.get_mapping(
             BitbucketServerAPIPath.repository.format(project=project, repo=repo),
         )
 
     def create_hook(
         self, project: str, repo: str, data: BitbucketServerWebhookData
     ) -> BitbucketServerWebhookResponse:
-        return self.post(
-            BitbucketServerAPIPath.repository_hooks.format(project=project, repo=repo),
-            data=data,
+        # justification: the webhook endpoint returns the declared response shape.
+        return cast(
+            "BitbucketServerWebhookResponse",
+            self.post_mapping(
+                BitbucketServerAPIPath.repository_hooks.format(project=project, repo=repo),
+                data=data,
+            ),
         )
 
     def get_hook(
         self, project: str, repo: str, webhook_id: int | str
     ) -> BitbucketServerWebhookResponse:
-        return self.get(
-            BitbucketServerAPIPath.repository_hook.format(
-                project=project, repo=repo, id=webhook_id
+        # justification: the webhook endpoint returns the declared response shape.
+        return cast(
+            "BitbucketServerWebhookResponse",
+            self.get_mapping(
+                BitbucketServerAPIPath.repository_hook.format(
+                    project=project, repo=repo, id=webhook_id
+                ),
             ),
         )
 
@@ -213,11 +221,15 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         webhook_id: int | str,
         data: BitbucketServerWebhookData,
     ) -> BitbucketServerWebhookResponse:
-        return self.put(
-            BitbucketServerAPIPath.repository_hook.format(
-                project=project, repo=repo, id=webhook_id
+        # justification: the webhook endpoint returns the declared response shape.
+        return cast(
+            "BitbucketServerWebhookResponse",
+            self.put_mapping(
+                BitbucketServerAPIPath.repository_hook.format(
+                    project=project, repo=repo, id=webhook_id
+                ),
+                data=data,
             ),
-            data=data,
         )
 
     def delete_hook(self, project: str, repo: str, webhook_id: int | str) -> None:
@@ -248,9 +260,13 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     def get_last_commits(
         self, project: str, repo: str, limit: int = 10
     ) -> Sequence[Mapping[str, object]]:
-        data: _ValuesResponse = self.get(
-            BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
-            params={"merges": "exclude", "limit": limit},
+        # justification: the commits endpoint returns the declared values shape.
+        data = cast(
+            "_ValuesResponse",
+            self.get_mapping(
+                BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
+                params={"merges": "exclude", "limit": limit},
+            ),
         )
         return data["values"]
 
@@ -294,7 +310,8 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
                 start,
                 extra={"uri": uri, "params": new_params},
             )
-            data = self.get(uri, params=new_params)
+            # justification: the values endpoint returns the declared values shape.
+            data = cast("_ValuesResponse", self.get_mapping(uri, params=new_params))
             logger.debug(
                 "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
             )

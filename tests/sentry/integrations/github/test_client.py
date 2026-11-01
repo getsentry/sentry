@@ -320,6 +320,7 @@ class GitHubApiClientTest(TestCase):
     @responses.activate
     def test_get_last_commits_tracks_get_commits_endpoint(self, get_jwt: MagicMock) -> None:
         with mock.patch.object(self.github_client, "get_cached") as mock_get_cached:
+            mock_get_cached.return_value = []
             self.github_client.get_last_commits(self.repo.name, "abc")
 
         mock_get_cached.assert_called_once_with(
@@ -347,26 +348,26 @@ class GitHubApiClientTest(TestCase):
         responses.add(
             method=responses.GET,
             url=url,
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=2>; rel="next", <{url}&page=4>; rel="last"'},
         )
         # For simplicity, we're skipping the `first` and `prev` links from the following responses
         responses.add(
             method=responses.GET,
             url=f"{url}&page=2",
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=3>; rel="next", <{url}&page=4>; rel="last"'},
         )
         responses.add(
             method=responses.GET,
             url=f"{url}&page=3",
-            json={"text": 200},
+            json=[],
             headers={"link": f'<{url}&page=4>; rel="next", <{url}&page=4>; rel="last"'},
         )
         responses.add(
             method=responses.GET,
             url=f"{url}&page=4",
-            json={"text": 200},
+            json=[],
             # To help understanding, the last page only contains the `first` and `prev` links
             # The code only cares about the `next` value which is not included here
             headers={"link": f'<{url}&page=1>; rel="first", <{url}&page=3>; rel="prev"'},
@@ -381,7 +382,7 @@ class GitHubApiClientTest(TestCase):
         url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.github_client.page_size}"
 
         # No link in the headers because there are no more pages
-        responses.add(method=responses.GET, url=url, json={}, headers={})
+        responses.add(method=responses.GET, url=url, json=[], headers={})
         self.github_client._get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 1
         assert responses.calls[0].response.status_code == 200

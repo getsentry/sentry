@@ -64,6 +64,7 @@ from sentry.shared_integrations.exceptions import (
     UnknownHostError,
 )
 from sentry.shared_integrations.response.base import BaseApiResponse
+from sentry.shared_integrations.response.validation import dict_items
 from sentry.silo.base import control_silo_function
 from sentry.silo.util import PROXY_PATH, trim_leading_slashes
 from sentry.utils import metrics
@@ -135,6 +136,15 @@ class CachedRepo(TypedDict):
     full_name: str
     default_branch: str | None
     archived: bool | None
+
+
+def _int_values(mapping: Mapping[str, Any], *, context: str) -> dict[str, int]:
+    values: dict[str, int] = {}
+    for key, value in mapping.items():
+        if not isinstance(value, int):
+            raise ApiError(f"Expected an integer {context} for {key!r}")
+        values[key] = value
+    return values
 
 
 class GithubRateLimitInfo:
@@ -269,7 +279,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: JWT
         Docs: https://docs.github.com/en/rest/apps/apps?apiVersion=2022-11-28#get-an-installation-for-the-authenticated-app
         """
-        return self.get(
+        return self.get_mapping(
             f"/app/installations/{installation_id}",
             api_request_type=GitHubApiRequestType.GET_INSTALLATION_INFO,
         )
@@ -279,7 +289,7 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/users/users?apiVersion=2022-11-28#get-the-authenticated-user
         """
-        return self.get("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
+        return self.get_mapping("/user", api_request_type=GitHubApiRequestType.GET_USER_INFO)
 
     def get_user_info_installations(self) -> GithubUserInstallations:
         """
@@ -372,7 +382,7 @@ class GithubProxyClient(IntegrationProxyClient):
                 "integration_id": self.integration.id,
             },
         )
-        data = self.post(
+        data = self.post_mapping(
             f"/app/installations/{self._get_installation_id()}/access_tokens",
             api_request_type=GitHubApiRequestType.REFRESH_ACCESS_TOKEN,
         )
@@ -547,7 +557,7 @@ class GitHubBaseClient(
         see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
-        return self.get_cached(
+        return self.get_cached_sequence(
             f"/repos/{repo}/commits",
             params={"sha": end_sha, "per_page": per_page},
             api_request_type=GitHubApiRequestType.GET_COMMITS,
@@ -568,13 +578,17 @@ class GitHubBaseClient(
         """
         https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
         """
-        return self.get(f"/repos/{repo}/hooks", api_request_type=GitHubApiRequestType.REPO_HOOKS)
+        return self.get_sequence(
+            f"/repos/{repo}/hooks", api_request_type=GitHubApiRequestType.REPO_HOOKS
+        )
 
     def get_commits(self, repo: str) -> Sequence[Any]:
         """
         https://docs.github.com/en/rest/commits/commits#list-commits
         """
-        return self.get(f"/repos/{repo}/commits", api_request_type=GitHubApiRequestType.GET_COMMITS)
+        return self.get_sequence(
+            f"/repos/{repo}/commits", api_request_type=GitHubApiRequestType.GET_COMMITS
+        )
 
     def get_commit(self, repo: str, sha: str) -> Any:
         """
@@ -610,15 +624,16 @@ class GitHubBaseClient(
             )
             return None
 
-        return pull_request.get("merge_commit_sha")
+        merge_commit_sha = pull_request.get("merge_commit_sha")
+        return merge_commit_sha if isinstance(merge_commit_sha, str) else None
 
-    def get_pull_request_from_commit(self, repo: str, sha: str) -> Any:
+    def get_pull_request_from_commit(self, repo: str, sha: str) -> Sequence[Mapping[str, Any]]:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit
 
         Returns the merged pull request that introduced the commit to the repository. If the commit is not present in the default branch, will only return open pull requests associated with the commit.
         """
-        return self.get(
+        return self.get_sequence(
             f"/repos/{repo}/commits/{sha}/pulls",
             api_request_type=GitHubApiRequestType.GET_PULL_REQUEST_FROM_COMMIT,
         )
@@ -678,9 +693,12 @@ class GitHubBaseClient(
         :returns: {"Python": 50000, "JavaScript": 30000, ...}
                   Keys are GitHub Linguist names, values are bytes of code.
         """
-        return self.get(
-            f"/repos/{repo}/languages",
-            api_request_type=GitHubApiRequestType.GET_LANGUAGES,
+        return _int_values(
+            self.get_mapping(
+                f"/repos/{repo}/languages",
+                api_request_type=GitHubApiRequestType.GET_LANGUAGES,
+            ),
+            context="language byte count",
         )
 
     # https://docs.github.com/en/rest/rate-limit?apiVersion=2022-11-28
@@ -694,11 +712,16 @@ class GitHubBaseClient(
             integration_id=self.integration.id,
             organization_id=self.organization_id,
         ).capture():
-            return GithubRateLimitInfo(
-                self.get("/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT)[
-                    "resources"
-                ][specific_resource]
+            response = self.get_mapping(
+                "/rate_limit", api_request_type=GitHubApiRequestType.GET_RATE_LIMIT
             )
+            resources = response["resources"]
+            if not isinstance(resources, Mapping):
+                raise ApiError("Expected GitHub rate limit resources")
+            resource = resources[specific_resource]
+            if not isinstance(resource, Mapping):
+                raise ApiError(f"Expected GitHub rate limit resource {specific_resource!r}")
+            return GithubRateLimitInfo(_int_values(resource, context="rate limit"))
 
     # This method is used by RepoTreesIntegration
     def get_remaining_api_requests(self) -> int:
@@ -716,7 +739,7 @@ class GitHubBaseClient(
         ).capture() as lifecycle:
             try:
                 # We do not cache this call since it is a rather large object
-                contents: dict[str, Any] = self.get(
+                contents = self.get_mapping(
                     f"/repos/{repo_full_name}/git/trees/{tree_sha}",
                     # Will cause all objects or subtrees referenced by the tree specified in :tree_sha
                     params={"recursive": 1},
@@ -736,7 +759,7 @@ class GitHubBaseClient(
                     "The tree for %s has been truncated. Use different a approach for retrieving contents of tree.",
                     repo_full_name,
                 )
-            return contents["tree"]
+            return dict_items(contents["tree"], context="tree entry")
 
     # Used by RepoTreesIntegration
     def should_count_api_error(self, error: ApiError, extra: dict[str, str]) -> bool:
@@ -830,8 +853,9 @@ class GitHubBaseClient(
         """
         cache_key = f"github:repos:{self.integration.id}"
         cached = cache.get(cache_key)
-        if cached is not None:
-            return cached
+        if isinstance(cached, list) and all(isinstance(repo, dict) for repo in cached):
+            # justification: the cache round-trips the CachedRepo dicts written below.
+            return cast("list[CachedRepo]", cached)
 
         all_repos = self.get_repos(parallel=parallel)
         repos: list[CachedRepo] = [
@@ -854,7 +878,7 @@ class GitHubBaseClient(
 
         NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
-        return self.get(
+        return self.get_mapping(
             "/search/repositories",
             params={"q": query},
             api_request_type=GitHubApiRequestType.SEARCH_REPOSITORIES,
@@ -885,7 +909,7 @@ class GitHubBaseClient(
         api_request_type: GitHubApiRequestType,
     ) -> list[Any]:
         owner, repo_name = repo.split("/", 1)
-        response = self.post(
+        response = self.post_mapping(
             path="/graphql",
             data={
                 "query": graphql_query,
@@ -902,7 +926,7 @@ class GitHubBaseClient(
             raise ApiRateLimitedError("GitHub rate limit exceeded")
 
         nodes = get_path(response, "data", "repository", "results", "nodes")
-        if nodes is None:
+        if not isinstance(nodes, list):
             message = "\n".join(error.get("message", "") for error in errors).strip()
             raise ApiError(message or "Invalid GitHub GraphQL response")
 
@@ -943,8 +967,16 @@ class GitHubBaseClient(
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        def page_items(resp: Any) -> Any:
-            return resp[response_key] if response_key else resp
+        def page_items(response: object) -> Sequence[Any]:
+            if response_key:
+                if not isinstance(response, Mapping):
+                    raise ApiError("Expected a mapping response for paginated results")
+                items = response[response_key]
+            else:
+                items = response
+            if not isinstance(items, (list, tuple)):
+                raise ApiError("Expected a list response for paginated results")
+            return items
 
         with traces.start_span(
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
@@ -974,7 +1006,7 @@ class GitHubBaseClient(
                     # must forward it too -- it hardcodes only per_page and page, so
                     # params supplied any way other than via ``path`` would be
                     # dropped from pages 2..N.
-                    def fetch_page(page_number: int) -> Any:
+                    def fetch_page(page_number: int) -> BaseApiResponse:
                         return self.get(
                             path,
                             params={"per_page": self.page_size, "page": page_number},
@@ -1056,7 +1088,7 @@ class GitHubBaseClient(
 
         NOTE: All search APIs (except code search) share a rate limit of 30 requests/minute
         """
-        return self.get(
+        return self.get_mapping(
             "/search/issues",
             params={"q": query},
             api_request_type=GitHubApiRequestType.SEARCH_ISSUES,
@@ -1239,19 +1271,24 @@ class GitHubBaseClient(
         from base64 import b64decode
 
         headers = {"Content-Type": "application/raw; charset=utf-8"} if codeowners else {}
-        contents = self.get(
+        if codeowners:
+            raw_contents = self.get(
+                path=f"/repos/{repo.name}/contents/{path}",
+                params={"ref": ref},
+                raw_response=True,
+                headers=headers,
+                api_request_type=GitHubApiRequestType.GET_FILE,
+            )
+            if not raw_contents.ok:
+                raise ApiError.from_response(raw_contents)
+            return raw_contents.content.decode("utf-8")
+
+        contents = self.get_mapping(
             path=f"/repos/{repo.name}/contents/{path}",
             params={"ref": ref},
-            raw_response=True if codeowners else False,
             headers=headers,
             api_request_type=GitHubApiRequestType.GET_FILE,
         )
-
-        if codeowners:
-            if not contents.ok:
-                raise ApiError.from_response(contents)
-            return contents.content.decode("utf-8")
-
         return b64decode(contents["content"]).decode("utf-8")
 
     def get_blame_for_files(
@@ -1404,7 +1441,7 @@ class GitHubBaseClient(
         self, pull_requests: Sequence[PullRequestStatusRequest]
     ) -> dict[PullRequestStatusRequest, PullRequestStatusResult]:
         data = create_pull_request_status_query(pull_requests)
-        response = self.post(
+        response = self.post_mapping(
             path="/graphql",
             data=data,
             allow_text=False,

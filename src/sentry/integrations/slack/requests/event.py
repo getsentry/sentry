@@ -11,7 +11,11 @@ from sentry.identity.slack.provider import PREFERRED_ORGANIZATION_ID_KEY
 from sentry.integrations.messaging.metrics import SeerSlackHaltReason
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
+from sentry.integrations.slack.requests.base import (
+    SlackDMRequest,
+    SlackRequestError,
+    string_field,
+)
 from sentry.integrations.slack.unfurl.handlers import match_link
 from sentry.integrations.slack.unfurl.types import LinkType
 from sentry.integrations.slack.utils.constants import SlackScope
@@ -46,7 +50,8 @@ def has_dashboard_links(links: list[str]) -> bool:
 
 
 def is_event_challenge(data: Mapping[str, Any]) -> bool:
-    return data.get("type", "") == "url_verification"
+    event_type = data.get("type", "")
+    return isinstance(event_type, str) and event_type == "url_verification"
 
 
 class SeerResolutionResult(NamedTuple):
@@ -334,25 +339,29 @@ class SlackEventRequest(SlackDMRequest):
 
     @property
     def dm_data(self) -> Mapping[str, Any]:
-        return self.data.get("event", {})
+        event = self.data.get("event", {})
+        return event if isinstance(event, Mapping) else {}
 
     @property
     def channel_id(self) -> str:
         if self.is_assistant_thread_event:
-            return self.dm_data.get("assistant_thread", {}).get("channel_id", "")
-        return self.dm_data.get("channel", "")
+            thread = self.dm_data.get("assistant_thread", {})
+            return string_field(thread, "channel_id") if isinstance(thread, Mapping) else ""
+        return string_field(self.dm_data, "channel")
 
     @property
     def user_id(self) -> str:
         if self.is_assistant_thread_event:
-            return self.dm_data.get("assistant_thread", {}).get("user_id", "")
-        return self.dm_data.get("user", "")
+            thread = self.dm_data.get("assistant_thread", {})
+            return string_field(thread, "user_id") if isinstance(thread, Mapping) else ""
+        return string_field(self.dm_data, "user")
 
     @property
     def thread_ts(self) -> str:
         if self.is_assistant_thread_event:
-            return self.dm_data.get("assistant_thread", {}).get("thread_ts", "")
-        return self.dm_data.get("thread_ts", "")
+            thread = self.dm_data.get("assistant_thread", {})
+            return string_field(thread, "thread_ts") if isinstance(thread, Mapping) else ""
+        return string_field(self.dm_data, "thread_ts")
 
     @property
     def has_assistant_scope(self) -> bool:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import orjson
@@ -142,5 +143,8 @@ class SlackActionRequest(SlackRequest):
         actions = self.data.get("actions", [])
         if actions and isinstance(actions, list) and len(actions) > 0:
             (action,) = actions
-            return action.get("action_ts")
+            if isinstance(action, Mapping):
+                action_ts = action.get("action_ts")
+                if isinstance(action_ts, str):
+                    return action_ts
         return None
