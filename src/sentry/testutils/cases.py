@@ -205,6 +205,7 @@ if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.replays.lib.event_linking import EventLinkKafkaMessage
     from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
+    from sentry.users.services.user import RpcUser
 
 __all__ = (
     "TestCase",
@@ -298,11 +299,11 @@ class BaseTestCase(Fixtures):
 
     def make_request(
         self,
-        user: User | AnonymousUser | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         auth: Any = None,
         method: str = "get",
-        is_superuser: bool = False,
-        is_staff: bool = False,
+        is_superuser: bool | None = False,
+        is_staff: bool | None = False,
         path: str = "/",
         secure_scheme: bool = False,
         subdomain: str | None = None,
