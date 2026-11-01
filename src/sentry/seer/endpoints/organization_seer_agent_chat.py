@@ -37,7 +37,7 @@ from sentry.utils import json
 logger = logging.getLogger(__name__)
 
 
-_CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+_CODE_MODE_VALUES = frozenset({"off", "only"})
 
 _DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
@@ -48,30 +48,28 @@ class SeerAgentChatStateResponse(BaseModel):
 
 
 class CodeModeField(serializers.Field):
-    """Accepts 'off'|'on'|'only' strings, or booleans for backwards compat.
+    """Accepts 'off'|'only', plus the retired 'on' and booleans from stored frontend settings.
 
-    DRF's CharField rejects raw booleans before the field-level validator
-    runs, so we handle coercion in to_internal_value instead.
+    True and 'on' read as 'only'. DRF's CharField rejects raw booleans before the field-level
+    validator runs, so coercion happens in to_internal_value instead.
     """
 
     def to_internal_value(self, data: object) -> str | None:
         if data is None:
             return None
         if data is True:
-            return "on"
+            return "only"
         if data is False:
             return "off"
         if isinstance(data, str):
             lowered = data.lower()
-            if lowered in ("true",):
-                return "on"
+            if lowered in ("true", "on"):
+                return "only"
             if lowered in ("false",):
                 return "off"
             if lowered in _CODE_MODE_VALUES:
                 return lowered
-        raise serializers.ValidationError(
-            f"Invalid value '{data}'. Must be 'off', 'on', 'only', or a boolean."
-        )
+        raise serializers.ValidationError(f"Invalid value '{data}'. Must be 'off' or 'only'.")
 
     def to_representation(self, value: object) -> str | None:
         if value is None:
@@ -147,7 +145,7 @@ class SeerAgentChatSerializer(serializers.Serializer):
         required=False,
         default=None,
         allow_null=True,
-        help_text="Override code mode tools: 'off', 'on', 'only', or boolean for backwards compat.",
+        help_text="Override code mode tools: 'off' or 'only'.",
     )
     ui_tools = serializers.CharField(
         required=False,
@@ -367,11 +365,8 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             has_create_pr = features.has(
                 "organizations:ask-seer-create-pr", organization, actor=request.user
             )
-            enable_coding = organization.get_option("sentry:enable_seer_coding", False) and (
-                has_create_pr
-                or features.has(
-                    "organizations:seer-explorer-chat-coding", organization, actor=request.user
-                )
+            enable_coding = has_create_pr and organization.get_option(
+                "sentry:enable_seer_coding", False
             )
 
             has_code_mode_feature = features.has(
@@ -382,10 +377,10 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             elif override_code_mode_enable is not None:
                 enable_code_mode_tools = override_code_mode_enable
             else:
-                # "only" rather than "on": running Code Mode alongside the classic tools
-                # gives the agent two ways to do everything and it mixes them, so the
-                # surface being dogfooded is never the one that ships. The frontend
-                # override still selects either mode for comparison.
+                # Code Mode only, not alongside the classic tools: with both, the agent has
+                # two ways to do everything and mixes them, so the surface being dogfooded is
+                # never the one that ships. The frontend override can still turn it off for
+                # comparison.
                 enable_code_mode_tools = "only"
 
             client = SeerAgentClient(
@@ -397,6 +392,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 enable_coding=enable_coding,
                 enable_write_pull_request=has_create_pr,
                 enable_code_mode_tools=enable_code_mode_tools,
+                enable_investigation_tools=True,
                 reasoning_effort="medium",
             )
             if resolved is not None:

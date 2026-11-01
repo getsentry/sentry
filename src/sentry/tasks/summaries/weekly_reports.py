@@ -1000,8 +1000,6 @@ def render_template_context(
             "spans_pct_change": _pct_change(user_total_spans_count, prev_week_total_spans_count),
         }
 
-    show_past_issues = features.has("organizations:weekly-report-past-issues", ctx.organization)
-
     errors_discover_params: list[tuple[str, str | int]] = [
         ("field", "title"),
         ("field", "event.type"),
@@ -1027,8 +1025,7 @@ def render_template_context(
         "end": date_format(local_end),
         "trends": trends(),
         "top_issues": top_issues(),
-        "past_issues": past_issues() if show_past_issues else [],
-        "show_past_issues": show_past_issues,
+        "past_issues": past_issues(),
         "issue_summary": issue_summary(),
         "user_project_count": len(user_projects),
         "notification_uuid": notification_uuid,

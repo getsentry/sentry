@@ -1,8 +1,6 @@
 import {
   useCallback,
   useEffect,
-  useEffectEvent,
-  useLayoutEffect,
   useMemo,
   useRef,
   type FocusEvent,
@@ -10,8 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import {createPortal} from 'react-dom';
-import {usePopper} from 'react-popper';
 import styled from '@emotion/styled';
+import {autoUpdate, offset, useFloating} from '@floating-ui/react-dom';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
 import {type AriaListBoxOptions} from '@react-aria/listbox';
 import {ariaHideOutside} from '@react-aria/overlays';
@@ -25,13 +23,15 @@ import {
   ListBox,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
-import {matchesHotkey} from '@sentry/scraps/hotkey';
+import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Container} from '@sentry/scraps/layout';
+import {Overlay} from '@sentry/scraps/overlay';
+import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {useOverlay} from '@sentry/scraps/useOverlay';
 
 import {COMMAND_PALETTE_HOTKEYS} from 'sentry/components/commandPalette/constants';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {Overlay} from 'sentry/components/overlay';
 import {OpenAskSeerButton} from 'sentry/components/searchQueryBuilder/askSeer/openAskSeerButton';
 import {
   useSearchQueryBuilderAI,
@@ -51,7 +51,6 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {useOverlay} from 'sentry/utils/useOverlay';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -159,18 +158,11 @@ export type CustomComboboxMenu<T> = (
   props: CustomComboboxMenuProps<T>
 ) => React.ReactNode;
 
-const DESCRIPTION_POPPER_OPTIONS = {
-  placement: 'top-start' as const,
-  strategy: 'fixed' as const,
-  modifiers: [
-    {
-      name: 'offset',
-      options: {
-        offset: [-12, 8],
-      },
-    },
-  ],
-};
+const DESCRIPTION_MIDDLEWARE = [
+  offset({crossAxis: -12, mainAxis: 8}),
+  flipOverlay(),
+  shiftOverlay(),
+];
 
 const MENU_OFFSET: [number, number] = [-12, 12];
 const MENU_FLIP_OPTIONS = {
@@ -241,58 +233,6 @@ function useHiddenItems({
   };
 }
 
-// The menu size can change from things like loading states, long options,
-// or custom menus like a date picker. This hook ensures that the overlay
-// is updated in response to these changes.
-function useUpdateOverlayPositionOnContentChange({
-  contentRef,
-  updateOverlayPosition,
-  isOpen,
-}: {
-  contentRef: React.RefObject<HTMLDivElement | null>;
-  isOpen: boolean;
-  updateOverlayPosition: (() => void) | null;
-}) {
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const updatePosition = useEffectEvent(() => updateOverlayPosition?.());
-
-  useLayoutEffect(() => {
-    resizeObserverRef.current = new ResizeObserver(() => {
-      // Firefox can invoke ResizeObserver callbacks during rendering, when
-      // calling an Effect Event is not allowed.
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        updatePosition();
-      });
-    });
-
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      resizeObserverRef.current?.disconnect();
-      resizeObserverRef.current = null;
-    };
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!contentRef.current || !resizeObserverRef.current || !isOpen) {
-      return () => {};
-    }
-
-    resizeObserverRef.current?.observe(contentRef.current);
-
-    return () => {
-      resizeObserverRef.current?.disconnect();
-    };
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [contentRef, isOpen, updateOverlayPosition]);
-}
-
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
   askSeerButtonRef,
   customMenu,
@@ -358,7 +298,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
             <LoadingIndicator size={24} style={{margin: 0}} />
           </Flex>
         ) : (
-          <ListBoxPane>
+          <Container flex="1 1 auto" minHeight="0" overflowY="auto">
             <ListBox
               {...listBoxProps}
               ref={listBoxRef}
@@ -368,7 +308,7 @@ function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({
               overlayIsOpen={isOpen}
               size="sm"
             />
-          </ListBoxPane>
+          </Container>
         )}
         {isLoading && anyItemsShowing ? (
           <Flex justify="center" align="center" height="32px" width="100%">
@@ -435,7 +375,6 @@ export function SearchQueryBuilderCombobox<
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const descriptionRef = useRef<HTMLDivElement>(null);
   const askSeerButtonRef = useRef<HTMLButtonElement>(null);
   const preventOverflowOptions = useMemo(() => ({boundary: document.body}), []);
 
@@ -513,7 +452,11 @@ export function SearchQueryBuilderCombobox<
       onKeyDown: e => {
         // React Aria's selectable collection stops key events from bubbling out of
         // an open combobox. Let the global command palette shortcut through.
-        if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
+        if (
+          COMMAND_PALETTE_HOTKEYS.some(hotkey =>
+            matchesKeyboardEvent(e.nativeEvent, hotkey)
+          )
+        ) {
           e.continuePropagation();
           return;
         }
@@ -585,11 +528,7 @@ export function SearchQueryBuilderCombobox<
     onOpenChange?.(isOpen);
   }, [onOpenChange, isOpen]);
 
-  const {
-    overlayProps,
-    triggerProps,
-    update: updateOverlayPosition,
-  } = useOverlay({
+  const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
@@ -621,13 +560,19 @@ export function SearchQueryBuilderCombobox<
     flipOptions: MENU_FLIP_OPTIONS,
   });
 
-  const descriptionPopper = usePopper(
-    // oxlint-disable-next-line react/refs
-    inputRef.current,
-    // oxlint-disable-next-line react/refs
-    descriptionRef.current,
-    DESCRIPTION_POPPER_OPTIONS
-  );
+  const {
+    refs: {
+      floating: descriptionRef,
+      setFloating: setDescriptionElement,
+      setReference: setDescriptionReference,
+    },
+    floatingStyles: descriptionStyles,
+  } = useFloating<HTMLInputElement>({
+    placement: 'top-start',
+    strategy: 'fixed',
+    middleware: DESCRIPTION_MIDDLEWARE,
+    whileElementsMounted: autoUpdate,
+  });
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
@@ -642,12 +587,6 @@ export function SearchQueryBuilderCombobox<
     },
     [inputProps, menuPresentation, state, onClick]
   );
-
-  useUpdateOverlayPositionOnContentChange({
-    contentRef: popoverRef,
-    updateOverlayPosition,
-    isOpen,
-  });
 
   // useCombobox will hide outside elements with aria-hidden="true" when it is open [1].
   // Because we switch elements when a custom menu is displayed, we need to manually
@@ -668,9 +607,9 @@ export function SearchQueryBuilderCombobox<
 
     return () => {};
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [inputRef, popoverRef, isOpen, customMenu, keepVisibleRef]);
+  }, [inputRef, popoverRef, descriptionRef, isOpen, customMenu, keepVisibleRef]);
 
-  const autosizeInput = useAutosizeInput({value: inputValue});
+  const autosizeInput = useAutosizeInput({value: inputValue, placeholder});
 
   const InputComponent = renderInputValue ? HighlightedInput : UnstyledInput;
   const input = (
@@ -681,7 +620,8 @@ export function SearchQueryBuilderCombobox<
         ref,
         inputRef,
         autosizeInput,
-        triggerProps.ref as React.Ref<HTMLInputElement>
+        triggerProps.ref as React.Ref<HTMLInputElement>,
+        setDescriptionReference
       )}
       type="text"
       placeholder={placeholder}
@@ -735,9 +675,8 @@ export function SearchQueryBuilderCombobox<
       )}
       {description ? (
         <StyledPositionWrapper
-          {...descriptionPopper.attributes.popper}
-          ref={descriptionRef}
-          style={descriptionPopper.styles.popper}
+          ref={setDescriptionElement}
+          style={descriptionStyles}
           visible
           role="tooltip"
         >
@@ -831,12 +770,6 @@ const ListBoxOverlay = styled(Overlay)`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-`;
-
-const ListBoxPane = styled('div')`
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
 `;
 
 const DescriptionOverlay = styled(Overlay)`

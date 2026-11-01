@@ -4,8 +4,14 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import pytest
+from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
+    DataPoint,
+    TimeSeries,
+    TimeSeriesResponse,
+)
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     TraceItemColumnValues,
     TraceItemTableRequest,
@@ -13,6 +19,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
+from sentry.api.helpers.timeseries_transformations import SmaSmoothTransformation
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
@@ -23,8 +30,45 @@ from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery, TableR
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+def test_timeseries_smooths_requested_interval() -> None:
+    start = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    timestamps = [int(start.timestamp()), int(start.timestamp()) + 60]
+    response = TimeSeriesResponse(
+        result_timeseries=[
+            TimeSeries(
+                label="avg(span.duration)",
+                buckets=[Timestamp(seconds=timestamp) for timestamp in timestamps],
+                data_points=[
+                    DataPoint(data=30, data_present=True),
+                    DataPoint(data=130, data_present=True),
+                ],
+            )
+        ]
+    )
+    with mock.patch("sentry.utils.snuba_rpc.timeseries_rpc", return_value=[response]) as rpc:
+        result = Spans.run_timeseries_query(
+            params=SnubaParams(
+                start=start,
+                end=start + timedelta(minutes=2),
+                granularity_secs=60,
+                organization=mock.Mock(id=1),
+            ),
+            query_string="",
+            y_axes=["avg(span.duration)"],
+            referrer="test",
+            config=SearchResolverConfig(),
+            sampling_mode=None,
+            transformations={0: [SmaSmoothTransformation(mode="sma", window_size=2)]},
+        )
+
+    assert [row["__transformed_y_axis_0"] for row in result.data["data"]] == [30, 80]
+    assert [
+        request.granularity_secs for call in rpc.call_args_list for request in call.args[0]
+    ] == [60]
 
 
 @pytest.mark.parametrize("routing_hint", ["", "opaque+/=="])
@@ -475,6 +519,122 @@ def test_table_limit_by_rejects_invalid_input(limit_by, sampling_mode, match) ->
 
 
 @django_db_all
+def test_flextime_orderby_must_be_descending_timestamp() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "timestamp"],
+        ["-span.op"],
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    with pytest.raises(InvalidSearchQuery, match=r"first orderby must be -timestamp"):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
+def test_flextime_orderby_appends_descending_id() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+    selected_columns = ["span.op", "timestamp"]
+    orderby = ["-timestamp"]
+
+    table_query = TableQuery(
+        "",
+        selected_columns,
+        orderby,
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query).rpc_request
+
+    assert [(column.column.label, column.descending) for column in rpc_request.order_by] == [
+        ("timestamp", True),
+        ("id", True),
+    ]
+    assert selected_columns == ["span.op", "timestamp"]
+    assert orderby == ["-timestamp"]
+
+
+@django_db_all
+def test_flextime_orderby_moves_id_to_the_end() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+    selected_columns = ["id", "span.op", "timestamp"]
+    orderby = ["-timestamp", "id", "-span.op"]
+
+    table_query = TableQuery(
+        "",
+        selected_columns,
+        orderby,
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query).rpc_request
+
+    assert [(column.column.label, column.descending) for column in rpc_request.order_by] == [
+        ("timestamp", True),
+        ("span.op", True),
+        ("id", True),
+    ]
+    assert orderby == ["-timestamp", "id", "-span.op"]
+
+
+@django_db_all
+def test_flextime_orderby_rejects_ascending_tiebreaker() -> None:
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.op", "timestamp"],
+        ["-timestamp", "span.op"],
+        0,
+        50,
+        "TestReferrer",
+        "HIGHEST_ACCURACY_FLEX_TIME",
+        resolver,
+    )
+
+    with pytest.raises(InvalidSearchQuery, match=r"orderby must be descending"):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
 def test_timeseries_groupby_rejects_hidden_api_attribute() -> None:
     owner = Factories.create_user()
     organization = Factories.create_organization(owner=owner)
@@ -568,3 +728,61 @@ def test_force_sampling_mode_in_timeseries(dataset, query, mode):
     )
 
     assert rpc_request.meta.downsampled_storage_config.mode == mode
+
+
+@django_db_all
+@freeze_time()
+def test_table_caps_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=10),
+        end=now + timedelta(minutes=10),
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == now
+
+
+@django_db_all
+@freeze_time()
+def test_table_keeps_end_when_end_is_in_the_past() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    end = datetime.now(timezone.utc) - timedelta(minutes=5)
+    snuba_params = SnubaParams(
+        start=end - timedelta(minutes=10),
+        end=end,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+    table_query = TableQuery("", ["message"], None, 0, 1, "TestReferrer", None, resolver)
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    assert rpc_request.rpc_request.meta.end_timestamp.ToDatetime(tzinfo=timezone.utc) == end
+
+
+@django_db_all
+@freeze_time(before_now(days=1).replace(minute=5, second=0, microsecond=0))
+def test_timeseries_caps_filter_end_at_now_when_end_is_in_the_future() -> None:
+    organization = Factories.create_organization(owner=Factories.create_user())
+    now = datetime.now(timezone.utc)
+    snuba_params = SnubaParams(
+        start=now - timedelta(minutes=5),
+        end=now + timedelta(minutes=5),
+        granularity_secs=3600,
+        organization=organization,
+    )
+    resolver = OurLogs.get_resolver(snuba_params, SearchResolverConfig())
+
+    timeseries_filter, params = RPCBase.update_timestamps(snuba_params, resolver)
+
+    assert timeseries_filter is not None
+    assert timeseries_filter.and_filter.filters[1].comparison_filter.value.val_int == int(
+        now.timestamp()
+    )
+    assert params.end == now.replace(minute=0, tzinfo=None) + timedelta(hours=1)

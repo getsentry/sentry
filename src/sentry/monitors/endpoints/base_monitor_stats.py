@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 from django.db.models import Avg, Count, DateTimeField, Func
 from django.db.models.functions import Extract
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -25,12 +26,26 @@ def normalize_to_epoch(timestamp: datetime, seconds: int):
     return epoch - (epoch % seconds)
 
 
+# The crons timeline UI requests at most 2016 buckets; leave headroom for
+# epoch normalization of the start and end timestamps.
+MAX_STATS_BUCKETS = 2500
+
+
+def validate_bucket_count(start: int, end: int, rollup: int) -> None:
+    if (end - start) // rollup + 1 > MAX_STATS_BUCKETS:
+        raise ParseError(
+            detail=f"Too many buckets requested. Maximum is {MAX_STATS_BUCKETS}, "
+            "increase the resolution or reduce the time range."
+        )
+
+
 class MonitorStatsMixin(BaseEndpointMixin, StatsMixin):
     def get_monitor_stats(self, request: Request, project, monitor) -> Response:
         args = self._parse_args(request)
 
         start = normalize_to_epoch(args["start"], args["rollup"])
         end = normalize_to_epoch(args["end"], args["rollup"])
+        validate_bucket_count(start, end, args["rollup"])
 
         tracked_statuses = [
             CheckInStatus.OK,

@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.serializers import ListField
+from rest_framework.serializers import CharField, ListField
 from sentry_sdk import traces
 
 from sentry import analytics, release_health
@@ -192,9 +192,12 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == SEMVER_BUILD_ALIAS:
             (operator, negated) = handle_operator_negation(search_filter.operator)
+            django_op = OPERATOR_TO_DJANGO.get(operator)
+            if django_op is None:
+                raise InvalidSearchQuery(f"Invalid operator for search key '{SEMVER_BUILD_ALIAS}'")
             queryset = queryset.filter_by_semver_build(
                 organization.id,
-                OPERATOR_TO_DJANGO[operator],
+                django_op,
                 search_filter.value.raw_value,
                 negated=negated,
             )
@@ -221,7 +224,10 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
 
 class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
-    projects = ListField(help_text="A list of project slugs that are involved in this release.")
+    projects = ListField(
+        child=CharField(),
+        help_text="A list of project slugs that are involved in this release.",
+    )
     headCommits = ListField(
         child=ReleaseHeadCommitSerializerDeprecated(),
         required=False,

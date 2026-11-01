@@ -681,7 +681,11 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
         assert entry.data == {"first_seen": now.isoformat()}
         # The activity feed only serves a logged FIRST_SEEN when it's the oldest entry,
         # and UNMERGE_DESTINATION was logged before the scan finished.
-        log = GroupActionLogEntry.objects.get_actions_for_group(destination, 100)
+        log = list(
+            GroupActionLogEntry.objects.user_visible()
+            .filter(group_id=destination.id)
+            .order_by("-date_added", "-id")[:100]
+        )
         assert GroupActionType.UNMERGE_DESTINATION in {e.type for e in log}
         assert log[-1].id == entry.id
 

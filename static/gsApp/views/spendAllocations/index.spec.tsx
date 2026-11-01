@@ -16,6 +16,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -388,6 +389,27 @@ describe('enabled Spend Allocations page without root', () => {
     expect(requestMock).toHaveBeenCalled();
     expect(mockGet_success).toHaveBeenCalledTimes(2);
   });
+
+  it('shows a fallback error when the create request fails without a response body', async () => {
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+
+    const enableSpendAllocation = await screen.findByRole('button', {
+      name: 'Create Organization-Level Allocation',
+    });
+
+    const requestMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'POST',
+      statusCode: 500,
+      body: undefined,
+    });
+
+    await userEvent.click(enableSpendAllocation);
+    expect(requestMock).toHaveBeenCalled();
+    expect(
+      await screen.findByText('Unable to create spend allocation. Please try again.')
+    ).toBeInTheDocument();
+  });
 });
 
 describe('POST Create spend allocation', () => {
@@ -681,5 +703,56 @@ describe('PUT edit spend allocation', () => {
     await userEvent.click(screen.getByText('Save Changes'));
 
     expect(mockPut.mock.calls).toHaveLength(1);
+  });
+
+  it('shows a fallback error when the save request fails without a response body', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    const failedPut = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'PUT',
+      statusCode: 500,
+      body: undefined,
+    });
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[0]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    expect(failedPut).toHaveBeenCalledTimes(1);
+    await waitFor(() =>
+      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+        'Unable to save spend allocation. Please try again.'
+      )
+    );
+    // The form stays open so the allocation can be saved again.
+    expect(screen.getByTestId('spend-allocation-form')).toBeInTheDocument();
+  });
+
+  it('shows the server error detail when the save request is rejected', async () => {
+    jest.spyOn(indicators, 'addErrorMessage');
+    const detail =
+      'The quantity specified is greater than the amount available. Contact sales@sentry.io to increase your limit.';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spend-allocations/`,
+      method: 'PUT',
+      statusCode: 409,
+      body: {detail},
+    });
+    render(<SpendAllocationsRoot subscription={subscription} />, {organization});
+    await screen.findByRole('table', {name: 'Project allocations'});
+
+    await userEvent.click(
+      within(getAllocationRows()[0]!).getByRole('button', {name: 'Edit'})
+    );
+    renderGlobalModal();
+    await screen.findByTestId('spend-allocation-form');
+    await userEvent.click(screen.getByText('Save Changes'));
+
+    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalledWith(detail));
   });
 });

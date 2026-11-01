@@ -14,7 +14,12 @@ from django.core.files.base import File
 from django.core.files.storage import Storage
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str, smart_str
-from google.api_core.exceptions import BadGateway, GatewayTimeout, ServiceUnavailable
+from google.api_core.exceptions import (
+    BadGateway,
+    GatewayTimeout,
+    InternalServerError,
+    ServiceUnavailable,
+)
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 from google.cloud.storage.blob import Blob
@@ -401,9 +406,9 @@ class GoogleCloudStorage(Storage):
         try_repeated(callable)
 
 
-# Replay uploads also retry 502s. GCS documents them as transient, and replay keys and
-# payloads are deterministic, so re-uploading the same object is safe.
-REPLAY_GCS_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, BadGateway)
+# Replay uploads also retry 500s and 502s. GCS documents them as transient, and replay keys
+# and payloads are deterministic, so re-uploading the same object is safe.
+REPLAY_GCS_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, InternalServerError, BadGateway)
 
 
 class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):

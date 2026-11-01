@@ -46,7 +46,7 @@ import type {SpendAllocation} from './components/types';
 import {EnableSpendAllocations} from './enableSpendAllocations';
 import {ProjectAllocationsTable} from './projectAllocationsTable';
 import {RootAllocationCard} from './rootAllocationCard';
-import {BigNumUnits} from './utils';
+import {BigNumUnits, getRequestErrorMessage} from './utils';
 
 type Props = {
   subscription: Subscription;
@@ -237,9 +237,14 @@ export function SpendAllocationsRoot({subscription}: Props) {
         },
       });
       await fetchSpendAllocations();
-    } catch (err: any) {
+    } catch (err) {
       setShouldRetry(false);
-      setErrors(err.responseJSON.detail);
+      setErrors(
+        getRequestErrorMessage(
+          err,
+          t('Unable to create spend allocation. Please try again.')
+        )
+      );
     }
   };
 

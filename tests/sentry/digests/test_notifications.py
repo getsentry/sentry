@@ -19,12 +19,11 @@ from sentry.digests.types import (
 )
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.notifications import create_notification_origin
 from sentry.testutils.skips import requires_snuba
+from sentry.workflow_engine.models import Workflow
 
 pytestmark = [requires_snuba]
 
@@ -87,12 +86,17 @@ class GroupRecordsTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     @cached_property
-    def rule(self) -> Rule:
-        return self.create_project_rule(project=self.project)
+    def workflow(self) -> Workflow:
+        return self.create_workflow(organization=self.project.organization)
 
     @cached_property
     def origin(self) -> NotificationOrigin:
-        return create_notification_origin(self.rule)
+        return NotificationOrigin(
+            label=self.workflow.name,
+            environment_id=self.workflow.environment_id,
+            workflow_id=self.workflow.id,
+            legacy_rule_id=None,
+        )
 
     def test_success(self) -> None:
         events = [
@@ -109,7 +113,7 @@ class GroupRecordsTestCase(TestCase):
             )
             for event in events
         ]
-        ret = _group_records(records, {group.id: group}, {self.rule.id: self.origin})
+        ret = _group_records(records, {group.id: group}, {self.workflow.id: self.origin})
         assert ret == {self.origin: {group: records}}
 
     def test_equivalent_origins_share_a_digest_group(self) -> None:
@@ -131,7 +135,7 @@ class GroupRecordsTestCase(TestCase):
             for origin in (self.origin, equivalent_origin)
         ]
 
-        digest = _group_records(records, {group.id: group}, {self.rule.id: self.origin})
+        digest = _group_records(records, {group.id: group}, {self.workflow.id: self.origin})
 
         assert list(digest) == [self.origin]
         assert digest[self.origin][group] == records
@@ -143,26 +147,22 @@ class SortDigestTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     def test_success(self) -> None:
-        first_rule = self.create_project_rule(
-            project=self.project,
+        first_workflow = self.create_workflow(
+            organization=self.project.organization,
             name="Send a notification for new issues",
-            condition_data=[
-                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
-            ],
-            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
-        second_rule = self.create_project_rule(
-            project=self.project,
+        second_workflow = self.create_workflow(
+            organization=self.project.organization,
             name="Send a notification for regressions",
-            condition_data=[
-                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"}
-            ],
-            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
-
         origins = [
-            create_notification_origin(first_rule),
-            create_notification_origin(second_rule),
+            NotificationOrigin(
+                label=workflow.name,
+                environment_id=workflow.environment_id,
+                workflow_id=workflow.id,
+                legacy_rule_id=None,
+            )
+            for workflow in (first_workflow, second_workflow)
         ]
         groups = [self.create_group() for _ in range(3)]
 

@@ -4,6 +4,7 @@ import {
   type ExploreQueryInfo,
   ExportQueryType,
 } from 'sentry/components/exports/useDataExport';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -37,6 +38,7 @@ export function TracesExportModalButton({
 }: TracesExportModalButtonProps) {
   const [tab] = useTab();
   const location = useLocation();
+  const [caseInsensitive] = useCaseInsensitivity();
   const organization = useOrganization();
 
   // Export only applies to the Span and Aggregate tables; the Trace and
@@ -75,6 +77,7 @@ export function TracesExportModalButton({
     start: decodeScalar(payload.start),
     end: decodeScalar(payload.end),
     statsPeriod: decodeScalar(payload.statsPeriod),
+    caseInsensitive: caseInsensitive ? '1' : undefined,
   };
 
   const filenameBase = 'Traces';

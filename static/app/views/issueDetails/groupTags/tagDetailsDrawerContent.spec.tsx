@@ -12,9 +12,6 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
-import {getEmotionRules} from 'sentry-test/utils';
-
-import {Container} from '@sentry/scraps/layout';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
 
@@ -179,6 +176,72 @@ describe('TagDetailsDrawerContent', () => {
     );
   });
 
+  it('escapes reserved tag names when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/',
+      body: {...tags[0], key: 'project_id'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/project_id/values/',
+      body: [
+        {
+          ...TagValuesFixture()[0],
+          key: 'project_id',
+          value: 'custom-project',
+          query: undefined,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('project_id'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: 'custom-project'}));
+
+    expect(router.location.pathname).toBe(
+      '/organizations/org-slug/issues/1/events/recommended/'
+    );
+    expect(router.location.query.query).toBe('tags[project_id]:"custom-project"');
+  });
+
+  it('escapes quotes in tag values when clicking a tag value', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {...TagValuesFixture()[0], name: 'say "hi"', value: 'say "hi"', query: undefined},
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: /say "hi"/}));
+
+    expect(router.location.query.query).toBe('user:"say \\"hi\\""');
+  });
+
+  it('renders null tag values as empty instead of crashing', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: [
+        {
+          count: 5,
+          firstSeen: '2024-01-01T00:00:00Z',
+          lastSeen: '2024-01-01T00:00:00Z',
+          id: null,
+          value: null,
+        },
+      ],
+    });
+    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: makeInitialRouterConfig('user'),
+    });
+
+    await userEvent.click(await screen.findByRole('link', {name: '(empty)'}));
+
+    expect(router.location.query.query).toBe('user:""');
+  });
+
   it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],
@@ -281,28 +344,6 @@ describe('TagDetailsDrawerContent', () => {
 
     expect(nextButtonWhilePending).not.toBeInTheDocument();
     expect(await screen.findByRole('button', {name: 'Next'})).toBeInTheDocument();
-  });
-
-  it('hides the Last Seen and Share columns when the container is narrow', async () => {
-    jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(400);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValuesFixture(),
-    });
-
-    render(
-      <Container containerType="inline-size">
-        <TagDetailsDrawerContent group={group} />
-      </Container>,
-      {initialRouterConfig: makeInitialRouterConfig('user')}
-    );
-
-    const table = await screen.findByRole('table', {name: 'Tag values'});
-    const rules = getEmotionRules(table).join('');
-
-    expect(rules).toContain("nth-child(2 of [role='cell'], [role='columnheader'])");
-    expect(rules).toContain("nth-child(4 of [role='cell'], [role='columnheader'])");
-    expect(rules).not.toContain("nth-child(3 of [role='cell'], [role='columnheader'])");
   });
 
   it('renders rounded percentages counts [996, 4], total 1000', async () => {

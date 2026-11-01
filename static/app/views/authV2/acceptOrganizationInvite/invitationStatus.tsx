@@ -1,5 +1,5 @@
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
@@ -77,13 +77,15 @@ export function InvitationStatus({
   }
 
   return (
-    <Button
-      variant="primary"
-      busy={isAccepting || isSwitchingAccount}
-      disabled={isAccepting || isSwitchingAccount || isCheckingInvite}
-      onClick={onAccept}
-    >
-      {t('Accept invitation')}
-    </Button>
+    <Flex justify="end">
+      <Button
+        variant="primary"
+        busy={isAccepting || isSwitchingAccount}
+        disabled={isAccepting || isSwitchingAccount || isCheckingInvite}
+        onClick={onAccept}
+      >
+        {t('Accept invitation')}
+      </Button>
+    </Flex>
   );
 }

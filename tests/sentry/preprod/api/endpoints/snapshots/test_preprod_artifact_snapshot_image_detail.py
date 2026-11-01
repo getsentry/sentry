@@ -296,6 +296,65 @@ class OrganizationPreprodSnapshotImageDetailTest(APITestCase):
         assert data["diff_percentage"] == 0.01
 
     @patch(MOCK_TARGET)
+    def test_changed_image_missing_from_selective_base_manifest(self, mock_get_session):
+        head_images = {
+            "alert.png": {
+                "content_hash": "head_hash",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        comparison_images = {
+            "alert.png": {
+                "status": "changed",
+                "head_hash": "head_hash",
+                "base_hash": "inherited_base_hash",
+                "diff_mask_image_id": "diff_mask_123",
+                "before_width": 400,
+                "before_height": 195,
+            },
+        }
+        head_artifact, _, key_to_data = self._create_comparison(head_images, {}, comparison_images)
+        mock_get_session.return_value = self._create_mock_session(key_to_data)
+
+        response = self.client.get(self._get_url(head_artifact.id, "alert.png"))
+
+        assert response.status_code == 200
+        base = response.data["base_image"]
+        assert base is not None
+        assert base["key"] == "inherited_base_hash"
+        assert base["image_file_name"] == "alert.png"
+        assert base["width"] == 400
+        assert base["height"] == 195
+        assert "/files/images/inherited_base_hash/" in base["image_url"]
+
+    @patch(MOCK_TARGET)
+    def test_unchanged_image_missing_from_selective_base_manifest(self, mock_get_session):
+        head_images = {
+            "alert.png": {
+                "content_hash": "same_hash",
+                "display_name": "Alert",
+                "width": 400,
+                "height": 200,
+            },
+        }
+        comparison_images = {
+            "alert.png": {
+                "status": "unchanged",
+                "head_hash": "same_hash",
+                "base_hash": "same_hash",
+            },
+        }
+        head_artifact, _, key_to_data = self._create_comparison(head_images, {}, comparison_images)
+        mock_get_session.return_value = self._create_mock_session(key_to_data)
+
+        response = self.client.get(self._get_url(head_artifact.id, "alert.png"))
+
+        assert response.status_code == 200
+        assert response.data["base_image"] == response.data["head_image"]
+
+    @patch(MOCK_TARGET)
     def test_added_image(self, mock_get_session):
         head_images = {
             "new_screen.png": {

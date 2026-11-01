@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
@@ -10,6 +11,7 @@ import orjson
 import sentry_sdk
 from slack_sdk.models.blocks import Block
 
+from sentry.issues.grouptype import NotificationContextField
 from sentry.models.group import Group
 from sentry.notifications.platform.registry import (
     provider_registry,
@@ -103,6 +105,116 @@ def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
     return checker.mismatches
 
 
+# Slack issue alerts show live group stats, such as `Events: *12*`, that can change between the
+# legacy render and the platform render.
+_GROUP_STATS = re.compile(
+    "(?P<label>{}): \\*(?P<value>[^*]*)\\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (
+                NotificationContextField.EVENTS,
+                NotificationContextField.USERS_AFFECTED,
+                NotificationContextField.FIRST_SEEN,
+                NotificationContextField.APPROX_START_TIME,
+            )
+        )
+    )
+)
+_DIGITS = re.compile(r"\d+")
+
+
+# `get_context` leaves out the event and user counts while a group has at most one event.
+_COUNT_STAT = re.compile(
+    "(?:{}): \\*".format(
+        "|".join(
+            re.escape(field)
+            for field in (NotificationContextField.EVENTS, NotificationContextField.USERS_AFFECTED)
+        )
+    )
+)
+_STAT_SEPARATOR = "   "
+
+
+def _is_relative_time(value: str) -> bool:
+    """
+    Whether a value is one of `time_since`'s relative times, such as `Just now` or `2 hours ago`.
+    Renders made a second apart can cross a unit, as from `Just now` to `1 minute ago`.
+    """
+    return value in ("Just now", "Yesterday") or value.endswith(" ago")
+
+
+def _mask_group_stats(
+    payload: Mapping[str, Any], *, ignore_counts: bool = False
+) -> Mapping[str, Any]:
+    """
+    Replaces the digits in the group stats of a normalized Slack payload's context blocks, so two
+    renders that differ only by a count or elapsed time compare equal. Labels and non-numeric
+    values are kept, so a stat that is added, dropped, or reworded still shows up as a diff, except
+    for relative first-seen times, which are masked whole. `ignore_counts` also removes the event
+    and user counts, for groups whose count is at the threshold where `get_context` starts showing
+    them.
+    """
+
+    def mask(match: re.Match[str]) -> str:
+        value = match["value"]
+        if match["label"] == NotificationContextField.FIRST_SEEN and _is_relative_time(value):
+            return f"{match['label']}: *relative*"
+        return f"{match['label']}: *{_DIGITS.sub('#', value)}*"
+
+    def mask_text(text: str) -> str:
+        if ignore_counts:
+            text = _STAT_SEPARATOR.join(
+                stat for stat in text.split(_STAT_SEPARATOR) if not _COUNT_STAT.match(stat)
+            )
+        return _GROUP_STATS.sub(mask, text)
+
+    def mask_element(element: Any) -> Any:
+        if isinstance(element, Mapping) and isinstance(element.get("text"), str):
+            return {**element, "text": mask_text(element["text"])}
+        return element
+
+    blocks = [
+        (
+            {**block, "elements": [mask_element(e) for e in block.get("elements", [])]}
+            if isinstance(block, Mapping) and block.get("type") == "context"
+            else block
+        )
+        for block in payload.get("blocks", [])
+    ]
+    return {**payload, "blocks": blocks}
+
+
+def _at_single_event(invocation: ActionInvocation) -> bool:
+    """
+    Whether the invocation's group or its cached copy has at most one event written to the
+    database. Its next events are still in the buffer, so the count each render reads depends on
+    when it reads it, and one render can show the event and user counts while the other leaves
+    them out.
+    """
+    group = invocation.event_data.group
+    try:
+        cached = Group.objects.get_from_cache(id=group.id)
+    except Group.DoesNotExist:
+        return False
+    return min(group.times_seen, cached.times_seen) <= 1
+
+
+def _only_group_stats_differ(
+    invocation: ActionInvocation,
+    provider: NotificationProviderKey,
+    legacy: Mapping[str, Any],
+    platform: Mapping[str, Any],
+) -> bool:
+    if provider not in (NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING):
+        return False
+    if not _diff(_mask_group_stats(legacy), _mask_group_stats(platform)):
+        return True
+    return _at_single_event(invocation) and not _diff(
+        _mask_group_stats(legacy, ignore_counts=True),
+        _mask_group_stats(platform, ignore_counts=True),
+    )
+
+
 def _group_changed(invocation: ActionInvocation) -> bool:
     """
     Whether the group state the issue renderers read has changed since the invocation loaded the
@@ -152,15 +264,25 @@ def _compare_with_platform(
         return _capture_shadow_error(e, ShadowOutcome.PLATFORM_ERROR, source, provider_key)
 
     try:
-        entries = _diff(
-            _normalize(legacy_render.provider, legacy_render.payload),
-            _normalize(provider_key, platform_payload),
+        legacy = _normalize(legacy_render.provider, legacy_render.payload)
+        platform = _normalize(provider_key, platform_payload)
+        entries = _diff(legacy, platform)
+        stats_only = (
+            bool(entries)
+            and source == NotificationSource.ISSUE
+            and _only_group_stats_differ(invocation, provider_key, legacy, platform)
         )
     except Exception as e:
         return _capture_shadow_error(e, ShadowOutcome.COMPARE_ERROR, source, provider_key)
 
     if not entries:
         return ShadowResult(outcome=ShadowOutcome.MATCH)
+    # The group can change after the check above, while the platform renders.
+    if source == NotificationSource.ISSUE and _group_changed(invocation):
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
+    # Stats drift is the same race `_group_changed` catches, in values it doesn't compare.
+    if stats_only:
+        return ShadowResult(outcome=ShadowOutcome.GROUP_CHANGED)
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 

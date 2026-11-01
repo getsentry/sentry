@@ -13,7 +13,6 @@ from contextvars import ContextVar
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Sequence
 
-from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log.types import (
     SYSTEM_ACTOR,
     ActionSource,
@@ -233,6 +232,8 @@ def publish_actions_from_context_bulk(
 
     Input is a sequence of tuples of (GroupAction, Project, GroupID, IdempotencyKey)
     """
+    from sentry.hybridcloud.models.outbox import outbox_context
+
     if len(actions) == 0:
         return
 

@@ -46,6 +46,7 @@ export function AutofixStartCard({
       await startStep('root_cause', {enableBashMode: enableBashMode || undefined});
     } catch {
       return;
+      // oxlint-disable-next-line react/todo
     } finally {
       setStartingRun(false);
     }
@@ -73,7 +74,7 @@ export function AutofixStartCard({
   );
 }
 
-export function AutofixStartCardContent() {
+function AutofixStartCardContent() {
   return (
     <Flex
       border="muted"

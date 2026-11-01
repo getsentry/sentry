@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
-import {IconWarning} from '@sentry/icons/warning';
 import debounce from 'lodash/debounce';
 
 import {Button} from '@sentry/scraps/button';
@@ -18,6 +17,7 @@ import {SPAN_PROPS_DOCS_URL} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -94,9 +94,7 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
       >
         {isPending && <SimpleTable.Loading />}
         {showErrorState && (
-          <SimpleTable.Empty>
-            <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-          </SimpleTable.Empty>
+          <SimpleTable.Error message={getQueryErrorMessage(tracesTableResult.error)} />
         )}
         {showEmptyState && (
           <SimpleTable.Empty>

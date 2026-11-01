@@ -29,6 +29,7 @@ from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationSerializer,
@@ -46,9 +47,8 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.issues.action_log import (
     action_context_scope,
     publish_action,
-    resolve_action_actor,
-    resolve_action_source,
 )
+from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
 from sentry.issues.action_log.types import (
     CreateExternalIssueAction,
     LinkExternalIssueAction,
@@ -759,6 +759,6 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user_id=request.user.id,
+            user_id=acting_user_id(request.user),
             data=issue_information,
         )

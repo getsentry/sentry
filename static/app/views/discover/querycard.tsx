@@ -1,6 +1,7 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 
 import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
@@ -41,11 +42,11 @@ export class QueryCard extends PureComponent<Props> {
     return (
       <Link data-test-id={`card-${title}`} onClick={this.handleClick} to={this.props.to}>
         <StyledQueryCard interactive>
-          <QueryCardHeader>
-            <QueryCardContent>
+          <Flex padding="lg xl">
+            <Container flexGrow={1} marginRight="md" overflow="hidden">
               <QueryTitle>{title}</QueryTitle>
               <QueryDetail>{queryDetail}</QueryDetail>
-            </QueryCardContent>
+            </Container>
             <AvatarWrapper>
               {createdBy ? (
                 <ActivityAvatar type="user" user={createdBy} size={34} />
@@ -53,11 +54,16 @@ export class QueryCard extends PureComponent<Props> {
                 <ActivityAvatar type="system" size={34} />
               )}
             </AvatarWrapper>
-          </QueryCardHeader>
-          <QueryCardBody>
+          </Flex>
+          <Container
+            background="secondary"
+            height="100%"
+            maxHeight="150px"
+            overflow="hidden"
+          >
             <StyledErrorBoundary mini>{renderGraph()}</StyledErrorBoundary>
-          </QueryCardBody>
-          <QueryCardFooter>
+          </Container>
+          <Flex justify="between" align="center" padding="md xl">
             <DateSelected>
               {subtitle}
               {dateStatus ? (
@@ -67,7 +73,7 @@ export class QueryCard extends PureComponent<Props> {
               ) : null}
             </DateSelected>
             {renderContextMenu?.()}
-          </QueryCardFooter>
+          </Flex>
         </StyledQueryCard>
       </Link>
     );
@@ -80,12 +86,6 @@ const AvatarWrapper = styled('span')`
   height: min-content;
 `;
 
-const QueryCardContent = styled('div')`
-  flex-grow: 1;
-  overflow: hidden;
-  margin-right: ${p => p.theme.space.md};
-`;
-
 const StyledQueryCard = styled(Card)`
   justify-content: space-between;
   height: 100%;
@@ -93,11 +93,6 @@ const StyledQueryCard = styled(Card)`
   &:hover {
     top: -1px;
   }
-`;
-
-const QueryCardHeader = styled('div')`
-  display: flex;
-  padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};
 `;
 
 const QueryTitle = styled('div')`
@@ -125,20 +120,6 @@ const QueryDetail = styled('div')`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-`;
-
-const QueryCardBody = styled('div')`
-  background: ${p => p.theme.tokens.background.secondary};
-  max-height: 150px;
-  height: 100%;
-  overflow: hidden;
-`;
-
-const QueryCardFooter = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const DateSelected = styled('div')`

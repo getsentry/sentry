@@ -25,6 +25,10 @@ import {
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
+import {
+  useDatasetFormulas,
+  type SavedFormula,
+} from 'sentry/views/explore/hooks/useGetSavedFormulas';
 import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
@@ -53,6 +57,11 @@ import {
   buildConditionalAggregate,
   supportsConditionalAggregateFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  buildFormulaYAxis,
+  findFormula,
+  getFormulaColumnFunction,
+} from 'sentry/views/explore/utils/formulaAggregate';
 import {
   mergeValidatedGroupByTags,
   shouldHideGroupByForValidation,
@@ -140,6 +149,7 @@ function ToolbarVisualize() {
   const onSearch = setSearch;
   const onClose = useCallback(() => setSearch(undefined), []);
 
+  const formulas = useDatasetFormulas('logs');
   const visualizes = useQueryParamsVisualizes();
   const setVisualizes = useSetQueryParamsVisualizes();
 
@@ -185,6 +195,7 @@ function ToolbarVisualize() {
               onDelete={onDelete}
               onReplace={newVisualize => replaceOverlay(group, newVisualize)}
               visualize={visualize}
+              formulas={formulas}
               booleanTags={booleanTags}
               numberTags={numberTags}
               stringTags={stringTags}
@@ -208,6 +219,7 @@ function ToolbarVisualize() {
 
 interface VisualizeDropdownProps {
   booleanTags: TagCollection;
+  formulas: readonly SavedFormula[];
   loading: boolean;
   numberTags: TagCollection;
   onClose: () => void;
@@ -219,6 +231,7 @@ interface VisualizeDropdownProps {
 }
 
 function VisualizeDropdown({
+  formulas,
   loading,
   onDelete,
   onReplace,
@@ -246,6 +259,7 @@ function VisualizeDropdown({
     () => parseConditionalAggregate(visualize.yAxis),
     [visualize.yAxis]
   );
+  const formula = findFormula(formulas, parsedFunction?.name);
 
   const filter = parsedFunction?.filter ?? '';
 
@@ -253,50 +267,63 @@ function VisualizeDropdown({
     numberTags,
     stringTags,
     booleanTags,
-    parsedFunction,
+    parsedFunction:
+      formula && parsedFunction
+        ? getFormulaColumnFunction(formula, parsedFunction)
+        : parsedFunction,
     traceItemType: TraceItemDataset.LOGS,
   });
 
   const onChangeAggregate = useCallback(
     (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        const yAxis = updateVisualizeAggregate({
-          newAggregate: option.value,
-          oldAggregate: parsedFunction?.name ?? '',
-          oldArgument: parsedFunction?.arguments?.[0] ?? '',
-          firstNumberKey,
-        });
-        onReplace(
-          visualize.replace({
-            yAxis: supportsConditionalAggregateFilter(option.value)
-              ? applyConditionalFilter(yAxis, filter)
-              : yAxis,
-          })
-        );
+      if (typeof option.value !== 'string') {
+        return;
       }
+      const newFormula = findFormula(formulas, option.value);
+      if (newFormula) {
+        const formulaYAxis = buildFormulaYAxis(newFormula, firstNumberKey);
+        if (formulaYAxis) {
+          onReplace(visualize.replace({yAxis: formulaYAxis}));
+        }
+        return;
+      }
+      // Formula arguments don't map onto built in aggregates, so switch as if from the default.
+      const yAxis = updateVisualizeAggregate({
+        newAggregate: option.value,
+        oldAggregate: formula ? AggregationKey.COUNT : (parsedFunction?.name ?? ''),
+        oldArgument: formula
+          ? OurLogKnownFieldKey.MESSAGE
+          : (parsedFunction?.arguments?.[0] ?? ''),
+        firstNumberKey,
+      });
+      onReplace(
+        visualize.replace({
+          yAxis: supportsConditionalAggregateFilter(option.value)
+            ? applyConditionalFilter(yAxis, filter)
+            : yAxis,
+        })
+      );
     },
-    [filter, firstNumberKey, onReplace, parsedFunction, visualize]
+    [filter, firstNumberKey, formula, formulas, onReplace, parsedFunction, visualize]
   );
 
   const onChangeArgument = useCallback(
-    (index: number, option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        let args = cloneDeep(parsedFunction?.arguments);
-        if (args) {
-          args[index] = option.value;
-        } else {
-          args = [option.value];
-        }
-        onReplace(
-          visualize.replace({
-            yAxis: buildConditionalAggregate({
-              name: parsedFunction?.name ?? '',
-              arguments: args,
-              filter,
-            }),
-          })
-        );
+    (index: number, value: string) => {
+      let args = cloneDeep(parsedFunction?.arguments);
+      if (args) {
+        args[index] = value;
+      } else {
+        args = [value];
       }
+      onReplace(
+        visualize.replace({
+          yAxis: buildConditionalAggregate({
+            name: parsedFunction?.name ?? '',
+            arguments: args,
+            filter,
+          }),
+        })
+      );
     },
     [filter, onReplace, parsedFunction, visualize]
   );
@@ -327,6 +354,8 @@ function VisualizeDropdown({
     <ToolbarVisualizeDropdown
       aggregateOptions={aggregateOptions}
       fieldOptions={fieldOptions}
+      formulaDefaultColumn={firstNumberKey}
+      formulas={formulas}
       onChangeAggregate={onChangeAggregate}
       onChangeArgument={onChangeArgument}
       onDelete={onDelete}

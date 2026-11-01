@@ -11,7 +11,7 @@ from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -488,9 +488,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
     @with_feature("organizations:seer-run-questions")

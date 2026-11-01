@@ -7,11 +7,11 @@ import {PlatformIcon} from 'platformicons';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {FullRowLink} from 'sentry/components/preprod/preprodBuildsTableStyles';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';

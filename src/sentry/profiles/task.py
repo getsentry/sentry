@@ -30,7 +30,9 @@ from sentry import features, options, quotas
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import DataCategory
 from sentry.killswitches import killswitch_matches_context
+from sentry.lang.java.processing import fixup_frame_in_app as java_fixup_frame_in_app
 from sentry.lang.javascript.processing import _handles_frame as is_valid_javascript_frame
+from sentry.lang.javascript.processing import is_in_app as js_is_in_app
 from sentry.lang.native.processing import _merge_image
 from sentry.lang.native.symbolicator import (
     FrameOrder,
@@ -82,7 +84,6 @@ from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.projectflags import set_project_flag_and_signal
-from sentry.utils.sdk import set_span_attribute
 
 REVERSE_DEVICE_CLASS = {next(iter(tags)): label for label, tags in DEVICE_CLASS.items()}
 
@@ -277,6 +278,8 @@ def process_profile_task(
     sentry_sdk.set_attribute("organization.slug", organization.slug)
 
     project = Project.objects.get_from_cache(id=profile["project_id"])
+    if project.organization_id == organization.id:
+        project.set_cached_field_value("organization", organization)
 
     sentry_sdk.set_tag("project", project.id)
     sentry_sdk.set_attribute("project", project.id)
@@ -320,9 +323,15 @@ def process_profile_task(
     elif version is not None:
         sentry_sdk.set_tag("format", f"sample_v{version}")
         sentry_sdk.set_attribute("format", f"sample_v{version}")
-        set_span_attribute("profile.samples", len(profile["profile"]["samples"]))
-        set_span_attribute("profile.stacks", len(profile["profile"]["stacks"]))
-        set_span_attribute("profile.frames", len(profile["profile"]["frames"]))
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "profile.samples": len(profile["profile"]["samples"]),
+                    "profile.stacks": len(profile["profile"]["stacks"]),
+                    "profile.frames": len(profile["profile"]["frames"]),
+                }
+            )
     else:
         sentry_sdk.set_tag("format", "legacy")
         sentry_sdk.set_attribute("format", "legacy")
@@ -347,9 +356,15 @@ def process_profile_task(
     _set_frames_platform(profile)
 
     if version is not None and not is_android_trace_format(profile):
-        set_span_attribute("profile.samples.processed", len(profile["profile"]["samples"]))
-        set_span_attribute("profile.stacks.processed", len(profile["profile"]["stacks"]))
-        set_span_attribute("profile.frames.processed", len(profile["profile"]["frames"]))
+        span = traces.get_current_span()
+        if span:
+            span.set_attributes(
+                {
+                    "profile.samples.processed": len(profile["profile"]["samples"]),
+                    "profile.stacks.processed": len(profile["profile"]["stacks"]),
+                    "profile.frames.processed": len(profile["profile"]["frames"]),
+                }
+            )
 
     try:
         with metrics.timer("process_profile.apply_stack_trace_rules"):
@@ -546,7 +561,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
 
     with traces.start_span(
         name="task.profiling.symbolicate", attributes={"sentry.op": "task.profiling.symbolicate"}
-    ):
+    ) as span:
         try:
             if "debug_meta" not in profile or not profile["debug_meta"]:
                 metrics.incr(
@@ -569,7 +584,7 @@ def _symbolicate_profile(profile: Profile, project: Project) -> bool:
                 raw_modules, raw_stacktraces, frames_sent = _prepare_frames_from_profile(
                     profile, platform
                 )
-                set_span_attribute(
+                span.set_attribute(
                     f"profile.frames.sent.{platform}",
                     len(frames_sent),
                 )
@@ -788,7 +803,6 @@ def symbolicate(
             exceptions=[],
             stacktraces=stacktraces,
             modules=modules,
-            release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
             frame_order=frame_order,
             apply_source_context=False,
             classes=[],
@@ -951,6 +965,7 @@ def _process_symbolicator_results_for_sample(
         raw_frames = profile["profile"]["frames"]
         new_frames = []
         symbolicated_frame_idx = 0
+        release_package = profile.get("transaction_metadata", {}).get("app.identifier")
 
         for idx in range(len(raw_frames)):
             # If we didn't send the frame to symbolicator, add the raw frame.
@@ -965,12 +980,19 @@ def _process_symbolicator_results_for_sample(
             for frame_idx in symbolicated_frames_dict[symbolicated_frame_idx]:
                 f = symbolicated_frames[frame_idx]
                 f["platform"] = platform
+
                 if platform == "cocoa":
-                    # Native symbolication omits in_app. Restore the SDK
-                    # classification for every inline frame.
+                    # Restore the SDK classification for every inline frame.
                     in_app = raw_frames[idx].get("in_app")
                     if in_app is not None:
                         f["in_app"] = in_app
+                elif platform in SHOULD_SYMBOLICATE_JS:
+                    in_app = js_is_in_app(f)
+                    if in_app is not None:
+                        f["in_app"] = in_app
+                elif platform == "android":
+                    java_fixup_frame_in_app(f, release_package)
+
                 new_frames.append(f)
 
             # go to the next symbolicated frame result
@@ -992,12 +1014,21 @@ def _process_symbolicator_results_for_sample(
 
         profile["profile"]["frames"] = new_frames
     elif symbolicated_frames:
-        if platform == "cocoa":
-            raw_frames = profile["profile"]["frames"]
-            for i, frame in enumerate(symbolicated_frames):
+        raw_frames = profile["profile"]["frames"]
+        release_package = profile.get("transaction_metadata", {}).get("app.identifier")
+        for i, frame in enumerate(symbolicated_frames):
+            if platform == "cocoa":
+                # Restore the SDK classification for every inline frame.
                 in_app = raw_frames[frame.get("original_index", i)].get("in_app")
                 if in_app is not None:
                     frame["in_app"] = in_app
+            elif platform in SHOULD_SYMBOLICATE_JS:
+                in_app = js_is_in_app(frame)
+                if in_app is not None:
+                    frame["in_app"] = in_app
+            elif platform == "android":
+                java_fixup_frame_in_app(frame, release_package)
+
         profile["profile"]["frames"] = symbolicated_frames
 
     if platform in SHOULD_SYMBOLICATE:

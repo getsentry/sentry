@@ -318,27 +318,6 @@ class SentryAppBaseEndpoint(IntegrationPlatformEndpoint):
         return (args, kwargs)
 
 
-class CellSentryAppBaseEndpoint(IntegrationPlatformEndpoint):
-    def convert_args(
-        self, request: Request, sentry_app_id_or_slug: int | str, *args: Any, **kwargs: Any
-    ):
-        if str(sentry_app_id_or_slug).isdecimal():
-            sentry_app = app_service.get_sentry_app_by_id(id=int(sentry_app_id_or_slug))
-        else:
-            sentry_app = app_service.get_sentry_app_by_slug(slug=sentry_app_id_or_slug)
-        if sentry_app is None:
-            raise SentryAppError(message="Could not find the requested sentry app", status_code=404)
-
-        self.check_object_permissions(request, sentry_app)
-        _check_sentry_app_disabled(self, request, sentry_app)
-
-        sentry_sdk.get_isolation_scope().set_tag("sentry_app", sentry_app.slug)
-        sentry_sdk.get_isolation_scope().set_attribute("sentry_app", sentry_app.slug)
-
-        kwargs["sentry_app"] = sentry_app
-        return (args, kwargs)
-
-
 class SentryAppInstallationsPermission(SentryPermission):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
@@ -530,9 +509,6 @@ class SentryInternalAppTokenPermission(SentryPermission):
 class SentryAppStatsPermission(SentryPermission):
     scope_map = {
         "GET": ("org:read", "org:integrations", "org:write", "org:admin"),
-        # Anyone logged in can increment the stats, so leave the scopes empty
-        # Note: this only works for session-based auth so you cannot increment stats through API
-        "POST": (),
     }
 
     def has_object_permission(self, request: Request, view, sentry_app: SentryApp | RpcSentryApp):

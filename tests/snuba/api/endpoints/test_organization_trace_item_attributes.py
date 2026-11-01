@@ -24,6 +24,7 @@ from sentry.explore.models import (
     TraceItemAttributeTypes,
     TraceItemTypes,
 )
+from sentry.models.release import ReleaseStatus
 from sentry.search.eap import constants
 from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
 from sentry.search.eap.types import SupportedTraceItemType
@@ -2915,6 +2916,10 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
     def test_autocomplete_release_semver_attributes(self) -> None:
         release_1 = self.create_release(version="foo@1.2.3+121")
         release_2 = self.create_release(version="qux@2.2.4+122")
+        # Archived releases must not appear in any release autocomplete dropdown (REL-27).
+        # Distinct package/version/build so each of the three release paths would surface it if unfiltered.
+        archived_release = self.create_release(version="baz@9.9.9+999")
+        archived_release.update(status=ReleaseStatus.ARCHIVED)
         self.store_spans(
             [
                 self.create_span(

@@ -4,12 +4,12 @@ import {IconBusiness} from '@sentry/icons/business';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import type {Client} from 'sentry/api';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {withApi} from 'sentry/utils/withApi';
 
 import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';

@@ -10,6 +10,8 @@ on:
         options:
           - sentry
           - static/packages/scraps
+          - static/packages/icons
+          - static/packages/search-syntax
       version:
         description: Exact version, bump type (major, minor, patch), or auto; leave blank for the workspace policy
         required: false
@@ -44,11 +46,11 @@ jobs:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        if: inputs.workspace == 'static/packages/scraps'
+        if: startsWith(inputs.workspace, 'static/packages/')
         with:
           node-version-file: '.node-version'
       - name: Prepare release
-        uses: getsentry/craft@3f2abdc5703191d12ef2cc013f792f1bd220f44d # 2.34.1
+        uses: getsentry/craft@4b763f5419255bb520e3e5a49f5b91426dcd374d # 3.3.0
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:

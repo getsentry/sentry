@@ -12,7 +12,7 @@ from django.db.models import Prefetch
 from django.http.request import QueryDict
 
 from sentry import analytics, features, options
-from sentry.api import client
+from sentry.api.client import client
 from sentry.api.endpoints.timeseries import TimeSeries
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardWidgetSerializer

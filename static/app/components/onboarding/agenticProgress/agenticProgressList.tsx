@@ -80,7 +80,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'active') {
-    return <ActiveLoadingIndicator mini />;
+    return <ActiveLoadingIndicator mini size={16} />;
   }
 
   return <IconCircleDashed size="md" variant="muted" />;
@@ -93,10 +93,8 @@ const ActiveLoadingIndicator = styled(LoadingIndicator)`
     margin: 0;
   }
 
-  && .loading-indicator {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
+  && .scraps-spinner-ring {
+    border-width: 2px !important;
   }
 `;
 
@@ -406,6 +404,7 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 
 export function AgenticProgress({
   run,
+  // oxlint-disable-next-line react/todo
   onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
 }: {

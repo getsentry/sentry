@@ -1,10 +1,18 @@
-from sentry.testutils.cases import SnubaTestCase, TestMigrations
+from sentry.models.project import Project
+from sentry.testutils.cases import TestMigrations
 
 
-class UpdateIfSyntaxOnSpansTest(TestMigrations, SnubaTestCase):
+class UpdateIfSyntaxOnSpansTest(TestMigrations):
     migrate_from = "0015_add_dataset_to_formulas"
     migrate_to = "0016_update_if_syntax_on_spans"
     app = "explore"
+
+    def setup_initial_state(self):
+        # Preserve the project flags previously set by SnubaTestCase without
+        # requiring Snuba for these PostgreSQL-only query rewrites.
+        self.project = self.create_project(
+            name="Bar", slug="bar", flags=Project.flags.has_transactions
+        )
 
     def setup_before_migration(self, apps):
         ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
@@ -201,7 +209,19 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations, SnubaTestCase):
 
         return super().setup_before_migration(apps)
 
-    def test_basic_aggregates_and_orderby(self):
+    def test_rewrites_saved_queries(self):
+        # All scenarios share the same before/after state. Run the migration once
+        # and keep separate failure reports for each set of read-only assertions.
+        with self.subTest(scenario="basic_aggregates_and_orderby"):
+            self._assert_basic_aggregates_and_orderby()
+        with self.subTest(scenario="equation_patterns"):
+            self._assert_equation_patterns()
+        with self.subTest(scenario="duration_unit_thresholds"):
+            self._assert_duration_unit_thresholds()
+        with self.subTest(scenario="already_migrated_unchanged"):
+            self._assert_already_migrated_unchanged()
+
+    def _assert_basic_aggregates_and_orderby(self):
         self.query_basic.refresh_from_db()
         assert self.query_basic.query == {
             "name": "Basic if combinators",
@@ -257,7 +277,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations, SnubaTestCase):
             "interval": "1m",
         }
 
-    def test_equation_patterns_from_production(self):
+    def _assert_equation_patterns(self):
         self.query_equations.refresh_from_db()
         y_axes = [
             field["yAxes"][0] for field in self.query_equations.query["query"][0]["aggregateField"]
@@ -270,7 +290,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations, SnubaTestCase):
             "equation|count_if(`span.description:a:b:c`) / count_if(`span.description:c:b:a`)",
         ]
 
-    def test_duration_unit_thresholds(self):
+    def _assert_duration_unit_thresholds(self):
         self.query_duration_units.refresh_from_db()
         y_axes = [
             field["yAxes"][0]
@@ -282,7 +302,7 @@ class UpdateIfSyntaxOnSpansTest(TestMigrations, SnubaTestCase):
             "equation|count_if(`span.duration:<7s`)/(count_if(`span.duration:>7s`)+count_if(`span.duration:<7s`))",
         ]
 
-    def test_already_migrated_unchanged(self):
+    def _assert_already_migrated_unchanged(self):
         self.query_already_migrated.refresh_from_db()
         y_axes = [
             field["yAxes"][0]

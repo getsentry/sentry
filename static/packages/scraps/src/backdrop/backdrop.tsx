@@ -1,3 +1,4 @@
+import type * as React from 'react';
 import {useTheme} from '@emotion/react';
 import {motion} from 'framer-motion';
 

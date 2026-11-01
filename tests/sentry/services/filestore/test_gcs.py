@@ -1,7 +1,7 @@
 from unittest import mock
 
 import pytest
-from google.api_core.exceptions import BadGateway, ServiceUnavailable
+from google.api_core.exceptions import BadGateway, InternalServerError, ServiceUnavailable
 
 from sentry.services.filestore.gcs import (
     GCS_RETRIES,
@@ -59,9 +59,10 @@ def test_try_repeated_does_not_retry_bad_gateway() -> None:
     assert sleep.call_count == 0
 
 
-def test_replay_upload_policy_retries_bad_gateway() -> None:
-    # The first upload attempt fails with a 502 and the second succeeds.
-    func = mock.Mock(side_effect=[BadGateway("502"), None])
+@pytest.mark.parametrize("error", [InternalServerError("500"), BadGateway("502")])
+def test_replay_upload_policy_retries_transient_server_errors(error: Exception) -> None:
+    # The first upload attempt fails with a 500/502 and the second succeeds.
+    func = mock.Mock(side_effect=[error, None])
 
     with mock.patch("sentry.utils.retries.time.sleep") as sleep:
         GoogleCloudStorageWithReplayUploadPolicy().try_set(func)

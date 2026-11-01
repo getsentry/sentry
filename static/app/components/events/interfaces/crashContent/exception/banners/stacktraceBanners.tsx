@@ -2,7 +2,10 @@ import {useMemo} from 'react';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
-import {hasFileExtension} from 'sentry/components/events/interfaces/frame/utils';
+import {
+  hasFileExtension,
+  isUnlinkableFilename,
+} from 'sentry/components/events/interfaces/frame/utils';
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -23,7 +26,10 @@ export function StacktraceBanners({stacktrace, event}: StacktraceBannersProps) {
   const organization = useOrganization({allowNull: true});
   const {projects} = useProjects();
   const expectedDefaultFrame: Frame | undefined = (stacktrace.frames ?? []).findLast(
-    frame => frame?.inApp && hasFileExtension(frame.absPath || frame.filename || '')
+    frame =>
+      frame?.inApp &&
+      hasFileExtension(frame.absPath || frame.filename || '') &&
+      !isUnlinkableFilename(frame.filename ?? '')
   );
   const project = useMemo(
     () => projects.find(p => p.id === event.projectID),

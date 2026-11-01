@@ -98,7 +98,6 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
           key,
           label: item.label,
           to: item.to,
-          externalHref: item.externalHref,
           leadingItems: item.leadingGraphic,
         },
       ];
@@ -110,7 +109,6 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
             key,
             label: item.label ?? String(item.value),
             to: item.to,
-            externalHref: undefined,
             leadingItems: item.leadingGraphic,
           },
         ];

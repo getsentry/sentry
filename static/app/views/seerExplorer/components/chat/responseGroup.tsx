@@ -282,8 +282,9 @@ export const ResponseGroup = memo(function ResponseGroup({
 
 // The response's raw reasoning. When it sits between tool calls it is set apart with extra vertical
 // space (`data-spaced`); leading or trailing reasoning gets none so it stays tight against the
-// answer or the block edge.
-const ThinkingProse = styled('div')`
+// answer or the block edge. Shared with the investigation status block, which draws its agent's
+// reasoning the same way.
+export const ThinkingProse = styled('div')`
   min-width: 0;
   font-family: ${p => p.theme.font.family.sans};
   font-size: ${p => p.theme.font.size.sm};

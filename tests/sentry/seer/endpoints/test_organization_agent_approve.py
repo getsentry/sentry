@@ -5,7 +5,7 @@ from django.test import override_settings
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
 from sentry.testutils.cases import APITestCase
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
@@ -134,7 +134,7 @@ class OrganizationAgentApproveTest(APITestCase):
 
     def test_viewer_context_cannot_self_approve(self) -> None:
         context = encode_viewer_context(
-            ViewerContext(user_id=self.owner.id, actor_type=ActorType.USER), key=SECRET
+            ViewerContext(actor=Actor(type=ActorType.USER, actor_id=self.owner.id)), key=SECRET
         )
         resp = self._post(scopes=["org:write"], HTTP_X_VIEWER_CONTEXT=context)
         assert resp.status_code == 403

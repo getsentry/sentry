@@ -343,7 +343,6 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
 
             create_audit_entry(
                 request=self.request,
-                actor=request.user,
                 organization=project.organization,
                 target_object=project.id,
                 event=audit_log.get_event_id("PROJECT_OWNERSHIPRULE_EDIT"),

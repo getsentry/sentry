@@ -23,6 +23,7 @@ from sentry.utils.redis import (
     RBClusterManager,
     RedisClusterManager,
     _add_transaction_checks,
+    _matches_redis_transaction_lock_ratchet,
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
     _shared_pool,
@@ -191,6 +192,65 @@ class TransactionCheckingRedisTest(SentryTestCase):
         assert _matches_redis_transaction_ratchet(existing_webhook_callers)
         assert _matches_redis_transaction_ratchet(existing_single_caller)
         assert not _matches_redis_transaction_ratchet(new_callers)
+
+    def test_transaction_lock_ratchet_matches_only_the_lock_owner(self) -> None:
+        acquire = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.acquire",
+            "sentry.utils.locking.lock.Lock.acquire",
+            "sentry.utils.retries.TimedRetryPolicy.__call__",
+        )
+        release = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.release",
+            "sentry.utils.locking.lock.Lock.release",
+            "sentry.utils.locking.lock.Lock.acquire.<locals>.releaser",
+            "contextlib._GeneratorContextManager.__exit__",
+        )
+        project_save = ("sentry.models.project.Project.save", "sentry.new_code.create_project")
+        # A different lock taken under Project.save, for example in a post_save receiver.
+        nested_lock = (
+            *acquire,
+            "sentry.new_code.post_save_receiver",
+            "django.db.models.base.Model.save_base",
+            *project_save,
+        )
+        # A Redis call from Project.save that is not a lock call.
+        not_a_lock = ("sentry.models.project.Project.save", "sentry.new_code.create_project")
+        locked_check = (
+            "sentry.utils.locking.backends.redis.BaseRedisLockBackend.locked",
+            "sentry.utils.locking.lock.Lock.locked",
+            *project_save,
+        )
+        monitor_from_mockdata = (
+            *acquire,
+            "sentry.monitors.models.Monitor.save",
+            "django.db.models.query.QuerySet.create",
+            "sentry.utils.mockdata.core.create_monitor",
+        )
+        monitor_from_new_code = (
+            *acquire,
+            "sentry.monitors.models.Monitor.save",
+            "sentry.new_code.create_monitor",
+        )
+
+        # Example entries so that the test does not depend on the real allowlist
+        allowlist = frozenset(
+            {
+                ("sentry.models.project.Project.save",),
+                (
+                    "sentry.monitors.models.Monitor.save",
+                    "sentry.utils.mockdata.core.create_monitor",
+                ),
+            }
+        )
+
+        assert _matches_redis_transaction_lock_ratchet((*acquire, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet((*release, *project_save), allowlist)
+        assert _matches_redis_transaction_lock_ratchet(monitor_from_mockdata, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(nested_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(not_a_lock, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(locked_check, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(monitor_from_new_code, allowlist)
+        assert not _matches_redis_transaction_lock_ratchet(acquire, allowlist)
 
     def test_transaction_callers_include_application_frames_until_test_harness(self) -> None:
         def outer_caller() -> tuple[str, ...]:

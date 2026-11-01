@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {css, ThemeProvider, useTheme} from '@emotion/react';
 
-import {useInvertedTheme} from '@sentry/scraps';
 import {
   getOrganizationAvatarProps,
   getUserAvatarProps,
@@ -12,6 +11,7 @@ import {
 import {useAvatarColors} from '@sentry/scraps/avatarButton';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+import {useInvertedTheme} from '@sentry/scraps/theme';
 
 import {t, tn} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';

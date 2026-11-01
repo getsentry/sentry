@@ -40,7 +40,6 @@ export function trackAiQueryOutcome({
   dataset,
   mode,
   organization,
-  referrer,
   resultCount,
   runId,
   error = false,
@@ -48,7 +47,6 @@ export function trackAiQueryOutcome({
   dataset: 'spans' | 'errors' | 'logs' | 'tracemetrics' | 'issues';
   mode: Mode | 'samples' | 'aggregate';
   organization: Organization;
-  referrer: string;
   resultCount: number;
   runId: number | string;
   error?: string | boolean | Error;
@@ -65,6 +63,7 @@ export function trackAiQueryOutcome({
         ? extractErrorReason(error)
         : undefined;
 
+  const referrer = `assisted_query.search_bar.${dataset === 'spans' ? 'traces' : dataset}`;
   const conversationUrl = getConversationsUrlForExternalUse('sentry', runId);
   const codeMode = organization.features.includes('seer-assisted-query-codemode');
   const crossEventEnabled = organization.features.includes(

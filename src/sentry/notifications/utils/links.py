@@ -4,10 +4,10 @@ from typing import Any
 
 from django.utils.http import urlencode
 
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationaction import ActionService
 from sentry.notifications.types import NotificationOrigin
 from sentry.types.rules import NotificationRuleDetails
 
@@ -42,7 +42,7 @@ def get_email_link_extra_params(
             urlencode(
                 {
                     "referrer": referrer,
-                    "alert_type": str(AlertRuleTriggerAction.Type.EMAIL.name).lower(),
+                    "alert_type": str(ActionService.EMAIL.name).lower(),
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
                     **dict(

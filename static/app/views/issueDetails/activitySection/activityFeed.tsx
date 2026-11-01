@@ -4,11 +4,11 @@ import type {Group, GroupActivityNote} from 'sentry/types/group';
 import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
 import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
-import {ActivityLineList} from 'sentry/views/issueDetails/activitySection/activityLineItem/layout';
 import {
   ActivityLineNote,
   isActivityNote,
 } from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
+import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
 interface ActivityFeedProps {
   group: Group;
@@ -62,14 +62,16 @@ export function ActivityFeed({
         item={item}
         group={group}
         timestampUnitStyle={timestampUnitStyle}
-      />
+      >
+        {item.body}
+      </ActivityLine>
     );
   }
 
   return (
-    <ActivityLineList data-test-id="activity-timeline">
+    <Timeline.Container data-test-id="activity-timeline">
       {items.map(renderActivity)}
       {children}
-    </ActivityLineList>
+    </Timeline.Container>
   );
 }

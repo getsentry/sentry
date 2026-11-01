@@ -3,7 +3,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
@@ -123,7 +123,7 @@ function LogsSectionContent({
         />
         <LinkButton to={logsUrl}>{t('Open in Logs')}</LinkButton>
       </Flex>
-      <TableContainer>
+      <Stack flex="1" marginTop="xl" minHeight="0">
         <LogsInfiniteTable
           analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
           embedded
@@ -131,18 +131,10 @@ function LogsSectionContent({
           showCellActions
           showExploreConnectedSpansLink
         />
-      </TableContainer>
+      </Stack>
     </Fragment>
   );
 }
-
-const TableContainer = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-`;
 
 const StyledPanel = styled(Panel)`
   padding: ${p => p.theme.space.xl};

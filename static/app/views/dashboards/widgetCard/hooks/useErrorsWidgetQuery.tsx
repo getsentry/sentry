@@ -1,35 +1,24 @@
 import {useMemo} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {queryOptions, useQueries} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 
-import type {Series} from 'sentry/types/echarts';
-import type {
-  EventsStats,
-  GroupedMultiSeriesEventsStats,
-  MultiSeriesEventsStats,
-} from 'sentry/types/organization';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getUtcDateString} from 'sentry/utils/dates';
 import type {
   EventsTableData,
   TableData,
   TableDataWithTitle,
 } from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
-import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
-import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import {
+  combineIngestionMeta,
+  type WidgetTimeSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
@@ -42,14 +31,8 @@ import {
 } from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
-type ErrorsSeriesResponse =
-  | EventsStats
-  | MultiSeriesEventsStats
-  | GroupedMultiSeriesEventsStats
-  | EventsTimeSeriesResponse;
 type ErrorsTableResponse = TableData | EventsTableData;
 
 const EMPTY_ARRAY: any[] = [];
@@ -64,11 +47,11 @@ export function useErrorsSeriesQuery(
     enabled,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
     widgetInterval,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const isEventsTimeseriesEnabled = shouldUseEventsTimeseries(organization);
 
   const filteredWidget = useMemo(
     () =>
@@ -76,95 +59,27 @@ export function useErrorsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) =>
-    getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.ERRORS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    )
-  );
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData => {
-      if (!isEventsTimeseriesEnabled) {
-        const {
-          organization: _org,
-          includeAllArgs: _includeAllArgs,
-          includePrevious: _includePrevious,
-          generatePathname: _generatePathname,
-          period,
-          ...restParams
-        } = requestData;
-
-        const queryParams = {
-          ...restParams,
-          ...(period ? {statsPeriod: period} : {}),
-          excludeOther: restParams.excludeOther ? '1' : undefined,
-          partial: restParams.partial ? '1' : undefined,
-        };
-
-        if (queryParams.start) {
-          queryParams.start = getUtcDateString(queryParams.start);
-        }
-        if (queryParams.end) {
-          queryParams.end = getUtcDateString(queryParams.end);
-        }
-
-        return queryOptions({
-          ...apiOptions.as<ErrorsSeriesResponse>()(
-            '/organizations/$organizationIdOrSlug/events-stats/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              method: 'GET' as const,
-              query: queryParams,
-              staleTime: getWidgetStaleTime(pageFilters),
-            }
-          ),
-          queryFn: (context): Promise<ApiResponse<ErrorsSeriesResponse>> => {
-            if (queue) {
-              return new Promise((resolve, reject) => {
-                const fetchFnRef = {
-                  current: () =>
-                    apiFetch<ErrorsSeriesResponse>(context).then(resolve, reject),
-                };
-                queue.addItem({fetchDataRef: fetchFnRef});
-              });
-            }
-            return apiFetch<ErrorsSeriesResponse>(context);
-          },
-          enabled,
-          retry: false,
-          retryDelay: getRetryDelay,
-          placeholderData: keepPreviousData,
-        });
-      }
-
-      return getTimeseriesWidgetQueryOptions({
+    queries: filteredWidget.queries.map((_, queryIndex) =>
+      getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      });
-    }),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.ERRORS,
+          {
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
+      })
+    ),
     combine: combineWidgetQueryResults,
-  });
-
-  useEventsTimeseriesSpotCheck({
-    config: eventsResponseTransforms,
-    enabled,
-    statsQueryResults: queryResults,
-    organization,
-    pageFilters,
-    widget: filteredWidget,
-    timeSeriesQueries: seriesRequestData.map((requestData, queryIndex) => ({
-      params: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
-      widgetQuery: filteredWidget.queries[queryIndex]!,
-    })),
   });
 
   const transformedData = (() => {
@@ -181,9 +96,7 @@ export function useErrorsSeriesQuery(
       };
     }
 
-    const timeseriesResults: Series[] = [];
-    const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
-    const timeseriesResultsUnits: Record<string, DataUnit> = {};
+    const timeseriesResults: WidgetTimeSeries[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -192,46 +105,20 @@ export function useErrorsSeriesQuery(
 
       const responseData = q.data;
 
-      const transformedResult = eventsResponseTransforms.transformSeries!(
+      const transformedResult = eventsResponseTransforms.transformTimeSeries!(
         responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
-      );
-      const seriesQueryPrefix = getSeriesQueryPrefix(
-        filteredWidget.queries[requestIndex]!,
-        filteredWidget
+        filteredWidget,
+        requestIndex
       );
 
-      transformedResult.forEach((result: Series, resultIndex: number) => {
-        if (seriesQueryPrefix) {
-          result.seriesName = `${seriesQueryPrefix}${SERIES_QUERY_DELIMITER}${result.seriesName}`;
-        }
-        timeseriesResults[requestIndex * transformedResult.length + resultIndex] = result;
-      });
-
-      const resultTypes = eventsResponseTransforms.getSeriesResultType?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-      const resultUnits = eventsResponseTransforms.getSeriesResultUnit?.(
-        responseData,
-        filteredWidget.queries[requestIndex]!
-      );
-
-      if (resultTypes) {
-        Object.assign(timeseriesResultsTypes, resultTypes);
-      }
-      if (resultUnits) {
-        Object.assign(timeseriesResultsUnits, resultUnits);
-      }
+      timeseriesResults.push(...transformedResult);
     });
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
-      timeseriesResultsTypes,
-      timeseriesResultsUnits,
+      ingestion: combineIngestionMeta(queryResults.map(q => q?.data)),
       rawData,
     };
   })();
@@ -251,6 +138,7 @@ export function useErrorsTableQuery(
     limit,
     dashboardFilters,
     skipDashboardFilterParens,
+    samplingMode,
   } = params;
 
   const {queue} = useWidgetQueryQueue();
@@ -298,6 +186,7 @@ export function useErrorsTableQuery(
       const queryParams = {
         ...eventView.generateQueryStringObject(),
         ...requestParams,
+        ...(samplingMode ? {sampling: samplingMode} : {}),
       };
 
       return queryOptions({

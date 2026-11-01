@@ -21,7 +21,9 @@ function renderList({
   defaultBranch,
   providerKey,
   existingMappings,
+  allowEmpty,
 }: {
+  allowEmpty?: boolean;
   defaultBranch?: string;
   existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
@@ -42,6 +44,7 @@ function renderList({
       <form.AppForm form={form}>
         <PathMappingList
           form={form}
+          allowEmpty={allowEmpty}
           defaultBranch={defaultBranch}
           providerKey={providerKey}
           existingMappings={existingMappings}
@@ -184,6 +187,21 @@ describe('PathMappingList', () => {
       expect(screen.queryByText('app/')).not.toBeInTheDocument();
     });
 
+    it('keeps the open row editable after deleting a row above it', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [, secondExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(secondExpand!);
+      const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
+      await userEvent.click(firstDelete!);
+      await userEvent.click(screen.getByRole('textbox', {name: /branch/i}));
+      await userEvent.tab();
+
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('frontend');
+    });
+
     it('falls back to a fresh open row when the last mapping is deleted', async () => {
       renderList({initialPathMappings: [MAPPINGS[0]!]});
 
@@ -249,6 +267,22 @@ describe('PathMappingList', () => {
         'aria-disabled',
         'true'
       );
+    });
+  });
+
+  describe('allowEmpty', () => {
+    it('adds a row from the empty state then deletes back to empty', async () => {
+      renderList({pathMappings: [], allowEmpty: true});
+
+      expect(screen.getByText('No paths configured')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add path'}));
+      expect(
+        screen.getByRole('textbox', {name: /stack trace prefix/i})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
+      expect(screen.getByText('No paths configured')).toBeInTheDocument();
     });
   });
 

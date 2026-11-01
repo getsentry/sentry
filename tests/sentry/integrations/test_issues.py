@@ -802,7 +802,7 @@ class IssueDefaultTest(TestCase):
         title_field = next(f for f in config if f["name"] == "title")
         assert title_field["default"] == self.group.get_latest_event().title
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_feature_flag_disabled_skips_ai(self, mock_request: MagicMock) -> None:
         config = self.installation.get_create_issue_config(self.group, self.user)
 
@@ -810,7 +810,7 @@ class IssueDefaultTest(TestCase):
         assert title_field["default"] == self.group.get_latest_event().title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_hide_ai_features_skips_ai(self, mock_request: MagicMock) -> None:
         self.group.organization.update_option("sentry:hide_ai_features", True)
 
@@ -821,7 +821,7 @@ class IssueDefaultTest(TestCase):
         assert title_field["default"] == self.group.get_latest_event().title
         mock_request.assert_not_called()
 
-    @patch("sentry.integrations.utils.external_issues.make_llm_generate_request")
+    @patch("sentry.integrations.utils.external_issues.run_oneshot")
     def test_ai_exception_falls_back(self, mock_request: MagicMock) -> None:
         mock_request.side_effect = Exception("Connection error")
 

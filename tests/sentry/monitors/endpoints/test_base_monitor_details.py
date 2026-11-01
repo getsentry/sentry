@@ -374,6 +374,24 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-test-monitor"}
         )
 
+    def test_config_edit_resets_is_upserting(self) -> None:
+        monitor = self._create_monitor(is_upserting=True)
+
+        self.get_success_response(
+            self.organization.slug, monitor.slug, method="PUT", **{"name": "Monitor Name"}
+        )
+        monitor.refresh_from_db()
+        assert monitor.is_upserting
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{"config": {"checkin_margin": 10}},
+        )
+        monitor.refresh_from_db()
+        assert not monitor.is_upserting
+
     def test_can_mute(self) -> None:
         monitor = self._create_monitor()
         # Create an environment so the monitor has an environment to mute

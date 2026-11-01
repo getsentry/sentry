@@ -1719,6 +1719,19 @@ class SSOEmailVerificationRequiredTest(AuthIdentityHandlerTest, HybridCloudTestM
 
         assert self.handler._email_verified_via_pending_invite() is False
 
+    def test_unicode_lookalike_email_does_not_match_invite(self) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            member = OrganizationMember.objects.create(
+                organization=self.organization, email="kate@example.com", token="abc"
+            )
+        self.request.session["invite_member_id"] = member.id
+        self.request.session["invite_token"] = member.token
+        self.save_session()
+
+        # U+212A lower-cases to ASCII "k"
+        identity: _Identity = {**self.identity, "email": "\u212aate@example.com"}
+        assert self._handler_with(identity)._email_verified_via_pending_invite() is False
+
     def test_unapproved_invite_does_not_grant_verification_exemption(self) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             member = self.create_member(

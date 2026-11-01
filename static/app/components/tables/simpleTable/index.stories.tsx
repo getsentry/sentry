@@ -2,10 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeAgoCell} from 'sentry/components/workflowEngine/gridCell/timeAgoCell';
 import {t} from 'sentry/locale';

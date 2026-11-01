@@ -83,7 +83,8 @@ export function CompactSelect<Value extends SelectKey>({
   ...controlProps
 }: SelectProps<Value>) {
   const {t} = useTranslation();
-  const triggerId = useId();
+  const generatedTriggerId = useId();
+  const triggerId = controlProps.triggerId ?? generatedTriggerId;
 
   // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.

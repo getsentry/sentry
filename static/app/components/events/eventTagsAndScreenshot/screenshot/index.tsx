@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Text} from '@sentry/scraps/text';
 
 import {useRole} from 'sentry/components/acl/useRole';
@@ -24,7 +25,6 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {PanelProvider} from 'sentry/utils/panelProvider';
 
 type Props = {
   eventId: Event['id'];

@@ -15,7 +15,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
-import {useBrandedAuthLoading} from 'sentry/views/authV2/useBrandedAuthLoading';
+import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
 import {PasswordResetForm} from './passwordResetForm';
 
@@ -34,7 +34,7 @@ export default function PasswordReset() {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
   });
-  useBrandedAuthLoading(validation.isPending);
+  useAuthPageLoading(validation.isPending);
 
   if (validation.isPending) {
     return null;

@@ -35,11 +35,18 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class OrganizationIntegrationDeletionInProgress(Exception):
+    def __init__(self, organization_integration_id: int) -> None:
+        self.organization_integration_id = organization_integration_id
+        super().__init__("Organization integration deletion is in progress")
+
+
 @control_silo_model
 class Integration(DefaultFieldsModelExisting):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
-    workspace, a single GH org, etc.), which can be shared by multiple Sentry orgs.
+    workspace, a single GH org, etc.). An integration can be shared by multiple Sentry orgs,
+    or a provider can guarantee that each integration belongs to only one Sentry org.
     """
 
     __relocation_scope__ = RelocationScope.Global
@@ -47,9 +54,8 @@ class Integration(DefaultFieldsModelExisting):
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=256)
     name = models.CharField(max_length=200)
-    # metadata might be used to store things like credentials, but it should NOT
-    # be used to store organization-specific information, as an Integration
-    # instance can be shared by multiple organizations
+    # Organization-specific metadata is only safe when the provider guarantees that the
+    # Integration instance belongs to one organization.
     metadata = EncryptedJSONField(default=dict)
     status = BoundedPositiveIntegerField(
         default=ObjectStatus.ACTIVE, choices=ObjectStatus.as_choices(), null=True
@@ -108,35 +114,72 @@ class Integration(DefaultFieldsModelExisting):
         organization_id: int | Organization | RpcOrganization,
         user: User | RpcUser | None = None,
         default_auth_id: int | None = None,
+        *,
+        reject_pending_deletion: bool = False,
     ) -> OrganizationIntegration | None:
         """
         Add an organization to this integration.
 
         Returns None if the OrganizationIntegration was not created
         """
-        from sentry.integrations.models.organization_integration import OrganizationIntegration
-
         if not isinstance(organization_id, int):
             organization_id = organization_id.id
 
         try:
             with transaction.atomic(using=router.db_for_write(OrganizationIntegration)):
-                org_integration, created = OrganizationIntegration.objects.get_or_create(
-                    organization_id=organization_id,
-                    integration_id=self.id,
-                    defaults={"default_auth_id": default_auth_id, "config": {}},
-                )
-                # TODO(Steve): add audit log if created
-                if not created and default_auth_id:
-                    org_integration.update(default_auth_id=default_auth_id)
-
-                if created:
-                    organization_service.schedule_signal(
-                        integration_added,
+                for _attempt in range(2):
+                    org_integration, created = OrganizationIntegration.objects.get_or_create(
                         organization_id=organization_id,
-                        args=dict(integration_id=self.id, user_id=user.id if user else None),
+                        integration_id=self.id,
+                        defaults={"default_auth_id": default_auth_id, "config": {}},
                     )
-                return org_integration
+                    # TODO(Steve): add audit log if created
+                    if created:
+                        organization_service.schedule_signal(
+                            integration_added,
+                            organization_id=organization_id,
+                            args=dict(integration_id=self.id, user_id=user.id if user else None),
+                        )
+                        return org_integration
+
+                    if not reject_pending_deletion:
+                        if default_auth_id:
+                            org_integration.update(default_auth_id=default_auth_id)
+                        return org_integration
+
+                    if default_auth_id is None:
+                        raise AssertionError(
+                            "Rejecting pending deletion requires a default identity"
+                        )
+
+                    with outbox_context(
+                        transaction.atomic(using=router.db_for_write(OrganizationIntegration)),
+                        flush=False,
+                    ):
+                        updated = OrganizationIntegration.objects.filter(
+                            id=org_integration.id,
+                            status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
+                        ).update(default_auth_id=default_auth_id)
+                        if updated:
+                            org_integration.default_auth_id = default_auth_id
+                            for outbox in org_integration.outboxes_for_update():
+                                outbox.save()
+
+                    if updated:
+                        return org_integration
+
+                    try:
+                        org_integration.refresh_from_db()
+                    except OrganizationIntegration.DoesNotExist:
+                        continue
+
+                    if org_integration.status in {
+                        ObjectStatus.PENDING_DELETION,
+                        ObjectStatus.DELETION_IN_PROGRESS,
+                    }:
+                        raise OrganizationIntegrationDeletionInProgress(org_integration.id)
+
+                return None
         except IntegrityError:
             logger.info(
                 "add-organization-integrity-error",

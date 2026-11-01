@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {CodeOwner} from 'sentry/types/integrations';
@@ -22,10 +23,10 @@ function ErrorMessage({
 }) {
   return (
     <Fragment>
-      <ErrorMessageContainer>
+      <Grid gap="lg" area="message">
         <span>{message}</span>
         <b>{values.join(', ')}</b>
-      </ErrorMessageContainer>
+      </Grid>
       <ErrorCtaContainer>
         <ExternalLink href={link}>{linkValue}</ExternalLink>
       </ErrorCtaContainer>
@@ -46,9 +47,9 @@ function ErrorMessageList({
 }) {
   return (
     <Fragment>
-      <ErrorMessageContainer>
+      <Grid gap="lg" area="message">
         <span>{message}</span>
-      </ErrorMessageContainer>
+      </Grid>
       <ErrorMessageListContainer>
         {values.map((value, index) => (
           <ErrorInlineContainer key={index}>
@@ -166,7 +167,7 @@ export function CodeOwnerErrors({
               key={id}
               variant="danger"
               expand={
-                <AlertContentContainer key="container">
+                <Container maxHeight="350px" overflowY="auto" key="container">
                   {errorPairs.map(([type, values]) => {
                     return (
                       <ErrorContainer key={`${id}-${type}`}>
@@ -180,7 +181,7 @@ export function CodeOwnerErrors({
                       </ErrorContainer>
                     );
                   })}
-                </AlertContentContainer>
+                </Container>
               }
             >
               {errorCount === 1
@@ -193,11 +194,6 @@ export function CodeOwnerErrors({
     </Fragment>
   );
 }
-
-const AlertContentContainer = styled('div')`
-  overflow-y: auto;
-  max-height: 350px;
-`;
 
 const ErrorContainer = styled('div')`
   display: grid;
@@ -212,12 +208,6 @@ const ErrorInlineContainer = styled(ErrorContainer)`
   grid-template-columns: 1fr 2fr;
   align-items: center;
   padding: 0;
-`;
-
-const ErrorMessageContainer = styled('div')`
-  grid-area: message;
-  display: grid;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const ErrorMessageListContainer = styled('div')`

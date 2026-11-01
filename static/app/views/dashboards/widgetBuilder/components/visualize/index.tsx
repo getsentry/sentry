@@ -7,7 +7,7 @@ import {IconDelete} from '@sentry/icons/delete';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import type {SelectValue} from '@sentry/scraps/select';
@@ -929,7 +929,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
             </DndContext>
           </StyledFieldGroup>
           {canAddFields && (
-            <AddButtons>
+            <Flex display="inline-flex" gap="lg">
               <AddButton
                 variant="link"
                 disabled={disableTransactionWidget || hasMaxMetrics}
@@ -997,7 +997,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                     {t('+ Add Equation')}
                   </AddButton>
                 )}
-            </AddButtons>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -1007,11 +1007,6 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
 
 const AddButton = styled(Button)`
   margin-top: ${p => p.theme.space.md};
-`;
-
-const AddButtons = styled('div')`
-  display: inline-flex;
-  gap: ${p => p.theme.space.lg};
 `;
 
 const StyledFieldGroup = styled(FieldGroup)`

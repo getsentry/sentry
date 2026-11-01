@@ -6,11 +6,11 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Text} from '@sentry/scraps/text';
 
-import {TextCopyInput} from 'sentry/components/textCopyInput';
+import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
+import {selectText} from 'sentry/utils/selectText';
 import {useLocation} from 'sentry/utils/useLocation';
 import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
 import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
@@ -68,9 +68,13 @@ function SecurityTab({securityEndpoint}: SecurityTabProps) {
                 }
               )}
             >
-              <TextCopyInput aria-label={t('Security Header Endpoint URL')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -112,9 +116,13 @@ function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
                 }
               )}
             >
-              <TextCopyInput aria-label={t('Minidump Endpoint URL')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -147,9 +155,13 @@ function UnrealTab({unrealEndpoint}: UnrealTabProps) {
               label={t('Unreal Engine Endpoint')}
               hintText={t('Use this endpoint to configure your UE Crash Reporter.')}
             >
-              <TextCopyInput aria-label={t('Unreal Engine Endpoint URL')}>
-                {field.state.value}
-              </TextCopyInput>
+              <field.Input
+                readOnly
+                dir="ltr"
+                value={field.state.value}
+                onClick={event => selectText(event.currentTarget)}
+                trailingItems={<InputCopyButton text={field.state.value} />}
+              />
             </field.Layout.Stack>
           )}
         </form.AppField>
@@ -194,9 +206,13 @@ function CredentialsTab({
           <form.AppField name="publicKey">
             {field => (
               <field.Layout.Stack label={t('Public Key')}>
-                <TextCopyInput aria-label={t('Public Key')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <field.Input
+                  readOnly
+                  dir="ltr"
+                  value={field.state.value}
+                  onClick={event => selectText(event.currentTarget)}
+                  trailingItems={<InputCopyButton text={field.state.value} />}
+                />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -205,9 +221,13 @@ function CredentialsTab({
           <form.AppField name="secretKey">
             {field => (
               <field.Layout.Stack label={t('Secret Key')}>
-                <TextCopyInput aria-label={t('Secret Key')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <field.Input
+                  readOnly
+                  dir="ltr"
+                  value={field.state.value}
+                  onClick={event => selectText(event.currentTarget)}
+                  trailingItems={<InputCopyButton text={field.state.value} />}
+                />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -216,9 +236,13 @@ function CredentialsTab({
           <form.AppField name="projectId">
             {field => (
               <field.Layout.Stack label={t('Project ID')}>
-                <TextCopyInput aria-label={t('Project ID')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <field.Input
+                  readOnly
+                  dir="ltr"
+                  value={field.state.value}
+                  onClick={event => selectText(event.currentTarget)}
+                  trailingItems={<InputCopyButton text={field.state.value} />}
+                />
               </field.Layout.Stack>
             )}
           </form.AppField>
@@ -289,11 +313,13 @@ export function ProjectKeyCredentials({
     ...defaultFormOptions,
     defaultValues: {
       dsn: data.dsn.public,
+      deprecatedDsn: data.dsn.secret,
       useCase: data.useCase ?? '',
     },
     validators: {
       onDynamic: z.object({
         dsn: z.string(),
+        deprecatedDsn: z.string(),
         useCase: z.string(),
       }),
     },
@@ -378,17 +404,35 @@ export function ProjectKeyCredentials({
                   }
                 )}
               >
-                <TextCopyInput aria-label={t('DSN URL')}>
-                  {field.state.value}
-                </TextCopyInput>
+                <field.Input
+                  readOnly
+                  dir="ltr"
+                  value={field.state.value}
+                  onClick={event => selectText(event.currentTarget)}
+                  trailingItems={<InputCopyButton text={field.state.value} />}
+                />
                 {showDeprecatedDsn && (
-                  <Stack gap="sm" paddingTop="2xs">
-                    <Text size="sm" variant="muted">
-                      {t(
-                        'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                  <Stack paddingTop="2xs">
+                    <dsnForm.AppField name="deprecatedDsn">
+                      {deprecatedField => (
+                        <deprecatedField.Layout.Stack
+                          label={t('Deprecated DSN')}
+                          hintText={t(
+                            'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
+                          )}
+                        >
+                          <deprecatedField.Input
+                            readOnly
+                            dir="ltr"
+                            value={deprecatedField.state.value}
+                            onClick={event => selectText(event.currentTarget)}
+                            trailingItems={
+                              <InputCopyButton text={deprecatedField.state.value} />
+                            }
+                          />
+                        </deprecatedField.Layout.Stack>
                       )}
-                    </Text>
-                    <TextCopyInput>{data.dsn.secret}</TextCopyInput>
+                    </dsnForm.AppField>
                   </Stack>
                 )}
               </field.Layout.Stack>
@@ -404,7 +448,7 @@ export function ProjectKeyCredentials({
                     'Whether the DSN is for the user or for internal data submissions.'
                   )}
                 >
-                  <Text>{field.state.value}</Text>
+                  <field.Input readOnly value={field.state.value} />
                 </field.Layout.Row>
               )}
             </dsnForm.AppField>

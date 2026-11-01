@@ -44,6 +44,7 @@ from sentry.monitors.logic.monitor_environment import (
     monitor_has_newer_status_affecting_checkins,
     update_monitor_environment,
 )
+from sentry.monitors.logic.monitor_status import update_monitor_status
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -813,7 +814,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
     if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
-            monitor.update(status=ObjectStatus.DISABLED)
+            update_monitor_status(monitor, ObjectStatus.DISABLED)
 
     if not monitor:
         metrics.incr(
@@ -1115,12 +1116,6 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                         "monitors.checkin.result",
                         tags={**metric_kwargs, "status": "created_new_checkin"},
                     )
-
-                    # When creating a brand new check-in (not updating an existing one),
-                    # if no monitor config was provided and the monitor was previously
-                    # marked as upserting, mark it as no longer upserting.
-                    if not monitor_config and monitor.is_upserting:
-                        monitor.update(is_upserting=False)
 
             track_outcome(
                 org_id=project.organization_id,

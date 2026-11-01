@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 from django.db import connection
@@ -39,6 +39,7 @@ from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models import (
     DataCondition,
     DataConditionGroup,
@@ -56,6 +57,36 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWork
         patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")
         patcher.start()
         self.addCleanup(patcher.stop)
+
+    @patch(
+        "sentry.tasks.seer.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
+    def test_seer_cleanup_uses_scheduled_actor_context(
+        self, mock_delete_seer_grouping_records: MagicMock
+    ) -> None:
+        org = self.create_organization(name="test")
+        project = self.create_project(organization=org)
+        project.update_option("sentry:similarity_backfill_completed", 1)
+        event = self.store_event(data={"message": "error"}, project_id=project.id)
+        assert event.group is not None
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> None:
+            viewer_context = get_viewer_context()
+            assert viewer_context is not None
+            assert viewer_context.organization_id == org.id
+            assert viewer_context.project_id == project.id
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
+
+        mock_delete_seer_grouping_records.side_effect = assert_viewer_context
+        self.ScheduledDeletion.schedule(instance=org, actor=self.user, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions()
+
+        mock_delete_seer_grouping_records.assert_called()
+        assert get_viewer_context() is None
 
     def test_simple(self) -> None:
         org_owner = self.create_user()

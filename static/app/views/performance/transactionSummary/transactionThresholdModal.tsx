@@ -174,7 +174,7 @@ function TransactionThresholdModal({
             },
           ]}
           name="responseMetric"
-          value={metric}
+          value={metric ?? null}
           onChange={option => {
             setMetric(option.value);
           }}
