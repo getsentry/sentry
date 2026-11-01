@@ -351,6 +351,7 @@ enable_error_code = ["ignore-without-code", "redundant-self"]
 local_partial_types = true # compat with dmypy
 disallow_any_generics = true
 disallow_untyped_defs = true
+disallow_incomplete_defs = true
 strict_equality = true
 
 [tool.django-stubs]
@@ -375,7 +376,6 @@ module = [
   "boto3.*",
   "botocore.client.*",
   "botocore.exceptions.*",
-  "confluent_kafka.*",
   "cssselect.*",
   "django_zero_downtime_migrations.backends.postgres.schema.*",
   "emmett55.*",
@@ -387,12 +387,10 @@ module = [
   "google.resumable_media.common.*",
   "google.rpc.status_pb2.*",
   "google.type.*",
-  "mistune.*",
   "onelogin.saml2.auth.*",
   "onelogin.saml2.constants.*",
   "onelogin.saml2.idp_metadata_parser.*",
   "pymemcache.*",
-  "P4",
   "rb.*",
   "statsd.*",
   "tokenizers.*",

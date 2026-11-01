@@ -42,8 +42,8 @@ def settings() -> types.SimpleNamespace:
 
 
 @pytest.fixture
-def config_yml(tmpdir: LocalPath) -> LocalPath:
-    return tmpdir.join(Path("config.yml"))
+def config_yml(tmpdir: LocalPath) -> Path:
+    return Path(tmpdir.join(Path("config.yml")))
 
 
 def _assert_settings_warnings(
@@ -56,7 +56,7 @@ def _assert_settings_warnings(
     assert actual == expected
 
 
-def test_bootstrap_options_simple(settings: types.SimpleNamespace, config_yml: LocalPath) -> None:
+def test_bootstrap_options_simple(settings: types.SimpleNamespace, config_yml: Path) -> None:
     "Config options are specified in both places, but config.yml should prevail"
     settings.SECRET_KEY = "xxx"
     settings.EMAIL_BACKEND = "xxx"
@@ -70,7 +70,7 @@ def test_bootstrap_options_simple(settings: types.SimpleNamespace, config_yml: L
     settings.EMAIL_SUBJECT_PREFIX = "xxx"
     settings.SENTRY_OPTIONS = {"something.else": True}
 
-    config_yml.write(
+    config_yml.write_text(
         """\
 foo.bar: my-foo-bar
 system.secret-key: my-system-secret-key
@@ -83,7 +83,8 @@ mail.use-tls: true
 mail.use-ssl: false
 mail.from: my-mail-from
 mail.subject-prefix: my-mail-subject-prefix
-"""
+""",
+        encoding="utf-8",
     )
 
     bootstrap_options(settings, str(config_yml))
@@ -113,14 +114,12 @@ mail.subject-prefix: my-mail-subject-prefix
     assert settings.EMAIL_SUBJECT_PREFIX == "my-mail-subject-prefix"
 
 
-def test_bootstrap_options_malformed_yml(
-    settings: types.SimpleNamespace, config_yml: LocalPath
-) -> None:
-    config_yml.write("1")
+def test_bootstrap_options_malformed_yml(settings: types.SimpleNamespace, config_yml: Path) -> None:
+    config_yml.write_text("1", encoding="utf-8")
     with pytest.raises(ConfigurationError):
         bootstrap_options(settings, str(config_yml))
 
-    config_yml.write("{{{")
+    config_yml.write_text("{{{", encoding="utf-8")
     with pytest.raises(ConfigurationError):
         bootstrap_options(settings, str(config_yml))
 
@@ -243,11 +242,11 @@ def test_bootstrap_options_promotes_mail_prefix(
 
 @pytest.mark.parametrize("prefix", ["[Custom]", ""])
 def test_bootstrap_options_config_mail_prefix_precedes_settings(
-    settings: types.SimpleNamespace, config_yml: LocalPath, prefix: str
+    settings: types.SimpleNamespace, config_yml: Path, prefix: str
 ) -> None:
     settings.EMAIL_SUBJECT_PREFIX = "[Setting]"
     settings.SENTRY_OPTIONS["mail.subject-prefix"] = "[Option]"
-    config_yml.write(f"mail.subject-prefix: '{prefix}'\n")
+    config_yml.write_text(f"mail.subject-prefix: '{prefix}'\n", encoding="utf-8")
 
     bootstrap_options(settings, str(config_yml))
 
@@ -259,10 +258,8 @@ def test_bootstrap_options_missing_file(settings: types.SimpleNamespace) -> None
     assert settings.SENTRY_OPTIONS == {}
 
 
-def test_bootstrap_options_empty_file(
-    settings: types.SimpleNamespace, config_yml: LocalPath
-) -> None:
-    config_yml.write("")
+def test_bootstrap_options_empty_file(settings: types.SimpleNamespace, config_yml: Path) -> None:
+    config_yml.write_text("", encoding="utf-8")
     bootstrap_options(settings, str(config_yml))
     assert settings.SENTRY_OPTIONS == {}
 
@@ -358,14 +355,16 @@ def test_bind_cache_to_option_store_with_options_cache() -> None:
 
 
 def test_self_hosted_filestore_config_yml_promoted(
-    settings: types.SimpleNamespace, config_yml: LocalPath
+    settings: types.SimpleNamespace, config_yml: Path
 ) -> None:
     """config.yml filestore keys are promoted to Django settings on self-hosted."""
     settings.SENTRY_SELF_HOSTED = True
     settings.SENTRY_FILE_STORAGE_BACKEND = "filesystem"
     settings.SENTRY_FILE_STORAGE_CONFIG = {}
 
-    config_yml.write("filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n")
+    config_yml.write_text(
+        "filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n", encoding="utf-8"
+    )
     bootstrap_options(settings, str(config_yml))
 
     assert settings.SENTRY_FILE_STORAGE_BACKEND == "gcs"
@@ -373,27 +372,29 @@ def test_self_hosted_filestore_config_yml_promoted(
 
 
 def test_non_self_hosted_filestore_config_yml_not_promoted(
-    settings: types.SimpleNamespace, config_yml: LocalPath
+    settings: types.SimpleNamespace, config_yml: Path
 ) -> None:
     """config.yml filestore keys are not promoted to Django settings on SaaS."""
     settings.SENTRY_SELF_HOSTED = False
     settings.SENTRY_FILE_STORAGE_BACKEND = "filesystem"
     settings.SENTRY_FILE_STORAGE_CONFIG = {}
 
-    config_yml.write("filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n")
+    config_yml.write_text(
+        "filestore.backend: gcs\nfilestore.options:\n  bucket_name: my-bucket\n", encoding="utf-8"
+    )
     bootstrap_options(settings, str(config_yml))
 
     assert settings.SENTRY_FILE_STORAGE_BACKEND == "filesystem"
     assert settings.SENTRY_FILE_STORAGE_CONFIG == {}
 
 
-def test_migrated_options_promoted(settings: types.SimpleNamespace, config_yml: LocalPath) -> None:
+def test_migrated_options_promoted(settings: types.SimpleNamespace, config_yml: Path) -> None:
     """Configured values for migrated options reach their settings in every mode."""
     settings.SENTRY_SLACK_SIGNING_SECRET = ""
     settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = ""
     settings.SENTRY_OPTIONS = {"github-app.webhook-secret": "webhook-secret"}
 
-    config_yml.write("slack.signing-secret: signing-secret\n")
+    config_yml.write_text("slack.signing-secret: signing-secret\n", encoding="utf-8")
     bootstrap_options(settings, str(config_yml))
 
     assert settings.SENTRY_SLACK_SIGNING_SECRET == "signing-secret"
@@ -562,7 +563,7 @@ DEPLOYMENT_OPTION_CASES = [
 )
 def test_deployment_options_promote_explicit_values(
     settings: types.SimpleNamespace,
-    config_yml: LocalPath,
+    config_yml: Path,
     self_hosted: bool,
     key: str,
     setting_name: str,
@@ -576,7 +577,7 @@ def test_deployment_options_promote_explicit_values(
     bootstrap_options(settings)
     assert getattr(settings, setting_name) == value
 
-    config_yml.write(safe_dump({key: value}))
+    config_yml.write_text(safe_dump({key: value}), encoding="utf-8")
     bootstrap_options(config_settings, str(config_yml))
     assert getattr(config_settings, setting_name) == value
 
@@ -680,7 +681,7 @@ def test_single_organization_direct_app_setting_survives_login_reverse_mapping(
 )
 def test_single_organization_config_app_key_retains_remap_precedence(
     settings: types.SimpleNamespace,
-    config_yml: LocalPath,
+    config_yml: Path,
     modern_value: str,
     option_value: str | None,
     expected_app: str,
@@ -694,7 +695,7 @@ def test_single_organization_config_app_key_retains_remap_precedence(
     settings.SENTRY_GITHUB_APP_CLIENT_SECRET = ""
     setattr(settings, setting_name, modern_value)
     setattr(settings, login_setting, "login-value")
-    config_yml.write(safe_dump({key: option_value}))
+    config_yml.write_text(safe_dump({key: option_value}), encoding="utf-8")
 
     with (
         pytest.warns(DeprecatedSettingWarning),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -38,8 +38,12 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
 
-DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
-DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_CACHE_KEY: Callable[[int], str] = (
+    lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+)
+DEBOUNCE_PR_COMMENT_LOCK_KEY: Callable[[int], str] = (
+    lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+)
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 TASK_DURATION_S = 90

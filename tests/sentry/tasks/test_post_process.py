@@ -1264,7 +1264,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
 
         # Set assignee_exists cache (should be invalidated when ownership changes)
         cache.set(
-            ASSIGNEE_EXISTS_KEY(event.group_id),
+            ASSIGNEE_EXISTS_KEY(require_group(event).id),
             (True, timezone.now().timestamp()),
             ASSIGNEE_EXISTS_DURATION,
         )
@@ -1371,10 +1371,10 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             },
             project_id=self.project.id,
         )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(require_group(event).id))
         assert debounce_time is None
 
-        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), timezone.now().timestamp())
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(require_group(event).id), timezone.now().timestamp())
 
         # Should debounce because no ownership change occurred and the debounce cache is set
         self.call_post_process_group(
@@ -1396,10 +1396,10 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             },
             project_id=self.project.id,
         )
-        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id))
+        debounce_time = cache.get(ISSUE_OWNERS_DEBOUNCE_KEY(require_group(event).id))
         assert debounce_time is None
 
-        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(event.group_id), timezone.now().timestamp())
+        cache.set(ISSUE_OWNERS_DEBOUNCE_KEY(require_group(event).id), timezone.now().timestamp())
 
         # Simulate ownership rules changing
         GroupOwner.set_project_ownership_version(self.project.id)
@@ -1428,7 +1428,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
         GroupAssignee.objects.assign(require_group(event), self.user)
 
-        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(require_group(event).id))
         assert assignee_cache_value is None
 
         # First event: should check DB, find assignee exists, cache result with timestamp
@@ -1438,7 +1438,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(require_group(event).id))
         assert assignee_cache_value is not None
         assert isinstance(assignee_cache_value, tuple)
         cached_assignee_exists, cached_timestamp = assignee_cache_value
@@ -1464,7 +1464,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
 
         old_timestamp = timezone.now().timestamp()
         cache.set(
-            ASSIGNEE_EXISTS_KEY(event.group_id),
+            ASSIGNEE_EXISTS_KEY(require_group(event).id),
             (True, old_timestamp),
             ASSIGNEE_EXISTS_DURATION,
         )
@@ -1482,7 +1482,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        new_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        new_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(require_group(event).id))
         assert new_cache_value is not None
         new_assignee_exists, new_timestamp = new_cache_value
         assert new_assignee_exists is True
@@ -1506,7 +1506,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         GroupOwner.set_project_ownership_version(self.project.id)
 
         cache.set(
-            ASSIGNEE_EXISTS_KEY(event.group_id),
+            ASSIGNEE_EXISTS_KEY(require_group(event).id),
             (True, timezone.now().timestamp()),
             ASSIGNEE_EXISTS_DURATION,
         )
@@ -1536,7 +1536,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
         # No assignee for this group
 
-        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(require_group(event).id))
         assert assignee_cache_value is None
 
         self.call_post_process_group(
@@ -1547,7 +1547,7 @@ class AssignmentTestMixin(BasePostProcessGroupMixin):
         )
 
         # Cache should store (False, timestamp)
-        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(event.group_id))
+        assignee_cache_value = cache.get(ASSIGNEE_EXISTS_KEY(require_group(event).id))
         assert assignee_cache_value is not None
         assert isinstance(assignee_cache_value, tuple)
         cached_assignee_exists, cached_timestamp = assignee_cache_value

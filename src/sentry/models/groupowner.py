@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, TypedDict, cast
@@ -25,12 +25,14 @@ if TYPE_CHECKING:
     from sentry.types.actor import Actor
 
 READ_CACHE_DURATION = 3600
-ISSUE_OWNERS_DEBOUNCE_KEY = lambda group_id: f"owner_exists:1:{group_id}"
+ISSUE_OWNERS_DEBOUNCE_KEY: Callable[[int], str] = lambda group_id: f"owner_exists:1:{group_id}"
 ISSUE_OWNERS_DEBOUNCE_DURATION = 60 * 60 * 24
-ASSIGNEE_EXISTS_KEY = lambda group_id: f"assignee_exists:1:{group_id}"
+ASSIGNEE_EXISTS_KEY: Callable[[int], str] = lambda group_id: f"assignee_exists:1:{group_id}"
 ASSIGNEE_EXISTS_DURATION = 60 * 60 * 24
 ASSIGNEE_DOES_NOT_EXIST_DURATION = 60
-PROJECT_OWNERSHIP_VERSION_KEY = lambda project_id: f"ownership_version:1:{project_id}"
+PROJECT_OWNERSHIP_VERSION_KEY: Callable[[int], str] = (
+    lambda project_id: f"ownership_version:1:{project_id}"
+)
 PROJECT_OWNERSHIP_VERSION_DURATION = 60 * 60 * 24
 
 

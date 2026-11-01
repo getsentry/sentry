@@ -1,12 +1,14 @@
+from __future__ import annotations
+
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import _patch, patch
 
 from django.conf import settings
 
 from sentry.roles.manager import RoleManager
 
 
-def granular_roles_granting(*scopes: str) -> Any:
+def granular_roles_granting(*scopes: str) -> _patch[Any]:
     """Patch every granular organization role to also grant `scopes`.
 
     For testing endpoints that accept a scope before any role grants it. Token scopes are

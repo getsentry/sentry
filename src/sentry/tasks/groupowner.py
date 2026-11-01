@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import Any, cast
 
@@ -27,7 +27,7 @@ from sentry.utils.sdk import set_current_event_project
 PREFERRED_GROUP_OWNERS = 2
 PREFERRED_GROUP_OWNER_AGE = timedelta(days=7)
 MIN_COMMIT_SCORE = 2
-DEBOUNCE_CACHE_KEY = lambda group_id: f"process-suspect-commits-{group_id}"
+DEBOUNCE_CACHE_KEY: Callable[[int], str] = lambda group_id: f"process-suspect-commits-{group_id}"
 TASK_DURATION_S = 90
 
 logger = logging.getLogger(__name__)
