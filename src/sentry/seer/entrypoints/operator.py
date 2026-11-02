@@ -238,7 +238,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     "feature_id"
                 ) == AUTOFIX_SINGLE_RUN_FEATURE_ID
                 has_complete_stage = (
-                    existing_state.status == "completed"
+                    get_single_run_status(existing_state)
                     if is_single_run
                     else get_autofix_explorer_status(stopping_point, existing_state)
                 )
@@ -996,6 +996,12 @@ def _can_publish(group: Group, user: User | RpcUser) -> bool:
     return access.from_user(user, group.organization).has_any_project_scope(
         group.project, PUBLISH_SCOPES
     )
+
+
+def get_single_run_status(autofix_state: SeerRunState) -> bool | None:
+    if autofix_state.status == "error":
+        return None
+    return autofix_state.status == "completed"
 
 
 def get_autofix_explorer_status(
