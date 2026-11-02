@@ -56,14 +56,12 @@ class ActivityManager(BaseManager["Activity"]):
     def get_recent_unresolved_activities(
         self, project_id: int, cutoff: datetime
     ) -> QuerySet[Activity]:
-        """Reopenings that grant another project auto-resolution interval."""
-        # Scope by project/time to use the existing composite indexes. Exclude NULL
-        # group IDs so callers can safely use this as a NOT IN subquery.
+        """Any SET_UNRESOLVED grants another auto-resolution interval, including snooze expiry."""
+        # Scope by project/time to use the existing composite indexes.
         return self.filter(
             project_id=project_id,
             datetime__gt=cutoff,
             type=ActivityType.SET_UNRESOLVED.value,
-            group_id__isnull=False,
         )
 
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:

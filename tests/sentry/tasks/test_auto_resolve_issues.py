@@ -30,7 +30,7 @@ from sentry.types.activity import ActivityType
     "activity_type",
     [ActivityType.AUTO_SET_ONGOING, ActivityType.SET_REGRESSION, ActivityType.SET_ESCALATING],
 )
-def test_automatic_transitions_do_not_reset_the_clock(
+def test_regression_escalation_and_auto_ongoing_do_not_reset_the_clock(
     factories: Factories, default_project: Project, activity_type: ActivityType
 ) -> None:
     default_project.update_option("sentry:resolve_age", 1)

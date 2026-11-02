@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from typing import Any
 
-from django.db.models import Exists
+from django.db.models import Exists, OuterRef
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -94,11 +94,13 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     ]
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
-    reopenings = Activity.objects.get_recent_unresolved_activities(project.id, cutoff)
+    recently_reopened = Exists(
+        Activity.objects.get_recent_unresolved_activities(project.id, cutoff).filter(
+            group_id=OuterRef("id")
+        )
+    )
     queryset = list(
-        Group.objects.filter(**filter_conditions).exclude(id__in=reopenings.values("group_id"))[
-            :chunk_size
-        ]
+        Group.objects.filter(**filter_conditions).exclude(recently_reopened)[:chunk_size]
     )
 
     might_have_more = len(queryset) == chunk_size
@@ -110,7 +112,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
         # so a reopening whose Activity is not yet committed can still race.
         happened = (
             Group.objects.filter(id=group.id, **filter_conditions)
-            .exclude(Exists(reopenings.filter(group_id=group.id)))
+            .exclude(recently_reopened)
             .update(status=GroupStatus.RESOLVED, resolved_at=resolution_time, substatus=None)
         )
         if not happened:
