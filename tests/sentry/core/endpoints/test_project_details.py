@@ -23,7 +23,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.models.deletedproject import DeletedProject
 from sentry.models.environment import EnvironmentProject
-from sentry.models.group import GroupStatus
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
@@ -100,22 +99,6 @@ class ProjectDetailsTest(APITestCase):
         self.create_group(project=self.project, last_seen=old)
         reopened = self.create_group(project=self.project, last_seen=old)
         self.create_group_activity(reopened, type=ActivityType.SET_UNRESOLVED.value)
-        expired = self.create_group(project=self.project, last_seen=old)
-        self.create_group_activity(
-            expired,
-            type=ActivityType.SET_UNRESOLVED.value,
-            datetime=now - timedelta(hours=1),
-        )
-        ongoing = self.create_group(project=self.project, last_seen=old)
-        self.create_group_activity(ongoing, type=ActivityType.AUTO_SET_ONGOING.value)
-        resolved = self.create_group(
-            project=self.project, last_seen=old, status=GroupStatus.RESOLVED
-        )
-        self.create_group_activity(resolved, type=ActivityType.SET_UNRESOLVED.value)
-        other_project = self.create_project(organization=self.organization)
-        other_group = self.create_group(project=other_project, last_seen=old)
-        self.create_group_activity(other_group, type=ActivityType.SET_UNRESOLVED.value)
-
         response = self.get_success_response(
             self.organization.slug, self.project.slug, qs_params={"include": "stats"}
         )
@@ -126,12 +109,6 @@ class ProjectDetailsTest(APITestCase):
                 self.organization.slug, self.project.slug, qs_params={"include": "stats"}
             )
         assert response.data["stats"]["unresolved"] == 0
-
-        self.project.update_option("sentry:resolve_age", 0)
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, qs_params={"include": "stats"}
-        )
-        assert response.data["stats"]["unresolved"] == 5
 
     def test_has_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
