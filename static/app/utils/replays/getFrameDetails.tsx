@@ -568,7 +568,10 @@ function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   };
   return (
     <Flex align="center" gap="xs">
-      {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
+      {/* Some recorded web-vital frames have no description at runtime */}
+      {frame.description
+        ? t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))
+        : t('Web Vital')}
       <InfoTip
         size="xs"
         title={
