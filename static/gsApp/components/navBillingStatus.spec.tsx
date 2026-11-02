@@ -294,9 +294,8 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       body: [
         MemberFixture({id: '1', email: 'owner@example.com'}),
         MemberFixture({id: '2', email: 'billing@example.com'}),
-        MemberFixture({id: '3', email: 'invited@example.com', pending: true}),
       ],
-      match: [MockApiClient.matchQuery({query: 'scope:"org:billing"'})],
+      match: [MockApiClient.matchQuery({query: 'scope:"org:billing" isInvited:false'})],
     });
     render(<PrimaryNavigationQuotaExceeded organization={organization} />);
 
@@ -310,7 +309,6 @@ describe('PrimaryNavigationQuotaExceeded', () => {
       'href',
       'mailto:owner@example.com'
     );
-    expect(screen.queryByText('invited@example.com')).not.toBeInTheDocument();
   });
 
   it('should not list billing members for billing users', async () => {
