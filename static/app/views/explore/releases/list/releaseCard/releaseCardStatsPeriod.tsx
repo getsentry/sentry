@@ -7,6 +7,15 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 import {withPageFilters} from 'sentry/utils/withPageFilters';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+const healthStatsPeriodParsers = {
+  healthStatsPeriod: parseAsScalar.withDefault(HealthStatsPeriodOption.AUTO),
+};
 
 type Props = {
   location: Location;
@@ -14,21 +23,23 @@ type Props = {
 };
 
 function ReleaseCardStatsPeriod({location, selection}: Props) {
-  const activePeriod = location.query.healthStatsPeriod || HealthStatsPeriodOption.AUTO;
-  const {pathname, query} = location;
+  const {healthStatsPeriod: activePeriod} = loadQueryParamsFromLocation(
+    healthStatsPeriodParsers,
+    location
+  );
+  const getPeriodTarget = (healthStatsPeriod: HealthStatsPeriodOption) => ({
+    pathname: location.pathname,
+    query: applyQueryParamsUpdates(healthStatsPeriodParsers, location, {
+      healthStatsPeriod,
+    }).query,
+  });
 
   return (
     <Wrapper>
       {/* don't show duplicate 24h options */}
       {selection.datetime.period !== HealthStatsPeriodOption.TWENTY_FOUR_HOURS && (
         <Period
-          to={{
-            pathname,
-            query: {
-              ...query,
-              healthStatsPeriod: HealthStatsPeriodOption.TWENTY_FOUR_HOURS,
-            },
-          }}
+          to={getPeriodTarget(HealthStatsPeriodOption.TWENTY_FOUR_HOURS)}
           selected={activePeriod === HealthStatsPeriodOption.TWENTY_FOUR_HOURS}
         >
           {t('24h')}
@@ -36,10 +47,7 @@ function ReleaseCardStatsPeriod({location, selection}: Props) {
       )}
 
       <Period
-        to={{
-          pathname,
-          query: {...query, healthStatsPeriod: HealthStatsPeriodOption.AUTO},
-        }}
+        to={getPeriodTarget(HealthStatsPeriodOption.AUTO)}
         selected={activePeriod === HealthStatsPeriodOption.AUTO}
       >
         {selection.datetime.start ? t('Custom') : (selection.datetime.period ?? t('14d'))}

@@ -9,7 +9,7 @@ import {IconPerforce} from '@sentry/icons/perforce';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconVsts} from '@sentry/icons/vsts';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
@@ -178,14 +178,8 @@ export const convertIntegrationTypeToSnakeCase = (
   }
 };
 
-export const safeGetQsParam = (param: string) => {
-  try {
-    const query = qs.parse(window.location.search) || {};
-    return query[param];
-  } catch {
-    return;
-  }
-};
+export const safeGetQsParam = (param: string) =>
+  createLoader({[param]: parseAsString})(window.location.search)[param];
 
 export const getIntegrationIcon = (
   integrationType?: string,

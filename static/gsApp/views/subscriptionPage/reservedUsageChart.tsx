@@ -2,13 +2,14 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import moment from 'moment-timezone';
+import {parseAsStringEnum} from 'nuqs';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {ChartTooltip} from 'sentry/components/charts/components/tooltip';
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   ChartDataTransform,
   UsageChart,
@@ -29,14 +30,14 @@ type DroppedBreakdown = {
   spikeProtection: number;
 };
 
+const transformParsers = {
+  transform: parseAsStringEnum(Object.values(ChartDataTransform)).withDefault(
+    ChartDataTransform.CUMULATIVE
+  ),
+};
+
 export function selectedTransform(location: Location) {
-  const transform = decodeScalar(location.query.transform) as
-    | undefined
-    | ChartDataTransform;
-  if (!transform || !Object.values(ChartDataTransform).includes(transform)) {
-    return ChartDataTransform.CUMULATIVE;
-  }
-  return transform;
+  return loadQueryParamsFromLocation(transformParsers, location).transform;
 }
 
 function chartTooltip(category: DataCategory) {

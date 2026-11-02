@@ -8,8 +8,11 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 
 import {CreditCardSetup} from 'getsentry/components/creditCardEdit/setup';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -49,6 +52,10 @@ export function CreditCardPanel({
     shouldExpandInitially && !subscription.paymentSource
   );
   const headingId = useId();
+  const {referrer: urlReferrer} = loadQueryParamsFromLocation(
+    {referrer: parseAsScalar},
+    location
+  );
 
   const handleCardUpdated = (data: Subscription) => {
     // if the card was successfully updated, reset the billing failure state
@@ -70,8 +77,8 @@ export function CreditCardPanel({
   useEffect(() => {
     // Open credit card update form/modal and track clicks from payment failure notifications (in app, email, etc.)
     // oxlint-disable-next-line react/set-state-in-effect
-    setReferrer(decodeScalar(location.query?.referrer));
-  }, [location.query?.referrer]);
+    setReferrer(urlReferrer ?? undefined);
+  }, [urlReferrer]);
 
   useEffect(() => {
     // There are multiple billing failure referrals and each should have analytics tracking

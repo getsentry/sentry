@@ -2,6 +2,7 @@ import type {Theme} from '@emotion/react';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
+import {parseAsString} from 'nuqs';
 
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -11,7 +12,8 @@ import type {Series} from 'sentry/types/echarts';
 import type {Commit, CommitFile, FilesByRepository} from 'sentry/types/integrations';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
-import {decodeList} from 'sentry/utils/queryString';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   getReleaseBounds,
   getReleaseParams,
@@ -198,18 +200,23 @@ export function generateReleaseMarkLines(
 ) {
   const markLines: Series[] = [];
   const adoptionStages = release.adoptionStages?.[project.slug];
-  const isSingleEnv = decodeList(location.query.environment).length === 1;
+  const {environment, pageStart, pageEnd, pageStatsPeriod} = loadQueryParamsFromLocation(
+    {
+      environment: parseAsStringArray,
+      pageStart: parseAsString,
+      pageEnd: parseAsString,
+      pageStatsPeriod: parseAsString,
+    },
+    location
+  );
+  const isSingleEnv = environment.length === 1;
   const releaseBounds = getReleaseBounds(release);
   const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
     location,
     releaseBounds,
   });
   let {start, end} = releaseParamsRest;
-  const isDefaultPeriod = !(
-    location.query.pageStart ||
-    location.query.pageEnd ||
-    location.query.pageStatsPeriod
-  );
+  const isDefaultPeriod = !(pageStart || pageEnd || pageStatsPeriod);
 
   if (statsPeriod) {
     const parsedStatsPeriod = parseStatsPeriod(statsPeriod, null);

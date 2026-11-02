@@ -10,6 +10,7 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -62,10 +63,13 @@ function snapshotKeyFor(card: GroupCard): string {
     : card.image.image_file_name;
 }
 
+const serializeSnapshotLinkQuery = createSerializer({selectedSnapshot: parseAsString});
+
 export function buildSnapshotLink(snapshotKey: string): string {
-  const params = new URLSearchParams(window.location.search);
-  params.set('selectedSnapshot', snapshotKey);
-  return `${window.location.origin}${window.location.pathname}?${params.toString()}`;
+  const search = serializeSnapshotLinkQuery(window.location.search, {
+    selectedSnapshot: snapshotKey,
+  });
+  return `${window.location.origin}${window.location.pathname}${search}`;
 }
 
 type GroupCard =

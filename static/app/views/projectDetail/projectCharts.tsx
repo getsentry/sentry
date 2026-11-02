@@ -29,10 +29,14 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {
   getSessionTermDescription,
   SessionTerm,
@@ -48,6 +52,12 @@ import {
 import ProjectBaseEventsChart from './charts/projectBaseEventsChart';
 import ProjectBaseSessionsChart from './charts/projectBaseSessionsChart';
 import {ProjectErrorsBasicChart} from './charts/projectErrorsBasicChart';
+
+const periodParsers = {
+  start: parseAsScalar,
+  end: parseAsScalar,
+  statsPeriod: parseAsScalar,
+};
 
 type Props = {
   chartId: string;
@@ -78,6 +88,8 @@ export function ProjectCharts({
   const theme = useTheme();
   const navigate = useNavigate();
   const [totalValues, setTotalValues] = useState<number | null>(null);
+  const chartParsers = Object.fromEntries(visibleCharts.map(key => [key, parseAsScalar]));
+  const chartParams = loadQueryParamsFromLocation(chartParsers, location);
 
   const defaultDisplayModes = (() => {
     if (!hasSessions && !hasTransactions) {
@@ -105,14 +117,11 @@ export function ProjectCharts({
   const otherActiveDisplayModes = visibleCharts
     .filter(visibleChartId => visibleChartId !== chartId)
     .map(urlKey => {
-      return decodeScalar(
-        location.query[urlKey],
-        defaultDisplayModes[visibleCharts.indexOf(urlKey)]!
-      );
+      return chartParams[urlKey] ?? defaultDisplayModes[visibleCharts.indexOf(urlKey)]!;
     });
 
   const displayMode = (() => {
-    const mode = decodeScalar(location.query[chartId]) || defaultDisplayModes[chartIndex];
+    const mode = chartParams[chartId] || defaultDisplayModes[chartIndex];
 
     if (!Object.values(DisplayModes).includes(mode as DisplayModes)) {
       return defaultDisplayModes[chartIndex];
@@ -250,10 +259,11 @@ export function ProjectCharts({
   })();
 
   const barChartInterval = (() => {
-    const diffInMinutes = getDiffInMinutes({
-      ...location.query,
-      period: decodeScalar(location.query.statsPeriod),
-    });
+    const {start, end, statsPeriod} = loadQueryParamsFromLocation(
+      periodParsers,
+      location
+    );
+    const diffInMinutes = getDiffInMinutes({start, end, period: statsPeriod});
 
     if (diffInMinutes >= TWO_WEEKS) {
       return '1d';
@@ -287,7 +297,7 @@ export function ProjectCharts({
 
     navigate({
       pathname: location.pathname,
-      query: {...location.query, [chartId]: value},
+      query: applyQueryParamsUpdates(chartParsers, location, {[chartId]: value}).query,
     });
   };
 

@@ -1,5 +1,6 @@
 import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import {createLoader, parseAsString} from 'nuqs';
 
 import type {Frame} from 'sentry/utils/profiling/frame';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -40,8 +41,7 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
     if (!props.input) {
       return LOADING_PROFILE_GROUP;
     }
-    const qs = new URLSearchParams(window.location.search);
-    const threadId = qs.get('tid');
+    const {tid: threadId} = createLoader({tid: parseAsString})(window.location.search);
 
     try {
       return importProfile(

@@ -1,7 +1,7 @@
 import {Fragment, useEffect, useMemo} from 'react';
-import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 import type {BarSeriesOption} from 'echarts';
+import {useQueryStates} from 'nuqs';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
@@ -12,10 +12,17 @@ import {t} from 'sentry/locale';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export const ERRORS_BASIC_CHART_PERIODS = ['1h', '24h', '7d', '14d', '30d'];
 type ProjectErrorsResponse = Project & {stats?: ProjectStats};
+
+const periodParsers = {
+  statsPeriod: pageFilterParsers.statsPeriod,
+  start: pageFilterParsers.start,
+  end: pageFilterParsers.end,
+};
 
 type Props = {
   onTotalValuesChange: (value: number | null) => void;
@@ -24,9 +31,8 @@ type Props = {
 
 export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props) {
   const organization = useOrganization();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [{statsPeriod: urlStatsPeriod}, setPeriodParams] = useQueryStates(periodParsers);
 
-  const urlStatsPeriod = searchParams.get('statsPeriod') ?? '';
   const statsPeriod = ERRORS_BASIC_CHART_PERIODS.includes(urlStatsPeriod)
     ? urlStatsPeriod
     : DEFAULT_STATS_PERIOD;
@@ -57,14 +63,12 @@ export function ProjectErrorsBasicChart({projectId, onTotalValuesChange}: Props)
 
   useEffect(() => {
     if (!ERRORS_BASIC_CHART_PERIODS.includes(urlStatsPeriod)) {
-      setSearchParams(oldParams => {
-        oldParams.set('statsPeriod', DEFAULT_STATS_PERIOD);
-        oldParams.delete('start');
-        oldParams.delete('end');
-        return oldParams;
-      });
+      setPeriodParams(
+        {statsPeriod: DEFAULT_STATS_PERIOD, start: null, end: null},
+        {history: 'push'}
+      );
     }
-  }, [setSearchParams, urlStatsPeriod]);
+  }, [setPeriodParams, urlStatsPeriod]);
 
   useEffect(() => {
     if (isSuccess) {

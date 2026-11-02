@@ -33,7 +33,6 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {withApi} from 'sentry/utils/withApi';
@@ -50,6 +49,13 @@ import type {
 } from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
+import {
+  applyQueryParamsUpdates,
+  loadQueryParamsFromLocation,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
+
+const dashboardTableParsers = {sort: parseAsScalar};
 
 type Props = {
   api: Client;
@@ -290,10 +296,9 @@ function DashboardTable({
     }
 
     const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-    const urlSort = decodeScalar(
-      location.query.sort,
-      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-    );
+    const urlSort =
+      loadQueryParamsFromLocation(dashboardTableParsers, location).sort ??
+      (hasUserLastVisited ? 'recentlyViewed' : 'mydashboards');
     const currentDirection =
       urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
     const isCurrentSort = currentDirection !== undefined;
@@ -302,13 +307,9 @@ function DashboardTable({
       align: 'left',
       direction:
         !isCurrentSort || column.key === 'createdBy' ? undefined : currentDirection,
-      to: {
-        ...location,
-        query: {
-          ...location.query,
-          sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
-        },
-      },
+      to: applyQueryParamsUpdates(dashboardTableParsers, location, {
+        sort: isCurrentSort && currentDirection === 'asc' ? sortKey.desc : sortKey.asc,
+      }),
     };
   }
 
