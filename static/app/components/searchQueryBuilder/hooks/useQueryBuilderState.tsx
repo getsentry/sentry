@@ -89,6 +89,11 @@ type UpdateQueryAction = {
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
+type SetFocusOverrideAction = {
+  focusOverride: FocusOverride;
+  type: 'SET_FOCUS_OVERRIDE';
+};
+
 type CommitPendingFilterAction = {
   /**
    * Only commit the filter if it is still the pending one.
@@ -211,7 +216,6 @@ type UpdateFilterKeyAction = {
   key: string;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_KEY';
-  focusOverride?: FocusOverride;
   shouldCommitQuery?: boolean;
 };
 
@@ -271,6 +275,7 @@ export type QueryBuilderActions =
   | CommitQueryAction
   | UpdateQueryAction
   | ResetFocusOverrideAction
+  | SetFocusOverrideAction
   | CommitPendingFilterAction
   | DeleteTokenAction
   | DeleteTokensAction
@@ -952,7 +957,6 @@ function updateFilterKey(
     ...state,
     query: newQuery,
     committedQuery: (action.shouldCommitQuery ?? true) ? newQuery : state.committedQuery,
-    focusOverride: action.focusOverride ?? state.focusOverride,
   };
 }
 
@@ -1387,6 +1391,11 @@ export function useQueryBuilderState({
           return {
             ...state,
             focusOverride: null,
+          };
+        case 'SET_FOCUS_OVERRIDE':
+          return {
+            ...state,
+            focusOverride: action.focusOverride,
           };
         case 'COMMIT_PENDING_FILTER':
           if (action.itemKey !== state.pendingFilterKey) {

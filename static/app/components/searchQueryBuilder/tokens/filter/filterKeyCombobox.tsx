@@ -45,6 +45,18 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   const {dispatch, pendingFilterKey} = useSearchQueryBuilderState();
   const isPending = pendingFilterKey === item.key;
 
+  // Closing the key editor moves focus out of the filter, which would give a
+  // pending filter its placeholder value, so go back to its value instead.
+  const closeEditor = useCallback(() => {
+    if (isPending) {
+      dispatch({
+        type: 'SET_FOCUS_OVERRIDE',
+        focusOverride: {itemKey: item.key.toString(), part: 'value'},
+      });
+    }
+    onCommit();
+  }, [dispatch, isPending, item.key, onCommit]);
+
   const currentFilterValueType = getFilterValueType(
     token,
     getFieldDefinition(getKeyName(token.key))
@@ -56,7 +68,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const newFilterValueType = getFilterValueType(token, newFieldDef);
 
       if (keyName === getKeyName(token.key)) {
-        onCommit();
+        closeEditor();
         return;
       }
 
@@ -74,15 +86,10 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           type: 'UPDATE_FILTER_KEY',
           token,
           key: keyName,
-          // A filter without a value stays pending, so go back to its value
-          ...(isPending
-            ? {
-                focusOverride: {itemKey: item.key.toString(), part: 'value'},
-                shouldCommitQuery: false,
-              }
-            : {}),
+          // A filter without a value stays pending
+          shouldCommitQuery: !isPending,
         });
-        onCommit();
+        closeEditor();
         return;
       }
 
@@ -99,6 +106,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       onCommit();
     },
     [
+      closeEditor,
       currentFilterValueType,
       dispatch,
       getFieldDefinition,
@@ -121,7 +129,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
       const trimmedKeyName = keyName.trim();
 
       if (!trimmedKeyName) {
-        onCommit();
+        closeEditor();
         return;
       }
 
@@ -134,7 +142,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         })
       );
     },
-    [filterKeys, getSuggestedFilterKey, handleSelectKey, onCommit, sortedFilterKeys]
+    [closeEditor, filterKeys, getSuggestedFilterKey, handleSelectKey, sortedFilterKeys]
   );
 
   const onCustomValueBlurred = useCallback(() => {
@@ -142,8 +150,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   }, [onCommit]);
 
   const onExit = useCallback(() => {
-    onCommit();
-  }, [onCommit]);
+    closeEditor();
+  }, [closeEditor]);
 
   return (
     <Flex align="center" paddingLeft="2xs" maxWidth="400px" height="100%">

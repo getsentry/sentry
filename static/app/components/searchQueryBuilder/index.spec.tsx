@@ -5646,6 +5646,55 @@ describe('SearchQueryBuilder', () => {
             expect(mockOnChange).toHaveBeenCalledWith('countTwo:>5', expect.anything());
           });
 
+          it.each([
+            [
+              'the same key is selected',
+              () => userEvent.click(screen.getByRole('option', {name: 'countOne'})),
+            ],
+            ['escape is pressed', () => userEvent.keyboard('{Escape}')],
+          ])(
+            'keeps the filter without a value when the key editor closes after %s',
+            async (_, closeKeyEditor) => {
+              const mockOnChange = jest.fn();
+              const mockOnSearch = jest.fn();
+              render(
+                <SearchQueryBuilder
+                  {...keyChangeProps}
+                  onChange={mockOnChange}
+                  onSearch={mockOnSearch}
+                />
+              );
+              await userEvent.click(getLastInput());
+              await userEvent.click(screen.getByRole('option', {name: 'countOne'}));
+              await screen.findByRole('row', {name: 'countOne:>'});
+
+              await userEvent.click(
+                screen.getByRole('button', {
+                  name: 'Edit key for filter: countOne',
+                  hidden: true,
+                })
+              );
+              await userEvent.clear(
+                screen.getByRole('combobox', {name: 'Edit filter key'})
+              );
+              await closeKeyEditor();
+
+              await waitFor(() => {
+                expect(
+                  screen.getByRole('combobox', {name: 'Edit filter value'})
+                ).toHaveFocus();
+              });
+              expect(screen.getByRole('row', {name: 'countOne:>'})).toBeInTheDocument();
+              expect(mockOnChange).not.toHaveBeenCalled();
+              expect(mockOnSearch).not.toHaveBeenCalled();
+
+              await userEvent.keyboard('5{Enter}');
+
+              expect(mockOnChange).toHaveBeenCalledTimes(1);
+              expect(mockOnChange).toHaveBeenCalledWith('countOne:>5', expect.anything());
+            }
+          );
+
           it('keeps the previous query while the new key has no value', async () => {
             const mockOnChange = jest.fn();
             const mockOnSearch = jest.fn();
