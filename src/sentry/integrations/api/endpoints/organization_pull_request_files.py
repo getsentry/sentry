@@ -146,18 +146,20 @@ class OrganizationRepositoryPullRequestFilesEndpoint(OrganizationEndpoint):
                 "Pass the repository's name as `repo` and the PR's number as `number`."
             )
 
-        repository = (
+        # Names aren't unique (e.g. the same repo on GitHub and GitHub Enterprise, or rows
+        # left by a reinstall), so refuse to guess, like `Repository.objects.resolve_active`,
+        # rather than show another repo's PR with the same number.
+        matches = list(
             Repository.objects.filter(
                 organization_id=organization.id,
                 name=repo_name,
                 status=ObjectStatus.ACTIVE,
                 integration_id__isnull=False,
-            )
-            .order_by("id")
-            .first()
+            ).order_by("id")[:2]
         )
-        if repository is None:
+        if len(matches) != 1:
             raise ResourceDoesNotExist
+        repository = matches[0]
 
         files = _fetch_files(organization.id, repository.id, number)
         return Response(
