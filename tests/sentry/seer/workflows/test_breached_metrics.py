@@ -803,6 +803,20 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert self.config.backing_workflow_id is None
         assert self.project_ids() == set()
 
+    def test_has_all_projects_with_monitors_in_some_projects(self) -> None:
+        assert self.has_all_projects() is False
+        self.select_monitors(self.monitor_ids[:2])
+        assert self.has_all_projects() is False
+
+    def test_has_all_projects_with_monitors_in_every_project(self) -> None:
+        self.select_monitors(self.monitor_ids)
+        assert self.has_all_projects() is True
+
+    def test_has_all_projects_with_deleted_monitor(self) -> None:
+        self.select_monitors(self.monitor_ids)
+        self.monitors[0].update(status=ObjectStatus.PENDING_DELETION)
+        assert self.has_all_projects() is False
+
     def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:
         invalid_monitors = [
             self.create_detector(project=self.project),
@@ -868,6 +882,11 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         )
         workflow.set_monitor_selection(monitor_ids)
         return workflow.get_config()
+
+    def has_all_projects(self) -> bool:
+        return BreachedMetricWorkflow(
+            config_id=self.config.id, organization_id=self.organization.id
+        ).has_all_projects()
 
     def project_ids(self) -> set[int]:
         return set(

@@ -12,6 +12,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -293,8 +294,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                 project_ids=project_ids,
                 name=data.get("name"),
             )
-        except ValueError:
-            logger.exception("bad request")
+        except ValueError as e:
+            logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
+            if isinstance(e, WorkflowUpdateError):
+                return Response({"detail": str(e)}, status=400)
             return Response(status=400)
 
         projects = self.get_projects(request, organization, include_all_accessible=True)
@@ -421,10 +424,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         SelectedProjects(project_ids=tuple(project_ids)),
                         has_access_projects=has_access_projects,
                     )
-            except WorkflowUpdateError as e:
-                return Response({"detail": str(e)}, status=400)
-            except ValueError:
-                logger.exception("bad request")
+            except ValueError as e:
+                logger.exception(
+                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
+                )
+                if isinstance(e, WorkflowUpdateError):
+                    return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
             config = workflow.get_config()
 
@@ -435,10 +440,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 return Response(status=400)
             try:
                 workflow.set_monitor_selection(monitor_ids)
-            except WorkflowUpdateError as e:
-                return Response({"detail": str(e)}, status=400)
-            except ValueError:
-                logger.exception("bad request")
+            except ValueError as e:
+                logger.exception(
+                    "bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400}
+                )
+                if isinstance(e, WorkflowUpdateError):
+                    return Response({"detail": str(e)}, status=400)
                 return Response(status=400)
             config = workflow.get_config()
 

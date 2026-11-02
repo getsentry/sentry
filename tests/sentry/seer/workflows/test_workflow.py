@@ -286,7 +286,7 @@ class SeerWorkflowProjectSelectionTest(TestCase):
         assert workflow.get_config().version == 1
         assert workflow.get_project_ids() == [previous.id]
 
-    def test_has_all_projects_for_all_projects_config(self) -> None:
+    def test_has_all_projects_with_all_projects_flag(self) -> None:
         self.create_project()
         self.create_project(status=ObjectStatus.PENDING_DELETION)
         self.create_project(organization=self.create_organization())
@@ -316,15 +316,20 @@ class SeerWorkflowProjectSelectionTest(TestCase):
 
     def test_has_all_projects_without_active_projects(self) -> None:
         organization = self.create_organization()
-        self.create_project(organization=organization, status=ObjectStatus.PENDING_DELETION)
+        project = self.create_project(
+            organization=organization, status=ObjectStatus.PENDING_DELETION
+        )
         config = Factories.create_seer_workflow_config(
             organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         )
         workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
 
-        # Nothing is missing from the scope, so an empty selection covers all projects.
+        # An empty scope never counts as all projects, even with no active projects.
         assert workflow.get_project_ids() == []
-        assert workflow.has_all_projects() is True
+        assert workflow.has_all_projects() is False
+
+        workflow.set_project_selection(SelectedProjects(project_ids=(project.id,)))
+        assert workflow.has_all_projects() is False
 
     def create_config(self, *selected: Project, all_projects: bool = False) -> SeerWorkflowConfig:
         config = Factories.create_seer_workflow_config(

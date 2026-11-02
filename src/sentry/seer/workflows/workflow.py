@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any, assert_never
 
 from django.db import router, transaction
-from django.db.models import QuerySet
+from django.db.models import Count, Q, QuerySet
 from pydantic import BaseModel
 
 from sentry.constants import ALL_ACCESS_PROJECTS, ObjectStatus
@@ -111,7 +111,7 @@ class SeerWorkflow:
         projects and ``environments=[]`` for all environments.
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
-            raise ValueError(f"{strategy} automations cannot be configured")
+            raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
 
         requested = set(project_ids)
         all_projects = requested == ALL_ACCESS_PROJECTS
@@ -130,7 +130,7 @@ class SeerWorkflow:
                 .count()
             )
             if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-                raise ValueError(
+                raise WorkflowUpdateError(
                     f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
                 )
 
@@ -141,7 +141,9 @@ class SeerWorkflow:
                     ).values_list("id", flat=True)
                 )
                 if requested != valid_project_ids:
-                    raise ValueError("Selected projects must exist in the workflow's organization")
+                    raise WorkflowUpdateError(
+                        "Selected projects must exist in the workflow's organization"
+                    )
 
             config = SeerWorkflowConfig.objects.using(database).create(
                 organization_id=organization_id,
@@ -240,15 +242,19 @@ class SeerWorkflow:
         return self._get_project_ids(self.get_config())
 
     def has_all_projects(self) -> bool:
-        """Return whether this workflow's scope covers every active project in its organization."""
+        """
+        Return whether this workflow's scope covers every active project in its organization.
+        Edge case: always false for empty selections, even if the org has no active projects.
+        """
         config = self.get_config()
-        return (
-            not Project.objects.filter(
-                organization_id=config.organization_id, status=ObjectStatus.ACTIVE
-            )
-            .exclude(id__in=self._get_projects(config).values("id"))
-            .exists()
+        selected_projects = self._get_projects(config).values("id")
+        counts = Project.objects.filter(
+            organization_id=config.organization_id, status=ObjectStatus.ACTIVE
+        ).aggregate(
+            total=Count("id"),
+            selected=Count("id", filter=Q(id__in=selected_projects)),
         )
+        return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def set_service_account(self, service_account_id: int | None) -> None:
         """Store the control account ID after validating its current cell replica."""
