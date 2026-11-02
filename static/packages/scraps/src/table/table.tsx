@@ -21,7 +21,8 @@ import {
 } from 'react';
 
 import {DragHandle} from '@sentry/scraps/dragHandle';
-import {type Responsive, useResponsivePropResolver} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
+import {useResponsivePropResolver} from '@sentry/scraps/layout/styles';
 import type {LinkProps} from '@sentry/scraps/link';
 import {useStableMergeRef} from '@sentry/scraps/useStableMergeRef';
 

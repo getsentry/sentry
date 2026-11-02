@@ -646,7 +646,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         key={draggableFieldIds[index]}
                       >
                         {activeId !== null && index === Number(activeId) ? null : (
-                          <Stack gap="sm" flex="1" minWidth="0">
+                          <Stack gap="md" flex="1" minWidth="0">
                             <FieldRow>
                               {fields.length > 1 &&
                                 (state.displayType === DisplayType.BIG_NUMBER ||
@@ -987,6 +987,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                   analyticsSource="dashboards"
                                   transformations={fieldTransformations}
                                   layout="inline"
+                                  size="sm"
+                                  gap="md"
                                   onChange={setFieldTransformations}
                                 />
                               )}

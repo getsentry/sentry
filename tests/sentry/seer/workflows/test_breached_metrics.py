@@ -17,7 +17,10 @@ from sentry.eventstream.base import GroupState
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.investigations.models import InvestigationOrchestrationStatus
+from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.project import Project
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
@@ -35,6 +38,8 @@ from sentry.seer.workflows.breached_metrics import (
     MetricBreachTrigger,
 )
 from sentry.seer.workflows.workflow import AllProjects, SeerWorkflow, SelectedProjects
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
+from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
@@ -42,6 +47,7 @@ from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscrip
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
@@ -65,7 +71,6 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
             project=self.project,
             type=MetricIssue.type_id,
             message="Example error spike",
-            create_open_period=False,
         )
         self.action = self.create_action(type=Action.Type.SEER_WORKFLOW)
         self.config = self.create_metric_config(trigger_actions=[self.action])
@@ -374,12 +379,17 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert trigger["action_id"] == self.action.id
         assert run.extras["snapshot"] == snapshot
         assert run.extras["snapshot"]["config_version"] == self.config.version - 1
-        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert run.status == SeerWorkflowRunStatus.FAILED
         assert run.date_completed is not None
         execution = SeerWorkflowRunExecution.objects.get(run=run)
-        assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
+        assert execution.status == SeerWorkflowExecutionStatus.FAILED
         assert execution.date_completed is not None
-        assert execution.extras == {"result": "noop", "error": None}
+        assert execution.extras == {
+            "error": {
+                "code": "service_account_unavailable",
+                "message": "The automation has no service account.",
+            }
+        }
         stored = MetricBreachRunExtras.parse_obj(run.extras)
         assert event.occurrence is not None
         stored_trigger = MetricBreachTrigger.parse_obj(stored.snapshot.inputs)
@@ -563,6 +573,83 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             tags={"outcome": "rejected", "reason": "quota_exceeded", "deduplicated": "true"},
             sample_rate=1.0,
         )
+
+    @with_feature("organizations:investigations")
+    def test_failed_investigation_dispatch_fails_the_run(self) -> None:
+        self.attach_service_account()
+
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.status == SeerWorkflowRunStatus.FAILED
+        execution = SeerWorkflowRunExecution.objects.get(run=run)
+        assert execution.status == SeerWorkflowExecutionStatus.FAILED
+        assert execution.extras == {
+            "error": {"code": "dispatch_failed", "message": "Could not start the investigation."}
+        }
+        assert not Notebook.objects.exists()
+        assert not SeerWorkflowOutputLink.objects.exists()
+
+    @with_feature("organizations:investigations")
+    def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:
+        self.attach_service_account()
+        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.PROCESSING)
+
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.status == SeerWorkflowRunStatus.RUNNING
+        execution = SeerWorkflowRunExecution.objects.get(run=run)
+        assert execution.status == SeerWorkflowExecutionStatus.RUNNING
+        assert list(SeerWorkflowOutputLink.objects.values_list("execution_id", "notebook_id")) == [
+            (execution.id, notebook.id)
+        ]
+        assert Notebook.objects.get() == notebook
+
+        notebook.orchestration_run.update(status=InvestigationOrchestrationStatus.COMPLETED)
+        finish_investigation_executions(investigation_id=notebook.id)
+
+        run.refresh_from_db()
+        execution.refresh_from_db()
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
+
+    @with_feature("organizations:investigations")
+    def test_breach_completes_at_once_when_the_linked_investigation_already_finished(
+        self,
+    ) -> None:
+        self.attach_service_account()
+        notebook = self.create_active_investigation(InvestigationOrchestrationStatus.COMPLETED)
+
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        assert run.status == SeerWorkflowRunStatus.COMPLETE
+        execution = SeerWorkflowRunExecution.objects.get(run=run)
+        assert execution.extras == {"error": None}
+        assert SeerWorkflowOutputLink.objects.filter(
+            execution=execution, notebook=notebook
+        ).exists()
+
+    def create_active_investigation(self, status: InvestigationOrchestrationStatus) -> Notebook:
+        open_period = get_latest_open_period(self.group)
+        assert open_period is not None
+        notebook = self.create_notebook(
+            self.organization,
+            title="Example error spike",
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key=f"metric_open_period:{self.group.id}:{open_period.id}",
+            source_revision=1,
+        )
+        Factories.create_investigation_orchestration_run(notebook, status=status)
+        return notebook
+
+    def attach_service_account(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        with outbox_runner():
+            account = self.create_service_account(organization=self.organization)
+        self.config.update(service_account_id=account.id)
 
     def process_breach_workflow(
         self, event: GroupEvent, *, is_new: bool = True
@@ -763,9 +850,9 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         for monitor in self.monitors:
             self.process_breach(monitor)
         assert SeerWorkflowRun.objects.filter(workflow_config=self.config).count() == 3
-        assert set(SeerWorkflowRunExecution.objects.values_list("extras__result", flat=True)) == {
-            "noop"
-        }
+        assert set(
+            SeerWorkflowRunExecution.objects.values_list("extras__error__code", flat=True)
+        ) == {"source_unavailable"}
         for run in SeerWorkflowRun.objects.filter(workflow_config=self.config):
             assert set(run.extras["snapshot"]["project_ids"]) == {
                 monitor.project_id for monitor in self.monitors
