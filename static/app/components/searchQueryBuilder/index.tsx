@@ -320,6 +320,7 @@ function ActionButtons({
           size="zero"
           icon={<IconClose />}
           variant="transparent"
+          onPointerDown={event => event.preventDefault()}
           onClick={() => clearSearchQuery()}
         />
       )}
