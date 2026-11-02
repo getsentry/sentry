@@ -290,6 +290,31 @@ class TestFormulas(BaseFormulaTest):
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.member_edit"
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_create_explore_formula_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read", "org:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        self.formula_object["name"] = "formula.by_service_account"
+        with self.feature({**self.feature_flags, "organizations:service-accounts": True}):
+            response = self.client.post(
+                self.url,
+                data=self.formula_object,
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        formula = ExploreSavedFormula.objects.get(id=response.data["id"])
+        assert formula.created_by_id is None
+        assert formula.created_by_service_account_id == service_account.id
+        assert formula.created_by_org_auth_token_id is None
+
     def test_no_feature_flags(self) -> None:
         response = self.client.post(
             self.url,

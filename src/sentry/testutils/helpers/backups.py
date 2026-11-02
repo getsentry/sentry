@@ -786,7 +786,7 @@ class ExhaustiveFixtures(Fixtures):
 
         explore_saved_query = ExploreSavedQuery.objects.create(
             organization=org,
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             name="saved query",
             query={"query": "test_query"},
         )
@@ -812,7 +812,7 @@ class ExhaustiveFixtures(Fixtures):
 
         explore_saved_formula = ExploreSavedFormula.objects.create(
             organization=org,
-            created_by_id=owner_id,
+            created_by_service_account_id=service_account.id,
             updated_by_id=owner_id,
             name="formula.apdex",
             formula="count()",

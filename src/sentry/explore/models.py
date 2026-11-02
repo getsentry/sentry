@@ -86,6 +86,14 @@ class ExploreSavedQuery(DefaultFieldsModel):
     projects = models.ManyToManyField("sentry.Project", through=ExploreSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     name = models.CharField(max_length=255)
     query = models.JSONField()
     visits = BoundedBigIntegerField(null=True, default=1)
@@ -108,6 +116,17 @@ class ExploreSavedQuery(DefaultFieldsModel):
         app_label = "explore"
         db_table = "explore_exploresavedquery"
         unique_together = (("organization", "prebuilt_id"),)
+        constraints = [
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedquery_single_creator",
+            ),
+        ]
 
     __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
@@ -495,6 +514,14 @@ class ExploreSavedFormula(DefaultFieldsModel):
     organization = FlexibleForeignKey("sentry.Organization")
 
     created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     updated_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
 
     # Matching 280 from attribute.brief
@@ -528,6 +555,15 @@ class ExploreSavedFormula(DefaultFieldsModel):
             CheckConstraint(
                 condition=Q(prebuilt_id__isnull=False) | Q(prebuilt_deleted=False),
                 name="explore_exploresavedformula_prebuilt_deleted_requires_prebuilt",
+            ),
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(created_by_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(created_by_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="explore_exploresavedformula_single_creator",
             ),
         ]
 
