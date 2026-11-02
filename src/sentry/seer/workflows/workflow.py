@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Collection, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, assert_never
 
 from django.db import router, transaction
@@ -29,6 +31,8 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.utils import json
+
+logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
@@ -152,9 +156,7 @@ class SeerWorkflow:
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
         if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            raise WorkflowUpdateError(
-                "Breached metric projects are selected by connecting monitors"
-            )
+            raise ValueError("Use create_with_monitors for metric workflows")
 
         project_set = set(project_ids)
         all_projects = project_set == ALL_ACCESS_PROJECTS
@@ -182,6 +184,22 @@ class SeerWorkflow:
                         for project_id in sorted(project_set)
                     ]
                 )
+            transaction.on_commit(
+                partial(
+                    logger.info,
+                    "seer.workflow.created",
+                    extra={
+                        "organization_id": organization_id,
+                        "config_id": config.id,
+                        "config_version": config.version,
+                        "strategy": config.strategy,
+                        "all_projects": all_projects,
+                        "project_ids": list(project_set),
+                        "project_count": len(project_set),
+                    },
+                ),
+                using=database,
+            )
         return cls(config_id=config.id, organization_id=organization_id)
 
     def get_config(self) -> SeerWorkflowConfig:

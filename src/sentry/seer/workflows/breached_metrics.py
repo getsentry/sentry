@@ -120,66 +120,109 @@ class MetricBreachRunExtras(SeerWorkflowRunExtras):
 
 class BreachedMetricWorkflow(SeerWorkflow):
     @classmethod
-    def create(
+    def create_with_monitors(
         cls,
         organization_id: int,
         *,
         enabled: bool = False,
         environments: Sequence[str] = (),
+        monitor_ids: Sequence[int] = (),
+        name: str | None = None,
     ) -> BreachedMetricWorkflow:
         """Create an automation whose project coverage comes from connected monitors."""
-        # TODO(telkins): Wire automation creation into the API/UI using this method.
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
-        # TODO(aliu): use .create_config and make create() for base class
-        config = SeerWorkflowConfig.objects.create(
+        with cls._create_base(
             organization_id=organization_id,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
             enabled=enabled,
-            filters=SeerWorkflowFilters(environments=list(environments)).dict(),
-        )
-        return cls(config_id=config.id, organization_id=organization_id)
+            filters=SeerWorkflowFilters(environments=list(environments)),
+            name=name,
+        ) as (config, database):
+            workflow = cls(config_id=config.id, organization_id=organization_id)
+            log_context: dict[str, Any] = {}
+            if monitor_ids:
+                updated, update_fields, log_context = workflow._set_monitor_selection(
+                    config, monitor_ids
+                )
+                if updated:
+                    config.save(using=database, update_fields=[*update_fields, "date_updated"])
+            transaction.on_commit(
+                partial(
+                    logger.info,
+                    "seer.workflow.created",
+                    extra={
+                        **log_context,
+                        "organization_id": organization_id,
+                        "config_id": config.id,
+                        "config_version": config.version,
+                        "strategy": config.strategy,
+                    },
+                ),
+                using=database,
+            )
+        return workflow
 
     def set_monitor_selection(self, monitor_ids: Sequence[int]) -> None:
         """Callers must authorize and audit the change."""
         with self._lock_config() as config:
-            if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise WorkflowUpdateError("Only metric automations support monitor selection.")
-            selected = set(monitor_ids)
-            self._validate_monitors(selected)
-
-            workflow, created = self._get_or_create_backing_workflow(config)
-            existing = set(
-                DetectorWorkflow.objects.filter(workflow=workflow).values_list(
-                    "detector_id", flat=True
-                )
-            )
-            if not created and existing == selected:
+            updated, update_fields, log_context = self._set_monitor_selection(config, monitor_ids)
+            if not updated:
                 return
-            if existing != selected:
-                self._replace_monitor_connections(workflow, existing, selected)
-            # TODO(telkins): Propagate the derived projects to the automation's dedicated
-            # service account in a separate step.
 
             config.version += 1
-            config.save(update_fields=["backing_workflow", "version", "date_updated"])
+            config.save(update_fields=[*update_fields, "version", "date_updated"])
             transaction.on_commit(
                 partial(
                     logger.info,
                     "seer.workflow.monitors_updated",
                     extra={
+                        **log_context,
                         "organization_id": self.organization_id,
-                        "workflow_config_id": config.id,
-                        "workflow_id": workflow.id,
+                        "config_id": config.id,
                         "config_version": config.version,
-                        "workflow_created": created,
-                        "monitor_count": len(selected),
-                        "added_count": len(selected - existing),
-                        "removed_count": len(existing - selected),
+                        "strategy": config.strategy,
                     },
                 ),
                 using=router.db_for_write(SeerWorkflowConfig),
             )
+
+    def _set_monitor_selection(
+        self, config: SeerWorkflowConfig, monitor_ids: Sequence[int]
+    ) -> tuple[bool, list[str], dict[str, Any]]:
+        """
+        Creates a backing workflow if one does not exist and sets/replaces its connected monitors.
+        Returns whether anything changed, the config fields callers must save, and log context.
+        """
+        if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise WorkflowUpdateError("Only metric automations support monitor selection.")
+        selected = set(monitor_ids)
+        self._validate_monitors(selected)
+
+        workflow, created = self._get_or_create_backing_workflow(config)
+        existing = set(
+            DetectorWorkflow.objects.filter(workflow=workflow).values_list("detector_id", flat=True)
+        )
+        update_fields = ["backing_workflow"]
+        if not created and existing == selected:
+            return False, update_fields, {}
+
+        if existing != selected:
+            self._replace_monitor_connections(workflow, existing, selected)
+        # TODO(telkins): Propagate the derived projects to the automation's dedicated
+        # service account in a separate step.
+        return (
+            True,
+            update_fields,
+            {
+                "workflow_config_id": config.id,
+                "workflow_id": workflow.id,
+                "workflow_created": created,
+                "monitor_count": len(selected),
+                "added_count": len(selected - existing),
+                "removed_count": len(existing - selected),
+            },
+        )
 
     def accept(
         self,

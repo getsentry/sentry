@@ -27,6 +27,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowRunStatus,
+    SeerWorkflowSchedule,
     SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
 )
@@ -114,7 +115,9 @@ class BreachedMetricWorkflowTestCase(OccurrenceTestMixin, TestCase):
 @with_feature("organizations:seer-automations")
 class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
     def test_creates_config_without_projects_preserving_environment_filter(self) -> None:
-        workflow = BreachedMetricWorkflow.create(self.organization.id, environments=["production"])
+        workflow = BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id, environments=["production"]
+        )
 
         config = workflow.get_config()
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
@@ -816,6 +819,84 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         self.select_monitors(self.monitor_ids)
         self.monitors[0].update(status=ObjectStatus.PENDING_DELETION)
         assert self.has_all_projects() is False
+
+    def test_create_with_monitors_connects_monitors(self) -> None:
+        workflow = BreachedMetricWorkflow.create_with_monitors(
+            self.organization.id,
+            enabled=True,
+            environments=["production"],
+            monitor_ids=self.monitor_ids,
+            name="Latency breaches",
+        )
+
+        config = workflow.get_config()
+        assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        assert config.enabled is True
+        assert config.filters == {"all_projects": False, "environments": ["production"]}
+        assert workflow.extras.name == "Latency breaches"
+        assert config.version == 1
+        assert config.backing_workflow is not None
+        assert set(
+            config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
+        ) == set(self.monitor_ids)
+        assert set(workflow.get_project_ids()) == {monitor.project_id for monitor in self.monitors}
+
+    def test_create_with_monitors_rolls_back_on_invalid_monitor(self) -> None:
+        foreign = self.create_detector(
+            project=self.create_project(organization=self.create_organization()),  # other org
+            type=MetricIssue.slug,
+        )
+
+        with pytest.raises(ValueError, match="active metric monitors in this organization"):
+            BreachedMetricWorkflow.create_with_monitors(
+                self.organization.id, monitor_ids=[self.monitor_ids[0], foreign.id]
+            )
+
+        assert list(SeerWorkflowConfig.objects.filter(organization=self.organization)) == [
+            self.config
+        ]
+        assert not Workflow.objects.exists()
+
+    @mock.patch("sentry.seer.workflows.workflow.MAX_WORKFLOW_CONFIGS_PER_ORG", 2)
+    def test_create_with_monitors_caps_configs_per_organization(self) -> None:
+        # setUp already created one metric automation.
+        Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+
+        with pytest.raises(ValueError, match="at most 2 automations"):
+            BreachedMetricWorkflow.create_with_monitors(
+                self.organization.id, monitor_ids=self.monitor_ids
+            )
+
+        assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
+        assert not Workflow.objects.exists()
+
+    @mock.patch("sentry.seer.workflows.workflow.MAX_WORKFLOW_CONFIGS_PER_ORG", 3)
+    def test_metric_and_triage_automations_share_the_org_limit(self) -> None:
+        def create_triage() -> SeerWorkflow:
+            return SeerWorkflow.create(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                schedule=SeerWorkflowSchedule.DAILY,
+                project_ids=[],
+            )
+
+        def create_metric() -> BreachedMetricWorkflow:
+            return BreachedMetricWorkflow.create_with_monitors(
+                self.organization.id, monitor_ids=self.monitor_ids
+            )
+
+        # setUp already created one metric automation.
+        create_triage()
+        create_metric()
+
+        with pytest.raises(ValueError, match="at most 3 automations"):
+            create_triage()
+        with pytest.raises(ValueError, match="at most 3 automations"):
+            create_metric()
+
+        assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 3
 
     def test_rejects_ineligible_monitors_without_writing_graph(self) -> None:
         invalid_monitors = [
