@@ -43,9 +43,10 @@ Import from its explicit subpaths, including `@sentry/scraps/code/inlineCode`
 and `@sentry/scraps/hotkey/kbd`. The package has no root export; unlisted module
 paths remain private.
 Add an entry only when its runtime and type dependencies belong to the package
-or are declared dependencies. App stories cover more components than this API;
-for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is
-isolated. Published consumers have no fallback to app components.
+or are declared dependencies. Both `Hotkey` and `Kbd` are isolated and exported
+from `@sentry/scraps/hotkey`; `Kbd` also has its own `@sentry/scraps/hotkey/kbd`
+entry point. App stories cover more components than this API. Published consumers
+have no fallback to app components.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.
