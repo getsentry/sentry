@@ -36,7 +36,12 @@ def test_investigation_schema_selects_only_private_frontend_routes() -> None:
     selected = investigation_endpoints(endpoints)
     assert selected
     assert all(
-        path.startswith("/api/0/organizations/{organization_id_or_slug}/investigations/")
+        path.startswith(
+            (
+                "/api/0/organizations/{organization_id_or_slug}/investigations/",
+                "/api/0/organizations/{organization_id_or_slug}/notebooks/",
+            )
+        )
         for path, _regex, _method, _callback in selected
     )
     assert all(
@@ -301,6 +306,48 @@ class SummaryUniquenessTest(TestCase):
         }
         # Should not raise.
         custom_postprocessing_hook(result, None)
+
+
+class MapRequestBodyTest(TestCase):
+    """A body keyed by arbitrary strings documents the fields of its values."""
+
+    def _result(self, value_properties: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "components": {"schemas": {}},
+            "paths": {
+                "/api/0/assemble/": {
+                    "post": {
+                        "tags": ["Events"],
+                        "description": "An endpoint",
+                        "operationId": "assemble",
+                        "parameters": [],
+                        "requestBody": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type": "object",
+                                            "properties": value_properties,
+                                        },
+                                    }
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+        }
+
+    def test_undescribed_value_field_raises(self) -> None:
+        with pytest.raises(SentryApiBuildError, match="'name' is missing a description"):
+            custom_postprocessing_hook(self._result({"name": {"type": "string"}}), None)
+
+    def test_described_value_fields_pass(self) -> None:
+        # Should not raise.
+        custom_postprocessing_hook(
+            self._result({"name": {"type": "string", "description": "The file name."}}), None
+        )
 
 
 class FixIssueRoutesTest(TestCase):

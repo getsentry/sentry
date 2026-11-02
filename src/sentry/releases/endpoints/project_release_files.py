@@ -17,6 +17,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import BaseEndpointMixin, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.helpers.releases import ensure_access_to_release_projects
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.release_file import ReleaseFileSerializerResponse
@@ -368,6 +369,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             )
         except Release.DoesNotExist:
             raise ResourceDoesNotExist
+        ensure_access_to_release_projects(request, release)
 
         logger = logging.getLogger("sentry.files")
         logger.info("projectreleasefile.start")

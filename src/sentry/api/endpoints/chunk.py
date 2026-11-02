@@ -2,11 +2,13 @@ import logging
 import re
 from gzip import BadGzipFile, GzipFile
 from io import BytesIO
+from typing import TypedDict
 
 import zstandard
 from django.conf import settings
 from django.urls import reverse
-from rest_framework import status
+from drf_spectacular.utils import extend_schema
+from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -16,6 +18,15 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationReleasePermission
 from sentry.api.utils import generate_locality_url
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_SUCCESS,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.utils import MAX_FILE_SIZE
 from sentry.models.organization import Organization
@@ -126,11 +137,40 @@ class ChunkUploadPermission(OrganizationReleasePermission):
         return super().has_object_permission(request, view, organization)
 
 
+class ChunkUploadOptionsResponse(TypedDict):
+    url: str
+    chunkSize: int
+    chunksPerRequest: int
+    maxFileSize: int
+    maxRequestSize: int
+    concurrency: int
+    hashAlgorithm: str
+    compression: list[str]
+    accept: list[str]
+
+
+# Only describes the multipart body in the OpenAPI schema; the endpoint reads
+# ``request.FILES`` directly.
+class ChunkUploadSerializer(serializers.Serializer):
+    file = serializers.ListField(
+        child=serializers.FileField(),
+        help_text=(
+            "The chunks to upload. Name each part after the SHA-1 checksum of its uncompressed "
+            "content. Repeat the field for each chunk, up to `chunksPerRequest` per request."
+        ),
+    )
+
+
+class _ChunkUploadErrorResponse(TypedDict):
+    error: str
+
+
+@extend_schema(tags=["Organizations"])
 @cell_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-        "POST": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     # Blobs are unique per checksum, so resending a chunk leaves the same single blob.
     idempotent_methods = frozenset({"POST"})
@@ -143,11 +183,25 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
     permission_classes = (ChunkUploadPermission,)
     rate_limits = RateLimitConfig(group="CLI")
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="getOrganizationChunkUploadOptions",
+        summary="Retrieve Chunk Upload Options",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        responses={
+            200: inline_sentry_response_serializer(
+                "ChunkUploadOptionsResponse", ChunkUploadOptionsResponse
+            ),
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[ChunkUploadOptionsResponse]:
         """
-        Return chunk upload parameters
-        ``````````````````````````````
-        :auth: required
+        Return the URL and limits to use when uploading file chunks, such as the chunk size,
+        the number of chunks per request, and the supported compression.
         """
         endpoint = options.get("system.upload-url-prefix")
         relative_url = reverse("sentry-api-0-chunk-upload", args=[organization.slug])
@@ -193,7 +247,7 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             if organization.id in options.get("chunk-upload.no-compression")
             else list(CHUNK_UPLOAD_COMPRESSION)
         )
-        accept = CHUNK_UPLOAD_ACCEPT
+        accept = list(CHUNK_UPLOAD_ACCEPT)
 
         # Sentry CLI versions ≤2.39.1 require "chunkSize" to be a power of two, and will error otherwise,
         # with no way for the user to work around the error. This restriction has been removed from
@@ -214,23 +268,30 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
             }
         )
 
-    def post(self, request: Request, organization) -> Response:
+    @extend_schema(
+        operation_id="uploadOrganizationChunks",
+        summary="Upload File Chunks",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        request={"multipart/form-data": ChunkUploadSerializer},
+        responses={
+            200: RESPONSE_SUCCESS,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def post(
+        self, request: Request, organization
+    ) -> Response[None] | Response[_ChunkUploadErrorResponse]:
         """
-        Upload chunks and store them as FileBlobs
-        `````````````````````````````````````````
-        Requests to this endpoint should use the region-specific domain
-        eg. `us.sentry.io` or `de.sentry.io`
+        Upload file chunks so they can be assembled into debug information files or artifact
+        bundles. Send requests to the URL from the chunk upload options, which uses the
+        region-specific domain (for example `us.sentry.io` or `de.sentry.io`).
 
-        Chunks may be compressed with ``gzip`` or ``zstd``. Codec is selected
-        via the ``Content-Encoding`` request header; the legacy ``file_gzip``
-        multipart field is still accepted but cannot be combined with the
-        header.
-
-        :pparam file file: The filename should be sha1 hash of the content.
-                            Also not you can add up to MAX_CHUNKS_PER_REQUEST files
-                            in this request.
-
-        :auth: required
+        Chunks may be compressed with one of the codecs listed in the options. Select it with
+        the `Content-Encoding` request header. Resending a chunk is safe: chunks are stored
+        by checksum, so an identical upload changes nothing.
         """
         # Create a unique instance so our logger can be decoupled from the request
         # and used in threads.

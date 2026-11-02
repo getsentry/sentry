@@ -115,6 +115,20 @@ For example, `24h`, to mean query data starting from 24 hours ago to now.""",
         type=OpenApiTypes.DATETIME,
         description="The end of the period of time for the query, expected in ISO-8601 format. For example, `2001-12-14T12:34:56.7890`.",
     )
+    STATS_PERIOD_START = OpenApiParameter(
+        name="statsPeriodStart",
+        location="query",
+        required=False,
+        type=str,
+        description="""How long ago the query period starts, in the same format as `statsPeriod`. Must be sent with `statsPeriodEnd`, and is ignored when `statsPeriod` is sent.""",
+    )
+    STATS_PERIOD_END = OpenApiParameter(
+        name="statsPeriodEnd",
+        location="query",
+        required=False,
+        type=str,
+        description="""How long ago the query period ends, in the same format as `statsPeriod`. Must be sent with `statsPeriodStart`, and is ignored when `statsPeriod` is sent.""",
+    )
     ENVIRONMENT = OpenApiParameter(
         name="environment",
         location="query",
@@ -1082,6 +1096,20 @@ class EventParams:
         description="The ID of the event to retrieve, or 'latest', 'oldest', or 'recommended'.",
         required=True,
         enum=["latest", "oldest", "recommended"],
+    )
+
+    EVENT_DETAILS_COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location=OpenApiParameter.QUERY,
+        required=False,
+        type=OpenApiTypes.STR,
+        many=True,
+        enum=["adjacentEvents"],
+        description=(
+            "Parts of the response to skip computing. Specify `adjacentEvents` to skip looking up "
+            "the neighboring events in the issue; `nextEventID` and `previousEventID` are then "
+            "always `null`. Unknown values are ignored."
+        ),
     )
 
     FULL_PAYLOAD = OpenApiParameter(

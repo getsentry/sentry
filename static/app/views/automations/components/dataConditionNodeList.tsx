@@ -229,4 +229,4 @@ const frequencyTypeMapping: Partial<Record<DataConditionType, DataConditionType>
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

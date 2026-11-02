@@ -73,7 +73,7 @@ class ReleaseSerializer(serializers.Serializer):
         child=CommitSerializer(),
         required=False,
         allow_null=False,
-        help_text="An optional list of commit data to be associated.",
+        help_text="An optional list of commit data to be associated. Very long lists are truncated to the most recent commits.",
     )
 
     status = serializers.CharField(

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
@@ -15,6 +16,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry import features, options
 from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import (
@@ -31,6 +33,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
@@ -49,6 +52,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -90,6 +94,12 @@ class OrganizationPermission(DemoSafePermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
+    # Stop accepting `settings.DEPRECATED_SCOPES` in orgs with granular scopes while the
+    # deprecated scope translation is enabled. Members get the replacements from the granular
+    # roles, and tokens holding a deprecated scope get them from the translation. Only opt in
+    # once every deprecated scope in `scope_map` has a translated replacement that the granular
+    # roles grant and this permission accepts.
+    rejects_deprecated_scopes = False
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -139,8 +149,30 @@ class OrganizationPermission(DemoSafePermission):
             if not has_staff_perm:
                 raise SuperuserRequired(orgSlug=org_slug)
 
-        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        allowed_scopes = self.get_allowed_scopes(request, organization)
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def get_allowed_scopes(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> set[str]:
+        """The scopes that grant access to `organization` for the request's method."""
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        if self.rejects_deprecated_scopes and self._deprecated_scopes_retired(organization):
+            allowed_scopes -= settings.DEPRECATED_SCOPES
+        return allowed_scopes
+
+    def _deprecated_scopes_retired(
+        self, organization: Organization | RpcOrganization | RpcUserOrganizationContext
+    ) -> bool:
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
+        # TODO: Remove deprecated scopes from opted-in scope maps once the translation is
+        # enabled everywhere.
+        return options.get("auth.deprecated-scope-translation.enabled") and features.has(
+            "organizations:granular-permission-scopes", organization
+        )
 
     def is_member_disabled_from_limit(
         self,
@@ -372,7 +404,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             # don't check the visibility in `get_organization_by_slug` either (only_active=False).
             organization_context = organization_service.get_organization_by_id(
                 id=int(organization_id_or_slug),
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
@@ -380,7 +412,7 @@ class ControlSiloOrganizationEndpoint(Endpoint):
             organization_context = organization_service.get_organization_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 include_projects=self.include_organization_projects,
                 include_teams=self.include_organization_teams,
             )
@@ -877,10 +909,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         has_valid_agent_auth = (
             agent_auth is not None and agent_auth.organization_id == organization.id
         )
+        has_valid_service_account_auth = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == organization.id
+        )
 
         if not (
             has_valid_api_key
             or has_valid_agent_auth
+            or has_valid_service_account_auth
             or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
@@ -916,11 +953,14 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         Agent requests bypass the cache so every call rechecks live project membership.
+        Service accounts bypass it too. With no user, they'd fall into the
+        `apikey:<entity_id>` key below, where a service account ID can match an
+        API key ID.
         """
         actor_id = None
         has_perms = None
         key = None
-        if not is_agent_auth(request.auth):
+        if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
                 actor_id = "user:%s" % request.user.id
             elif request.auth is not None:

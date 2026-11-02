@@ -66,6 +66,18 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
+### Request Principals
+
+`request.user` is whoever is calling: a user, an agent acting for one, a service account, or anonymous. Don't assume a `User`, and don't read `request.user.id`. Use `sentry.auth.principal`:
+
+- `acting_user_id(request.user)`: the user behind the call (an agent's is the user it acts for), or None. Handle None.
+- `has_user(request.user)`: whether there is one; narrows to `User | RpcUser`.
+- `require_user(request)`: the user, or `UserRequired` (403) if there is none. For one user-only path in a shared endpoint.
+- `requires_user = True` on an endpoint: the same check for the whole endpoint.
+- `set_request_principal(request, user, auth)`: the only place `request.user` and `request.auth` are set.
+
+A service account is a `ServiceAccountPrincipal`: no user; its access is `request.access`. Personal state (bookmarks, "is this mine?") needs a user; "who did this" fields record None. Never look rows up by a possibly-None user id: `filter(user_id=None)` matches rows with no user (S032).
+
 ### Permissions
 
 ```python

@@ -2527,7 +2527,6 @@ class OrganizationTraceItemAttributeValuesEndpointSpansTest(
             "span_id",
             "parent_span",
             "parent_span_id",
-            "trace",
             "trace_id",
             "transaction.id",
             "transaction_id",

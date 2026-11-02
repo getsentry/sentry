@@ -33,6 +33,19 @@ describe('SplitPanel', () => {
     expect(screen.getByRole('separator')).toBeInTheDocument();
   });
 
+  it('makes the divider inert when not resizable', () => {
+    render(
+      <SplitPanel
+        defaultSize={200}
+        resizable={false}
+        sized={<div>sized</div>}
+        fill={<div>fill</div>}
+      />
+    );
+
+    expect(screen.getByRole('separator', {hidden: true})).toHaveAttribute('inert');
+  });
+
   it('renders only the sized pane (no divider) when fill is omitted', () => {
     render(<SplitPanel defaultSize={200} sized={<div>sized</div>} />);
 

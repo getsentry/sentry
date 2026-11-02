@@ -19,6 +19,7 @@ from sentry.api.authentication import (
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
 )
+from sentry.auth.principal import set_request_principal
 from sentry.users.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
 
@@ -68,7 +69,7 @@ class AuthenticationMiddleware(MiddlewareMixin):
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
-            request.user, request.auth = AnonymousUser(), None
+            set_request_principal(request, AnonymousUser(), None)
             return
 
         auth = get_authorization_header(request).split()
@@ -83,10 +84,12 @@ class AuthenticationMiddleware(MiddlewareMixin):
                 except AuthenticationFailed:
                     result = None
                 if result:
-                    request.user, request.auth = result
+                    set_request_principal(request, *result)
                 else:
                     # default to anonymous user and use IP ratelimit
-                    request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type:ignore[assignment]
+                    set_request_principal(
+                        request, SimpleLazyObject(lambda: get_user(request)), None
+                    )
                 return
 
         # Try viewer context authentication (signed headers from trusted services)
@@ -95,11 +98,11 @@ class AuthenticationMiddleware(MiddlewareMixin):
         except AuthenticationFailed:
             result = None
         if result:
-            request.user, request.auth = result
+            set_request_principal(request, *result)
             return
 
         # default to anonymous user and use IP ratelimit
-        request.user, request.auth = SimpleLazyObject(lambda: get_user(request)), None  # type:ignore[assignment]
+        set_request_principal(request, SimpleLazyObject(lambda: get_user(request)), None)
 
     def process_exception(
         self, request: HttpRequest, exception: Exception

@@ -259,6 +259,20 @@ const issueActivities = [
     title: '#5678',
     new: false,
   }),
+  activity(GroupActivityType.UNLINK_EXTERNAL_ISSUE, {
+    external_issue_key: 'example/repository#1234',
+    provider: 'github',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-42',
+    service_type: 'linear',
+    web_url: 'https://linear.app/example/issue/APP-42',
+  }),
+  activity(GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE, {
+    display_name: 'example#APP-43',
+    service_type: 'example',
+    web_url: '',
+  }),
   activity(GroupActivityType.MERGE, {issues: [{id: '2'}, {id: '3'}]}),
   activity(GroupActivityType.UNMERGE_SOURCE, {
     fingerprints: ['one', 'two'],

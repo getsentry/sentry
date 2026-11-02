@@ -845,6 +845,12 @@ urlpatterns += [
         react_page_view,
         name="issues",
     ),
+    # Inbox
+    re_path(
+        r"^inbox/",
+        react_page_view,
+        name="inbox",
+    ),
     # Alerts
     re_path(
         r"^alerts/",

@@ -61,7 +61,11 @@ def run_main(
     total: int,
     group: int,
     exit_code: pytest.ExitCode = pytest.ExitCode.OK,
+    durations: dict[str, object] | None = None,
 ) -> tuple[int, list[tuple[object, ...]]]:
+    durations_file = tmp_path / "durations.json"
+    if durations is not None:
+        durations_file.write_text(json.dumps(durations))
     selected_file = tmp_path / "selected-tests.txt"
     selected_file.write_text("".join(f"{path}\n" for path in selected))
     if counts:
@@ -78,7 +82,11 @@ def run_main(
         "TOTAL_TEST_GROUPS": str(total),
         "TEST_GROUP": str(group),
     }
-    with mock.patch.dict(os.environ, env), mock.patch.object(pytest, "main", fake_main):
+    with (
+        mock.patch.dict(os.environ, env),
+        mock.patch.object(_mod, "DURATIONS_FILE", durations_file),
+        mock.patch.object(pytest, "main", fake_main),
+    ):
         return main(["tests", "-q"]), calls
 
 
@@ -102,6 +110,55 @@ class TestMain:
     def test_empty_shard_is_not_a_failure(self, tmp_path: Path) -> None:
         exit_code, _ = run_main(
             tmp_path, ["a.py", "b.py"], {}, 2, 0, exit_code=pytest.ExitCode.NO_TESTS_COLLECTED
+        )
+        assert exit_code == 0
+
+    def test_balances_by_duration_and_slices_slow_files(self, tmp_path: Path) -> None:
+        # By test count slow.py would get one shard of its own. By duration it
+        # is cut into a piece per shard, and the small files fill in around them.
+        durations = {
+            "seconds_per_test": 1.0,
+            "files": {"tests/a.py": 1.0, "tests/b.py": 1.0, "tests/slow.py": 20.0},
+        }
+        with mock.patch.object(_mod, "SELECTED_PIECES_PER_SHARD", 1):
+            plans = [
+                run_main(
+                    tmp_path,
+                    ["tests/a.py", "tests/b.py", "tests/slow.py"],
+                    {"tests/a.py": 1, "tests/b.py": 1, "tests/slow.py": 2},
+                    3,
+                    group,
+                    durations=durations,
+                )
+                for group in range(3)
+            ]
+        shards = [
+            (tmp_path / f"selected-tests.shard-{group}.txt").read_text().split()
+            for group in range(3)
+        ]
+        parts = [
+            json.loads((tmp_path / f"selected-tests.shard-{group}.json").read_text())
+            for group in range(3)
+        ]
+        assert all(exit_code == 0 for exit_code, _ in plans)
+        assert sorted(map(sorted, shards)) == [
+            ["tests/a.py", "tests/slow.py"],
+            ["tests/b.py", "tests/slow.py"],
+            ["tests/slow.py"],
+        ]
+        assert sorted(tuple(p["tests/slow.py"]) for p in parts) == [(0, 3), (1, 3), (2, 3)]
+        # Every shard runs its own file list, unsplit by the sentry plugin.
+        assert [call[2:] for _, calls in plans for call in calls] == [("1", "0")] * 3
+
+    def test_empty_duration_shard_is_not_a_failure(self, tmp_path: Path) -> None:
+        exit_code, _ = run_main(
+            tmp_path,
+            ["tests/a.py", "tests/b.py"],
+            {},
+            2,
+            0,
+            exit_code=pytest.ExitCode.NO_TESTS_COLLECTED,
+            durations={"seconds_per_test": 1.0, "files": {"tests/a.py": 1.0, "tests/b.py": 1.0}},
         )
         assert exit_code == 0
 

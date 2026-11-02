@@ -170,3 +170,15 @@ class BaseMonitorStatsTest(MonitorTestCase):
         assert hour_two["error"] == 0
         assert hour_two["timeout"] == 0
         assert hour_two["unknown"] == 0
+
+    def test_bucket_limit(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            self.monitor.slug,
+            **{
+                "since": 0,
+                "until": self.until.timestamp(),
+                "resolution": "10s",
+            },
+            status_code=400,
+        )

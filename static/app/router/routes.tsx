@@ -1910,7 +1910,6 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/alerts/builder/projectProvider')),
       children: [
         {
           index: true,
@@ -2793,7 +2792,7 @@ function buildRoutes(): RouteObject[] {
         },
         {
           path: 'runs/',
-          component: make(() => import('sentry/views/seerWorkflows/runs')),
+          component: make(() => import('sentry/views/seerWorkflows/automations/runs')),
         },
       ],
     },
@@ -3081,6 +3080,23 @@ function buildRoutes(): RouteObject[] {
     },
     traceView,
   ];
+  const inboxRoutes: SentryRouteObject = {
+    path: '/inbox/',
+    withOrgPath: true,
+    component: make(() => import('sentry/views/inbox')),
+    children: [
+      {
+        index: true,
+      },
+      {
+        path: 'issue/:id/',
+      },
+      {
+        path: 'notebook/:id/',
+      },
+    ],
+  };
+
   const issueRoutes: SentryRouteObject = {
     path: '/issues/',
     withOrgPath: true,
@@ -3298,6 +3314,7 @@ function buildRoutes(): RouteObject[] {
       projectsRoutes,
       dashboardRoutes,
       feedbackv2Routes,
+      inboxRoutes,
       issueRoutes,
       alertRoutes,
       monitorRoutes,

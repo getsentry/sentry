@@ -2757,6 +2757,16 @@ register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register(
+    "hybridcloud.integrationproxy.retry_max_sleep",
+    default=60,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "hybridcloud.integrationproxy.respect_retry_after",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "hybridcloud.rpc.method_retry_overrides",
     default={},
     flags=FLAG_AUTOMATOR_MODIFIABLE,
@@ -4100,6 +4110,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Maximum number of commits associated with a release in one set_commits call.
+# Longer lists keep only the newest commits.
+register(
+    "releases.set-commits.max-commits",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Secret Scanning. Allows to temporarily disable signature verification.
 register(
     "secret-scanning.github.enable-signature-verification",
@@ -4705,9 +4724,10 @@ register(
 # Number of `ArtifactBundleIndex` rows the source map debugger reads at most to match the frames
 # of an event to the files of its release by URL. When set, it reads once per request the URLs of
 # the release's newest bundles, as many bundles as fit in this many rows and always the newest
-# one, up to this many rows, instead of looking up each URL in the `(url, artifact_bundle_id)`
-# index. Files only found in older bundles, or beyond the rows read, are then reported as not
-# found. 0 keeps the index lookups.
+# one, up to this many rows, instead of looking up each URL in all the release's bundles. Files
+# only found in older bundles, or beyond the rows read, are then reported as not found. 0 keeps
+# the per-URL lookups, which have no index on `url` since the `(url, artifact_bundle_id)` index
+# was dropped.
 register(
     "sourcemaps.source-map-debug.url-match-max-index-rows",
     default=0,
@@ -4753,14 +4773,5 @@ register(
     "integrations.client.disable_retries",
     default=False,
     type=Bool,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether to query legacy debug/code IDS during debug file lookup.
-# This is a per-request rollout rate.
-register(
-    "debug-files.query-legacy-ids.rollout-rate",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

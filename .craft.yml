@@ -1,7 +1,9 @@
-minVersion: '3.3.0'
+minVersion: '3.7.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
+    postReleaseBump:
+      version: '{{version}}.dev0'
     releaseBranchPrefix: releases
     changelog:
       filePath: CHANGES

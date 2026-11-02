@@ -22,7 +22,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
-import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {JsonFormAdapterChoiceValue, JsonFormAdapterFieldConfig} from './types';
 import {
@@ -382,6 +381,13 @@ export function BackendJsonSubmitForm({
                       );
                     case 'select':
                     case 'choice': {
+                      const rawValue = fieldApi.state.value;
+                      const multipleValue = Array.isArray(rawValue)
+                        ? rawValue
+                        : rawValue === undefined || rawValue === null || rawValue === ''
+                          ? []
+                          : [rawValue as JsonFormAdapterChoiceValue];
+
                       if (field.url || customAsyncQueryOptions?.[field.name]) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
@@ -446,10 +452,7 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={
-                                  (fieldApi.state
-                                    .value as JsonFormAdapterChoiceValue[]) ?? []
-                                }
+                                value={multipleValue}
                                 onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                   handleChange(value)
                                 }
@@ -503,10 +506,7 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={
-                                (fieldApi.state.value as JsonFormAdapterChoiceValue[]) ??
-                                []
-                              }
+                              value={multipleValue}
                               onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                 handleChange(value)
                               }
@@ -608,25 +608,6 @@ export function BackendJsonSubmitForm({
                             value={tableValue}
                             onUpdate={handleChange}
                             onSave={() => {}}
-                            disabled={!!disabledProp}
-                          />
-                        </Stack>
-                      );
-                    }
-                    case 'project_mapper': {
-                      const mapperValue = fieldApi.state.value as Array<[number, string]>;
-                      return (
-                        <Stack flexGrow={1} gap="xl">
-                          <ProjectMapperTable
-                            config={field}
-                            value={mapperValue}
-                            onDelete={handleChange}
-                            disabled={!!disabledProp}
-                          />
-                          <ProjectMapperAddRow
-                            config={field}
-                            value={mapperValue}
-                            onAdd={handleChange}
                             disabled={!!disabledProp}
                           />
                         </Stack>
