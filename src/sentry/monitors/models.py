@@ -4,7 +4,7 @@ import logging
 import uuid
 import zoneinfo
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from functools import cache
 from typing import TYPE_CHECKING, ClassVar, Self, override
 from uuid import uuid4
@@ -353,7 +353,8 @@ class Monitor(Model):
         """
         from sentry.monitors.utils import get_checkin_margin
 
-        next_checkin = self.get_next_expected_checkin(last_checkin)
+        # Add the margin in UTC: local wall-clock arithmetic drops the DST fold
+        next_checkin = self.get_next_expected_checkin(last_checkin).astimezone(UTC)
         return next_checkin + get_checkin_margin(self.config.get("checkin_margin"))
 
     def update_config(self, config_payload, validated_config):

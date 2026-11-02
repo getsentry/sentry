@@ -71,6 +71,28 @@ class MonitorTestCase(TestCase):
             2019, 1, 1, 1, 16, tzinfo=timezone.utc
         )
 
+    def test_next_run_latest_crontab_during_dst_fold(self) -> None:
+        # Europe/Berlin repeats 02:00-02:59 local time on 2024-10-27 from 01:00 UTC
+        ts = datetime(2024, 10, 27, 1, 0, 3, tzinfo=timezone.utc)
+        monitor = Monitor(
+            config={
+                "schedule_type": ScheduleType.CRONTAB,
+                "schedule": "* * * * *",
+                "timezone": "Europe/Berlin",
+                "checkin_margin": 5,
+                "max_runtime": None,
+            }
+        )
+        monitor_environment = MonitorEnvironment(monitor=monitor, last_checkin=ts)
+
+        # PEP 495: inter-zone == is always False for a time with fold=1
+        assert monitor_environment.monitor.get_next_expected_checkin(ts).astimezone(
+            timezone.utc
+        ) == datetime(2024, 10, 27, 1, 1, tzinfo=timezone.utc)
+        assert monitor_environment.monitor.get_next_expected_checkin_latest(ts) == datetime(
+            2024, 10, 27, 1, 6, tzinfo=timezone.utc
+        )
+
     def test_next_run_crontab_with_timezone(self) -> None:
         ts = datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc)
         monitor = Monitor(
