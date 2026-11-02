@@ -149,6 +149,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
+from sentry.utils.action_log.activity_translator import sync_activity_log_entry
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.circuit_breaker import (
@@ -1853,29 +1854,24 @@ def _handle_regression(
             # if we had to remove the GroupResolution (i.e. we beat the
             # the queue to handling this) then we need to also record
             # the corresponding event
-            try:
-                resolved_in_activity = Activity.objects.filter(
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                    ident=resolution.id,
-                ).order_by("-datetime")[0]
-            except IndexError:
-                # XXX: handle missing data, as its not overly important
-                pass
-            else:
-                try:
-                    # We should only update last activity version prior to the regression in the
-                    # case where we have "Resolved in upcoming release" i.e. version == ""
-                    # We also should not override the `data` attribute here because it might have
-                    # a `current_release_version` for semver releases and we wouldn't want to
-                    # lose that
-                    if resolved_in_activity.data["version"] == "":
-                        resolved_in_activity.update(
-                            data={**resolved_in_activity.data, "version": release.version}
-                        )
-                except KeyError:
-                    # Safeguard in case there is no "version" key. However, should not happen
-                    resolved_in_activity.update(data={"version": release.version})
+            with transaction.atomic(using=router.db_for_write(Activity), savepoint=False):
+                resolved_in_activity = (
+                    Activity.objects.select_for_update(no_key=True)
+                    .filter(
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                        ident=resolution.id,
+                    )
+                    .order_by("-datetime")
+                    .first()
+                )
+                if resolved_in_activity is not None:
+                    data = resolved_in_activity.data or {}
+                    # Fill an upcoming/missing version without replacing a known
+                    # release or dropping metadata such as current_release_version.
+                    if data.get("version", "") == "":
+                        resolved_in_activity.update(data={**data, "version": release.version})
+                        sync_activity_log_entry(resolved_in_activity)
 
             # Record how we compared the two releases
             follows_semver = follows_semver_versioning_scheme(

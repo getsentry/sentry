@@ -26,13 +26,16 @@ class GroupActionLogEntryManager(BaseManager["GroupActionLogEntry"]):
 @cell_silo_model
 class GroupActionLogEntry(Model):
     """
-    Append-only log of actions taken on a Group.
+    Append-only action history with controlled corrections for legacy mirrors.
 
     Each entry records who did what, when, with optional structured payload.
     Ordered by (group_id, date_added, id).
 
-    **Do not create or update rows directly.** Use the helpers in
-    ``sentry.issues.action_log`` instead.
+    **Do not create or update rows directly.** Use the publishing/backfill helpers
+    in ``sentry.issues.action_log``. For legacy Activity release-version corrections
+    and reprocessing relocation, use ``sync_activity_log_entry`` in
+    ``sentry.utils.action_log.activity_translator``; it preserves event identity
+    and attribution rather than appending a duplicate action.
     """
 
     objects: ClassVar[GroupActionLogEntryManager] = GroupActionLogEntryManager()

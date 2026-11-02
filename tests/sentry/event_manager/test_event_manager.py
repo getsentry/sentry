@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from contextlib import AbstractContextManager, nullcontext
 from datetime import UTC, datetime, timedelta
 from time import time
 from typing import Any
@@ -46,6 +47,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.grouping.utils import hash_from_values
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.incidents.grouptype import MetricIssue
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -58,6 +60,7 @@ from sentry.issues.grouptype import (
     PerformanceSlowDBQueryGroupType,
 )
 from sentry.issues.issue_occurrence import IssueEvidence
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
@@ -89,12 +92,14 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     TestCase,
 )
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.helpers.usage_accountant import usage_accountant_backend
 from sentry.testutils.issue_detection.event_generators import get_event
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
@@ -151,6 +156,57 @@ def test_generic_event_promotes_pending_attachments(
         group_id=None,
         source="save_generic_events",
     )
+
+
+@django_db_all
+@pytest.mark.parametrize("drain", [outbox_runner, nullcontext], ids=["delivered", "pending"])
+@pytest.mark.parametrize(
+    "data, expected_version",
+    [({"version": ""}, "b"), ({}, "b"), ({"version": "a"}, "a")],
+    ids=["upcoming", "missing", "known"],
+)
+def test_regression_syncs_resolution_mirror(
+    factories: Factories,
+    default_project: Project,
+    drain: Callable[[], AbstractContextManager[None]],
+    data: dict[str, str],
+    expected_version: str,
+) -> None:
+    old_release = factories.create_release(
+        project=default_project, version="a", date_added=before_now(hours=1)
+    )
+    release = factories.create_release(project=default_project, version="b")
+    group = factories.create_group(
+        project=default_project,
+        status=GroupStatus.RESOLVED,
+        substatus=None,
+        active_at=before_now(minutes=5),
+    )
+    resolution = factories.create_group_resolution(
+        group=group, release=old_release, type=GroupResolution.Type.in_next_release
+    )
+    with (
+        Feature("projects:issue-action-log-write-to-db"),
+        action_context_scope(source=ActionSource.WEB, actor=SYSTEM_ACTOR),
+        drain(),
+        outbox_context(flush=False),
+    ):
+        activity = factories.create_group_activity(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={**data, "current_release_version": "a"},
+        )
+    event = Event(project_id=default_project.id, event_id="a" * 32, data={"timestamp": time()})
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR), outbox_runner():
+        assert _handle_regression(group, event, release)
+
+    activity.refresh_from_db()
+    entry = GroupActionLogEntry.objects.get(idempotency_key=f"activity:{activity.id}")
+    assert activity.data == {"version": expected_version, "current_release_version": "a"}
+    assert entry.data["version"] == expected_version
+    assert entry.data["current_release_version"] == "a"
+    assert entry.source == ActionSource.WEB
 
 
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
