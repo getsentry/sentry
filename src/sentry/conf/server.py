@@ -1739,6 +1739,10 @@ SENTRY_QUOTA_OPTIONS: dict[str, str] = {}
 SENTRY_PARTNERSHIPS = "sentry.partnerships.Partnership"
 SENTRY_PARTNERSHIP_OPTIONS: dict[str, str] = {}
 
+# Seer credit backend
+SENTRY_SEER_CREDIT = "sentry.seer_credit.SeerCredit"
+SENTRY_SEER_CREDIT_OPTIONS: dict[str, str] = {}
+
 # Cache for Relay project configs
 SENTRY_RELAY_PROJECTCONFIG_CACHE = "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache"
 SENTRY_RELAY_PROJECTCONFIG_CACHE_OPTIONS: dict[str, str] = {}
