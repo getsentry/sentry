@@ -3008,7 +3008,6 @@ class ReviewReactionTest(TestCase):
         mock_capture.assert_called_once()
 
 
-
 class BuildReviewFeedbackTest(TestCase):
     def _review_comment(self, unique_id: str | None) -> ReviewComment:
         return {
