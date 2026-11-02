@@ -7,6 +7,7 @@ import {type WidgetQuery} from 'sentry/views/dashboards/types';
 import {transformTimeSeriesResponse} from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
 
 function formatMetricsTimeseriesLabel({
   widgetQuery,
@@ -63,6 +64,10 @@ export const traceMetricsResponseTransforms: Pick<
   transformTimeSeries: (data, widget, queryIndex) =>
     transformTimeSeriesResponse(data, widget, queryIndex, {
       getSeriesName: (timeSeries, widgetQuery) =>
-        formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+        formatTimeSeriesName({
+          ...timeSeries,
+          yAxis: formatMetricsTimeseriesLabel({widgetQuery, timeSeries}),
+          groupBy: [],
+        }),
     }),
 };
