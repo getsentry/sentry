@@ -88,7 +88,10 @@ function FilterValue({
       ) {
         return;
       }
+      // A rejected value leaves the editor without closing it, so mark it closed
+      // here too. Otherwise a pending filter is never treated as left.
       setEditSource(false);
+      onActiveChange(false);
     },
   });
 
@@ -165,20 +168,31 @@ function FilterDelete({
   const {dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
+  // Item keys are positional, so after a press removes the filter this button is
+  // reused for the next filter, and the click from that press must not remove it.
+  const removedOnPressRef = useRef(false);
 
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
       onPointerDown={e => {
+        removedOnPressRef.current = false;
         // Remove a pending filter on press. The press closes its value editor and
         // re-renders the filter, and the click that follows can miss this button,
         // leaving the filter behind without a value.
         if (isPending && e.button === 0) {
           e.preventDefault();
+          removedOnPressRef.current = true;
           dispatch({type: 'DELETE_TOKEN', token});
         }
       }}
-      onClick={() => {
+      onClick={e => {
+        const removedOnPress = removedOnPressRef.current;
+        removedOnPressRef.current = false;
+        // Keyboard clicks (detail 0) have no press, so they always remove
+        if (removedOnPress && e.detail > 0) {
+          return;
+        }
         dispatch({type: 'DELETE_TOKEN', token});
       }}
       disabled={disabled}

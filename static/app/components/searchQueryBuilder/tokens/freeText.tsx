@@ -384,7 +384,8 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, dispatch, handleSearch} = useSearchQueryBuilderState();
+  const {query, committedQuery, dispatch, handleSearch, pendingFilterKey} =
+    useSearchQueryBuilderState();
   const {
     filterKeys,
     getFieldDefinition,
@@ -754,7 +755,8 @@ function SearchQueryBuilderInputInternal({
 
           // if we haven't changed anything, just search
           if (value.trim() === trimmedTokenValue) {
-            handleSearch(query);
+            // The draft query holds a pending filter's placeholder value
+            handleSearch(pendingFilterKey ? committedQuery : query);
             return;
           }
 

@@ -5523,6 +5523,81 @@ describe('SearchQueryBuilder', () => {
             );
           }
         );
+
+        it('does not keep the placeholder value when the operator is changed to "is"', async () => {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...durationProps}
+              filterKeys={{count: {key: 'count', name: 'count'}}}
+              fieldDefinitionGetter={() => ({
+                valueType: FieldValueType.NUMBER,
+                kind: FieldKind.FIELD,
+              })}
+              onChange={mockOnChange}
+            />
+          );
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'count'}));
+          await screen.findByRole('row', {name: 'count:>'});
+
+          await userEvent.click(
+            screen.getByRole('button', {
+              name: 'Edit operator for filter: count',
+              hidden: true,
+            })
+          );
+          await userEvent.click(await screen.findByRole('option', {name: 'is'}));
+          await userEvent.keyboard('5{Enter}');
+
+          expect(await screen.findByRole('row', {name: 'count:5'})).toBeInTheDocument();
+          expect(mockOnChange).toHaveBeenLastCalledWith('count:5', expect.anything());
+        });
+
+        it('only removes the filter without a value when it is before another filter', async () => {
+          const mockOnChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...durationProps}
+              initialQuery="browser.name:firefox"
+              onChange={mockOnChange}
+            />
+          );
+          await userEvent.click(
+            screen.getAllByRole('combobox', {name: 'Add a search term'})[0]!
+          );
+          await userEvent.click(screen.getByRole('option', {name: 'duration'}));
+          await screen.findByRole('row', {name: 'duration:>'});
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Remove filter: duration', hidden: true})
+          );
+
+          await waitFor(() => {
+            expect(
+              screen.queryByRole('row', {name: /^duration:/})
+            ).not.toBeInTheDocument();
+          });
+          expect(
+            screen.getByRole('row', {name: 'browser.name:firefox'})
+          ).toBeInTheDocument();
+          expect(mockOnChange).not.toHaveBeenCalled();
+        });
+
+        it('commits the placeholder value after an invalid value is rejected', async () => {
+          const mockOnChange = jest.fn();
+          render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+          await addDurationFilter();
+
+          await userEvent.keyboard('abc');
+          await userEvent.click(document.body);
+
+          expect(
+            await screen.findByRole('row', {name: 'duration:>10ms'})
+          ).toBeInTheDocument();
+          expect(mockOnChange).toHaveBeenCalledTimes(1);
+          expect(mockOnChange).toHaveBeenCalledWith('duration:>10ms', expect.anything());
+        });
       });
 
       it('pre-fills input with current value when editing', async () => {

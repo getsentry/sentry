@@ -788,12 +788,13 @@ export function SearchQueryBuilderValueCombobox({
 
   const filterValue = isRegexValue ? inputValue : unescapeAsteriskSearchValue(inputValue);
 
+  // A pending filter's value is only a placeholder, so it has nothing selected
   const selectedValues = useMemo(
     () =>
-      canSelectMultipleValues
+      canSelectMultipleValues && !isPendingValue
         ? getSelectedValuesFromText(getMultiSelectInputValue(token))
         : [],
-    [canSelectMultipleValues, token]
+    [canSelectMultipleValues, isPendingValue, token]
   );
 
   // A chip being edited is lifted into the input but left in the token until the
