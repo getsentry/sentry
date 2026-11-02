@@ -5224,16 +5224,52 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('numeric', () => {
-      it('new numeric filters start with a value', async () => {
-        render(<SearchQueryBuilder {...defaultProps} />);
+      it('new numeric filters show the default as a placeholder and keep it on blur', async () => {
+        const onChange = jest.fn();
+        render(<SearchQueryBuilder {...defaultProps} onChange={onChange} />);
         await userEvent.click(getLastInput());
         await userEvent.keyboard('time{ArrowDown}{Enter}');
 
-        // Should start with the > operator and a value of 100
-        expect(
-          await screen.findByRole('row', {name: 'timesSeen:>100'})
-        ).toBeInTheDocument();
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '100');
+        expect(onChange).not.toHaveBeenCalled();
+
+        await userEvent.click(document.body);
+
+        expect(screen.getByRole('row', {name: 'timesSeen:>100'})).toBeInTheDocument();
+        expect(onChange).toHaveBeenLastCalledWith('timesSeen:>100', expect.anything());
       });
+
+      it('replaces the numeric default without clearing the input first', async () => {
+        const onChange = jest.fn();
+        render(<SearchQueryBuilder {...defaultProps} onChange={onChange} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+
+        await userEvent.keyboard('42{Enter}');
+
+        expect(screen.getByRole('row', {name: 'timesSeen:>42'})).toBeInTheDocument();
+        expect(onChange).toHaveBeenLastCalledWith('timesSeen:>42', expect.anything());
+      });
+
+      it.each(['{Enter}', '{Escape}', '{Tab}'])(
+        'keeps the numeric placeholder value when exiting with %s',
+        async key => {
+          const onChange = jest.fn();
+          render(<SearchQueryBuilder {...defaultProps} onChange={onChange} />);
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+
+          await userEvent.keyboard(key);
+
+          expect(screen.getByRole('row', {name: 'timesSeen:>100'})).toBeInTheDocument();
+          expect(onChange).toHaveBeenLastCalledWith('timesSeen:>100', expect.anything());
+          expect(
+            screen.queryByRole('combobox', {name: 'Edit filter value'})
+          ).not.toBeInTheDocument();
+        }
+      );
 
       it('pre-fills input with current value when editing', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>42" />);
@@ -5324,12 +5360,16 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new duration filters start with greater than operator and default value', async () => {
+      it('new duration filters show the default as a placeholder', async () => {
         render(<SearchQueryBuilder {...durationProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
-        // Should start with the > operator and a value of 10ms
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '10ms');
+        await userEvent.tab();
+
         expect(
           await screen.findByRole('row', {name: 'duration:>10ms'})
         ).toBeInTheDocument();
@@ -5475,12 +5515,16 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new size filters start with greater than operator and default value', async () => {
+      it('new size filters show the default as a placeholder', async () => {
         render(<SearchQueryBuilder {...sizeProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'size'}));
 
-        // Should start with the > operator and a value of 10bytes
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '10bytes');
+        await userEvent.tab();
+
         expect(
           await screen.findByRole('row', {name: 'size:>10bytes'})
         ).toBeInTheDocument();
@@ -5624,12 +5668,16 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new percentage filters start with greater than operator and default value', async () => {
+      it('new percentage filters show the default as a placeholder', async () => {
         render(<SearchQueryBuilder {...percentageProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'rate'}));
 
-        // Should start with the > operator and a value of 50%
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '0.5');
+        await userEvent.tab();
+
         expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
       });
 
@@ -5746,12 +5794,16 @@ describe('SearchQueryBuilder', () => {
         fieldDefinitionGetter,
       };
 
-      it('new currency filters start with greater than operator and default value', async () => {
+      it('new currency filters show the default as a placeholder', async () => {
         render(<SearchQueryBuilder {...currencyProps} />);
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'cost'}));
 
-        // Should start with the > operator and a value of 10
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '$10');
+        await userEvent.tab();
+
         expect(await screen.findByRole('row', {name: 'cost:>10'})).toBeInTheDocument();
       });
 
@@ -5815,7 +5867,7 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByText('$100')).toBeInTheDocument();
       });
 
-      it('currency value combobox uses $0.00 placeholder when empty', async () => {
+      it('currency value combobox uses the current value as its placeholder', async () => {
         render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: cost'})
@@ -5825,7 +5877,7 @@ describe('SearchQueryBuilder', () => {
         });
         await userEvent.clear(combobox);
 
-        expect(combobox).toHaveAttribute('placeholder', '$0.00');
+        expect(combobox).toHaveAttribute('placeholder', '$100');
       });
 
       it('currency value suggestions use currency defaults and include k/m/b shorthand', async () => {
