@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 interface Props {
   includeFeatureFlagsTab: boolean;
   onChange: Dispatch<SetStateAction<string>>;
+  placeholder: string;
   search: string;
 }
 
 export function GroupDistributionsSearchInput({
   includeFeatureFlagsTab,
+  placeholder,
   search,
   onChange,
 }: Props) {
@@ -20,6 +22,7 @@ export function GroupDistributionsSearchInput({
     <InputGroup>
       <InputGroup.Input
         size="sm"
+        placeholder={placeholder}
         value={search}
         onChange={e => {
           onChange?.(e.target.value);

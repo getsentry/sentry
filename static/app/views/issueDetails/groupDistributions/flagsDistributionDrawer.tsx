@@ -48,6 +48,7 @@ export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
           leadingItems={
             <GroupDistributionsSearchInput
               includeFeatureFlagsTab
+              placeholder={t('Filter feature flags')}
               search={search}
               onChange={value => {
                 setSearch(value);
