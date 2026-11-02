@@ -51,6 +51,7 @@ from sentry.notebooks.models import (
 from sentry.notebooks.services.notebooks import (
     InvestigationConflictError,
     archive_investigation,
+    update_block,
     update_investigation,
 )
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
@@ -1127,7 +1128,10 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.orchestration_run.last_event_sequence == 0
         assert self.orchestration_run.notebook_revision == 1
         assert block.deleted_at is None
-        assert block.stale_at is not None
+        assert block.stale_at is None
+        assert self.orchestration_run.projection["_sentryControl"]["reportReplacedBlockIds"] == [
+            block.id
+        ]
 
     def test_manual_title_override_survives_generated_title_events(self) -> None:
         self.investigation.title = "My incident title"
@@ -2022,7 +2026,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.deliver(self.event(10, "report_clear", {"reportRevision": 3}))
         first.refresh_from_db()
         assert first.deleted_at is None
-        assert first.stale_at is not None
+        assert first.stale_at is None
         self.deliver(self.event(11, "report_completed", {"reportRevision": 3}))
         first.refresh_from_db()
         assert first.deleted_at is not None
@@ -2101,7 +2105,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             self.report_block(key, reportRevision=revision, title=key, content=content),
         )
 
-    def test_report_clear_marks_blocks_stale_until_the_new_report_completes(self) -> None:
+    def test_report_clear_keeps_blocks_until_the_new_report_completes(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
         self.deliver(self.text_block_upserted(3, "dropped", 1, "dropped body"))
@@ -2117,7 +2121,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         for block in (kept, dropped):
             block.refresh_from_db()
             assert block.deleted_at is None
-            assert block.stale_at is not None
+            assert block.stale_at is None
         assert dropped.content == "dropped body"
 
         self.deliver(
@@ -2136,7 +2140,6 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         )
         kept.refresh_from_db()
         assert kept.producer_revision == 2
-        assert kept.stale_at is not None
         assert kept.content == "kept body"
 
         self.deliver(self.text_block_upserted(7, "kept", 2, "rewritten"))
@@ -2162,7 +2165,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             "fresh": NotebookActionRequestState.SUPERSEDED,
         }
 
-    def test_failed_report_keeps_stale_blocks_until_a_report_completes(self) -> None:
+    def test_failed_report_keeps_replaced_blocks_until_a_report_completes(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
         self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
@@ -2176,7 +2179,6 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         old = NotebookBlock.objects.get(producer_key="old")
         assert old.deleted_at is None
-        assert old.stale_at is not None
 
         self.deliver(self.event(5, "report_clear", {"reportRevision": 3}))
         self.deliver(self.event(6, "report_completed", {"reportRevision": 3}))
@@ -2208,9 +2210,8 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         dropped = NotebookBlock.objects.get(producer_key="dropped")
         new = NotebookBlock.objects.get(producer_key="new")
         assert old.deleted_at is None
-        assert old.stale_at is not None
         assert dropped.deleted_at is not None
-        assert new.stale_at is None
+        assert new.deleted_at is None
 
         self.deliver(self.event(6, "report_completed", {"reportRevision": 2}))
 
@@ -2238,6 +2239,48 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.stale_at is None
         assert first.producer_revision == 1
         assert first.content == "first body"
+
+    def test_report_completion_removes_only_blocks_a_clear_replaced(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "edited", 1, "first body"))
+        self.deliver(
+            self.event(
+                3,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=2
+                    )
+                },
+            )
+        )
+        edited = NotebookBlock.objects.get(producer_key="edited")
+        self.investigation.refresh_from_db()
+        edited = update_block(
+            block=edited,
+            expected_investigation_version=self.investigation.version,
+            expected_block_version=edited.version,
+            user_id=self.user.id,
+            values={"content": "my notes"},
+        )
+        assert edited.stale_at is not None
+
+        self.deliver(self.event(4, "report_completed", {"reportRevision": 2}))
+
+        edited.refresh_from_db()
+        assert edited.deleted_at is None
+        assert edited.producer_revision == 1
+
+        self.deliver(self.event(5, "report_clear", {"reportRevision": 3}))
+        self.deliver(self.text_block_upserted(6, "new", 3, "new body"))
+        self.deliver(self.event(7, "report_completed", {"reportRevision": 3}))
+
+        edited.refresh_from_db()
+        assert edited.deleted_at is not None
+        new = NotebookBlock.objects.get(producer_key="new")
+        assert new.deleted_at is None
+        self.orchestration_run.refresh_from_db()
+        assert "reportReplacedBlockIds" not in self.orchestration_run.projection["_sentryControl"]
 
     def test_report_failure_finishes_partial_text_and_query_executions(self) -> None:
         events = [

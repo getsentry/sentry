@@ -332,11 +332,10 @@ def remove_blocks(
     key: str | None = None,
     block_ids: Iterable[int] | None = None,
     revision_below: int | None = None,
-    stale: bool = False,
     all_blocks: bool = False,
 ) -> list[str]:
     """Soft-delete the notebook's live producer blocks that match the filters, and return
-    their keys. `stale=True` matches only stale blocks.
+    their keys.
 
     Pass all_blocks=True to remove every live producer block.
     """
@@ -346,7 +345,6 @@ def remove_blocks(
         and key is None
         and block_ids is None
         and revision_below is None
-        and not stale
         and not all_blocks
     ):
         raise ValueError("remove_blocks needs a filter or all_blocks=True.")
@@ -365,8 +363,6 @@ def remove_blocks(
         blocks = blocks.filter(id__in=block_ids)
     if revision_below is not None:
         blocks = blocks.filter(producer_revision__lt=revision_below)
-    if stale:
-        blocks = blocks.filter(stale_at__isnull=False)
     removed = list(blocks.values_list("id", "producer_key"))
     now = timezone.now()
     NotebookBlock.objects.filter(id__in=[block_id for block_id, _ in removed]).update(

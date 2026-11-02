@@ -61,6 +61,7 @@ from sentry.utils import json
 MAX_ORCHESTRATION_EVENT_BYTES = 1024 * 1024
 _REPORT_EXECUTION_NAMESPACE = UUID("7100c312-c3cf-4ba6-92e4-baa54ec227e3")
 _CONTROL_KEY = "_sentryControl"
+_REPLACED_BLOCK_IDS_KEY = "reportReplacedBlockIds"
 _TERMINAL_STATUSES = {"completed", "failed", "cancelled"}
 _NOTEBOOK_EVENT_TYPES = {
     "report_clear",
@@ -529,20 +530,20 @@ def _clear_report(
         revision == current_revision and control.get("reportCleared") and not force
     ):
         return False
-    now = timezone.now()
-    live_blocks = NotebookBlock.objects.filter(
-        notebook=run.investigation,
-        producer_revision__isnull=False,
-        producer_key__isnull=False,
-        deleted_at__isnull=True,
+    live_block_ids = list(
+        NotebookBlock.objects.filter(
+            notebook=run.investigation,
+            producer_revision__isnull=False,
+            producer_key__isnull=False,
+            deleted_at__isnull=True,
+        ).values_list("id", flat=True)
     )
-    _cancel_report_executions(
-        run,
-        block_ids=list(live_blocks.values_list("id", flat=True)),
-    )
-    # The old blocks stay visible until the new report completes or replaces them.
-    live_blocks.update(stale_at=now, date_updated=now)
+    _cancel_report_executions(run, block_ids=live_block_ids)
     supersede_action_requests_before(run.investigation, revision)
+    # The old blocks stay visible until the new report completes or replaces them.
+    replaced_ids = set(_replaced_report_block_ids(run)) | set(live_block_ids)
+    if replaced_ids:
+        control[_REPLACED_BLOCK_IDS_KEY] = sorted(replaced_ids)
     control.update(
         {
             "reportRevision": revision,
@@ -560,10 +561,23 @@ def _clear_report(
     return True
 
 
-def _remove_replaced_report_blocks(run: InvestigationOrchestrationRun) -> bool:
-    """Remove the blocks a clear left stale that the current report didn't write again."""
+def _replaced_report_block_ids(run: InvestigationOrchestrationRun) -> list[int]:
+    value = _control(run).get(_REPLACED_BLOCK_IDS_KEY)
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, int) and not isinstance(item, bool)]
 
-    removed = remove_blocks(run.investigation, stale=True, revision_below=_report_revision(run))
+
+def _remove_replaced_report_blocks(run: InvestigationOrchestrationRun) -> bool:
+    """Remove the blocks a clear replaced that the current report didn't write again."""
+
+    block_ids = _replaced_report_block_ids(run)
+    _control(run).pop(_REPLACED_BLOCK_IDS_KEY, None)
+    if not block_ids:
+        return False
+    removed = remove_blocks(
+        run.investigation, block_ids=block_ids, revision_below=_report_revision(run)
+    )
     if removed:
         supersede_block_action_requests(run.investigation, removed)
     return bool(removed)
@@ -645,7 +659,18 @@ def _apply_snapshot(
             )
         # The snapshot lists every block of its revision. Older blocks wait for the
         # report to complete, as they do when the events arrive one by one.
-        remove_blocks(run.investigation, stale=True, revision=revision)
+        unlisted_ids = list(
+            NotebookBlock.objects.filter(
+                notebook=run.investigation,
+                producer_revision=revision,
+                producer_key__isnull=False,
+                deleted_at__isnull=True,
+            )
+            .exclude(producer_key__in=seen_keys)
+            .values_list("id", flat=True)
+        )
+        if unlisted_ids:
+            remove_blocks(run.investigation, block_ids=unlisted_ids)
         if projection.get("report", {}).get("status") == "completed":
             _remove_replaced_report_blocks(run)
     metadata = payload.get("metadata")

@@ -348,18 +348,19 @@ class RemoveBlocksTest(TestCase):
         block.refresh_from_db()
         assert block.deleted_at is not None
 
-    def test_removes_stale_blocks_below_a_revision(self) -> None:
+    def test_removes_listed_blocks_below_a_revision(self) -> None:
         notebook = self.create_notebook(organization=self.organization)
-        now = timezone.now()
         replaced = self.create_notebook_block(
-            notebook=notebook, producer_key="a", producer_revision=1, stale_at=now
+            notebook=notebook, producer_key="a", producer_revision=1
         )
         rewritten = self.create_notebook_block(
-            notebook=notebook, producer_key="b", producer_revision=2, stale_at=now
+            notebook=notebook, producer_key="b", producer_revision=2
         )
         kept = self.create_notebook_block(notebook=notebook, producer_key="c", producer_revision=1)
 
-        assert remove_blocks(notebook, stale=True, revision_below=2) == ["a"]
+        assert remove_blocks(notebook, block_ids=[replaced.id, rewritten.id], revision_below=2) == [
+            "a"
+        ]
 
         for block in (replaced, rewritten, kept):
             block.refresh_from_db()
