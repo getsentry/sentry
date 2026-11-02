@@ -528,6 +528,99 @@ describe('PageFilters ActionCreators', () => {
       );
     });
 
+    it('drops URL environments that only exist in unselected projects', () => {
+      initializeUrlState({
+        organization,
+        location: {
+          ...router.location,
+          query: {project: ['2'], environment: ['prod', 'staging']},
+        },
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [2], environments: ['prod']}),
+        true,
+        {
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+      expect(navigate).toHaveBeenCalledWith(
+        expect.objectContaining({query: {environment: ['prod'], project: ['2']}}),
+        {replace: true}
+      );
+    });
+
+    it('drops stored environments that only exist in unselected projects', () => {
+      const setStorage = jest.spyOn(PageFilterPersistence, 'setPageFiltersStorage');
+      localStorageWrapper.setItem(
+        key,
+        JSON.stringify({
+          environments: ['staging'],
+          projects: [2],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        location: router.location,
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [2], environments: []}),
+        true,
+        {
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+      expect(navigate).toHaveBeenCalledWith(
+        expect.objectContaining({query: {environment: [], project: ['2']}}),
+        {replace: true}
+      );
+      expect(setStorage).toHaveBeenCalledWith(
+        organization.slug,
+        new Set(['projects', 'environments']),
+        undefined
+      );
+    });
+
+    it('does not rewrite stored environments when a forced project drops them', () => {
+      const setStorage = jest.spyOn(PageFilterPersistence, 'setPageFiltersStorage');
+      localStorageWrapper.setItem(
+        key,
+        JSON.stringify({
+          environments: ['staging'],
+          projects: [1],
+          pinnedFilters: ['projects', 'environments'],
+        })
+      );
+
+      initializeUrlState({
+        organization,
+        location: router.location,
+        navigate,
+        memberProjects: projects,
+        nonMemberProjects: [],
+        shouldForceProject: true,
+        forceProject: projects[1],
+      });
+
+      expect(PageFiltersStore.onInitializeUrlState).toHaveBeenCalledWith(
+        expect.objectContaining({projects: [2], environments: []}),
+        true,
+        {
+          environments: {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS},
+        }
+      );
+      expect(setStorage).not.toHaveBeenCalled();
+    });
+
     it('records an adjustment for each filter that was adjusted', () => {
       initializeUrlState({
         organization,

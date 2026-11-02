@@ -12,6 +12,7 @@ import {
   getDefaultPageFilterSelection,
   URL_PARAM,
 } from 'sentry/components/pageFilters/constants';
+import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {
   getDatetimeFromState,
   getStateFromQuery,
@@ -246,29 +247,12 @@ export function initializeUrlState({
     );
   }
 
-  /**
-   * Check to make sure that the environment exists. Invalid environments (due to being
-   * hidden) can still exist in local storage or shared links.
-   */
-  function validateEnvironment(env: string): boolean {
-    return (
-      !!memberProjects?.some(mp => mp.environments.includes(env)) ||
-      !!nonMemberProjects?.some(nmp => nmp.environments.includes(env))
-    );
-  }
-
   if (hasProjectOrEnvironmentInUrl) {
     pageFilters.projects = parsed.project?.filter(validateProjectId) || [];
-    pageFilters.environments = parsed.environment?.filter(validateEnvironment) || [];
+    pageFilters.environments = parsed.environment || [];
 
     if (pageFilters.projects.length < (parsed.project?.length ?? 0)) {
       adjustments.projects = {reason: PageFilterAdjustmentReason.INVALID_PROJECTS};
-    }
-
-    if (pageFilters.environments.length < (parsed.environment?.length ?? 0)) {
-      adjustments.environments = {
-        reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-      };
     }
   }
 
@@ -277,6 +261,7 @@ export function initializeUrlState({
     : getPageFilterStorage(orgSlug, storageNamespace);
   let shouldUsePinnedDatetime = false;
   let shouldUpdateLocalStorage = false;
+  let hasStoredEnvironments = false;
 
   // We may want to restore some page filters from local storage. In the new
   // world when they are pinned, and in the old world as long as
@@ -298,15 +283,8 @@ export function initializeUrlState({
       !hasProjectOrEnvironmentInUrl &&
       pinnedFilters.has('environments')
     ) {
-      pageFilters.environments =
-        storedState.environment?.filter(validateEnvironment) ?? [];
-
-      if (pageFilters.environments.length < (storedState.environment?.length ?? 0)) {
-        shouldUpdateLocalStorage = true; // update storage to remove invalid environments
-        adjustments.environments = {
-          reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS,
-        };
-      }
+      pageFilters.environments = storedState.environment ?? [];
+      hasStoredEnvironments = true;
     }
 
     if (!hasDatetimeInUrl && pinnedFilters.has('datetime')) {
@@ -345,7 +323,7 @@ export function initializeUrlState({
     adjustments.projects = {reason: PageFilterAdjustmentReason.NO_MEMBER_PROJECTS};
   }
 
-  const {projects, environments: environment, datetime} = pageFilters;
+  const {projects, datetime} = pageFilters;
 
   let newProject: number[] | null = null;
   let project = projects;
@@ -364,6 +342,27 @@ export function initializeUrlState({
     // The forced project replaces whatever the branches above picked, so any
     // explanation of how they picked it no longer describes the selection.
     delete adjustments.projects;
+  }
+
+  // Environments are only valid for the selected projects. Keeping one that only
+  // exists in another project would filter queries by it while the environment
+  // page filter hides it, showing "All Envs" with no results.
+  const availableEnvironments = getAvailableEnvironments(
+    [...memberProjects, ...nonMemberProjects],
+    new Set(pageFilters.projects)
+  );
+  const environment = pageFilters.environments.filter(env =>
+    availableEnvironments.has(env)
+  );
+
+  if (environment.length < pageFilters.environments.length) {
+    pageFilters.environments = environment;
+    adjustments.environments = {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS};
+
+    // A forced project is page-specific, so it shouldn't clear the stored selection.
+    if (hasStoredEnvironments && !newProject) {
+      shouldUpdateLocalStorage = true;
+    }
   }
 
   let shouldUseMaxPickableDays = false;
