@@ -957,9 +957,7 @@ class OrganizationReleasesEndpoint(OrganizationReleasesBaseEndpoint, ReleaseAnal
 
             scope.set_tag("success_status", status)
             scope.set_attribute("success_status", status)
-            data: ReleaseSerializerResponse = serialize(
-                release, request.user, no_snuba_for_release_creation=True
-            )
+            data: ReleaseSerializerResponse = serialize(release, request.user, skip_snuba=True)
             return Response(data, status=status)
         scope.set_tag("failure_reason", "serializer_error")
         scope.set_attribute("failure_reason", "serializer_error")
