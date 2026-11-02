@@ -29,6 +29,27 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      # PROBE ONLY (do not merge): A/B the master config against #129032's config on the same
+      # changes, and run both on whole files, printing JSON answers to the job log.
+      - name: probe
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.DECISION_MODEL_LINTER_OPENROUTER_API_KEY }}
+        run: |
+          git show HEAD^1:decisionModelLinter.config.ts > decisionModelLinter.old.config.ts
+          whole="src/sentry/flags/endpoints/logs.py src/sentry/api/serializers/models/exporteddata.py src/sentry/core/endpoints/organization_details.py src/sentry/core/endpoints/organization_environments.py src/sentry/api/endpoints/organization_weekly_report_project_exclusions.py"
+          probe() {
+            name=$1; shift
+            out=$(pnpm exec decision-model-linter --format json "$@" 2>"$RUNNER_TEMP/$name.err"); code=$?
+            echo "PROBE_EXIT $name $code"; sed "s/^/PROBE_ERR $name /" "$RUNNER_TEMP/$name.err"
+            echo "PROBE_JSON $name $(echo "$out" | jq -c .)"
+          }
+          DECISION_MODEL_LINT_BASE=HEAD^1 probe new1 --config decisionModelLinter.config.ts --base HEAD^1
+          DECISION_MODEL_LINT_BASE=HEAD^1 probe new2 --config decisionModelLinter.config.ts --base HEAD^1
+          probe old --config decisionModelLinter.old.config.ts --base HEAD^1
+          probe newwhole --config decisionModelLinter.config.ts --suite api -- $whole
+          probe oldwhole --config decisionModelLinter.old.config.ts --suite api -- $whole
+          rm decisionModelLinter.old.config.ts
+
       - name: lint
         env:
           OPENROUTER_API_KEY: ${{ secrets.DECISION_MODEL_LINTER_OPENROUTER_API_KEY }}
