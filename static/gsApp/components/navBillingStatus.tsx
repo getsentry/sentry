@@ -91,7 +91,20 @@ function getPaygIneligibleBodyCopy(
 const MAX_LISTED_RECIPIENTS = 3;
 
 function QuotaRequestRecipients() {
-  const {data: billingMembers = []} = useBillingMembers();
+  const {data: billingMembers = [], isSuccess} = useBillingMembers();
+
+  // The request is emailed to exactly these members, so a loaded empty list
+  // means it would reach nobody.
+  if (isSuccess && billingMembers.length === 0) {
+    return (
+      <Description>
+        {tct(
+          'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+          {mailto: <a href="mailto:support@sentry.io" />}
+        )}
+      </Description>
+    );
+  }
 
   if (billingMembers.length === 0) {
     return (
