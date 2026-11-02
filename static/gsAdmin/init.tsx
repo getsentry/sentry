@@ -33,12 +33,27 @@ const router = sentryCreateBrowserRouter(routes);
 
 setApiNavigate(createReactRouter3Navigate(router));
 
+// Swaps the favicon set by the admin.html template so _admin tabs are
+// distinguishable from regular Sentry tabs.
+function setAdminFavicon() {
+  const faviconNode = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+  if (!faviconNode) {
+    return;
+  }
+  const url = new URL(faviconNode.href);
+  url.pathname = url.pathname.replace(/\/[^/]+$/, '/favicon-admin.png');
+  faviconNode.type = 'image/png';
+  faviconNode.href = url.toString();
+}
+
 export function renderApp() {
+  setAdminFavicon();
+
   const rootEl = document.getElementById('blk_router')!;
   const root = createRoot(rootEl);
   root.render(
     <QueryClientProvider client={queryClient}>
-      <DocumentTitleManager>
+      <DocumentTitleManager defaultTitle="_admin">
         <NuqsAdapter defaultOptions={{shallow: false}}>
           <RouterProvider router={router} useTransitions={false} />
         </NuqsAdapter>

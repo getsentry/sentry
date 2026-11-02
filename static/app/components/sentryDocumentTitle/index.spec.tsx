@@ -40,6 +40,18 @@ describe('SentryDocumentTitle', () => {
     expect(document.title).toBe('This is a test — org — project — Sentry');
   });
 
+  it('uses a custom default title', () => {
+    const {rerender} = render(<DocumentTitleManager defaultTitle="_admin" />);
+    expect(document.title).toBe('_admin');
+
+    rerender(
+      <DocumentTitleManager defaultTitle="_admin">
+        <SentryDocumentTitle title="This is a test" />
+      </DocumentTitleManager>
+    );
+    expect(document.title).toBe('This is a test — _admin');
+  });
+
   it('sets the title without suffix', () => {
     render(
       <DocumentTitleManager>
