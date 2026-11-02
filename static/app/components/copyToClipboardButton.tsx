@@ -1,39 +1,15 @@
-import {IconCopy} from '@sentry/icons/copy';
+import {
+  CopyToClipboardButton as ClipboardButton,
+  type CopyToClipboardButtonProps,
+} from '@sentry/scraps/clipboard';
 
-import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {SentryClipboardProvider} from 'sentry/scrapsProviders/clipboard';
 
-import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-
-interface CopyToClipboardButtonProps extends Omit<
-  Extract<ButtonProps, {'aria-label': string}>,
-  'children' | 'onCopy' | 'onError'
-> {
-  text: string;
-  children?: never;
-  onCopy?: undefined | ((copiedText: string) => void);
-}
-
-export function CopyToClipboardButton({
-  onCopy,
-  onClick,
-  text,
-  icon,
-  ...props
-}: CopyToClipboardButtonProps) {
-  const {copy} = useCopyToClipboard();
-
+/** Keep application notification feedback for existing callers. */
+export function CopyToClipboardButton(props: CopyToClipboardButtonProps) {
   return (
-    <Button
-      {...props}
-      onClick={e => {
-        copy(text).then(result => {
-          if (result !== undefined) {
-            onCopy?.(result);
-          }
-        });
-        onClick?.(e);
-      }}
-      icon={icon ?? <IconCopy variant="muted" />}
-    />
+    <SentryClipboardProvider>
+      <ClipboardButton {...props} />
+    </SentryClipboardProvider>
   );
 }

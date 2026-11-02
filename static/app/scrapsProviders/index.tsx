@@ -3,6 +3,7 @@ import {TranslationContextProvider} from '@sentry/scraps/translation';
 
 import {t, tct} from 'sentry/locale';
 
+import {SentryClipboardProvider} from './clipboard';
 import {SentryDateTimeProvider} from './datetime';
 import {SentryFormErrorProvider} from './formError';
 import {SentryLinkBehaviorProvider} from './link';
@@ -15,7 +16,9 @@ export function ScrapsProviders({children}: {children: React.ReactNode}) {
       <TranslationContextProvider value={sentryTranslation}>
         <SentryDateTimeProvider>
           <SentryLinkBehaviorProvider>
-            <ToastProvider>{children}</ToastProvider>
+            <SentryClipboardProvider>
+              <ToastProvider>{children}</ToastProvider>
+            </SentryClipboardProvider>
           </SentryLinkBehaviorProvider>
         </SentryDateTimeProvider>
       </TranslationContextProvider>
