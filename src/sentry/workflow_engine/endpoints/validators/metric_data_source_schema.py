@@ -20,6 +20,11 @@ validator lets through:
   `http_response_rate`, `cache_miss_rate`, and `count_scores`. That shortcut dates from 2024
   alerts on the span metrics dataset. Since 2025, Insights creates monitors with comparable
   `count()` queries instead, because Explore and alerts don't support these functions.
+
+`EAP_MONITOR_FUNCTIONS` is also written to
+`static/app/views/detectors/monitorAggregates.generated.ts` by
+`python3 -m tools.monitor_aggregates_to_typescript`, so the monitor form can't offer a function
+that the backend rejects.
 """
 
 import re
@@ -57,8 +62,13 @@ ERRORS_AGGREGATES = [
     *(f"count_unique({column})" for column in TRANSLATABLE_COLUMNS),
     *(f"count_unique({column})" for column in TRANSLATABLE_COLUMNS.values()),
 ]
-_SPANS_AGGREGATE_PATTERN = _function_call_pattern(_alertable_eap_functions(SPAN_DEFINITIONS))
-_LOGS_AGGREGATE_PATTERN = _function_call_pattern(_alertable_eap_functions(OURLOG_DEFINITIONS))
+# Keyed by the frontend's DetectorDataset values.
+EAP_MONITOR_FUNCTIONS = {
+    "spans": _alertable_eap_functions(SPAN_DEFINITIONS),
+    "logs": _alertable_eap_functions(OURLOG_DEFINITIONS),
+}
+_SPANS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["spans"])
+_LOGS_AGGREGATE_PATTERN = _function_call_pattern(EAP_MONITOR_FUNCTIONS["logs"])
 _TRACE_METRICS_AGGREGATE_PATTERN = _function_call_pattern(
     sorted(_defined_functions(TRACE_METRICS_DEFINITIONS)), allow_equations=True
 )
