@@ -3,7 +3,7 @@ from collections.abc import Callable
 from django import VERSION
 
 from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
-from sentry.new_migrations.monkey.fields import deconstruct
+from sentry.new_migrations.monkey.fields import deconstruct, reduce_preserving_pending
 
 LAST_VERIFIED_DJANGO_VERSION = (5, 2)
 CHECK_MESSAGE = """Looks like you're trying to upgrade Django! Since we monkeypatch
@@ -106,6 +106,15 @@ def monkey_migrations() -> None:
     migration.Migration.initial = None
     writer.MIGRATION_TEMPLATE = SENTRY_MIGRATION_TEMPLATE
     models.Field.deconstruct = deconstruct  # type: ignore[method-assign]
+
+    # the optimizer reduces from the left operand, so the guard has to live on the
+    # ops that would otherwise annihilate a baked MOVE_TO_PENDING pair.
+    from django.db.migrations.operations import AddField, CreateModel, RemoveField
+
+    # monkey_migrations() runs twice (initializer + migrations command)
+    for op_cls in (AddField, CreateModel, RemoveField):
+        if not hasattr(op_cls.reduce, "__wrapped__"):
+            op_cls.reduce = reduce_preserving_pending(op_cls.reduce)  # type: ignore[method-assign]
 
     from django.db.migrations import graph, state
 

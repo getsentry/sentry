@@ -8,9 +8,14 @@ from sentry.utils.env import in_test_environment
 
 
 class SafeDeleteModel(DeleteModel):
-    def __init__(self, *args, deletion_action: DeletionAction, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name, *, deletion_action: DeletionAction) -> None:
+        super().__init__(name)
         self.deletion_action = deletion_action
+
+    def deconstruct(self):
+        name, args, kwargs = super().deconstruct()
+        kwargs["deletion_action"] = self.deletion_action
+        return name, args, kwargs
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]
         if self.deletion_action == DeletionAction.MOVE_TO_PENDING:
