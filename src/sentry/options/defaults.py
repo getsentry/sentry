@@ -985,6 +985,11 @@ register("discord.debug-channel", flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("gcp.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
+# AWS MCP Integration
+# Must match Seer's AWS_SEER_WORKLOAD_ROLE_ARN. Seer independently verifies its
+# SDK/workload-federation identity; setting this option does not configure credentials.
+register("aws-seer.principal-arn", default="", flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # AWS Lambda Integration
 register("aws-lambda.access-key-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("aws-lambda.secret-access-key", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)

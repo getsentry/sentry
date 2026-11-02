@@ -6,10 +6,17 @@ from django.test import override_settings
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import RpcException
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
+from sentry.seer.sentry_data_models import (
+    AwsAssumeRoleConnectionData,
+    MonitoringProviderConnectionsResponse,
+)
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 TEST_FERNET_KEY = Fernet.generate_key().decode("utf-8")
 
@@ -676,3 +683,115 @@ class TestGetMonitoringProviderConnections(TestCase):
     def test_org_grafana_connection_requires_infra_telemetry_flag(self) -> None:
         self._create_org_grafana_integration()
         assert get_monitoring_provider_connections(self.organization, None) == []
+
+
+@with_feature("organizations:seer-infra-telemetry")
+@with_feature("organizations:integrations-aws")
+class TestAwsMonitoringProviderConnections(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(
+            self.options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
+        )
+        self.config = {
+            "role_arn": "arn:aws:iam::123456789012:role/SentrySeer",
+            "external_id": "11111111-1111-4111-8111-111111111111",
+            "region": "us-east-1",
+        }
+
+    def test_org_connection_serializes_role_configuration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+
+        result = get_monitoring_provider_connections(self.organization, None)
+
+        assert len(result) == 1
+        assert result[0].dict() == {
+            "type": "aws_assume_role",
+            "provider_key": "aws",
+            "url": "https://aws-mcp.us-east-1.api.aws/mcp",
+            **self.config,
+            "auth_method": "aws_assume_role",
+            "principal_arn": "arn:aws:iam::987654321098:role/SeerWorkload",
+            "refreshable": False,
+        }
+        response = MonitoringProviderConnectionsResponse.parse_obj(
+            {"connections": [result[0].dict()]}
+        )
+        assert isinstance(response.connections[0], AwsAssumeRoleConnectionData)
+
+    def test_org_connection_ignores_inactive_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+        for status in [ObjectStatus.DISABLED, ObjectStatus.PENDING_DELETION]:
+            with self.subTest(status=status):
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    integration.update(status=status)
+                assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_connection_ignores_unconfigured_workload_identity(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+        with self.options({"aws-seer.principal-arn": ""}):
+            assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_connection_ignores_uninstalled_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config, "status": ObjectStatus.PENDING_DELETION},
+        )
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_org_connection_ignores_incomplete_configuration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration = OrganizationIntegration.objects.get(
+                integration_id=integration.id, organization_id=self.organization.id
+            )
+        for missing_field in ["role_arn", "external_id", "region"]:
+            with self.subTest(missing_field=missing_field):
+                config = dict(self.config)
+                del config[missing_field]
+                with assume_test_silo_mode(SiloMode.CONTROL):
+                    org_integration.update(config=config)
+                assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_cross_org_isolation(self) -> None:
+        other_org = self.create_organization()
+        self.create_integration(
+            organization=other_org,
+            provider="aws",
+            external_id=str(other_org.id),
+            oi_params={"config": self.config},
+        )
+        assert get_monitoring_provider_connections(self.organization, None) == []
+
+    def test_connection_requires_feature_flags(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": self.config},
+        )
+        for flag in ["integrations-aws", "seer-infra-telemetry"]:
+            with self.subTest(flag=flag), self.feature({f"organizations:{flag}": False}):
+                assert get_monitoring_provider_connections(self.organization, None) == []

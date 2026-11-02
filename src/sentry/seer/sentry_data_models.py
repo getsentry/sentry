@@ -913,16 +913,37 @@ class GcpSaImpersonationConnectionData(BaseModel):
         return self.dict()[key]
 
 
+class AwsAssumeRoleConnectionData(BaseModel):
+    """Seer assumes the customer role using its workload identity and signs MCP requests.
+
+    Seer owns STS credential refresh. No AWS credentials are stored in Sentry or
+    passed to the model; the external ID is an IAM trust condition, not a secret.
+    """
+
+    type: Literal["aws_assume_role"] = "aws_assume_role"
+    provider_key: str
+    url: str
+    role_arn: str
+    external_id: str
+    region: str
+    principal_arn: str
+    auth_method: Literal["aws_assume_role"] = "aws_assume_role"
+    # STS refresh happens in Seer, rather than through the identity-token refresh RPC.
+    refreshable: bool = False
+
+    def __getitem__(self, key: str) -> Any:
+        return self.dict()[key]
+
+
 MonitoringProviderConnectionData = Annotated[
-    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData],
+    Union[HeaderAuthConnectionData, GcpSaImpersonationConnectionData, AwsAssumeRoleConnectionData],
     Field(discriminator="type"),
 ]
 
 
 class MonitoringProviderConnectionsResponse(BaseModel):
-    """`get_monitoring_provider_connections` success: the caller's connected
-    monitoring provider identities, each carrying freshly-encrypted auth
-    headers."""
+    """`get_monitoring_provider_connections` success: the caller's personal and
+    organization-level monitoring connections."""
 
     connections: list[MonitoringProviderConnectionData]
 

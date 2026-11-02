@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from django.http.response import HttpResponse
+from django.urls import reverse
 
+from sentry.integrations.aws.integration import AwsIntegration, AwsIntegrationProvider
 from sentry.integrations.example import AliasedIntegrationProvider, ExampleIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegrationProvider
 from sentry.integrations.models.integration import Integration
@@ -15,10 +17,10 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.absolute_url import generate_organization_url
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.pipeline.types import PipelineStepAction
-from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
-from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.cases import APITestCase, IntegrationTestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
@@ -767,3 +769,173 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         assert isinstance(resp, HttpResponse)
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
         assert "account is linked to a different Sentry user" in resp.content.decode()
+
+
+@control_silo_test
+@override_options({"aws-seer.principal-arn": "arn:aws:iam::987654321098:role/SeerWorkload"})
+class AwsApiPipelineTest(APITestCase):
+    endpoint = "sentry-api-0-organization-pipeline"
+    role_arn = "arn:aws:iam::123456789012:role/SentrySeer"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.enterContext(self.feature("organizations:integrations-aws"))
+
+    def test_setup_external_id_is_stable_and_server_generated(self) -> None:
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        response = self.client.post(
+            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 200
+        assert response.data["step"] == "aws_role"
+        setup = response.data["data"]
+        external_id = setup["externalId"]
+        assert external_id
+        trust = setup["cloudFormationTemplate"]["Resources"]["SeerRole"]["Properties"][
+            "AssumeRolePolicyDocument"
+        ]
+        assert trust["Statement"][0]["Condition"]["StringEquals"]["sts:ExternalId"] == external_id
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["data"]["externalId"] == external_id
+
+        # Reinitialization discards the pipeline state, but not the deployed trust policy.
+        response = self.client.post(
+            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 200
+        assert response.data["data"]["externalId"] == external_id
+
+    def test_setup_external_id_is_organization_bound(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        other_url = reverse(self.endpoint, args=[other_org.slug, "integration_pipeline"])
+        response = self.client.post(
+            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 200
+        other_response = self.client.post(
+            other_url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert other_response.status_code == 200
+        assert response.data["data"]["externalId"] != other_response.data["data"]["externalId"]
+
+    @patch("sentry.integrations.aws.integration.validate_aws_connection")
+    def test_retry_and_install(self, validate: MagicMock) -> None:
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        response = self.client.post(
+            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 200
+        external_id = response.data["data"]["externalId"]
+        validate.side_effect = IntegrationConfigurationError("Check the trust policy.")
+        response = self.client.post(
+            url, data={"roleArn": self.role_arn, "region": "us-east-1"}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data["data"]["detail"] == "Check the trust policy."
+        assert not Integration.objects.filter(provider="aws").exists()
+
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert response.data["step"] == "aws_role"
+        assert response.data["data"]["externalId"] == external_id
+
+        validate.side_effect = None
+        response = self.client.post(
+            url,
+            data={
+                "roleArn": self.role_arn,
+                "region": "us-east-1",
+                "externalId": "customer-controlled-value",
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        assert response.data["status"] == "complete"
+        validate.assert_called_with(self.role_arn, external_id, "us-east-1")
+        integration = Integration.objects.get(provider="aws", external_id=str(self.organization.id))
+        assert integration.metadata == {}
+        assert OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        ).config == {
+            "role_arn": self.role_arn,
+            "region": "us-east-1",
+            "external_id": external_id,
+        }
+
+    @patch("sentry.integrations.aws.integration.validate_aws_connection")
+    def test_rejects_invalid_role_configuration(self, validate: MagicMock) -> None:
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        response = self.client.post(
+            url, data={"action": "initialize", "provider": "aws"}, format="json"
+        )
+        assert response.status_code == 200
+        for data in [
+            {"roleArn": "arn:aws:iam::123456789012:root", "region": "us-east-1"},
+            {"roleArn": self.role_arn, "region": "us-east-1.example.com"},
+        ]:
+            with self.subTest(data=data):
+                response = self.client.post(url, data=data, format="json")
+                assert response.status_code == 400
+        validate.assert_not_called()
+        assert not Integration.objects.filter(provider="aws").exists()
+
+    @patch("sentry.integrations.aws.integration.validate_aws_connection")
+    def test_settings_preserve_external_id_and_validate_before_saving(
+        self, validate: MagicMock
+    ) -> None:
+        config = {
+            "role_arn": self.role_arn,
+            "region": "us-east-1",
+            "external_id": "11111111-1111-4111-8111-111111111111",
+        }
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="aws",
+            external_id=str(self.organization.id),
+            oi_params={"config": config},
+        )
+        installation = integration.get_installation(organization_id=self.organization.id)
+        assert isinstance(installation, AwsIntegration)
+        installation.update_organization_config(
+            {"region": "eu-west-1", "external_id": "customer-controlled-value"}
+        )
+        validate.assert_called_once_with(self.role_arn, config["external_id"], "eu-west-1")
+        org_integration = OrganizationIntegration.objects.get(
+            integration_id=integration.id, organization_id=self.organization.id
+        )
+        assert org_integration.config == {**config, "region": "eu-west-1"}
+
+        validate.side_effect = IntegrationConfigurationError("Check the trust policy.")
+        with pytest.raises(IntegrationConfigurationError, match="trust policy"):
+            installation.update_organization_config({"region": "us-west-2"})
+        org_integration.refresh_from_db()
+        assert org_integration.config == {**config, "region": "eu-west-1"}
+
+    def test_install_requires_feature_flag(self) -> None:
+        url = reverse(self.endpoint, args=[self.organization.slug, "integration_pipeline"])
+        with self.feature({"organizations:integrations-aws": False}):
+            response = self.client.post(
+                url, data={"action": "initialize", "provider": "aws"}, format="json"
+            )
+        assert response.status_code == 400
+
+
+@control_silo_test
+class AwsIntegrationProviderTest(IntegrationTestCase):
+    provider = AwsIntegrationProvider
+
+    def test_build_requires_server_generated_external_id(self) -> None:
+        provider = self.provider()
+        provider.set_pipeline(self.pipeline)
+        for state in [{}, {"config": {"region": "us-east-1"}}]:
+            with (
+                self.subTest(state=state),
+                pytest.raises(
+                    IntegrationConfigurationError, match="Missing AWS role configuration"
+                ),
+            ):
+                provider.build_integration(state)
