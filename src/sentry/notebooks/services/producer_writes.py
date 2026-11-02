@@ -74,12 +74,19 @@ def upsert_block(
     with transaction.atomic(using=router.db_for_write(NotebookBlock)):
         block = _live_block(notebook, key)
         if block is None:
-            # Bring back a block removed in this revision, since the revision and key stay unique.
-            block = NotebookBlock.objects.filter(
-                notebook=notebook,
-                producer_revision=revision,
-                producer_key=key,
-            ).first()
+            # Removed rows still fence the key. Bring back a block removed in this
+            # revision, since the revision and key stay unique.
+            newest = (
+                NotebookBlock.objects.filter(
+                    notebook=notebook, producer_key=key, producer_revision__isnull=False
+                )
+                .order_by("-producer_revision")
+                .first()
+            )
+            if newest is not None:
+                _check_revision(newest, revision)
+                if newest.producer_revision == revision:
+                    block = newest
         else:
             _check_revision(block, revision)
         if block is None:
@@ -313,6 +320,8 @@ def append_block_content(
     if block is None or block.kind != NotebookBlockKind.TEXT:
         raise serializers.ValidationError({"payload": "Text block was not started."})
     _check_revision(block, revision)
+    if block.producer_revision != revision:
+        raise serializers.ValidationError({"payload": "Text block was not started."})
     # A rewrite keeps showing the previous output until it completes.
     if block.content_execution_id != block.current_execution_id:
         return False

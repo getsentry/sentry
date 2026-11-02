@@ -170,6 +170,21 @@ class UpsertBlockTest(TestCase):
         assert restored.id == block.id
         assert restored.deleted_at is None
 
+    def test_removed_block_still_rejects_an_older_revision(self) -> None:
+        self.upsert(revision=1)
+        newest = self.upsert(revision=2)
+        remove_blocks(self.notebook, key="summary")
+
+        with pytest.raises(serializers.ValidationError):
+            self.upsert(revision=1, content="Late")
+        assert not NotebookBlock.objects.filter(
+            notebook=self.notebook, deleted_at__isnull=True
+        ).exists()
+
+        restored = self.upsert(revision=2, content="Restored")
+        assert restored.id == newest.id
+        assert restored.deleted_at is None
+
     def test_removed_block_is_not_reused_by_a_new_revision(self) -> None:
         block = self.upsert(revision=1)
         remove_blocks(self.notebook, key="summary")
@@ -273,6 +288,17 @@ class AppendBlockContentTest(TestCase):
 
         assert not append_block_content(self.notebook, key="summary", revision=2, text="more")
         assert NotebookBlock.objects.get(notebook=self.notebook).content == "Done"
+
+    def test_rejects_text_for_a_block_not_started_in_this_revision(self) -> None:
+        self.start(revision=1)
+        append_block_content(self.notebook, key="summary", revision=1, text="Old")
+
+        with pytest.raises(serializers.ValidationError):
+            append_block_content(self.notebook, key="summary", revision=2, text="New")
+
+        block = NotebookBlock.objects.get(notebook=self.notebook)
+        assert block.producer_revision == 1
+        assert block.content == "Old"
 
     def test_needs_a_live_text_block(self) -> None:
         with pytest.raises(serializers.ValidationError):

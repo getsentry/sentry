@@ -2240,6 +2240,53 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert first.producer_revision == 1
         assert first.content == "first body"
 
+    def test_text_after_a_clear_leaves_the_replaced_block_alone(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "summary", 1, "old body"))
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+
+        self.deliver(
+            self.event(
+                4,
+                "report_text_delta",
+                {"reportRevision": 2, "stableAgentKey": "summary", "delta": " more"},
+            )
+        )
+
+        block = NotebookBlock.objects.get(producer_key="summary")
+        assert block.producer_revision == 1
+        assert block.content == "old body"
+
+    def test_adopted_blocks_a_clear_replaced_survive_report_completion(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "kept", 1, "kept body"))
+        self.deliver(self.text_block_upserted(3, "rewritten", 1, "first body"))
+        self.deliver(self.event(4, "report_clear", {"reportRevision": 2}))
+        self.deliver(self.text_block_upserted(5, "rewritten", 2, "second body"))
+        self.deliver(
+            self.event(
+                6,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=3
+                    )
+                },
+            )
+        )
+        self.orchestration_run.refresh_from_db()
+        assert "reportReplacedBlockIds" not in self.orchestration_run.projection["_sentryControl"]
+
+        self.deliver(self.event(7, "report_completed", {"reportRevision": 3}))
+
+        kept = NotebookBlock.objects.get(producer_key="kept")
+        rewritten = NotebookBlock.objects.get(producer_key="rewritten")
+        assert kept.deleted_at is None
+        assert kept.content == "kept body"
+        assert rewritten.deleted_at is None
+        assert rewritten.producer_revision == 2
+        assert rewritten.content == "second body"
+
     def test_report_completion_removes_only_blocks_a_clear_replaced(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
         self.deliver(self.text_block_upserted(2, "edited", 1, "first body"))
@@ -3106,6 +3153,36 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         assert self.request_states() == {
             "under": NotebookActionRequestState.SUPERSEDED,
             "other": NotebookActionRequestState.SUGGESTED,
+        }
+
+    def test_snapshot_supersedes_the_requests_under_unlisted_blocks(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "dropped", 1, "dropped body"))
+        self.deliver_request(
+            3, self.action_request("under", anchor={"type": "block", "id": "dropped"})
+        )
+        self.deliver_request(4, self.action_request("unanchored"))
+
+        self.deliver(
+            self.event(
+                5,
+                "state_snapshot",
+                {
+                    "projection": self.projection(
+                        workflow_version=2, phase="reporting", report_revision=1
+                    ),
+                    "reportRevision": 1,
+                    "blocks": [
+                        self.report_block("new", reportRevision=1, title="New", content="new")
+                    ],
+                },
+            )
+        )
+
+        assert NotebookBlock.objects.get(producer_key="dropped").deleted_at is not None
+        assert self.request_states() == {
+            "under": NotebookActionRequestState.SUPERSEDED,
+            "unanchored": NotebookActionRequestState.SUGGESTED,
         }
 
     def test_an_older_snapshot_with_blocks_leaves_current_requests_alone(self) -> None:

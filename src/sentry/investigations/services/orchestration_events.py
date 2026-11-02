@@ -456,7 +456,16 @@ def _adopt_preserved_report_revision(
         supersede_block_action_requests(
             run.investigation, remove_blocks(run.investigation, block_ids=discarded_ids)
         )
-    _control(run).update({"reportRevision": revision, "reportCleared": False})
+    control = _control(run)
+    kept_ids = set(completed_ids)
+    replaced_ids = [
+        block_id for block_id in _replaced_report_block_ids(run) if block_id not in kept_ids
+    ]
+    if replaced_ids:
+        control[_REPLACED_BLOCK_IDS_KEY] = replaced_ids
+    else:
+        control.pop(_REPLACED_BLOCK_IDS_KEY, None)
+    control.update({"reportRevision": revision, "reportCleared": False})
     return bool(discarded_ids)
 
 
@@ -670,7 +679,9 @@ def _apply_snapshot(
             .values_list("id", flat=True)
         )
         if unlisted_ids:
-            remove_blocks(run.investigation, block_ids=unlisted_ids)
+            supersede_block_action_requests(
+                run.investigation, remove_blocks(run.investigation, block_ids=unlisted_ids)
+            )
         if projection.get("report", {}).get("status") == "completed":
             _remove_replaced_report_blocks(run)
     metadata = payload.get("metadata")
