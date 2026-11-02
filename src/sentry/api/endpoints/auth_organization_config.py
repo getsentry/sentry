@@ -17,6 +17,7 @@ from sentry.api.serializers.models.auth import (
 )
 from sentry.auth import access
 from sentry.auth.exceptions import ProviderNotRegistered
+from sentry.auth.principal import acting_user_id
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.models.authprovider import AuthProvider
@@ -51,7 +52,7 @@ class AuthOrganizationConfigEndpoint(Endpoint):
         organization_context = organization_service.get_organization_by_slug(
             slug=organization_id_or_slug,
             only_visible=True,
-            user_id=request.user.id if request.user.is_authenticated else None,
+            user_id=acting_user_id(request.user),
             include_projects=False,
             include_teams=False,
         )

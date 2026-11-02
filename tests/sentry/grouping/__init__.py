@@ -196,15 +196,14 @@ def get_grouping_input_snapshotter(
 ) -> InstaSnapshotter:
     """Create a snapshot function with the output path baked in."""
     snapshot_path = path.join(
-        SNAPSHOTS_DIR,
         folder_name,
         test_name,
         # Windows paths contain colons, so we have to swap out the colons in our config names
         config_name.replace(":", "@"),
         grouping_input_file.replace(".json", ".pysnap"),
     )
-    # Convert from JSON to Python file formatting
-    snapshot_path = snapshot_path.replace("-", "_")
+    # Convert from JSON to Python file formatting, leaving the checkout's own path alone
+    snapshot_path = path.join(SNAPSHOTS_DIR, snapshot_path.replace("-", "_"))
 
     snapshot_function = functools.partial(insta_snapshot, reference_file=snapshot_path)
 

@@ -286,6 +286,11 @@ def sync_status_inbound(
         # This makes an API call.
         action = installation.get_resolve_sync_action(data)
     except Exception:
+        logger.warning(
+            "sync_status_inbound.get_resolve_sync_action_failed",
+            exc_info=True,
+            extra={"integration_id": integration_id, "organization_id": organization_id},
+        )
         return
 
     provider = installation.model.get_provider()

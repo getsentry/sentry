@@ -5,6 +5,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {AutomateSectionDeprecated} from 'sentry/views/detectors/components/forms/automateSection';
+import {useInitialDetectorDraft} from 'sentry/views/detectors/components/forms/common/detectorDraft';
 import {IssueOwnershipSection} from 'sentry/views/detectors/components/forms/common/issueOwnershipSection';
 import {
   ProjectEnvironmentSection,
@@ -24,6 +25,10 @@ import {formatUptimeUrl} from 'sentry/views/detectors/components/forms/uptime/fo
 import {PreviewSection} from 'sentry/views/detectors/components/forms/uptime/previewSection';
 import {UptimeRegionWarning} from 'sentry/views/detectors/components/forms/uptime/regionWarning';
 import {UptimeDetectorResolveSection} from 'sentry/views/detectors/components/forms/uptime/resolve';
+import {
+  getUptimeDuplicateFormData,
+  UPTIME_DETECTOR_DRAFT_SCHEMA,
+} from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
 import {UptimeIssuePreview} from 'sentry/views/detectors/components/forms/uptime/uptimeIssuePreview';
 import {UptimeDetectorVerificationSection} from 'sentry/views/detectors/components/forms/uptime/verification';
 import {createMapFormErrors} from 'sentry/views/detectors/components/uptime/formErrors';
@@ -92,13 +97,17 @@ function NewUptimeDetectorFormContent({
 }) {
   const {hasRuntimeAssertions} = useUptimeAssertionFeatures();
   const previewCheckResult = usePreviewCheckResult();
+  const draft = useInitialDetectorDraft();
 
   return (
     <NewDetectorLayout
       detectorType="uptime_domain_failure"
+      draftSchema={UPTIME_DETECTOR_DRAFT_SCHEMA}
       formDataToEndpointPayload={uptimeFormDataToEndpointPayload}
       initialFormData={
-        duplicateDetector ? uptimeSavedDetectorToFormData(duplicateDetector) : {}
+        duplicateDetector
+          ? getUptimeDuplicateFormData(duplicateDetector, draft ?? undefined)
+          : {}
       }
       extraFooterButton={
         hasRuntimeAssertions ? <ConnectedTestUptimeMonitorButton /> : undefined

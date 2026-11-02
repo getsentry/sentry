@@ -83,7 +83,6 @@
 /src/sentry/snuba/                                       @getsentry/owners-snuba
 /src/sentry/utils/snuba.py                               @getsentry/owners-snuba @getsentry/data-browsing
 /src/sentry/tsdb/snuba.py                                @getsentry/owners-snuba
-/src/sentry/tsdb/redissnuba.py                           @getsentry/owners-snuba
 /src/sentry/tagstore/snuba/                              @getsentry/owners-snuba
 /src/sentry/sentry_metrics/indexer/                      @getsentry/owners-snuba
 /src/sentry/sentry_metrics/consumers/indexer/            @getsentry/owners-snuba
@@ -185,7 +184,6 @@ Makefile                                                 @getsentry/owners-sentr
 ## Build & Releases
 /.github/workflows/release.yml                           @getsentry/release-approvers
 /scripts/bump-version.sh                                 @getsentry/release-approvers
-/scripts/post-release.sh                                 @getsentry/release-approvers
 /self-hosted/                                            @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
@@ -728,6 +726,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /tests/sentry/middleware/test_viewer_context.py              @getsentry/machine-learning-ai
 /src/sentry/investigations/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/investigations/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/src/sentry/notebooks/                                      @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/notebooks/                                    @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /src/sentry/seer/workflows/                                 @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/seer/workflows/                               @getsentry/machine-learning-ai @getsentry/agent-interfaces-sentry-backend
 

@@ -22,6 +22,7 @@ from sentry.api.authentication import (
     ViewerContextAuthentication,
     compare_service_signature,
 )
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
@@ -36,10 +37,12 @@ from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
 from sentry.sentry_apps.token_exchange.util import GrantTypes
 from sentry.service_accounts.auth import is_service_account_auth
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import SiloMode
 from sentry.testutils.auth import generate_service_request_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
@@ -1227,7 +1230,8 @@ class TestViewerContextAuthentication(TestCase):
         assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
-    def test_service_account_authenticates_without_a_user(self) -> None:
+    @with_feature("organizations:service-accounts")
+    def test_service_account_authenticates_as_its_principal(self) -> None:
         service_account = self.create_service_account(
             organization=self.organization, scope_list=["project:read", "event:read"]
         )
@@ -1243,11 +1247,29 @@ class TestViewerContextAuthentication(TestCase):
 
         assert result is not None
         user, auth = result
-        assert not user.is_authenticated
+        assert user == ServiceAccountPrincipal(
+            service_account_id=service_account.id,
+            organization_id=self.organization.id,
+            name=service_account.name,
+        )
+        assert acting_user_id(user) is None
         assert is_service_account_auth(auth)
         assert auth.entity_id == service_account.id
         assert auth.organization_id == self.organization.id
         assert auth.scopes == ["event:read", "project:read"]
+
+    @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
+    def test_service_account_without_feature_returns_none(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        context = ViewerContext(
+            actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+            organization_id=self.organization.id,
+        )
+        request = self._make_request(
+            viewer_context=encode_viewer_context(context, key=self.SHARED_SECRET)
+        )
+
+        assert ViewerContextAuthentication().authenticate(request) is None
 
     @override_settings(SEER_API_SHARED_SECRET=SHARED_SECRET)
     def test_service_account_in_other_org_returns_none(self) -> None:

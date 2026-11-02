@@ -7,8 +7,10 @@ from unittest.mock import MagicMock
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
@@ -18,8 +20,11 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
 from sentry.api.serializers import Serializer, serialize
 from sentry.auth import access
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import FunctionSiloLimit, SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -42,6 +47,18 @@ class DummyEndpoint(Endpoint):
 
     def get(self, request):
         return Response({"ok": True})
+
+
+class ServiceAccountAuthentication(BaseAuthentication):
+    def authenticate(self, request: Request) -> tuple[Any, AuthenticatedToken]:
+        principal = ServiceAccountPrincipal(service_account_id=1, organization_id=1, name="sa")
+        token = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        return (principal, token)
+
+
+class DummyUserOnlyEndpoint(DummyEndpoint):
+    authentication_classes = (ServiceAccountAuthentication,)
+    requires_user = True
 
 
 class DummyCsrfProtectedEndpoint(DummyEndpoint):
@@ -165,6 +182,20 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    @mock.patch("sentry.api.base.metrics.incr")
+    def test_requires_user_rejects_service_account(self, mock_incr: MagicMock) -> None:
+        response = DummyUserOnlyEndpoint.as_view()(self.make_request(method="GET"))
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "user-required"
+        mock_incr.assert_any_call("api.user_required", tags={"endpoint": "DummyUserOnlyEndpoint"})
+
+    def test_requires_user_allows_user(self) -> None:
+        class Endpoint(DummyEndpoint):
+            requires_user = True
+
+        request = self.make_request(user=self.user, method="GET")
+        assert Endpoint.as_view()(request).status_code == 200
+
     def test_csrf_protection_defaults_to_disabled(self) -> None:
         assert DummyEndpoint.as_view().csrf_exempt is True
 

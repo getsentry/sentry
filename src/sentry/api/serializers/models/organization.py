@@ -126,7 +126,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
 class OrganizationSummarySerializerResponseOptional(TypedDict, total=False):
     features: list[str]  # Only included if include_feature_flags is True
     extraOptions: dict[str, dict[str, Any]]
-    access: frozenset[str]  # Only if access=... is passed
+    access: list[str]  # Only if access=... is passed
     onboardingTasks: list[OnboardingTasksSerializerResponse]  # Only if access=... is passed
 
 
@@ -573,7 +573,7 @@ class OrganizationSummarySerializer(Serializer[OrganizationSummarySerializerResp
             }
 
         if "access" in kwargs:
-            context["access"] = kwargs["access"].scopes
+            context["access"] = sorted(kwargs["access"].scopes)
             tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
             context["onboardingTasks"] = serialize(tasks_to_serialize, user)
 

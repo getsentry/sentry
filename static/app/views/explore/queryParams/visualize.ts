@@ -1,5 +1,3 @@
-import type {Location} from 'history';
-
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -8,7 +6,6 @@ import {
   stripEquationPrefix,
   type ParsedFunction,
 } from 'sentry/utils/discover/fields';
-import {decodeList} from 'sentry/utils/queryString';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
@@ -262,13 +259,10 @@ export class VisualizeEquation extends Visualize {
   }
 }
 
-export function getVisualizesFromLocation(
-  location: Location,
-  key: string,
+export function getVisualizes(
+  rawVisualizes: readonly string[],
   options?: ParseVisualizeOptions
 ): Visualize[] | null {
-  const rawVisualizes = decodeList(location.query?.[key]);
-
   const visualizes: Visualize[] = [];
 
   for (const rawVisualize of rawVisualizes) {

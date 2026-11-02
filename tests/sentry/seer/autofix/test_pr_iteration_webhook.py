@@ -59,8 +59,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_schedules_task_for_valid_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(self._event())
+        self._call(self._event())
 
         mock_delay.assert_called_once()
         _, kwargs = mock_delay.call_args
@@ -81,30 +80,19 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_non_created_action(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(self._event(action="edited"))
+        self._call(self._event(action="edited"))
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_pr_comment(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("pull_request")
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(event)
+        self._call(event)
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_not_iterate_command(self, mock_delay: MagicMock) -> None:
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(self._event(body="just a comment"))
-        mock_delay.assert_not_called()
-
-    @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
-    def test_skips_when_manual_feature_disabled(self, mock_delay: MagicMock) -> None:
-        # Automated CI iteration on, manual off: the comment trigger is manual-only,
-        # so the automated flag must not enable it.
-        with self.feature("organizations:autofix-pr-iteration"):
-            self._call(self._event())
+        self._call(self._event(body="just a comment"))
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
@@ -113,16 +101,14 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
         # so the mention lands here and must be dropped before a task is
         # scheduled — PR iteration is not supported on GHE.
         self.integration = MagicMock(id=42, provider="github_enterprise")
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(self._event())
+        self._call(self._event())
         mock_delay.assert_not_called()
 
     @patch(f"{MENTION_PATH}.trigger_pr_iteration_from_comment.delay")
     def test_skips_when_no_pr_number(self, mock_delay: MagicMock) -> None:
         event = self._event()
         event["issue"].pop("number")
-        with self.feature("organizations:autofix-pr-iteration-manual"):
-            self._call(event)
+        self._call(event)
         mock_delay.assert_not_called()
 
 

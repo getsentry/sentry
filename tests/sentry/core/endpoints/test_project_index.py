@@ -1,6 +1,7 @@
 import pytest
 import responses
 from django.db import router
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
@@ -20,13 +21,40 @@ from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppIns
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-projects"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_without_open_membership_sees_linked_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        linked = self.create_project(teams=[self.team])
+        self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "project:read"],
+            project_ids=[linked.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(reverse(self.endpoint), HTTP_X_VIEWER_CONTEXT=viewer_context)
+
+        assert response.status_code == 200, response.content
+        assert [int(project["id"]) for project in response.data] == [linked.id]
 
     def test_agent_auth_missing_required_context_is_forbidden(self) -> None:
         user = self.create_user()
