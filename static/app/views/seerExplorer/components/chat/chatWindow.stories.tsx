@@ -36,16 +36,21 @@ type Session = NonNullable<SeerExplorerResponse['session']>;
  * defaulting rather than setting a default. Sending a message is a mutation and is not stubbed.
  */
 class FixtureQueryClient extends QueryClient {
-  session: Session;
+  session: Session | null;
+  hasEnoughCredits: boolean;
 
-  constructor(session: Session) {
+  constructor(session: Session | null, hasEnoughCredits: boolean) {
     super({defaultOptions: {queries: {retry: false}}});
     this.session = session;
+    this.hasEnoughCredits = hasEnoughCredits;
   }
 
   respond(url: string): unknown {
     if (url.includes(`/seer/explorer-chat/${RUN_ID}/`)) {
       return {session: this.session} satisfies SeerExplorerResponse;
+    }
+    if (url.includes('/seer/credit-check/')) {
+      return {hasEnoughCredits: this.hasEnoughCredits};
     }
     // Run history, integrations and the like: every other query in the window is a list.
     return [];
@@ -62,13 +67,23 @@ class FixtureQueryClient extends QueryClient {
 
 const noopDispatch = () => {};
 
+interface ChatWindowProps {
+  /** A new chat when null. */
+  session: Session | null;
+  /** Turns on `seer-credit-checks` and answers the chat's credit check with this. */
+  hasEnoughCredits?: boolean;
+  initialQuery?: string;
+}
+
 /**
  * The whole Explorer chat window — header, transcript, pending-input blocks, and composer — as
  * the sidebar renders it, for a fixed run.
  */
-function ChatWindow({session}: {session: Session}) {
+function ChatWindow({session, hasEnoughCredits, initialQuery}: ChatWindowProps) {
   const organization = useOrganization();
-  const [queryClient] = useState(() => new FixtureQueryClient(session));
+  const [queryClient] = useState(
+    () => new FixtureQueryClient(session, hasEnoughCredits ?? true)
+  );
 
   return (
     <OrganizationContext.Provider
@@ -76,7 +91,13 @@ function ChatWindow({session}: {session: Session}) {
         ...organization,
         openMembership: true,
         hideAiFeatures: false,
-        features: [...organization.features, 'seer-explorer'],
+        features: [
+          // Generated suggestions would come back as a fixture list, so a new chat shows the
+          // fixed ones instead.
+          ...organization.features.filter(feature => feature !== 'seer-chat-suggestions'),
+          'seer-explorer',
+          ...(hasEnoughCredits === undefined ? [] : ['seer-credit-checks']),
+        ],
       }}
     >
       <QueryClientProvider client={queryClient}>
@@ -84,7 +105,7 @@ function ChatWindow({session}: {session: Session}) {
             persist the story's run over the viewer's own Explorer session. */}
         <SeerExplorerChatDispatchContext.Provider value={noopDispatch}>
           <SeerExplorerChatStateContext.Provider
-            value={{runId: RUN_ID, chatPrompt: null, chatStates: {}}}
+            value={{runId: session ? RUN_ID : null, chatPrompt: null, chatStates: {}}}
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>
@@ -92,6 +113,8 @@ function ChatWindow({session}: {session: Session}) {
                   <SeerExplorerContent
                     getPageReferrer={() => '/issues/'}
                     onClose={() => {}}
+                    initialQuery={initialQuery}
+                    appendInitialQuery={!!session}
                   />
                 </Container>
               </SeerExplorerSessionsProvider>
@@ -425,6 +448,49 @@ export default Storybook.story('ChatWindow', story => {
         block.
       </p>
       <ChatWindow session={RESUMED_AFTER_APPROVAL_SESSION} />
+    </Fragment>
+  ));
+
+  story('New chat', () => (
+    <Fragment>
+      <p>
+        A new chat for an organization with credits, to compare with the out-of-credits
+        stories below: the suggested questions show and the composer sends.
+      </p>
+      <ChatWindow session={null} hasEnoughCredits />
+    </Fragment>
+  ));
+
+  story('Out of credits in a new chat', () => (
+    <Fragment>
+      <p>
+        The organization can't afford another message. The out-of-credits CTA sits right
+        above the composer, the suggested questions are gone, and nothing sends: not the
+        send button, Enter, or the /investigate command. Typing still works so a draft
+        isn't lost. A question forwarded from elsewhere in Sentry (here, the one in the
+        composer) waits there instead of being sent. Open source renders no CTA; getsentry
+        fills it in.
+      </p>
+      <ChatWindow
+        session={null}
+        hasEnoughCredits={false}
+        initialQuery="Why is checkout slow since this morning?"
+      />
+    </Fragment>
+  ));
+
+  story('Out of credits in a conversation', () => (
+    <Fragment>
+      <p>
+        The same gate partway through a conversation. The transcript stays readable, the
+        CTA sits above the composer, and the follow-up in the composer can't be sent until
+        someone tops up.
+      </p>
+      <ChatWindow
+        session={COMPLETED_SESSION}
+        hasEnoughCredits={false}
+        initialQuery="Open a pull request that prefetches product in the cart query."
+      />
     </Fragment>
   ));
 
