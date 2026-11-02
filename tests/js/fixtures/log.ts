@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -77,7 +78,7 @@ export function LogFixtureMeta(
 interface LogsTestInitOptions {
   isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
-  orgFeatures?: string[];
+  orgFeatures?: OrganizationFeature[];
   organization?: Partial<Organization>;
   ourlogs?: boolean;
   pageFiltersPeriod?: string;
@@ -120,12 +121,12 @@ export function initializeLogsTest({
   setupTotalPayloadMock: () => jest.Mock;
   setupTraceItemsMock: (logFixtures: OurLogsResponseItem[]) => jest.Mock[];
 } {
-  const baseFeatures = ourlogs ? ['ourlogs-enabled'] : [];
+  const baseFeatures: OrganizationFeature[] = ourlogs ? ['ourlogs-enabled'] : [];
 
   const forcedProject = projectOverrides ?? {hasLogs: true};
   const {organization, project} = initializeOrg({
     organization: {
-      features: [...baseFeatures, ...orgFeatures],
+      features: [...baseFeatures, ...orgFeatures] satisfies FeatureName[],
       ...orgOverrides,
     },
     projects: [forcedProject],

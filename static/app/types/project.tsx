@@ -1,5 +1,6 @@
 import type {Scope, TimeseriesValue} from './core';
 import type {SDKUpdatesSuggestion} from './event';
+import type {ProjectFeature} from './featureFlags.generated';
 import type {Organization, Team} from './organization';
 import type {PlatformKey} from './platform';
 import type {Deploy} from './release';
@@ -27,7 +28,7 @@ interface ProjectSummary extends AvatarProject {
   access: Scope[];
   dateCreated: string;
   environments: string[];
-  features: string[];
+  features: ProjectFeature[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
   hasAccess: boolean;

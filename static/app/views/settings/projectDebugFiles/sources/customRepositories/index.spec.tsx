@@ -10,6 +10,7 @@ import {GlobalModal} from '@sentry/scraps/modal';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import type {CustomRepo, CustomRepoHttp} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {CustomRepositories} from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 function TestComponent({
@@ -62,7 +63,10 @@ describe('Custom Repositories', () => {
 
   it('renders with custom-symbol-sources feature enabled', async () => {
     const props = getProps();
-    const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
+    const newOrganization = {
+      ...props.organization,
+      features: ['custom-symbol-sources'] satisfies FeatureName[],
+    };
 
     const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />

@@ -8,6 +8,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -434,7 +435,7 @@ describe('ExploreCharts', () => {
   });
 
   describe('dropped data layer', () => {
-    const features = ['explore-data-fidelity-annotations'];
+    const features = ['explore-data-fidelity-annotations'] satisfies FeatureName[];
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
@@ -452,7 +453,7 @@ describe('ExploreCharts', () => {
     }: {
       acceptedEvents?: OutcomeRow[];
       droppedEvents?: OutcomeRow[];
-      organizationFeatures?: string[];
+      organizationFeatures?: OrganizationFeature[];
       query?: string;
     }) {
       const request = MockApiClient.addMockResponse({

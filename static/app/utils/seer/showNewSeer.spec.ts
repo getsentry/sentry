@@ -70,7 +70,7 @@ describe('showNewSeer', () => {
 
     it('returns false with unrelated features', () => {
       const organization = OrganizationFixture({
-        features: ['some-other-feature', 'another-feature'],
+        features: ['dashboards-basic', 'dashboards-edit'],
       });
 
       expect(showNewSeer(organization)).toBe(false);

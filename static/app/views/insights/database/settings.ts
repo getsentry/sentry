@@ -8,6 +8,7 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
@@ -49,4 +50,4 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/backend/queries/';
 
-export const MODULE_FEATURES = ['insight-modules'];
+export const MODULE_FEATURES: OrganizationFeature[] = ['insight-modules'];

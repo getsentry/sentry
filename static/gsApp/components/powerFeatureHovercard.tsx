@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
@@ -24,7 +24,7 @@ interface PowerFeatureHovercardProps {
    * NOTE: If the user has all features the hovercard will NOT be hidden. It
    * is up to the parent component to decide whether this should be rendered.
    */
-  features: Organization['features'];
+  features: FeatureName[];
 
   subscription: Subscription;
   children?: React.ReactNode;

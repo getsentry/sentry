@@ -1225,7 +1225,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['dashboards-edit'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';

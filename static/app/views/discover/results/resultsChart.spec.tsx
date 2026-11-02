@@ -6,6 +6,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {
   DiscoverDatasets,
@@ -15,7 +16,7 @@ import {
 import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 
 describe('Discover > ResultsChart', () => {
-  const features = ['discover-basic'];
+  const features = ['discover-basic'] satisfies FeatureName[];
   const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',

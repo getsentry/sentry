@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SeerDrawer} from 'sentry/components/events/autofix/v3/drawer';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 function makeExplorerBlock({
   id = 'block-1',
@@ -405,7 +406,7 @@ describe('SeerDrawer', () => {
       expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
 
-    it.each([['autofix-pr-iteration'], ['autofix-pr-iteration-manual']])(
+    it.each<OrganizationFeature>(['autofix-pr-iteration', 'autofix-pr-iteration-manual'])(
       'polls the autofix endpoint when %s is enabled and a PR exists',
       async feature => {
         const getMock = mockAutofixWithPr();

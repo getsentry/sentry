@@ -9,6 +9,7 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   const base: OnboardingConfig = {
@@ -25,7 +26,7 @@ function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   return {onboarding: base};
 }
 
-function renderLayout(docsConfig: Docs, features: string[] = []) {
+function renderLayout(docsConfig: Docs, features: OrganizationFeature[] = []) {
   const organization = OrganizationFixture({features});
   const project = ProjectFixture({organization});
 

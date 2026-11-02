@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
 
@@ -38,7 +39,7 @@ function makeSeries(): TimeSeries {
 
 function renderTooltipDetails(
   completeThrough: number | undefined,
-  features: string[] = ['measured-ingestion-delay-ui']
+  features: OrganizationFeature[] = ['measured-ingestion-delay-ui']
 ) {
   const series = [makeSeries()];
   return renderHookWithProviders(

@@ -11,6 +11,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import OrganizationStats, {PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';
@@ -389,7 +390,10 @@ describe('OrganizationStats', () => {
   it('renders legacy organization stats without appropriate flags', async () => {
     const selectedProject = [1];
 
-    for (const features of [['team-insights'], ['team-insights']]) {
+    for (const features of [
+      ['team-insights'],
+      ['team-insights'],
+    ] satisfies OrganizationFeature[][]) {
       const newOrg = OrganizationFixture({features});
 
       render(<OrganizationStats />, {

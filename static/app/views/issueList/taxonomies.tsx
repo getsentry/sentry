@@ -3,9 +3,10 @@ import type {ReactNode} from 'react';
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {IssueCategory} from 'sentry/types/group';
 
-const SENTRY_CONFIGURATION_FEATURE_FLAGS = [
+const SENTRY_CONFIGURATION_FEATURE_FLAGS: OrganizationFeature[] = [
   'issue-sourcemap-configuration-visible',
   'issue-low-value-span-configuration-visible',
 ];
@@ -25,7 +26,7 @@ export const ISSUE_TAXONOMY_CONFIG: Record<
     key: string;
     label: string;
     badge?: FeatureBadgeProps['type'];
-    featureFlags?: string[];
+    featureFlags?: OrganizationFeature[];
   }
 > = {
   [IssueTaxonomy.ERRORS_AND_OUTAGES]: {

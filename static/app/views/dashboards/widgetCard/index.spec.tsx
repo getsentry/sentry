@@ -13,6 +13,7 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {FieldKind} from 'sentry/utils/fields';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -37,11 +38,14 @@ describe('Dashboards > WidgetCard', () => {
     }),
   });
 
-  const renderWithProviders = (component: React.ReactElement, features: string[] = []) =>
+  const renderWithProviders = (
+    component: React.ReactElement,
+    features: OrganizationFeature[] = []
+  ) =>
     render(component, {
       organization: {
         ...organization,
-        features: [...organization.features, ...features],
+        features: [...organization.features, ...features] satisfies FeatureName[],
       },
       initialRouterConfig: {
         route: '/organizations/:orgId/dashboard/:dashboardId/',
