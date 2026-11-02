@@ -1,10 +1,14 @@
+import type * as React from 'react';
 import {createRef, Fragment, useState} from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen, within} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
-
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
+
+import {lightTheme} from '../theme';
 
 import {createFilter} from './filter';
 import {Select} from './select';
@@ -355,7 +359,8 @@ it('customizes value and option content while preserving selection data', async 
       value="apple"
       onChange={onChange}
       components={{Value: FruitValue, OptionLabel: FruitOptionLabel}}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('Selected Apple')).toBeInTheDocument();
@@ -376,7 +381,8 @@ it('customizes chip labels while retaining the remove control', async () => {
       value={['apple', 'cherry']}
       onChange={onChange}
       components={{MultiValueLabel: FruitMultiValueLabel}}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('Apple: Fruit')).toBeInTheDocument();
@@ -394,7 +400,8 @@ it('customizes indicators while retaining the clear control', async () => {
       value="apple"
       onChange={onChange}
       components={{Indicators: FruitIndicators}}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('Fruit indicators')).toBeInTheDocument();
@@ -412,7 +419,8 @@ it('can hide indicators without disabling option selection', async () => {
       value="apple"
       onChange={onChange}
       components={{Indicators: null}}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.queryByLabelText('Clear choices')).not.toBeInTheDocument();
@@ -432,7 +440,8 @@ it('provides a native input ref and forwards validation attributes', () => {
       aria-describedby="fruit-error"
       inputRef={inputRef}
       options={options}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   const input = screen.getByRole('textbox', {name: 'Fruit'});
@@ -455,11 +464,12 @@ it('renders disabled selections without an onChange handler', async () => {
         options={options}
         value={['cherry']}
       />
-    </Fragment>
+    </Fragment>,
+    {wrapper: ThemeWrapper}
   );
 
-  expect(screen.getByRole('textbox', {name: 'Single fruit'})).toBeDisabled();
-  expect(screen.getByRole('textbox', {name: 'Multiple fruit'})).toBeDisabled();
+  expect(screen.getByLabelText('Single fruit')).toBeDisabled();
+  expect(screen.getByLabelText('Multiple fruit')).toBeDisabled();
   expect(screen.getByText('Apple')).toBeInTheDocument();
   expect(screen.getByText('Cherry')).toBeInTheDocument();
 
@@ -478,7 +488,8 @@ it('exposes focus and blur without access to the implementation instance', () =>
       ref={ref}
       aria-label="Fruit"
       options={options}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
@@ -508,7 +519,7 @@ function ControlledSelect({onOpenChange}: {onOpenChange: (open: boolean) => void
 
 it('controls the menu and keeps footer actions outside the options', async () => {
   const onOpenChange = jest.fn();
-  render(<ControlledSelect onOpenChange={onOpenChange} />);
+  render(<ControlledSelect onOpenChange={onOpenChange} />, {wrapper: ThemeWrapper});
 
   await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
   expect(onOpenChange).toHaveBeenLastCalledWith(true);
@@ -540,7 +551,8 @@ it('uses raw values for controlled single and multiple selections', () => {
         options={options}
         value={['cherry']}
       />
-    </Fragment>
+    </Fragment>,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('Apple')).toBeInTheDocument();
@@ -555,7 +567,8 @@ it.each([false, true])(
       ? {multiple: true as const, value: ['apple']}
       : {value: 'apple'};
     const {rerender} = render(
-      <Select {...selection} aria-label="Fruit" options={options} onChange={onChange} />
+      <Select {...selection} aria-label="Fruit" options={options} onChange={onChange} />,
+      {wrapper: ThemeWrapper}
     );
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
@@ -597,7 +610,8 @@ it('blurs single selects after selection and reports edits and resets separately
       aria-label="Fruit"
       options={options}
       onInputChange={onInputChange}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
@@ -621,7 +635,8 @@ it('keeps multiple selects focused after selection', async () => {
       multiple
       aria-label="Fruit"
       options={options}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
@@ -642,7 +657,8 @@ it('can retain focus in a single select without firing blur', async () => {
       options={options}
       blurInputOnSelect={false}
       onBlur={onBlur}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
   const input = screen.getByRole('textbox', {name: 'Fruit'});
 
@@ -660,7 +676,8 @@ it('filters numeric labels as text', async () => {
       onChange={jest.fn()}
       aria-label="Number"
       options={[{value: 'one', label: 123}]}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   await userEvent.type(screen.getByRole('textbox', {name: 'Number'}), '123');
@@ -679,7 +696,8 @@ it('preserves creatable values with an empty options list', () => {
         options={[]}
         value={['New tag']}
       />
-    </Fragment>
+    </Fragment>,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('New fruit')).toBeInTheDocument();
@@ -694,7 +712,8 @@ it('passes option data directly to custom filters', async () => {
       aria-label="Fruit"
       options={options}
       filterOption={option => option.value === 'cherry'}
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
@@ -710,7 +729,8 @@ it('shows the placeholder for an empty selection without adding menu options', a
       options={options}
       value={null}
       placeholder="Choose fruit"
-    />
+    />,
+    {wrapper: ThemeWrapper}
   );
 
   expect(screen.getByText('Choose fruit')).toBeInTheDocument();
@@ -719,3 +739,7 @@ it('shows the placeholder for an empty selection without adding menu options', a
   expect(screen.getByRole('menuitemradio', {name: 'Apple'})).not.toBeChecked();
   expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).not.toBeChecked();
 });
+
+function ThemeWrapper({children}: {children: React.ReactNode}) {
+  return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
+}
