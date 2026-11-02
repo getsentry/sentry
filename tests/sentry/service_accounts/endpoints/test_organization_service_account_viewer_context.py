@@ -164,31 +164,42 @@ class OrganizationServiceAccountViewerContextTest(APITestCase):
         assert self._get_project(viewer_context, linked).status_code == 200
         assert self._get_project(viewer_context, unlinked).status_code == 403
 
-    def test_issued_context_reaches_every_project_with_open_membership(self) -> None:
+    def test_open_membership_does_not_widen_issued_context(self) -> None:
         self.organization.flags.allow_joinleave = True
         self.organization.save()
+        project = self.create_project(organization=self.organization)
+
+        assert self._get_project(self._issue(), project).status_code == 403
+
+    def test_issued_context_reaches_every_project_with_all_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(all_projects=True)
         project = self.create_project(organization=self.organization)
 
         assert self._get_project(self._issue(), project).status_code == 200
 
     def test_issued_context_needs_the_endpoint_scope(self) -> None:
-        self.organization.flags.allow_joinleave = True
-        self.organization.save()
         project = self.create_project(organization=self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.service_account.update(scope_list=["event:read"])
+            self.service_account.update(scope_list=["event:read"], all_projects=True)
 
         assert self._get_project(self._issue(), project).status_code == 403
 
     def test_account_changes_apply_to_issued_context(self) -> None:
-        self.organization.flags.allow_joinleave = True
-        self.organization.save()
         project = self.create_project(organization=self.organization)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(all_projects=True)
         viewer_context = self._issue()
         assert self._get_project(viewer_context, project).status_code == 200
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
-            self.service_account.update(scope_list=["event:read"])
+            self.service_account.update(all_projects=False)
+        assert self._get_project(viewer_context, project).status_code == 403
+
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            self.service_account.update(all_projects=True, scope_list=["event:read"])
         assert self._get_project(viewer_context, project).status_code == 403
 
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():

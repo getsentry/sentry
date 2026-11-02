@@ -198,7 +198,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
                 status_code=201,
             )
 
-    def test_create_requires_org_admin(self) -> None:
+    def test_create_requires_service_account_write(self) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.login_as(member)
@@ -214,9 +214,40 @@ class OrganizationServiceAccountIndexTest(APITestCase):
 
         assert not ServiceAccount.objects.exists()
 
+    def test_manager_can_create(self) -> None:
+        manager = self.create_user()
+        self.create_member(organization=self.organization, user=manager, role="manager")
+        self.login_as(manager)
+
+        with self.feature(FEATURE_FLAG):
+            self.get_success_response(
+                self.organization.slug,
+                method="post",
+                name="nightly-triage",
+                scopes=["event:read"],
+                status_code=201,
+            )
+
+    def test_create_rejects_org_admin_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        with self.feature(FEATURE_FLAG):
+            response = self.client.post(
+                url,
+                data={"name": "nightly-triage", "scopes": ["org:read"]},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+        assert not ServiceAccount.objects.exists()
+
     def test_create_rejects_scopes_caller_lacks(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+            token = self.create_user_auth_token(
+                user=self.user, scope_list=["service_account:write"]
+            )
         url = reverse(self.endpoint, args=[self.organization.slug])
 
         with self.feature(FEATURE_FLAG):
@@ -287,7 +318,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
 
     def test_create_all_projects_requires_global_role(self) -> None:
         api_key = self.create_api_key(
-            organization=self.organization, scope_list=["org:admin", "event:read"]
+            organization=self.organization, scope_list=["service_account:write", "event:read"]
         )
         url = reverse(self.endpoint, args=[self.organization.slug])
 
@@ -516,7 +547,9 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         service_account = self.create_service_account(
             organization=self.organization, name="seer-explorer", all_projects=True
         )
-        api_key = self.create_api_key(organization=self.organization, scope_list=["org:admin"])
+        api_key = self.create_api_key(
+            organization=self.organization, scope_list=["service_account:write"]
+        )
 
         def put(service_account_id: int, data: dict[str, Any]) -> Any:
             return self.client.put(
@@ -570,7 +603,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         assert self.service_account.name == "seer-autofix"
 
     def test_update_rejects_scopes_caller_lacks(self) -> None:
-        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+        token = self.create_user_auth_token(user=self.user, scope_list=["service_account:write"])
         url = reverse(self.endpoint, args=[self.organization.slug, self.service_account.id])
 
         with self.feature(FEATURE_FLAG):
@@ -622,7 +655,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
             event=audit_log.get_event_id("SERVICE_ACCOUNT_EDIT")
         ).exists()
 
-    def test_update_requires_org_admin(self) -> None:
+    def test_update_requires_service_account_write(self) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.login_as(member)
@@ -684,7 +717,7 @@ class OrganizationServiceAccountDetailsTest(APITestCase):
         assert entry.target_object == service_account_id
         assert entry.data["name"] == "seer-autofix"
 
-    def test_delete_requires_org_admin(self) -> None:
+    def test_delete_requires_service_account_write(self) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member")
         self.login_as(member)

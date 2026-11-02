@@ -21,6 +21,7 @@ from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
+    DetectorType,
     FeatureGate,
 )
 from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
@@ -92,7 +93,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestMetricGroupType(GroupType):
             type_id = 1
-            slug = "test_metric_issue"
+            slug = DetectorType.METRIC_ISSUE
             description = "Metric alert"
             category = GroupCategory.METRIC.value
             released = True
@@ -100,7 +101,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestCronsGroupType(GroupType):
             type_id = 2
-            slug = "test_monitor_check_in_failure"
+            slug = DetectorType.MONITOR_CHECK_IN_FAILURE
             description = "Crons"
             category = GroupCategory.OUTAGE.value
             released = True
@@ -108,7 +109,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         @dataclass(frozen=True)
         class TestUptimeGroupType(GroupType):
             type_id = 3
-            slug = "test_uptime_domain_failure"
+            slug = DetectorType.UPTIME_DOMAIN_FAILURE
             description = "Uptime"
             category = GroupCategory.OUTAGE.value
             released = True
@@ -126,6 +127,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             handler = MockDetectorHandler
 
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
+            detector_settings_registry.registrations.pop(group_type.slug)
             detector_settings_registry.register(group_type.slug)(MockDetectorSettings)
 
         self.expected_type_slugs = sorted(

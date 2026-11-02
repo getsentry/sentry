@@ -34,7 +34,6 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import BaseMetricsTestCase, OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -820,6 +819,43 @@ class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCas
 
         response = self.do_request("delete", self.url(dashboard.id))
         assert response.status_code == 403
+
+    def test_api_key_cannot_delete_restricted_dashboard_without_creator(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=None,
+            organization=self.organization,
+        )
+        DashboardPermissions.objects.create(is_editable_by_everyone=False, dashboard=dashboard)
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
+
+    def test_api_key_cannot_delete_restricted_dashboard_via_pending_invite(self) -> None:
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Dataset Source",
+            created_by_id=self.create_user().id,
+            organization=self.organization,
+        )
+        team = self.create_team(organization=self.organization)
+        self.create_member(
+            organization=self.organization, email="invited@example.com", teams=[team]
+        )
+        permissions = DashboardPermissions.objects.create(
+            is_editable_by_everyone=False, dashboard=dashboard
+        )
+        permissions.teams_with_edit_access.set([team])
+        api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
+
+        response = self.client.delete(
+            self.url(dashboard.id), HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key)
+        )
+        assert response.status_code == 403
+        assert Dashboard.objects.filter(id=dashboard.id).exists()
 
     def test_delete_dashboard_with_edit_permissions_disabled(self) -> None:
         creator = self.create_user()
@@ -5056,7 +5092,6 @@ class OrganizationDashboardFavoriteReorderingTest(OrganizationDashboardDetailsTe
 
 
 @with_feature("organizations:granular-permission-scopes")
-@granular_roles_granting("user_preference:read", "user_preference:write")
 class OrganizationDashboardFavoriteScopeTest(OrganizationDashboardDetailsTestCase):
     def url(self, dashboard_id: int) -> str:
         return reverse(
