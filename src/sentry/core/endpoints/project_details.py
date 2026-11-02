@@ -50,7 +50,6 @@ from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import clean_lines, set_list
-from sentry.issues.auto_resolution import recent_unresolved_activities
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -59,6 +58,7 @@ from sentry.lang.native.sources import (
     redact_source_secrets,
 )
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_MAX, convert_crashreport_count
+from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -672,9 +672,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
             cutoff = timezone.now() - timedelta(hours=int(resolve_age))
+            reopenings = Activity.objects.get_recent_unresolved_activities(project.id, cutoff)
             queryset = queryset.filter(
-                Q(last_seen__gt=cutoff)
-                | Q(id__in=recent_unresolved_activities(project.id, cutoff).values("group_id"))
+                Q(last_seen__gt=cutoff) | Q(id__in=reopenings.values("group_id"))
             )
 
         return queryset.count()

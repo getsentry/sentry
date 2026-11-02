@@ -13,7 +13,6 @@ from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues import grouptype
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
-from sentry.issues.auto_resolution import recent_unresolved_activities
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
@@ -95,7 +94,7 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     ]
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
-    reopenings = recent_unresolved_activities(project.id, cutoff)
+    reopenings = Activity.objects.get_recent_unresolved_activities(project.id, cutoff)
     queryset = list(
         Group.objects.filter(**filter_conditions).exclude(id__in=reopenings.values("group_id"))[
             :chunk_size
