@@ -114,6 +114,8 @@ export function RunChangesView({
             <Container minWidth="0">
               {allChanges.length > 1 ? (
                 <CompactSelect
+                  // The select sizes to its trigger, so cap it to let long titles truncate.
+                  style={{maxWidth: '100%'}}
                   size="xs"
                   value={repoName}
                   options={allChanges.map(repoChanges => ({
