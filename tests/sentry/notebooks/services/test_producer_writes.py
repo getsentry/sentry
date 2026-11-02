@@ -80,6 +80,14 @@ class UpsertBlockTest(TestCase):
 
         assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
 
+    def test_rejected_project_scope_leaves_no_block(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+
+        with pytest.raises(serializers.ValidationError):
+            self.upsert(project_ids=[foreign_project.id])
+
+        assert not NotebookBlock.objects.filter(notebook=self.notebook).exists()
+
     def test_updates_block_with_same_key_and_revision_in_place(self) -> None:
         request_id = uuid4()
         started = self.upsert(request_id=request_id, complete=False, title="Summary")
