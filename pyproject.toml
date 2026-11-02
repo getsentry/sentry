@@ -668,7 +668,6 @@ module = [
     "sentry.apidocs.parameters",
     "sentry.apidocs.schema",
     "sentry.apidocs.spectacular_ports",
-    "sentry.apidocs.utils",
     "sentry.assistant.*",
     "sentry.attachments.*",
     "sentry.audit_log",
