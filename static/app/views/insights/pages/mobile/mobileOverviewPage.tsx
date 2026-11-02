@@ -29,6 +29,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {InsightsEnvironmentSelector} from 'sentry/views/insights/common/components/enviornmentSelector';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {InsightsProjectSelector} from 'sentry/views/insights/common/components/projectSelector';
@@ -115,8 +116,12 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
   const {selection} = usePageFilters();
-  const [{pagesCursor, query: searchBarQuery, sort}, setQueryParams] = useQueryStates(
+  const [{query: searchBarQuery}, setQueryParams] = useQueryStates(
     mobileOverviewQueryParsers
+  );
+  const {pagesCursor, sort} = loadQueryParamsFromLocation(
+    mobileOverviewQueryParsers,
+    location
   );
 
   useDefaultToAllProjects();

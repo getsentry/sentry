@@ -21,7 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {usePreprodBuildsAnalytics} from 'sentry/views/preprod/hooks/usePreprodBuildsAnalytics';
 import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -50,11 +50,13 @@ export function MobileBuilds({
   hideDisplayToggle,
 }: Props) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParams] = useQueryStates(mobileBuildsQueryParsers);
 
-  const [{cursor, display: urlDisplay, query: searchQuery}] = useQueryStates(
-    mobileBuildsQueryParsers
-  );
+  const {
+    cursor,
+    display: urlDisplay,
+    query: searchQuery,
+  } = loadQueryParamsFromLocation(mobileBuildsQueryParsers, location);
   const activeDisplay = defaultDisplay ?? urlDisplay;
 
   const buildsQueryParams = useMemo(() => {
@@ -99,27 +101,23 @@ export function MobileBuilds({
 
   const handleSearch = useCallback(
     (query: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query},
-      });
+      setQueryParams({cursor: null, query}, {history: 'push'});
     },
-    [location, navigate]
+    [setQueryParams]
   );
 
   const handleDisplayChange = useCallback(
     (display: PreprodBuildsDisplay) => {
-      navigate({
-        ...location,
-        query: {
-          ...location.query,
-          cursor: undefined,
+      setQueryParams(
+        {
+          cursor: null,
           display,
-          query: getUpdatedQueryForDisplay(searchQuery, display),
+          query: getUpdatedQueryForDisplay(searchQuery, display) ?? null,
         },
-      });
+        {history: 'push', clearOnDefault: false}
+      );
     },
-    [location, navigate, searchQuery]
+    [searchQuery, setQueryParams]
   );
 
   const handleExportCsv = useCallback(() => {

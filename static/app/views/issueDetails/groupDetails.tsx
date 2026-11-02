@@ -51,6 +51,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {ERROR_TYPES} from 'sentry/views/issueDetails/constants';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
@@ -252,8 +253,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState(false);
-  const [{_allp: allProjectsFlag, project: urlProject}, setAllProjectsQuery] =
-    useQueryStates(allProjectsQueryParsers);
+  const [, setAllProjectsQuery] = useQueryStates(allProjectsQueryParsers);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
@@ -379,6 +379,10 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const syncAllProjectsQuery = useEffectEvent(
     (groupProjectId: string | undefined, hasChangedAllProjects: boolean) => {
+      const {_allp: allProjectsFlag, project: urlProject} = loadQueryParamsFromLocation(
+        allProjectsQueryParsers,
+        location
+      );
       // We use _allp as a temporary measure to know they came from the
       // issue list page with no project selected (all projects included in
       // filter).
@@ -497,9 +501,9 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
-  const [
-    {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid},
-  ] = useQueryStates(trackViewQueryParsers);
+  const location = useLocation();
+  const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
+    loadQueryParamsFromLocation(trackViewQueryParsers, location);
   const groupEventType = useLoadedEventType();
   const user = useUser();
 

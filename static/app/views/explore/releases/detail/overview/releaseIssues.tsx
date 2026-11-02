@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
-import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
+import {parseAsString, parseAsStringEnum, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -18,6 +18,7 @@ import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {EmptyState} from 'sentry/views/explore/releases/detail/commitsAndFiles/emptyState';
 import type {ReleaseBounds} from 'sentry/views/explore/releases/utils';
 import {getReleaseParams} from 'sentry/views/explore/releases/utils';
@@ -52,10 +53,11 @@ interface Props {
   withChart?: boolean;
 }
 
-const releaseIssuesQueryParsers = {
-  issuesType: parseAsStringEnum(Object.values(IssuesType))
-    .withDefault(IssuesType.NEW)
-    .withOptions({history: 'replace'}),
+const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
+  IssuesType.NEW
+);
+
+const releasePeriodParsers = {
   pageStart: parseAsString,
   pageStatsPeriod: parseAsString,
 };
@@ -194,8 +196,9 @@ export function ReleaseIssues({
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
-  const [{issuesType, pageStart, pageStatsPeriod}, setQueryParams] = useQueryStates(
-    releaseIssuesQueryParsers
+  const [issuesType, setIssuesType] = useQueryState(
+    'issuesType',
+    parseAsIssuesType.withOptions({history: 'replace'})
   );
   const {endpoint, queryParams} = getIssuesEndpoint(
     version,
@@ -253,6 +256,10 @@ export function ReleaseIssues({
     }, []);
 
   const renderEmptyMessage = useCallback(() => {
+    const {pageStart, pageStatsPeriod} = loadQueryParamsFromLocation(
+      releasePeriodParsers,
+      location
+    );
     const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
     const {statsPeriod} = getReleaseParams({
@@ -299,7 +306,7 @@ export function ReleaseIssues({
           : null}
       </EmptyState>
     );
-  }, [issuesType, location, pageStart, pageStatsPeriod, releaseBounds]);
+  }, [issuesType, location, releaseBounds]);
 
   const issuesTypes = [
     {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -345,7 +352,7 @@ export function ReleaseIssues({
                     aria-label={t('Issue type')}
                     size="xs"
                     value={issuesType}
-                    onChange={value => setQueryParams({issuesType: value})}
+                    onChange={setIssuesType}
                   >
                     {issuesTypes.map(({value, label, issueCount}) => (
                       <SegmentedControl.Item key={value} textValue={label}>
