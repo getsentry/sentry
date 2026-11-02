@@ -10,7 +10,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export function sentryAppComponentsApiOptions({orgSlug}: {orgSlug: string}) {
-  return apiOptions.as<SentryAppComponent[]>()(
+  return apiOptions.contract(
     '/organizations/$organizationIdOrSlug/sentry-app-components/',
     {
       path: {organizationIdOrSlug: orgSlug},

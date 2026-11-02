@@ -25,7 +25,7 @@ export default function PasswordReset() {
   const [isComplete, setComplete] = useState(false);
   const [isTokenInvalid, setTokenInvalid] = useState(false);
   const validation = useQuery({
-    ...apiOptions.as<{valid: boolean}>()('/auth/recovery/confirm/', {
+    ...apiOptions.contract('/auth/recovery/confirm/', {
       query: {userId, token},
       staleTime: 0,
     }),

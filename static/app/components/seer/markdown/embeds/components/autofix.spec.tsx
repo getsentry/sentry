@@ -11,7 +11,6 @@ import type {
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {AutofixRef} from 'sentry/components/seer/markdown/embeds/components/autofix';
-import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -107,7 +106,7 @@ function InboxBehindThePanel({step = 'root_cause'}: {step?: string}) {
   const org = useOrganization();
 
   useInfiniteQuery(
-    apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+    apiOptions.contractInfinite('/organizations/$organizationIdOrSlug/issues/', {
       path: {organizationIdOrSlug: org.slug},
       query: {query: 'issue.progress:diagnosed is:unresolved'},
       staleTime: 0,

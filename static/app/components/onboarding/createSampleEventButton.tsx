@@ -97,7 +97,7 @@ export function CreateSampleEventButton({
 
       queryClient
         .fetchQuery({
-          ...apiOptions.as<unknown>()(
+          ...apiOptions.contract(
             '/organizations/$organizationIdOrSlug/issues/$issueId/events/$eventId/',
             {
               path: {

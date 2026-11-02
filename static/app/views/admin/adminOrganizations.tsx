@@ -15,7 +15,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import type {OrganizationSummary} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
@@ -39,7 +38,7 @@ export default function AdminOrganizations() {
   });
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<OrganizationSummary[]>()('/organizations/', {
+    ...apiOptions.contract('/organizations/', {
       query: {show: 'all', query, sortBy, cursor: cursor ?? undefined},
       staleTime: 0,
     }),

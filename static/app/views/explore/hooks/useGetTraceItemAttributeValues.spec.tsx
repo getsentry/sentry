@@ -362,7 +362,7 @@ describe('useGetTraceItemAttributeValues', () => {
     });
 
     await queryClient.fetchQuery(
-      apiOptions.as<Array<ReturnType<typeof makeAttributeValue>>>()(
+      apiOptions.contract(
         '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/',
         {
           path: {organizationIdOrSlug: 'org-slug', key: attributeKey},

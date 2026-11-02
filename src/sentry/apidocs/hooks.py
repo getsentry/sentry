@@ -1,3 +1,4 @@
+import itertools
 import json  # noqa: S003
 import os
 import re
@@ -18,7 +19,7 @@ from sentry.apidocs.omission_guard import (
     omissions_enabled,
     recording_omissions,
 )
-from sentry.apidocs.utils import SentryApiBuildError
+from sentry.apidocs.utils import SentryApiBuildError, is_internal_build
 from sentry.silo.base import SiloLimit, SiloMode
 
 HTTP_METHOD_NAME = Literal[
@@ -99,13 +100,49 @@ def __write_ownership_data(ownership_data: dict[ApiOwner, dict]):
     file_to_write.close()
 
 
+# Every path the internal build rewrote from a literal alternation, keyed by the path it
+# kept, listing all the paths the route answers on (the kept one first).
+_PATH_ALIASES: dict[str, list[str]] = {}
+# The same paths as the public build spells them, with `{var}` for the alternation.
+_PUBLIC_SPELLINGS: dict[str, str] = {}
+
+PATH_ALIASES_EXTENSION = "x-sentry-path-aliases"
+
+
 class CustomEndpointEnumerator(EndpointEnumerator):
     _non_capturing = re.compile(r"\(\?:[a-z-]+\|[a-z-]+\)")
+    # Literal alternations such as `(?:issues|groups)` or `(?:user-feedback|user-reports)`.
+    _alternation = re.compile(r"\(\?:([a-z-]+(?:\|[a-z-]+)+)\)")
 
     def get_path_from_regex(self, path_regex: str) -> str:
+        if is_internal_build():
+            return self._internal_path_from_regex(path_regex)
         # django 4.x changes to simplify_regex breaks these urls
         path_regex = self._non_capturing.sub("{var}", path_regex)
         return super().get_path_from_regex(path_regex)
+
+    def _internal_path_from_regex(self, path_regex: str) -> str:
+        """Spell each literal alternation as its first branch, recording the others.
+
+        Rendering them all as `{var}` collapses distinct routes onto one path, such as
+        issue notes and issue user reports, and drf-spectacular keeps only one of
+        them. The first branch is the one the public build already uses for issues.
+        """
+        choices = [match.group(1).split("|") for match in self._alternation.finditer(path_regex)]
+        if not choices:
+            return super().get_path_from_regex(path_regex)
+
+        def spelled(branches: tuple[str, ...]) -> str:
+            chosen = iter(branches)
+            regex = self._alternation.sub(lambda _: next(chosen), path_regex)
+            return super(CustomEndpointEnumerator, self).get_path_from_regex(regex)
+
+        variants = [spelled(branches) for branches in itertools.product(*choices)]
+        _PATH_ALIASES[variants[0]] = variants
+        _PUBLIC_SPELLINGS[variants[0]] = super().get_path_from_regex(
+            self._non_capturing.sub("{var}", path_regex)
+        )
+        return variants[0]
 
 
 class CustomGenerator(SchemaGenerator):
@@ -115,6 +152,9 @@ class CustomGenerator(SchemaGenerator):
         """Build the schema, then prove its omissions changed only what they declare.
 
         The baseline is a second build, on a fresh registry, with omissions off."""
+        # Endpoint enumeration refills these for each build.
+        _PATH_ALIASES.clear()
+        _PUBLIC_SPELLINGS.clear()
         baseline_generator = type(self)(
             patterns=self.patterns, urlconf=self.urlconf, api_version=self.api_version
         )
@@ -135,6 +175,13 @@ _ENDPOINT_SERVERS: dict[str, list[dict[str, Any]]] = {}
 # (path, lowercased method) pairs published as PUBLIC_EXPERIMENTAL. Preprocessing only
 # filters endpoint tuples, so the marker has to be stamped onto the operation later.
 _EXPERIMENTAL_OPERATIONS: set[tuple[str, str]] = set()
+
+# Publish status of every operation an internal build admits, keyed by (path, lowercased
+# method). Postprocessing stamps it as `x-sentry-publish-status`, and skips the checks
+# that only make sense for the published reference on the unpublished ones.
+_OPERATION_PUBLISH_STATUS: dict[tuple[str, str], ApiPublishStatus] = {}
+
+PUBLISH_STATUS_EXTENSION = "x-sentry-publish-status"
 
 DeclaredSilo = Literal["control", "cell", "both", "unknown"]
 
@@ -184,6 +231,8 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     _EXPERIMENTAL_OPERATIONS.clear()
     _OPERATION_SILOS.clear()
     _IDEMPOTENT_OPERATIONS.clear()
+    _OPERATION_PUBLISH_STATUS.clear()
+    internal_build = is_internal_build()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -228,7 +277,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
             )
 
-        if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
+        if any(_PUBLIC_SPELLINGS.get(path, path).startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
         else:
@@ -238,12 +287,14 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 _IDEMPOTENT_OPERATIONS.add(operation_key)
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
-            if status is not None and status.is_published:
-                # only pass declared public methods of the endpoint
-                # to the rest of the OpenAPI build pipeline
+            if status is not None and (status.is_published or internal_build):
+                # only pass declared public methods of the endpoint to the rest of
+                # the OpenAPI build pipeline; internal builds describe every method
                 filtered.append((path, path_regex, method, callback))
                 if status is ApiPublishStatus.PUBLIC_EXPERIMENTAL:
                     _EXPERIMENTAL_OPERATIONS.add((path, method.lower()))
+                if internal_build:
+                    _OPERATION_PUBLISH_STATUS[(path, method.lower())] = status
 
         ownership_data[owner_team][callback.view_class.publish_status[method]].add(
             f"{callback.view_class.__name__}::{method}"
@@ -335,7 +386,9 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
             for method_info in result["paths"][path].values():
                 method_info["servers"] = servers
 
-    # Must run before _fix_issue_paths, which rewrites the path keys this is keyed on.
+    # Must run before _fix_issue_paths, which rewrites the path keys these are keyed on.
+    _stamp_internal_metadata(result)
+
     for path, method in _EXPERIMENTAL_OPERATIONS:
         method_info = result["paths"].get(path, {}).get(method)
         if method_info is not None:
@@ -375,6 +428,11 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
 
             endpoint_name = f"'{method_info['operationId']}'"
 
+            if _is_unpublished_operation(method_info):
+                # Unpublished operations are only in an internal build for their
+                # shapes; the reference-quality checks below do not apply to them.
+                continue
+
             summary = method_info.get("summary")
             if summary is not None:
                 if summary in summaries_seen:
@@ -408,6 +466,28 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
                     f"Unable to parse body parameters due to KeyError {e} for endpoint {endpoint_name}. Please post in #discuss-api to fix."
                 )
     return result
+
+
+def _stamp_internal_metadata(result: Any) -> None:
+    """Record each operation's publish status and path aliases in an internal build.
+
+    The published spec carries neither extension.
+    """
+    if not is_internal_build():
+        return
+    for path, endpoints in result["paths"].items():
+        aliases = _PATH_ALIASES.get(path)
+        for method, method_info in endpoints.items():
+            status = _OPERATION_PUBLISH_STATUS.get((path, method))
+            if status is not None:
+                method_info[PUBLISH_STATUS_EXTENSION] = status.value
+            if aliases is not None:
+                method_info[PATH_ALIASES_EXTENSION] = aliases
+
+
+def _is_unpublished_operation(method_info: Mapping[str, Any]) -> bool:
+    status = method_info.get(PUBLISH_STATUS_EXTENSION)
+    return status is not None and not ApiPublishStatus(status).is_published
 
 
 def _check_tag(method_info: Mapping[str, Any], endpoint_name: str) -> None:

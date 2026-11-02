@@ -1,7 +1,6 @@
 import {useEffect} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
-import type {RawFlagData} from 'sentry/components/featureFlags/utils';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
@@ -14,14 +13,11 @@ export function organizationFlagLogOptions({organization, query}: Params) {
   // Don't make the request if start = end. The backend returns 400 but we prefer an empty response.
   const enabled = !query.start || !query.end || query.start !== query.end;
 
-  return apiOptions.as<RawFlagData>()(
-    '/organizations/$organizationIdOrSlug/flags/logs/',
-    {
-      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-      query,
-      staleTime: 0,
-    }
-  );
+  return apiOptions.contract('/organizations/$organizationIdOrSlug/flags/logs/', {
+    path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+    query,
+    staleTime: 0,
+  });
 }
 
 interface InfiniteParams extends Params {
@@ -50,14 +46,11 @@ export function useOrganizationFlagLogInfinite({
     isError,
     error,
   } = useInfiniteQuery({
-    ...apiOptions.asInfinite<RawFlagData>()(
-      '/organizations/$organizationIdOrSlug/flags/logs/',
-      {
-        path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query,
-        staleTime: 0,
-      }
-    ),
+    ...apiOptions.contractInfinite('/organizations/$organizationIdOrSlug/flags/logs/', {
+      path: enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query,
+      staleTime: 0,
+    }),
   });
 
   const currentNumberPages = infiniteData?.pages.length ?? 0;

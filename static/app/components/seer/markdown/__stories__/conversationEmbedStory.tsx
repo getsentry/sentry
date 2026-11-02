@@ -6,7 +6,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 
 import {EmbedStory, EmbedVariant} from './embedStory';
 
@@ -29,18 +28,15 @@ function toIsoTimestamp(timestamp: number | null | undefined): string | undefine
 export function ConversationEmbedStory() {
   const organization = useOrganization();
   const {data, isError, isPending} = useQuery({
-    ...apiOptions.as<Conversation[]>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          project: [ALL_ACCESS_PROJECTS],
-          per_page: STORY_CONVERSATION_LIMIT,
-          statsPeriod: '14d',
-        },
-        staleTime: 30_000,
-      }
-    ),
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/agents/conversations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        project: [ALL_ACCESS_PROJECTS],
+        per_page: STORY_CONVERSATION_LIMIT,
+        statsPeriod: '14d',
+      },
+      staleTime: 30_000,
+    }),
     retry: false,
   });
 

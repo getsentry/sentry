@@ -54,7 +54,7 @@ export function IntegrationExternalTeamMappings(props: Props) {
     isPending: isInitialResultsPending,
     isError: isInitialResultsError,
   } = useQuery(
-    apiOptions.as<Team[]>()('/organizations/$organizationIdOrSlug/teams/', {
+    apiOptions.contract('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
     })

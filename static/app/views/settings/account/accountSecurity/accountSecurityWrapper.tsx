@@ -24,7 +24,7 @@ export default function AccountSecurityWrapper() {
   const {links} = useLegacyStore(ConfigStore);
 
   const orgRequest = useQuery(
-    apiOptions.as<OrganizationSummary[]>()('/organizations/', {
+    apiOptions.contract('/organizations/', {
       // Organizations span every region, so list them from the control silo
       host: links.sentryUrl,
       staleTime: 0,

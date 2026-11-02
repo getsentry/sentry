@@ -6,10 +6,7 @@ import {
   PLACEHOLDER_RUNS,
   USE_PLACEHOLDER_RUNS,
 } from 'sentry/views/seerWorkflows/automations/runs/placeholderRuns';
-import type {
-  SeerAutomationRunStatus,
-  SeerAutomationRunsResponse,
-} from 'sentry/views/seerWorkflows/types';
+import type {SeerAutomationRunStatus} from 'sentry/views/seerWorkflows/types';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
 function isRunInProgress(status: SeerAutomationRunStatus) {
@@ -29,14 +26,11 @@ export function useAutomationRuns({
   const automationsEnabled = useAutomationsEnabled();
 
   const {data, isPending, isLoadingError, refetch} = useQuery({
-    ...apiOptions.as<SeerAutomationRunsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/runs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {config: configId, cursor, per_page: perPage},
-        staleTime: 0,
-      }
-    ),
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/seer/workflows/runs/', {
+      path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+      query: {config: configId, cursor, per_page: perPage},
+      staleTime: 0,
+    }),
     select: selectJsonWithHeaders,
     // TEMPORARY: skip the runs API until it returns the new shape
     enabled: !USE_PLACEHOLDER_RUNS,

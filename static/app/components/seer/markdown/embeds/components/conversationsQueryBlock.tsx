@@ -170,20 +170,17 @@ export default function ConversationsQueryBlock({data}: {data: ConversationsQuer
   const selection = toPageFilters(data);
 
   const conversationsQuery = useQuery({
-    ...apiOptions.as<ConversationApiRow[]>()(
-      '/organizations/$organizationIdOrSlug/agents/conversations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          query: combineAgentQuery(data.query, data.agents),
-          project: selection.projects,
-          environment: selection.environments,
-          per_page: QUERY_EMBED_ROW_LIMIT,
-          ...normalizeDateTimeParams(selection.datetime),
-        },
-        staleTime: 30_000,
-      }
-    ),
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/agents/conversations/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        query: combineAgentQuery(data.query, data.agents),
+        project: selection.projects,
+        environment: selection.environments,
+        per_page: QUERY_EMBED_ROW_LIMIT,
+        ...normalizeDateTimeParams(selection.datetime),
+      },
+      staleTime: 30_000,
+    }),
     retry: false,
   });
 

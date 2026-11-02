@@ -48,12 +48,6 @@ export function AutomationsListRedirect() {
   return <Redirect to={makeAutomationBasePathname(organization.slug)} />;
 }
 
-interface AlertRuleWorkflow {
-  alertRuleId: string | null;
-  ruleId: string | null;
-  workflowId: string;
-}
-
 interface AlertRuleDetector {
   alertRuleId: string | null;
   detectorId: string;
@@ -101,7 +95,7 @@ function withRuleRedirect<P extends Record<string, any>>(
     );
 
     const {data: alertRuleWorkflow, isPending} = useQuery({
-      ...apiOptions.as<AlertRuleWorkflow>()(
+      ...apiOptions.contract(
         '/organizations/$organizationIdOrSlug/alert-rule-workflow/',
         {
           path:
@@ -151,7 +145,7 @@ function withAlertRuleRedirect<P extends Record<string, any>>(
     );
 
     const {data: alertRuleDetector, isPending} = useQuery({
-      ...apiOptions.as<AlertRuleDetector>()(
+      ...apiOptions.contract(
         '/organizations/$organizationIdOrSlug/alert-rule-detector/',
         {
           path:

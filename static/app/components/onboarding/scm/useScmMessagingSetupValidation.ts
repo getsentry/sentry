@@ -133,7 +133,7 @@ export function useScmMessagingSetupValidation({
     integration === undefined ? undefined : channelValidateParam(messagingSetup);
 
   const channelValidateQuery = useQuery({
-    ...apiOptions.as<{valid: boolean; detail?: string}>()(
+    ...apiOptions.contract(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/channel-validate/',
       {
         path:

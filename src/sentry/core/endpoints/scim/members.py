@@ -384,7 +384,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             GlobalParams.member_id("The ID of the member to update."),
         ],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+            "SCIMMemberReplace", fields={"sentryOrgRole": serializers.CharField()}
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,

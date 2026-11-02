@@ -1,6 +1,6 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {ReleaseStatus, type Release} from 'sentry/types/release';
+import {ReleaseStatus} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -10,7 +10,7 @@ export function useProjectLatestSemverRelease({enabled}: {enabled: boolean}) {
   const location = useLocation();
 
   const {data, isError, isPending} = useQuery({
-    ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
+    ...apiOptions.contract('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
       query: {
         per_page: 1,

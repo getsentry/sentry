@@ -5,7 +5,6 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {useRefreshAutofixProgressQueries} from 'sentry/components/events/autofix/useRefreshAutofixProgressQueries';
 import {linkedPullRequestsApiOptions} from 'sentry/components/group/externalIssuesList/linkedPullRequests';
-import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -23,14 +22,14 @@ function useSubjectQueries() {
 
   // Two inbox sections: proves one invalidation covers every section's query.
   useInfiniteQuery(
-    apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+    apiOptions.contractInfinite('/organizations/$organizationIdOrSlug/issues/', {
       path,
       query: {query: 'issue.progress:diagnosed is:unresolved', sort: 'progress'},
       staleTime: 0,
     })
   );
   useInfiniteQuery(
-    apiOptions.asInfinite<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
+    apiOptions.contractInfinite('/organizations/$organizationIdOrSlug/issues/', {
       path,
       query: {query: 'issue.progress:fix_proposed is:unresolved', sort: 'progress'},
       staleTime: 0,
@@ -69,7 +68,7 @@ function useSubjectQueries() {
 
   // Control: an endpoint autofix does not affect, to catch over-broad matching.
   useQuery(
-    apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/projects/', {
+    apiOptions.contract('/organizations/$organizationIdOrSlug/projects/', {
       path,
       staleTime: 30_000,
     })

@@ -138,7 +138,7 @@ export default function ProjectEnvironments() {
 
   const isHidden = location.pathname.endsWith('hidden/');
   const visibility = isHidden ? 'hidden' : 'visible';
-  const environmentsQueryOptions = apiOptions.as<ProjectEnvironment[]>()(
+  const environmentsQueryOptions = apiOptions.contract(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
     {
       path: {

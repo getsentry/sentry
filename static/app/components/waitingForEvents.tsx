@@ -29,20 +29,17 @@ type Props = {
 
 function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Props) {
   const {data, error, isPending} = useQuery(
-    apiOptions.as<Array<{id: string}>>()(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
-      {
-        staleTime: Infinity,
-        data: {limit: 1},
-        path:
-          project && sampleIssueIdProp === undefined
-            ? {
-                organizationIdOrSlug: org.slug,
-                projectIdOrSlug: project.slug,
-              }
-            : skipToken,
-      }
-    )
+    apiOptions.contract('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
+      staleTime: Infinity,
+      data: {limit: 1},
+      path:
+        project && sampleIssueIdProp === undefined
+          ? {
+              organizationIdOrSlug: org.slug,
+              projectIdOrSlug: project.slug,
+            }
+          : skipToken,
+    })
   );
 
   const sampleIssueId = sampleIssueIdProp ?? data?.[0]?.id ?? '';

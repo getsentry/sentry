@@ -16,7 +16,6 @@ import {
   type OverviewPullRequest,
   type OverviewPullRequestFile,
   type PullRequestFileDiff,
-  type PullRequestFilesResponse,
   QUERY_STALE_TIME,
 } from './types';
 
@@ -98,7 +97,7 @@ export function PullRequestFiles({
   };
 
   const {data, isPending, isError} = useQuery({
-    ...apiOptions.as<PullRequestFilesResponse>()(
+    ...apiOptions.contract(
       '/organizations/$organizationIdOrSlug/pull-requests/$pullRequestId/files/',
       {
         path: {organizationIdOrSlug: orgSlug, pullRequestId: pullRequest.id},
