@@ -191,9 +191,8 @@ def _maybe_resolve_shader_difs(
     shaders: list[Any],
     response: dict[str, Any],
 ) -> dict[str, Any]:
-    """One extra teapot round with presigned URLs for the shader DIFs (dxil,
-    dxil_pdb) it reported missing. Best-effort: any failure keeps the first
-    response, and the breaker is left to the first round."""
+    """Second teapot round with presigned URLs for the shader DIFs it reported missing.
+    Best-effort: any failure keeps the first response and does not touch the breaker."""
     if response.get("status") != "partial":
         return response
 

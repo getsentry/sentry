@@ -17,12 +17,7 @@ from sentry.lang.native.shader_difs import (
     missing_shader_difs,
     resolve_shader_difs,
 )
-from sentry.lang.native.teapot import (
-    ShaderBinaryRef,
-    TeapotClient,
-    TeapotRequestError,
-    TeapotUnavailable,
-)
+from sentry.lang.native.teapot import TeapotClient, TeapotRequestError, TeapotUnavailable
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import _try_symbolicate
@@ -91,10 +86,16 @@ def _completed() -> dict[str, Any]:
     return {"status": "completed", "fault_category": "shader_hang", "missing_difs": []}
 
 
-def _resolved(group: str | None = SHADER_GROUP) -> ShaderDifs:
+def _resolved() -> ShaderDifs:
     return ShaderDifs(
-        binaries=[ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/dxil?sig=x", group)],
-        pdbs=[(DEBUG_NAME, "http://objectstore/pdb?sig=x")],
+        binaries=[
+            {
+                "code_id": AFTERMATH_HASH,
+                "storage_url": "http://objectstore/dxil?sig=x",
+                "group": SHADER_GROUP,
+            }
+        ],
+        pdbs=[{"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/pdb?sig=x"}],
     )
 
 
@@ -134,36 +135,8 @@ def test_client_second_round_sends_shader_arrays(teapot_session: mock.Mock) -> N
     body = orjson.loads(kwargs["data"])
     assert body["event_id"] == "abc"
     assert body["dump"] == {"storage_url": "http://objectstore/dump-obj-id?sig=abc"}
-    assert body["shader_binaries"] == [
-        {
-            "code_id": AFTERMATH_HASH,
-            "storage_url": "http://objectstore/dxil?sig=x",
-            "group": SHADER_GROUP,
-        }
-    ]
-    assert body["shader_pdbs"] == [
-        {"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/pdb?sig=x"}
-    ]
-
-
-@pytest.mark.parametrize("group", (None, ""))
-def test_client_second_round_omits_group_when_absent(
-    teapot_session: mock.Mock, group: str | None
-) -> None:
-    resolved = _resolved(group=group)
-    with mock.patch("sentry.lang.native.teapot.requests.post") as mock_post:
-        mock_post.return_value = _FakeResponse(200, _completed())
-        TeapotClient(_FakeProject(), "abc").symbolicate(
-            _FakeAttachment(),
-            [],
-            shader_binaries=resolved.binaries,
-            shader_pdbs=resolved.pdbs,
-        )
-
-    body = orjson.loads(mock_post.call_args.kwargs["data"])
-    assert body["shader_binaries"] == [
-        {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/dxil?sig=x"}
-    ]
+    assert body["shader_binaries"] == resolved.binaries
+    assert body["shader_pdbs"] == resolved.pdbs
 
 
 def test_client_first_round_omits_shader_arrays(teapot_session: mock.Mock) -> None:
@@ -297,9 +270,15 @@ def test_resolve_shader_difs_presigns_objectstore_rows(
 
     assert bool(resolved) is True
     assert resolved.binaries == [
-        ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/difs/dxil?sig=x", SHADER_GROUP)
+        {
+            "code_id": AFTERMATH_HASH,
+            "storage_url": "http://objectstore/difs/dxil?sig=x",
+            "group": SHADER_GROUP,
+        }
     ]
-    assert resolved.pdbs == [(DEBUG_NAME, "http://objectstore/difs/pdb?sig=x")]
+    assert resolved.pdbs == [
+        {"debug_name": DEBUG_NAME, "storage_url": "http://objectstore/difs/pdb?sig=x"}
+    ]
     # Token validity is the longer DIF one, not the attachment default.
     assert dif_presign.call_args.kwargs["token_validity"] is not None
 
@@ -314,9 +293,8 @@ def test_resolve_shader_difs_matches_code_id_case_insensitively(
     resolved = resolve_shader_difs(default_project, response)
 
     assert resolved.binaries == [
-        ShaderBinaryRef(AFTERMATH_HASH, "http://objectstore/difs/shader?sig=x", None)
+        {"code_id": AFTERMATH_HASH, "storage_url": "http://objectstore/difs/shader?sig=x"}
     ]
-    assert resolved.binaries[0].group is None
     assert resolved.pdbs == []
 
 

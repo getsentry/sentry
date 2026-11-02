@@ -14,7 +14,6 @@ import hmac
 import logging
 import re
 from collections.abc import Sequence
-from dataclasses import dataclass
 from datetime import timedelta
 from typing import Any, Protocol
 
@@ -57,31 +56,6 @@ class TeapotAttachment(Protocol):
     name: str
     stored_id: str | None
 
-
-ShaderFileRef = tuple[str, str]
-"""``(key, storage_url)`` for a shader DIF teapot asked for in ``missing_difs``:
-the dxil ``code_id`` or the dxil_pdb ``debug_name``, plus a presigned GET URL."""
-
-
-@dataclass(frozen=True)
-class ShaderBinaryRef:
-    """A dxil binary teapot asked for: its Aftermath ``code_id``, a presigned GET
-    URL, and the shader group recorded at upload time, if any."""
-
-    code_id: str
-    storage_url: str
-    group: str | None = None
-
-    def as_request_entry(self) -> dict[str, str]:
-        entry = {"code_id": self.code_id, "storage_url": self.storage_url}
-        if self.group:
-            entry["group"] = self.group
-        return entry
-
-
-# Suffix on the idempotency/request ids of the second (shader DIF) round, so
-# teapot's idempotency cache does not replay the first round's response.
-SHADER_DIF_ROUND_SUFFIX = "-2"
 
 # Dev-only inline attachment uploads live just long enough for the decode.
 INLINE_ATTACHMENT_TTL = timedelta(days=1)
@@ -171,8 +145,8 @@ class TeapotClient:
         self,
         dump: TeapotAttachment,
         shader_debug_info: Sequence[TeapotAttachment] | None = None,
-        shader_binaries: Sequence[ShaderBinaryRef] | None = None,
-        shader_pdbs: Sequence[ShaderFileRef] | None = None,
+        shader_binaries: Sequence[dict[str, str]] | None = None,
+        shader_pdbs: Sequence[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         shader_debug_info = shader_debug_info or []
         url = f"{self.base_url}/symbolicate"
@@ -193,12 +167,10 @@ class TeapotClient:
         }
         request_id = self.event_id
         if shader_binaries or shader_pdbs:
-            body["shader_binaries"] = [ref.as_request_entry() for ref in shader_binaries or []]
-            body["shader_pdbs"] = [
-                {"debug_name": debug_name, "storage_url": storage_url}
-                for debug_name, storage_url in shader_pdbs or []
-            ]
-            request_id = f"{self.event_id}{SHADER_DIF_ROUND_SUFFIX}"
+            # Second round: a distinct id, or teapot's idempotency cache replays the first response.
+            body["shader_binaries"] = list(shader_binaries or [])
+            body["shader_pdbs"] = list(shader_pdbs or [])
+            request_id = f"{self.event_id}-2"
         data = orjson.dumps(body)
         headers = {
             "X-Teapot-Version": "1",
@@ -290,8 +262,8 @@ def submit_to_teapot(
     event_id: str,
     dump: TeapotAttachment,
     shader_debug_info: Sequence[TeapotAttachment] | None = None,
-    shader_binaries: Sequence[ShaderBinaryRef] | None = None,
-    shader_pdbs: Sequence[ShaderFileRef] | None = None,
+    shader_binaries: Sequence[dict[str, str]] | None = None,
+    shader_pdbs: Sequence[dict[str, str]] | None = None,
 ) -> dict[str, Any] | None:
     """Best-effort teapot invocation.
 
@@ -300,8 +272,8 @@ def submit_to_teapot(
     trip the circuit breaker. Raises ``TeapotUnavailable`` on a genuine outage
     (network, timeout, 5xx) so the caller can.
 
-    ``shader_binaries`` / ``shader_pdbs`` turn this into the second round that
-    hands teapot presigned URLs for the shader DIFs it reported missing.
+    ``shader_binaries`` / ``shader_pdbs`` make this the second round, with presigned
+    URLs for the shader DIFs teapot reported missing.
     """
 
     try:

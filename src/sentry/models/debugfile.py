@@ -69,15 +69,14 @@ DIF_MIMETYPES = {v: k for k, v in KNOWN_DIF_FORMATS.items()}
 
 _proguard_file_re = re.compile(r"/proguard/(?:mapping-)?(.*?)\.txt$")
 
-# DXIL shader binaries (DXC output) carry the DXBC container magic; DXC shader
-# PDBs are MSF files whose stream directory names an `ILDN` (debug name) part.
+# DXC shader binaries carry the DXBC container magic; DXC shader PDBs are MSF
+# files whose stream directory names an `ILDN` (debug name) part.
 _DXIL_MAGIC = b"DXBC"
 _MSF_MAGIC = b"Microsoft C/C++ MSF 7.00"
 _DXIL_PDB_PART = b"ILDN"
 _DXIL_PDB_SCAN_BYTES = 64 * 1024
 _SHADER_CODE_ID_RE = re.compile(r"^[0-9a-f]{16}$")
 
-# Upper bound on the free-text shader group recorded with a dxil debug file.
 SHADER_GROUP_MAX_LENGTH = 512
 
 
@@ -565,21 +564,10 @@ def find_existing_dif(project: Project, meta: DifMeta, checksum: str) -> Project
 
 
 def _backfill_shader_group(dif: ProjectDebugFile, meta: DifMeta) -> None:
-    """Record the shader group on an existing ``dxil`` row that was uploaded without one.
-
-    Re-uploading the same shader binary is a no-op for the file, but a later cook may
-    know the group the shader belongs to. A group already on the row is kept as-is.
-    """
-    if meta.file_format != "dxil":
-        return
+    """A re-upload of the same dxil binary may carry the shader group an earlier cook did not."""
     shader_group = (meta.data or {}).get("shader_group")
-    if not shader_group:
-        return
-    data = dict(dif.data or {})
-    if data.get("type") != "dxil" or data.get("shader_group"):
-        return
-    data["shader_group"] = shader_group
-    dif.update(data=data)
+    if shader_group and not (dif.data or {}).get("shader_group"):
+        dif.update(data={**(dif.data or {}), "shader_group": shader_group})
 
 
 def _get_fileobj_checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
@@ -966,26 +954,6 @@ def _shader_debug_id(debug_id: str | None, kind: str) -> str:
         raise BadDif(f"Invalid debug_id for {kind}: {e}")
 
 
-def _shader_code_id(code_id: str | None) -> str | None:
-    if code_id is None:
-        return None
-    code_id = code_id.lower()
-    if not _SHADER_CODE_ID_RE.match(code_id):
-        raise BadDif("Invalid code_id for dxil (expected 16 hex characters)")
-    return code_id
-
-
-def _shader_group(shader_group: str | None) -> str | None:
-    if shader_group is None:
-        return None
-    shader_group = shader_group.strip()
-    if not shader_group:
-        return None
-    if len(shader_group) > SHADER_GROUP_MAX_LENGTH:
-        raise BadDif(f"Invalid shader_group for dxil (max {SHADER_GROUP_MAX_LENGTH} characters)")
-    return shader_group
-
-
 def detect_dif_from_path(
     path: str,
     name: str | None = None,
@@ -1108,20 +1076,28 @@ def detect_dif_from_path(
                 )
             ]
     elif dif_kind == DifKind.Dxil:
+        if code_id is not None:
+            code_id = code_id.lower()
+            if not _SHADER_CODE_ID_RE.match(code_id):
+                raise BadDif("Invalid code_id for dxil (expected 16 hex characters)")
+        shader_group = (shader_group or "").strip()
+        if len(shader_group) > SHADER_GROUP_MAX_LENGTH:
+            raise BadDif(
+                f"Invalid shader_group for dxil (max {SHADER_GROUP_MAX_LENGTH} characters)"
+            )
         logger.debug("File loaded as dxil: %s", path)
-        data = {"type": "dxil", "features": ["symtab"]}
-        group = _shader_group(shader_group)
-        if group is not None:
-            data["shader_group"] = group
+        dxil_data: dict[str, Any] = {"type": "dxil", "features": ["symtab"]}
+        if shader_group:
+            dxil_data["shader_group"] = shader_group
         return [
             DifMeta(
                 file_format="dxil",
                 arch="any",
                 debug_id=_shader_debug_id(debug_id, "dxil"),
-                code_id=_shader_code_id(code_id),
+                code_id=code_id,
                 name=name,
                 path=path,
-                data=data,
+                data=dxil_data,
             )
         ]
     elif dif_kind == DifKind.DxilPdb:
