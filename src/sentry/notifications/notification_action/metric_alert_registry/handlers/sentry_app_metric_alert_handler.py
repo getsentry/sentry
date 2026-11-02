@@ -1,5 +1,10 @@
 import logging
 
+from sentry.api.serializers import serialize
+from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
+from sentry.incidents.endpoints.serializers.workflow_engine_action import (
+    WorkflowEngineActionSerializer,
+)
 from sentry.incidents.models.incident import TriggerStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -21,6 +26,26 @@ from sentry.workflow_engine.models import Action
 logger = logging.getLogger(__name__)
 
 
+def _add_action_to_triggers(
+    incident_serialized_response: IncidentSerializerResponse, action_id: int
+) -> None:
+    """
+    The serialized triggers only list actions from alerts connected to the metric monitor.
+    An alert that runs on all issues in a project isn't connected to the monitor, so without
+    this the Sentry App would never receive its own action's settings.
+    """
+    action = Action.objects.filter(id=action_id).first()
+    if action is None:
+        return
+
+    serialized_action = serialize(action, None, WorkflowEngineActionSerializer())
+    for trigger in incident_serialized_response["alertRule"]["triggers"]:
+        trigger_actions = trigger.setdefault("actions", [])
+        if any(a["id"] == serialized_action["id"] for a in trigger_actions):
+            continue
+        trigger_actions.append({**serialized_action, "alertRuleTriggerId": trigger["id"]})
+
+
 @metric_alert_handler_registry.register(Action.Type.SENTRY_APP)
 class SentryAppMetricAlertHandler(BaseMetricAlertHandler):
     @classmethod
@@ -40,6 +65,7 @@ class SentryAppMetricAlertHandler(BaseMetricAlertHandler):
             raise ValueError("Open period not found")
 
         incident_serialized_response = get_incident_serializer(open_period)
+        _add_action_to_triggers(incident_serialized_response, notification_context.id)
 
         logger.info(
             "notification_action.execute_via_metric_alert_handler.sentry_app",
