@@ -120,6 +120,8 @@ class OrganizationFlagLogIndexEndpoint(OrganizationEndpoint):
             GlobalParams.START,
             GlobalParams.END,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             FlagParams.FLAG,
             FlagParams.PROVIDER,
             FlagParams.SORT,
