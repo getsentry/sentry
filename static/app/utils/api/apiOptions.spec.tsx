@@ -3,14 +3,52 @@ import {expectTypeOf} from 'expect-type';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {ApiMapping} from 'sentry/utils/api/apiContracts.generated';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
+type TeamsResponse =
+  ApiMapping['/organizations/$organizationIdOrSlug/teams/']['GET']['response'];
 
 describe('apiOptions', () => {
+  it('infers the response type from the backend contract', () => {
+    const options = apiOptions.contract('/organizations/$organizationIdOrSlug/teams/', {
+      staleTime: 0,
+      path: {organizationIdOrSlug: 'org-slug'},
+    });
+
+    expectTypeOf(options.queryFn).returns.toEqualTypeOf<
+      QueryFunctionResult<TeamsResponse>
+    >();
+    expect(options.queryKey).toEqual([
+      '/organizations/org-slug/teams/',
+      {},
+      {infinite: false},
+    ]);
+  });
+
+  it('infers the infinite response type from the backend contract', () => {
+    const options = apiOptions.contractInfinite(
+      '/organizations/$organizationIdOrSlug/teams/',
+      {
+        staleTime: 0,
+        path: {organizationIdOrSlug: 'org-slug'},
+      }
+    );
+
+    expectTypeOf(options.queryFn).returns.toEqualTypeOf<
+      QueryFunctionResult<TeamsResponse>
+    >();
+    expect(options.queryKey).toEqual([
+      '/organizations/org-slug/teams/',
+      {},
+      {infinite: true},
+    ]);
+  });
+
   it('should encode path parameters correctly', () => {
     const options = apiOptions.as<unknown>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
@@ -269,6 +307,13 @@ describe('apiOptions', () => {
       });
 
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<number>>();
+    });
+
+    it('should reject contract routes without a GET contract', () => {
+      // @ts-expect-error `/api-tokens/` declares no GET response type on the backend
+      apiOptions.contract('/api-tokens/', {staleTime: 0});
+      // @ts-expect-error `/api-tokens/` declares no GET response type on the backend
+      apiOptions.contractInfinite('/api-tokens/', {staleTime: 0});
     });
 
     it('should disallow unknown path if there are no path params', () => {
