@@ -9,7 +9,6 @@ import logging
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from typing import Any, TypedDict
 
 from django.db import router, transaction
@@ -578,28 +577,20 @@ def manage_issue_states(
                 )
 
     elif group_inbox_reason == GroupInboxReason.UNIGNORED:
-        with transaction.atomic(router.db_for_write(Group)):
-            updated = Group.objects.filter(
-                id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
-            ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
-            if updated:
-                group.status = GroupStatus.UNRESOLVED
-                group.substatus = GroupSubStatus.ONGOING
-                add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
-                record_group_history(group, GroupHistoryStatus.UNIGNORED)
-                Activity.objects.create_group_activity(
-                    group=group,
-                    type=ActivityType.SET_UNRESOLVED,
-                    data=data,
-                    send_notification=False,
-                )
-                transaction.on_commit(
-                    partial(
-                        kick_off_status_syncs.apply_async,
-                        kwargs={"project_id": group.project_id, "group_id": group.id},
-                    ),
-                    using=router.db_for_write(Group),
-                )
+        updated = Group.objects.filter(
+            id=group.id, status__in=[GroupStatus.RESOLVED, GroupStatus.IGNORED]
+        ).update(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
+        if updated:
+            group.status = GroupStatus.UNRESOLVED
+            group.substatus = GroupSubStatus.ONGOING
+            add_group_to_inbox(group, GroupInboxReason.UNIGNORED, snooze_details)
+            record_group_history(group, GroupHistoryStatus.UNIGNORED)
+            Activity.objects.create_group_activity(
+                group=group, type=ActivityType.SET_UNRESOLVED, data=data, send_notification=False
+            )
+            kick_off_status_syncs.apply_async(
+                kwargs={"project_id": group.project_id, "group_id": group.id}
+            )
 
     else:
         raise NotImplementedError(

@@ -2,11 +2,10 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from time import time
 from typing import Any
 
-from django.db import router, transaction
+from django.db.models import Exists
 from django.utils import timezone as django_timezone
 
 from sentry import analytics
@@ -97,55 +96,71 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     filter_conditions["type__in"] = enabled_auto_resolve_types
 
     reopenings = recent_unresolved_activities(project.id, cutoff)
-    eligible_groups = Group.objects.filter(**filter_conditions).exclude(
-        id__in=reopenings.values("group_id")
+    queryset = list(
+        Group.objects.filter(**filter_conditions).exclude(id__in=reopenings.values("group_id"))[
+            :chunk_size
+        ]
     )
-    group_ids = list(eligible_groups.values_list("id", flat=True)[:chunk_size])
 
-    might_have_more = len(group_ids) == chunk_size
+    might_have_more = len(queryset) == chunk_size
 
-    database = router.db_for_write(Group)
-    for group_id in group_ids:
-        with transaction.atomic(using=database):
-            group = (
-                Group.objects.select_for_update().filter(id=group_id, **filter_conditions).first()
-            )
-            if group is None:
-                continue
+    for group in queryset:
+        resolution_time = django_timezone.now()
+        # Recheck this issue's Activity in the UPDATE: it may have been reopened
+        # after candidate selection. Status and Activity writes are not atomic,
+        # so a reopening whose Activity is not yet committed can still race.
+        happened = (
+            Group.objects.filter(id=group.id, **filter_conditions)
+            .exclude(Exists(reopenings.filter(group_id=group.id)))
+            .update(status=GroupStatus.RESOLVED, resolved_at=resolution_time, substatus=None)
+        )
+        if not happened:
+            continue
 
-            # Recheck in a new statement after acquiring the lock. A reopening
-            # may have committed its status and Activity while we were waiting.
-            if reopenings.filter(group_id=group.id).exists():
-                continue
-            resolution_time = django_timezone.now()
-            happened = Group.objects.filter(id=group.id, **filter_conditions).update(
-                status=GroupStatus.RESOLVED,
-                resolved_at=resolution_time,
-                substatus=None,
-            )
-            if not happened:
-                continue
+        group.status = GroupStatus.RESOLVED
+        group.resolved_at = resolution_time
+        group.substatus = None
+        remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
 
-            group.status = GroupStatus.RESOLVED
-            group.resolved_at = resolution_time
-            group.substatus = None
-            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED)
-
-            with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
-                Activity.objects.create(
-                    group=group,
-                    project=project,
-                    type=ActivityType.SET_RESOLVED_BY_AGE.value,
-                    data={"age": age},
-                )
-                record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
-            update_group_open_period(
+        with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
+            Activity.objects.create(
                 group=group,
-                new_status=GroupStatus.RESOLVED,
-                resolution_time=resolution_time,
+                project=project,
+                type=ActivityType.SET_RESOLVED_BY_AGE.value,
+                data={"age": age},
             )
+            record_group_history(group, GroupHistoryStatus.AUTO_RESOLVED)
+        update_group_open_period(
+            group=group,
+            new_status=GroupStatus.RESOLVED,
+            resolution_time=resolution_time,
+        )
 
-            transaction.on_commit(partial(_notify_auto_resolution, group, project), using=database)
+        kick_off_status_syncs.apply_async(
+            kwargs={"project_id": group.project_id, "group_id": group.id}
+        )
+
+        analytics.record(
+            IssueAutoResolvedEvent(
+                project_id=project.id,
+                organization_id=project.organization_id,
+                group_id=group.id,
+                issue_type=group.issue_type.slug,
+                issue_category=group.issue_category.name.lower(),
+            )
+        )
+        # auto-resolve is a kind of resolve and this signal makes
+        # sure all things that need to happen after resolve are triggered
+        # examples are analytics and webhooks
+        issue_resolved.send_robust(
+            organization_id=project.organization_id,
+            user=None,
+            group=group,
+            project=project,
+            resolution_type="autoresolve",
+            commit_id=None,
+            sender="auto_resolve_issues",
+        )
 
     if might_have_more:
         auto_resolve_project_issues.apply_async(
@@ -154,25 +169,3 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
             expires=TEN_MINUTES,
             headers={"sentry-propagate-traces": False},
         )
-
-
-def _notify_auto_resolution(group: Group, project: Project) -> None:
-    kick_off_status_syncs.apply_async(kwargs={"project_id": group.project_id, "group_id": group.id})
-    analytics.record(
-        IssueAutoResolvedEvent(
-            project_id=project.id,
-            organization_id=project.organization_id,
-            group_id=group.id,
-            issue_type=group.issue_type.slug,
-            issue_category=group.issue_category.name.lower(),
-        )
-    )
-    issue_resolved.send_robust(
-        organization_id=project.organization_id,
-        user=None,
-        group=group,
-        project=project,
-        resolution_type="autoresolve",
-        commit_id=None,
-        sender="auto_resolve_issues",
-    )

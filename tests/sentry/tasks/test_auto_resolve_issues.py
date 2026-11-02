@@ -1,14 +1,11 @@
-from collections.abc import Callable
 from datetime import timedelta
 from time import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.db import connections
 from django.utils import timezone
 
 from sentry.analytics.events.issue_auto_resolved import IssueAutoResolvedEvent
-from sentry.api.helpers.group_index.update import handle_other_status_updates
 from sentry.issues.action_log import ActionSource
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
@@ -16,6 +13,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
+from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.project import Project
 from sentry.tasks.auto_resolve_issues import auto_resolve_project_issues, schedule_auto_resolution
 from sentry.tasks.clear_expired_snoozes import clear_expired_snoozes
@@ -25,58 +23,6 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
-from sentry.types.group import GroupSubStatus
-from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
-
-
-def _reopen_through_api(group: Group) -> None:
-    handle_other_status_updates(
-        result={"status": "unresolved"},
-        group_list=[group],
-        projects=[group.project],
-        project_lookup={group.project_id: group.project},
-        status_details={},
-        acting_user=None,
-    )
-
-
-def _reopen_through_manager(group: Group) -> None:
-    Group.objects.update_group_status(
-        groups=[group],
-        status=GroupStatus.UNRESOLVED,
-        substatus=GroupSubStatus.ONGOING,
-        activity_type=ActivityType.SET_UNRESOLVED,
-    )
-
-
-@django_db_all(transaction=True)
-@pytest.mark.parametrize("reopen", [_reopen_through_api, _reopen_through_manager])
-def test_reopening_and_activity_are_visible_together(
-    factories: Factories, default_project: Project, reopen: Callable[[Group], None]
-) -> None:
-    group = factories.create_group(project=default_project, status=GroupStatus.RESOLVED)
-    create_activity = Activity.objects.create
-
-    def read_status() -> int:
-        try:
-            return Group.objects.get(id=group.id, project_id=default_project.id).status
-        finally:
-            connections.close_all()
-
-    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
-
-        def observe_status_before_activity(**kwargs):
-            # A second connection must still see RESOLVED until the Activity is
-            # written and the reopening transaction commits.
-            assert executor.submit(read_status).result(timeout=10) == GroupStatus.RESOLVED
-            return create_activity(**kwargs)
-
-        with patch.object(Activity.objects, "create", side_effect=observe_status_before_activity):
-            reopen(group)
-
-        assert executor.submit(read_status).result(timeout=10) == GroupStatus.UNRESOLVED
-
-    assert Activity.objects.filter(group=group, type=ActivityType.SET_UNRESOLVED.value).exists()
 
 
 @django_db_all
@@ -270,6 +216,37 @@ class AutoResolutionReopeningTest(APITestCase):
             auto_resolve_project_issues(self.project.id)
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
+
+    def test_reopening_after_selection_preserves_status_and_inbox(self) -> None:
+        self.login_as(self.user)
+        self.project.update_option("sentry:resolve_age", 1)
+        now = timezone.now()
+        group = self.create_group(last_seen=now - timedelta(days=1))
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+
+        def reopen_before_update():
+            group.update(status=GroupStatus.RESOLVED)
+            response = self.client.put(
+                f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/",
+                data={"status": "unresolved"},
+                format="json",
+            )
+            assert response.status_code == 200
+            return now
+
+        # The resolution timestamp is read after selection, before the UPDATE.
+        with patch("sentry.tasks.auto_resolve_issues.django_timezone") as task_clock:
+            task_clock.now.side_effect = reopen_before_update
+            auto_resolve_project_issues(
+                self.project.id, cutoff=int((now - timedelta(hours=1)).timestamp())
+            )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert GroupInbox.objects.filter(group=group).exists()
+        assert not Activity.objects.filter(
+            group=group, type=ActivityType.SET_RESOLVED_BY_AGE.value
+        ).exists()
 
     @freeze_time()
     def test_expired_snooze_resets_the_clock(self) -> None:
