@@ -18,8 +18,8 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.action_kinds import get_action_kind, shared_cannot_apply_reason
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.services.action_kinds import get_action_kind, shared_cannot_apply_reason
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ActionRequestError,

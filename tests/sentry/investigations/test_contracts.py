@@ -12,26 +12,28 @@ from sentry.auth.principal import RequestPrincipal
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.investigations.contracts import (
     MAX_PROJECTION_BYTES,
-    ActionPayloadSerializer,
     ActionRequestedPayloadSerializer,
     ActionWithdrawnPayloadSerializer,
     OrchestrationProjectionSerializer,
-    RelaxedContractSerializer,
     ReportBlockStartedPayloadSerializer,
     ReportBlockUpsertedPayloadSerializer,
     ReportClearPayloadSerializer,
     ReportTextDeltaPayloadSerializer,
-    StrictCharField,
     valid_action_request,
     valid_action_requests,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import (
+from sentry.notebooks.contracts import (
+    ActionPayloadSerializer,
+    RelaxedContractSerializer,
+    StrictCharField,
+)
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_kinds.base import (
     ActionKind,
     ApplyContext,
     CannotApplyReason,
 )
-from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.utils import json
 from tests.sentry.notebooks.test_contracts import golden_payload
 

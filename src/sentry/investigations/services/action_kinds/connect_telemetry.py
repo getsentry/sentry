@@ -10,16 +10,16 @@ from rest_framework import serializers
 from sentry import features
 from sentry.auth.access import Access
 from sentry.auth.principal import RequestPrincipal
-from sentry.investigations.contracts import ActionPayloadSerializer
-from sentry.investigations.services.action_kinds.base import (
+from sentry.models.organization import Organization
+from sentry.notebooks.contracts import ActionPayloadSerializer
+from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
+from sentry.notebooks.services.action_kinds.base import (
     ActionInvalid,
     ActionKind,
     ApplyContext,
     CannotApplyReason,
     FollowUpCommand,
 )
-from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook, NotebookActionRequest, NotebookActionRequestState
 from sentry.seer.agent.monitoring_providers import org_monitoring_provider_registry
 
 CONNECT_TELEMETRY_ACTION = "connect_telemetry"

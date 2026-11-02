@@ -10,7 +10,7 @@ from django.db.models import Count, Q
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.auth.access import Access
-from sentry.investigations.endpoints.serializers.action_request import (
+from sentry.notebooks.endpoints.serializers.action_request import (
     InvestigationActionRequestSerializer,
     InvestigationActionRequestSerializerResponse,
 )

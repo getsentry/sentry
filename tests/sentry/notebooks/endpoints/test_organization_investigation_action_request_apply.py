@@ -20,12 +20,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_kinds.base import (
-    ActionInvalid,
-    ActionStale,
-    CannotApplyReason,
-)
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.environment import Environment
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -34,6 +28,12 @@ from sentry.notebooks.models import (
     NotebookActionRequestState,
     NotebookBlock,
     NotebookStatus,
+)
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_kinds.base import (
+    ActionInvalid,
+    ActionStale,
+    CannotApplyReason,
 )
 from sentry.seer import agent_token
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType

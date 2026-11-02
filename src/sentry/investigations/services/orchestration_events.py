@@ -29,13 +29,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_requests import (
-    supersede_action_requests_before,
-    supersede_block_action_requests,
-    sync_snapshot_action_requests,
-    upsert_action_request,
-    withdraw_action_request,
-)
 from sentry.investigations.services.orchestration import (
     clear_command_dispatch_error,
     command_can_be_requeued,
@@ -50,6 +43,13 @@ from sentry.notebooks.models import (
     NotebookBlockKind,
     NotebookProject,
     NotebookStatus,
+)
+from sentry.notebooks.services.action_requests import (
+    supersede_action_requests_before,
+    supersede_block_action_requests,
+    sync_snapshot_action_requests,
+    upsert_action_request,
+    withdraw_action_request,
 )
 from sentry.notebooks.services.producer_writes import (
     UNSET,

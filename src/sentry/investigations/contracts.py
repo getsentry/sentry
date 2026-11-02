@@ -589,7 +589,7 @@ class ActionPayloadSerializer(RelaxedContractSerializer):
 
 
 def _payload_serializer(action: Any) -> type[ActionPayloadSerializer] | None:
-    from sentry.investigations.services.action_kinds import get_action_kind
+    from sentry.notebooks.services.action_kinds import get_action_kind
 
     kind = action.get("kind") if isinstance(action, dict) else None
     action_kind = get_action_kind(kind) if isinstance(kind, str) else None

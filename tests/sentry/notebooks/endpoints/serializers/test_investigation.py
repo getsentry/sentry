@@ -11,16 +11,15 @@ from sentry.api.serializers import serialize
 from sentry.auth.access import from_user
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-    InvestigationSerializer,
-)
 from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRerun,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+    InvestigationSerializer,
+)
 from sentry.notebooks.models import (
     Notebook,
     NotebookActionRequest,
@@ -28,6 +27,7 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from tests.sentry.investigations.test_contracts import RecordingKind, fake_action, fake_action_kind

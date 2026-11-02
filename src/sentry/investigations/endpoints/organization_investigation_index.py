@@ -14,12 +14,6 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.serializers import (
-    InvestigationDetailsSerializer,
-    InvestigationDetailsSerializerResponse,
-    InvestigationSerializer,
-    InvestigationSerializerResponse,
-)
 from sentry.investigations.endpoints.validators import InvestigationCreateValidator
 from sentry.investigations.services import (
     create_agentic_breached_metric_investigation,
@@ -34,6 +28,12 @@ from sentry.notebooks.endpoints.base import (
     require_authenticated_user,
     service_error,
     user_id,
+)
+from sentry.notebooks.endpoints.serializers import (
+    InvestigationDetailsSerializer,
+    InvestigationDetailsSerializerResponse,
+    InvestigationSerializer,
+    InvestigationSerializerResponse,
 )
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services import create_manual_investigation

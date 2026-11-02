@@ -13,12 +13,12 @@ from sentry.investigations.contracts import (
     RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
-from sentry.investigations.services.action_requests import (
+from sentry.notebooks.models import NotebookActionRequest
+from sentry.notebooks.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
 )
-from sentry.notebooks.models import NotebookActionRequest
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
 

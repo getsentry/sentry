@@ -20,8 +20,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
 )
-from sentry.investigations.services.action_kinds import ACTION_KINDS
-from sentry.investigations.services.action_requests import STALE
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     archive_investigation_with_orchestration,
@@ -49,6 +47,8 @@ from sentry.notebooks.models import (
     NotebookBlockExecutor,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_kinds import ACTION_KINDS
+from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.notebooks import (
     InvestigationConflictError,
     archive_investigation,
@@ -3093,7 +3093,7 @@ class InvestigationOrchestrationEventTest(InvestigationOrchestrationEventTestBas
             state=NotebookActionRequestState.APPLIED,
         )
 
-        with patch("sentry.investigations.services.action_requests.logger") as logger:
+        with patch("sentry.notebooks.services.action_requests.logger") as logger:
             self.deliver_request(3, self.action_request("applied", primary=True))
 
         logger.warning.assert_called_once()

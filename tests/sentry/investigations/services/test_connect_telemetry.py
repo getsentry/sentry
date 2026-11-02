@@ -17,12 +17,12 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
 )
 from sentry.investigations.services.action_kinds.connect_telemetry import telemetry_available
-from sentry.investigations.services.action_requests import upsert_action_request
 from sentry.notebooks.models import (
     NotebookActionRequest,
     NotebookActionRequestState,
     NotebookStatus,
 )
+from sentry.notebooks.services.action_requests import upsert_action_request
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.signals import integration_added
 from sentry.tasks.seer.investigation import (

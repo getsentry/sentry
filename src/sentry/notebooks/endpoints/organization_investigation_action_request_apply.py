@@ -12,23 +12,23 @@ from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.serializers import InvestigationActionRequestSerializer
-from sentry.investigations.endpoints.serializers.responses import (
-    InvestigationActionRequestApplyResponse,
-)
-from sentry.investigations.endpoints.validators import ActionRequestApplyValidator
-from sentry.investigations.services.action_kinds.base import (
-    ApplyErrorCode,
-    ApplyFailed,
-    CannotApplyReason,
-)
-from sentry.investigations.services.action_requests import apply_action_request
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationEndpoint,
     require_authenticated_user,
 )
+from sentry.notebooks.endpoints.serializers import InvestigationActionRequestSerializer
+from sentry.notebooks.endpoints.serializers.responses import (
+    InvestigationActionRequestApplyResponse,
+)
+from sentry.notebooks.endpoints.validators import ActionRequestApplyValidator
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.action_kinds.base import (
+    ApplyErrorCode,
+    ApplyFailed,
+    CannotApplyReason,
+)
+from sentry.notebooks.services.action_requests import apply_action_request
 
 _STATUS = {
     CannotApplyReason.INVESTIGATION_ARCHIVED: status.HTTP_400_BAD_REQUEST,
