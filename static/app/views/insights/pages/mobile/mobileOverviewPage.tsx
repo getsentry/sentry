@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
@@ -20,12 +20,11 @@ import {PageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {canUseMetricsData} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
-import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -96,6 +95,14 @@ function MobileVitalsBanner() {
   );
 }
 
+const mobileOverviewQueryParsers = {
+  cursor: parseAsString,
+  isDefaultQuery: parseAsBoolean,
+  [QueryParameterNames.PAGES_CURSOR]: parseAsString,
+  query: parseAsString.withDefault(''),
+  sort: parseAsSort,
+};
+
 interface EAPMobileOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
 }
@@ -107,9 +114,10 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   const location = useLocation();
   const {projects} = useProjects();
   const onboardingProject = useOnboardingProject();
-  const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.PAGES_CURSOR]);
+  const [{pagesCursor, query: searchBarQuery, sort}, setQueryParams] = useQueryStates(
+    mobileOverviewQueryParsers
+  );
 
   useDefaultToAllProjects();
 
@@ -188,25 +196,18 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   function handleSearch(searchQuery: string) {
     trackAnalytics('performance.domains.mobile.search', {organization});
 
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        query: String(searchQuery).trim() || undefined,
-        isDefaultQuery: false,
-      },
-    });
+    setQueryParams(
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
+      {history: 'push'}
+    );
   }
-
-  const [searchBarQuery] = useQueryState('query', parseAsString.withDefault(''));
 
   const sorts: [ValidSort, ValidSort] = [
     {
       field: 'is_starred_transaction' satisfies SpanProperty,
       kind: 'desc',
     },
-    decodeSorts(location.query?.sort).find(isAValidSort) ?? DEFAULT_SORT,
+    sort && isAValidSort(sort) ? sort : DEFAULT_SORT,
   ];
 
   existingQuery.addFilterValue('is_transaction', 'true');
@@ -215,7 +216,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
     {
       search: existingQuery,
       sorts,
-      cursor,
+      cursor: pagesCursor || undefined,
       useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
       fields: [
         'is_starred_transaction',

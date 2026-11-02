@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQueries} from '@tanstack/react-query';
-import {parseAsStringEnum, useQueryState} from 'nuqs';
+import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -52,9 +52,13 @@ interface Props {
   withChart?: boolean;
 }
 
-const parseAsIssuesType = parseAsStringEnum(Object.values(IssuesType)).withDefault(
-  IssuesType.NEW
-);
+const releaseIssuesQueryParsers = {
+  issuesType: parseAsStringEnum(Object.values(IssuesType))
+    .withDefault(IssuesType.NEW)
+    .withOptions({history: 'replace'}),
+  pageStart: parseAsString,
+  pageStatsPeriod: parseAsString,
+};
 
 function getIssuesEndpoint(
   version: string,
@@ -190,9 +194,8 @@ export function ReleaseIssues({
   const [pageLinks, setPageLinks] = useState<string | null>(null);
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
 
-  const [issuesType, setIssuesType] = useQueryState(
-    'issuesType',
-    parseAsIssuesType.withOptions({history: 'replace'})
+  const [{issuesType, pageStart, pageStatsPeriod}, setQueryParams] = useQueryStates(
+    releaseIssuesQueryParsers
   );
   const {endpoint, queryParams} = getIssuesEndpoint(
     version,
@@ -250,8 +253,7 @@ export function ReleaseIssues({
     }, []);
 
   const renderEmptyMessage = useCallback(() => {
-    const isEntireReleasePeriod =
-      !location.query.pageStatsPeriod && !location.query.pageStart;
+    const isEntireReleasePeriod = !pageStatsPeriod && !pageStart;
 
     const {statsPeriod} = getReleaseParams({
       location,
@@ -297,7 +299,7 @@ export function ReleaseIssues({
           : null}
       </EmptyState>
     );
-  }, [issuesType, location, releaseBounds]);
+  }, [issuesType, location, pageStart, pageStatsPeriod, releaseBounds]);
 
   const issuesTypes = [
     {value: IssuesType.ALL, label: t('All Issues'), issueCount: count.all},
@@ -343,7 +345,7 @@ export function ReleaseIssues({
                     aria-label={t('Issue type')}
                     size="xs"
                     value={issuesType}
-                    onChange={setIssuesType}
+                    onChange={value => setQueryParams({issuesType: value})}
                   >
                     {issuesTypes.map(({value, label, issueCount}) => (
                       <SegmentedControl.Item key={value} textValue={label}>

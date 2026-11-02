@@ -1,11 +1,10 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
-import {parseAsBoolean, useQueryState} from 'nuqs';
-import * as qs from 'query-string';
+import {parseAsBoolean, parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container} from '@sentry/scraps/layout';
@@ -87,6 +86,20 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
+
+const allProjectsQueryParsers = {
+  _allp: parseAsString,
+  project: parseAsString,
+};
+
+const trackViewQueryParsers = {
+  alert_date: parseAsString,
+  alert_rule_id: parseAsString,
+  alert_type: parseAsString,
+  notification_uuid: parseAsString,
+  query: parseAsString,
+  ref_fallback: parseAsString,
+};
 
 type FetchGroupDetailsState = {
   error: boolean;
@@ -239,6 +252,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const {projects} = useProjects();
 
   const [allProjectChanged, setAllProjectChanged] = useState(false);
+  const [{_allp: allProjectsFlag, project: urlProject}, setAllProjectsQuery] =
+    useQueryStates(allProjectsQueryParsers);
 
   const {currentTab, baseUrl} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
@@ -362,43 +377,43 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     }
   }, [api, group?.hasSeen, group?.project, organization.slug, params.groupId, projects]);
 
+  const syncAllProjectsQuery = useEffectEvent(
+    (groupProjectId: string | undefined, hasChangedAllProjects: boolean) => {
+      // We use _allp as a temporary measure to know they came from the
+      // issue list page with no project selected (all projects included in
+      // filter).
+      //
+      // If it is not defined, we add the locked project id to the URL
+      // (this is because if someone navigates directly to an issue on
+      // single-project priveleges, then goes back - they were getting
+      // assigned to the first project).
+      //
+      // If it is defined, we do not so that our back button will bring us
+      // to the issue list page with no project selected instead of the
+      // locked project.
+      if (
+        urlProject === null &&
+        !allProjectsFlag &&
+        !hasChangedAllProjects &&
+        groupProjectId
+      ) {
+        setAllProjectsQuery({project: groupProjectId});
+      }
+
+      if (allProjectsFlag && !hasChangedAllProjects) {
+        // We delete _allp from the URL to keep the hack a bit cleaner, but
+        // this is not an ideal solution and will ultimately be replaced with
+        // something smarter.
+        setAllProjectsQuery({_allp: null, project: null});
+        setAllProjectChanged(true);
+      }
+    }
+  );
+
   useEffect(() => {
-    const locationQuery = qs.parse(window.location.search) || {};
-    const allProjectsFlag = locationQuery._allp;
-
-    // We use _allp as a temporary measure to know they came from the
-    // issue list page with no project selected (all projects included in
-    // filter).
-    //
-    // If it is not defined, we add the locked project id to the URL
-    // (this is because if someone navigates directly to an issue on
-    // single-project priveleges, then goes back - they were getting
-    // assigned to the first project).
-    //
-    // If it is defined, we do not so that our back button will bring us
-    // to the issue list page with no project selected instead of the
-    // locked project.
-    if (
-      locationQuery.project === undefined &&
-      !allProjectsFlag &&
-      !allProjectChanged &&
-      group?.project.id
-    ) {
-      locationQuery.project = group?.project.id;
-      navigate({...window.location, query: locationQuery}, {replace: true});
-    }
-
-    if (allProjectsFlag && !allProjectChanged) {
-      delete locationQuery.project;
-      // We delete _allp from the URL to keep the hack a bit cleaner, but
-      // this is not an ideal solution and will ultimately be replaced with
-      // something smarter.
-      delete locationQuery._allp;
-      navigate({...window.location, query: locationQuery}, {replace: true});
-      // oxlint-disable-next-line react/set-state-in-effect
-      setAllProjectChanged(true);
-    }
-  }, [group?.project.id, allProjectChanged, navigate]);
+    // oxlint-disable-next-line react/set-state-in-effect
+    syncAllProjectsQuery(group?.project.id, allProjectChanged);
+  }, [group?.project.id, allProjectChanged]);
 
   const errorType =
     groupError instanceof RequestError
@@ -482,9 +497,9 @@ function useTrackView({
   tab: Tab;
   project?: Project;
 }) {
-  const location = useLocation();
-  const {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid} =
-    location.query;
+  const [
+    {alert_date, alert_rule_id, alert_type, ref_fallback, query, notification_uuid},
+  ] = useQueryStates(trackViewQueryParsers);
   const groupEventType = useLoadedEventType();
   const user = useUser();
 
@@ -494,20 +509,18 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
-    query: typeof query === 'string' ? query : undefined,
+    query: query ?? undefined,
     // Alert properties track if the user came from email/slack alerts
-    alert_date:
-      typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
-    alert_rule_id: typeof alert_rule_id === 'string' ? alert_rule_id : undefined,
-    alert_type: typeof alert_type === 'string' ? alert_type : undefined,
-    ref_fallback,
+    alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
+    alert_rule_id: alert_rule_id ?? undefined,
+    alert_type: alert_type ?? undefined,
+    ref_fallback: ref_fallback ?? undefined,
     group_event_type: groupEventType,
     prefers_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI ?? false,
     enforced_streamlined_ui: user?.options?.prefersIssueDetailsStreamlinedUI === null,
     org_streamline_only: organization.streamlineOnly ?? undefined,
     has_seer_access: hasAutofixQuota,
-    notification_uuid:
-      typeof notification_uuid === 'string' ? notification_uuid : undefined,
+    notification_uuid: notification_uuid ?? undefined,
   });
   // Set default values for properties that may be updated in subcomponents.
   // Must be separate from the above values, otherwise the actual values filled in
@@ -548,8 +561,7 @@ function GroupDetailsContentError({
   onRetry: () => void;
 }) {
   const organization = useOrganization();
-  const location = useLocation();
-  const projectId = location.query.project;
+  const [projectId] = useQueryState('project', parseAsString);
 
   const {projects} = useProjects();
   const project = projects.find(proj => proj.id === projectId);

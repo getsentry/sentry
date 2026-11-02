@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,7 +9,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {
-  getPreprodBuildsDisplay,
+  parseAsPreprodBuildsDisplay,
   PreprodBuildsDisplay,
 } from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsSearchControls} from 'sentry/components/preprod/preprodBuildsSearchControls';
@@ -30,6 +30,12 @@ import {getUpdatedQueryForDisplay} from 'sentry/views/preprod/utils/installableQ
 
 import {MobileBuildsChart} from './mobileBuildsChart';
 
+const mobileBuildsQueryParsers = {
+  cursor: parseAsString,
+  display: parseAsPreprodBuildsDisplay,
+  query: parseAsString,
+};
+
 type Props = {
   organization: Organization;
   selectedProjectIds: string[];
@@ -46,12 +52,10 @@ export function MobileBuilds({
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [searchQuery] = useQueryState('query', parseAsString);
-  const [cursor] = useQueryState('cursor', parseAsString);
-  const activeDisplay = useMemo(
-    () => defaultDisplay ?? getPreprodBuildsDisplay(location.query.display),
-    [defaultDisplay, location.query.display]
+  const [{cursor, display: urlDisplay, query: searchQuery}] = useQueryStates(
+    mobileBuildsQueryParsers
   );
+  const activeDisplay = defaultDisplay ?? urlDisplay;
 
   const buildsQueryParams = useMemo(() => {
     const query: Record<string, any> = {
