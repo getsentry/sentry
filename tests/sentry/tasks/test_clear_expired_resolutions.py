@@ -1,9 +1,14 @@
+from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
 from datetime import timedelta
 
 import pytest
 from django.utils import timezone
 
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupresolution import GroupResolution
@@ -11,9 +16,67 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.features import Feature, with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
+
+
+@django_db_all
+@pytest.mark.parametrize("drain", [outbox_runner, nullcontext], ids=["delivered", "pending"])
+@pytest.mark.parametrize("finalized_order", [False, True], ids=["flag-off", "flag-on"])
+def test_finalization_updates_gal_feed(
+    factories: Factories,
+    default_group: Group,
+    drain: Callable[[], AbstractContextManager],
+    finalized_order: bool,
+) -> None:
+    project = default_group.project
+    anchor = factories.create_release(
+        project=project, version="anchor", date_added=timezone.now() - timedelta(days=3)
+    )
+    successor = factories.create_release(project=project, version="next")
+    resolution = factories.create_group_resolution(
+        group=default_group,
+        release=anchor,
+        type=GroupResolution.Type.in_next_release,
+        status=GroupResolution.Status.pending,
+    )
+    with (
+        action_log_activity_enabled(),
+        action_context_scope(source=ActionSource.WEB, actor=SYSTEM_ACTOR),
+        drain(),
+        outbox_context(flush=False),
+    ):
+        activity = factories.create_group_activity(
+            group=default_group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": "", "current_release_version": "anchor"},
+        )
+    entries = GroupActionLogEntry.objects.filter(idempotency_key=f"activity:{activity.id}")
+    original_identity = set(entries.values_list("id", "date_added", "actor_id", "source"))
+
+    with (
+        Feature({"organizations:release-resolution-finalized-order": finalized_order}),
+        outbox_runner(),
+    ):
+        clear_expired_resolutions(successor.id)
+        clear_expired_resolutions(successor.id)
+
+    entry = entries.get()
+    assert entry.data["version"] == "next"
+    assert entry.data["current_release_version"] == "anchor"
+    assert entry.source == ActionSource.WEB
+    assert original_identity <= {(entry.id, entry.date_added, entry.actor_id, entry.source)}
+    activity.refresh_from_db()
+    assert activity.data == {"version": "next", "current_release_version": "anchor"}
+    with action_log_activity_enabled():
+        items = get_serialized_activity_items(default_group, None, endpoint="test")
+    assert items is not None
+    assert items[0]["type"] == "set_resolved_in_release"
+    assert items[0]["data"]["version"] == "next"
 
 
 @django_db_all

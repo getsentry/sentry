@@ -16,6 +16,7 @@ from sentry.issues.action_log import (
     GroupActorType,
     action_context_scope,
 )
+from sentry.issues.action_log.activity import sync_activity_log_entry
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.search.eap.occurrences.query_utils import build_group_id_in_filter
@@ -321,12 +322,15 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # to transfer manually.
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
-        activities = Activity.objects.filter(
-            group_id=group_id, type=ActivityType.REPROCESS.value
-        ).order_by("-datetime")
+        activities = (
+            Activity.objects.select_for_update()
+            .filter(group_id=group_id, type=ActivityType.REPROCESS.value)
+            .order_by("-datetime")
+        )
         activity = activities[0]
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
+        sync_activity_log_entry(activity, previous_group_id=group_id)
 
         new_group = Group.objects.select_for_update().get(id=new_group_id)
 

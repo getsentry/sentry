@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.db.models.functions import Coalesce
 
 from sentry import features
+from sentry.issues.action_log.activity import sync_activity_log_entry
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release, ReleaseStatus
@@ -114,14 +115,19 @@ def _clear_finalized_resolutions(release: Release) -> None:
 
 def _update_resolution_activities(resolutions: Sequence[GroupResolution], release: Release) -> None:
     for resolution in resolutions:
-        try:
-            activity = Activity.objects.filter(
-                group=resolution.group_id,
-                type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                ident=resolution.id,
-            ).order_by("-datetime")[0]
-        except IndexError:
-            continue
+        with transaction.atomic(using=router.db_for_write(Activity)):
+            activity = (
+                Activity.objects.select_for_update()
+                .filter(
+                    group=resolution.group_id,
+                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                    ident=resolution.id,
+                )
+                .order_by("-datetime")
+                .first()
+            )
+            if activity is None:
+                continue
 
-        # TODO: Do we need to write a `GroupHistory` row here?
-        activity.update(data={**(activity.data or {}), "version": release.version})
+            activity.update(data={**(activity.data or {}), "version": release.version})
+            sync_activity_log_entry(activity)

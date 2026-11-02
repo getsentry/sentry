@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
 from time import time
 from types import SimpleNamespace
 from typing import Any
@@ -9,19 +11,26 @@ from unittest.mock import patch
 
 import pytest
 from django.conf import settings
+from django.db import router, transaction
 from django.test import override_settings
 
+from sentry.api.serializers.models.groupactionlogentry import get_serialized_activity_items
 from sentry.attachments import get_attachments_for_event
 from sentry.conf.server import DEFAULT_GROUPING_CONFIG
 from sentry.event_manager import EventManager
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
+from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
+from sentry.receivers.outbox.cell import process_group_action_log_event
 from sentry.reprocessing2 import is_group_finished, start_group_reprocessing
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
@@ -38,9 +47,12 @@ from sentry.tasks.reprocessing2 import (
 )
 from sentry.tasks.store import preprocess_event
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
+from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -680,6 +692,57 @@ def test_apply_new_stack_trace_rules(
     assert event1.group.id == event2.group.id
 
     assert event1.data["grouping_config"] != original_grouping_config
+
+
+@django_db_all
+@pytest.mark.parametrize("drain", [outbox_runner, nullcontext], ids=["delivered", "pending"])
+def test_finish_reprocessing_moves_gal_feed(
+    factories: Factories,
+    default_group: Group,
+    drain: Callable[[], AbstractContextManager],
+) -> None:
+    old_group = default_group
+    new_group = factories.create_group(
+        project=old_group.project, data={"_reprocessing_old_group_id": old_group.id}
+    )
+    with (
+        action_log_activity_enabled(),
+        action_context_scope(source=ActionSource.WEB, actor=SYSTEM_ACTOR),
+        drain(),
+        outbox_context(flush=False),
+    ):
+        activity = factories.create_group_activity(
+            group=old_group,
+            type=ActivityType.REPROCESS.value,
+            data={"eventCount": 7, "oldGroupId": old_group.id, "newGroupId": new_group.id},
+        )
+        payload = GroupActionLogOutbox.objects.get(shard_identifier=old_group.id).payload
+    entries = GroupActionLogEntry.objects.filter(idempotency_key=f"activity:{activity.id}")
+    original_identity = set(entries.values_list("id", "date_added", "actor_id", "source"))
+
+    with outbox_runner():
+        finish_reprocessing(old_group.project_id, old_group.id)
+
+    # Redelivering the original payload must not recreate an entry on the old issue.
+    with transaction.atomic(using=router.db_for_write(GroupActionLogEntry)):
+        process_group_action_log_event(payload)
+
+    entry = entries.get()
+    assert entry.group_id == new_group.id
+    assert entry.source == ActionSource.WEB
+    assert original_identity <= {(entry.id, entry.date_added, entry.actor_id, entry.source)}
+    assert not GroupActionLogEntry.objects.filter(group_id=old_group.id).exists()
+    activity.refresh_from_db()
+    assert activity.group_id == new_group.id
+    with action_log_activity_enabled():
+        items = get_serialized_activity_items(new_group, None, endpoint="test")
+    assert items is not None
+    assert items[0]["type"] == "reprocess"
+    assert items[0]["data"] == {
+        "eventCount": 7,
+        "oldGroupId": old_group.id,
+        "newGroupId": new_group.id,
+    }
 
 
 @django_db_all

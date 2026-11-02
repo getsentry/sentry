@@ -29,6 +29,7 @@ from sentry.hybridcloud.services.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
 from sentry.integrations.services.integration import integration_service
+from sentry.issues.action_log.activity import refresh_activity_payload
 from sentry.issues.action_log.types import GroupActionLogPayload
 from sentry.issues.derived.processing import ProcessingStrategy, trigger_group_log_processing
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -393,11 +394,12 @@ def process_group_action_log_event(payload: GroupActionLogPayload, **kwds: Any) 
     try:
         using = router.db_for_write(GroupActionLogEntry)
 
-        group_id = payload["group_id"]
         force_async_derived = payload["force_async_derived"]
 
         try:
             with transaction.atomic(using=using):
+                payload = refresh_activity_payload(payload)
+                group_id = payload["group_id"]
                 GroupActionLogEntry.objects.create(
                     group_id=group_id,
                     project_id=payload["project_id"],
