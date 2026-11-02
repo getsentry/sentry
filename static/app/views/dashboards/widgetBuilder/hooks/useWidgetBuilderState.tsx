@@ -34,7 +34,10 @@ import {
   remapTransformations,
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {
+  parseAsThresholds,
+  type ThresholdsConfig,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   MAX_NUM_Y_AXES,
   WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
@@ -56,7 +59,6 @@ import {
   serializeLinkedDashboards,
   serializeSorts,
   normalizeSortField,
-  serializeThresholds,
 } from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
@@ -1508,14 +1510,6 @@ function deserializeQuery(queries: string[]): string[] {
   return queries;
 }
 
-function deserializeThresholds(value: string): ThresholdsConfig | undefined {
-  if (value === '') {
-    return undefined;
-  }
-
-  return JSON.parse(value);
-}
-
 /**
  * nuqs parsers for every builder field that lives in the URL. Each one wraps the
  * (de)serializers above so the URL encoding stays in one place.
@@ -1586,11 +1580,6 @@ const parseAsSelectedAggregate = createParser({
 const parseAsLegendType = createParser({
   parse: (value: string) => deserializeLegendType(value) ?? null,
   serialize: (value: LegendType) => value,
-});
-
-const parseAsThresholds = createParser<ThresholdsConfig | null>({
-  parse: (value: string) => deserializeThresholds(value) ?? null,
-  serialize: serializeThresholds,
 });
 
 const parseAsAxisRange = createParser({
