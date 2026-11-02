@@ -14,14 +14,12 @@ import hmac
 import logging
 import re
 from collections.abc import Sequence
-from datetime import timedelta
 from typing import Any, Protocol
 
 import orjson
 import requests
 import sentry_sdk
 from django.conf import settings
-from objectstore_client import TimeToLive
 
 from sentry import options
 from sentry.objectstore import UsecaseId, get_internal_download_url, get_session
@@ -55,10 +53,6 @@ class TeapotAttachment(Protocol):
 
     name: str
     stored_id: str | None
-
-
-# Dev-only inline attachment uploads live just long enough for the decode.
-INLINE_ATTACHMENT_TTL = timedelta(days=1)
 
 
 # Fallbacks for the `teapot.timeout-seconds` / `teapot.max-attempts` options.
@@ -185,30 +179,8 @@ class TeapotClient:
         """Short-lived self-authenticating (presigned) GET URL for the attachment —
         the shared internal objectstore helper (direct link, no auth header)."""
         if not att.stored_id:
-            if not getattr(settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", False):
-                raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
-            att.stored_id = self._upload_inline(session, att)
+            raise TeapotRequestError(f"attachment {att.name!r} is not in objectstore")
         return get_internal_download_url(session, att.stored_id)
-
-    def _upload_inline(self, session: Any, att: TeapotAttachment) -> str:
-        """Dev fallback: Relay kept the attachment in the processing cache instead
-        of objectstore, so store the cached bytes ourselves and presign that key."""
-        load_data = getattr(att, "load_data", None)
-        if load_data is None:
-            raise TeapotRequestError(f"attachment {att.name!r} has no cached data")
-        payload = load_data(self.project)
-        key = session.put(
-            payload,
-            content_type=getattr(att, "content_type", None) or "application/octet-stream",
-            filename=att.name,
-            expiration_policy=TimeToLive(INLINE_ATTACHMENT_TTL),
-        )
-        metrics.incr("tasks.gpu_crash.teapot_inline_attachment_upload")
-        logger.info(
-            "teapot.inline_attachment_upload",
-            extra={"event_id": self.event_id, "name": att.name, "size": len(payload)},
-        )
-        return key
 
     def _send(self, url: str, headers: dict[str, str], data: bytes) -> dict[str, Any]:
         def attempt() -> dict[str, Any]:

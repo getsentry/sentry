@@ -17,7 +17,7 @@ from sentry.lang.native.shader_difs import (
     missing_shader_difs,
     resolve_shader_difs,
 )
-from sentry.lang.native.teapot import TeapotClient, TeapotRequestError, TeapotUnavailable
+from sentry.lang.native.teapot import TeapotClient, TeapotUnavailable
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
 from sentry.tasks.gpu_crash import _try_symbolicate
@@ -44,19 +44,9 @@ class _FakeProject:
 
 
 class _FakeAttachment:
-    def __init__(
-        self,
-        name: str = "dump.nv-gpudmp",
-        stored_id: str | None = "dump-obj-id",
-        data: bytes = b"dump",
-    ) -> None:
+    def __init__(self, name: str = "dump.nv-gpudmp", stored_id: str | None = "dump-obj-id") -> None:
         self.name = name
         self.stored_id = stored_id
-        self.content_type = "application/octet-stream"
-        self._data = data
-
-    def load_data(self, project: Any = None) -> bytes:
-        return self._data
 
 
 class _FakeResponse:
@@ -102,7 +92,6 @@ def _resolved() -> ShaderDifs:
 @pytest.fixture
 def teapot_session() -> Iterator[mock.Mock]:
     session = mock.Mock()
-    session.put.return_value = "inline-key"
     get_url = mock.Mock(side_effect=lambda _session, key: f"http://objectstore/{key}?sig=abc")
     with (
         mock.patch.object(settings, "SENTRY_TEAPOT_URL", "http://teapot.test", create=True),
@@ -150,35 +139,6 @@ def test_client_first_round_omits_shader_arrays(teapot_session: mock.Mock) -> No
     body = orjson.loads(kwargs["data"])
     assert "shader_binaries" not in body
     assert "shader_pdbs" not in body
-
-
-def test_client_inline_fallback_uploads_uncached_attachment(teapot_session: mock.Mock) -> None:
-    dump = _FakeAttachment(stored_id=None, data=b"gpu-dump-bytes")
-    with (
-        mock.patch.object(settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", True, create=True),
-        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-    ):
-        mock_post.return_value = _FakeResponse(200, _completed())
-        TeapotClient(_FakeProject(), "abc").symbolicate(dump, [])
-
-    teapot_session.put.assert_called_once()
-    assert teapot_session.put.call_args.args[0] == b"gpu-dump-bytes"
-    assert teapot_session.put.call_args.kwargs["filename"] == "dump.nv-gpudmp"
-    assert dump.stored_id == "inline-key"
-    body = orjson.loads(mock_post.call_args.kwargs["data"])
-    assert body["dump"] == {"storage_url": "http://objectstore/inline-key?sig=abc"}
-
-
-def test_client_inline_fallback_off_by_default(teapot_session: mock.Mock) -> None:
-    with (
-        mock.patch.object(settings, "SENTRY_TEAPOT_INLINE_ATTACHMENT_FALLBACK", False, create=True),
-        mock.patch("sentry.lang.native.teapot.requests.post") as mock_post,
-    ):
-        with pytest.raises(TeapotRequestError):
-            TeapotClient(_FakeProject(), "abc").symbolicate(_FakeAttachment(stored_id=None), [])
-
-    teapot_session.put.assert_not_called()
-    assert mock_post.call_count == 0
 
 
 # ---------------------------------------------------------------------------
