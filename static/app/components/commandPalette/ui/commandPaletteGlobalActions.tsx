@@ -29,6 +29,7 @@ import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import {useQueryState} from 'nuqs';
 
 import {
   OrganizationAvatar,
@@ -70,8 +71,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -330,7 +331,8 @@ export function GlobalCommandPaletteActions() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const queryProjectIds = new Set(decodeList(location.query.project));
+  const [queryProjectIdList] = useQueryState('project', pageFilterParsers.project);
+  const queryProjectIds = new Set(queryProjectIdList);
   const currentProjects = params.projectId
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));

@@ -1,4 +1,5 @@
 import {keepPreviousData} from '@tanstack/react-query';
+import {useQueryStates} from 'nuqs';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -6,7 +7,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {t, tn} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type Counts = {
@@ -19,7 +20,7 @@ type Counts = {
 
 export function MonitorsDropdown() {
   const organization = useOrganization();
-  const location = useLocation();
+  const [{project, environment}] = useQueryStates(pageFilterParsers);
 
   const {data: cronsData, isPending: cronsIsPending} = useApiQuery<Counts>(
     [
@@ -27,10 +28,7 @@ export function MonitorsDropdown() {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
-        query: {
-          project: location.query.project,
-          environment: location.query.environment,
-        },
+        query: {project, environment},
       },
     ],
     {
@@ -46,10 +44,7 @@ export function MonitorsDropdown() {
         path: {organizationIdOrSlug: organization.slug},
       }),
       {
-        query: {
-          project: location.query.project,
-          environment: location.query.environment,
-        },
+        query: {project, environment},
       },
     ],
     {

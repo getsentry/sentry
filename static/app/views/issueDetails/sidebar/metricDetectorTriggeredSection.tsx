@@ -11,6 +11,7 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
+import {parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -61,6 +62,7 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
+import {loadQueryParamsFromLocation} from 'sentry/views/explore/queryParams/parsers';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
@@ -178,6 +180,12 @@ function getFormattedEvaluatedValue({
   return `${value.toLocaleString()}${unitSuffix}`;
 }
 
+const timePeriodParsers = {
+  statsPeriod: parseAsString,
+  start: parseAsString,
+  end: parseAsString,
+};
+
 /**
  * Once the open period loads, this hook will set the time range to visibly center the open period.
  * If the URL already has a time period, this hook will do nothing
@@ -199,12 +207,12 @@ function useZoomTimeRangeToOpenPeriod({
   const navigate = useNavigate();
 
   const zoomTimeRangeToOpenPeriod = useEffectEvent(() => {
-    const hasTimePeriod =
-      defined(location.query.statsPeriod) ||
-      defined(location.query.start) ||
-      defined(location.query.end);
+    const {statsPeriod, start, end} = loadQueryParamsFromLocation(
+      timePeriodParsers,
+      location
+    );
 
-    if (hasTimePeriod) {
+    if (statsPeriod !== null || start !== null || end !== null) {
       return;
     }
 
