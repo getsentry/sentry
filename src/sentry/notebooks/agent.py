@@ -14,7 +14,6 @@ from django.db.models import F
 from django.utils import timezone
 from urllib3.exceptions import HTTPError
 
-from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.telemetry import (
     record_execution_completed,
     record_execution_failed,
@@ -37,6 +36,7 @@ from sentry.notebooks.models import (
     NotebookBlockKind,
     NotebookStatus,
 )
+from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.notebooks.services.executions import freeze_query_links, mark_block_execution_dispatched
 from sentry.notebooks.services.notebooks import has_default_investigation_title
 from sentry.notebooks.telemetry import record_execution_cancelled

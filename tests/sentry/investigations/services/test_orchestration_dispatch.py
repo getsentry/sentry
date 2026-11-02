@@ -15,7 +15,6 @@ from sentry.investigations.models import (
     InvestigationOrchestrationCommandStatus,
     InvestigationOrchestrationRun,
 )
-from sentry.investigations.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.investigations.services.orchestration import (
     _create_agentic_investigation,
     accept_orchestration_command,
@@ -26,6 +25,7 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookBlockKind,
 )
+from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import MissingViewerContextError
@@ -78,7 +78,7 @@ class InvestigationAutoRunTest(TestCase):
             prompt="Explain the chart",
         )
 
-    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
     def test_dispatches_each_auto_run_block(self, dispatch: mock.Mock) -> None:
         self.sibling.update(config={"autoRun": True})
 
@@ -97,7 +97,7 @@ class InvestigationAutoRunTest(TestCase):
             self.sibling.current_execution.id,
         }
 
-    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
     def test_redispatches_an_existing_pending_execution(self, dispatch: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=True):
             schedule_eligible_auto_run_blocks(
@@ -120,7 +120,7 @@ class InvestigationAutoRunTest(TestCase):
         assert NotebookBlockExecution.objects.filter(block=self.root).count() == 1
         dispatch.delay.assert_called_once_with(execution_id)
 
-    @mock.patch("sentry.tasks.seer.investigation.start_execution_run")
+    @mock.patch("sentry.notebooks.tasks.start_execution_run")
     def test_duplicate_dispatches_only_start_one_run(self, start_execution_run: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
@@ -136,7 +136,7 @@ class InvestigationAutoRunTest(TestCase):
 
         start_execution_run.assert_called_once()
 
-    @mock.patch("sentry.tasks.seer.investigation.start_execution_run")
+    @mock.patch("sentry.notebooks.tasks.start_execution_run")
     def test_stale_dispatch_claim_can_be_reclaimed(self, start_execution_run: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
@@ -153,7 +153,7 @@ class InvestigationAutoRunTest(TestCase):
 
         assert start_execution_run.call_count == 2
 
-    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
     def test_redispatches_a_stale_dispatch_claim(self, dispatch: mock.Mock) -> None:
         with self.captureOnCommitCallbacks(execute=False):
             schedule_eligible_auto_run_blocks(
@@ -177,7 +177,7 @@ class InvestigationAutoRunTest(TestCase):
 
         dispatch.delay.assert_called_once_with(execution.id)
 
-    @mock.patch("sentry.tasks.seer.investigation.dispatch_investigation_execution")
+    @mock.patch("sentry.notebooks.tasks.dispatch_investigation_execution")
     def test_does_not_start_more_cells_after_a_current_execution_fails(
         self, dispatch: mock.Mock
     ) -> None:
@@ -208,10 +208,10 @@ class InvestigationAutoRunTest(TestCase):
         dispatch.delay.assert_not_called()
 
     @mock.patch(
-        "sentry.tasks.seer.investigation.start_execution_run",
+        "sentry.notebooks.tasks.start_execution_run",
         side_effect=RuntimeError("Seer unavailable"),
     )
-    @mock.patch("sentry.tasks.seer.investigation.record_execution_failed")
+    @mock.patch("sentry.notebooks.tasks.record_execution_failed")
     def test_dispatch_failure_cancels_other_active_cells(
         self, record_failed: mock.Mock, start_run: mock.Mock
     ) -> None:

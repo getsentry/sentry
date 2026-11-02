@@ -14,10 +14,6 @@ from taskbroker_client.state import current_task
 from urllib3.exceptions import HTTPError
 
 from sentry import features
-from sentry.investigations.agent import (
-    cancel_investigation_executions_after_failure,
-    start_execution_run,
-)
 from sentry.investigations.models import (
     InvestigationOrchestrationCommand,
     InvestigationOrchestrationCommandStatus,
@@ -57,6 +53,10 @@ from sentry.investigations.services.orchestration_events import (
 )
 from sentry.investigations.telemetry import record_execution_failed
 from sentry.models.organization import Organization
+from sentry.notebooks.agent import (
+    cancel_investigation_executions_after_failure,
+    start_execution_run,
+)
 from sentry.notebooks.models import Notebook, NotebookBlockExecution
 from sentry.notebooks.services import (
     mark_block_execution_dispatch_failed,

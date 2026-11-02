@@ -11,12 +11,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams, InvestigationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.agent import (
+from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
+from sentry.models.organization import Organization
+from sentry.notebooks.agent import (
     cancel_investigation_executions_after_failure,
     start_execution_run,
 )
-from sentry.investigations.endpoints.serializers.responses import InvestigationExecutionResponse
-from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationInvestigationBlockEndpoint,
     organization_project_ids,

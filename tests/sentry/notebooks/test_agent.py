@@ -5,7 +5,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
-from sentry.investigations.agent import (
+from sentry.investigations.telemetry import (
+    record_execution_completed,
+    record_investigation_completed,
+)
+from sentry.notebooks.agent import (
     _maybe_start_title_generation,
     _parse_completion_metadata,
     sanitize_state,
@@ -13,10 +17,6 @@ from sentry.investigations.agent import (
     synchronize_execution,
     synchronize_title,
     title_generation_preview,
-)
-from sentry.investigations.telemetry import (
-    record_execution_completed,
-    record_investigation_completed,
 )
 from sentry.notebooks.models import NotebookBlockExecutionStatus
 from sentry.notebooks.services.notebooks import (
@@ -370,7 +370,7 @@ class InvestigationAgentTest(TestCase):
         assert context["parameterChanges"] == {"environment": ["staging"]}
         assert context["notebookContext"] == [saved_context]
 
-    @patch("sentry.investigations.agent.record_execution_started")
+    @patch("sentry.notebooks.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
         pending_execution = self.create_notebook_block_execution(
             block=self.block,
@@ -391,7 +391,7 @@ class InvestigationAgentTest(TestCase):
 
         record_started.assert_called_once_with(pending_execution)
 
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_start_run_interrupts_seer_when_cancellation_wins_dispatch_race(
         self, interrupt_run: MagicMock
     ) -> None:
@@ -454,7 +454,7 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.result is not None
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
 
-    @patch("sentry.investigations.agent.record_execution_completed")
+    @patch("sentry.notebooks.agent.record_execution_completed")
     def test_completed_execution_records_success(self, record_completed: MagicMock) -> None:
         run_state = state(
             blocks=[
@@ -539,9 +539,9 @@ class InvestigationAgentTest(TestCase):
             "message": "The agent returned malformed or unsupported result JSON.",
         }
 
-    @patch("sentry.investigations.agent.record_investigation_failed")
-    @patch("sentry.investigations.agent.record_execution_cancelled")
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.record_investigation_failed")
+    @patch("sentry.notebooks.agent.record_execution_cancelled")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_failed_execution_cancels_other_active_cells(
         self,
         interrupt_run: MagicMock,
@@ -656,8 +656,8 @@ class InvestigationAgentTest(TestCase):
             sample_rate=1.0,
         )
 
-    @patch("sentry.investigations.agent.record_investigation_failed")
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.record_investigation_failed")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_superseded_execution_failure_does_not_cancel_current_run(
         self, interrupt_run: MagicMock, record_investigation_failed: MagicMock
     ) -> None:
@@ -686,7 +686,7 @@ class InvestigationAgentTest(TestCase):
         record_investigation_failed.assert_not_called()
         interrupt_run.assert_not_called()
 
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_old_block_version_failure_does_not_cancel_other_runs(
         self, interrupt_run: MagicMock
     ) -> None:
@@ -716,7 +716,7 @@ class InvestigationAgentTest(TestCase):
         assert sibling_execution.status == NotebookBlockExecutionStatus.RUNNING
         interrupt_run.assert_not_called()
 
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_pending_disallowed_import_waits_for_code_mode_lint(
         self, interrupt_run: MagicMock
     ) -> None:
@@ -746,7 +746,7 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == NotebookBlockExecutionStatus.RUNNING
         interrupt_run.assert_not_called()
 
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_unsupported_execute_is_redacted_and_stopped(self, interrupt_run: MagicMock) -> None:
         run_state = state(
             status="processing",
@@ -787,7 +787,7 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once()
 
-    @patch("sentry.investigations.agent.interrupt_run", side_effect=RuntimeError("unavailable"))
+    @patch("sentry.notebooks.agent.interrupt_run", side_effect=RuntimeError("unavailable"))
     def test_unsupported_execute_stays_failed_when_interrupt_fails(
         self, interrupt_run: MagicMock
     ) -> None:
@@ -820,7 +820,7 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.error["code"] == "unsupported_tool_use"
         interrupt_run.assert_called_once_with(self.organization, 42)
 
-    @patch("sentry.investigations.agent.interrupt_run")
+    @patch("sentry.notebooks.agent.interrupt_run")
     def test_a_terminal_execution_is_never_rewritten(self, interrupt_run: MagicMock) -> None:
         # A cancelled run must keep the outcome the user asked for, even when Seer later
         # reports a still-processing state that breaks the tool policy.
@@ -1192,8 +1192,8 @@ class InvestigationAgentTest(TestCase):
         assert set(link["params"]) == {"dataset", "query", "project_slugs"}
         assert len(link["params"]["query"]) == 2000
 
-    @patch("sentry.investigations.agent.record_investigation_completed")
-    @patch("sentry.investigations.agent.record_title_generation_completed")
+    @patch("sentry.notebooks.agent.record_investigation_completed")
+    @patch("sentry.notebooks.agent.record_title_generation_completed")
     def test_title_uses_the_final_assistant_message(
         self, record_title_completed: MagicMock, record_investigation_completed: MagicMock
     ) -> None:
@@ -1268,7 +1268,7 @@ class InvestigationAgentTest(TestCase):
         completed_at = timezone.now()
         self.investigation.date_added = completed_at - timedelta(seconds=90)
 
-        with patch("sentry.investigations.telemetry.timezone.now", return_value=completed_at):
+        with patch("sentry.notebooks.telemetry.timezone.now", return_value=completed_at):
             record_investigation_completed(self.investigation)
 
         attributes = {"source_type": "manual", "template": "manual"}
@@ -1347,7 +1347,7 @@ class InvestigationAgentTest(TestCase):
             (("investigations.failed",), {"tags": attributes, "sample_rate": 1.0}),
         ]
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_prompt_uses_specific_incident_source_context(
         self, mock_client: MagicMock
     ) -> None:
@@ -1374,7 +1374,7 @@ class InvestigationAgentTest(TestCase):
         assert "1 or 2 short" in prompt
         assert "Avoid headings and jargon" in prompt
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_categorizes_the_run_as_an_investigation(
         self, mock_client: MagicMock
     ) -> None:
@@ -1386,8 +1386,8 @@ class InvestigationAgentTest(TestCase):
         assert kwargs["category_key"] == "investigation"
         assert kwargs["category_value"] == str(self.investigation.id)
 
-    @patch("sentry.investigations.agent.record_investigation_completed")
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.record_investigation_completed")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_waits_for_every_auto_run_block(
         self, mock_client: MagicMock, record_completed: MagicMock
     ) -> None:
@@ -1409,7 +1409,7 @@ class InvestigationAgentTest(TestCase):
         mock_client.return_value.start_run.assert_called_once()
         record_completed.assert_not_called()
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_skips_an_in_flight_run(self, mock_client: MagicMock) -> None:
         self.investigation.update(
             title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="running"
@@ -1421,7 +1421,7 @@ class InvestigationAgentTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.title_generation_status == "running"
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_does_not_retry_a_failed_run(self, mock_client: MagicMock) -> None:
         self.investigation.update(
             title=DEFAULT_INVESTIGATION_TITLE, title_generation_status="failed"
@@ -1433,7 +1433,7 @@ class InvestigationAgentTest(TestCase):
         self.investigation.refresh_from_db()
         assert self.investigation.title_generation_status == "failed"
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_generation_does_not_retry_a_legacy_completed_run(
         self, mock_client: MagicMock
     ) -> None:
@@ -1448,7 +1448,7 @@ class InvestigationAgentTest(TestCase):
 
         mock_client.assert_not_called()
 
-    @patch("sentry.investigations.agent.SeerAgentClient")
+    @patch("sentry.notebooks.agent.SeerAgentClient")
     def test_title_dispatch_failure_releases_the_in_flight_status(
         self, mock_client: MagicMock
     ) -> None:
