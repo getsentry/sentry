@@ -1742,6 +1742,58 @@ class E(Endpoint):
     assert _run_input(src, SHAPED) == []
 
 
+def test_S027_loop_over_literal_keys_in_list_comprehension_format_is_silent() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return [request.GET.get(key) for key in ("app_id", "branch")]
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_literal_keys_in_dict_comprehension_format_is_silent() -> None:
+    src = """\
+REQUIRED_PARAMS = ["app_id", "branch"]
+
+
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return {key: request.GET.get(key) for key in REQUIRED_PARAMS}
+"""
+    assert _run_input(src, SHAPED) == []
+
+
+def test_S027_loop_over_request_in_list_comprehension_format_is_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        return [request.GET.get(key) for key in request.GET]
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
+def test_S027_list_comprehension_variable_read_after_it_is_still_reported() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        values = [request.GET.get(key) for key in ("app_id", "branch")]
+        return request.GET.get(key)
+"""
+    errors = _run_input(src, SHAPED)
+    assert len(errors) == 1
+    assert "S027 the query string is read with the computed key key" in errors[0]
+
+
 def test_S027_loop_over_same_file_constant_list_is_silent() -> None:
     src = """\
 REQUIRED_PARAMS = ["app_id", "branch"]

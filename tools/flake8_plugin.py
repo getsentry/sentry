@@ -1070,6 +1070,35 @@ class SentryVisitor(ast.NodeVisitor):
         self._literal_var_constants = _collect_literal_var_constants(tree=node)
         self.generic_visit(node)
 
+    def _new_safe_loop_var(
+        self, target: ast.expr, iter_node: ast.expr, curr_method: _InputCtx
+    ) -> str | None:
+        """The loop variable to mark safe when a loop iterates over a fixed set of keys, else None."""
+        if not _is_iterable_elms_literals(
+            node=iter_node,
+            file_lvl_constants=self._literal_var_constants,
+            declared_serializers=curr_method.declared_params | curr_method.declared_body,
+        ):
+            return None
+
+        loop_var = None
+        # check if its a single looping variable
+        if isinstance(target, ast.Name):
+            loop_var = target.id
+
+        # check if its multi looping variables
+        elif isinstance(target, (ast.Tuple, ast.List)) and target.elts:
+            first_var = target.elts[0]
+            if isinstance(first_var, ast.Name):
+                loop_var = first_var.id
+
+        # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
+        # the inner loop reusing the name keeps the outer name safe
+        if loop_var in curr_method.safe_loop_vars:
+            return None
+
+        return loop_var
+
     def visit_For(self, node: ast.For) -> None:
         """Visitor for tracking looping variables declared within a for loop (i.e, `for X in (iterable collection)`, tracking X)"""
 
@@ -1082,29 +1111,9 @@ class SentryVisitor(ast.NodeVisitor):
         self.visit(node.target)
         self.visit(node.iter)
 
-        loop_var = None
-        if _is_iterable_elms_literals(
-            node=node.iter,
-            file_lvl_constants=self._literal_var_constants,
-            declared_serializers=curr_method.declared_params | curr_method.declared_body,
-        ):
-            # check if its a single looping variable
-            if isinstance(node.target, ast.Name):
-                loop_var = node.target.id
-
-            # check if its multi looping variables
-            elif isinstance(node.target, (ast.Tuple, ast.List)) and node.target.elts:
-                first_var = node.target.elts[0]
-                if isinstance(first_var, ast.Name):
-                    loop_var = first_var.id
-
-            # an outer loop already marked this loop variable name, but we need to leave it to the outer loop so
-            # the inner loop reusing the name keeps the outer name safe
-            if loop_var in curr_method.safe_loop_vars:
-                loop_var = None
-
-            if loop_var is not None:
-                curr_method.safe_loop_vars.add(loop_var)
+        loop_var = self._new_safe_loop_var(node.target, node.iter, curr_method)
+        if loop_var is not None:
+            curr_method.safe_loop_vars.add(loop_var)
 
         for statement in node.body:
             self.visit(statement)
@@ -1114,6 +1123,42 @@ class SentryVisitor(ast.NodeVisitor):
 
         for statement in node.orelse:
             self.visit(statement)
+
+    def visit_comprehension_types(
+        self, node: ast.ListComp | ast.DictComp | ast.SetComp | ast.GeneratorExp
+    ) -> None:
+        """Visitor for tracking loop variables in list, set, dict and generator comprehensions."""
+
+        if not self._input_stack:
+            self.generic_visit(node)
+            return
+
+        curr_method = self._input_stack[-1]
+
+        valid_vars: list[str] = []
+
+        for comp_node in node.generators:
+            self.visit(comp_node.iter)
+            self.visit(comp_node.target)
+
+            loop_var = self._new_safe_loop_var(comp_node.target, comp_node.iter, curr_method)
+            if loop_var is not None:
+                curr_method.safe_loop_vars.add(loop_var)
+                valid_vars.append(loop_var)
+
+            for condition in comp_node.ifs:
+                self.visit(condition)
+
+        if isinstance(node, ast.DictComp):
+            self.visit(node.key)
+            self.visit(node.value)
+        else:
+            self.visit(node.elt)
+
+        for var in valid_vars:
+            curr_method.safe_loop_vars.discard(var)
+
+    visit_ListComp = visit_SetComp = visit_GeneratorExp = visit_DictComp = visit_comprehension_types
 
     def visit_ClassDef(self, node: ast.ClassDef) -> None:
         top_level = not self._class_stack
