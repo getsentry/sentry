@@ -273,8 +273,9 @@ class GitHubApiClientTest(TestCase):
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch("sentry.integrations.source_code_management.repository.metrics.incr")
     @responses.activate
-    def test_get_stacktrace_link(self, mock_record, get_jwt) -> None:
+    def test_get_stacktrace_link(self, mock_incr, mock_record, get_jwt) -> None:
         path = "/src/sentry/integrations/github/client.py"
         version = "master"
         url = "https://api.github.com/repos/{}/contents/{}?ref={}".format(
@@ -292,14 +293,17 @@ class GitHubApiClientTest(TestCase):
             source_url
             == "https://github.com/Test-Organization/foo/blob/master/src/sentry/integrations/github/client.py"
         )
-        assert (
-            len(mock_record.mock_calls) == 4
-        )  # get_stacktrace_link calls check_file, which also has metrics
-        start1, start2, halt1, halt2 = mock_record.mock_calls
-        assert start1.args[0] == EventLifecycleOutcome.STARTED
-        assert start2.args[0] == EventLifecycleOutcome.STARTED  # check_file
-        assert halt1.args[0] == EventLifecycleOutcome.SUCCESS  # check_file
-        assert halt2.args[0] == EventLifecycleOutcome.SUCCESS
+        assert len(mock_record.mock_calls) == 2
+        assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
+        assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
+        mock_incr.assert_any_call(
+            "integrations.source_code_management.check_file",
+            tags={
+                "integration_name": "github",
+                "parent_interaction_type": "get_stacktrace_link",
+                "result": "file_found",
+            },
+        )
 
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     @responses.activate
@@ -702,9 +706,7 @@ class GitHubApiClientTest(TestCase):
             responses.calls[0].request.headers["Content-Type"] == "application/raw; charset=utf-8"
         )
         assert result == GITHUB_CODEOWNERS
-        assert (
-            len(mock_record.mock_calls) == 2
-        )  # check_file is mocked in this test, so there will be no metrics logged for it
+        assert len(mock_record.mock_calls) == 2
         assert mock_record.mock_calls[0].args[0] == EventLifecycleOutcome.STARTED
         assert mock_record.mock_calls[1].args[0] == EventLifecycleOutcome.SUCCESS
 

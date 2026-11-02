@@ -18,6 +18,7 @@ from sentry.api.permissions import (
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.demo_mode.utils import READONLY_SCOPES
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase, DRFPermissionTestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -361,6 +362,21 @@ class DemoSafePermissionsTest(DRFPermissionTestCase):
             )
 
             assert readonly_rpc_context.member.scopes == list(self.org_member_scopes)
+
+    def test_determine_access_omits_full_organization_resources(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_project(organization=self.organization, teams=[team])
+        request = self.make_request(self.readonly_user)
+
+        with (
+            override_options(
+                {"demo-mode.enabled": True, "demo-mode.users": [self.readonly_user.id]}
+            ),
+            assert_no_organization_resource_hydration(),
+        ):
+            self.user_permission.determine_access(request=request, organization=self.organization)
+
+        assert request.access.scopes == frozenset(READONLY_SCOPES)
 
 
 class InsufficientScopeResponseTest(APITestCase):
