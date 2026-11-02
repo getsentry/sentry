@@ -61,7 +61,12 @@ describe('usePullRequestDiffs', () => {
       result.current.setRepoPRStates({[REPO]: {...prState, commit_sha: 'def456'}})
     );
 
+    // The old diff lacks the pushed edits, so don't show it while the new one loads.
+    expect(result.current.diffs).toEqual({[REPO]: {status: 'pending'}});
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(result.current.diffs).toEqual({[REPO]: {status: 'success', files}})
+    );
   });
 
   it('reports a failed fetch', async () => {

@@ -261,4 +261,21 @@ describe('RunChangesView', () => {
 
     expect(screen.getByRole('radio', {name: 'All changes'})).toBeChecked();
   });
+
+  it('goes back with Escape after clicking the diff', async () => {
+    const onBack = jest.fn();
+    render(
+      <RunChangesView
+        allChanges={[]}
+        onSelectRepo={jest.fn()}
+        changes={makeChanges()}
+        onBack={onBack}
+      />
+    );
+
+    await userEvent.click(screen.getByText('cart on the PR'));
+    await userEvent.keyboard('{Escape}');
+
+    expect(onBack).toHaveBeenCalledTimes(1);
+  });
 });
