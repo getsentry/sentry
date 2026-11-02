@@ -33,7 +33,6 @@ from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
     DetectorGroupKey,
     DetectorPriorityLevel,
     DetectorSettings,
@@ -283,10 +282,6 @@ class UptimeDomainCheckFailure(GroupType):
 
 @detector_settings_registry.register(DetectorType.UPTIME_DOMAIN_FAILURE)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
-    api_availability = {
-        **DetectorSettings.DEFAULT_API_AVAILABILITY,
-        DetectorAPIOperation.DISCOVER: True,
-    }
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator
     config_schema = {

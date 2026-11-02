@@ -357,10 +357,7 @@ APIGate: TypeAlias = bool | FeatureGate
 
 class DetectorSettings:
     DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
-        {
-            operation: operation != DetectorAPIOperation.DISCOVER
-            for operation in DetectorAPIOperation
-        }
+        {operation: True for operation in DetectorAPIOperation}
     )
 
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY

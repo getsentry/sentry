@@ -837,10 +837,7 @@ class DetectorImplementationIdentityTest(APITestCase):
         project = self.create_project()
 
         class RegistryOnlySettings(PreprodSizeAnalysisDetectorSettings):
-            api_availability = {
-                **DetectorSettings.DEFAULT_API_AVAILABILITY,
-                DetectorAPIOperation.DISCOVER: True,
-            }
+            api_availability = dict(DetectorSettings.DEFAULT_API_AVAILABILITY)
 
         detector_type = DetectorType.PERFORMANCE_SLOW_DB_QUERY
         with (

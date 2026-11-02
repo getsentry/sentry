@@ -464,13 +464,13 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field              | Purpose                                                                                               |
-| ------------------ | ----------------------------------------------------------------------------------------------------- |
-| `api_availability` | Operation-to-`bool`/`FeatureGate` overrides; `DISCOVER` defaults to `False`, row operations to `True` |
-| `handler`          | Runtime `DetectorHandler` class                                                                       |
-| `validator`        | Native detector API validator                                                                         |
-| `config_schema`    | Save-time JSON schema for `Detector.config`                                                           |
-| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                               |
+| Field              | Purpose                                                                       |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `api_availability` | Operation-to-`bool`/`FeatureGate` overrides; all operations default to `True` |
+| `handler`          | Runtime `DetectorHandler` class                                               |
+| `validator`        | Native detector API validator                                                 |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                   |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type       |
 
 New handlers should provide a configuration schema. Legacy implementations can set
 `config_schema=None` when validation belongs to their existing pipeline. The detector
@@ -478,20 +478,20 @@ type must still belong to the enum and have registered settings. A settings regi
 can omit a handler or validator; it does not move execution into Workflow Engine or
 make the detector available for API creation.
 
-Set `api_availability[DetectorAPIOperation.DISCOVER]` to `True` to advertise a type,
-or use a registered `FeatureGate` for a rollout. The discovery endpoint also requires
-a handler and `GET` availability. Validation error suggestions use the `DISCOVER` gate
-and require a validator. `DISCOVER` does not restrict requests explicitly naming a type,
-or access to detector rows; those operations have their own gates.
+Types are advertised by default. Set `api_availability[DetectorAPIOperation.DISCOVER]`
+to `False` for internal types, or use a registered `FeatureGate` for a rollout. The
+discovery endpoint also requires a handler and `GET` availability. Validation error
+suggestions use the `DISCOVER` gate and require a validator. `DISCOVER` does not restrict
+requests explicitly naming a type, or access to detector rows; those operations have
+their own gates.
 
 Only implementations provisioned by the default-detector path need a label in
 `DEFAULT_DETECTOR_NAMES` in [`defaults/detectors.py`](../defaults/detectors.py).
 
 Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
-`api_availability`. This shared mapping is immutable. `DISCOVER` defaults to `False`;
-`LIST`, `GET`, `POST`, `PUT`, and `DELETE` default to `True`. Missing entries in custom
-maps inherit these defaults. Listing rows requires both `GET` and `LIST`; discovering
-types requires both `GET` and `DISCOVER`.
+`api_availability`. This shared mapping is immutable. All operations, including `DISCOVER`,
+default to `True`. Missing entries in custom maps inherit these defaults. Listing rows
+requires both `GET` and `LIST`; discovering types requires both `GET` and `DISCOVER`.
 
 Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
 `FeatureGate` checks a registered organization-scoped feature at request time using the
