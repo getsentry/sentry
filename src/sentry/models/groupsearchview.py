@@ -2,6 +2,7 @@ from typing import Any
 
 from django.contrib.postgres.fields.array import ArrayField
 from django.db import models
+from django.db.models import CheckConstraint, Q
 from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
@@ -43,7 +44,16 @@ class GroupSearchView(DefaultFieldsModelExisting):
 
     __relocation_scope__ = RelocationScope.Organization
     name = models.TextField(max_length=128)
-    user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    # SET_NULL: org-visible views must survive creator deletion.
+    user_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
+    # Service accounts and org auth tokens authenticate without a user, so they need their
+    # own creator columns. At most one creator column is set.
+    created_by_service_account_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccount", null=True, on_delete="SET_NULL"
+    )
+    created_by_org_auth_token_id = HybridCloudForeignKey(
+        "sentry.OrgAuthToken", null=True, on_delete="SET_NULL"
+    )
     organization = FlexibleForeignKey("sentry.Organization")
 
     visibility = models.CharField(
@@ -68,3 +78,14 @@ class GroupSearchView(DefaultFieldsModelExisting):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_groupsearchview"
+        constraints = [
+            CheckConstraint(
+                condition=(
+                    Q(created_by_service_account_id__isnull=True)
+                    & Q(created_by_org_auth_token_id__isnull=True)
+                )
+                | (Q(user_id__isnull=True) & Q(created_by_org_auth_token_id__isnull=True))
+                | (Q(user_id__isnull=True) & Q(created_by_service_account_id__isnull=True)),
+                name="sentry_groupsearchview_single_creator",
+            ),
+        ]

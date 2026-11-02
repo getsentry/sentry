@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
@@ -29,6 +30,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id
 from sentry.models.groupsearchview import GroupSearchView, GroupSearchViewVisibility
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -247,7 +249,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         """
         Create a new custom view for the current organization member.
         """
-        if not request.user.is_authenticated:
+        creator = get_creator_reference(request)
+        if not any(creator.values()):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         if not features.has("organizations:issue-views", organization, actor=request.user):
@@ -272,7 +275,9 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         # Create the new view
         view = GroupSearchView.objects.create(
             organization=organization,
-            user_id=request.user.id,
+            user_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            created_by_org_auth_token_id=creator["created_by_org_auth_token_id"],
             name=validated_data["name"],
             query=validated_data["query"],
             query_sort=validated_data["querySort"],
@@ -283,10 +288,12 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
         view.projects.set(validated_data["projects"])
 
-        if validated_data.get("starred"):
+        # Starring is per user, so a request without one can't star the view.
+        starring_user_id = acting_user_id(request.user)
+        if validated_data.get("starred") and starring_user_id is not None:
             GroupSearchViewStarred.objects.insert_starred_view(
                 organization=organization,
-                user_id=request.user.id,
+                user_id=starring_user_id,
                 view=view,
             )
 
