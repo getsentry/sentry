@@ -287,7 +287,7 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('adds every aggregate plotted on the same chart', async () => {
+  it('adds every aggregate and its pipeline plotted on the same chart', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
@@ -301,6 +301,7 @@ describe('AddToDashboardButton', () => {
         {
           yAxes: ['p50(span.duration)', 'p99(span.duration)'],
           chartType: ChartType.LINE,
+          transformations: ['fill(locf)', 'smooth(sma,5)'],
         },
         {
           yAxes: ['count(span.duration)'],
@@ -319,6 +320,44 @@ describe('AddToDashboardButton', () => {
             queries: [
               expect.objectContaining({
                 aggregates: ['p50(span.duration)', 'p99(span.duration)'],
+                transformations: {
+                  0: ['fill(locf)', 'smooth(sma,5)'],
+                  1: ['fill(locf)', 'smooth(sma,5)'],
+                },
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
+
+  it('reindexes the selected pipeline when aggregates are repeated', async () => {
+    render(
+      <Wrapper>
+        <TestPage visualizeIndex={1} />
+      </Wrapper>
+    );
+    act(() =>
+      setVisualizes([
+        {yAxes: ['count(span.duration)'], transformations: ['fill(zero)']},
+        {
+          yAxes: ['count(span.duration)'],
+          transformations: ['fill(locf)', 'smooth(sma,5)'],
+        },
+      ])
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add to Dashboard'}));
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                aggregates: ['count(span.duration)'],
+                transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
               }),
             ],
           }),

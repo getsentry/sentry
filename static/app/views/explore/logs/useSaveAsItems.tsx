@@ -41,6 +41,7 @@ import {
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
+import {visualizesToWidgetTransformations} from 'sentry/views/explore/utils/visualizesToWidgetTransformations';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
 import {isLogsEnabled} from './isLogsEnabled';
@@ -224,6 +225,9 @@ export function useSaveAsItems({
             yAxis: eventView.yAxis,
             widgetType: WidgetType.LOGS,
             source: DashboardWidgetSource.LOGS,
+            transformations: visualize
+              ? visualizesToWidgetTransformations([visualize])
+              : undefined,
           });
         },
       };

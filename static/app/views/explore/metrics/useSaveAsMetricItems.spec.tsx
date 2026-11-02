@@ -269,9 +269,9 @@ describe('useSaveAsMetricItems', () => {
 
     expect(mockHandleAddMultipleQueriesToDashboard).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventViews: expect.arrayContaining([
+        queries: expect.arrayContaining([
           expect.objectContaining({
-            yAxis: equation,
+            eventView: expect.objectContaining({yAxis: equation}),
           }),
         ]),
       })
