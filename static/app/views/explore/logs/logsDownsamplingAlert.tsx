@@ -5,6 +5,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
 import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 import {useQueryParamsTopEventsLimit} from 'sentry/views/explore/queryParams/context';
@@ -22,6 +23,7 @@ export function LogsDownSamplingAlert({
   const topEventsLimit = useQueryParamsTopEventsLimit();
   const isTopEvents = defined(topEventsLimit);
   const highFidelity = useLogsQueryHighFidelity();
+  const autoRefreshEnabled = useLogsAutoRefreshEnabled();
 
   const timeseriesSamples = useMemo(() => {
     for (const series of Object.values(timeseriesResult.data || {})) {
@@ -44,13 +46,20 @@ export function LogsDownSamplingAlert({
   const tableDataScanned = tableResult.dataScanned;
   const tableSamples = tableResult.data.length;
 
-  if (!highFidelity && (tableDataScanned === 'partial' || tableResult.isEmpty)) {
+  if (
+    !highFidelity &&
+    (tableDataScanned === 'partial' || (!autoRefreshEnabled && tableResult.isEmpty))
+  ) {
     return (
       <Alert.Container>
         <Alert variant="warning">
-          {t(
-            'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Try changing the sort, shortening the date range, or selecting fewer projects.'
-          )}
+          {autoRefreshEnabled
+            ? t(
+                "These results may be incomplete: we don't scan your full log volume while auto-refresh is on. Turn off auto-refresh to scan all logs in this date range."
+              )
+            : t(
+                'These results may be incomplete: we only scan your full log volume when sorting by timestamp in descending order. Try changing the sort, shortening the date range, or selecting fewer projects.'
+              )}
         </Alert>
       </Alert.Container>
     );

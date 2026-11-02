@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import pytest
 from django.db.migrations.loader import MigrationLoader
 
 from sentry.constants import ObjectStatus
@@ -7,6 +8,7 @@ from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class SyncCronDetectorEnabledTest(TestMigrations):
     app = "workflow_engine"
     migrate_from = "0121_add_activation_id_to_detector_state"

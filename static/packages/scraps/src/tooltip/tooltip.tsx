@@ -5,6 +5,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence} from 'framer-motion';
 
+import {defined} from '@sentry/scraps/defined';
 import {Container, Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {Text} from '@sentry/scraps/text/text';
@@ -354,7 +355,3 @@ export const Tooltip = Object.assign(TooltipComponent, {
   Row: TooltipRow,
   Footer: TooltipFooter,
 });
-
-function defined(value: unknown): boolean {
-  return value !== undefined && value !== null;
-}

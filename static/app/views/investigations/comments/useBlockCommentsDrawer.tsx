@@ -2,10 +2,10 @@ import {useCallback, useEffect, useRef} from 'react';
 import {useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {BlockCommentsDrawer} from 'sentry/views/investigations/comments/blockCommentsDrawer';
 import {COMMENTS_DRAWER_PARSERS} from 'sentry/views/investigations/comments/utils';
 import {getBlockElementId} from 'sentry/views/investigations/detail/block';

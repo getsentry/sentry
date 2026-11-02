@@ -17,6 +17,7 @@ from sentry.api.serializers.models.auth import (
 )
 from sentry.auth import access
 from sentry.auth.exceptions import ProviderNotRegistered
+from sentry.auth.principal import acting_user_id
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.demo_mode.utils import is_demo_mode_enabled, is_demo_org
 from sentry.models.authprovider import AuthProvider
@@ -48,12 +49,11 @@ class AuthOrganizationConfigEndpoint(Endpoint):
         responses={200: AuthOrganizationConfigSerializer},
     )
     def get(self, request: Request, organization_id_or_slug: str) -> Response:
-        organization_context = organization_service.get_organization_by_slug(
+        organization_context = organization_service.get_access_context_by_slug(
             slug=organization_id_or_slug,
             only_visible=True,
-            user_id=request.user.id if request.user.is_authenticated else None,
-            include_projects=False,
-            include_teams=False,
+            user_id=acting_user_id(request.user),
+            include_resource_ids=False,
         )
         if organization_context is None:
             raise NotFound()

@@ -15,6 +15,7 @@ class SdkConfig(TypedDict):
     data_collection: DataCollectionUserOptions
     auto_enabling_integrations: bool
     keep_alive: NotRequired[bool]
+    attach_stacktrace: NotRequired[bool]
     spotlight: NotRequired[str | bool | None]
     add_full_stack: NotRequired[bool]
     max_value_length: NotRequired[int]

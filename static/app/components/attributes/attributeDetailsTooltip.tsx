@@ -65,6 +65,7 @@ export function AttributeDetailsTooltip({
 
   return (
     <InfoText
+      monospace
       variant="muted"
       title={
         <AttributeDetails

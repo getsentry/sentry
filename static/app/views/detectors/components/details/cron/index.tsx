@@ -248,7 +248,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <div>
                 {scheduleAsText(dataSource.queryObj.config)}{' '}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB &&
-                  `(${dataSource.queryObj.config.timezone}) `}
+                  `(${dataSource.queryObj.config.timezone ?? 'UTC'}) `}
                 {dataSource.queryObj.config.schedule_type === ScheduleType.CRONTAB && (
                   <Text variant="muted" monospace>
                     ({dataSource.queryObj.config.schedule})

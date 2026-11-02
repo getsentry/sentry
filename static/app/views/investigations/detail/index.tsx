@@ -740,9 +740,6 @@ function InvestigationPageContentInner({
                       'feedback.owner': 'ml-ai',
                       'investigation.id': investigation.id,
                       'investigation.source_type': investigation.sourceType,
-                      ...(investigation.template
-                        ? {'investigation.template': investigation.template.key}
-                        : {}),
                     },
                   }}
                 >

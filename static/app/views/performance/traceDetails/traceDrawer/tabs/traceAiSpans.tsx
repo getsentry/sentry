@@ -20,6 +20,7 @@ import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSp
 import {useAITrace} from 'sentry/views/insights/pages/agents/hooks/useAITrace';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
@@ -150,14 +151,7 @@ export function TraceAiSpans({
         overflowX="hidden"
         overflowY="auto"
       >
-        {selectedNode?.renderDetails({
-          node: selectedNode,
-          onTabScrollToNode: () => {},
-          organization,
-          traceId: traceSlug,
-          hideNodeActions: true,
-          initiallyCollapseAiIO: false,
-        })}
+        {selectedNode ? <AiSpanDetails node={selectedNode} traceId={traceSlug} /> : null}
       </Container>
     </Wrapper>
   );
@@ -175,14 +169,6 @@ export function AiSpansSplitView({
   traceSlug: string;
 }) {
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
-
-  const nodeTraceMap = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const node of nodes) {
-      map.set(node.id, traceSlug);
-    }
-    return map;
-  }, [nodes, traceSlug]);
 
   if (nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found')}</EmptyMessage>;
@@ -204,11 +190,11 @@ export function AiSpansSplitView({
         </ConversationLeftPanel>
       }
       right={
-        <ConversationDetailPanel
-          selectedNode={selectedNode}
-          nodeTraceMap={nodeTraceMap}
-          initiallyCollapseAiIO={false}
-        />
+        <ConversationDetailPanel>
+          {selectedNode ? (
+            <AiSpanDetails node={selectedNode} traceId={traceSlug} />
+          ) : null}
+        </ConversationDetailPanel>
       }
     />
   );

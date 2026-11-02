@@ -126,7 +126,6 @@
     "./roleList": "./fixtures/roleList.ts",
     "./routeComponentPropsFixture": "./fixtures/routeComponentPropsFixture.ts",
     "./routerFixture": "./fixtures/routerFixture.ts",
-    "./runner": "./sentry-test/runner.ts",
     "./search": "./fixtures/search.ts",
     "./secret": "./fixtures/secret.ts",
     "./seerWorkflowConfig": "./fixtures/seerWorkflowConfig.ts",
