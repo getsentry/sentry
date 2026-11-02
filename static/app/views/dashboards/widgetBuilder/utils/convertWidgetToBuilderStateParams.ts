@@ -86,6 +86,11 @@ export function convertWidgetToQueryParams(
     limit: widget.limit ?? undefined,
     field,
     yAxis,
+    ...(widget.queries.some(q =>
+      Object.values(q.transformations ?? {}).some(pipeline => pipeline.length)
+    ) && {
+      transformations: JSON.stringify(widget.queries.map(q => q.transformations ?? {})),
+    }),
     query,
     sort,
     legendAlias,
