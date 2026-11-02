@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -29,10 +29,10 @@ from sentry.replays.tasks import run_bulk_replay_delete_job
 
 class ReplayDeletionJobResponseData(TypedDict):
     id: int
-    dateCreated: str
-    dateUpdated: str
-    rangeStart: str
-    rangeEnd: str
+    dateCreated: datetime
+    dateUpdated: datetime
+    rangeStart: datetime
+    rangeEnd: datetime
     environments: list[str]
     status: str
     query: str

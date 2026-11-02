@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, TypedDict
 
 from django.utils import timezone
@@ -26,7 +26,7 @@ class UserReportSerializerResponse(TypedDict):
     name: str | None
     email: str | None
     comments: str
-    dateCreated: str
+    dateCreated: datetime
     user: SerializedEventUser | None
     event: UserReportEvent
 

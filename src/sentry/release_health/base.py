@@ -76,8 +76,8 @@ class SessionsQueryGroup(TypedDict):
 
 
 class SessionsQueryResult(TypedDict):
-    start: datetime
-    end: datetime
+    start: datetime | str
+    end: datetime | str
     intervals: list[DateString]
     groups: list[SessionsQueryGroup]
     query: str
