@@ -16,7 +16,9 @@ status, request and response sizes, user agent, webhook event type, the
 organization from the URL, and the values of a few paging and dataset query
 parameters (`_LOGGED_QUERY_PARAMS`; for others, such as a search query, only
 the length). It also records how many requests the worker had served and its
-uptime, since a new worker's first requests grow RSS while it warms up.
+uptime, since a new worker's first requests grow RSS while it warms up;
+requests in a worker's first `_WARMUP_REQUESTS` requests or `_WARMUP_SECONDS`
+seconds are tagged `warmup`, on the metric and the log line.
 
 RSS belongs to the whole process, so a request that overlaps others on the
 same worker can be blamed for their allocations too. The `concurrent` tag and
@@ -68,6 +70,11 @@ _LOGGED_QUERY_PARAMS = (
     "referrer",
 )
 _MAX_LOGGED_VALUE_LENGTH = 200
+# A worker's first requests grow RSS while it imports modules and fills
+# caches. Requests within either limit are tagged `warmup` so they can be
+# told apart from real offenders.
+_WARMUP_REQUESTS = 10
+_WARMUP_SECONDS = 60
 # Headers that name the event type of an incoming integration webhook.
 _WEBHOOK_EVENT_HEADERS = ("X-GitHub-Event", "X-Gitlab-Event", "X-Event-Key")
 
@@ -200,6 +207,7 @@ class RequestMemoryMiddleware:
                         overlapping,
                         duration=duration,
                         worker_request_number=started_at_start,
+                        worker_uptime=time.monotonic() - self._created_at,
                     )
                 except Exception:
                     logger.exception("request.rss_growth.report_failed")
@@ -214,15 +222,18 @@ class RequestMemoryMiddleware:
         *,
         duration: float,
         worker_request_number: int,
+        worker_uptime: float,
     ) -> None:
         match = request.resolver_match
         url_name = (match.url_name if match else None) or "unknown"
         rpc_method = _rpc_method(request)
         growth_mb = (after - before) // _MB
+        warmup = worker_request_number <= _WARMUP_REQUESTS or worker_uptime < _WARMUP_SECONDS
         tags = {
             "url_name": url_name,
             "rpc_method": rpc_method or "none",
             "concurrent": "true" if overlapping > 0 else "false",
+            "warmup": "true" if warmup else "false",
         }
         # These are rare, so record every one instead of the default sample rate.
         metrics.distribution(
@@ -251,9 +262,8 @@ class RequestMemoryMiddleware:
                 "webhook_event": _webhook_event(request),
                 "organization": organization,
                 **_query_context(request),
-                # A worker's first requests grow RSS as it imports modules and
-                # fills caches, which these two separate from real offenders.
                 "worker_request_number": worker_request_number,
-                "worker_uptime_s": int(time.monotonic() - self._created_at),
+                "worker_uptime_s": int(worker_uptime),
+                "warmup": warmup,
             },
         )

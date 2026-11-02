@@ -111,6 +111,7 @@ def test_large_rpc_growth_is_reported(distribution: mock.MagicMock, enabled: Non
             "url_name": "sentry-api-0-rpc-service",
             "rpc_method": "organization.get_organization",
             "concurrent": "false",
+            "warmup": "true",
         },
         sample_rate=1.0,
         unit="megabyte",
@@ -198,6 +199,38 @@ def test_counts_requests_served_by_the_worker(distribution: mock.MagicMock, enab
         middleware(_request("second"))
     logger.info.assert_called_once()
     assert logger.info.call_args.kwargs["extra"]["worker_request_number"] == 2
+
+
+def _report_warmup(middleware: RequestMemoryMiddleware) -> tuple[str, bool]:
+    with (
+        mock.patch("sentry.middleware.request_memory.metrics.distribution") as distribution,
+        mock.patch("sentry.middleware.request_memory.logger") as logger,
+    ):
+        middleware(_request("sentry-api-0-organization-details"))
+    return (
+        distribution.call_args.kwargs["tags"]["warmup"],
+        logger.info.call_args.kwargs["extra"]["warmup"],
+    )
+
+
+def test_warm_worker_is_not_warmup(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    # Past both limits: many requests served and well over a minute old.
+    middleware._started = 50
+    middleware._created_at -= 120
+    assert _report_warmup(middleware) == ("false", False)
+
+
+def test_early_request_is_warmup_even_on_an_old_worker(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    middleware._created_at -= 120
+    assert _report_warmup(middleware) == ("true", True)
+
+
+def test_young_worker_is_warmup_even_after_many_requests(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    middleware._started = 50
+    assert _report_warmup(middleware) == ("true", True)
 
 
 @mock.patch("sentry.middleware.request_memory.metrics.distribution")
