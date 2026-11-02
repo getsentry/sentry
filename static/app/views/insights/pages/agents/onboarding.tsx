@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
@@ -8,43 +7,26 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
 import {
   CopyMarkdownButton,
   OnboardingCopyMarkdownButton,
 } from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {
-  StepIndexProvider,
-  TabSelectionScope,
-} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  DocsParams,
-  OnboardingStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
-import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
+import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
-import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
-import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {decodeInteger} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {
+  AgentSetupOptions,
+  AgentSetupSteps,
+} from 'sentry/views/insights/pages/agents/components/agentSetupSteps';
+import {AgentSetupTabs} from 'sentry/views/insights/pages/agents/components/agentSetupTabs';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AI_AGENTS_GETTING_STARTED_DOCS_LINK,
@@ -52,14 +34,12 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
-import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
+import {useAgentOnboardingSetup} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingSetup';
 import {
   BulletList,
   HeaderText,
-  PulseSpacer,
   PulsingIndicator,
   SubTitle,
-  useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
@@ -73,7 +53,14 @@ function WaitingIndicator({project}: {project: Project}) {
   const hasEvents = Boolean(spanRequest.data?.length);
 
   return hasEvents ? (
-    <Button variant="primary" busy={fetching} onClick={reloadProjects}>
+    <Button
+      variant="primary"
+      busy={fetching}
+      analyticsEventKey="agent-monitoring.onboarding.interaction"
+      analyticsEventName="Agent Monitoring: Onboarding Interaction"
+      analyticsParams={{action: 'view_agent_monitoring'}}
+      onClick={reloadProjects}
+    >
       {t('View Agent Monitoring')}
     </Button>
   ) : (
@@ -81,47 +68,19 @@ function WaitingIndicator({project}: {project: Project}) {
   );
 }
 
-function StepRenderer({
-  project,
-  step,
-  stepIndex,
-  isLastStep,
-  trailingItems,
-}: {
-  isLastStep: boolean;
-  project: Project;
-  step: OnboardingStep;
-  stepIndex: number;
-  trailingItems?: React.ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <GuidedSteps.Step
-      stepKey={step.type || step.title}
-      title={step.title || (step.type && StepTitles[step.type])}
-      trailingItems={trailingItems}
-    >
-      <StepIndexProvider index={stepIndex}>
-        <ContentBlocksRenderer spacing={theme.space.md} contentBlocks={step.content} />
-      </StepIndexProvider>
-      <GuidedSteps.ButtonWrapper>
-        <GuidedSteps.BackButton size="md" />
-        <GuidedSteps.NextButton size="md" />
-        {isLastStep && <WaitingIndicator project={project} />}
-      </GuidedSteps.ButtonWrapper>
-      {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-      {isLastStep && <PulseSpacer />}
-    </GuidedSteps.Step>
-  );
-}
-
 function OnboardingPanel({
   project,
   children,
+  dsn,
+  hasPlatformInstructions = true,
 }: {
   children: React.ReactNode;
   project: Project;
+  dsn?: string;
+  hasPlatformInstructions?: boolean;
 }) {
+  const organization = useOrganization();
+
   return (
     <Panel>
       <PanelBody>
@@ -181,7 +140,23 @@ function OnboardingPanel({
               </Flex>
               <Divider />
               <Body>
-                <Setup>{children}</Setup>
+                <Setup>
+                  <SetupTitle project={project} />
+                  <AgentSetupTabs
+                    project={project}
+                    dsn={dsn}
+                    hasPlatformInstructions={hasPlatformInstructions}
+                    waitingIndicator={<WaitingIndicator project={project} />}
+                    onInteraction={interaction => {
+                      trackAnalytics('agent-monitoring.onboarding.interaction', {
+                        organization,
+                        ...interaction,
+                      });
+                    }}
+                  >
+                    {children}
+                  </AgentSetupTabs>
+                </Setup>
                 <Container padding="3xl">
                   <BodyTitle>{t('Preview Agent Insights')}</BodyTitle>
                   <Arcade
@@ -200,107 +175,50 @@ function OnboardingPanel({
 }
 
 export function Onboarding() {
-  const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
-  const project = useOnboardingProject();
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const setup = useAgentOnboardingSetup();
 
-  const currentPlatform = project?.platform
-    ? platforms.find(p => p.id === project.platform)
-    : undefined;
-
-  const {isLoading, docs, dsn, projectKeyId} = useLoadGettingStarted({
-    platform: currentPlatform || otherPlatform,
-    orgSlug: organization.slug,
-    projSlug: project?.slug,
-  });
-
-  const {
-    deploymentTarget,
-    integrationDeploymentTarget,
-    platformOptions,
-    projectAgentIntegration,
-    selectedPlatformOptions,
-    showPlatformOptions,
-  } = useAgentOnboardingOptions({
-    platform: project?.platform,
-    platformInfo: currentPlatform,
-  });
-
-  const {isPending: isLoadingRegistry, data: registryData} =
-    useSourcePackageRegistries(organization);
-
-  if (!project) {
-    return <div>{t('No project found')}</div>;
+  switch (setup.status) {
+    case 'no-project':
+      return <div>{t('No project found')}</div>;
+    case 'loading':
+      return <LoadingIndicator />;
+    case 'unsupported':
+      return (
+        <UnsupportedPlatformOnboarding
+          project={setup.project}
+          platformName={setup.platformName}
+          dsn={setup.dsn?.public}
+        />
+      );
+    case 'no-docs':
+      return <NoDocsOnboarding project={setup.project} dsn={setup.dsn?.public} />;
+    default:
+      break;
   }
 
-  if (!agentMonitoringPlatforms.has(project.platform!)) {
-    return (
-      <UnsupportedPlatformOnboarding
-        project={project}
-        platformName={currentPlatform?.name || project.slug}
-      />
-    );
-  }
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  const agentMonitoringDocs = docs?.agentMonitoringOnboarding;
-
-  if (!agentMonitoringDocs || !dsn || !projectKeyId) {
-    return <NoDocsOnboarding project={project} />;
-  }
-
-  const docParams: DocsParams<any> = {
-    api,
-    projectKeyId,
-    dsn,
-    organization,
-    platformKey: project.platform || 'other',
-    project,
-    isLogsSelected: false,
-    isFeedbackSelected: false,
-    isMetricsSelected: false,
-    isPerformanceSelected: true,
-    isProfilingSelected: false,
-    isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
-    platformOptions: {...selectedPlatformOptions, deploymentTarget},
-    docsLocation: DocsPageLocation.PROFILING_PAGE,
-    urlPrefix,
-    isSelfHosted,
-  };
-
-  const introduction = agentMonitoringDocs.introduction?.(docParams);
+  const {project, dsn, introduction, projectAgentIntegration} = setup;
 
   const steps = [
-    ...(agentMonitoringDocs.install?.(docParams) || []),
-    ...(agentMonitoringDocs.configure?.(docParams) || []),
-    ...(agentMonitoringDocs.verify?.(docParams) || []),
+    ...setup.installSteps,
+    ...setup.configureSteps,
+    ...setup.verifySteps,
   ].filter(s => !s.collapsible);
 
   return (
-    <OnboardingPanel project={project}>
-      <SetupTitle project={project} />
-      {showPlatformOptions && (
+    <OnboardingPanel project={project} dsn={dsn.public}>
+      {setup.showPlatformOptions && (
         <OptionsWrapper>
-          <PlatformOptionDropdown
-            platformOptions={platformOptions}
-            // Framework projects only render the runtime selector, which then
-            // directly follows "with".
-            connectors={projectAgentIntegration ? undefined : {deploymentTarget: t('on')}}
-            lockedValues={
-              integrationDeploymentTarget
-                ? {deploymentTarget: integrationDeploymentTarget}
-                : undefined
-            }
+          <AgentSetupOptions
+            setup={setup}
+            onChange={(option, value) => {
+              trackAnalytics('agent-monitoring.onboarding.interaction', {
+                organization,
+                action: 'select_setup_option',
+                option,
+                value,
+              });
+            }}
           />
         </OptionsWrapper>
       )}
@@ -320,46 +238,25 @@ export function Onboarding() {
           </p>
         </DescriptionWrapper>
       )}
-      <GuidedSteps
-        // Remount when the integration or runtime changes so the stepper doesn't
-        // carry over stale per-step state from the previous selection.
-        key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
-        initialStep={decodeInteger(location.query.guidedStep)}
-        onStepChange={step => {
-          navigate({
-            pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
-          });
-        }}
-      >
-        {steps.map((step, index) => (
-          <StepRenderer
-            key={step.title || step.type}
-            project={project}
-            step={step}
-            stepIndex={index}
-            isLastStep={index === steps.length - 1}
-            trailingItems={
-              index === 0 ? (
-                <OnboardingCopyMarkdownButton
-                  borderless
-                  steps={steps}
-                  source="agent_monitoring_onboarding"
-                  postamble={LLM_ONBOARDING_COPY_MARKDOWN}
-                  onCopy={() => {
-                    trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-                      organization,
-                    });
-                  }}
-                />
-              ) : undefined
-            }
+      <AgentSetupSteps
+        setup={setup}
+        steps={steps}
+        analyticsEventKey="agent-monitoring.onboarding.interaction"
+        lastStepItems={<WaitingIndicator project={project} />}
+        firstStepTrailingItems={
+          <OnboardingCopyMarkdownButton
+            borderless
+            steps={steps}
+            source="agent_monitoring_onboarding"
+            postamble={LLM_ONBOARDING_COPY_MARKDOWN}
+            onCopy={() => {
+              trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
+                organization,
+              });
+            }}
           />
-        ))}
-      </GuidedSteps>
+        }
+      />
     </OnboardingPanel>
   );
 }
@@ -384,12 +281,14 @@ function CopyInstructionsButton() {
 export function UnsupportedPlatformOnboarding({
   project,
   platformName,
+  dsn,
 }: {
   platformName: string;
   project: Project;
+  dsn?: string;
 }) {
   return (
-    <OnboardingPanel project={project}>
+    <OnboardingPanel project={project} dsn={dsn} hasPlatformInstructions={false}>
       <DescriptionWrapper>
         <p>
           {tct(
@@ -422,9 +321,9 @@ export function UnsupportedPlatformOnboarding({
   );
 }
 
-export function NoDocsOnboarding({project}: {project: Project}) {
+export function NoDocsOnboarding({project, dsn}: {project: Project; dsn?: string}) {
   return (
-    <OnboardingPanel project={project}>
+    <OnboardingPanel project={project} dsn={dsn} hasPlatformInstructions={false}>
       <DescriptionWrapper>
         <p>
           {tct(
