@@ -23,8 +23,6 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("notebooks", "0002_copy_from_investigations"),
-        ("seer", "0046_add_workflow_config_backing_workflow"),
-        ("sentry", "1249_remove_artifactbundleindex_url_index"),
     ]
 
     operations = [
