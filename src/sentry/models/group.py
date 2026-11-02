@@ -12,7 +12,7 @@ from operator import or_
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models import Q, QuerySet
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -716,80 +716,84 @@ class GroupManager(BaseManager["Group"]):
         from sentry.models.activity import Activity
         from sentry.models.groupopenperiod import update_group_open_period
 
-        modified_groups_list = []
-        selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
-            status=status, substatus=substatus
-        )
-
-        should_update_priority = (
-            from_substatus == GroupSubStatus.ESCALATING
-            and activity_type == ActivityType.AUTO_SET_ONGOING
-        )
-
-        # Track the resolved groups that are being unresolved and need to have their open period reopened
-        should_reopen_open_period = {
-            group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
-        }
-        resolved_at = update_date if update_date is not None else timezone.now()
-        updated_priority = {}
-        for group in selected_groups:
-            group.status = status
-            group.substatus = substatus
-            if status == GroupStatus.RESOLVED:
-                group.resolved_at = resolved_at
-            if should_update_priority:
-                priority = get_priority_for_ongoing_group(group)
-                if priority and group.priority != priority:
-                    group.priority = priority
-                    updated_priority[group.id] = priority
-
-            modified_groups_list.append(group)
-
-        Group.objects.bulk_update(
-            modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
-        )
-
-        for group in modified_groups_list:
-            activity = Activity.objects.create_group_activity(
-                group,
-                activity_type,
-                data=activity_data,
-                send_notification=send_activity_notification,
-                datetime=update_date,
-                detector_id=detector_id,
+        # The auto-resolver must never see a reopened status before its Activity.
+        database = router.db_for_write(Group)
+        with transaction.atomic(using=database):
+            modified_groups_list = []
+            selected_groups = Group.objects.filter(id__in=[g.id for g in groups]).exclude(
+                status=status, substatus=substatus
             )
-            record_group_history_from_activity_type(group, activity_type.value)
 
-            if group.id in updated_priority:
-                new_priority = updated_priority[group.id]
-                Activity.objects.create_group_activity(
-                    group=group,
-                    type=ActivityType.SET_PRIORITY,
-                    data={
-                        "priority": new_priority.to_str(),
-                        "reason": PriorityChangeReason.ONGOING,
-                    },
+            should_update_priority = (
+                from_substatus == GroupSubStatus.ESCALATING
+                and activity_type == ActivityType.AUTO_SET_ONGOING
+            )
+
+            # Track the resolved groups that need their open period reopened.
+            should_reopen_open_period = {
+                group.id: group.status == GroupStatus.RESOLVED for group in selected_groups
+            }
+            resolved_at = update_date if update_date is not None else timezone.now()
+            updated_priority = {}
+            for group in selected_groups:
+                group.status = status
+                group.substatus = substatus
+                if status == GroupStatus.RESOLVED:
+                    group.resolved_at = resolved_at
+                if should_update_priority:
+                    priority = get_priority_for_ongoing_group(group)
+                    if priority and group.priority != priority:
+                        group.priority = priority
+                        updated_priority[group.id] = priority
+
+                modified_groups_list.append(group)
+
+            Group.objects.bulk_update(
+                modified_groups_list, ["status", "substatus", "priority", "resolved_at"]
+            )
+
+            for group in modified_groups_list:
+                activity = Activity.objects.create_group_activity(
+                    group,
+                    activity_type,
+                    data=activity_data,
+                    send_notification=False,
                     datetime=update_date,
                     detector_id=detector_id,
                 )
-                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
+                if send_activity_notification:
+                    transaction.on_commit(activity.send_notification, using=database)
+                record_group_history_from_activity_type(group, activity_type.value)
 
-            is_status_resolved = status == GroupStatus.RESOLVED
-            is_status_unresolved = status == GroupStatus.UNRESOLVED
+                if group.id in updated_priority:
+                    new_priority = updated_priority[group.id]
+                    priority_activity = Activity.objects.create_group_activity(
+                        group=group,
+                        type=ActivityType.SET_PRIORITY,
+                        data={
+                            "priority": new_priority.to_str(),
+                            "reason": PriorityChangeReason.ONGOING,
+                        },
+                        datetime=update_date,
+                        detector_id=detector_id,
+                        send_notification=False,
+                    )
+                    transaction.on_commit(priority_activity.send_notification, using=database)
+                    record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
-            # The open period is only updated when a group is resolved or reopened. We don't want to
-            # update the open period when a group transitions between different substatuses within UNRESOLVED.
-            if is_status_resolved:
-                update_group_open_period(
-                    group=group,
-                    new_status=GroupStatus.RESOLVED,
-                    resolution_time=activity.datetime,
-                )
-            elif is_status_unresolved and should_reopen_open_period[group.id]:
-                update_group_open_period(
-                    group=group,
-                    new_status=GroupStatus.UNRESOLVED,
-                )
+                # Only resolution/reopening changes the open period, not a change
+                # between unresolved substatuses.
+                if status == GroupStatus.RESOLVED:
+                    update_group_open_period(
+                        group=group,
+                        new_status=GroupStatus.RESOLVED,
+                        resolution_time=activity.datetime,
+                    )
+                elif status == GroupStatus.UNRESOLVED and should_reopen_open_period[group.id]:
+                    update_group_open_period(
+                        group=group,
+                        new_status=GroupStatus.UNRESOLVED,
+                    )
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:

@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import orjson
 from django.db import IntegrityError, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
@@ -49,6 +50,7 @@ from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.ingest.legacy_filter_lists import clean_lines, set_list
+from sentry.issues.auto_resolution import recent_unresolved_activities
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -669,8 +671,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         resolve_age = project.get_option("sentry:resolve_age", None)
         if resolve_age:
+            cutoff = timezone.now() - timedelta(hours=int(resolve_age))
             queryset = queryset.filter(
-                last_seen__gte=timezone.now() - timedelta(hours=int(resolve_age))
+                Q(last_seen__gt=cutoff)
+                | Q(id__in=recent_unresolved_activities(project.id, cutoff).values("group_id"))
             )
 
         return queryset.count()

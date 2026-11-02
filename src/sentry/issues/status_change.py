@@ -4,7 +4,10 @@ import logging
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta, timezone
+from functools import partial
 from typing import Any
+
+from django.db import router, transaction
 
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issues.ignored import IGNORED_CONDITION_FIELDS
@@ -84,26 +87,35 @@ def handle_status_update(
         else ActivityType.SET_UNRESOLVED.value
     )
     update_open_period = False
+    database = router.db_for_write(Group)
     if new_status == GroupStatus.UNRESOLVED:
         for group in group_list:
             if group.status == GroupStatus.IGNORED:
-                issue_unignored.send_robust(
-                    project=project_lookup[group.project_id],
-                    user_id=acting_user.id if acting_user else None,
-                    group=group,
-                    transition_type="manual",
-                    sender=sender,
+                transaction.on_commit(
+                    partial(
+                        issue_unignored.send_robust,
+                        project=project_lookup[group.project_id],
+                        user_id=acting_user.id if acting_user else None,
+                        group=group,
+                        transition_type="manual",
+                        sender=sender,
+                    ),
+                    using=database,
                 )
             else:
                 # The unresolution here is a manual unresolve for a resolved issue by a user.
                 # This change should reopen the existing open period instead of creating a new one.
                 update_open_period = True
-                issue_unresolved.send_robust(
-                    project=project_lookup[group.project_id],
-                    user=acting_user,
-                    group=group,
-                    transition_type="manual",
-                    sender=sender,
+                transaction.on_commit(
+                    partial(
+                        issue_unresolved.send_robust,
+                        project=project_lookup[group.project_id],
+                        user=acting_user,
+                        group=group,
+                        transition_type="manual",
+                        sender=sender,
+                    ),
+                    using=database,
                 )
 
     elif new_status == GroupStatus.IGNORED:
@@ -129,12 +141,16 @@ def handle_status_update(
         for project in projects:
             project_groups = groups_by_project_id.get(project.id)
             if project_groups:
-                issue_ignored.send_robust(
-                    project=project,
-                    user=acting_user,
-                    group_list=project_groups,
-                    activity_data=activity_data,
-                    sender=sender,
+                transaction.on_commit(
+                    partial(
+                        issue_ignored.send_robust,
+                        project=project,
+                        user=acting_user,
+                        group_list=project_groups,
+                        activity_data=activity_data,
+                        sender=sender,
+                    ),
+                    using=database,
                 )
 
     for group in group_list:
@@ -165,9 +181,13 @@ def handle_status_update(
                     group=group,
                     reason=GroupSubscriptionReason.status_change,
                 )
-            activity.send_notification()
+            transaction.on_commit(activity.send_notification, using=database)
 
         if new_status == GroupStatus.UNRESOLVED:
-            kick_off_status_syncs.apply_async(
-                kwargs={"project_id": group.project_id, "group_id": group.id}
+            transaction.on_commit(
+                partial(
+                    kick_off_status_syncs.apply_async,
+                    kwargs={"project_id": group.project_id, "group_id": group.id},
+                ),
+                using=database,
             )

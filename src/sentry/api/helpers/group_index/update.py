@@ -755,19 +755,21 @@ def handle_other_status_updates(
         else:
             result["statusDetails"] = {}
 
-    changed_group_list = [group for group in group_list if group.id in changed_group_ids]
-    if changed_group_list:
-        handle_status_update(
-            group_list=changed_group_list,
-            projects=projects,
-            project_lookup=project_lookup,
-            new_status=new_status,
-            new_substatus=new_substatus,
-            is_bulk=len(group_ids) > 1,
-            acting_user=acting_user,
-            status_details=result.get("statusDetails", {}),
-            sender=update_groups,
-        )
+        # Reopening and its Activity must become visible together: auto-resolution
+        # uses the Activity timestamp to grant another inactivity interval.
+        changed_group_list = [group for group in group_list if group.id in changed_group_ids]
+        if changed_group_list:
+            handle_status_update(
+                group_list=changed_group_list,
+                projects=projects,
+                project_lookup=project_lookup,
+                new_status=new_status,
+                new_substatus=new_substatus,
+                is_bulk=len(group_ids) > 1,
+                acting_user=acting_user,
+                status_details=result.get("statusDetails", {}),
+                sender=update_groups,
+            )
     return result
 
 
