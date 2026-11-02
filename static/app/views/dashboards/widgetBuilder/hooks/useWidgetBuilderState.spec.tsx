@@ -2046,6 +2046,39 @@ describe('useWidgetBuilderState', () => {
     });
   });
 
+  describe('thresholds', () => {
+    it('writes thresholds to the URL as JSON when SET_THRESHOLDS is dispatched', () => {
+      const {result, router} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_THRESHOLDS,
+          payload: {
+            max_values: {max1: 100, max2: 200},
+            unit: 'seconds',
+            preferredPolarity: '+',
+          },
+        });
+      });
+      flushUrlUpdates();
+
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":100,"max2":200},"unit":"seconds","preferredPolarity":"+"}'
+      );
+    });
+
+    it('ignores thresholds when the URL value is malformed', () => {
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        thresholds: '{"max_values":{"max1":"abc","max2":200}}',
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
+    });
+  });
+
   describe('traceMetric', () => {
     it('resets sort when SET_Y_AXIS changes aggregates for trace metrics', () => {
       const {result} = renderWidgetBuilderState({

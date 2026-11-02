@@ -276,12 +276,9 @@ export function getVisualizes(
   return visualizes.length ? visualizes : null;
 }
 
-export function parseVisualize(
-  value: unknown,
-  options?: ParseVisualizeOptions
-): Visualize[] {
+export function parseVisualize(value: unknown): Visualize[] {
   const result = baseVisualizeSchema.safeParse(value);
-  return result.success ? Visualize.fromJSON(result.data, options) : [];
+  return result.success ? Visualize.fromJSON(result.data) : [];
 }
 
 export function isVisualize(value: any): value is Visualize {
@@ -312,7 +309,7 @@ export interface BaseVisualize {
   visible?: boolean;
 }
 
-const baseVisualizeSchema = z.object({
+export const baseVisualizeSchema = z.object({
   yAxes: z.array(z.string()),
   chartType: z.enum(ChartType).optional().catch(undefined),
   internalExpression: z.string().optional().catch(undefined),
