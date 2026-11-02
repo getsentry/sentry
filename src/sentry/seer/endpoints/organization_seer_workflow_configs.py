@@ -36,10 +36,13 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.registry import get_seer_workflow
 from sentry.seer.workflows.workflow import (
     AllProjects,
     SeerWorkflow,
     SelectedProjects,
+    WorkflowUpdateError,
 )
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -117,6 +120,12 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
         if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
             raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
         return value
+
+    monitorIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+    )
 
 
 @dataclass(frozen=True)
@@ -343,6 +352,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         - Requesting all projects with ``[-1]`` requires global access.
         - Changing the projects of a config that covers all projects requires global
           access.
+        - ``monitorIds`` replaces the monitors of a metric automation and is rejected
+          for other strategies.
 
         Failures past request validation return an empty 400. Returns the updated config
         in the same shape as an item in the list endpoint's ``configs``.
@@ -362,8 +373,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             )
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
-        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        workflow = get_seer_workflow(config)
 
+        # Validate and update projects
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         all_projects = project_ids == [ALL_ACCESS_PROJECT_ID]
         if project_ids is not None:
@@ -394,6 +406,22 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         SelectedProjects(project_ids=tuple(project_ids)),
                         has_access_projects=has_access_projects,
                     )
+            except WorkflowUpdateError as e:
+                return Response({"detail": str(e)}, status=400)
+            except ValueError:
+                logger.exception("bad request")
+                return Response(status=400)
+            config = workflow.get_config()
+
+        # Validate and update monitors
+        monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
+        if monitor_ids is not None:
+            if not isinstance(workflow, BreachedMetricWorkflow):
+                return Response(status=400)
+            try:
+                workflow.set_monitor_selection(monitor_ids)
+            except WorkflowUpdateError as e:
+                return Response({"detail": str(e)}, status=400)
             except ValueError:
                 logger.exception("bad request")
                 return Response(status=400)

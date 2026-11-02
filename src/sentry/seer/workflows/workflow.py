@@ -33,6 +33,10 @@ from sentry.utils import json
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
 
 
+class WorkflowUpdateError(ValueError):
+    """A rejected workflow update whose message is safe to show users."""
+
+
 @dataclass(frozen=True)
 class AllProjects:
     pass
@@ -294,14 +298,18 @@ class SeerWorkflow:
 
         with self._lock_config() as config:
             if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise ValueError("Breached metric projects are selected by connecting monitors")
+                raise WorkflowUpdateError(
+                    "Breached metric projects are selected by connecting monitors"
+                )
             valid_project_ids = set(
                 Project.objects.filter(
                     organization_id=config.organization_id, id__in=project_ids
                 ).values_list("id", flat=True)
             )
             if project_ids != valid_project_ids:
-                raise ValueError("Selected projects must exist in the workflow's organization")
+                raise WorkflowUpdateError(
+                    "Selected projects must exist in the workflow's organization"
+                )
 
             existing = set(
                 SeerWorkflowConfigProject.objects.filter(config=config).values_list(

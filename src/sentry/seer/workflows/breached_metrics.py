@@ -33,7 +33,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
-from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow, WorkflowUpdateError
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -143,7 +143,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         """Callers must authorize and audit the change."""
         with self._lock_config() as config:
             if config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-                raise ValueError("Only metric automations support monitor selection.")
+                raise WorkflowUpdateError("Only metric automations support monitor selection.")
             selected = set(monitor_ids)
             self._validate_monitors(selected)
 
@@ -369,7 +369,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
             ).values_list("id", flat=True)
         )
         if monitor_ids != valid_monitor_ids:
-            raise ValueError(
+            raise WorkflowUpdateError(
                 "Selected monitors must be active metric monitors in this organization."
             )
 
