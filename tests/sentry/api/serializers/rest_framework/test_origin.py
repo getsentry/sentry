@@ -8,6 +8,10 @@ class DummySerializer(serializers.Serializer):
     origin_field = OriginField()
 
 
+class BlankOriginSerializer(serializers.Serializer):
+    origin_field = OriginField(allow_blank=True)
+
+
 class OriginFieldTest(TestCase):
     def test_valid_origin(self) -> None:
         urls = ["https://www.foo.com", "*", "*.domain.com", "*:80", "localhost:8080"]
@@ -20,3 +24,9 @@ class OriginFieldTest(TestCase):
         for url in urls:
             serializer = DummySerializer(data={"origin_field": url})
             assert serializer.is_valid() is False
+
+    def test_blank_origin_is_preserved(self) -> None:
+        serializer = BlankOriginSerializer(data={"origin_field": ""})
+
+        assert serializer.is_valid()
+        assert serializer.validated_data["origin_field"] == ""

@@ -9,8 +9,6 @@ class OriginField(serializers.CharField):
 
     def to_internal_value(self, data):
         rv = super().to_internal_value(data)
-        if not rv:
-            return
         self.validate_origin(rv)
         return rv
 
