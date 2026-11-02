@@ -255,6 +255,10 @@
       "types": "./dist/toast/index.d.ts",
       "import": "./dist/toast/index.js"
     },
+    "./codeBlock": {
+      "types": "./dist/codeBlock/index.d.ts",
+      "import": "./dist/codeBlock/index.js"
+    },
     "./code": {
       "types": "./dist/code/index.d.ts",
       "import": "./dist/code/index.js"

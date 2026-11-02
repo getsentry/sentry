@@ -8,7 +8,7 @@ import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
 import {LinkButton} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {
   CompactSelect,
   MenuComponents,

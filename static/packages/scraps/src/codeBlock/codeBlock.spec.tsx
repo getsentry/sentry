@@ -3,7 +3,7 @@ import {ThemeProvider} from '@emotion/react';
 import {render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {lightTheme} from '@sentry/scraps/theme';
 
 function Example({children, ...props}: React.ComponentProps<typeof CodeBlock>) {
