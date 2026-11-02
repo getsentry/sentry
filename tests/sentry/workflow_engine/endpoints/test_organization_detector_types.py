@@ -1,11 +1,17 @@
+import importlib
+import runpy
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Never
 from unittest.mock import patch
 
+import pytest
+
 from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
+from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
 from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
@@ -28,6 +34,38 @@ from sentry.workflow_engine.types import (
     FeatureGate,
 )
 from tests.sentry.workflow_engine.endpoints.test_helpers import GATE_FEATURE
+
+
+@pytest.mark.parametrize(
+    ("module_name", "detector_type"),
+    [
+        ("sentry.preprod.size_analysis.grouptype", DetectorType.PREPROD_SIZE_ANALYSIS),
+        ("sentry.processing_errors.grouptype", DetectorType.SOURCEMAP_CONFIGURATION),
+    ],
+)
+def test_released_issue_type_keeps_detector_discoverable(
+    module_name: str, detector_type: DetectorType
+) -> None:
+    source_path = importlib.import_module(module_name).__file__
+    assert source_path is not None
+    group_types = GroupTypeRegistry()
+
+    def register_released_type(cls: type[GroupType]) -> None:
+        cls.released = True
+        group_types.add(cls)
+
+    # Settings are evaluated when their class is defined. Execute a fresh copy with
+    # released issue types, which do not register visibility flags during startup.
+    with (
+        patch.object(GroupType, "__init_subclass__", classmethod(register_released_type)),
+        patch.dict(detector_settings_registry.registrations, clear=True),
+        patch(
+            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has"
+        ) as has_feature,
+    ):
+        runpy.run_path(source_path)
+        assert get_visible_detector_types(Organization()) == [detector_type]
+        has_feature.assert_not_called()
 
 
 @cell_silo_test

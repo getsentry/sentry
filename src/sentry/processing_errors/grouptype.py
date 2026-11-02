@@ -276,8 +276,10 @@ class SourcemapConfigurationType(GroupType):
 class SourcemapConfigurationDetectorSettings(DetectorSettings):
     api_availability = {
         **DetectorSettings.DEFAULT_API_AVAILABILITY,
-        DetectorAPIOperation.DISCOVER: FeatureGate(
-            "organizations:issue-sourcemap-configuration-visible"
+        DetectorAPIOperation.DISCOVER: (
+            True
+            if SourcemapConfigurationType.released
+            else FeatureGate(SourcemapConfigurationType.build_visible_feature_name()[0])
         ),
     }
     handler = SourcemapDetectorHandler

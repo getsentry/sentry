@@ -378,8 +378,10 @@ class PreprodSizeAnalysisGroupType(GroupType):
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
     api_availability = {
         **DetectorSettings.DEFAULT_API_AVAILABILITY,
-        DetectorAPIOperation.DISCOVER: FeatureGate(
-            "organizations:issue-preprod-size-analysis-visible"
+        DetectorAPIOperation.DISCOVER: (
+            True
+            if PreprodSizeAnalysisGroupType.released
+            else FeatureGate(PreprodSizeAnalysisGroupType.build_visible_feature_name()[0])
         ),
     }
     handler = PreprodSizeAnalysisDetectorHandler
