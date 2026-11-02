@@ -15,14 +15,6 @@ from django.utils import timezone
 from urllib3.exceptions import HTTPError
 
 from sentry.investigations.telemetry import (
-    record_execution_completed,
-    record_execution_failed,
-    record_execution_started,
-    record_investigation_completed,
-    record_investigation_failed,
-    record_title_generation_completed,
-    record_title_generation_failed,
-)
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.contracts import validate_query_result, validate_text_result
@@ -40,6 +32,14 @@ from sentry.notebooks.services.auto_run import schedule_eligible_auto_run_blocks
 from sentry.notebooks.services.executions import freeze_query_links, mark_block_execution_dispatched
 from sentry.notebooks.services.notebooks import has_default_investigation_title
 from sentry.notebooks.telemetry import record_execution_cancelled
+    record_execution_completed,
+    record_execution_failed,
+    record_execution_started,
+    record_investigation_completed,
+    record_investigation_failed,
+    record_title_generation_completed,
+    record_title_generation_failed,
+)
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
 from sentry.seer.agent.client_utils import AgentUpdateRequest, make_agent_update_request
