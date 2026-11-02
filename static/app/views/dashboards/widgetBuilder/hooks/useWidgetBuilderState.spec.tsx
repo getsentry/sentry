@@ -1,6 +1,10 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
+import {
+  explodeField,
+  type AggregationKeyWithAlias,
+  type Column,
+} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
@@ -1144,6 +1148,91 @@ describe('useWidgetBuilderState', () => {
       expect(encodedFields).toEqual([
         '{"field":"event.type","alias":"test"}',
         'event.type',
+      ]);
+    });
+
+    it('round trips every field shape through the field and yAxis query params', () => {
+      const columns = [
+        explodeField({field: 'event.type'}),
+        explodeField({field: 'event.type', alias: 'type'}),
+        explodeField({field: 'count()', alias: 'total "events" {x} [y]'}),
+        explodeField({field: 'p90(transaction.duration)'}),
+        explodeField({field: 'count_if(transaction,equals,"{a}")'}),
+        explodeField({field: 'equation|count() * 2'}),
+        explodeField({field: 'equation|count() / 2', alias: 'half'}),
+        explodeField({field: 'calculated|score'}),
+        explodeField({field: '123'}),
+        explodeField({field: 'null'}),
+        explodeField({field: '"quoted"'}),
+      ];
+      const encoded = serializeFields(columns);
+
+      const {result} = renderWidgetBuilderState({field: encoded, yAxis: encoded});
+
+      expect(result.current.state.fields).toEqual(columns);
+      expect(result.current.state.yAxis).toEqual(columns);
+      expect(serializeFields(result.current.state.fields ?? [])).toEqual(encoded);
+      expect(serializeFields(result.current.state.yAxis ?? [])).toEqual(encoded);
+    });
+
+    it.each([
+      '123',
+      'true',
+      'null',
+      '"quoted"',
+      '[1]',
+      '{}',
+      '{"alias":"test"}',
+      '{"field":123,"alias":"test"}',
+      '{"field":null}',
+      '{"field":"event.type"',
+    ])('decodes %s as a plain field when it is not a field object', field => {
+      const {result} = renderWidgetBuilderState({field: [field], yAxis: [field]});
+
+      expect(result.current.state.fields).toEqual([
+        {field, alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {field, alias: undefined, kind: 'field'},
+      ]);
+    });
+
+    it.each([
+      ['{"field":"event.type"}', undefined],
+      ['{"field":"event.type","alias":""}', ''],
+      ['{"field":"event.type","alias":"test","width":100}', 'test'],
+      ['{"field":"event.type","alias":5}', undefined],
+      ['{"field":"event.type","alias":true}', undefined],
+      ['{"field":"event.type","alias":null}', undefined],
+      ['{"field":"event.type","alias":{"name":"test"}}', undefined],
+    ])('decodes %s with the alias %p', (field, alias) => {
+      const {result} = renderWidgetBuilderState({field: [field]});
+
+      expect(result.current.state.fields).toStrictEqual([
+        {field: 'event.type', alias, kind: 'field'},
+      ]);
+    });
+
+    it('decodes JSON and plain fields from a SET_STATE payload', () => {
+      const {result} = renderWidgetBuilderState();
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            field: ['{"field":"event.type","alias":"type"}', '123'],
+            yAxis: ['{"field":"count()","alias":5}', 'null'],
+          },
+        });
+      });
+
+      expect(result.current.state.fields).toStrictEqual([
+        {field: 'event.type', alias: 'type', kind: 'field'},
+        {field: '123', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toStrictEqual([
+        {function: ['count', ''], alias: undefined, kind: 'function'},
+        {field: 'null', alias: undefined, kind: 'field'},
       ]);
     });
 
