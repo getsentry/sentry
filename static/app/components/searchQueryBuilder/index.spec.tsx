@@ -5586,7 +5586,14 @@ describe('SearchQueryBuilder', () => {
 
         it('commits the placeholder value after an invalid value is rejected', async () => {
           const mockOnChange = jest.fn();
-          render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+          const mockOnSearch = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...durationProps}
+              onChange={mockOnChange}
+              onSearch={mockOnSearch}
+            />
+          );
           await addDurationFilter();
 
           await userEvent.keyboard('abc');
@@ -5597,6 +5604,14 @@ describe('SearchQueryBuilder', () => {
           ).toBeInTheDocument();
           expect(mockOnChange).toHaveBeenCalledTimes(1);
           expect(mockOnChange).toHaveBeenCalledWith('duration:>10ms', expect.anything());
+
+          // The search uses the value the filter shows
+          await userEvent.click(getLastInput());
+          await userEvent.keyboard('{Enter}');
+          expect(mockOnSearch).toHaveBeenLastCalledWith(
+            'duration:>10ms',
+            expect.anything()
+          );
         });
       });
 
