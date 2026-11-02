@@ -157,11 +157,9 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             execution.update(extras={"error": error})
             response = self.get_success_response(self.organization.slug, config=self.config.id)
             (serialized_run,) = response.json()["runs"]
-            assert serialized_run["error"] == {
-                "code": "unknown",
-                "message": "No error details are available.",
-            }
-            assert serialized_run["executions"][0]["error"] == serialized_run["error"]
+            unknown = {"code": "unknown", "message": "No error details are available."}
+            assert serialized_run["error"] == (None if error is None else unknown)
+            assert serialized_run["executions"][0]["error"] == unknown
             assert "internal-error-canary" not in response.content.decode()
 
     def test_rejected_run_returns_error_variant(self) -> None:
@@ -195,6 +193,19 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             assert "error" not in run_data
             assert "error" not in run_data["executions"][0]
             assert run_data["executions"][0]["status"] == run_data["status"]
+
+    def test_execution_failure_leaves_the_run_error_null(self) -> None:
+        run = self.create_run(status=SeerWorkflowRunStatus.FAILED)
+        error = {"code": "dispatch_failed", "message": "Could not start the investigation."}
+        Factories.create_seer_workflow_run_execution(
+            run, status=SeerWorkflowExecutionStatus.FAILED, extras={"error": error}
+        )
+
+        response = self.get_success_response(self.organization.slug, config=self.config.id)
+
+        (serialized_run,) = response.data["runs"]
+        assert serialized_run["error"] is None
+        assert serialized_run["executions"][0]["error"] == error
 
     def test_openapi_examples_match_response_contracts(self) -> None:
         success, failure, invalid_filter = WORKFLOW_RUNS_RESPONSE

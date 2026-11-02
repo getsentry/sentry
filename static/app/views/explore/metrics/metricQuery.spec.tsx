@@ -284,6 +284,7 @@ describe('decodeMetricsQueryParams', () => {
     const result = decodeMetricsQueryParams(json);
 
     expect(result?.queryParams.aggregateFields).toEqual([
+      new VisualizeFunction('avg(value,test_metric,counter,none)'),
       new VisualizeFunction('sum(value,test_metric,counter,none)'),
       {groupBy: 'environment'},
     ]);

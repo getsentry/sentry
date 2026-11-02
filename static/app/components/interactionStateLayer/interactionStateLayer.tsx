@@ -3,9 +3,9 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-function defined(value: boolean | undefined): boolean {
-  return value !== undefined && value !== null;
-}
+import {defined} from 'sentry/utils/defined';
+
+/* oxlint-disable @sentry/scraps/no-dom-coupling -- Deprecated app component retains its legacy parent-state selectors. */
 
 interface StateLayerProps extends React.HTMLAttributes<HTMLSpanElement> {
   as?: React.ElementType;

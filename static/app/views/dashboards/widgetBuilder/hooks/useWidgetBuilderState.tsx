@@ -1,6 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
 import partition from 'lodash/partition';
-import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  createParser,
+  parseAsJson,
+  parseAsNativeArrayOf,
+  parseAsString,
+} from 'nuqs';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -51,6 +58,7 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {deserializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/linkedDashboards';
 import {
   serializeFields,
   serializeLinkedDashboards,
@@ -1429,34 +1437,16 @@ function deserializeDataset(value: string): WidgetType {
   return WidgetType.ERRORS;
 }
 
+const parseAsAliasedField = parseAsJson(
+  z.object({field: z.string(), alias: z.string().optional().catch(undefined)})
+);
+
 /**
  * Takes fields from the query params in list form and converts
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(stringifiedField => {
-    try {
-      const {field, alias} = JSON.parse(stringifiedField);
-      return explodeField({field, alias});
-    } catch (error) {
-      return explodeField({field: stringifiedField, alias: undefined});
-    }
-  });
-}
-
-function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
-  return linkedDashboards
-    .map(linkedDashboard => {
-      const maybeLinkedDashboard = JSON.parse(linkedDashboard);
-      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.field) {
-        return {
-          dashboardId: maybeLinkedDashboard.dashboardId,
-          field: maybeLinkedDashboard.field,
-        } satisfies LinkedDashboard;
-      }
-      return;
-    })
-    .filter(defined);
+  return fields.map(field => explodeField(parseAsAliasedField.parse(field) ?? {field}));
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1557,7 +1547,7 @@ const parseAsQueries = createMultiParser({
 const parseAsStringList = parseAsNativeArrayOf(parseAsString).withDefault([]);
 
 const parseAsLinkedDashboards = createMultiParser({
-  parse: (values: readonly string[]) => deserializeLinkedDashboards([...values]),
+  parse: deserializeLinkedDashboards,
   serialize: serializeLinkedDashboards,
   eq: bothEmpty,
 }).withDefault([]);

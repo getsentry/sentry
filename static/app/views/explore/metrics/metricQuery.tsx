@@ -14,8 +14,8 @@ import {
   type ReadableQueryParamsOptions,
 } from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
-  isBaseVisualize,
   isVisualize,
+  parseVisualize,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
@@ -69,9 +69,7 @@ export function decodeMetricsQueryParams(value: string): BaseMetricQuery | null 
     return null;
   }
 
-  const visualizes = json.aggregateFields
-    .filter(isBaseVisualize)
-    .flatMap(Visualize.fromJSON);
+  const visualizes = json.aggregateFields.flatMap(item => parseVisualize(item));
 
   if (!visualizes.length) {
     return null;
