@@ -25,7 +25,7 @@ monitors: 0023_drop_checkin_monitor
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0002_copy_from_investigations
+notebooks: 0003_add_notebook_org_auth_token_creator
 
 notifications: 0017_add_notificationthread_integration_id
 
