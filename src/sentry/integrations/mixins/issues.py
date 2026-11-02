@@ -283,7 +283,7 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         return {**project_defaults, **user_defaults}
 
     @abstractmethod
-    def create_issue(self, data, **kwargs):
+    def create_issue(self, data, user: User | RpcUser | None = None, **kwargs):
         """
         Create an issue via the provider's API and return the issue key,
         title and description.
@@ -291,7 +291,13 @@ class IssueBasicIntegration(IntegrationInstallation, ABC):
         Should also handle API client exceptions and reraise as an
         IntegrationError (using the `message_from_error` helper).
 
-        >>> def create_issue(self, data, **kwargs):
+        :param data: The form data submitted by the user.
+        :param user: The Sentry user creating the issue, when known. Providers
+            may use this for attribution (e.g. appending a "Created by" line
+            to the issue body). May be None for automated (rule-triggered)
+            creation.
+
+        >>> def create_issue(self, data, user=None, **kwargs):
         >>>     resp = self.get_client().create_issue(data)
         >>>     return {
         >>>         'key': resp['id'],
