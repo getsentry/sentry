@@ -5340,8 +5340,10 @@ describe('SearchQueryBuilder', () => {
             screen.getByRole('button', {name: 'Clear search query', hidden: true})
           );
 
-          expect(onChange).toHaveBeenLastCalledWith('', expect.anything());
-          expect(onSearch).toHaveBeenLastCalledWith('', expect.anything());
+          expect(new Set(onSearch.mock.calls.map(([query]) => query))).toEqual(
+            new Set([''])
+          );
+          expect(onChange.mock.calls.map(([query]) => query)).toEqual(['']);
           expect(getLastInput()).toHaveValue('');
           expect(getLastInput()).toHaveFocus();
           expect(
