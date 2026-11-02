@@ -5328,21 +5328,28 @@ describe('SearchQueryBuilder', () => {
         }
       );
 
-      it.each(['', '7', '123456', 'invalid'])(
-        'removes an existing numeric filter without submitting the edit %j',
-        async value => {
+      it.each([
+        ['', 'timesSeen:>100 browser.name:Firefox', 'browser.name:Firefox'],
+        ['7', 'timesSeen:>100 browser.name:Firefox', 'browser.name:Firefox'],
+        ['123456', 'timesSeen:>100 browser.name:Firefox', 'browser.name:Firefox'],
+        ['invalid', 'timesSeen:>100 browser.name:Firefox', 'browser.name:Firefox'],
+        ['7', 'timesSeen:>100 timesSeen:>50', 'timesSeen:>50'],
+      ])(
+        'removes an existing numeric filter without submitting the edit %j in %s',
+        async (value, initialQuery, expectedQuery) => {
           const onChange = jest.fn();
           const onSearch = jest.fn();
           render(
             <SearchQueryBuilder
               {...defaultProps}
-              initialQuery="timesSeen:>100 browser.name:Firefox"
+              initialQuery={initialQuery}
               onChange={onChange}
               onSearch={onSearch}
             />
           );
+          const filter = screen.getByRole('row', {name: 'timesSeen:>100'});
           await userEvent.click(
-            screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+            within(filter).getByRole('button', {name: 'Edit value for filter: timesSeen'})
           );
           await userEvent.clear(
             screen.getByRole('combobox', {name: 'Edit filter value'})
@@ -5352,18 +5359,15 @@ describe('SearchQueryBuilder', () => {
           }
 
           await userEvent.click(
-            screen.getByRole('button', {name: 'Remove filter: timesSeen', hidden: true})
+            within(filter).getByRole('button', {
+              name: 'Remove filter: timesSeen',
+              hidden: true,
+            })
           );
 
-          expect(onChange.mock.calls.map(([query]) => query)).toEqual([
-            'browser.name:Firefox',
-          ]);
-          expect(onSearch.mock.calls.map(([query]) => query)).toEqual([
-            'browser.name:Firefox',
-          ]);
-          expect(
-            screen.getByRole('row', {name: 'browser.name:Firefox'})
-          ).toBeInTheDocument();
+          expect(onChange.mock.calls.map(([query]) => query)).toEqual([expectedQuery]);
+          expect(onSearch.mock.calls.map(([query]) => query)).toEqual([expectedQuery]);
+          expect(screen.getByRole('row', {name: expectedQuery})).toBeInTheDocument();
         }
       );
 
@@ -5416,6 +5420,43 @@ describe('SearchQueryBuilder', () => {
           ).not.toBeInTheDocument();
         }
       );
+
+      it('commits the active edit when removing a different filter', async () => {
+        const onSearch = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="timesSeen:>42 timesSeen:>100 browser.name:Firefox"
+            onSearch={onSearch}
+          />
+        );
+        const removedFilter = screen.getByRole('row', {name: 'timesSeen:>42'});
+        const removeButton = within(removedFilter).getByRole('button', {
+          name: 'Remove filter: timesSeen',
+        });
+        const editedFilter = screen.getByRole('row', {name: 'timesSeen:>100'});
+        await userEvent.click(
+          within(editedFilter).getByRole('button', {
+            name: 'Edit value for filter: timesSeen',
+          })
+        );
+        await userEvent.clear(screen.getByRole('combobox', {name: 'Edit filter value'}));
+        await userEvent.keyboard('7');
+
+        await userEvent.click(removeButton);
+
+        expect(onSearch).toHaveBeenLastCalledWith(
+          'timesSeen:>7 browser.name:Firefox',
+          expect.anything()
+        );
+        expect(screen.getByRole('row', {name: 'timesSeen:>7'})).toBeInTheDocument();
+        expect(
+          screen.getByRole('row', {name: 'browser.name:Firefox'})
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('combobox', {name: 'Edit filter value'})
+        ).not.toBeInTheDocument();
+      });
 
       it.each(['Clear search query', 'Remove filter: timesSeen'])(
         'keeps the edit when pressing %s is canceled and commits it on ordinary blur',
