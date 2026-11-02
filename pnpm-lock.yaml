@@ -1001,6 +1001,9 @@ importers:
       moment-timezone:
         specifier: 0.6.2
         version: 0.6.2
+      nuqs:
+        specifier: 2.10.2
+        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       query-string:
         specifier: 7.0.1
         version: 7.0.1
