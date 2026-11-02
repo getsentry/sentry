@@ -762,9 +762,6 @@ importers:
       react-router:
         specifier: 8.4.0
         version: 8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react-select:
-        specifier: 4.3.1
-        version: 4.3.1(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(supports-color@8.1.1)
       reflux:
         specifier: 0.4.1
         version: 0.4.1(react@19.3.0)
@@ -838,9 +835,6 @@ importers:
       '@types/react-lazyload':
         specifier: 3.2.3
         version: 3.2.3
-      '@types/react-select':
-        specifier: 4.0.18
-        version: 4.0.18
       '@types/reflux':
         specifier: 0.4.1
         version: 0.4.1
