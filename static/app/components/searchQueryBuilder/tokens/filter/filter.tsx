@@ -156,7 +156,12 @@ function FilterValue({
   );
 }
 
-function FilterDelete({token, state, item}: SearchQueryTokenProps) {
+function FilterDelete({
+  token,
+  state,
+  item,
+  isPending,
+}: SearchQueryTokenProps & {isPending: boolean}) {
   const {dispatch} = useSearchQueryBuilderState();
   const {disabled} = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
@@ -164,6 +169,15 @@ function FilterDelete({token, state, item}: SearchQueryTokenProps) {
   return (
     <DeleteButton
       aria-label={t('Remove filter: %s', getKeyName(token.key))}
+      onPointerDown={e => {
+        // Remove a pending filter on press. The press closes its value editor and
+        // re-renders the filter, and the click that follows can miss this button,
+        // leaving the filter behind without a value.
+        if (isPending && e.button === 0) {
+          e.preventDefault();
+          dispatch({type: 'DELETE_TOKEN', token});
+        }
+      }}
       onClick={() => {
         dispatch({type: 'DELETE_TOKEN', token});
       }}
@@ -328,7 +342,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
           />
         </FilterValueGridCell>
         <BaseGridCell {...gridCellProps}>
-          <FilterDelete token={token} state={state} item={item} />
+          <FilterDelete token={token} state={state} item={item} isPending={isPending} />
         </BaseGridCell>
       </GridInvalidTokenTooltip>
     </FilterWrapper>

@@ -5444,6 +5444,47 @@ describe('SearchQueryBuilder', () => {
           expect(mockOnChange).toHaveBeenCalledTimes(1);
           expect(mockOnChange).toHaveBeenCalledWith('duration:>10ms', expect.anything());
         });
+
+        it.each([
+          ['selected', addDurationFilter],
+          [
+            'typed',
+            async () => {
+              await userEvent.click(getLastInput());
+              await userEvent.keyboard('duration:>');
+              await screen.findByRole('row', {name: 'duration:>'});
+            },
+          ],
+        ])(
+          'removes a %s filter when its remove button is pressed',
+          async (_, addFilter) => {
+            const mockOnChange = jest.fn();
+            const user = userEvent.setup();
+            render(<SearchQueryBuilder {...durationProps} onChange={mockOnChange} />);
+            await addFilter();
+
+            // Once the value editor closes, the click can miss the button, so
+            // release the pointer somewhere else.
+            await user.pointer([
+              {
+                keys: '[MouseLeft>]',
+                target: screen.getByRole('button', {
+                  name: 'Remove filter: duration',
+                  hidden: true,
+                }),
+              },
+              {keys: '[/MouseLeft]', target: document.body},
+            ]);
+
+            await waitFor(() => {
+              expect(
+                screen.queryByRole('row', {name: /^duration:/})
+              ).not.toBeInTheDocument();
+            });
+            expect(getLastInput()).toHaveFocus();
+            expect(mockOnChange).not.toHaveBeenCalled();
+          }
+        );
       });
 
       it('pre-fills input with current value when editing', async () => {
