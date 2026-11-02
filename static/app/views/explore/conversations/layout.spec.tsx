@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationsLayout from './layout';
@@ -15,7 +16,7 @@ const organization = OrganizationFixture({
 function renderLayout(
   location: {pathname: string; query?: Record<string, string | number | string[]>},
   route: string,
-  features?: string[]
+  features?: OrganizationFeature[]
 ) {
   return render(
     <TopBar.Slot.Provider>

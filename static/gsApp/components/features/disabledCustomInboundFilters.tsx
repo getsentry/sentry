@@ -4,6 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 
 import {t, tct} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 
@@ -12,7 +13,7 @@ import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
 type Props = {
-  features: string[];
+  features: FeatureName[];
   organization: Organization;
 };
 

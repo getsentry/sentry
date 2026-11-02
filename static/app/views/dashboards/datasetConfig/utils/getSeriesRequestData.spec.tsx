@@ -3,6 +3,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
@@ -440,7 +441,7 @@ describe('utils', () => {
       expect(params).not.toHaveProperty(['transformations[2]']);
     });
 
-    it.each([
+    it.each<{displayType: DisplayType; features: OrganizationFeature[]}>([
       {displayType: DisplayType.LINE, features: []},
       {displayType: DisplayType.TABLE, features: ['explore-interpolation-and-smoothing']},
       {displayType: DisplayType.TOP_N, features: ['explore-interpolation-and-smoothing']},

@@ -36,7 +36,7 @@ const defaultInitialProps: TraceItemSearchQueryBuilderProps = {
   searchSource: 'test',
 };
 const organization = OrganizationFixture({
-  features: ['search-query-attribute-validation'],
+  features: [],
 });
 
 // Explore supplies a provider outside the builder; both register attribute metadata.

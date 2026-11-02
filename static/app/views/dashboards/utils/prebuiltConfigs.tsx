@@ -1,3 +1,4 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {
@@ -159,7 +160,7 @@ export const PREBUILT_DASHBOARDS: Record<PrebuiltDashboardId, PrebuiltDashboard>
 type PrebuiltDashboardVariant = {
   config: PrebuiltDashboard;
   /** Organization feature that selects this config over the default one. */
-  feature: string;
+  feature: OrganizationFeature;
 };
 
 /**

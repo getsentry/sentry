@@ -10,6 +10,7 @@ import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
@@ -661,7 +662,7 @@ describe('ExploreCharts', () => {
   });
 
   describe('dropped data layer', () => {
-    const features = ['explore-data-fidelity-annotations'];
+    const features = ['explore-data-fidelity-annotations'] satisfies FeatureName[];
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
@@ -682,7 +683,7 @@ describe('ExploreCharts', () => {
       acceptedEvents?: OutcomeRow[];
       asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
-      organizationFeatures?: string[];
+      organizationFeatures?: OrganizationFeature[];
       query?: string;
       timeseriesResult?: SortedTimeSeries;
     }) {

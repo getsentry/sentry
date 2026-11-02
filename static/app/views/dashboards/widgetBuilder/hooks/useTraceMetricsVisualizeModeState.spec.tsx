@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   useWidgetBuilderContext,
@@ -22,7 +23,7 @@ import {
 } from './useTraceMetricsVisualizeModeState';
 import {BuilderStateAction} from './useWidgetBuilderState';
 
-const EQUATION_FEATURES = ['tracemetrics-enabled'];
+const EQUATION_FEATURES = ['tracemetrics-enabled'] satisfies FeatureName[];
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';

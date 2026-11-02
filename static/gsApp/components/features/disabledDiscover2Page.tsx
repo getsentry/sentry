@@ -5,6 +5,7 @@ import {IconBusiness} from '@sentry/icons/business';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {displayPlanName} from 'getsentry/utils/billing';
@@ -14,7 +15,7 @@ import PageUpsellOverlay from './pageUpsellOverlay';
 import PlanFeature from './planFeature';
 
 type Props = React.PropsWithChildren<{
-  features: string[];
+  features: FeatureName[];
   organization: Organization;
 }>;
 

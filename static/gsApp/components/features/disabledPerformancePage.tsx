@@ -6,13 +6,14 @@ import {DemoSandboxButton} from 'sentry/components/demoSandboxButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {PerformanceBackground} from './illustrations/performanceBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 
 type Props = React.PropsWithChildren<{
-  features: string[];
+  features: FeatureName[];
   organization: Organization;
 }>;
 

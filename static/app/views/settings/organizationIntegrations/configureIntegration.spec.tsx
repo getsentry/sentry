@@ -13,6 +13,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {
   IntegrationProvider,
   OrganizationIntegration,
@@ -502,7 +503,7 @@ describe('ConfigureIntegration mapping removals', () => {
     configData = {sync_status_forward: mappings},
   }: {
     configData?: Record<string, unknown>;
-    features?: string[];
+    features?: OrganizationFeature[];
     providerKey?: string;
   } = {}) {
     const organization = OrganizationFixture({
@@ -577,7 +578,9 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('appends a removal entry for a removed mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup({
+      features: ['jira-explicit-mapping-removals'] satisfies FeatureName[],
+    });
 
     await deleteSecondMapping();
 
@@ -599,7 +602,7 @@ describe('ConfigureIntegration mapping removals', () => {
   it('does not have explicit removals for a non-Jira provider', async () => {
     const postRequest = setup({
       providerKey: 'github',
-      features: ['jira-explicit-mapping-removals'],
+      features: ['jira-explicit-mapping-removals'] satisfies FeatureName[],
     });
 
     await deleteSecondMapping();
@@ -615,7 +618,9 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('sends all current mappings as objects when updating a mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup({
+      features: ['jira-explicit-mapping-removals'] satisfies FeatureName[],
+    });
 
     await selectEvent.select(await screen.findByText('Open'), 'To Do');
 
@@ -636,7 +641,7 @@ describe('ConfigureIntegration mapping removals', () => {
 
   it('does not add removals when previous mapping data is missing', async () => {
     const postRequest = setup({
-      features: ['jira-explicit-mapping-removals'],
+      features: ['jira-explicit-mapping-removals'] satisfies FeatureName[],
       configData: {},
     });
 

@@ -5,6 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {Navigation} from 'sentry/views/navigation';
 import {
   NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE,
@@ -15,7 +16,6 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
-  'discover',
   'discover-basic',
   'discover-query',
   'session-replay-ui',
@@ -23,7 +23,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-];
+] satisfies FeatureName[];
 
 function setupMocks() {
   localStorage.clear();
@@ -70,7 +70,10 @@ describe('SecondarySidebar', () => {
         </SecondaryNavigationContextProvider>,
         {
           organization: OrganizationFixture({
-            features: [...ALL_AVAILABLE_FEATURES, ...(settingsV3 ? ['settings-v3'] : [])],
+            features: [
+              ...ALL_AVAILABLE_FEATURES,
+              ...(settingsV3 ? (['settings-v3'] satisfies OrganizationFeature[]) : []),
+            ],
           }),
           initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
         }

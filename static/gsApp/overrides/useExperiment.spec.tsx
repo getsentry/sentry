@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import {_resetExposureTracking, useExperiment} from 'getsentry/overrides/useExperiment';
 
@@ -11,7 +12,7 @@ function TestComponent({
   feature,
   reportExposure,
 }: {
-  feature: string;
+  feature: OrganizationFeature;
   reportExposure: boolean;
 }) {
   const {inExperiment, experimentAssignment} = useExperiment({
@@ -34,10 +35,10 @@ describe('useExperiment (gsApp)', () => {
 
   it('returns inExperiment: true when feature is enabled', () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
-    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="investigations" reportExposure={false} />, {
       organization: org,
     });
     expect(screen.getByTestId('in-experiment')).toHaveTextContent('true');
@@ -46,9 +47,9 @@ describe('useExperiment (gsApp)', () => {
 
   it('returns inExperiment: false when feature is not enabled', () => {
     const org = OrganizationFixture({
-      experiments: {'test-experiment': 'control'},
+      experiments: {investigations: 'control'},
     });
-    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="investigations" reportExposure={false} />, {
       organization: org,
     });
     expect(screen.getByTestId('in-experiment')).toHaveTextContent('false');
@@ -57,9 +58,9 @@ describe('useExperiment (gsApp)', () => {
 
   it('returns inExperiment: true with feature flag even without experiments entry', () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
+      features: ['investigations'],
     });
-    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="investigations" reportExposure={false} />, {
       organization: org,
     });
     expect(screen.getByTestId('in-experiment')).toHaveTextContent('true');
@@ -68,7 +69,7 @@ describe('useExperiment (gsApp)', () => {
 
   it('returns control when experiment is not present', () => {
     const org = OrganizationFixture({experiments: {}});
-    render(<TestComponent feature="missing-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="dashboards-starred" reportExposure={false} />, {
       organization: org,
     });
     expect(screen.getByTestId('in-experiment')).toHaveTextContent('false');
@@ -77,8 +78,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('posts exposure on mount when reportExposure is true and experiments entry exists', async () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -86,7 +87,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure />, {
+    render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -95,7 +96,10 @@ describe('useExperiment (gsApp)', () => {
         `/organizations/${org.slug}/experiment-exposure/`,
         expect.objectContaining({
           method: 'POST',
-          data: {experimentName: 'test-experiment', assignment: 'active'},
+          data: {
+            experimentName: 'investigations',
+            assignment: 'active',
+          },
         })
       );
     });
@@ -103,8 +107,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('sets the Amplitude experiment group property on exposure', async () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -112,7 +116,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure />, {
+    render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -124,7 +128,7 @@ describe('useExperiment (gsApp)', () => {
     // transform matches getsentry/experiments/tasks.py.
     const identifyInstance = jest.mocked(Amplitude.Identify).mock.results[0]!.value;
     expect(identifyInstance.set).toHaveBeenCalledWith(
-      'experiment_test_experiment',
+      'experiment_investigations',
       'active'
     );
     expect(Amplitude.groupIdentify).toHaveBeenCalledWith(
@@ -136,8 +140,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('does not set the Amplitude group property when reportExposure is false', () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -145,7 +149,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="investigations" reportExposure={false} />, {
       organization: org,
     });
 
@@ -155,8 +159,8 @@ describe('useExperiment (gsApp)', () => {
   it('does not set the Amplitude group property when analytics are disabled', () => {
     ConfigStore.set('enableAnalytics', false);
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -164,7 +168,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure />, {
+    render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -177,7 +181,7 @@ describe('useExperiment (gsApp)', () => {
     // The BE only fires auto-exposure for flags with experiment_mode set, so we
     // match that behavior here and skip both the Amplitude write and the POST.
     const org = OrganizationFixture({
-      features: ['not-an-experiment'],
+      features: ['dashboards-basic'],
       experiments: {},
     });
     const mockExposure = MockApiClient.addMockResponse({
@@ -186,7 +190,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="not-an-experiment" reportExposure />, {
+    render(<TestComponent feature="dashboards-basic" reportExposure />, {
       organization: org,
     });
 
@@ -199,8 +203,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('does not post exposure when reportExposure is false', () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -208,7 +212,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure={false} />, {
+    render(<TestComponent feature="investigations" reportExposure={false} />, {
       organization: org,
     });
 
@@ -217,8 +221,8 @@ describe('useExperiment (gsApp)', () => {
 
   it('reports exposure when reportExposure changes from false to true', async () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -227,21 +231,21 @@ describe('useExperiment (gsApp)', () => {
     });
 
     const {rerender} = render(
-      <TestComponent feature="test-experiment" reportExposure={false} />,
+      <TestComponent feature="investigations" reportExposure={false} />,
       {organization: org}
     );
 
     expect(mockExposure).not.toHaveBeenCalled();
 
-    rerender(<TestComponent feature="test-experiment" reportExposure />);
+    rerender(<TestComponent feature="investigations" reportExposure />);
 
     await waitFor(() => expect(mockExposure).toHaveBeenCalledTimes(1));
   });
 
   it('deduplicates exposure reports across remounts', async () => {
     const org = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -249,7 +253,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    const {unmount} = render(<TestComponent feature="test-experiment" reportExposure />, {
+    const {unmount} = render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -259,7 +263,7 @@ describe('useExperiment (gsApp)', () => {
 
     unmount();
 
-    render(<TestComponent feature="test-experiment" reportExposure />, {
+    render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -268,7 +272,7 @@ describe('useExperiment (gsApp)', () => {
 
   it('re-reports exposure when assignment changes', async () => {
     const org = OrganizationFixture({
-      experiments: {'test-experiment': 'control'},
+      experiments: {investigations: 'control'},
     });
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
@@ -276,7 +280,7 @@ describe('useExperiment (gsApp)', () => {
       statusCode: 204,
     });
 
-    const {unmount} = render(<TestComponent feature="test-experiment" reportExposure />, {
+    const {unmount} = render(<TestComponent feature="investigations" reportExposure />, {
       organization: org,
     });
 
@@ -285,11 +289,11 @@ describe('useExperiment (gsApp)', () => {
     unmount();
 
     const updatedOrg = OrganizationFixture({
-      features: ['test-experiment'],
-      experiments: {'test-experiment': 'active'},
+      features: ['investigations'],
+      experiments: {investigations: 'active'},
     });
 
-    render(<TestComponent feature="test-experiment" reportExposure />, {
+    render(<TestComponent feature="investigations" reportExposure />, {
       organization: updatedOrg,
     });
 

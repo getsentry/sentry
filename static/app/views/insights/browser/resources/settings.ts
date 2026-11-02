@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import {ResourceSpanOps} from './types';
 
@@ -16,4 +17,4 @@ export const DEFAULT_RESOURCE_TYPES = [
 
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/frontend/assets/';
 
-export const MODULE_FEATURES = ['insight-modules'];
+export const MODULE_FEATURES: OrganizationFeature[] = ['insight-modules'];

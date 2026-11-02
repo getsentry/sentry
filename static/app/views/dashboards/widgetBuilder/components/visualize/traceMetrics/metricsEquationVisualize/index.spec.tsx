@@ -8,6 +8,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {MetricsEquationVisualize} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
@@ -49,7 +50,7 @@ jest.mock('sentry/views/explore/metrics/hooks/useStableLabels', () => {
   };
 });
 
-const EQUATION_FEATURES = ['tracemetrics-enabled'];
+const EQUATION_FEATURES = ['tracemetrics-enabled'] satisfies FeatureName[];
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';

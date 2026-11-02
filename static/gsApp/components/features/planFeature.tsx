@@ -75,10 +75,12 @@ function planSatisfies(plan: Plan, requestedFeatures: string[]) {
 
   const rank = ORDERED_PLAN_TYPES.indexOf(type);
 
-  return requestedFeatures.map(descopeFeatureName).every(feature => {
-    const required = UPSELL_MINIMUM_PLAN_TYPE[feature];
-    return required !== undefined && rank >= ORDERED_PLAN_TYPES.indexOf(required);
-  });
+  return requestedFeatures
+    .map(feature => descopeFeatureName(feature))
+    .every(feature => {
+      const required = UPSELL_MINIMUM_PLAN_TYPE[feature];
+      return required !== undefined && rank >= ORDERED_PLAN_TYPES.indexOf(required);
+    });
 }
 
 type RenderProps = {

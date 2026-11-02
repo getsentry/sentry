@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {EventsRequest} from 'sentry/components/charts/eventsRequest';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {EventView} from 'sentry/utils/discover/eventView';
 
 import MiniGraph from './miniGraph';
@@ -11,7 +12,7 @@ import MiniGraph from './miniGraph';
 jest.mock('sentry/components/charts/eventsRequest');
 
 describe('Discover > MiniGraph', () => {
-  const features = ['discover-basic'];
+  const features = ['discover-basic'] satisfies FeatureName[];
   const location = LocationFixture({
     query: {query: 'tag:value'},
     pathname: '/',

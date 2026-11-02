@@ -12,6 +12,7 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {ConversationStats} from './hooks/useConversation';
@@ -111,7 +112,10 @@ function mockApis(
   return request;
 }
 
-function renderPage(features: string[] = [], query?: Record<string, string>) {
+function renderPage(
+  features: OrganizationFeature[] = [],
+  query?: Record<string, string>
+) {
   return render(
     <TopBar.Slot.Provider>
       <TopBar />

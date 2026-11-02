@@ -1,5 +1,6 @@
 import {useCallback, useMemo} from 'react';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -19,7 +20,7 @@ const BASE_SUPPORTED_PROVIDERS = [
  * it unlocks. Add new providers here as they become supported.
  */
 const FEATURE_GATED_PROVIDERS: Array<{
-  flag: string;
+  flag: OrganizationFeature;
   providerIds: string[];
 }> = [
   {

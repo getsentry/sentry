@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
 import type {NativeFrameVariable} from 'sentry/types/event';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Meta} from 'sentry/types/group';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -156,7 +157,7 @@ function VariableStory({children}: {children: ReactNode}) {
   const checkboxId = useId();
   const organization = useOrganization();
   const [enabled, setEnabled] = useState(true);
-  const features = organization.features.filter(
+  const features: OrganizationFeature[] = organization.features.filter(
     feature => feature !== 'native-variable-extraction'
   );
   if (enabled) {

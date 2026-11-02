@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {OrganizationAuthList} from './organizationAuthList';
 
 describe('OrganizationAuthList', () => {
@@ -38,8 +39,8 @@ describe('OrganizationAuthList', () => {
 
   describe('with 2fa warning', () => {
     const require2fa = {require2FA: true};
-    const withSSO = {features: ['sso-basic']};
-    const withSAML = {features: ['sso-saml2']};
+    const withSSO = {features: ['sso-basic'] satisfies FeatureName[]};
+    const withSAML = {features: ['sso-saml2'] satisfies FeatureName[]};
 
     it('renders', () => {
       const organization = OrganizationFixture({...require2fa, ...withSSO});

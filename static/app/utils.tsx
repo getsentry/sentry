@@ -1,3 +1,4 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 /**
  * Replaces slug special chars with a space
  */
@@ -64,6 +65,10 @@ export const buildTeamId = (id: string) => `team:${id}`;
 /**
  * Removes the organization / project scope prefix on feature names.
  */
+export function descopeFeatureName(
+  feature: `organizations:${OrganizationFeature}`
+): OrganizationFeature;
+export function descopeFeatureName<T>(feature: T): T | string;
 export function descopeFeatureName<T>(feature: T): T | string {
   if (typeof feature !== 'string') {
     return feature;

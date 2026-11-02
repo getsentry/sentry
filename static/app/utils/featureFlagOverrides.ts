@@ -1,6 +1,8 @@
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {localStorageWrapper} from './localStorage';
+import {isRecord} from 'sentry/utils/object/isRecord';
 
 type OverrideState = Record<string, boolean>;
 
@@ -41,7 +43,18 @@ export class FeatureFlagOverrides {
 
   public getStoredOverrides(): OverrideState {
     try {
-      return JSON.parse(localStorageWrapper.getItem(LOCALSTORAGE_KEY) ?? '{}');
+      const stored: unknown = JSON.parse(
+        localStorageWrapper.getItem(LOCALSTORAGE_KEY) ?? '{}'
+      );
+      const overrides: OverrideState = {};
+      if (isRecord(stored)) {
+        for (const [name, value] of Object.entries(stored)) {
+          if (typeof value === 'boolean') {
+            overrides[name] = value;
+          }
+        }
+      }
+      return overrides;
     } catch {
       return {};
     }
@@ -50,9 +63,12 @@ export class FeatureFlagOverrides {
   /**
    * Return the effective featureFlags as an array, for `organization.features`
    */
-  public getEnabledFeatureFlagList(organization: Organization): string[] {
-    const enabled = new Set(organization.features);
-    Object.entries(this.getStoredOverrides()).forEach(([override, value]) => {
+  public getEnabledFeatureFlagList(
+    organization: Organization,
+    overrides = this.getStoredOverrides()
+  ): OrganizationFeature[] {
+    const enabled = new Set<string>(organization.features);
+    Object.entries(overrides).forEach(([override, value]) => {
       // TODO(ryan953): we're only dealing with booleans to start, but other types could be supported
       if (value) {
         enabled.add(override);
@@ -60,7 +76,8 @@ export class FeatureFlagOverrides {
         enabled.delete(override);
       }
     });
-    return Array.from(enabled);
+    // Developer overrides may name flags newer than the committed type snapshot.
+    return Array.from(enabled) as OrganizationFeature[];
   }
 
   /**

@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {Navigation} from 'sentry/views/navigation';
 import {PrimaryNavigationContextProvider} from 'sentry/views/navigation/primaryNavigationContext';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
@@ -8,7 +9,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
     organization: {
-      features: ['performance-view', 'visibility-explore-view'],
+      features: ['performance-view', 'visibility-explore-view'] satisfies FeatureName[],
     },
   });
 
@@ -60,10 +61,14 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
   });
 
-  function renderExploreNavigation(features: string[]) {
+  function renderExploreNavigation(features: OrganizationFeature[]) {
     const {organization: seerOrganization} = initializeOrg({
       organization: {
-        features: ['performance-view', 'visibility-explore-view', ...features],
+        features: [
+          'performance-view',
+          'visibility-explore-view',
+          ...features,
+        ] satisfies FeatureName[],
         openMembership: true,
       },
     });
@@ -150,7 +155,7 @@ describe('ExploreSecondaryNavigation', () => {
           'visibility-explore-view',
           'discover-basic',
           'discover-query',
-        ],
+        ] satisfies FeatureName[],
       },
     });
 

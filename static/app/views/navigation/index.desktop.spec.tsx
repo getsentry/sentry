@@ -17,6 +17,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {Navigation} from 'sentry/views/navigation';
 
 import {
@@ -28,7 +29,6 @@ import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
 
 const ALL_AVAILABLE_FEATURES = [
   'insight-modules',
-  'discover',
   'discover-basic',
   'discover-query',
   'dashboards-prebuilt-insights-dashboards',
@@ -37,7 +37,7 @@ const ALL_AVAILABLE_FEATURES = [
   'performance-view',
   'profiling',
   'visibility-explore-view',
-];
+] satisfies FeatureName[];
 
 const mockUsingCustomerDomain = jest.fn();
 
@@ -235,7 +235,9 @@ describe('desktop navigation', () => {
         <Navigation />
       </PrimaryNavigationContextProvider>,
       navigationContext({
-        organization: {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']},
+        organization: {
+          features: [...ALL_AVAILABLE_FEATURES, 'settings-v3'] satisfies FeatureName[],
+        },
         initialRouterConfig: {
           location: {pathname: '/settings/org-slug/projects/project-slug/'},
           route: '/settings/:orgId/projects/:projectId/',
@@ -257,7 +259,9 @@ describe('desktop navigation', () => {
   });
 
   describe('settings v3', () => {
-    const settingsV3 = {features: [...ALL_AVAILABLE_FEATURES, 'settings-v3']};
+    const settingsV3 = {
+      features: [...ALL_AVAILABLE_FEATURES, 'settings-v3'] satisfies FeatureName[],
+    };
 
     beforeEach(() => {
       ProjectsStore.loadInitialData([
@@ -690,7 +694,7 @@ describe('desktop navigation', () => {
           <Navigation />
         </PrimaryNavigationContextProvider>,
         navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES]},
+          organization: {features: [...ALL_AVAILABLE_FEATURES] satisfies FeatureName[]},
         })
       );
 
@@ -719,7 +723,10 @@ describe('desktop navigation', () => {
         </PrimaryNavigationContextProvider>,
         navigationContext({
           organization: {
-            features: [...ALL_AVAILABLE_FEATURES, 'insights-to-dashboards-ui-rollout'],
+            features: [
+              ...ALL_AVAILABLE_FEATURES,
+              'insights-to-dashboards-ui-rollout',
+            ] satisfies FeatureName[],
           },
         })
       );
@@ -1018,7 +1025,11 @@ describe('desktop navigation', () => {
 
     it('shows Seer between Issues and Explore with seer-primary-nav', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+        features: [
+          ...ALL_AVAILABLE_FEATURES,
+          'seer-primary-nav',
+          'seer-automations',
+        ] satisfies FeatureName[],
       });
 
       const links = within(primaryNav).getAllByRole('link');
@@ -1029,7 +1040,11 @@ describe('desktop navigation', () => {
 
     it('hides Seer without seer-primary-nav, even with investigations and automations', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'investigations', 'seer-automations'],
+        features: [
+          ...ALL_AVAILABLE_FEATURES,
+          'investigations',
+          'seer-automations',
+        ] satisfies FeatureName[],
         openMembership: true,
       });
 
@@ -1040,7 +1055,11 @@ describe('desktop navigation', () => {
 
     it('hides Seer with seer-primary-nav but neither investigations nor automations', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        features: [
+          ...ALL_AVAILABLE_FEATURES,
+          'seer-primary-nav',
+          'investigations',
+        ] satisfies FeatureName[],
         openMembership: false,
       });
 
@@ -1051,7 +1070,11 @@ describe('desktop navigation', () => {
 
     it('links Seer to automations when automations is enabled', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'seer-automations'],
+        features: [
+          ...ALL_AVAILABLE_FEATURES,
+          'seer-primary-nav',
+          'seer-automations',
+        ] satisfies FeatureName[],
       });
 
       expect(within(primaryNav).getByRole('link', {name: 'Seer'})).toHaveAttribute(
@@ -1062,7 +1085,11 @@ describe('desktop navigation', () => {
 
     it('links Seer to investigations when automations is disabled', () => {
       const primaryNav = renderSeerNavigation({
-        features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+        features: [
+          ...ALL_AVAILABLE_FEATURES,
+          'seer-primary-nav',
+          'investigations',
+        ] satisfies FeatureName[],
         openMembership: true,
       });
 
@@ -1097,7 +1124,11 @@ describe('desktop navigation', () => {
     it('marks Seer as active on seer routes', () => {
       const primaryNav = renderSeerNavigation(
         {
-          features: [...ALL_AVAILABLE_FEATURES, 'seer-primary-nav', 'investigations'],
+          features: [
+            ...ALL_AVAILABLE_FEATURES,
+            'seer-primary-nav',
+            'investigations',
+          ] satisfies FeatureName[],
           openMembership: true,
         },
         '/organizations/org-slug/seer/investigations/investigation-1/'

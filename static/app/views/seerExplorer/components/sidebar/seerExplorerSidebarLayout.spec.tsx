@@ -8,6 +8,7 @@ import * as drawerModule from '@sentry/scraps/drawer';
 import {GlobalDrawer, useDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import * as analytics from 'sentry/utils/analytics';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
 import * as useDimensionsModule from 'sentry/utils/useDimensions';
@@ -22,7 +23,7 @@ import {SeerExplorerSidebarLayout} from './seerExplorerSidebarLayout';
 
 const POSITION_KEY = 'seer-explorer-sidebar-position';
 
-const seerFeatures = ['seer-explorer'];
+const seerFeatures = ['seer-explorer'] satisfies FeatureName[];
 
 const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer> = {
   sessionData: null,

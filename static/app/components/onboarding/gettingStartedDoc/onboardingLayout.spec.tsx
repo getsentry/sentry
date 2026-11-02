@@ -3,6 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {OnboardingLayout} from './onboardingLayout';
 import type {Docs, OnboardingConfig} from './types';
 import {StepType} from './types';
@@ -22,7 +23,7 @@ function makeDocsConfig(overrides: Partial<OnboardingConfig> = {}): Docs {
   return {onboarding: base};
 }
 
-function renderLayout(docsConfig: Docs, features: string[] = []) {
+function renderLayout(docsConfig: Docs, features: OrganizationFeature[] = []) {
   const organization = OrganizationFixture({features});
   const project = ProjectFixture({organization});
 

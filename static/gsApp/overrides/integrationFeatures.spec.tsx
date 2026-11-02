@@ -9,6 +9,7 @@ import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import {addOrganizationFeaturesHandler} from 'sentry/utils/featureFlags';
 
 import {hookIntegrationFeatures} from 'getsentry/overrides/integrationFeatures';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -61,8 +62,11 @@ describe('hookIntegrationFeatures', () => {
   });
 
   it('gates premium only features and requires upgrade with free plan', async () => {
-    const sub = SubscriptionFixture({organization});
-    SubscriptionStore.set(organization.slug, sub);
+    const instrumentedOrganization = OrganizationFixture();
+    const handler = jest.fn();
+    addOrganizationFeaturesHandler({organization: instrumentedOrganization, handler});
+    const sub = SubscriptionFixture({organization: instrumentedOrganization});
+    SubscriptionStore.set(instrumentedOrganization.slug, sub);
 
     const features = [
       {
@@ -78,7 +82,7 @@ describe('hookIntegrationFeatures', () => {
     const renderCallback = jest.fn(() => <Fragment />);
 
     render(
-      <IntegrationFeatures {...{organization, features}}>
+      <IntegrationFeatures organization={instrumentedOrganization} features={features}>
         {renderCallback}
       </IntegrationFeatures>
     );
@@ -102,6 +106,8 @@ describe('hookIntegrationFeatures', () => {
         ],
       });
     });
+    expect(handler).toHaveBeenCalledWith('integrations-issue-basic', false);
+    expect(handler).toHaveBeenCalledWith('integrations-event-hooks', false);
   });
 
   describe('FeatureList and IntegrationFeatures that distinguish free and premium', () => {

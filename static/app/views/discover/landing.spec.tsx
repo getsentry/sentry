@@ -5,13 +5,14 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import DiscoverLanding from './landing';
 
 describe('Discover > Landing', () => {
   const eventTitle = 'Oh no something bad';
-  const features = ['discover-basic', 'discover-query'];
+  const features = ['discover-basic', 'discover-query'] satisfies FeatureName[];
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([ProjectFixture()]);

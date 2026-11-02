@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {PageFilters} from 'sentry/types/core';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -84,7 +85,7 @@ function TraceMetricFixtureMeta(
 interface TraceMetricsTestInitOptions {
   isProjectOnboarded?: boolean;
   liveRefresh?: boolean;
-  orgFeatures?: string[];
+  orgFeatures?: OrganizationFeature[];
   organization?: Partial<Organization>;
   pageFiltersPeriod?: string;
   project?: Partial<Project>;
@@ -129,12 +130,14 @@ export function initializeTraceMetricsTest({
   setupPageFilters: () => void;
   setupTraceItemsMock: (metricFixtures: TraceMetricEventsResponseItem[]) => jest.Mock[];
 } {
-  const baseFeatures = tracemetrics ? ['tracemetrics-enabled'] : [];
+  const baseFeatures: OrganizationFeature[] = tracemetrics
+    ? ['tracemetrics-enabled']
+    : [];
 
   const forcedProject = projectOverrides ?? {hasTraceMetrics: true};
   const {organization, project} = initializeOrg({
     organization: {
-      features: [...baseFeatures, ...orgFeatures],
+      features: [...baseFeatures, ...orgFeatures] satisfies FeatureName[],
       ...orgOverrides,
     },
     projects: [forcedProject],

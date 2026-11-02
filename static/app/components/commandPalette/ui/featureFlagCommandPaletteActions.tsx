@@ -34,18 +34,15 @@ export function setLocalFeatureFlagOverride(
   name: string,
   value: boolean
 ) {
-  FeatureFlagOverrides.singleton().setStoredOverride(name, value);
-
-  const features = new Set(organization.features);
-  if (value) {
-    features.add(name);
-  } else {
-    features.delete(name);
-  }
+  const overrides = FeatureFlagOverrides.singleton();
+  overrides.setStoredOverride(name, value);
 
   const updatedOrganization = {
     ...organization,
-    features: Array.from(features),
+    features: overrides.getEnabledFeatureFlagList(organization, {
+      ...overrides.getStoredOverrides(),
+      [name]: value,
+    }),
   };
   addOrganizationFeaturesHandler({
     organization: updatedOrganization,
@@ -138,7 +135,7 @@ export function FeatureFlagCommandPaletteActions() {
     const names = Array.from(
       new Set([...organization.features, ...Object.keys(overrides)])
     ).sort((a, b) => a.localeCompare(b));
-    const enabled = new Set(organization.features);
+    const enabled = new Set<string>(organization.features);
     Object.entries(overrides).forEach(([name, value]) => {
       if (value) {
         enabled.add(name);

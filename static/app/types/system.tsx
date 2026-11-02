@@ -1,4 +1,5 @@
 import type {ApiResult} from './api';
+import type {GlobalFeature} from './featureFlags.generated';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
@@ -134,7 +135,7 @@ export interface Config {
   distPrefix: string;
   dsn: string;
   enableAnalytics: boolean;
-  features: Set<string>;
+  features: Set<GlobalFeature>;
   gravatarBaseUrl: string;
   initialTrace: {
     baggage: string;

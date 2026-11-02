@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
 import {
@@ -49,15 +50,15 @@ describe('PREBUILT_DASHBOARDS', () => {
 describe('getPrebuiltDashboardConfig', () => {
   const defaultConfig = PREBUILT_DASHBOARDS[PrebuiltDashboardId.WEB_VITALS];
   const variantConfig = {...defaultConfig, title: 'Web Vitals (variant)'};
-  const variants = {
+  const variants: Parameters<typeof getPrebuiltDashboardConfig>[2] = {
     [PrebuiltDashboardId.WEB_VITALS]: {
-      feature: 'some-feature',
+      feature: 'dashboards-basic' satisfies FeatureName,
       config: variantConfig,
     },
   };
 
   it('returns the default config when there is no variant', () => {
-    const organization = OrganizationFixture({features: ['some-feature']});
+    const organization = OrganizationFixture({features: ['dashboards-basic']});
     expect(
       getPrebuiltDashboardConfig(PrebuiltDashboardId.HTTP, organization, variants)
     ).toBe(PREBUILT_DASHBOARDS[PrebuiltDashboardId.HTTP]);
@@ -71,7 +72,7 @@ describe('getPrebuiltDashboardConfig', () => {
   });
 
   it('returns the variant when the organization has the feature', () => {
-    const organization = OrganizationFixture({features: ['some-feature']});
+    const organization = OrganizationFixture({features: ['dashboards-basic']});
     expect(
       getPrebuiltDashboardConfig(PrebuiltDashboardId.WEB_VITALS, organization, variants)
     ).toBe(variantConfig);

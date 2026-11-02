@@ -8,6 +8,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
@@ -22,7 +23,7 @@ type InitializeOrgProps = {
     query?: Record<string, string>;
   };
   organizationProps?: {
-    features?: string[];
+    features?: OrganizationFeature[];
     hasGranularReplayPermissions?: boolean;
     replayAccessMembers?: number[];
   };
@@ -33,7 +34,9 @@ const mockReplaysUrl = '/organizations/org-slug/replays/';
 
 const renderComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay']},
+  organizationProps = {
+    features: ['performance-view', 'session-replay'] satisfies FeatureName[],
+  },
 }: InitializeOrgProps = {}) => {
   const {organization, projects} = initializeOrg({
     organization: {
@@ -266,7 +269,7 @@ describe('TransactionReplays', () => {
   it("should show a message when the organization doesn't have access to the replay feature", async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view'],
+        features: ['performance-view'] satisfies FeatureName[],
       },
     });
 
@@ -280,7 +283,7 @@ describe('TransactionReplays', () => {
   it('should hide replay content when user does not have granular replay permissions', async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view', 'session-replay'],
+        features: ['performance-view', 'session-replay'] satisfies FeatureName[],
         hasGranularReplayPermissions: true,
         replayAccessMembers: [999], // User ID 1 is not in this list
       },

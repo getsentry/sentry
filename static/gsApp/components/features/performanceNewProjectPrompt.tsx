@@ -5,12 +5,13 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 
 type Props = React.PropsWithChildren<{
-  features: Organization['features'];
+  features: FeatureName[];
   organization: Organization;
 }>;
 

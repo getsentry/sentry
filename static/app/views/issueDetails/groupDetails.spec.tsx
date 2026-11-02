@@ -20,6 +20,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import type {FeatureName} from 'sentry/types/featureFlags.generated';
 import {IssueCategory} from 'sentry/types/group';
 
 import GroupDetails from './groupDetails';
@@ -309,7 +310,10 @@ describe('groupDetails', () => {
     const organization = {
       ...defaultInit.organization,
       hideAiFeatures: false,
-      features: [...defaultInit.organization.features, 'autofix-page'],
+      features: [
+        ...defaultInit.organization.features,
+        'autofix-page',
+      ] satisfies FeatureName[],
     };
     const {router} = createWrapper(
       {

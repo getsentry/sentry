@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 export const MODULE_TITLE = t('Mobile Vitals');
 
@@ -8,7 +9,7 @@ export const MODULE_DESCRIPTION = t(
   'Get insights into key performance metrics of your mobile app.'
 );
 
-export const MODULE_FEATURE = t('insight-modules');
+export const MODULE_FEATURE: OrganizationFeature = 'insight-modules';
 
 export const DATA_TYPE = t('Mobile Vitals');
 export const DATA_TYPE_PLURAL = t('Mobile Vitals');

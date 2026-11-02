@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+import type {FeatureName, OrganizationFeature} from 'sentry/types/featureFlags.generated';
 import type {PlatformKey} from 'sentry/types/platform';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -17,7 +18,7 @@ import {Tab} from './tabs';
 const TRANSACTION_NAME = 'transaction_name';
 
 type InitialOpts = {
-  features?: string[];
+  features?: OrganizationFeature[];
   platform?: PlatformKey;
 };
 
@@ -138,7 +139,9 @@ describe('Performance > Transaction Summary Header', () => {
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       body: {threshold: '800', metric: 'lcp'},
     });
-    renderHeader(initializeData({features: ['insights-modules-use-eap']}));
+    renderHeader(
+      initializeData({features: ['insights-modules-use-eap'] satisfies FeatureName[]})
+    );
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Transaction Actions'})

@@ -9,6 +9,7 @@ import type {WidgetType} from 'sentry/views/dashboards/types';
 import type {ReadableSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
+import type {OrganizationFeature} from './featureFlags.generated';
 import type {ExternalTeam} from './integrations';
 import type {OnboardingTaskStatus} from './onboarding';
 import type {Project} from './project';
@@ -68,7 +69,7 @@ export interface Organization extends OrganizationSummary {
   defaultRole: string;
   enhancedPrivacy: boolean;
   eventsMemberAdmin: boolean;
-  features: string[];
+  features: OrganizationFeature[];
   hasGranularReplayPermissions: boolean;
   isDefault: boolean;
   isDynamicallySampled: boolean;
@@ -220,7 +221,7 @@ export interface MissingMember {
  */
 export type SharedViewOrganization = {
   slug: string;
-  features?: string[];
+  features?: OrganizationFeature[];
   name?: string;
 };
 

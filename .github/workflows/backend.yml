@@ -35,6 +35,7 @@ jobs:
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
+      feature_flag_types: ${{ steps.changes.outputs.feature_flag_types }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
       migration_tests: ${{ steps.changes.outputs.migration_tests }}
       # When true, skip selective testing and run the full backend suite
@@ -607,6 +608,29 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: Sync API Urls to TypeScript'
 
+  feature-flag-types:
+    if: needs.files-changed.outputs.feature_flag_types == 'true'
+    needs: files-changed
+    name: feature flag types and consumers
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: backend-ci
+          skip-devservices: 'true'
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Generate feature types from current registrations
+        run: make build-feature-flag-types
+
+      - name: Typecheck generated feature types and consumers
+        run: pnpm run typecheck
+
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
@@ -766,6 +790,7 @@ jobs:
         calculate-shards,
         cli,
         files-changed,
+        feature-flag-types,
         requirements,
         migration,
         monolith-dbs,

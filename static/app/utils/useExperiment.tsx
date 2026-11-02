@@ -1,4 +1,5 @@
 import {getOverride} from 'sentry/overrideRegistry';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 import {useOrganization} from './useOrganization';
 
@@ -21,7 +22,7 @@ export interface UseExperimentOptions {
    * The experiment key, matching the flagpole flag name without the
    * "organizations:" prefix (e.g. "my-experiment").
    */
-  feature: string;
+  feature: OrganizationFeature;
   /**
    * Whether to report that the user has been exposed to this experiment.
    * Required so every call site is intentional: pass true only where the

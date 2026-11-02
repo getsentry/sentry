@@ -4,7 +4,7 @@ export function AuthProviderFixture(params: Partial<AuthProvider> = {}): AuthPro
   return {
     key: 'auth_provider_key',
     name: 'auth_provider_name',
-    requiredFeature: 'auth_provider_required_feature',
+    requiredFeature: 'organizations:sso-basic',
     ...params,
   };
 }

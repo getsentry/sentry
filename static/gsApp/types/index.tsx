@@ -2,6 +2,7 @@ import type {StripeConstructor} from '@stripe/stripe-js';
 
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
+import type {OrganizationFeature} from 'sentry/types/featureFlags.generated';
 
 declare global {
   interface Window {
@@ -1011,7 +1012,7 @@ export interface BilledDataCategoryInfo extends DataCategoryInfo {
    * - `true`: Graduated - trials always available (no flag check needed)
    * - `null/undefined`: Not an admin-only trial category
    */
-  adminOnlyProductTrialFeature?: string | boolean | null;
+  adminOnlyProductTrialFeature?: OrganizationFeature | boolean | null;
   /**
    * The shortened form of the singular unit name (ie. 'error', 'hour', 'monitor').
    */
