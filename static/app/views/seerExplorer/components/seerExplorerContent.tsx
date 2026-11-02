@@ -26,6 +26,7 @@ import {
   AutofixChatProvider,
   type SendMessageOptions,
 } from 'sentry/components/seer/autofixChatContext';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {SEER_AGENTS_PROJECT_ID} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
@@ -35,6 +36,7 @@ import {
   canManageIntegrations,
   integrationRequiresUpgrade,
 } from 'sentry/utils/integrationUtil';
+import {useSeerCreditCheck} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useDeferredSessionStorage} from 'sentry/utils/useDeferredSessionStorage';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
@@ -316,6 +318,54 @@ export function SeerExplorerContent({
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
   const showEmptyState = isEmptyState && (!chatPrompt || showLoadError);
 
+  // - Pending user input (file approval + questions) -------------------------
+  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
+  // diff controls.
+  const pendingUserInputState = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
+  const {
+    isFileApprovalPending,
+    fileApprovalIndex,
+    fileApprovalTotalPatches,
+    handleFileApprovalApprove,
+    handleFileApprovalReject,
+    isQuestionPending,
+    questionIndex,
+    totalQuestions,
+    currentQuestion,
+    canSubmitQuestion,
+    handleQuestionNext,
+    handleQuestionBack,
+    handleQuestionMoveUp,
+    handleQuestionMoveDown,
+    isReauthPending,
+    reauthData,
+    handleReauthComplete,
+  } = pendingUserInputState;
+
+  const showFileApprovalBar =
+    isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const showQuestionBar = isQuestionPending && !!currentQuestion;
+
+  // - Credits ----------------------------------------------------------------
+  // Checked only while the composer is up. A read-only or failed chat takes no
+  // message, and the approval and question bars replace the composer while Seer
+  // waits on an answer to a message it already has.
+  const isComposerShown =
+    !readOnly && !showLoadError && !showFileApprovalBar && !showQuestionBar;
+  const {hasEnoughCredits, isPending: isCheckingCredits} = useSeerCreditCheck(
+    'agent_chat_message',
+    {enabled: isComposerShown}
+  );
+  // Gates every way this panel starts a message: the composer, suggestions, retry,
+  // `/investigate`, the autofix embeds, and a question forwarded from elsewhere.
+  const isOutOfCredits = !hasEnoughCredits;
+
   const suggestions = useChatSuggestions({
     enabled: isEmptyState && !chatPrompt && !showLoadError && !isPolling && !readOnly,
     allowStructuredContext: true,
@@ -386,7 +436,20 @@ export function SeerExplorerContent({
     if (!isEmptyState && !appendInitialQuery) {
       return;
     }
+    // The panel opens with the check in flight; sending before it answers would skip it.
+    if (isCheckingCredits) {
+      return;
+    }
     lastAutoSubmittedQueryRef.current = query;
+    if (isOutOfCredits) {
+      // Keep the question for after a top-up, unless the user has a draft there already.
+      setInputValue(current =>
+        (typeof current === 'string' ? current : current.text).trim()
+          ? current
+          : {text: query, mentions: []}
+      );
+      return;
+    }
     if (showLoadError) {
       // The open run failed to load, so appending to it would post into a dead run.
       // A forwarded query still deserves an answer: start it in a fresh one.
@@ -398,8 +461,11 @@ export function SeerExplorerContent({
     initialQuery,
     appendInitialQuery,
     isEmptyState,
+    isCheckingCredits,
+    isOutOfCredits,
     showLoadError,
     sendMessage,
+    setInputValue,
     blocks.length,
   ]);
 
@@ -415,36 +481,6 @@ export function SeerExplorerContent({
     },
     [sendMessage]
   );
-
-  // - Pending user input (file approval + questions) -------------------------
-  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
-  // diff controls.
-  const pendingUserInputState = usePendingUserInput({
-    isAwaitingUserInput,
-    pendingInput,
-    respondToUserInput,
-    scrollContainerRef,
-    userScrolledUpRef,
-  });
-  const {
-    isFileApprovalPending,
-    fileApprovalIndex,
-    fileApprovalTotalPatches,
-    handleFileApprovalApprove,
-    handleFileApprovalReject,
-    isQuestionPending,
-    questionIndex,
-    totalQuestions,
-    currentQuestion,
-    canSubmitQuestion,
-    handleQuestionNext,
-    handleQuestionBack,
-    handleQuestionMoveUp,
-    handleQuestionMoveDown,
-    isReauthPending,
-    reauthData,
-    handleReauthComplete,
-  } = pendingUserInputState;
 
   const showReauth = isReauthPending && isReauthEnabled(organization);
 
@@ -580,8 +616,16 @@ export function SeerExplorerContent({
 
   // - Input section handlers -------------------------------------------------
   const canSendMessage =
-    !readOnly && !showLoadError && !isPolling && !!inputValue.text.trim();
+    !readOnly &&
+    !showLoadError &&
+    !isPolling &&
+    !isOutOfCredits &&
+    !!inputValue.text.trim();
   const handleSend = useCallback(() => {
+    // Checked before `/investigate`, which starts a run of its own. The draft stays.
+    if (isOutOfCredits) {
+      return;
+    }
     const text = inputValue.text.trim();
     // `/investigate` runs here whether or not a question follows it; the menu
     // only completes it. It doesn't wait for Seer to finish responding.
@@ -603,6 +647,7 @@ export function SeerExplorerContent({
     userScrolledUpRef.current = false;
   }, [
     canSendMessage,
+    isOutOfCredits,
     inputValue,
     startInvestigation,
     sendMessage,
@@ -647,7 +692,7 @@ export function SeerExplorerContent({
   }, [startNewSession, focusInput, readOnly, showLoadError]);
 
   const handleRetry = useCallback(() => {
-    if (!retryTarget || readOnly) {
+    if (!retryTarget || readOnly || isOutOfCredits) {
       return;
     }
     // Seer rebuilds the retried message from this request, so resend the question it answered.
@@ -658,7 +703,7 @@ export function SeerExplorerContent({
       retryTarget.chatPrompt
     );
     userScrolledUpRef.current = false;
-  }, [readOnly, retryTarget, sendMessage]);
+  }, [readOnly, isOutOfCredits, retryTarget, sendMessage]);
 
   // - Scroll effects ---------------------------------------------------------
 
@@ -791,7 +836,7 @@ export function SeerExplorerContent({
   return (
     <AutofixChatProvider
       isBusy={isPolling}
-      sendMessage={readOnly ? undefined : postMessage}
+      sendMessage={readOnly || isOutOfCredits ? undefined : postMessage}
     >
       <Stack
         ref={rootRef}
@@ -821,7 +866,9 @@ export function SeerExplorerContent({
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
               displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
-              onSuggestionClick={readOnly ? undefined : handleSuggestionClick}
+              onSuggestionClick={
+                readOnly || isOutOfCredits ? undefined : handleSuggestionClick
+              }
               suggestions={suggestions}
             />
           ) : (
@@ -855,6 +902,7 @@ export function SeerExplorerContent({
                     variant="secondary"
                     icon={<IconRefresh />}
                     onClick={handleRetry}
+                    disabled={isOutOfCredits}
                   >
                     {t('Retry')}
                   </Alert.Button>
@@ -885,6 +933,13 @@ export function SeerExplorerContent({
           }
           inputValue={inputValue}
           canSendMessage={canSendMessage}
+          notice={
+            isOutOfCredits ? (
+              <Container data-test-id="seer-explorer-out-of-credits">
+                <SeerOutOfCreditsCta />
+              </Container>
+            ) : undefined
+          }
           interruptState={interruptState}
           onInputChange={handleInputChange}
           onInputClick={handleInputClick}
@@ -896,7 +951,7 @@ export function SeerExplorerContent({
           isSingleRun={featureId === SINGLE_RUN_FEATURE_ID}
           composerRef={composerRef}
           fileApprovalActions={
-            isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches
+            showFileApprovalBar
               ? {
                   currentIndex: fileApprovalIndex,
                   totalPatches: fileApprovalTotalPatches,
@@ -906,7 +961,7 @@ export function SeerExplorerContent({
               : undefined
           }
           questionActions={
-            isQuestionPending && currentQuestion
+            showQuestionBar
               ? {
                   currentIndex: questionIndex,
                   totalQuestions,

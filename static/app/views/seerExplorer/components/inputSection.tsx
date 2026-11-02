@@ -49,6 +49,8 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
+  /** Shown right above the composer, for example to say why sending is blocked. */
+  notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
 }
@@ -67,6 +69,7 @@ export function InputSection({
   repoPRStates,
   composerRef,
   fileApprovalActions,
+  notice,
   questionActions,
   runId,
   isSingleRun,
@@ -264,6 +267,7 @@ export function InputSection({
   return (
     <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
+      {notice ? <Container margin="lg xl 0">{notice}</Container> : null}
       <Flex align="end" margin="lg xl" gap="sm">
         <StyledComposer
           isWarningPlaceholder={interruptState === 'completed'}
