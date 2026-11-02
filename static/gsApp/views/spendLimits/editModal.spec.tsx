@@ -83,4 +83,38 @@ describe('SpendLimitsEditModal', () => {
     expect(await screen.findByText('Budget is too high.')).toBeInTheDocument();
     expect(props.closeModal).not.toHaveBeenCalled();
   });
+
+  it('shows the detail message from a payment required response', async () => {
+    const props = makeProps();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 402,
+      body: {detail: 'A payment source is required to continue.'},
+    });
+
+    render(<SpendLimitsEditModal {...props} />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText('A payment source is required to continue.')
+    ).toBeInTheDocument();
+    expect(props.closeModal).not.toHaveBeenCalled();
+  });
+
+  it('shows field errors returned as plain strings', async () => {
+    const props = makeProps();
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/ondemand-budgets/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {sharedMaxBudget: 'Budget is too high.'},
+    });
+
+    render(<SpendLimitsEditModal {...props} />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    expect(await screen.findByText('Budget is too high.')).toBeInTheDocument();
+    expect(props.closeModal).not.toHaveBeenCalled();
+  });
 });
