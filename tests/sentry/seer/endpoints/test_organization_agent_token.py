@@ -624,7 +624,6 @@ SERVICE_ACCOUNT_KNOWN_GAPS: dict[str, ServiceAccountGap] = {
     "ExternalTeam_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "ExternalTeamDetails_put": ServiceAccountGap.NO_TEAM_ACCESS,
-    "OrganizationMemberTeamDetails_post": ServiceAccountGap.NO_TEAM_ACCESS,
     "ProjectTeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamDetails": ServiceAccountGap.NO_TEAM_ACCESS,
     "TeamDetails_delete": ServiceAccountGap.NO_TEAM_ACCESS,
@@ -640,6 +639,7 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
     {
         "OrganizationGroupSearchViews",
         "OrganizationGroupSearchViews_post",
+        "OrganizationMemberTeamDetails_post",
         "OrganizationProjects_post",
         "OrganizationStarredServiceSpans_delete",
         "OrganizationStarredServiceSpans_post",

@@ -32,6 +32,7 @@ from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.auth.access import Access
+from sentry.auth.principal import require_user
 from sentry.auth.superuser import superuser_has_permission
 from sentry.core.endpoints.organization_member_utils import can_admin_team, can_set_team_role
 from sentry.models.groupassignee import GroupAssignee
@@ -44,7 +45,6 @@ from sentry.models.team import Team
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.roles import organization_roles, team_roles
 from sentry.roles.manager import TeamRole
-from sentry.service_accounts.auth import is_service_account_auth
 from sentry.utils import metrics
 
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
@@ -339,13 +339,9 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        # Service accounts reach projects only, never teams, so they can't change team
-        # membership, even with `all_projects`.
-        if is_service_account_auth(request.auth):
-            return Response(
-                {"detail": "Service accounts can't change team membership."}, status=403
-            )
+        # Without a team grant, the fallback files an access request with the caller as
+        # requester, which needs a user.
+        require_user(request)
 
         if not organization_roles.get(member.role).is_team_roles_allowed:
             return Response(
