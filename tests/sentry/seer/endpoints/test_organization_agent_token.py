@@ -590,9 +590,9 @@ OUTER_BOUNDARY_MUTATION_STATUSES = {
 AGENT_SUDO_BOUNDARY_MUTATIONS = frozenset({("TeamDetailsEndpoint", "DELETE")})
 
 
-# Oracle: an owner token with the account's scopes. The account is linked to the project
-# in an open-membership org, so it should reach everything the owner does. User-global
-# routes must deny it, since it has no user.
+# Oracle: an owner token with the account's scopes. The account has `all_projects`, so it
+# should reach every project the owner does. User-global routes must deny it, since it has
+# no user.
 SERVICE_ACCOUNT_SCOPES = frozenset(organization_roles.get("owner").scopes & GRANTABLE_SCOPES)
 
 
