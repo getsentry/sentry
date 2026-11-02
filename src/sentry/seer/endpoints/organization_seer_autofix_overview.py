@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, search
+from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -99,7 +99,7 @@ _ISSUE_SORT_TO_SEARCH = {
     "issue": "date",
     "events": "freq",
     "users": "user",
-    "recommended": "recommended",
+    "recommended": "recommended_v2",
 }
 
 
@@ -382,12 +382,6 @@ class OrganizationSeerAutofixOverviewEndpoint(OrganizationEndpoint):
 
         latest_run_per_group = self._latest_run_per_group(organization, project_ids, start, end)
         sort_by = _ISSUE_SORT_TO_SEARCH.get(sort)
-        if sort_by == "recommended" and features.has(
-            "organizations:issue-stream-recommended-sort-experimental",
-            organization,
-            actor=request.user,
-        ):
-            sort_by = "recommended_v2"
         if sort_by is not None:
             latest_run_per_group = self._reorder_by_issue_sort(
                 latest_run_per_group,
