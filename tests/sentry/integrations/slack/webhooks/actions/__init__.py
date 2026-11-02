@@ -21,7 +21,7 @@ class BaseEventTest(APITestCase):
             "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
         )
         self.project = self.create_project()
-        self.rule = self.create_project_rule(project=self.project)
+        self.workflow = self.create_workflow(organization=self.project.organization)
 
     @pytest.fixture(autouse=True)
     def mock_webhook_send(self):
@@ -87,7 +87,9 @@ class BaseEventTest(APITestCase):
             slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+            callback_id = orjson.dumps(
+                {"issue": self.group.id, "workflow": self.workflow.id}
+            ).decode()
 
         if original_message is None:
             original_message = {}
@@ -144,7 +146,9 @@ class BaseEventTest(APITestCase):
             original_message = {}
 
         if callback_id is None:
-            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
+            callback_id = orjson.dumps(
+                {"issue": self.group.id, "workflow": self.workflow.id}
+            ).decode()
 
         payload = {
             "type": type,

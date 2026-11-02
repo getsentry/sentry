@@ -12,6 +12,7 @@ from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotifica
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_halt_metric, assert_slo_metric
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
@@ -22,11 +23,12 @@ from sentry.testutils.helpers.analytics import (
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
-    create_notification_action_context,
+    create_action_context_for_workflow,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
 
@@ -47,7 +49,6 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = PagerDutyNotifyServiceAction
 
     def setUp(self) -> None:
-        self.project_rule = self.create_project_rule(name="Check #project-channel")
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration, org_integration = self.create_provider_integration_for(
                 self.organization,
@@ -64,6 +65,18 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 integration_key=SERVICES[0]["integration_key"],
             )
         self.installation = self.integration.get_installation(self.organization.id)
+        self.workflow = self.create_workflow(name="Check #project-channel")
+        self.action = self.create_action(
+            type=Action.Type.PAGERDUTY,
+            integration_id=self.integration.id,
+            config={
+                "target_identifier": str(self.service["id"]),
+                "target_type": ActionTarget.SPECIFIC,
+            },
+        )
+        self.action_context = create_action_context_for_workflow(
+            self.workflow, self.action, self.project
+        )
 
     @responses.activate
     @patch("sentry.analytics.record")
@@ -106,14 +119,14 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=self.action_context,
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == f"[{self.project_rule.label}]: {event.message}"
+        assert data["payload"]["summary"] == f"[{self.workflow.name}]: {event.message}"
         assert data["payload"]["custom_details"]["message"] == event.message
         assert event.group is not None
         assert data["links"][0]["href"] == event.group.get_absolute_url(
@@ -123,7 +136,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
             mock_record,
             AlertSentEvent(
                 provider="pagerduty",
-                alert_id=self.project_rule.id,
+                alert_id=self.action.id,
                 alert_type="issue_alert",
                 organization_id=self.organization.id,
                 project_id=event.project_id,
@@ -139,7 +152,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 project_id=event.project_id,
                 group_id=event.group_id,
                 notification_uuid=notification_uuid,
-                alert_id=self.project_rule.id,
+                alert_id=self.action.id,
             ),
         )
 
@@ -160,7 +173,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=self.action_context,
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])
@@ -169,7 +182,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         perf_issue_title = "N+1 Query"
 
         assert data["event_action"] == "trigger"
-        assert data["payload"]["summary"] == f"[{self.project_rule.label}]: {perf_issue_title}"
+        assert data["payload"]["summary"] == f"[{self.workflow.name}]: {perf_issue_title}"
         assert data["payload"]["custom_details"]["title"] == perf_issue_title
 
     @responses.activate
@@ -199,16 +212,14 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=self.action_context,
             kwargs=results[0].kwargs,
         )
         results[0].callback(group_event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
-        assert (
-            data["payload"]["summary"] == f"[{self.project_rule.label}]: {occurrence.issue_title}"
-        )
+        assert data["payload"]["summary"] == f"[{self.workflow.name}]: {occurrence.issue_title}"
         assert data["payload"]["custom_details"]["title"] == occurrence.issue_title
 
     @responses.activate
@@ -242,7 +253,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         rule_future = RuleFuture(
-            context=create_notification_action_context(self.project_rule),
+            context=self.action_context,
             kwargs=results[0].kwargs,
         )
         results[0].callback(event, futures=[rule_future])

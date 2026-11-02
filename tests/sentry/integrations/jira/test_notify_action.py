@@ -9,12 +9,13 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import (
     TEST_ISSUE_OCCURRENCE,
-    create_notification_action_context,
+    create_action_context_for_workflow,
 )
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 from sentry.utils import json
+from sentry.workflow_engine.models import Action
 
 pytestmark = [requires_snuba]
 
@@ -37,7 +38,8 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
-        rule = self.create_project_rule(project=self.project)
+        workflow = self.create_workflow()
+        action = self.create_action(type=Action.Type.JIRA, integration_id=self.integration.id)
         self.jira_rule = self.get_rule(
             data={
                 "issuetype": "1",
@@ -50,10 +52,8 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "issue_type": "Bug",
                 "fixVersions": "[10000]",
             },
-            context=create_notification_action_context(rule),
+            context=create_action_context_for_workflow(workflow, action, self.project),
         )
-        self.jira_rule.rule = self.create_project_rule(name="test rule")
-
         self.jira_rule.data["key"] = "APP-123"
 
     def create_issue_base(self, event):

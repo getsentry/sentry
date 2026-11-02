@@ -11,10 +11,11 @@ from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.notifications import create_notification_action_context
+from sentry.testutils.helpers.notifications import create_action_context_for_workflow
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
+from sentry.workflow_engine.models import Action
 
 from .test_issues import VstsIssueBase
 
@@ -49,7 +50,10 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
     def test_create_issue(self) -> None:
         self.mock_categories("ac7c05bb-7f8e-4880-85a6-e08f37fd4a10")
         event = self.get_event()
-        rule = self.create_project_rule(project=self.project)
+        workflow = self.create_workflow()
+        action = self.create_action(
+            type=Action.Type.AZURE_DEVOPS, integration_id=self.integration.model.id
+        )
         azuredevops_rule = self.get_rule(
             data={
                 "title": "Hello",
@@ -58,7 +62,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "work_item_type": "Microsoft.VSTS.WorkItemTypes.Task",
                 "integration": self.integration.model.id,
             },
-            context=create_notification_action_context(rule),
+            context=create_action_context_for_workflow(workflow, action, self.project),
         )
         responses.reset()
         responses.add(
@@ -119,7 +123,6 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
                 "integration": self.integration.model.id,
             }
         )
-        azuredevops_rule.rule = self.create_project_rule(name="test rule")
 
         results = list(azuredevops_rule.after(event=event))
         assert len(results) == 1
