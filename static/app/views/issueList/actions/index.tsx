@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -38,7 +38,13 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 
 import {ActionSet} from './actionSet';
 import {TrendHeader} from './headers';
-import {ConfirmAction, invalidateIssueQueries, performBulkUpdate} from './utils';
+import {
+  ConfirmAction,
+  getResolveDisabledReason,
+  invalidateIssueQueries,
+  issueResolveCapabilityOptions,
+  performBulkUpdate,
+} from './utils';
 
 type IssueListActionsProps = {
   allResultsVisible: boolean;
@@ -87,9 +93,12 @@ function ActionsBarPriority({
   onSelectStatsPeriod,
   statsPeriod,
   selection,
+  canResolve,
+  resolveDisabledReason,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
+  canResolve: boolean;
   columns: StreamGroupColumn[];
   displayReprocessingActions: boolean;
   handleDelete: () => void;
@@ -101,6 +110,7 @@ function ActionsBarPriority({
   pageSelected: boolean;
   query: string;
   queryCount: number;
+  resolveDisabledReason: string | undefined;
   selectedIdsSet: Set<string>;
   selectedProjectSlug: string | undefined;
   selection: PageFilters;
@@ -154,6 +164,8 @@ function ActionsBarPriority({
                           issues={selectedIdsSet}
                           allInQuerySelected={allInQuerySelected}
                           anySelected={anySelected}
+                          canResolve={canResolve}
+                          resolveDisabledReason={resolveDisabledReason}
                           multiSelected={multiSelected}
                           selectedProjectSlug={selectedProjectSlug}
                           onShouldConfirm={action =>
@@ -222,6 +234,18 @@ export function IssueListActions({
     useIssueSelectionActions();
   const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
     useIssueSelectionSummary();
+  const resolveCapability = useQuery(
+    issueResolveCapabilityOptions({
+      organizationSlug: organization.slug,
+      itemIds: allInQuerySelected
+        ? undefined
+        : groupIds.filter(id => selectedIdsSet.has(id)),
+      selection,
+      query,
+      sort,
+      enabled: anySelected && selectionEnabled && !displayReprocessingActions,
+    })
+  );
   const selectedProjectSlug = useMemo(() => {
     const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
@@ -328,6 +352,13 @@ export function IssueListActions({
   return (
     <StyledStickyHead ref={stickyHeadRef}>
       <ActionsBarPriority
+        canResolve={
+          resolveCapability.data?.canResolve === true && !resolveCapability.isError
+        }
+        resolveDisabledReason={getResolveDisabledReason(
+          resolveCapability.data?.canResolve,
+          resolveCapability.isError
+        )}
         isStuck={isStuck}
         query={query}
         queryCount={queryCount}

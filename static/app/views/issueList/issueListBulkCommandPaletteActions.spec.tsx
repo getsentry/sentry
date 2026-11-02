@@ -20,9 +20,10 @@ import {
 } from 'sentry/components/commandPalette/ui/cmdk';
 import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
+import {useCommandPaletteDispatch} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {GroupStatus} from 'sentry/types/group';
+import {GroupStatus, IssueCategory} from 'sentry/types/group';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {IssueListCommandPaletteActions} from 'sentry/views/issueList/issueListCommandPaletteActions';
 import {
@@ -34,6 +35,14 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 jest.mock('sentry/actionCreators/indicator');
 
 const organization = OrganizationFixture();
+
+function OpenCommandPalette() {
+  const dispatch = useCommandPaletteDispatch();
+  useLayoutEffect(() => {
+    dispatch({type: 'toggle modal'});
+  }, [dispatch]);
+  return null;
+}
 
 function CommandPaletteTree({
   onTree,
@@ -75,6 +84,10 @@ function SelectionInitializer() {
 describe('IssueListBulkCommandPaletteActions', () => {
   beforeEach(() => {
     GroupStore.reset();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-resolve-capability/',
+      body: {canResolve: true},
+    });
     jest.mocked(addLoadingMessage).mockClear();
     ConfigStore.loadInitialData({
       user: UserFixture({id: '1', name: 'Test User'}),
@@ -102,58 +115,77 @@ describe('IssueListBulkCommandPaletteActions', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows mark all actions when no issues are selected', async () => {
-    const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+  it.each([
+    {canResolve: true, expectedActions: ['Assigned to', 'Resolved', 'Archived']},
+    {canResolve: false, expectedActions: ['Assigned to', 'Archived']},
+  ])(
+    'uses API eligibility for mark-all resolution: $canResolve',
+    async ({canResolve, expectedActions}) => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-resolve-capability/',
+        body: {canResolve},
+      });
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
 
-    render(
-      <CommandPaletteProvider>
-        <IssueSelectionProvider visibleGroupIds={['1', '2']}>
-          <IssueListCommandPaletteActions
-            groupIds={['1', '2']}
-            onActionTaken={jest.fn()}
-            onQueryChange={jest.fn()}
-            onSortChange={jest.fn()}
-            query=""
-            queryCount={10}
-            selection={{
-              projects: [1],
-              environments: [],
-              datetime: {start: null, end: null, period: null, utc: true},
+      render(
+        <CommandPaletteProvider>
+          <OpenCommandPalette />
+          <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+            <IssueListCommandPaletteActions
+              groupIds={['1', '2']}
+              onActionTaken={jest.fn()}
+              onQueryChange={jest.fn()}
+              onSortChange={jest.fn()}
+              query=""
+              queryCount={10}
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: null, utc: true},
+              }}
+              sort={IssueSortOptions.DATE}
+            />
+          </IssueSelectionProvider>
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
             }}
-            sort={IssueSortOptions.DATE}
           />
-        </IssueSelectionProvider>
-        <SlotOutlets />
-        <CommandPaletteTree
-          onTree={tree => {
-            treeRef.current = tree;
-          }}
-        />
-      </CommandPaletteProvider>,
-      {organization}
-    );
+        </CommandPaletteProvider>,
+        {organization}
+      );
 
-    await waitFor(() => {
-      expect(treeRef.current.length).toBeGreaterThan(0);
-    });
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
 
-    const issueFeedNode = treeRef.current.find(
-      node => node.display.label === 'Issues Feed'
-    );
-    expect(issueFeedNode).toBeDefined();
+      await waitFor(() => {
+        const markAll = treeRef.current
+          .flatMap(node => node.children)
+          .find(child => child.display.label === 'Mark all issues as');
+        expect(markAll?.children.map(child => child.display.label).toSorted()).toEqual(
+          expectedActions.toSorted()
+        );
+      });
+      const issueFeedNode = treeRef.current.find(
+        node => node.display.label === 'Issues Feed'
+      );
+      expect(issueFeedNode).toBeDefined();
 
-    const issueFeedLabels = issueFeedNode!.children.map(child => child.display.label);
-    expect(issueFeedLabels).toContain('Filter by');
-    expect(issueFeedLabels).toContain('Mark all issues as');
+      const issueFeedLabels = issueFeedNode!.children.map(child => child.display.label);
+      expect(issueFeedLabels).toContain('Filter by');
+      expect(issueFeedLabels).toContain('Mark all issues as');
 
-    const markAllNode = issueFeedNode!.children.find(
-      child => child.display.label === 'Mark all issues as'
-    );
-    expect(markAllNode).toBeDefined();
-    expect(markAllNode!.children.map(child => child.display.label)).toEqual(
-      expect.arrayContaining(['Assigned to', 'Resolved', 'Archived'])
-    );
-  });
+      const markAllNode = issueFeedNode!.children.find(
+        child => child.display.label === 'Mark all issues as'
+      );
+      expect(markAllNode).toBeDefined();
+      expect(markAllNode!.children.map(child => child.display.label).toSorted()).toEqual(
+        expectedActions.toSorted()
+      );
+    }
+  );
 
   it('shows resolve and archive actions when all matching issues are selected', async () => {
     GroupStore.add([
@@ -169,6 +201,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
     render(
       <CommandPaletteProvider>
+        <OpenCommandPalette />
         <IssueSelectionProvider visibleGroupIds={['1', '2']}>
           <SelectionInitializer />
           <IssueListBulkCommandPaletteActions
@@ -199,6 +232,11 @@ describe('IssueListBulkCommandPaletteActions', () => {
       expect(treeRef.current.length).toBeGreaterThan(0);
     });
 
+    await waitFor(() => {
+      expect(
+        treeRef.current.flatMap(node => node.children.map(child => child.display.label))
+      ).toContain('Resolve');
+    });
     const labels = treeRef.current.flatMap(node => [
       node.display.label,
       ...node.children.map(child => child.display.label),
@@ -233,6 +271,56 @@ describe('IssueListBulkCommandPaletteActions', () => {
     );
   });
 
+  it.each([IssueCategory.METRIC, IssueCategory.CONFIGURATION])(
+    'omits bulk resolve when the selection includes %s issues',
+    async issueCategory => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues-resolve-capability/',
+        body: {canResolve: false},
+      });
+      GroupStore.add([GroupFixture({id: '1'}), GroupFixture({id: '2', issueCategory})]);
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
+
+      render(
+        <CommandPaletteProvider>
+          <OpenCommandPalette />
+          <IssueSelectionProvider visibleGroupIds={['1', '2']}>
+            <SelectionInitializer />
+            <IssueListBulkCommandPaletteActions
+              groupIds={['1', '2']}
+              sort={IssueSortOptions.DATE}
+              query=""
+              queryCount={10}
+              selection={{
+                projects: [1],
+                environments: [],
+                datetime: {start: null, end: null, period: '24h', utc: true},
+              }}
+            />
+          </IssueSelectionProvider>
+          <SlotOutlets />
+          <CommandPaletteTree
+            onTree={tree => {
+              treeRef.current = tree;
+            }}
+          />
+        </CommandPaletteProvider>,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(treeRef.current.length).toBeGreaterThan(0);
+      });
+
+      const labels = treeRef.current.flatMap(node => [
+        node.display.label,
+        ...node.children.map(child => child.display.label),
+      ]);
+      expect(labels).not.toContain('Resolve');
+      expect(labels).toContain('Archive');
+    }
+  );
+
   it('shows a loader when marking all issues as resolved', async () => {
     const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
 
@@ -244,6 +332,7 @@ describe('IssueListBulkCommandPaletteActions', () => {
 
     render(
       <CommandPaletteProvider>
+        <OpenCommandPalette />
         <IssueSelectionProvider visibleGroupIds={['1', '2']}>
           <IssueListCommandPaletteActions
             groupIds={['1', '2']}
@@ -275,6 +364,12 @@ describe('IssueListBulkCommandPaletteActions', () => {
       expect(treeRef.current.length).toBeGreaterThan(0);
     });
 
+    await waitFor(() => {
+      const labels = treeRef.current.flatMap(node =>
+        node.children.flatMap(child => child.children.map(action => action.display.label))
+      );
+      expect(labels).toContain('Resolved');
+    });
     const issueFeedNode = treeRef.current.find(
       node => node.display.label === 'Issues Feed'
     );

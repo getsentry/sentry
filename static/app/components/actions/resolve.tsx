@@ -306,6 +306,7 @@ interface ResolveActionsProps {
   disableDropdown?: boolean;
   disableResolveInRelease?: boolean;
   disabled?: boolean;
+  disabledReason?: string;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
   projectFetchError?: boolean;
@@ -323,6 +324,7 @@ export function ResolveActions({
   confirmMessage,
   shouldConfirm,
   disabled,
+  disabledReason,
   disableDropdown,
   disableResolveInRelease,
   variant = 'secondary',
@@ -349,8 +351,10 @@ export function ResolveActions({
           size={size}
           tooltipProps={{
             delay: 1000,
-            disabled,
-            title: t("We'll nag you with a notification if another event is seen."),
+            disabled: disabled && !disabledReason,
+            title:
+              disabledReason ??
+              t("We'll nag you with a notification if another event is seen."),
           }}
           onClick={() =>
             openConfirmModal({

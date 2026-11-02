@@ -28,6 +28,7 @@ import {ConfirmAction, getConfirm, getLabel} from './utils';
 type Props = {
   allInQuerySelected: boolean;
   anySelected: boolean;
+  canResolve: boolean;
   issues: Set<string>;
   multiSelected: boolean;
   onDelete: () => void;
@@ -36,6 +37,7 @@ type Props = {
   onUpdate: (data: IssueUpdateData) => void;
   query: string;
   queryCount: number;
+  resolveDisabledReason: string | undefined;
   selectedProjectSlug?: string;
 };
 
@@ -51,6 +53,8 @@ export function ActionSet({
   onDelete,
   onMerge,
   selectedProjectSlug,
+  canResolve,
+  resolveDisabledReason,
 }: Props) {
   const organization = useOrganization();
   const area = useAnalyticsArea();
@@ -260,6 +264,8 @@ export function ActionSet({
         onShouldConfirm={onShouldConfirm}
         onUpdate={handleUpdate}
         anySelected={anySelected}
+        disabled={!canResolve}
+        disabledReason={resolveDisabledReason}
         confirm={confirm}
         label={label}
         selectedProjectSlug={selectedProjectSlug}

@@ -30,7 +30,9 @@ class IssueListPage(BasePage):
         self.issue_details = IssueDetailsPage(self.browser, self.client)
 
     def resolve_issues(self):
-        self.browser.click('[aria-label="Resolve"]')
+        selector = '[aria-label="Resolve"]:not([aria-disabled="true"])'
+        self.browser.wait_until_clickable(selector)
+        self.browser.click(selector)
 
     def wait_for_issue_count(self, count: int) -> None:
         WebDriverWait(self.driver, 10).until(

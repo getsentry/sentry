@@ -44,6 +44,10 @@ describe('IssueListOverview (actions)', () => {
   beforeEach(() => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1200);
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues-resolve-capability/',
+      body: {canResolve: true},
+    });
     GroupStore.reset();
     IssueListCacheStore.reset();
 
