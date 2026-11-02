@@ -380,6 +380,26 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert [item["id"] for item in response.data] == [str(group_1.id), str(group_2.id)]
 
+    def test_sort_by_inbox_my_teams_without_teams(self) -> None:
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="owner", teams=[])
+        self.login_as(user=user)
+
+        query = "is:unresolved is:for_review"
+        project = [self.project.id]
+        response = self.get_success_response(sort="inbox", query=query, project=project)
+        assert [item["id"] for item in response.data] == [str(group.id)]
+
+        response = self.get_success_response(
+            sort="inbox", query=f"{query} assigned_or_suggested:my_teams", project=project
+        )
+        assert response.data == []
+
     def test_trace_search(self) -> None:
         event = self.store_event(
             data={
