@@ -574,7 +574,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             sample_rate=1.0,
         )
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_failed_investigation_dispatch_fails_the_run(self) -> None:
         self.attach_service_account()
 
@@ -590,7 +590,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert not Notebook.objects.exists()
         assert not SeerWorkflowOutputLink.objects.exists()
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_breach_links_the_active_investigation_for_its_open_period(self) -> None:
         self.attach_service_account()
         notebook = self.create_active_investigation(InvestigationOrchestrationStatus.PROCESSING)
@@ -614,7 +614,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert run.status == SeerWorkflowRunStatus.COMPLETE
         assert execution.status == SeerWorkflowExecutionStatus.COMPLETE
 
-    @with_feature("organizations:investigations")
+    @with_feature(["organizations:investigations", "organizations:service-accounts"])
     def test_breach_completes_at_once_when_the_linked_investigation_already_finished(
         self,
     ) -> None:
@@ -648,7 +648,9 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         self.organization.flags.allow_joinleave = True
         self.organization.save()
         with outbox_runner():
-            account = self.create_service_account(organization=self.organization)
+            account = self.create_service_account(
+                organization=self.organization, project_ids=[self.project.id]
+            )
         self.config.update(service_account_id=account.id)
 
     def process_breach_workflow(
