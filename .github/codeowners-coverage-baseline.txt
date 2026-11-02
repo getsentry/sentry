@@ -2343,7 +2343,6 @@ tests/sentry/testutils/thread_leaks/test_sentry.py
 tests/sentry/tsdb/__init__.py
 tests/sentry/tsdb/test_base.py
 tests/sentry/tsdb/test_redis.py
-tests/sentry/tsdb/test_redissnuba.py
 tests/sentry/tsdb/test_snuba.py
 tests/sentry/types/__init__.py
 tests/sentry/types/test_actor.py

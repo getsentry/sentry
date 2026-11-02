@@ -380,6 +380,9 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin", "dashboard:write"],
     }
 
+    # dashboard:read and dashboard:write replace org:read in orgs with granular scopes.
+    rejects_deprecated_scopes = True
+
     def has_object_permission(
         self,
         request: Request,

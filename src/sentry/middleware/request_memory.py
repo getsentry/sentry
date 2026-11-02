@@ -134,7 +134,14 @@ class RequestMemoryMiddleware:
             "rpc_method": rpc_method or "none",
             "concurrent": "true" if overlapping > 0 else "false",
         }
-        metrics.distribution("middleware.request_rss_growth", growth_mb, tags=tags, unit="megabyte")
+        # These are rare, so record every one instead of the default sample rate.
+        metrics.distribution(
+            "middleware.request_rss_growth",
+            growth_mb,
+            tags=tags,
+            sample_rate=1.0,
+            unit="megabyte",
+        )
         logger.info(
             "request.rss_growth",
             extra={

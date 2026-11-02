@@ -41,7 +41,7 @@ WORKFLOW_RUNS_RESPONSE = [
                     "dateAdded": "2025-01-02T10:00:00Z",
                     "dateUpdated": "2025-01-02T10:00:20Z",
                     "dateCompleted": "2025-01-02T10:00:20Z",
-                    "error": {"code": "unknown", "message": "No error details are available."},
+                    "error": None,
                     "executions": [
                         {
                             "id": "202",

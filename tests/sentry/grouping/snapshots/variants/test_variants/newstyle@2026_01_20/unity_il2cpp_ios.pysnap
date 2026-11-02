@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "8760559d1e6a17097dca358c8389b245"
+  hash: "f63a7669760e8a0c2dcecbc06dc16f93"
   contributing component: exception
   hint: None
   root_component:
@@ -16,12 +16,12 @@ app:
           frame (marked out of app by built-in stacktrace rule (category:system -app))
             function*
               "start"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (family:native function:main | [category:il2cpp] -app))
             filename*
               "main.mm"
             function*
               "main"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
             filename*
               "main.mm"
             function*
@@ -29,46 +29,46 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
             function*
               "-[UnityAppController repaint]"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:framework -app))
             function*
               "PlayerLoop"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:framework -app))
             function*
               "ScriptingInvocation::Invoke"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
             filename*
               "il2cppinvokertable.cpp"
             function*
               "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
             filename*
               "enemyspawner.cs"
             function*
               "EnemySpawner_Update"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Packages/** +app))
             filename*
               "combatsystem.cs"
             function*
               "CombatSystem_ApplyDamage"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp path:**/Library/PackageCache/** -app))
             filename*
               "tmp_text.cs"
             function*
               "TMP_Text_SetText"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp path:**/unity/Modules/** -app))
             filename*
               "animation.bindings.cs"
             function*
               "Animation_Play"
-          frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+          frame (marked out of app by built-in stacktrace rule (category:il2cpp -app))
             filename*
               "il2cppcodegen.cpp"
             function*
               "il2cpp_codegen_raise_null_reference_exception"
-          frame (marked out of app by built-in stacktrace rule (family:native function:?[[]Sentry* -app))
+          frame (marked out of app by built-in stacktrace rule (category:telemetry -app))
             function*
               "-[SentryCrashInstallationReporter reportCrash]"
           frame (marked out of app by built-in stacktrace rule (category:internals -app))

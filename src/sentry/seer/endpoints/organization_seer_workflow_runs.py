@@ -113,7 +113,7 @@ class SeerWorkflowRunStateResponse(SeerWorkflowRunResponseBase):
 
 class SeerWorkflowRunErrorResponse(SeerWorkflowRunResponseBase):
     status: Literal[SeerWorkflowRunStatus.FAILED, SeerWorkflowRunStatus.REJECTED]
-    error: SeerWorkflowErrorResponse
+    error: SeerWorkflowErrorResponse | None
 
 
 SeerWorkflowRunResponse = SeerWorkflowRunStateResponse | SeerWorkflowRunErrorResponse
@@ -168,6 +168,13 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         ``status`` distinguishes failed/rejected records, which include an ``error``
         code and display-safe message, from other records, which omit ``error``.
+        A run fails or is rejected in one of two ways:
+
+        - Rejected (e.g. over quota) or failed before starting any execution: the
+          run's ``error`` says why and it has no executions.
+        - Failed because one or more executions failed: the run's ``error`` is null
+          and each failed execution carries its own ``error``.
+
         Missing error details use code ``unknown``. Historical rows without lifecycle
         tracking retain a null status. ``seerRunId`` is the linked Seer UUID or null.
         Limited-access members must be able to access every project in the saved run
@@ -249,10 +256,11 @@ def serialize_workflow_run(run: SeerWorkflowRun) -> SeerWorkflowRunResponse:
     }
     status = SeerWorkflowRunStatus(run.status) if run.status is not None else None
     if status == SeerWorkflowRunStatus.FAILED or status == SeerWorkflowRunStatus.REJECTED:
+        error = run.extras.get("error")
         return {
             **result,
             "status": status,
-            "error": serialize_workflow_error(run.extras.get("error")),
+            "error": serialize_workflow_error(error) if error is not None else None,
         }
     return {**result, "status": status}
 

@@ -10,6 +10,7 @@ from django.http import HttpRequest
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
+from sentry.auth.principal import set_request_principal
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.middleware.placeholder import placeholder_get_response
 from sentry.testutils.factories import Factories
@@ -29,8 +30,7 @@ def request_factory(f):
                 login(request, user)
                 AuthenticationMiddleware(placeholder_get_response).process_request(request)
             else:
-                request.user = user
-                request.auth = None
+                set_request_principal(request, user, None)
             cache.clear()
         return result
 
