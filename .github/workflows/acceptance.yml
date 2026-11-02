@@ -49,7 +49,8 @@ jobs:
     if: needs.files-changed.outputs.acceptance == 'true'
     needs: files-changed
     name: acceptance
-    runs-on: ubuntu-24.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -68,11 +69,14 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: '2'
+      XDIST_WORKERS: '3'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+
+      - name: Start resource monitor
+        run: python3 .github/workflows/scripts/monitor-resources.py --start
 
       # devservices bind mounts this into chartcuterie. Create it up front so
       # docker doesn't create it as root before the config module is built.
@@ -123,6 +127,24 @@ jobs:
       # than later ones, which is consistent with a cold disk and font cache.
       # Launch it once here, while webpack builds, so the test workers don't
       # pay that.
+      # Arm runner images have no Google Chrome or chromedriver. Use the Chromium
+      # snap behind wrappers with the names the steps below look for. Wrappers,
+      # not symlinks: snap picks the app from argv[0].
+      - name: Install Chromium (Arm)
+        if: runner.arch == 'ARM64'
+        run: |
+          # The snap store intermittently times out (HTTP 408), so retry.
+          for attempt in 1 2 3 4 5; do
+            sudo snap install chromium && break
+            [ "$attempt" -lt 5 ] || exit 1
+            sleep $((attempt * 10))
+          done
+          printf '#!/bin/sh\nexec /snap/bin/chromium "$@"\n' | sudo tee /usr/local/bin/google-chrome >/dev/null
+          printf '#!/bin/sh\nexec /snap/bin/chromium.chromedriver "$@"\n' | sudo tee /usr/local/bin/chromedriver >/dev/null
+          sudo chmod 755 /usr/local/bin/google-chrome /usr/local/bin/chromedriver
+          google-chrome --version
+          chromedriver --version
+
       - name: Warm up Chrome in the background
         run: |
           if command -v google-chrome && command -v chromedriver; then
@@ -151,6 +173,15 @@ jobs:
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
 
+      # See the same step in backend.yml.
+      - name: Make the Kafka healthcheck cheap
+        continue-on-error: true
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         run: |
           export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
@@ -161,6 +192,22 @@ jobs:
           timeout -k 30 1200 make run-acceptance || rc=$?
           [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
           exit "${rc:-0}"
+
+      - name: Stop resource monitor
+        if: always()
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      - name: Upload resource usage
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: acceptance-resource-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: |
+            .artifacts/resource-usage.jsonl
+            .artifacts/resource-usage-summary.json
+          retention-days: 30
 
       - name: Inspect failure
         if: failure()

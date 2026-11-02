@@ -54,20 +54,40 @@ jobs:
     needs: files-changed
     name: api docs test
     runs-on: ubuntu-24.04
+    env:
+      DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Setup sentry python env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          skip-devservices: 'true'
+
+      # Only the pytest step needs devservices (~60s to pull and get healthy in
+      # default mode), so bring them up while node is set up and the specs build.
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          DEVSERVICES_MODE: default
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sentry init
+          python3 .github/actions/setup-sentry/devservices-bg.py start
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Build and validate API docs
+        run: make validate-api-docs
+
+      - name: Wait for devservices
+        run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
       - name: Run API docs tests
-        run: |
-          make test-api-docs
+        run: python3 -b -m pytest tests/apidocs --reuse-db
 
       - name: Inspect failure
         if: failure()
@@ -187,10 +207,18 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
 
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
+
       - name: Calculate test shards
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
+          SELECTED_TESTS_FILE: .artifacts/selected-tests.txt
           SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -203,7 +231,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-24.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -224,10 +253,13 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      XDIST_WORKERS: '4'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Start resource monitor
+        run: python3 .github/workflows/scripts/monitor-resources.py --start
 
       # Overlaps the per-worker ClickHouse bootstrap with devservices up.
       - name: Start per-worker Snuba bootstrap in the background
@@ -258,7 +290,8 @@ jobs:
             -v /tmp/pg-sock:/var/run/postgresql \
             -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
             "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
+              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
+              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
           # docker run -d returns 0 even if postgres dies right after — bound the
           # wait so a crashing postgres surfaces fast instead of hitting the job
           # timeout silently.
@@ -275,14 +308,42 @@ jobs:
 
       - name: Download odiff binary
         run: |
+          case "$(uname -m)" in
+            aarch64) odiff=odiff-linux-arm64 ;;
+            *) odiff=odiff-linux-x64 ;;
+          esac
           curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
+          sudo install -m 755 "$odiff" /usr/local/bin/odiff
+          rm "$odiff"
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
+
+      # sentry-shared-kafka's healthcheck runs `kafka-topics --list` every 5s, which starts
+      # a JVM each time: about 0.25 of the runner's 4 cores during tests. Everything that
+      # waits on Kafka's health is done by now, so answer that exact command with a TCP
+      # probe instead (kafka-topics-healthcheck.sh).
+      - name: Make the Kafka healthcheck cheap
+        continue-on-error: true
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+
+      # To profile pytest and its xdist workers (adds ~0.4 cores of overhead), uncomment
+      # this step, run the test command through
+      # .github/workflows/scripts/profile-backend-tests.sh, and add .artifacts/py-spy.txt
+      # to the resource usage upload.
+      # - name: Install py-spy
+      #   run: |
+      #     uv tool install py-spy==0.4.1
+      #     echo "PY_SPY=$(uv tool dir --bin)/py-spy" >> "$GITHUB_ENV"
+      #     echo "PY_SPY_OUTPUT=$PWD/.artifacts/py-spy.txt" >> "$GITHUB_ENV"
+      #     # py-spy attaches to the running pytest controller, which isn't its child.
+      #     sudo sysctl -w kernel.yama.ptrace_scope=0
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -308,6 +369,11 @@ jobs:
             make test-python-ci
           fi
 
+      - name: Stop resource monitor
+        if: always()
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
       - name: Extract test durations
@@ -325,6 +391,17 @@ jobs:
         with:
           name: backend-test-durations-${{ github.run_id }}-${{ matrix.instance }}
           path: .artifacts/test-durations.json
+          retention-days: 30
+
+      - name: Upload resource usage
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-resource-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: |
+            .artifacts/resource-usage.jsonl
+            .artifacts/resource-usage-summary.json
           retention-days: 30
 
       - name: Report failures
@@ -579,9 +656,12 @@ jobs:
         id: setup
         with:
           mode: migrations
+          early-devservices: 'true'
 
+      # The backup tests are mostly waiting on postgres, so 4 workers cut ~4m to ~1.5m.
       - name: Run test
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n 4 --dist=load"
           make test-monolith-dbs
 
       - name: Report failures
