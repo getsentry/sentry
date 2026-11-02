@@ -2275,8 +2275,7 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
         self.deliver(self.text_block_upserted(6, "new", 3, "new body"))
         self.deliver(self.event(7, "report_completed", {"reportRevision": 3}))
 
-        edited.refresh_from_db()
-        assert edited.deleted_at is not None
+        assert NotebookBlock.objects.get(id=edited.id).deleted_at is not None
         new = NotebookBlock.objects.get(producer_key="new")
         assert new.deleted_at is None
         self.orchestration_run.refresh_from_db()
