@@ -95,7 +95,46 @@ class SeerWorkflow:
             )
 
     @classmethod
-    def create_config(
+    @contextmanager
+    def _create_base(
+        cls,
+        *,
+        organization_id: int,
+        strategy: SeerWorkflowStrategy,
+        enabled: bool,
+        filters: SeerWorkflowFilters,
+        name: str | None = None,
+    ) -> Iterator[tuple[SeerWorkflowConfig, str]]:
+        """
+        Create a config within the org's automation limit and yield it with its database
+        inside the transaction, so callers can make related writes atomically.
+        """
+        database = router.db_for_write(SeerWorkflowConfig)
+        with transaction.atomic(database):
+            existing = (
+                SeerWorkflowConfig.objects.using(database)
+                .filter(
+                    organization_id=organization_id,
+                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+                )
+                .count()
+            )
+            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
+                raise WorkflowUpdateError(
+                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
+                )
+
+            config = SeerWorkflowConfig.objects.using(database).create(
+                organization_id=organization_id,
+                strategy=strategy,
+                enabled=enabled,
+                filters=filters.dict(),
+                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
+            )
+            yield config, database
+
+    @classmethod
+    def create(
         cls,
         *,
         organization_id: int,
@@ -112,55 +151,35 @@ class SeerWorkflow:
         """
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
+        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise WorkflowUpdateError(
+                "Breached metric projects are selected by connecting monitors"
+            )
 
-        requested = set(project_ids)
-        all_projects = requested == ALL_ACCESS_PROJECTS
+        project_set = set(project_ids)
+        all_projects = project_set == ALL_ACCESS_PROJECTS
         if all_projects:
             # [-1] is not stored as project links, only in config.filters
-            requested = set()
+            project_set = set()
+        cls._validate_project_ids(organization_id, project_set)
 
-        database = router.db_for_write(SeerWorkflowConfig)
-        with transaction.atomic(database):
-            existing = (
-                SeerWorkflowConfig.objects.using(database)
-                .filter(
-                    organization_id=organization_id,
-                    strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-                )
-                .count()
-            )
-            if existing >= MAX_WORKFLOW_CONFIGS_PER_ORG:
-                raise WorkflowUpdateError(
-                    f"Organizations can have at most {MAX_WORKFLOW_CONFIGS_PER_ORG} automations"
-                )
-
-            if requested:
-                valid_project_ids = set(
-                    Project.objects.filter(
-                        organization_id=organization_id, id__in=requested
-                    ).values_list("id", flat=True)
-                )
-                if requested != valid_project_ids:
-                    raise WorkflowUpdateError(
-                        "Selected projects must exist in the workflow's organization"
-                    )
-
-            config = SeerWorkflowConfig.objects.using(database).create(
-                organization_id=organization_id,
-                strategy=strategy,
-                enabled=enabled,
-                schedule=schedule,
-                filters=SeerWorkflowFilters(
-                    all_projects=all_projects,
-                    environments=list(environments),
-                ).dict(),
-                extras=SeerWorkflowConfigExtras(name=name).dict(exclude_none=True),
-            )
-            if requested:
+        with cls._create_base(
+            organization_id=organization_id,
+            strategy=strategy,
+            enabled=enabled,
+            filters=SeerWorkflowFilters(
+                all_projects=all_projects,
+                environments=list(environments),
+            ),
+            name=name,
+        ) as (config, database):
+            config.schedule = schedule
+            config.save(using=database, update_fields=["schedule"])
+            if project_set:
                 SeerWorkflowConfigProject.objects.using(database).bulk_create(
                     [
                         SeerWorkflowConfigProject(config=config, project_id=project_id)
-                        for project_id in sorted(requested)
+                        for project_id in sorted(project_set)
                     ]
                 )
         return cls(config_id=config.id, organization_id=organization_id)
@@ -318,15 +337,7 @@ class SeerWorkflow:
                 raise WorkflowUpdateError(
                     "Breached metric projects are selected by connecting monitors"
                 )
-            valid_project_ids = set(
-                Project.objects.filter(
-                    organization_id=config.organization_id, id__in=project_ids
-                ).values_list("id", flat=True)
-            )
-            if project_ids != valid_project_ids:
-                raise WorkflowUpdateError(
-                    "Selected projects must exist in the workflow's organization"
-                )
+            self._validate_project_ids(config.organization_id, project_ids)
 
             existing = set(
                 SeerWorkflowConfigProject.objects.filter(config=config).values_list(
@@ -378,6 +389,16 @@ class SeerWorkflow:
 
     def _get_project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self._get_projects(config).order_by("id").values_list("id", flat=True))
+
+    @classmethod
+    def _validate_project_ids(cls, organization_id: int, project_ids: set[int]) -> None:
+        valid_project_ids = set(
+            Project.objects.filter(organization_id=organization_id, id__in=project_ids).values_list(
+                "id", flat=True
+            )
+        )
+        if project_ids != valid_project_ids:
+            raise WorkflowUpdateError("Selected projects must exist in the workflow's organization")
 
     def _get_projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
         """Return active projects in the config's scope; strategies may derive it differently."""

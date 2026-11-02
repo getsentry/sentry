@@ -131,6 +131,7 @@ class BreachedMetricWorkflow(SeerWorkflow):
         # TODO(telkins): Wire automation creation into the API/UI using this method.
         # TODO(telkins): Connect existing default Error Spike monitors when seeding the
         # default automation, and connect new projects' default monitors as they are created.
+        # TODO(aliu): use .create_config and make create() for base class
         config = SeerWorkflowConfig.objects.create(
             organization_id=organization_id,
             strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,

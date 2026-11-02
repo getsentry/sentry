@@ -285,7 +285,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             raise PermissionDenied(detail=denied)
 
         try:
-            workflow = SeerWorkflow.create_config(
+            workflow = SeerWorkflow.create(
                 organization_id=organization.id,
                 strategy=strategy,
                 enabled=data["enabled"],
