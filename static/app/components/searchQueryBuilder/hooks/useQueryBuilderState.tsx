@@ -211,6 +211,8 @@ type UpdateFilterKeyAction = {
   key: string;
   token: TokenResult<Token.FILTER>;
   type: 'UPDATE_FILTER_KEY';
+  focusOverride?: FocusOverride;
+  shouldCommitQuery?: boolean;
 };
 
 type UpdateFilterOpAction = {
@@ -949,7 +951,8 @@ function updateFilterKey(
   return {
     ...state,
     query: newQuery,
-    committedQuery: newQuery,
+    committedQuery: (action.shouldCommitQuery ?? true) ? newQuery : state.committedQuery,
+    focusOverride: action.focusOverride ?? state.focusOverride,
   };
 }
 

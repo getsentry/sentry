@@ -42,7 +42,8 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
   });
   const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
     useSearchQueryBuilderConfig();
-  const {dispatch} = useSearchQueryBuilderState();
+  const {dispatch, pendingFilterKey} = useSearchQueryBuilderState();
+  const isPending = pendingFilterKey === item.key;
 
   const currentFilterValueType = getFilterValueType(
     token,
@@ -73,6 +74,13 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
           type: 'UPDATE_FILTER_KEY',
           token,
           key: keyName,
+          // A filter without a value stays pending, so go back to its value
+          ...(isPending
+            ? {
+                focusOverride: {itemKey: item.key.toString(), part: 'value'},
+                shouldCommitQuery: false,
+              }
+            : {}),
         });
         onCommit();
         return;
@@ -90,7 +98,15 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
 
       onCommit();
     },
-    [currentFilterValueType, dispatch, getFieldDefinition, item.key, onCommit, token]
+    [
+      currentFilterValueType,
+      dispatch,
+      getFieldDefinition,
+      isPending,
+      item.key,
+      onCommit,
+      token,
+    ]
   );
 
   const onOptionSelected = useCallback(

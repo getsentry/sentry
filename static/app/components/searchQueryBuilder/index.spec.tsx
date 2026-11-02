@@ -5584,6 +5584,98 @@ describe('SearchQueryBuilder', () => {
           expect(mockOnChange).not.toHaveBeenCalled();
         });
 
+        describe('when changing the key', () => {
+          const keyChangeProps: SearchQueryBuilderProps = {
+            ...defaultProps,
+            filterKeys: {
+              'browser.name': {key: 'browser.name', name: 'browser.name'},
+              device: {key: 'device', name: 'device'},
+              countOne: {key: 'countOne', name: 'countOne'},
+              countTwo: {key: 'countTwo', name: 'countTwo'},
+            },
+            filterKeySections: [],
+            fieldDefinitionGetter: key =>
+              key.startsWith('count')
+                ? {valueType: FieldValueType.NUMBER, kind: FieldKind.FIELD}
+                : {valueType: FieldValueType.STRING, kind: FieldKind.TAG},
+          };
+
+          async function changeKey(from: string, to: string) {
+            await userEvent.click(
+              screen.getByRole('button', {
+                name: `Edit key for filter: ${from}`,
+                hidden: true,
+              })
+            );
+            await userEvent.clear(
+              screen.getByRole('combobox', {name: 'Edit filter key'})
+            );
+            await userEvent.click(screen.getByRole('option', {name: to}));
+          }
+
+          it('keeps the filter without a value when its key is changed', async () => {
+            const mockOnChange = jest.fn();
+            const mockOnSearch = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...keyChangeProps}
+                onChange={mockOnChange}
+                onSearch={mockOnSearch}
+              />
+            );
+            await userEvent.click(getLastInput());
+            await userEvent.click(screen.getByRole('option', {name: 'countOne'}));
+            await screen.findByRole('row', {name: 'countOne:>'});
+
+            await changeKey('countOne', 'countTwo');
+
+            expect(
+              await screen.findByRole('row', {name: 'countTwo:>'})
+            ).toBeInTheDocument();
+            await waitFor(() => {
+              expect(
+                screen.getByRole('combobox', {name: 'Edit filter value'})
+              ).toHaveFocus();
+            });
+            expect(mockOnChange).not.toHaveBeenCalled();
+            expect(mockOnSearch).not.toHaveBeenCalled();
+
+            await userEvent.keyboard('5{Enter}');
+
+            expect(mockOnChange).toHaveBeenCalledTimes(1);
+            expect(mockOnChange).toHaveBeenCalledWith('countTwo:>5', expect.anything());
+          });
+
+          it('keeps the previous query while the new key has no value', async () => {
+            const mockOnChange = jest.fn();
+            const mockOnSearch = jest.fn();
+            render(
+              <SearchQueryBuilder
+                {...keyChangeProps}
+                initialQuery="browser.name:firefox OR device:foo"
+                onChange={mockOnChange}
+                onSearch={mockOnSearch}
+              />
+            );
+
+            await changeKey('browser.name', 'countOne');
+            await screen.findByRole('row', {name: 'countOne:>'});
+            await changeKey('countOne', 'countTwo');
+            await screen.findByRole('row', {name: 'countTwo:>'});
+
+            expect(mockOnChange).not.toHaveBeenCalled();
+            expect(mockOnSearch).not.toHaveBeenCalled();
+
+            await userEvent.keyboard('5{Enter}');
+
+            expect(mockOnChange).toHaveBeenCalledTimes(1);
+            expect(mockOnChange).toHaveBeenCalledWith(
+              'countTwo:>5 OR device:foo',
+              expect.anything()
+            );
+          });
+        });
+
         it('commits the placeholder value after an invalid value is rejected', async () => {
           const mockOnChange = jest.fn();
           const mockOnSearch = jest.fn();
