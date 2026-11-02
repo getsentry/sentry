@@ -5,9 +5,22 @@ import os
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+from tools.api_guidelines.rules import ApiRule
 from tools.flake8_plugin import (
     ApiInputViolation,
+    S021_msg,
+    S022_bare_msg,
+    S022_missing_msg,
+    S023_bad_path_msg,
+    S023_blank_reason_msg,
+    S023_ghost_msg,
+    S023_no_reason_msg,
+    S023_not_mapping_msg,
+    S025_body_msg,
+    S025_query_msg,
     S026_msg,
+    S027_msg,
+    S028_msg,
     S030_allowlist,
     SentryCheck,
     _s015_msg,
@@ -2174,7 +2187,7 @@ class E(Endpoint):
 """
     assert _api_violations(src) == [
         ApiInputViolation(
-            rule="S026",
+            rule=ApiRule.S026,
             message=S026_msg.format(repr("truncate"), "query string"),
             line=5,
             column=15,
@@ -2218,6 +2231,48 @@ class E(Endpoint):
     assert violations[3].rule == "S028"
     assert violations[3].scope == "E.post"
     assert violations[3].key == "body:helper"
+
+
+def test_api_violations_rule_is_an_api_rule() -> None:
+    src = """\
+class E(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC, "POST": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        QuerySerializer(data=request.GET)
+        request.GET.get("truncate")
+        return request.GET.get(some_name)
+
+    def post(self, request) -> Response[X]:
+        BodySerializer(data=request.data)
+        return helper(request.data)
+"""
+    violations = _api_violations(src)
+    assert len(violations) == 5
+    for violation in violations:
+        assert isinstance(violation.rule, ApiRule)
+        assert violation.message.startswith(f"{violation.rule} ")
+
+    rules = set()
+    for violation in violations:
+        rules.add(violation.rule)
+    assert rules == {ApiRule.S025, ApiRule.S026, ApiRule.S027, ApiRule.S028}
+
+
+def test_api_rule_messages_start_with_their_code() -> None:
+    assert S021_msg.startswith(f"{ApiRule.S021} ")
+    assert S022_missing_msg.startswith(f"{ApiRule.S022} ")
+    assert S022_bare_msg.startswith(f"{ApiRule.S022} ")
+    assert S023_no_reason_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_not_mapping_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_blank_reason_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_ghost_msg.startswith(f"{ApiRule.S023} ")
+    assert S023_bad_path_msg.startswith(f"{ApiRule.S023} ")
+    assert S025_query_msg.startswith(f"{ApiRule.S025} ")
+    assert S025_body_msg.startswith(f"{ApiRule.S025} ")
+    assert S026_msg.startswith(f"{ApiRule.S026} ")
+    assert S027_msg.startswith(f"{ApiRule.S027} ")
+    assert S028_msg.startswith(f"{ApiRule.S028} ")
 
 
 def test_api_violations_keep_query_and_body_reads_apart() -> None:
