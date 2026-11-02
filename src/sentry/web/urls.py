@@ -845,6 +845,12 @@ urlpatterns += [
         react_page_view,
         name="issues",
     ),
+    # Inbox
+    re_path(
+        r"^inbox/",
+        react_page_view,
+        name="inbox",
+    ),
     # Alerts
     re_path(
         r"^alerts/",
@@ -874,6 +880,12 @@ urlpatterns += [
         r"^explore/",
         react_page_view,
         name="explore",
+    ),
+    # Seer
+    re_path(
+        r"^seer/",
+        react_page_view,
+        name="seer",
     ),
     # Traces
     re_path(

@@ -48,13 +48,6 @@ from sentry.api.endpoints.organization_sampling_effective_sample_rate import (
 from sentry.api.endpoints.organization_sampling_project_span_counts import (
     OrganizationSamplingProjectSpanCountsEndpoint,
 )
-from sentry.api.endpoints.organization_service_account_viewer_context import (
-    OrganizationServiceAccountViewerContextEndpoint,
-)
-from sentry.api.endpoints.organization_service_accounts import (
-    OrganizationServiceAccountDetailsEndpoint,
-    OrganizationServiceAccountIndexEndpoint,
-)
 from sentry.api.endpoints.organization_stats_summary import OrganizationStatsSummaryEndpoint
 from sentry.api.endpoints.organization_trace_item_attribute_context import (
     OrganizationTraceItemAttributeContextEndpoint,
@@ -303,8 +296,14 @@ from sentry.integrations.api.endpoints.organization_repository_platforms import 
 from sentry.integrations.api.endpoints.organization_repository_settings import (
     OrganizationRepositorySettingsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
+from sentry.investigations.endpoints.organization_investigation_action_request_apply import (
+    OrganizationInvestigationActionRequestApplyEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_action_request_recheck import (
+    OrganizationInvestigationActionRequestRecheckEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_action_request_retry_follow_up import (
+    OrganizationInvestigationActionRequestRetryFollowUpEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
@@ -312,23 +311,11 @@ from sentry.investigations.endpoints.organization_investigation_block_execution_
 from sentry.investigations.endpoints.organization_investigation_block_executions import (
     OrganizationInvestigationBlockExecutionsEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_block_index import (
-    OrganizationInvestigationBlocksEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_order import (
     OrganizationInvestigationBlockOrderEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_comment_counts import (
-    OrganizationInvestigationCommentCountsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_comment_details import (
-    OrganizationInvestigationCommentDetailsEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_comments_index import (
-    OrganizationInvestigationCommentsEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
@@ -336,21 +323,12 @@ from sentry.investigations.endpoints.organization_investigation_details import (
 from sentry.investigations.endpoints.organization_investigation_duplicate import (
     OrganizationInvestigationsDuplicateEndpoint,
 )
-from sentry.investigations.endpoints.organization_investigation_favorite import (
-    OrganizationInvestigationsFavoriteEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_index import (
     OrganizationInvestigationsIndexEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_orchestration import (
     OrganizationInvestigationOrchestrationCommandsEndpoint,
     OrganizationInvestigationOrchestrationEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_parameters import (
-    OrganizationInvestigationParametersEndpoint,
-)
-from sentry.investigations.endpoints.organization_investigation_presence import (
-    OrganizationInvestigationPresenceEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_title_generation import (
     OrganizationInvestigationTitleGenerationEndpoint,
@@ -482,6 +460,27 @@ from sentry.monitors.endpoints.project_processing_errors_details import (
 from sentry.monitors.endpoints.project_processing_errors_index import (
     ProjectProcessingErrorsIndexEndpoint,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_details import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_block_index import (
+    OrganizationInvestigationBlocksEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comment_counts import (
+    OrganizationInvestigationCommentCountsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comment_details import (
+    OrganizationInvestigationCommentDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_comments_index import (
+    OrganizationInvestigationCommentsEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_favorite import (
+    OrganizationInvestigationsFavoriteEndpoint,
+)
+from sentry.notebooks.endpoints.organization_investigation_presence import (
+    OrganizationInvestigationPresenceEndpoint,
+)
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,
 )
@@ -580,9 +579,6 @@ from sentry.seer.endpoints.group_autofix_setup_check import GroupAutofixSetupChe
 from sentry.seer.endpoints.issue_view_title_generate import IssueViewTitleGenerateEndpoint
 from sentry.seer.endpoints.organization_agent_approve import OrganizationAgentApproveEndpoint
 from sentry.seer.endpoints.organization_agent_token import OrganizationAgentTokenEndpoint
-from sentry.seer.endpoints.organization_autofix_automation_settings import (
-    OrganizationAutofixAutomationSettingsEndpoint,
-)
 from sentry.seer.endpoints.organization_events_anomalies import OrganizationEventsAnomaliesEndpoint
 from sentry.seer.endpoints.organization_seer_agent_chat import (
     OrganizationSeerAgentChatEndpoint,
@@ -602,9 +598,12 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflow_configs import (
+    OrganizationSeerWorkflowConfigDetailsEndpoint,
     OrganizationSeerWorkflowConfigsEndpoint,
 )
-from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
+from sentry.seer.endpoints.organization_seer_workflow_runs import (
+    OrganizationSeerWorkflowRunsEndpoint,
+)
 from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
@@ -663,7 +662,6 @@ from sentry.sentry_apps.api.endpoints.sentry_app_components import (
 from sentry.sentry_apps.api.endpoints.sentry_app_details import SentryAppDetailsEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_features import SentryAppFeaturesEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_installations import SentryAppInstallationsEndpoint
-from sentry.sentry_apps.api.endpoints.sentry_app_interaction import SentryAppInteractionEndpoint
 from sentry.sentry_apps.api.endpoints.sentry_app_publish_request import (
     SentryAppPublishRequestEndpoint,
 )
@@ -680,6 +678,13 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_token_details import (
 from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
+from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
+    OrganizationServiceAccountViewerContextEndpoint,
+)
+from sentry.service_accounts.endpoints.organization_service_accounts import (
+    OrganizationServiceAccountDetailsEndpoint,
+    OrganizationServiceAccountIndexEndpoint,
+)
 from sentry.synapse.endpoints.org_cell_mappings import OrgCellMappingsEndpoint
 from sentry.synapse.endpoints.project_key_cell_mappings import ProjectKeyCellMappingsEndpoint
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
@@ -693,9 +698,6 @@ from sentry.uptime.endpoints.organization_uptime_alert_index_count import (
 )
 from sentry.uptime.endpoints.organization_uptime_alert_preview_check import (
     OrganizationUptimeAlertPreviewCheckEndpoint,
-)
-from sentry.uptime.endpoints.organization_uptime_assertion_suggestions import (
-    OrganizationUptimeAssertionSuggestionsEndpoint,
 )
 from sentry.uptime.endpoints.organization_uptime_stats import OrganizationUptimeStatsEndpoint
 from sentry.uptime.endpoints.organization_uptime_summary import OrganizationUptimeSummaryEndpoint
@@ -806,28 +808,12 @@ from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndp
 from .endpoints.organization_events import OrganizationEventsEndpoint
 from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
-from .endpoints.organization_events_facets_performance import (
-    OrganizationEventsFacetsPerformanceEndpoint,
-    OrganizationEventsFacetsPerformanceHistogramEndpoint,
-)
-from .endpoints.organization_events_has_measurements import (
-    OrganizationEventsHasMeasurementsEndpoint,
-)
 from .endpoints.organization_events_heatmap import OrganizationEventsHeatmapEndpoint
-from .endpoints.organization_events_histogram import OrganizationEventsHistogramEndpoint
-from .endpoints.organization_events_meta import (
-    OrganizationEventsMetaEndpoint,
-    OrganizationEventsRelatedIssuesEndpoint,
-)
+from .endpoints.organization_events_meta import OrganizationEventsMetaEndpoint
 from .endpoints.organization_events_sql import OrganizationEventsSqlEndpoint
 from .endpoints.organization_events_stats import OrganizationEventsStatsEndpoint
 from .endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
-from .endpoints.organization_events_trace import (
-    OrganizationEventsTraceEndpoint,
-    OrganizationEventsTraceMetaEndpoint,
-)
 from .endpoints.organization_events_validate import OrganizationEventsValidateEndpoint
-from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_measurements_meta import OrganizationMeasurementsMeta
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
@@ -1553,11 +1539,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-key-transactions-list",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/related-issues/$",
-        OrganizationEventsRelatedIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-related-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/project-transaction-threshold-override/$",
         ProjectTransactionThresholdOverrideEndpoint.as_view(),
         name="sentry-api-0-organization-project-transaction-threshold-override",
@@ -1931,16 +1912,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-events-facets",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance/$",
-        OrganizationEventsFacetsPerformanceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-facets-performance-histogram/$",
-        OrganizationEventsFacetsPerformanceHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-facets-performance-histogram",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-meta/$",
         OrganizationEventsMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-meta",
@@ -1959,31 +1930,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-histogram/$",
-        OrganizationEventsHistogramEndpoint.as_view(),
-        name="sentry-api-0-organization-events-histogram",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-vitals/$",
-        OrganizationEventsVitalsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-vitals",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-has-measurements/$",
-        OrganizationEventsHasMeasurementsEndpoint.as_view(),
-        name="sentry-api-0-organization-events-has-measurements",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
-        OrganizationEventsTraceMetaEndpoint.as_view(),
-        name="sentry-api-0-organization-events-trace-meta",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
@@ -2431,19 +2377,9 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-sentry-apps",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/$",
-        OrganizationInvestigationsIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-investigations",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/candidates/$",
         OrganizationInvestigationCandidatesEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-candidates",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/$",
-        OrganizationInvestigationsDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/$",
@@ -2456,69 +2392,89 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-orchestration-commands",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/$",
+        OrganizationInvestigationsIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-notebooks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/$",
+        OrganizationInvestigationsDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/$",
         OrganizationInvestigationBlocksEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-blocks",
+        name="sentry-api-0-organization-notebook-blocks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/order/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/order/$",
         OrganizationInvestigationBlockOrderEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-block-order",
+        name="sentry-api-0-organization-notebook-block-order",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
         OrganizationInvestigationBlockDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-block-details",
+        name="sentry-api-0-organization-notebook-block-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
         OrganizationInvestigationBlockExecutionsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-block-executions",
+        name="sentry-api-0-organization-notebook-block-executions",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
         OrganizationInvestigationBlockExecutionDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-block-execution-details",
+        name="sentry-api-0-organization-notebook-block-execution-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/favorite/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/favorite/$",
         OrganizationInvestigationsFavoriteEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-favorite",
+        name="sentry-api-0-organization-notebook-favorite",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comments/$",
         OrganizationInvestigationCommentsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comments",
+        name="sentry-api-0-organization-notebook-comments",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comment-counts/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comment-counts/$",
         OrganizationInvestigationCommentCountsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comment-counts",
+        name="sentry-api-0-organization-notebook-comment-counts",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
         OrganizationInvestigationCommentDetailsEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-comment-details",
+        name="sentry-api-0-organization-notebook-comment-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-duplicate",
+        name="sentry-api-0-organization-notebook-duplicate",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/apply/$",
+        OrganizationInvestigationActionRequestApplyEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-action-request-apply",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/recheck/$",
+        OrganizationInvestigationActionRequestRecheckEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-action-request-recheck",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/retry-follow-up/$",
+        OrganizationInvestigationActionRequestRetryFollowUpEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-action-request-retry-follow-up",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/presence/$",
         OrganizationInvestigationPresenceEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-presence",
+        name="sentry-api-0-organization-notebook-presence",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/title-generation/$",
         OrganizationInvestigationTitleGenerationEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-title-generation",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/parameters/$",
-        OrganizationInvestigationParametersEndpoint.as_view(),
-        name="sentry-api-0-organization-investigation-parameters",
+        name="sentry-api-0-organization-notebook-title-generation",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/issue-view-title/generate/$",
@@ -2576,8 +2532,13 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-workflow-configs",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/configs/(?P<config_id>[^/]+)/$",
+        OrganizationSeerWorkflowConfigDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-workflow-config-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/workflows/runs/$",
-        OrganizationSeerWorkflowsEndpoint.as_view(),
+        OrganizationSeerWorkflowRunsEndpoint.as_view(),
         name="sentry-api-0-organization-seer-workflow-runs",
     ),
     re_path(
@@ -2604,11 +2565,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/onboarding-check/$",
         OrganizationSeerOnboardingCheck.as_view(),
         name="sentry-api-0-organization-seer-onboarding-check",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/autofix/automation-settings/$",
-        OrganizationAutofixAutomationSettingsEndpoint.as_view(),
-        name="sentry-api-0-organization-autofix-automation-settings",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/projects/$",
@@ -2892,11 +2848,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-preview-check/$",
         OrganizationUptimeAlertPreviewCheckEndpoint.as_view(),
         name="sentry-api-0-organization-uptime-alert-preview-check",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/uptime-assertion-suggestions/$",
-        OrganizationUptimeAssertionSuggestionsEndpoint.as_view(),
-        name="sentry-api-0-organization-uptime-assertion-suggestions",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/uptime-count/$",
@@ -3644,11 +3595,6 @@ SENTRY_APP_URLS = [
         r"^(?P<sentry_app_id_or_slug>[^/]+)/webhook-requests/$",
         SentryAppWebhookRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-webhook-requests",
-    ),
-    re_path(
-        r"^(?P<sentry_app_id_or_slug>[^/]+)/interaction/$",
-        SentryAppInteractionEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-interaction",
     ),
 ]
 

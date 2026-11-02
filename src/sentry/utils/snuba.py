@@ -1191,9 +1191,8 @@ def _apply_cache_and_build_results(
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
-    scope = sentry_sdk.get_current_scope()
 
-    span = scope.streamed_span
+    span = sentry_sdk.traces.get_current_span()
     if type(span) is StreamedSpan:
         parent_api = span._segment.name
 

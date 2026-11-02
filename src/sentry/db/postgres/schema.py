@@ -7,6 +7,7 @@ from django.db.models.base import ModelBase
 from django.db.models.constraints import BaseConstraint
 from django_zero_downtime_migrations.backends.postgres.schema import (
     DatabaseSchemaEditorMixin,
+    PGAccessExclusive,
     Unsafe,
     UnsafeOperationException,
 )
@@ -123,6 +124,29 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
                 f"which can cause the planner to pick bad plans and has resulted in hard downtime for us.\n"
                 f"More info: https://develop.sentry.dev/database-migrations/#altering-column-types"
             )
+
+    # A column made NOT NULL by django-zero-downtime-migrations can still carry its
+    # `<table>_<column>_<hash>_notnull` CHECK constraint: older setups kept the CHECK instead of
+    # running SET NOT NULL, and an interrupted run leaves it behind. `DROP NOT NULL` doesn't
+    # touch that CHECK, so the column would stay NOT NULL in those databases while databases
+    # built from current migrations accept NULLs.
+    _sql_drop_not_null_check = PGAccessExclusive(
+        "ALTER TABLE %(table)s DROP CONSTRAINT IF EXISTS %(name)s"
+    )
+
+    def _alter_column_drop_not_null(self, model, new_field):
+        self.deferred_sql.append(
+            self._sql_drop_not_null_check
+            % {
+                "table": self.quote_name(model._meta.db_table),
+                "name": self.quote_name(
+                    self._create_index_name(
+                        model._meta.db_table, [new_field.column], suffix="_notnull"
+                    )
+                ),
+            }
+        )
+        return super()._alter_column_drop_not_null(model, new_field)
 
     def alter_db_table(self, model, old_db_table, new_db_table):
         """

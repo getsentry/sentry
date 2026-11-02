@@ -21,6 +21,7 @@ from sentry.api.serializers import serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.principal import set_request_principal
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID, SuperuserAccessSerializer
@@ -238,7 +239,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        request.user = request._request.user
+        set_request_principal(request, request._request.user, request.auth)
 
         return self.get(request)
 
@@ -356,7 +357,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                     serializer.validated_data["superuserReason"],
                 )
 
-        request.user = request._request.user
+        set_request_principal(request, request._request.user, request.auth)
 
         return self.get(request)
 
@@ -377,7 +378,7 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
 
         # For signals to work here, we must promote the request.user to a full user object
         logout(request._request)
-        request.user = AnonymousUser()
+        set_request_principal(request, AnonymousUser(), request.auth)
 
         # Force cookies to be deleted
         response = Response()

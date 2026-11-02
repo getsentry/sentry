@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
-from sentry.objectstore import parse_accept_encoding
+from sentry.objectstore import UsecaseId, parse_accept_encoding
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.utils.http import request_body_stream
 
@@ -66,6 +66,9 @@ class ObjectstoreEndpoint(Endpoint):
         path: str,
     ) -> Response | StreamingHttpResponse:
         assert request.method
+        if not is_valid_object_path(path):
+            return Response({"detail": "Not found"}, status=404)
+
         target_url = get_target_url(path)
 
         headers = dict(request.headers)
@@ -127,6 +130,27 @@ class ObjectstoreEndpoint(Endpoint):
         )
 
         return stream_response(response, decode_content=decode_content)
+
+
+_VALID_USECASES = frozenset(usecase.value for usecase in UsecaseId)
+
+
+def is_valid_object_path(path: str) -> bool:
+    """
+    Returns whether `path` targets an object endpoint for a registered usecase.
+
+    All public Objectstore endpoints have the shape `v1/objects[:<op>]/{usecase}/{scopes}/...`.
+    Rejecting other paths here keeps arbitrary requests away from Objectstore's internal routes.
+    """
+    parts = urlparse(path).path.split("/")
+    if len(parts) < 4 or parts[0] != "v1":
+        return False
+
+    endpoint = parts[1]
+    if endpoint != "objects" and not endpoint.startswith("objects:"):
+        return False
+
+    return parts[2] in _VALID_USECASES
 
 
 def get_target_url(path: str) -> str:

@@ -14,7 +14,7 @@ function HelpfulMembers() {
   const {data: billingMembers} = useQuery(
     apiOptions.as<Member[]>()('/organizations/$organizationIdOrSlug/members/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {query: 'scope:"org:billing"'},
+      query: {query: 'scope:"org:billing" isInvited:false'},
       staleTime: 0,
     })
   );

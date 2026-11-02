@@ -14,8 +14,9 @@ import {
 } from '@sentry/scraps/compactSelect/styles';
 import type {SelectKey, ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {useVirtualizedItems} from '@sentry/scraps/compactSelect/useVirtualizedItems';
+import {hasVisibleLeadingItems} from '@sentry/scraps/compactSelect/utils';
 import {Container} from '@sentry/scraps/layout';
-import type {ListItemProps} from '@sentry/scraps/menu';
+import {ReserveLeadingSlot, type ListItemProps} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
@@ -184,6 +185,10 @@ export function ListBox<T extends ListItemBase>({
       }),
     [listState.collection, hiddenOptions]
   );
+  const reserveLeadingSlot = useMemo(
+    () => hasVisibleLeadingItems(listItems, hiddenOptions),
+    [listItems, hiddenOptions]
+  );
 
   const mergedProps = mergeProps(listBoxProps, props);
 
@@ -282,68 +287,72 @@ export function ListBox<T extends ListItemBase>({
 
   return (
     <ListBoxDetailsHoverContext value={onDetailsHoverChange}>
-      {listItems.length !== 0 && <ListSeparator role="separator" />}
-      {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
-      <Container
-        ref={refs}
-        height="100%"
-        overflowY="auto"
-        className={className}
-        style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
-      >
-        <Container {...virtualizer.wrapperProps}>
-          <ListWrap
-            {...mergedProps}
-            style={{
-              ...mergedProps.style,
-              ...virtualizer.listWrapStyle,
-            }}
-            onKeyDown={onKeyDown}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            ref={mergeRefs(listElementRef, ref)}
-          >
-            {overlayIsOpen &&
-              virtualizer.items.map(row => {
-                const item = listItems[row.index];
-                if (!item) {
-                  return null;
-                }
-                if (item.type === 'section') {
+      <ReserveLeadingSlot reserve={reserveLeadingSlot}>
+        {listItems.length !== 0 && <ListSeparator role="separator" />}
+        {listItems.length !== 0 && label && (
+          <ListLabel {...labelProps}>{label}</ListLabel>
+        )}
+        <Container
+          ref={refs}
+          height="100%"
+          overflowY="auto"
+          className={className}
+          style={hasEverOverflowed ? {scrollbarGutter: 'stable'} : undefined}
+        >
+          <Container {...virtualizer.wrapperProps}>
+            <ListWrap
+              {...mergedProps}
+              style={{
+                ...mergedProps.style,
+                ...virtualizer.listWrapStyle,
+              }}
+              onKeyDown={onKeyDown}
+              onMouseEnter={onMouseEnter}
+              onMouseLeave={onMouseLeave}
+              ref={mergeRefs(listElementRef, ref)}
+            >
+              {overlayIsOpen &&
+                virtualizer.items.map(row => {
+                  const item = listItems[row.index];
+                  if (!item) {
+                    return null;
+                  }
+                  if (item.type === 'section') {
+                    return (
+                      <ListBoxSection
+                        {...virtualizer.itemProps(row.index)}
+                        key={item.key}
+                        item={item}
+                        listState={listState}
+                        hiddenOptions={hiddenOptions}
+                        size={size}
+                        showSectionHeaders={showSectionHeaders}
+                        showDetails={showDetails}
+                      />
+                    );
+                  }
+
                   return (
-                    <ListBoxSection
-                      {...virtualizer.itemProps(row.index)}
+                    <ListBoxOption
                       key={item.key}
+                      {...virtualizer.itemProps(row.index)}
                       item={item}
                       listState={listState}
-                      hiddenOptions={hiddenOptions}
                       size={size}
-                      showSectionHeaders={showSectionHeaders}
                       showDetails={showDetails}
                     />
                   );
-                }
+                })}
 
-                return (
-                  <ListBoxOption
-                    key={item.key}
-                    {...virtualizer.itemProps(row.index)}
-                    item={item}
-                    listState={listState}
-                    size={size}
-                    showDetails={showDetails}
-                  />
-                );
-              })}
-
-            {!searchable && !hasSearch && hiddenOptions.size > 0 && (
-              <SizeLimitMessage>
-                {sizeLimitMessage ?? t('Use search to find more options…')}
-              </SizeLimitMessage>
-            )}
-          </ListWrap>
+              {!searchable && !hasSearch && hiddenOptions.size > 0 && (
+                <SizeLimitMessage>
+                  {sizeLimitMessage ?? t('Use search to find more options…')}
+                </SizeLimitMessage>
+              )}
+            </ListWrap>
+          </Container>
         </Container>
-      </Container>
+      </ReserveLeadingSlot>
     </ListBoxDetailsHoverContext>
   );
 }

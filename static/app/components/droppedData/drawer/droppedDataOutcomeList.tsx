@@ -9,15 +9,13 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
+import {formatDroppedShare} from 'sentry/components/droppedData/outcomes';
 import type {
+  AskSeerHandler,
   OutcomeSection,
   ReasonRow,
-} from 'sentry/components/droppedData/drawer/outcomeSections';
-import {
-  formatDroppedShare,
-  reasonDocsUrl,
-  reasonTitle,
-} from 'sentry/components/droppedData/outcomes';
+} from 'sentry/components/droppedData/outcomeSections';
+import {reasonDocsUrl, reasonTitle} from 'sentry/components/droppedData/reasonInfo';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 
@@ -31,7 +29,7 @@ function ReasonAskSeerButton({
   row,
   onAskSeer,
 }: {
-  onAskSeer: (row: ReasonRow) => void;
+  onAskSeer: AskSeerHandler;
   row: ReasonRow;
 }) {
   const {onClose: closeDroppedDataDrawer} = useDrawerContentContext();
@@ -67,13 +65,7 @@ function ReasonDocsLinkButton({href}: {href: string}) {
   );
 }
 
-function ReasonTableRow({
-  row,
-  onAskSeer,
-}: {
-  row: ReasonRow;
-  onAskSeer?: (row: ReasonRow) => void;
-}) {
+function ReasonTableRow({row, onAskSeer}: {row: ReasonRow; onAskSeer?: AskSeerHandler}) {
   return (
     <RevealOnHover>
       {props => (
@@ -114,7 +106,7 @@ function ReasonTable({
   onAskSeer,
 }: {
   reasons: ReasonRow[];
-  onAskSeer?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }) {
   return (
     <SimpleTable
@@ -150,7 +142,7 @@ function OutcomeSectionRow({
   onAskSeer,
 }: {
   section: OutcomeSection;
-  onAskSeer?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }) {
   return (
     <Stack gap="md">
@@ -178,7 +170,7 @@ function OutcomeSectionRow({
 
 interface DroppedDataOutcomeListProps {
   sections: OutcomeSection[];
-  onAskSeer?: (row: ReasonRow) => void;
+  onAskSeer?: AskSeerHandler;
 }
 
 export function DroppedDataOutcomeList({

@@ -50,7 +50,7 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import DataSource, Detector
 
 
-def _check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
+def check_metric_detector_allowed(detector: Detector, organization: Organization) -> None:
     """Raise ResourceDoesNotExist if this is a metric detector the org is not entitled to."""
     if detector.type != MetricIssue.slug:
         return
@@ -138,7 +138,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Return details on an individual monitor
         """
-        _check_metric_detector_allowed(detector, organization)
+        check_metric_detector_allowed(detector, organization)
 
         serialized_detector = serialize(
             detector,
@@ -170,7 +170,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Update an existing monitor
         """
-        _check_metric_detector_allowed(detector, organization)
+        check_metric_detector_allowed(detector, organization)
 
         if not can_edit_detector(detector, request):
             if not is_system_created_detector(detector):
@@ -209,7 +209,7 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         """
         Delete a monitor
         """
-        # Intentionally no _check_metric_detector_allowed gate here:
+        # Intentionally no check_metric_detector_allowed gate here:
         # orgs should be able to delete detectors they can no longer use
         # (e.g. after a plan downgrade).
         if not can_delete_detector(detector, request):

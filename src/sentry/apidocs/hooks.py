@@ -144,6 +144,13 @@ class RoutingMetadata(TypedDict):
     organizationParameter: NotRequired[str]
 
 
+# (canonical path, lowercased method) pairs whose endpoint lists the method in
+# `idempotent_methods`. Collected for unpublished endpoints too, like silos.
+_IDEMPOTENT_OPERATIONS: set[tuple[str, str]] = set()
+
+# RFC 9110 9.2.1: these never change server state, so clients may always resend them.
+_SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
 # Include non-spectacular endpoints so existing APPEND_PATHS operations can use
 # their backend declaration without changing which methods are published.
 _OPERATION_SILOS: dict[tuple[str, str], DeclaredSilo] = {}
@@ -176,6 +183,7 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
     _ENDPOINT_SERVERS.clear()
     _EXPERIMENTAL_OPERATIONS.clear()
     _OPERATION_SILOS.clear()
+    _IDEMPOTENT_OPERATIONS.clear()
 
     filtered = []
     ownership_data: dict[ApiOwner, dict] = {}
@@ -208,13 +216,26 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 f"All methods must declare a publish_status. Please add a valid publish status for Endpoint {callback.view_class} {method} method.",
             )
 
+        idempotent_methods: frozenset[str] = getattr(
+            callback.view_class, "idempotent_methods", frozenset()
+        )
+        if not idempotent_methods <= callback.view_class.publish_status.keys():
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} declares idempotent_methods that it does not implement: {sorted(idempotent_methods - callback.view_class.publish_status.keys())}.",
+            )
+        if idempotent_methods & _SAFE_METHODS:
+            raise SentryApiBuildError(
+                f"Endpoint {callback.view_class} lists safe methods in idempotent_methods: {sorted(idempotent_methods & _SAFE_METHODS)}. Safe methods are always idempotent; only list non-safe methods such as POST.",
+            )
+
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
 
         else:
-            _OPERATION_SILOS[(_canonical_issue_path(path), method.lower())] = _declared_silo(
-                callback.view_class
-            )
+            operation_key = (_canonical_issue_path(path), method.lower())
+            _OPERATION_SILOS[operation_key] = _declared_silo(callback.view_class)
+            if method in idempotent_methods:
+                _IDEMPOTENT_OPERATIONS.add(operation_key)
             # endpoints that are documented via tooling
             status = callback.view_class.publish_status.get(method)
             if status is not None and status.is_published:
@@ -263,6 +284,9 @@ def _validate_request_body(
 
     # Dereference schema if needed and raise error on schema component collisions
     schema = dereference_schema(schema, schema_components)
+    if "properties" not in schema and isinstance(schema.get("additionalProperties"), dict):
+        # A map body, such as files keyed by checksum: its values carry the named fields.
+        schema = dereference_schema(schema["additionalProperties"], schema_components)
 
     for body_param, param_data in schema["properties"].items():
         # Ensure body parameters have a description. Our API docs don't
@@ -299,10 +323,11 @@ def custom_postprocessing_hook(result: Any, generator: Any, **kwargs: Any) -> An
     # Stamp before alias canonicalization so metadata stays with its operation.
     for path, operations in result["paths"].items():
         for method, operation in operations.items():
-            routing: RoutingMetadata = {
-                "silo": _OPERATION_SILOS.get((_canonical_issue_path(path), method), "unknown")
-            }
+            operation_key = (_canonical_issue_path(path), method)
+            routing: RoutingMetadata = {"silo": _OPERATION_SILOS.get(operation_key, "unknown")}
             operation["x-sentry-routing"] = routing
+            if operation_key in _IDEMPOTENT_OPERATIONS:
+                operation["x-sentry-idempotent"] = True
 
     # Add servers override from endpoint class definitions
     for path, servers in _ENDPOINT_SERVERS.items():

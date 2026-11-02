@@ -563,8 +563,12 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         insert_index=data.get("insert_index"),
                         user=request.user,
                         enable_bash_mode=data.get("enable_bash_mode", False),
+                        # TRIGGER_AUTOFIX attributes a kickoff, so only steps the
+                        # user continues (or codes directly) carry them as the actor.
                         actor_user_id=(
-                            request.user.id if step == AutofixStep.CODE_CHANGES.value else None
+                            request.user.id
+                            if not is_autofix_kickoff or step == AutofixStep.CODE_CHANGES.value
+                            else None
                         ),
                     )
                 except NoSeerQuotaException:
@@ -661,6 +665,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "run_id": state.run_id,
                     "sentry_run_id": str(run.uuid) if run else None,
                     "status": state.status,
+                    "failure_reason": state.failure_reason,
                     "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (

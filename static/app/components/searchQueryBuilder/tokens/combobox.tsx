@@ -23,7 +23,7 @@ import {
   ListBox,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compactSelect';
-import {matchesHotkey} from '@sentry/scraps/hotkey';
+import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
 import {focusMenuItemDetails} from '@sentry/scraps/menu';
@@ -453,7 +453,11 @@ export function SearchQueryBuilderCombobox<
       onKeyDown: e => {
         // React Aria's selectable collection stops key events from bubbling out of
         // an open combobox. Let the global command palette shortcut through.
-        if (matchesHotkey(COMMAND_PALETTE_HOTKEYS, e.nativeEvent)) {
+        if (
+          COMMAND_PALETTE_HOTKEYS.some(hotkey =>
+            matchesKeyboardEvent(e.nativeEvent, hotkey)
+          )
+        ) {
           e.continuePropagation();
           return;
         }

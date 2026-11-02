@@ -575,10 +575,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         repo = self.create_repo(self.project, provider="integrations:gitlab")
         self.create_seer_project_repository(project=self.project, repository=repo)
 
-        with self.feature("organizations:seer-gitlab-support"):
-            resp = self.get_success_response(
-                self.organization.slug, qs_params={"expand": "scmInfo"}
-            )
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
 
         project = self._issue_project(resp)
         assert project["hasReposConnected"] is True
@@ -616,26 +613,11 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         self.create_seer_project_repository(project=self.project, repository=gh)
         self.create_seer_project_repository(project=self.project, repository=gl)
 
-        with self.feature("organizations:seer-gitlab-support"):
-            resp = self.get_success_response(
-                self.organization.slug, qs_params={"expand": "scmInfo"}
-            )
+        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
 
         project = self._issue_project(resp)
         assert project["hasReposConnected"] is True
         assert project["hasNonGithubRepo"] is True
-
-    def test_gitlab_repo_without_flag_is_not_connected(self):
-        group = self.create_group()
-        self._run_for_group(group, "boom")
-        repo = self.create_repo(self.project, provider="integrations:gitlab")
-        self.create_seer_project_repository(project=self.project, repository=repo)
-
-        resp = self.get_success_response(self.organization.slug, qs_params={"expand": "scmInfo"})
-
-        project = self._issue_project(resp)
-        assert project["hasReposConnected"] is False
-        assert project["hasNonGithubRepo"] is False
 
     def test_inactive_repo_is_not_connected(self):
         group = self.create_group()

@@ -46,7 +46,7 @@ from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 error_logger = logging.getLogger("sentry.errors.events")
 info_logger = logging.getLogger("sentry.store")
@@ -628,9 +628,9 @@ def _do_save_event(
 
             with viewer_context_scope(
                 ViewerContext(
+                    actor=Actor(type=ActorType.SYSTEM),
                     organization_id=project.organization_id,
                     project_id=project.id,
-                    actor_type=ActorType.SYSTEM,
                 )
             ):
                 if killswitch_matches_context(

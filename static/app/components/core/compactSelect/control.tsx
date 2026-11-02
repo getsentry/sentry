@@ -12,17 +12,15 @@ import {Badge} from '@sentry/scraps/badge';
 import {useBoundaryContext} from '@sentry/scraps/boundaryContext';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Footer, Header, Search, Title} from '@sentry/scraps/menu';
+import {Footer, Header, Search, Title, ControlContext} from '@sentry/scraps/menu';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
+import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-
-import {ControlContext} from './controlContext';
 import type {SingleListProps} from './list';
 import type {
   SearchConfig,
@@ -547,7 +545,7 @@ export function Control<Value extends SelectKey>({
                     >
                       {menuTitle && <Title>{menuTitle}</Title>}
                       <Flex align="center" gap="xs" marginLeft="auto">
-                        {loading && <StyledLoadingIndicator size={12} />}
+                        {loading && <StyledSpinner size={12} />}
                         {typeof menuHeaderTrailingItems === 'function'
                           ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
                           : menuHeaderTrailingItems}
@@ -620,7 +618,7 @@ const StyledBadge = styled(Badge)`
   top: auto;
 `;
 
-const StyledLoadingIndicator = styled(LoadingIndicator)`
+const StyledSpinner = styled(Spinner)`
   display: flex;
   align-items: center;
   && {

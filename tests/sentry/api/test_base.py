@@ -7,8 +7,10 @@ from unittest.mock import MagicMock
 from django.http import QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
+from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import ParseError
 from rest_framework.permissions import AllowAny, BasePermission
+from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Scope
 
@@ -16,9 +18,13 @@ from sentry.api.base import Endpoint, EndpointSiloLimit, StatsMixin
 from sentry.api.exceptions import SuperuserRequired
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.permissions import SuperuserPermission
+from sentry.api.serializers import Serializer, serialize
 from sentry.auth import access
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.models.apikey import ApiKey
+from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.silo.base import FunctionSiloLimit, SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -41,6 +47,18 @@ class DummyEndpoint(Endpoint):
 
     def get(self, request):
         return Response({"ok": True})
+
+
+class ServiceAccountAuthentication(BaseAuthentication):
+    def authenticate(self, request: Request) -> tuple[Any, AuthenticatedToken]:
+        principal = ServiceAccountPrincipal(service_account_id=1, organization_id=1, name="sa")
+        token = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        return (principal, token)
+
+
+class DummyUserOnlyEndpoint(DummyEndpoint):
+    authentication_classes = (ServiceAccountAuthentication,)
+    requires_user = True
 
 
 class DummyCsrfProtectedEndpoint(DummyEndpoint):
@@ -131,6 +149,32 @@ class DummyPaginationStreamingEndpoint(Endpoint):
         )
 
 
+class SometimesFailingSerializer(Serializer):
+    def serialize(self, obj, attrs, user, **kwargs):
+        if obj % 2:
+            raise Exception
+        return {"id": obj}
+
+
+class DummyPaginationFailingSerializerEndpoint(Endpoint):
+    permission_classes = ()
+
+    def get(self, request):
+        values = [x for x in range(0, 10)]
+
+        def data_fn(offset, limit):
+            page_offset = offset * limit
+            return values[page_offset : page_offset + limit]
+
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn),
+            on_results=lambda results: serialize(
+                results, request.user, SometimesFailingSerializer()
+            ),
+        )
+
+
 _dummy_endpoint = DummyEndpoint.as_view()
 _dummy_scope_checking_endpoint = DummyScopeCheckingEndpoint.as_view()
 _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
@@ -138,6 +182,20 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 
 @all_silo_test
 class EndpointTest(APITestCase):
+    @mock.patch("sentry.api.base.metrics.incr")
+    def test_requires_user_rejects_service_account(self, mock_incr: MagicMock) -> None:
+        response = DummyUserOnlyEndpoint.as_view()(self.make_request(method="GET"))
+        assert response.status_code == 403
+        assert response.data["detail"]["code"] == "user-required"
+        mock_incr.assert_any_call("api.user_required", tags={"endpoint": "DummyUserOnlyEndpoint"})
+
+    def test_requires_user_allows_user(self) -> None:
+        class Endpoint(DummyEndpoint):
+            requires_user = True
+
+        request = self.make_request(user=self.user, method="GET")
+        assert Endpoint.as_view()(request).status_code == 200
+
     def test_csrf_protection_defaults_to_disabled(self) -> None:
         assert DummyEndpoint.as_view().csrf_exempt is True
 
@@ -606,6 +664,12 @@ class PaginateTest(APITestCase):
         response = self.view(request)
         assert response.status_code == 400
 
+    def test_on_results_removes_failed_items(self) -> None:
+        view = DummyPaginationFailingSerializerEndpoint.as_view()
+        response = view(self.make_request())
+        assert response.status_code == 200, response.content
+        assert response.data == [{"id": 0}, {"id": 2}, {"id": 4}, {"id": 6}, {"id": 8}]
+
     def test_custom_response_type(self) -> None:
         response = _dummy_streaming_endpoint(self.make_request())
         assert response.status_code == 200
@@ -771,6 +835,14 @@ class StatsMixinParseArgsTest(APITestCase):
             mixin._parse_args(self._make_request({"until": "not_a_number"}))
         with raises(ParseError, match="since must be a numeric timestamp"):
             mixin._parse_args(self._make_request({"since": "not_a_number"}))
+
+    def test_negative_resolution(self) -> None:
+        mixin = StatsMixin()
+        request = self._make_request({"resolution": "-1s"})
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request)
+        with raises(ParseError, match="Invalid resolution"):
+            mixin._parse_args(request, restrict_rollups=False)
 
     def test_overflow_timestamp_params(self) -> None:
         mixin = StatsMixin()

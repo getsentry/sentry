@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from enum import Enum
 from typing import Any, Literal, TypedDict
 
 import pytest
 from drf_spectacular.openapi import AutoSchema
 from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from jsonschema.exceptions import ValidationError
 from openapi_schema_validator import OAS30Validator
 from rest_framework import serializers
 
@@ -16,20 +18,32 @@ from sentry.apidocs.extensions import (
     SentryInlineResponseSerializerExtension,
     SentryResponseSerializerExtension,
 )
+from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.organization_investigation_block_details import (
-    OrganizationInvestigationBlockDetailsEndpoint,
-)
 from sentry.investigations.endpoints.organization_investigation_block_execution_details import (
     OrganizationInvestigationBlockExecutionDetailsEndpoint,
 )
-from sentry.investigations.endpoints.schema import InvestigationSchema
-from sentry.investigations.endpoints.validators.block import BlockExecutionResumeValidator
 from sentry.investigations.endpoints.validators.investigation import InvestigationCreateValidator
 from sentry.investigations.endpoints.validators.orchestration import (
     InvestigationOrchestrationCommandValidator,
 )
+from sentry.notebooks.endpoints.organization_investigation_block_details import (
+    OrganizationInvestigationBlockDetailsEndpoint,
+)
+from sentry.notebooks.endpoints.schema import InvestigationSchema
+from sentry.notebooks.endpoints.validators.block import BlockExecutionResumeValidator
 from tests.sentry.apidocs import generate_schema
+
+
+def test_null_only_response_field() -> None:
+    schema = resolve_type_hint(type(None))
+    validator = OAS30Validator(schema)
+
+    validator.validate(None)
+    with pytest.raises(ValidationError):
+        validator.validate("123")
+    with pytest.raises(ValidationError):
+        validator.validate({})
 
 
 class NestedDict(TypedDict):
@@ -135,6 +149,19 @@ def test_sentry_inline_response_serializer_extension() -> None:
             },
             "required": ["b", "c", "d", "e", "f", "g", "h", "i"],
         },
+    }
+
+
+def test_enum_literal_schema() -> None:
+    class Status(Enum):
+        QUEUED = "queued"
+        RUNNING = "running"
+        FAILED = "failed"
+
+    assert resolve_type_hint(Literal[Status.QUEUED, Status.RUNNING] | None) == {
+        "enum": ["queued", "running"],
+        "type": "string",
+        "nullable": True,
     }
 
 

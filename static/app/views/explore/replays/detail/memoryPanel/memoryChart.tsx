@@ -216,10 +216,11 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
       {
         id: 'usedMemory',
         seriesName: t('Used Heap Memory'),
-        data: memoryFrames.map(frame => ({
-          value: frame.data.memory.usedJSHeapSize,
-          name: frame.offsetMs,
-        })),
+        data: memoryFrames.flatMap(frame =>
+          frame.data
+            ? [{value: frame.data.memory.usedJSHeapSize, name: frame.offsetMs}]
+            : []
+        ),
         emphasis: {disabled: true},
         stack: 'heap-memory',
         triggerLineEvent: true,

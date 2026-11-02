@@ -1044,6 +1044,7 @@ function CustomFilterModal({
                               disallowLogicalOperators
                               disallowUnsupportedFilters
                               keepOperatorOnValueSelect
+                              showAllFilterValues
                               showSearchIcon={false}
                               portalTarget={document.body}
                               disableFullWidthFilterKeyMenu

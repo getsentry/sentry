@@ -198,10 +198,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         - `value`: A positive integer representing the number of users that must be affected before the alert will fire.
         - `filters`: A list of additional sub-filters to evaluate before the alert will fire.
         - `interval`: The time period in which to evaluate the value. e.g. Number of users affected by an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
@@ -220,10 +220,10 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         **Number of Events**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
         - `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
@@ -240,15 +240,21 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Percent of Events**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
-        - `interval`: The time period in which to evaluate the value. e.g. Number of events in an issue is `comparisonInterval` percent higher `value` compared to `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+        - `interval`: The time period in which to evaluate the value.
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
-        - `comparisonInterval`: The time period to compare against. See `interval` for options.
+        - `comparisonInterval`: The time period to compare against.
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
+            - `1d`: 1 day
+            - `1w`: 1 week
+            - `30d`: 30 days
         ```json
             {
                 "type": "event_frequency_percent",
@@ -265,13 +271,11 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
         **Percentage of Sessions Affected Count**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
         - `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is more than `value` in `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
-            - `1d`: 1 day
-            - `1w`: 1 week
-            - `30d`: 30 days
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `10m`: 10 minutes
+            - `30m`: 30 minutes
+            - `1h`: 1 hour
         ```json
             {
                 "type": "percent_sessions_count",
@@ -285,21 +289,26 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
 
         **Percentage of Sessions Affected Percent**
         - `value`: A positive integer representing the number of events in an issue that must come in before the alert will fire
-        - `interval`: The time period in which to evaluate the value. e.g. Percentage of sessions affected by an issue is `comparisonInterval` percent higher `value` compared to `interval`.
-            - `1min`: 1 minute
-            - `5min`: 5 minutes
-            - `15min`: 15 minutes
-            - `1hr`: 1 hour
+        - `interval`: The time period in which to evaluate the value.
+            - `1m`: 1 minute
+            - `5m`: 5 minutes
+            - `10m`: 10 minutes
+            - `30m`: 30 minutes
+            - `1h`: 1 hour
+        - `comparisonInterval`: The time period to compare against.
+            - `5m`: 5 minutes
+            - `15m`: 15 minutes
+            - `1h`: 1 hour
             - `1d`: 1 day
             - `1w`: 1 week
             - `30d`: 30 days
-        - `comparisonInterval`: The time period to compare against. See `interval` for options.
         ```json
             {
                 "type": "percent_sessions_percent",
                 "comparison": {
                     "value": 10,
-                    "interval": "1h"
+                    "interval": "1h",
+                    "comparisonInterval": "1w"
                 },
                 "conditionResult": true
             }
@@ -318,7 +327,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -344,7 +353,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
             - `ew`: Ends with
             - `is`: Is set
             - `ns`: Is not set
-        - `value`: A string. Not required when match is `is` or `ns`.
+        - `value`: A string. Must be omitted when match is `is` or `ns`; required otherwise.
 
         ```json
             {
@@ -501,7 +510,7 @@ ACTION_FILTERS_HELP_TEXT = """The filters to run before the action will fire and
                 "config":{
                     "targetType":"specific",
                     "targetIdentifier":"12345",
-                    "targetDisplay":"",
+                    "targetDisplay":""
                     },
                 "integrationId":"1234",
                 "data":{

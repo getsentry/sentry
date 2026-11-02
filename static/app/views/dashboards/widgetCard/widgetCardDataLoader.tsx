@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import type {Confidence} from 'sentry/types/organization';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import type {AggregationOutputType, DataUnit} from 'sentry/utils/discover/fields';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -34,9 +33,6 @@ type Results = {
   tableResults?: TableDataWithTitle[];
   timeseriesInterval?: string;
   timeseriesResults?: WidgetTimeSeries[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  timeseriesResultsUnits?: Record<string, DataUnit>;
-  totalIssuesCount?: string;
 };
 
 type Props = {
@@ -51,9 +47,6 @@ type Props = {
       | 'pageLinks'
       | 'tableResults'
       | 'timeseriesResults'
-      | 'timeseriesResultsTypes'
-      | 'timeseriesResultsUnits'
-      | 'totalIssuesCount'
       | 'confidence'
       | 'dataScanned'
       | 'isSampled'
@@ -93,18 +86,11 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
       >
-        {({
-          tableResults,
-          timeseriesResults,
-          timeseriesResultsTypes,
-          errorMessage,
-          loading,
-        }) => (
+        {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
             {children({
               tableResults,
               timeseriesResults,
-              timeseriesResultsTypes,
               errorMessage,
               loading,
             })}
@@ -223,8 +209,6 @@ export function WidgetCardDataLoader({
         timeseriesResults,
         errorMessage,
         loading,
-        timeseriesResultsTypes,
-        timeseriesResultsUnits,
         confidence,
         ingestion,
       }) => (
@@ -234,8 +218,6 @@ export function WidgetCardDataLoader({
             timeseriesResults,
             errorMessage,
             loading,
-            timeseriesResultsTypes,
-            timeseriesResultsUnits,
             confidence,
             ingestion,
           })}

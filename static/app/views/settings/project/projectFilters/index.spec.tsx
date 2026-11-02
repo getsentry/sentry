@@ -444,7 +444,7 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('shows the custom filters table below the legacy custom filters', async () => {
+  it('shows the custom filters table below the built-in filters', async () => {
     const projectWithDiscardGroups = ProjectFixture({
       ...project,
       features: ['discard-groups'],
@@ -492,9 +492,10 @@ describe('ProjectFilters', () => {
     expect(screen.getByText('Ignore flaky connection errors')).toBeInTheDocument();
     expect(screen.getByText('Drop debug log spam')).toBeInTheDocument();
 
-    const legacySaveButton = screen.getByRole('button', {name: 'Save'});
+    // The built-in filters stay above the table.
+    const ipAddresses = screen.getByRole('textbox', {name: 'IP Addresses'});
     expect(
-      legacySaveButton.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING
+      ipAddresses.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
   });
 
@@ -547,44 +548,16 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('textbox', {name: 'IP Addresses'})).toBeInTheDocument();
   });
 
-  it('keeps legacy custom filter edits while a filter is created in the modal', async () => {
+  it('hides the legacy list fields once the table lists the lists as rows', async () => {
     renderInboundFilters([]);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
-    const projectMock = MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      method: 'PUT',
-    });
-    const createMock = MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      method: 'POST',
-      body: CustomInboundFilterFixture({id: '10', name: 'Block spam messages'}),
-    });
-
-    const releases = screen.getByRole('textbox', {name: 'Releases'});
-    await userEvent.click(releases);
-    await userEvent.paste('1.*');
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
-    await userEvent.paste('Block spam messages');
-    await enterConditions('error_message:spam');
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [CustomInboundFilterFixture({id: '10', name: 'Block spam messages'})],
-    });
-    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
-
-    expect(await screen.findByText('Block spam messages')).toBeInTheDocument();
-    expect(createMock).toHaveBeenCalledTimes(1);
-    expect(projectMock).not.toHaveBeenCalled();
-
-    // The unsaved legacy edit survived the modal round trip and still saves.
-    expect(releases).toHaveValue('1.*');
-    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-    await waitFor(() => expect(projectMock).toHaveBeenCalledTimes(1));
-    expect(projectMock.mock.calls[0][1].data.options['filters:releases']).toBe('1.*');
+    expect(screen.queryByRole('textbox', {name: 'Releases'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Error Message'})
+    ).not.toBeInTheDocument();
+    // The IP list stays a project option, so its field stays.
+    expect(screen.getByRole('textbox', {name: 'IP Addresses'})).toBeInTheDocument();
   });
 
   it('loads custom filters from the API and filters them by search', async () => {

@@ -76,7 +76,11 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         """
         try:
             data_export = ExportedData.objects.get(
-                id=data_export_id, organization=organization, user_id=request.user.id
+                id=data_export_id,
+                organization=organization,
+                user_id=request.user.id,
+                # A caller with no user (id None) would otherwise match exports whose user is gone.
+                user_id__isnull=False,
             )
         except ExportedData.DoesNotExist:
             if ExportedData.objects.filter(id=data_export_id, organization=organization).exists():

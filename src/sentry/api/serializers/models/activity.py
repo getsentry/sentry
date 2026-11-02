@@ -6,7 +6,7 @@ from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
-from sentry.issues.action_log.types import GroupActionType
+from sentry.issues.action_log.types import ActionSource, GroupActionType
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
@@ -24,6 +24,7 @@ from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 from sentry.utils.action_log.activity_translator import activity_action_idempotency_key
+from sentry.utils.http import LEGACY_MCP_CLIENT_FAMILY_ALIASES
 
 ActivityId: TypeAlias = int
 
@@ -64,6 +65,16 @@ class GroupNoteSerializerResponse(ActivitySerializerResponse):
     source: str | None
 
 
+def serialize_activity_source(source: str | None) -> str | None:
+    """Normalize historical MCP client name."""
+    if source is None:
+        return None
+    prefix, sep, family = source.partition(":")
+    if sep and prefix == ActionSource.MCP and family in LEGACY_MCP_CLIENT_FAMILY_ALIASES:
+        return f"{prefix}:{LEGACY_MCP_CLIENT_FAMILY_ALIASES[family]}"
+    return source
+
+
 def serialize_group_notes(
     group: Group,
     notes: Sequence[Activity],
@@ -86,7 +97,7 @@ def serialize_group_notes(
         {
             **item,
             "data": {**item["data"], "comment_id": note.id},
-            "source": sources.get(activity_action_idempotency_key(note)),
+            "source": serialize_activity_source(sources.get(activity_action_idempotency_key(note))),
         }
         for note, item in zip(notes, serialized_notes)
     ]

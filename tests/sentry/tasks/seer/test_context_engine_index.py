@@ -19,6 +19,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.hashlib import md5_text
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -106,8 +107,7 @@ class TestIndexOrgProjectKnowledge(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.org.id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.org.id
         )
         assert get_viewer_context() is None
 
@@ -396,7 +396,7 @@ class TestIndexRepos(TestCase):
         assert relay_repo["project_ids"] == [self.project2.id]
         assert relay_repo["integration_id"] == str(self.integration.id)
         assert observed_contexts == [
-            ViewerContext(organization_id=self.org.id, actor_type=ActorType.SYSTEM)
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.org.id)
         ]
         assert get_viewer_context() is None
 
@@ -498,7 +498,7 @@ class TestScheduleContextEngineIndexingTasks(TestCase):
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
             key="viewer-context-test-secret",
         )
-        assert viewer_context == ViewerContext(actor_type=ActorType.SYSTEM)
+        assert viewer_context == ViewerContext(actor=Actor(type=ActorType.SYSTEM))
         assert get_viewer_context() is None
 
     @mock.patch("sentry.tasks.seer.context_engine_index.index_repos.apply_async")

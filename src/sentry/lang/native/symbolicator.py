@@ -242,6 +242,7 @@ class Symbolicator:
                 "options": {
                     "dif_candidates": True,
                     "extract_variables": self._should_extract_variables(),
+                    "apply_source_server_info": self._should_apply_source_server_info(),
                 },
                 "symbolicate": {
                     "type": "minidump",
@@ -263,7 +264,11 @@ class Symbolicator:
             "sources": orjson.dumps(sources).decode(),
             "scraping": orjson.dumps(scraping_config).decode(),
             "options": orjson.dumps(
-                {"dif_candidates": True, "extract_variables": self._should_extract_variables()}
+                {
+                    "dif_candidates": True,
+                    "extract_variables": self._should_extract_variables(),
+                    "apply_source_server_info": self._should_apply_source_server_info(),
+                }
             ).decode(),
             "rewrite_first_module": orjson.dumps(rewrite_first_module).decode(),
         }
@@ -339,6 +344,7 @@ class Symbolicator:
                 "apply_source_context": apply_source_context,
                 "frame_order": frame_order.value,
                 "extract_variables": self._should_extract_variables(),
+                "apply_source_server_info": self._should_apply_source_server_info(),
             },
             "stacktraces": stacktraces,
             "modules": modules,
@@ -437,6 +443,9 @@ class Symbolicator:
         This just reads the "organizations:native-variable-extraction" feature flag.
         """
         return features.has("organizations:native-variable-extraction", self.project.organization)
+
+    def _should_apply_source_server_info(self) -> bool:
+        return self.project.get_option("sentry:enable_native_source_server_mapping")
 
 
 class TaskIdNotFound(Exception):

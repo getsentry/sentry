@@ -45,3 +45,24 @@ An organization's public locality URL remains runtime information supplied by
 bootstrap, configuration, organization listings (`links.regionUrl`), or optional
 discovery. This extension contains no deployment URLs, credentials, private cell
 addresses, cache policy, or automatic host selection.
+
+# Idempotent operations
+
+An operation carries `"x-sentry-idempotent": true` when its endpoint lists the
+method in `idempotent_methods`:
+
+```python
+class DifAssembleEndpoint(ProjectEndpoint):
+    publish_status = {"POST": ApiPublishStatus.PRIVATE}
+    idempotent_methods = frozenset({"POST"})
+```
+
+It means a client may resend the identical request after a timeout or a 5xx
+response without changing the outcome, so generated clients can retry it like a
+`GET`. Only list methods that are not already safe (RFC 9110 §9.2.1): the build
+fails for `GET`, `HEAD`, `OPTIONS`, `TRACE`, or a method the endpoint does not
+declare in `publish_status`. A missing marker means "not known to be idempotent",
+including `PUT` and `DELETE`, whose handlers do not all live up to RFC 9110 §9.2.2.
+
+Like routing, declarations are collected for every endpoint and reset on every
+build. The marker appears only on operations that are in the generated schema.

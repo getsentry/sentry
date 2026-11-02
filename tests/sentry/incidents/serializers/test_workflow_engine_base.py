@@ -1,215 +1,248 @@
-from unittest import mock
+from typing import Any
 
-import orjson
 from django.utils import timezone
-from urllib3.response import HTTPResponse
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import (
-    AlertRule,
     AlertRuleDetectionType,
-    AlertRuleSeasonality,
-    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleThresholdType,
 )
 from sentry.issues.priority import PriorityChangeReason
 from sentry.models.activity import Activity
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.silo.base import SiloMode
-from sentry.snuba.models import ExtrapolationMode
-from sentry.testutils.cases import TestCase
+from sentry.notifications.models.notificationaction import ActionTarget
+from sentry.snuba.models import SnubaQuery
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.metric_alert_migration import (
-    migrate_alert_rule,
-    migrate_metric_action,
-    migrate_metric_data_conditions,
-    migrate_resolve_threshold_data_condition,
-)
-from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import IncidentGroupOpenPeriod
+from sentry.workflow_engine.models import (
+    Action,
+    DataCondition,
+    DataConditionGroup,
+    Detector,
+    Workflow,
+)
+from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_action_group_status import WorkflowActionGroupStatus
+from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+
+class MetricSerializerTestCase(BaseWorkflowTest):
+    def create_metric_detector(self, **config: Any) -> tuple[Detector, Workflow, SnubaQuery]:
+        detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            workflow_condition_group=self.create_data_condition_group(
+                organization=self.organization
+            ),
+            config={
+                "detection_type": AlertRuleDetectionType.STATIC,
+                "comparison_delta": None,
+                **config,
+            },
+        )
+        query = self.create_snuba_query(query="level:error")
+        subscription = self.create_snuba_query_subscription(snuba_query_id=query.id)
+        source = self.create_data_source(
+            organization=self.organization, source_id=str(subscription.id)
+        )
+        self.create_data_source_detector(data_source=source, detector=detector)
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=detector, workflow=workflow)
+        return detector, workflow, query
+
+    def create_metric_trigger(
+        self,
+        detector: Detector,
+        workflow: Workflow,
+        threshold: float = 100,
+        priority: DetectorPriorityLevel = DetectorPriorityLevel.HIGH,
+    ) -> tuple[DataCondition, DataConditionGroup]:
+        condition = self.create_data_condition(
+            condition_group=detector.workflow_condition_group,
+            type=Condition.GREATER,
+            comparison=threshold,
+            condition_result=priority,
+        )
+        action_group = self.create_data_condition_group(organization=self.organization)
+        self.create_workflow_data_condition_group(workflow=workflow, condition_group=action_group)
+        self.create_data_condition(
+            condition_group=action_group,
+            type=Condition.ISSUE_PRIORITY_GREATER_OR_EQUAL,
+            comparison=priority,
+            condition_result=True,
+        )
+        self.create_data_condition(
+            condition_group=action_group,
+            type=Condition.ISSUE_PRIORITY_DEESCALATING,
+            comparison=priority,
+            condition_result=True,
+        )
+        return condition, action_group
+
+    def create_email_action(self, condition_group: DataConditionGroup, **config: Any) -> Action:
+        action = self.create_action(
+            type=Action.Type.EMAIL,
+            config={
+                "target_type": ActionTarget.USER,
+                "target_identifier": str(self.user.id),
+                "target_display": None,
+                **config,
+            },
+        )
+        self.create_data_condition_group_action(action=action, condition_group=condition_group)
+        return action
 
 
 @freeze_time("2024-12-11 03:21:34")
-class TestWorkflowEngineSerializer(TestCase):
-    @assume_test_silo_mode(SiloMode.CELL)
+class TestWorkflowEngineSerializer(MetricSerializerTestCase):
+    # These historical IDs deliberately differ from the modern objects' IDs.
+    legacy_rule_id = 12301
+    legacy_critical_trigger_id = 12302
+    legacy_critical_action_id = 12303
+    legacy_warning_trigger_id = 12304
+    legacy_warning_action_id = 12305
+
     def setUp(self) -> None:
-        # XXX: do this so that DCGA and Action IDs aren't one to one
-        other_action = self.create_action()
-        other_action.delete()
-
+        super().setUp()
+        # Keep Action and DataConditionGroupAction IDs distinct.
+        self.create_action().delete()
         self.group = self.create_group(type=MetricIssue.type_id)
-
         self.now = timezone.now()
-        self.alert_rule = self.create_alert_rule()
-        # threshold is 100
-        self.critical_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="critical"
+        self.detector, self.workflow, self.snuba_query = self.create_metric_detector()
+        self.critical_detector_trigger, self.critical_action_group = self.create_metric_trigger(
+            self.detector, self.workflow
         )
-        self.critical_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.critical_trigger
+        self.critical_action = self.create_email_action(self.critical_action_group)
+        self.resolve_trigger_data_condition = self.create_data_condition(
+            condition_group=self.detector.workflow_condition_group,
+            type=Condition.LESS_OR_EQUAL,
+            comparison=100,
+            condition_result=DetectorPriorityLevel.OK,
         )
-        _, _, _, self.detector, _, _, _, _ = migrate_alert_rule(self.alert_rule)
-        self.critical_detector_trigger, _, _ = migrate_metric_data_conditions(self.critical_trigger)
-
-        self.critical_action, _, _ = migrate_metric_action(self.critical_trigger_action)
-        self.resolve_trigger_data_condition = migrate_resolve_threshold_data_condition(
-            self.alert_rule
+        # This suite exercises the legacy payload contract using modern objects only.
+        self.create_alert_rule_detector(alert_rule_id=self.legacy_rule_id, detector=self.detector)
+        self.create_data_condition_alert_rule_trigger(
+            data_condition=self.critical_detector_trigger,
+            alert_rule_trigger_id=self.legacy_critical_trigger_id,
         )
-
+        self.create_action_alert_rule_trigger_action(
+            action=self.critical_action, alert_rule_trigger_action_id=self.legacy_critical_action_id
+        )
         self.create_detector_group(detector=self.detector, group=self.group)
-        self.expected_critical_action = [
+        self.expected_critical_action: list[dict[str, Any]] = [
             {
-                "id": str(self.critical_trigger_action.id),
-                "alertRuleTriggerId": str(self.critical_trigger.id),
+                "id": str(self.legacy_critical_action_id),
+                "alertRuleTriggerId": str(self.legacy_critical_trigger_id),
                 "type": "email",
                 "targetType": "user",
                 "targetIdentifier": str(self.user.id),
                 "inputChannelId": None,
                 "integrationId": None,
                 "sentryAppId": None,
-                "dateCreated": self.critical_trigger_action.date_added,
+                "dateCreated": self.critical_action.date_added,
                 "desc": f"Send a notification to {self.user.email}",
-                "priority": self.critical_action.data.get("priority"),
+                "priority": None,
             }
         ]
-        self.expected_triggers = [
+        self.expected_triggers: list[dict[str, Any]] = [
             {
-                "id": str(self.critical_trigger.id),
-                "alertRuleId": str(self.alert_rule.id),
+                "id": str(self.legacy_critical_trigger_id),
+                "alertRuleId": str(self.legacy_rule_id),
                 "label": "critical",
                 "thresholdType": AlertRuleThresholdType.ABOVE.value,
-                "alertThreshold": self.critical_detector_trigger.comparison,
-                "resolveThreshold": self.critical_detector_trigger.comparison,
-                "dateCreated": self.critical_trigger.date_added,
+                "alertThreshold": 100,
+                "resolveThreshold": 100,
+                "dateCreated": self.critical_detector_trigger.date_added,
                 "actions": self.expected_critical_action,
-            },
+            }
         ]
-
-        self.expected = {
-            "id": str(self.alert_rule.id),
+        self.expected: dict[str, Any] = {
+            "id": str(self.legacy_rule_id),
             "name": self.detector.name,
-            "organizationId": str(self.detector.linked_project.organization_id),
+            "organizationId": str(self.organization.id),
             "status": AlertRuleStatus.PENDING.value,
-            "queryType": self.alert_rule.snuba_query.type,
-            "dataset": self.alert_rule.snuba_query.dataset,
-            "query": self.alert_rule.snuba_query.query,
-            "aggregate": self.alert_rule.snuba_query.aggregate,
-            "thresholdType": self.alert_rule.threshold_type,
-            "resolveThreshold": self.critical_detector_trigger.comparison,
-            "timeWindow": self.alert_rule.snuba_query.time_window / 60,
-            "environment": self.alert_rule.snuba_query.environment.name
-            if self.alert_rule.snuba_query.environment
-            else None,
-            "resolution": self.alert_rule.snuba_query.resolution / 60,
+            "queryType": self.snuba_query.type,
+            "dataset": self.snuba_query.dataset,
+            "query": self.snuba_query.query,
+            "aggregate": self.snuba_query.aggregate,
+            "thresholdType": AlertRuleThresholdType.ABOVE.value,
+            "resolveThreshold": 100,
+            "timeWindow": self.snuba_query.time_window / 60,
+            "environment": None,
+            "resolution": self.snuba_query.resolution / 60,
             "thresholdPeriod": 1,
             "triggers": self.expected_triggers,
             "projects": [self.project.slug],
-            "owner": self.detector.owner_user_id,
+            "owner": None,
             "originalAlertRuleId": None,
-            "comparisonDelta": self.alert_rule.comparison_delta / 60
-            if self.alert_rule.comparison_delta
-            else None,
+            "comparisonDelta": None,
             "dateModified": self.detector.date_updated,
             "dateCreated": self.detector.date_added,
             "createdBy": None,
-            "description": self.detector.description or "",
-            "sensitivity": self.detector.config.get("sensitivity"),
-            "seasonality": self.detector.config.get("seasonality"),
-            "detectionType": self.detector.config["detection_type"],
+            "description": "",
+            "sensitivity": None,
+            "seasonality": None,
+            "detectionType": AlertRuleDetectionType.STATIC,
+            "extrapolationMode": "unknown",
         }
-        # Only include extrapolationMode if not None (matches AlertRuleSerializer behavior)
-        if self.alert_rule.snuba_query.extrapolation_mode is not None:
-            self.expected["extrapolationMode"] = ExtrapolationMode(
-                self.alert_rule.snuba_query.extrapolation_mode
-            ).name.lower()
 
     def add_warning_trigger(self) -> None:
-        self.warning_trigger = self.create_alert_rule_trigger(
-            alert_rule=self.alert_rule, label="warning", alert_threshold=50
+        self.warning_detector_trigger, self.warning_action_group = self.create_metric_trigger(
+            self.detector,
+            self.workflow,
+            threshold=50,
+            priority=DetectorPriorityLevel.MEDIUM,
         )
-        self.warning_trigger_action = self.create_alert_rule_trigger_action(
-            alert_rule_trigger=self.warning_trigger
+        self.warning_action = self.create_email_action(self.warning_action_group)
+        self.create_data_condition_alert_rule_trigger(
+            data_condition=self.warning_detector_trigger,
+            alert_rule_trigger_id=self.legacy_warning_trigger_id,
         )
-        self.warning_detector_trigger, _, _ = migrate_metric_data_conditions(self.warning_trigger)
-        self.warning_action, _, _ = migrate_metric_action(self.warning_trigger_action)
-        self.expected_warning_action = [
+        self.create_action_alert_rule_trigger_action(
+            action=self.warning_action, alert_rule_trigger_action_id=self.legacy_warning_action_id
+        )
+        self.expected_warning_action: list[dict[str, Any]] = [
             {
-                "id": str(self.warning_trigger_action.id),
-                "alertRuleTriggerId": str(self.warning_trigger.id),
-                "type": "email",
-                "targetType": "user",
-                "targetIdentifier": str(self.user.id),
-                "inputChannelId": None,
-                "integrationId": None,
-                "sentryAppId": None,
-                "dateCreated": self.warning_trigger_action.date_added,
-                "desc": f"Send a notification to {self.user.email}",
-                "priority": self.warning_action.data.get("priority"),
+                **self.expected_critical_action[0],
+                "id": str(self.legacy_warning_action_id),
+                "alertRuleTriggerId": str(self.legacy_warning_trigger_id),
+                "dateCreated": self.warning_action.date_added,
             }
         ]
-        self.expected_warning_trigger = {
-            "id": str(self.warning_trigger.id),
-            "alertRuleId": str(self.alert_rule.id),
+        self.expected_warning_trigger: dict[str, Any] = {
+            **self.expected_triggers[0],
+            "id": str(self.legacy_warning_trigger_id),
             "label": "warning",
-            "thresholdType": AlertRuleThresholdType.ABOVE.value,
-            "alertThreshold": self.warning_detector_trigger.comparison,
-            "resolveThreshold": self.warning_detector_trigger.comparison,
-            "dateCreated": self.warning_trigger.date_added,
+            "alertThreshold": 50,
+            "resolveThreshold": 50,
+            "dateCreated": self.warning_detector_trigger.date_added,
             "actions": self.expected_warning_action,
         }
-        self.expected_triggers[0]["resolveThreshold"] = self.warning_detector_trigger.comparison
+        self.expected_triggers[0]["resolveThreshold"] = 50
         self.expected_triggers.append(self.expected_warning_trigger)
-        # Update top-level resolveThreshold to match the warning threshold
-        self.expected["resolveThreshold"] = self.warning_detector_trigger.comparison
-        self.resolve_trigger_data_condition.update(
-            comparison=self.warning_detector_trigger.comparison
-        )
+        self.expected["resolveThreshold"] = 50
+        self.resolve_trigger_data_condition.update(comparison=50)
 
     def add_incident_data(self) -> None:
-        self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
-
-        self.group.priority = PriorityLevel.HIGH
-        self.group.save()
-
-        workflow = self.create_workflow()
+        self.group.update(priority=PriorityLevel.HIGH)
         WorkflowActionGroupStatus.objects.create(
-            action=self.critical_action, group=self.group, workflow=workflow
+            action=self.critical_action, group=self.group, workflow=self.workflow
         )
-        self.group_open_period = GroupOpenPeriod.objects.get(
-            group=self.group, project=self.detector.linked_project
-        )
-        self.group_open_period.update(date_started=self.incident.date_started)
-        self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(
+        self.group_open_period = GroupOpenPeriod.objects.get(group=self.group, project=self.project)
+        self.group_open_period.update(date_started=self.now)
+        self.incident_group_open_period = self.create_incident_group_open_period(
             group_open_period=self.group_open_period,
-            incident_id=self.incident.id,
-            incident_identifier=self.incident.identifier,
+            incident_id=12401,
+            incident_identifier=12402,
         )
         Activity.objects.create_group_activity(
-            group=self.group_open_period.group,
+            group=self.group,
             type=ActivityType.SET_PRIORITY,
             data={
                 "priority": PriorityLevel.MEDIUM.to_str(),
                 "reason": PriorityChangeReason.ONGOING,
             },
         )
-
-    @with_feature("organizations:anomaly-detection-alerts")
-    @mock.patch(
-        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
-    )
-    def create_dynamic_alert(self, mock_seer_request: mock.MagicMock) -> AlertRule:
-        seer_return_value = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
-        dynamic_rule = self.create_alert_rule(
-            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
-            detection_type=AlertRuleDetectionType.DYNAMIC,
-            sensitivity=AlertRuleSensitivity.HIGH,
-            seasonality=AlertRuleSeasonality.AUTO,
-            time_window=60,
-        )
-        return dynamic_rule

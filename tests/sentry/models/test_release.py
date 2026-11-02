@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -10,8 +10,13 @@ from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
 from sentry.exceptions import InvalidSearchQuery
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource
 from sentry.issues.action_log.types import SetResolvedInReleaseAction
+from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.deploy import Deploy
@@ -46,7 +51,9 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.activity import ActivityType
 from sentry.utils.strings import truncatechars
 
 
@@ -369,6 +376,20 @@ class MergeReleasesTest(TestCase):
         assert not Release.objects.filter(id=release2.id).exists()
         assert not Release.objects.filter(id=release3.id).exists()
 
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_merging_first_release_emits_snapshot(self, produce_snapshot: MagicMock) -> None:
+        release = self.create_release()
+
+        merged_release = self.create_release()
+
+        self.create_group(first_release=merged_release)
+
+        produce_snapshot.reset_mock()
+
+        Release.merge(release, [merged_release])
+
+        assert produce_snapshot.called
+
 
 class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
@@ -635,6 +656,52 @@ class SetCommitsTestCase(TestCase):
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         assert not GroupInbox.objects.filter(group=group).exists()
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
+    @receivers_raise_on_send()
+    def test_resolution_creates_activity_when_group_already_resolved(
+        self, mock_lifecycle_event: MagicMock
+    ) -> None:
+        # A group already RESOLVED (e.g. "resolve now", no GroupResolution)
+        # whose commit later ships in a release gets a new GroupResolution. That
+        # resolution must still get a matching SET_RESOLVED_IN_RELEASE activity,
+        # even though the group's status didn't transition.
+        org = self.create_organization(owner=self.user)
+        project = self.create_project(organization=org, name="foo")
+        group = self.create_group(project=project, status=GroupStatus.RESOLVED)
+        repo = Repository.objects.create(
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
+        )
+        author = CommitAuthor.objects.create(
+            organization_id=org.id, name="Foo Bar", email=self.user.email
+        )
+        author.preload_users()
+        commit = Commit.objects.create(
+            organization_id=org.id,
+            repository_id=repo.id,
+            message="fixes %s" % (group.qualified_short_id),
+            key="a" * 40,
+            author=author,
+        )
+
+        release = self.create_release(project=project, version="abcdabc")
+        release.set_commits([{"id": commit.key, "repository": repo.name}])
+
+        resolution = GroupResolution.objects.get(group=group)
+        assert resolution.release == release
+        assert Activity.objects.filter(
+            group=group,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+        ).exists()
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_halt.assert_called_once_with(
+            SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED
+        )
+        lifecycle.record_success.assert_not_called()
+
     @receivers_raise_on_send()
     def test_resolution_support_without_author(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
@@ -695,15 +762,21 @@ class SetCommitsTestCase(TestCase):
         assert resolution.status == GroupResolution.Status.resolved
         assert Group.objects.get(id=frontend_group.id).status == GroupStatus.RESOLVED
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_records_commit_provider(self, mock_record: MagicMock) -> None:
+    def test_resolution_records_commit_provider(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         org = self.create_organization(owner=Factories.create_user())
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(
             organization_id=org.id,
@@ -731,6 +804,19 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_COMMIT,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        capture_context = mock_lifecycle_event.return_value.capture.return_value
+        lifecycle = capture_context.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
+        assert capture_context.mock_calls.index(
+            call.__enter__().record_success()
+        ) < capture_context.mock_calls.index(call.__exit__(None, None, None))
 
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
@@ -785,9 +871,12 @@ class SetCommitsTestCase(TestCase):
             actor=SYSTEM_ACTOR,
         )
 
+    @patch("sentry.models.releases.set_commits.SCMIntegrationInteractionEvent")
     @patch("sentry.analytics.record")
     @receivers_raise_on_send()
-    def test_resolution_via_pull_request_records_merge_commit(self, mock_record: MagicMock) -> None:
+    def test_resolution_via_pull_request_records_merge_commit(
+        self, mock_record: MagicMock, mock_lifecycle_event: MagicMock
+    ) -> None:
         """A group resolved by a pull request records the PR's merge commit id on
         the IssueResolvedEvent, resolved through the release's matching commit."""
         org = self.create_organization(owner=Factories.create_user())
@@ -795,7 +884,10 @@ class SetCommitsTestCase(TestCase):
         group = self.create_group(project=project)
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         repo = Repository.objects.create(
-            organization_id=org.id, name="test/repo", provider="integrations:github"
+            organization_id=org.id,
+            name="test/repo",
+            provider="integrations:github",
+            integration_id=123,
         )
         commit = Commit.objects.create(organization_id=org.id, repository_id=repo.id, key="b" * 40)
         pull_request = self.create_pull_request(repository_id=repo.id, organization_id=org.id)
@@ -827,6 +919,15 @@ class SetCommitsTestCase(TestCase):
                 issue_category=group.issue_category.name.lower(),
             ),
         )
+        mock_lifecycle_event.assert_called_once_with(
+            interaction_type=SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_PR,
+            provider_key="github",
+            organization_id=org.id,
+            integration_id=repo.integration_id,
+        )
+        mock_lifecycle_event.return_value.capture.assert_called_once_with(assume_success=False)
+        lifecycle = mock_lifecycle_event.return_value.capture.return_value.__enter__.return_value
+        lifecycle.record_success.assert_called_once_with()
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     @receivers_raise_on_send()
@@ -996,6 +1097,58 @@ class SetCommitsTestCase(TestCase):
 
         commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
         assert commit_d.author is None
+
+    @override_options({"releases.set-commits.max-commits": 2})
+    def test_keeps_only_newest_commits_over_limit(self) -> None:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org)
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        now = timezone.now()
+
+        with patch("sentry.models.releases.set_commits.logger") as mock_logger:
+            release.set_commits(
+                [
+                    {
+                        "id": "a" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=2),
+                    },
+                    {"id": "b" * 40, "repository": repo.name, "timestamp": now},
+                    {
+                        "id": "c" * 40,
+                        "repository": repo.name,
+                        "timestamp": now - timedelta(hours=1),
+                    },
+                    # Ignored commits are dropped before the limit is applied.
+                    {
+                        "id": "d" * 40,
+                        "repository": repo.name,
+                        "timestamp": now + timedelta(hours=1),
+                        "message": "#skipsentry",
+                    },
+                ]
+            )
+
+        assert set(
+            ReleaseCommit.objects.filter(release=release).values_list("commit__key", flat=True)
+        ) == {"b" * 40, "c" * 40}
+        assert not Commit.objects.filter(repository_id=repo.id, key="a" * 40).exists()
+
+        release.refresh_from_db()
+        assert release.commit_count == 2
+        assert release.last_commit_id == Commit.objects.get(repository_id=repo.id, key="b" * 40).id
+
+        mock_logger.info.assert_any_call(
+            "set_commits.truncated",
+            extra={
+                "organization_id": org.id,
+                "release_id": release.id,
+                "original_count": 3,
+                "truncated_count": 2,
+            },
+        )
 
 
 class SetRefsTest(SetRefsTestCase):

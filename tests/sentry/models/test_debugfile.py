@@ -13,6 +13,7 @@ from django.core.files.base import ContentFile
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
+from symbolic.debuginfo import Archive
 
 from sentry.models.debugfile import (
     DifMeta,
@@ -40,6 +41,10 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 67:67:java.lang.Class[] getClassContext() -> getClassContext
 65:65:void <init>(org.slf4j.helpers.Util$1) -> <init>
 """
+
+
+def get_local_fixture_path(name):
+    return os.path.join(os.path.dirname(__file__), "fixtures", name)
 
 
 class DebugFileTest(TestCase):
@@ -325,7 +330,7 @@ class DebugFileObjectstoreTest(TestCase):
 class CreateDebugFileTest(APITestCase):
     @property
     def file_path(self):
-        return os.path.join(os.path.dirname(__file__), "fixtures", "crash.dsym")
+        return get_local_fixture_path("crash.dsym")
 
     def _create_meta(self, **kwargs) -> DifMeta:
         args: dict[str, Any] = {
@@ -634,6 +639,45 @@ class CreateDebugFileTest(APITestCase):
         assert created1 and created2
         assert not ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
+
+    def test_wasm_legacy_ids(self) -> None:
+        wasm_path = get_local_fixture_path("index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        file = self.create_file(name="index.wasm")
+        with open(wasm_path, "rb") as f:
+            file.putfile(f)
+
+        dif, created = create_dif_from_file(self.project, meta, file)
+
+        # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
+        # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.
+        #
+        # The legacy debug ID is the first 16 bytes of the legacy code ID.
+        assert dif.code_id == "da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.debug_id == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        assert dif.wasm_legacy_code_id == "10da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.wasm_legacy_debug_id == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
+
+    @requires_objectstore
+    def test_wasm_legacy_ids_objectstore(self) -> None:
+        wasm_path = get_local_fixture_path("index.wasm")
+        obj = Archive.open(wasm_path)._get_object(0)
+        meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
+
+        with open(wasm_path, "rb") as f:
+            with self.feature("organizations:objectstore-debugfiles-write"):
+                dif, created = create_dif_from_fileobj(self.project, meta, f)
+
+        # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
+        # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.
+        #
+        # The legacy debug ID is the first 16 bytes of the legacy code ID.
+        assert dif.code_id == "da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.debug_id == "da03eb5d-63d7-50fa-ab0f-b8e7cc12a1c3"
+        assert dif.wasm_legacy_code_id == "10da03eb5d63d750faab0fb8e7cc12a1c3"
+        assert dif.wasm_legacy_debug_id == "10da03eb-5d63-d750-faab-0fb8e7cc12a1"
 
 
 @debug_files_test_both_backends

@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {Button} from '@sentry/scraps/button';
 
 import {ResultGrid} from 'sentry/components/resultGrid';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
 
@@ -19,14 +20,14 @@ export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
     }
 
     return [
-      <td key="email">{row.email}</td>,
-      <td key="id" style={{textAlign: 'center'}}>
+      <SimpleTable.RowCell key="email">{row.email}</SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="id" justify="center">
         {row.identifier}
-      </td>,
-      <td key="hash" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="hash" justify="center">
         {row.hash}
-      </td>,
-      <td key="actions" style={{textAlign: 'center'}}>
+      </SimpleTable.RowCell>,
+      <SimpleTable.RowCell key="actions" justify="center">
         <AdminConfirmationModal
           header={<h4>{'Remove Event User'}</h4>}
           modalSpecificContent={
@@ -52,7 +53,7 @@ export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
             Delete Email
           </Button>
         </AdminConfirmationModal>
-      </td>,
+      </SimpleTable.RowCell>,
     ];
   };
 
@@ -64,16 +65,10 @@ export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
       hasSearch
       defaultParams={{per_page: 10}}
       columns={[
-        <th key="email">Email</th>,
-        <th key="id" style={{width: 150, textAlign: 'center'}}>
-          ID
-        </th>,
-        <th key="hash" style={{width: 150, textAlign: 'center'}}>
-          User Hash
-        </th>,
-        <th key="actions" style={{width: 150, textAlign: 'center'}}>
-          Delete Email
-        </th>,
+        {key: 'email', label: 'Email'},
+        {key: 'id', label: 'ID', width: 150, align: 'center'},
+        {key: 'hash', label: 'User Hash', width: 150, align: 'center'},
+        {key: 'actions', label: 'Delete Email', width: 150, align: 'center'},
       ]}
       columnsForRow={getRow}
     />

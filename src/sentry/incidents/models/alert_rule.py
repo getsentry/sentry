@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Collection, Iterable
-from enum import Enum, IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Self
+from enum import Enum, IntEnum
+from typing import Any, ClassVar, Self
 
 from django.conf import settings
 from django.db import models
@@ -11,11 +10,8 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
-from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    JSONField,
     Model,
     cell_silo_model,
     sane_repr,
@@ -23,19 +19,8 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.models.team import Team
-from sentry.notifications.models.notificationaction import (
-    AbstractNotificationAction,
-    ActionService,
-    ActionTarget,
-)
 from sentry.types.actor import Actor
-
-if TYPE_CHECKING:
-    from sentry.incidents.action_handlers import ActionHandler
-
 
 logger = logging.getLogger(__name__)
 
@@ -192,205 +177,3 @@ class AlertRuleThresholdType(Enum):
     ABOVE = 0
     BELOW = 1
     ABOVE_AND_BELOW = 2
-
-
-@cell_silo_model
-class AlertRuleTrigger(Model):
-    """
-    This model represents the *threshold* trigger for an AlertRule
-
-    threshold_type is AlertRuleThresholdType (Above/Below)
-    alert_threshold is the trigger value
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
-    label = models.TextField()
-    threshold_type = models.SmallIntegerField(null=True)
-    alert_threshold = models.FloatField()
-    resolve_threshold = models.FloatField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletrigger"
-        unique_together = (("alert_rule", "label"),)
-
-
-class AlertRuleTriggerActionMethod(StrEnum):
-    FIRE = "fire"
-    RESOLVE = "resolve"
-
-
-class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
-    """
-    A manager that excludes trigger actions that are pending to be deleted
-    """
-
-    def get_queryset(self) -> BaseQuerySet[AlertRuleTriggerAction]:
-        return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
-
-
-class ActionHandlerFactory:
-    """Metadata for an incident action service: slug, supported target types, and integration provider."""
-
-    def __init__(
-        self,
-        slug: str,
-        service_type: ActionService,
-        supported_target_types: Iterable[ActionTarget],
-        integration_provider: str | None,
-    ) -> None:
-        self.slug = slug
-        self.service_type = service_type
-        self.supported_target_types = frozenset(supported_target_types)
-        self.integration_provider = integration_provider
-
-
-class _FactoryRegistry:
-    def __init__(self) -> None:
-        # Two kinds of index. The value sets should be equal at all times.
-        self.by_action_service: dict[ActionService, ActionHandlerFactory] = {}
-        self.by_slug: dict[str, ActionHandlerFactory] = {}
-
-    def register(self, factory: ActionHandlerFactory) -> None:
-        if factory.service_type in self.by_action_service:
-            raise Exception(f"Handler already registered for type {factory.service_type}")
-        if factory.slug in self.by_slug:
-            raise Exception(f"Handler already registered with slug={factory.slug!r}")
-        self.by_action_service[factory.service_type] = factory
-        self.by_slug[factory.slug] = factory
-
-
-@cell_silo_model
-class AlertRuleTriggerAction(AbstractNotificationAction):
-    """
-    This model represents an action that occurs when a trigger (over/under) is fired. This is
-    typically some sort of notification.
-
-    NOTE: AlertRuleTrigger is the 'threshold' for the AlertRule
-    """
-
-    __relocation_scope__ = RelocationScope.Global
-
-    Type = ActionService
-    TargetType = ActionTarget
-
-    _factory_registrations = _FactoryRegistry()
-
-    INTEGRATION_TYPES = frozenset(
-        (
-            Type.PAGERDUTY.value,
-            Type.SLACK.value,
-            Type.MSTEAMS.value,
-            Type.OPSGENIE.value,
-            Type.DISCORD.value,
-        )
-    )
-
-    # ActionService items which are not supported for AlertRuleTriggerActions
-    EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
-
-    objects: ClassVar[AlertRuleTriggerActionManager] = AlertRuleTriggerActionManager()
-    objects_for_deletion: ClassVar[BaseManager[Self]] = BaseManager()
-
-    alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
-
-    date_added = models.DateTimeField(default=timezone.now)
-    sentry_app_config: models.Field[
-        # list of dicts if this is a sentry app, otherwise can be singular dict
-        dict[str, Any] | list[dict[str, Any]] | None,
-        dict[str, Any] | list[dict[str, Any]] | None,
-    ] = JSONField(null=True)
-    status = BoundedPositiveIntegerField(
-        default=ObjectStatus.ACTIVE,
-        db_default=ObjectStatus.ACTIVE,
-        choices=ObjectStatus.as_choices(),
-    )
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruletriggeraction"
-
-    @property
-    def target(self) -> OrganizationMember | Team | str | None:
-        if self.target_identifier is None:
-            return None
-
-        if self.target_type == self.TargetType.USER.value:
-            try:
-                return OrganizationMember.objects.get(
-                    user_id=int(self.target_identifier),
-                    organization=self.alert_rule_trigger.alert_rule.organization_id,
-                )
-            except OrganizationMember.DoesNotExist:
-                pass
-
-        elif self.target_type == self.TargetType.TEAM.value:
-            try:
-                return Team.objects.get(
-                    id=int(self.target_identifier),
-                    organization_id=self.alert_rule_trigger.alert_rule.organization_id,
-                )
-            except Team.DoesNotExist:
-                pass
-
-        elif self.target_type == self.TargetType.SPECIFIC.value:
-            # TODO: This is only for email. We should have a way of validating that it's
-            # ok to contact this email.
-            return self.target_identifier
-        return None
-
-    def get_single_sentry_app_config(self) -> dict[str, Any] | None:
-        value = self.sentry_app_config
-        if isinstance(value, list):
-            raise ValueError("Sentry app actions have a list of configs")
-        return value
-
-    @classmethod
-    def register_factory(cls, factory: ActionHandlerFactory) -> None:
-        cls._factory_registrations.register(factory)
-
-    @classmethod
-    def register_type(
-        cls,
-        slug: str,
-        service_type: ActionService,
-        supported_target_types: Collection[ActionTarget],
-        integration_provider: str | None = None,
-    ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
-        """
-        Register a metadata factory for the decorated ActionHandler class, for a given service type.
-
-        :param slug: A string representing the name of this type registration
-        :param service_type: The action service type the decorated handler supports.
-        :param supported_target_types: The target types the decorated handler supports.
-        :param integration_provider: String representing the integration provider
-               related to this type.
-        """
-
-        def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
-            factory = ActionHandlerFactory(
-                slug, service_type, supported_target_types, integration_provider
-            )
-            cls.register_factory(factory)
-            return handler
-
-        return inner
-
-    @classmethod
-    def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
-        return cls._factory_registrations.by_action_service[service_type]
-
-    @classmethod
-    def get_registered_factories(cls) -> list[ActionHandlerFactory]:
-        return list(cls._factory_registrations.by_action_service.values())
-
-    @classmethod
-    def look_up_factory_by_slug(cls, slug: str) -> ActionHandlerFactory | None:
-        return cls._factory_registrations.by_slug.get(slug)
-
-    @classmethod
-    def get_all_slugs(cls) -> list[str]:
-        return list(cls._factory_registrations.by_slug)

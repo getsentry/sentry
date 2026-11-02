@@ -36,6 +36,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
 import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
 import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
@@ -186,6 +187,9 @@ export default function SentryAppDetailedView() {
 
     // installSentryApp adds a message on failure
     const newInstall = await installSentryApp(api, organization.slug, sentryApp);
+    queryClient.invalidateQueries({
+      queryKey: sentryAppComponentsApiOptions({orgSlug: organization.slug}).queryKey,
+    });
 
     // installation is complete if the status is installed
     if (newInstall.status === 'installed') {
@@ -240,6 +244,9 @@ export default function SentryAppDetailedView() {
 
       try {
         await uninstallSentryApp(api, outgoingInstall);
+        queryClient.invalidateQueries({
+          queryKey: sentryAppComponentsApiOptions({orgSlug: organization.slug}).queryKey,
+        });
         trackIntegrationAnalytics('integrations.uninstall_completed', {
           view: 'integrations_directory_integration_detail',
           integration: integrationSlug,

@@ -1953,6 +1953,7 @@ class SnubaTagStorage(TagStorage):
         organization_id = Project.objects.filter(id=projects[0]).values_list(
             "organization_id", flat=True
         )[0]
+        # Unlike the EAP autocomplete path, this legacy release dropdown does not exclude archived releases.
         qs = Release.objects.filter(organization_id=organization_id)
 
         if projects:

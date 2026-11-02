@@ -349,6 +349,112 @@ class RepositoryManagerResolveActiveTest(TestCase):
         assert repo.organization_id == other_org.id
 
 
+class RepositoryManagerResolveActiveByReferenceTest(TestCase):
+    def setUp(self) -> None:
+        self.repo = self.create_repo(
+            self.project,
+            name="Display Group / Display Project",
+            provider="integrations:gitlab",
+            external_id="gitlab.example:123",
+        )
+
+    def test_repository_id_takes_precedence(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+            provider="github",
+            external_id="different-external-id",
+            name="different/name",
+        )
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_invalid_repository_id_does_not_fall_back(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id + 1,
+            provider="gitlab",
+            external_id=self.repo.external_id,
+            name=self.repo.name,
+        )
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_external_id_does_not_require_matching_name(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id=self.repo.external_id,
+            name="url-safe-group/url-safe-project",
+        )
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_prefixed_provider_is_normalized(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            provider="integrations:gitlab",
+            external_id=self.repo.external_id,
+        )
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_invalid_external_id_does_not_fall_back(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            external_id="missing",
+            name=self.repo.name,
+        )
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_name_is_used_without_stable_identity(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            provider="gitlab",
+            name=self.repo.name,
+        )
+
+        assert reason == "resolved"
+        assert repo == self.repo
+
+    def test_no_identity_is_not_found(self) -> None:
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id
+        )
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_repository_id_is_scoped_to_organization(self) -> None:
+        other_org = self.create_organization()
+
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=other_org.id,
+            repository_id=self.repo.id,
+        )
+
+        assert repo is None
+        assert reason == "not_found"
+
+    def test_ignores_inactive_repository_id(self) -> None:
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+
+        repo, reason = Repository.objects.resolve_active_by_reference(
+            organization_id=self.organization.id,
+            repository_id=self.repo.id,
+        )
+
+        assert repo is None
+        assert reason == "not_found"
+
+
 class RepositoryManagerProviderMatchTest(TestCase):
     def test_matches_bare_and_prefixed_only(self) -> None:
         bare = self.create_repo(self.project, name="a/bare", provider="github")
@@ -363,3 +469,15 @@ class RepositoryManagerProviderMatchTest(TestCase):
 
         assert matched == {bare, prefixed}
         assert other not in matched
+
+    def test_normalizes_prefixed_provider(self) -> None:
+        bare = self.create_repo(self.project, name="a/bare", provider="github")
+        prefixed = self.create_repo(self.project, name="a/prefixed", provider="integrations:github")
+
+        matched = set(
+            Repository.objects.filter(organization_id=self.organization.id).filter(
+                Repository.objects.provider_match("integrations:github")
+            )
+        )
+
+        assert matched == {bare, prefixed}

@@ -32,17 +32,11 @@
 ### Routing
 
 - Routes defined in `static/app/router/routes.tsx`
-- Production, local development, deploy previews, and acceptance builds run
-  React Router V8. Application tests and typechecks run against both versions; set
-  `SENTRY_REACT_ROUTER_VERSION=6` or `8` to run `test-ci` or `typecheck` against one.
-  `build-utils/react-router.ts` selects the build runtime and Nuqs adapter together.
-- Use V8 import paths: import router APIs and types from `react-router`, and
-  `RouterProvider` from `react-router/dom`. These paths are aliased to the V6
-  runtime through `static/app/utils/reactRouterV6` in V6 builds.
-- Only the compatibility modules may import `react-router-dom` or
-  `@remix-run/router` directly. Keep using Sentry's routing helpers where required.
-  Use Sentry's version-neutral router tracing integration and wrapper. Keep the
-  Nuqs V6 adapter import; V8 builds and tests alias it to the V8 adapter.
+- Builds, tests, and typechecks use React Router V8.
+- Import router APIs and types from `react-router`, and `RouterProvider` from
+  `react-router/dom`. Use the Nuqs adapter from `nuqs/adapters/react-router/v8`.
+- Keep using Sentry's routing helpers where required. Use Sentry's
+  `reactRouterBrowserTracingIntegration` and `wrapCreateBrowserRouter`.
 - Lazy load route components when possible
 
 ### Frontend API Calls
@@ -120,6 +114,10 @@ Use core primitives from `@sentry/scraps` instead of hand-rolling styled compone
 For worked examples of all of the above, use the **`design-system`** skill.
 
 ## React Testing
+
+`test-ci` runs each workspace with its scoped Jest config, with up to two workspaces in parallel. File arguments select tests across workspaces. App, lint, and test-support suites share the global CI test list and load balancing. Standalone packages run once on shard 0 in CI. New small standalone suites can use `runOnFirstShard` from `scripts/jestSingleShard.js`; larger suites can use the shared scoped config. Balance reports are written per workspace under `.artifacts/jest-balance/` and merged by CI.
+
+`pnpm test` uses one Jest watcher for app, lint, and test-support tests. `pnpm test-all` runs all workspace test scripts once with watch mode disabled.
 
 Writing or editing frontend tests (`*.spec.tsx`, RTL, `MockApiClient`, routing/network tests) → use the **`react-testing`** skill for the full guide (query priority, no hook mocking, fixtures, async assertions, mocking network requests).
 

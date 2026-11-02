@@ -16,11 +16,13 @@ export function getToolOutputBytes(node: AITraceSpanNode): number {
  * (e.g. the trace drawer) rather than a trace node.
  */
 export function getToolOutputBytesFromAttributes(
-  getAttribute: (key: string) => string | number | boolean | undefined
+  getAttribute: (key: string) => string | number | boolean | null | undefined
 ): number {
-  const reportedSize = getAttribute('gen_ai.tool.call.result.size');
+  const reportedSize = getReportedToolOutputBytes(
+    getAttribute('gen_ai.tool.call.result.size')
+  );
   if (reportedSize !== undefined) {
-    return Number(reportedSize);
+    return reportedSize;
   }
 
   for (const key of TOOL_OUTPUT_ATTRIBUTES) {
@@ -30,4 +32,16 @@ export function getToolOutputBytesFromAttributes(
     }
   }
   return 0;
+}
+
+/**
+ * Parses a reported `gen_ai.tool.call.result.size`. APIs return `null` for spans
+ * without the attribute, which must fall back to measuring the result instead.
+ */
+export function getReportedToolOutputBytes(value: unknown): number | undefined {
+  if (typeof value !== 'number' && (typeof value !== 'string' || value.trim() === '')) {
+    return undefined;
+  }
+  const bytes = Number(value);
+  return Number.isFinite(bytes) && bytes >= 0 ? bytes : undefined;
 }

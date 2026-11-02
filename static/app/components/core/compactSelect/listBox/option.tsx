@@ -7,10 +7,14 @@ import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {ControlContext} from '@sentry/scraps/compactSelect/controlContext';
 import {HighlightText} from '@sentry/scraps/compactSelect/highlightText';
 import {getOptionPaddingLeft, LeadWrap} from '@sentry/scraps/compactSelect/styles';
-import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import {
+  ControlContext,
+  ListItem,
+  useReserveLeadingSlot,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
 
 export const ListBoxDetailsHoverContext = createContext<
   ((isHovered: boolean, event: React.PointerEvent) => void) | undefined
@@ -74,6 +78,7 @@ export function ListBoxOption({
     [labelProps.id, label]
   );
 
+  const reserveLeadingSlot = useReserveLeadingSlot();
   const {leadingItems}: Pick<ListItemProps, 'leadingItems'> = item.props;
   const leadingItemsMemo = useMemo(() => {
     const checkboxSize = size === 'xs' ? 'xs' : 'sm';
@@ -101,10 +106,25 @@ export function ListBoxOption({
             isSelected && <IconCheckmark size={checkboxSize} variant="accent" />
           )}
         </LeadWrap>
-        {leading ? <LeadWrap aria-hidden="true">{leading}</LeadWrap> : null}
+        {/* When any option has an icon, every option gets a 16px icon column so
+            labels line up. */}
+        {leading || reserveLeadingSlot ? (
+          <LeadWrap aria-hidden="true" minWidth={reserveLeadingSlot ? '16px' : undefined}>
+            {leading}
+          </LeadWrap>
+        ) : null}
       </Fragment>
     );
-  }, [size, leadingItems, isDisabled, isFocused, isSelected, hideCheck, multiple]);
+  }, [
+    size,
+    leadingItems,
+    isDisabled,
+    isFocused,
+    isSelected,
+    hideCheck,
+    multiple,
+    reserveLeadingSlot,
+  ]);
 
   return (
     <ListItem
@@ -124,7 +144,7 @@ export function ListBoxOption({
       innerWrapProps={{
         paddingLeft: getOptionPaddingLeft({
           hasCheck: !hideCheck,
-          hasLeadingItems: Boolean(leadingItems),
+          hasLeadingItems: Boolean(leadingItems) || reserveLeadingSlot,
         }),
       }}
       trailingItems={trailingItems}

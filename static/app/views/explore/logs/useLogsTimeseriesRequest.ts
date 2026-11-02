@@ -3,12 +3,13 @@ import {useMemo} from 'react';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {AggregationKey} from 'sentry/utils/fields';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/logsIngestDelay';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {getIngestDelayFilterValue} from 'sentry/views/explore/logs/useLogsQuery';
 import {
   useQueryParamsAggregateSortBys,
   useQueryParamsGroupBys,
@@ -17,6 +18,7 @@ import {
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {areAllVisualizesInvalidConditionalFilters} from 'sentry/views/explore/utils/conditionalAggregate';
+import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
 
 export const DEFAULT_LOGS_TIMESERIES_Y_AXIS = `${AggregationKey.COUNT}(${OurLogKnownFieldKey.MESSAGE})`;
 
@@ -44,6 +46,10 @@ export function useLogsTimeseriesRequest({
   const [caseInsensitive] = useCaseInsensitivity();
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const [interval] = useChartInterval();
+  const organization = useOrganization();
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
 
   return useMemo(() => {
     const search = logsSearch.copy();
@@ -54,9 +60,20 @@ export function useLogsTimeseriesRequest({
       );
     }
 
-    const yAxes = yAxesOverride ?? [
-      ...new Set(visualizes.map(visualize => visualize.yAxis)),
-    ];
+    const queries = yAxesOverride
+      ? yAxesOverride.map(yAxis => ({yAxis, transformations: []}))
+      : getVisualizeTimeseriesQueries(visualizes, transformationsEnabled);
+    if (
+      queries.some(query => query.yAxis === DEFAULT_LOGS_TIMESERIES_Y_AXIS) &&
+      !queries.some(
+        query =>
+          query.yAxis === DEFAULT_LOGS_TIMESERIES_Y_AXIS &&
+          query.transformations.length === 0
+      )
+    ) {
+      queries.push({yAxis: DEFAULT_LOGS_TIMESERIES_Y_AXIS, transformations: []});
+    }
+    const yAxes = queries.map(query => query.yAxis);
     const fields = [...groupBys.filter(Boolean), ...yAxes];
 
     // Drop orderbys that point at series removed by `_if` validation.
@@ -76,6 +93,9 @@ export function useLogsTimeseriesRequest({
       enabled: enabled && !skippedForInvalidConditionalFilter,
       search,
       yAxis: yAxes,
+      transformations: transformationsEnabled
+        ? queries.map(query => query.transformations)
+        : undefined,
       interval,
       fields,
       topEvents: topEventsLimit,
@@ -93,6 +113,7 @@ export function useLogsTimeseriesRequest({
     logsSearch,
     queryExtras,
     timeseriesIngestDelay,
+    transformationsEnabled,
     topEventsLimit,
     unvalidatedVisualizes,
     visualizes,

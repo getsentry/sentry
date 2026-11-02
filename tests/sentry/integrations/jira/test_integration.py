@@ -1,6 +1,7 @@
 from typing import Any
 from unittest import mock
 from unittest.mock import patch
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
@@ -1028,6 +1029,31 @@ class RegionJiraIntegrationTest(APITestCase):
         assert assign_issue_url in assign_issue_response.url
         assert assign_issue_response.status_code == 200
         assert assign_issue_response.request.body == b'{"accountId": "deadbeef123"}'
+
+    @responses.activate
+    def test_sync_assignee_outbound_stops_at_first_match(self) -> None:
+        user = self.create_user(email="bob@example.com")
+        self.create_useremail(user, "bob@other.example.com", is_verified=True)
+        issue_id = "APP-123"
+        installation = self.integration.get_installation(self.organization.id)
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=installation.model.id, key=issue_id
+        )
+        search_url = "https://example.atlassian.net/rest/api/2/user/assignable/search"
+
+        def search(request):
+            email = parse_qs(urlparse(request.url).query)["query"][0]
+            return 200, {}, json.dumps([{"accountId": email, "emailAddress": email}])
+
+        responses.add_callback(responses.GET, search_url, callback=search)
+        responses.add(
+            responses.PUT,
+            "https://example.atlassian.net/rest/api/2/issue/%s/assignee" % issue_id,
+            json={},
+        )
+        installation.sync_assignee_outbound(external_issue, serialize_rpc_user(user))
+
+        assert [call.request.method for call in responses.calls] == ["GET", "PUT"]
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self) -> None:

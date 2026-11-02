@@ -6,6 +6,7 @@ import requests
 import responses
 from django.test import override_settings
 from django.urls import reverse
+from scm import Secret
 from scm.actions import create_branch
 from scm.manager import SourceCodeManager
 from scm.rpc.helpers import sign_get, sign_post
@@ -13,6 +14,7 @@ from scm.rpc.helpers import sign_get, sign_post
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
@@ -56,7 +58,8 @@ class DjangoTestClientSessionAdapter:
     def get(self, url, headers=None):
         return self._convert(self._client.get(url, headers=headers))
 
-    def post(self, url, data=None, headers=None):
+    def post(self, url, data=None, headers=None, stream=False):
+        # `stream` is accepted to match the Session protocol; _convert reads the whole body either way.
         h = dict(headers) if headers else {}
         content_type = h.pop("Content-Type", "application/octet-stream")
         return self._convert(
@@ -89,11 +92,11 @@ class TestScmRpc(APITestCase):
                 self.organization.id,
                 self.repo.id,
                 base_url="",
-                signing_secret="a-long-value-that-is-hard-to-guess",
+                signing_secret=Secret("a-long-value-that-is-hard-to-guess"),
             )
 
         self.default_headers = {
-            "Authorization": f"rpcsignature {sign_get('a-long-value-that-is-hard-to-guess', self.organization.id, self.repo.id)}",
+            "Authorization": f"rpcsignature {sign_get(Secret('a-long-value-that-is-hard-to-guess'), self.organization.id, self.repo.id)}",
             "X-Organization-Id": str(self.organization.id),
             "X-Repository-Id": str(self.repo.id),
         }
@@ -110,6 +113,49 @@ class TestScmRpc(APITestCase):
         result = create_branch(self.rpc_client, "test", sha="123")
         assert result["data"]["ref"] == "test"
         assert result["data"]["sha"] == "123"
+        assert len(responses.calls) == 1
+
+    def test_does_not_retry_integration_proxy_get_requests(self):
+        self._assert_does_not_retry_integration_proxy_requests("GET")
+
+    def test_does_not_retry_integration_proxy_post_requests(self):
+        self._assert_does_not_retry_integration_proxy_requests("POST")
+
+    @responses.activate
+    @unittest.mock.patch.object(IntegrationProxyClient, "_use_proxy_url_for_tests", True)
+    def _assert_does_not_retry_integration_proxy_requests(self, method):
+        responses.add(
+            method,
+            "http://controlserver/api/0/internal/integration-proxy/",
+            status=503,
+        )
+        body = json.dumps(
+            {
+                "type": "action",
+                "data": {
+                    "method": method,
+                    "path": "/repos/test-org/test-repo",
+                    "headers": None,
+                    "data": None,
+                    "params": None,
+                    "allow_redirects": None,
+                    "stream": True,
+                },
+            }
+        ).encode()
+
+        with self.options({"hybridcloud.integrationproxy.retries": 5}):
+            response = self.client.post(
+                self.url,
+                data=body,
+                content_type="application/json",
+                headers={
+                    **self.default_headers,
+                    "Authorization": f"rpcsignature {sign_post(Secret('a-long-value-that-is-hard-to-guess'), body)}",
+                },
+            )
+
+        assert_streaming_coded_error(response, 503, "resource_service_unavailable")
         assert len(responses.calls) == 1
 
     def test_get(self):
@@ -136,7 +182,7 @@ class TestScmRpc(APITestCase):
             integration_id=integration.id,
         )
         headers = {
-            "Authorization": f"rpcsignature {sign_get('a-long-value-that-is-hard-to-guess', self.organization.id, repo.id)}",
+            "Authorization": f"rpcsignature {sign_get(Secret('a-long-value-that-is-hard-to-guess'), self.organization.id, repo.id)}",
             "X-Organization-Id": str(self.organization.id),
             "X-Repository-Id": str(repo.id),
         }
@@ -169,7 +215,7 @@ class TestScmRpc(APITestCase):
 
     def test_get_invalid_secret(self):
         def sig(secret):
-            return f"rpcsignature {sign_get(secret, self.organization.id, self.repo.id)}"
+            return f"rpcsignature {sign_get(Secret(secret), self.organization.id, self.repo.id)}"
 
         # Succeeds with correct secret.
         headers = {
@@ -201,7 +247,7 @@ class TestScmRpc(APITestCase):
                 data=b"test",
                 headers={
                     **self.default_headers,
-                    "Authorization": f"rpcsignature {sign_post('s', b'test')}",
+                    "Authorization": f"rpcsignature {sign_post(Secret('s'), b'test')}",
                 },
             ),
             401,

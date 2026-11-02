@@ -3030,7 +3030,7 @@ class TestGetRecommendedEvent(APITransactionTestCase, SnubaTestCase):
 class TestGetRepositoryDefinition(APITransactionTestCase):
     def test_get_repository_definition_success(self) -> None:
         """Test successful repository lookup"""
-        Repository.objects.create(
+        repo = Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
             provider="integrations:github",
@@ -3045,6 +3045,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         )
 
         assert result is not None
+        assert result.repository_id == repo.id
         assert result.organization_id == self.organization.id
         assert result.integration_id == "123"
         assert result.provider == "integrations:github"
@@ -3128,11 +3129,10 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
-        # Create a GitLab repo (unsupported provider)
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="12345678",
             integration_id=123,
             status=ObjectStatus.ACTIVE,
@@ -3143,7 +3143,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return None since GitLab is not a supported provider
         assert result is None
 
     def test_get_repository_definition_github_enterprise(self) -> None:
@@ -3206,7 +3205,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         Repository.objects.create(
             organization_id=self.organization.id,
             name="getsentry/seer",
-            provider="integrations:gitlab",
+            provider="integrations:unsupported-provider",
             external_id="99999999",
             integration_id=999,
             status=ObjectStatus.ACTIVE,
@@ -3226,7 +3225,6 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             repo_full_name="getsentry/seer",
         )
 
-        # Should return the GitHub repo, not GitLab
         assert result is not None
         assert result.provider == "integrations:github"
         assert result.external_id == "12345678"

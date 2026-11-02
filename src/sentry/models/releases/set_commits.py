@@ -3,12 +3,19 @@ from __future__ import annotations
 import itertools
 import logging
 import re
+from contextlib import nullcontext
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.integrations.source_code_management.metrics import (
+    SCMIntegrationInteractionEvent,
+    SCMIntegrationInteractionType,
+    SCMResolutionHaltReason,
+)
 from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -53,6 +60,8 @@ def set_commits(release, commit_list):
         for c in commit_list
         if not IntegrationRepositoryProvider.should_ignore_commit(c.get("message", ""))
     ]
+    commit_list = _keep_newest_commits(release, commit_list)
+
     lock_key = Release.get_lock_key(release.organization_id, release.id)
     # Acquire the lock for a maximum of 10 minutes
     lock = locks.get(lock_key, duration=10 * 60, name="release_set_commits")
@@ -78,6 +87,29 @@ def set_commits(release, commit_list):
 
     with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
         update_group_resolutions(release, commit_author_by_commit)
+
+
+def _keep_newest_commits(release, commit_list):
+    """
+    Each commit costs several queries, all issued while holding the release lock
+    and usually inside a web request, so the list has to be bounded. Expects
+    `commit_list` sorted newest first.
+    """
+    max_commits = options.get("releases.set-commits.max-commits")
+    if len(commit_list) <= max_commits:
+        return commit_list
+
+    logger.info(
+        "set_commits.truncated",
+        extra={
+            "organization_id": release.organization_id,
+            "release_id": release.id,
+            "original_count": len(commit_list),
+            "truncated_count": max_commits,
+        },
+    )
+    metrics.incr("set_commits.truncated")
+    return commit_list[:max_commits]
 
 
 @metrics.wraps("set_commits_on_release")
@@ -200,11 +232,6 @@ def update_group_resolutions(release, commit_author_by_commit):
         ).values_list("group_id", "linked_id")
     )
 
-    commit_group_authors = [
-        (cr[0], commit_author_by_commit.get(cr[1]))
-        for cr in commit_resolutions  # group_id
-    ]
-
     # repository_id is fetched here so we don't need a second PullRequest query
     # below to resolve providers (pull_request_resolutions is always a subset).
     pr_repo_ids = dict(
@@ -232,20 +259,20 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     pr_authors_dict = {pra.id: pra.author for pra in pr_authors}
 
-    pull_request_group_authors = [
-        (prr[0], pr_authors_dict.get(prr[1])) for prr in pull_request_resolutions
-    ]
-
     # Map each resolved group to the (normalized) provider of the commit/PR that
     # resolved it, so the issue_resolved analytics event records e.g. "github".
     # commit -> repository_id comes for free from the select_related above;
     # pr -> repository_id was already collected in pr_repo_ids above.
     commit_repo_ids = {rc["commit_id"]: rc["commit__repository_id"] for rc in release_commits}
-    repo_providers = dict(
-        Repository.objects.filter(
+    repo_details = {
+        repo_id: (provider, integration_id)
+        for repo_id, provider, integration_id in Repository.objects.filter(
             id__in=set(commit_repo_ids.values()) | set(pr_repo_ids.values())
-        ).values_list("id", "provider")
-    )
+        ).values_list("id", "provider", "integration_id")
+    }
+    repo_providers = {
+        repo_id: provider for repo_id, (provider, _integration_id) in repo_details.items()
+    }
     # Iterate PRs first, commits second, so a commit-derived provider wins when a
     # group is resolved by both. The repo_id guards prevent a repo-less link from
     # overwriting a valid provider with None.
@@ -276,14 +303,37 @@ def update_group_resolutions(release, commit_author_by_commit):
 
     user_by_author: dict[CommitAuthor | None, RpcUser | None] = {None: None}
 
-    commits_and_prs = list(itertools.chain(commit_group_authors, pull_request_group_authors))
-    group_project_lookup = dict(
-        Group.objects.filter(id__in=[group_id for group_id, _ in commits_and_prs]).values_list(
-            "id", "project_id"
+    resolution_attempts = list(
+        itertools.chain(
+            (
+                (
+                    group_id,
+                    commit_author_by_commit.get(commit_id),
+                    SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_COMMIT,
+                    commit_repo_ids.get(commit_id),
+                )
+                for group_id, commit_id in commit_resolutions
+            ),
+            (
+                (
+                    group_id,
+                    pr_authors_dict.get(pr_id),
+                    SCMIntegrationInteractionType.RESOLVE_ISSUE_VIA_PR,
+                    pr_repo_ids.get(pr_id),
+                )
+                for group_id, pr_id in pull_request_resolutions
+            ),
         )
     )
+    group_project_lookup = dict(
+        Group.objects.filter(
+            id__in=[
+                group_id for group_id, _author, _interaction_type, _repo_id in resolution_attempts
+            ]
+        ).values_list("id", "project_id")
+    )
 
-    for group_id, author in commits_and_prs:
+    for group_id, author, interaction_type, repo_id in resolution_attempts:
         if author is not None and author not in user_by_author:
             try:
                 user_by_author[author] = author.find_users()[0]
@@ -291,44 +341,80 @@ def update_group_resolutions(release, commit_author_by_commit):
                 user_by_author[author] = None
         actor = user_by_author[author]
 
-        with atomic_transaction(
-            using=(
-                router.db_for_write(GroupResolution),
-                router.db_for_write(Group),
-                # inside the remove_group_from_inbox
-                router.db_for_write(GroupInbox),
-                router.db_for_write(Activity),
+        provider, integration_id = (
+            repo_details.get(repo_id, (None, None)) if repo_id is not None else (None, None)
+        )
+        normalized_provider = normalize_provider_key(provider)
+        event = (
+            SCMIntegrationInteractionEvent(
+                interaction_type=interaction_type,
+                provider_key=normalized_provider,
+                organization_id=release.organization_id,
+                integration_id=integration_id,
             )
-        ):
-            resolution, _ = GroupResolution.objects.update_or_create(
-                group_id=group_id,
-                defaults={
-                    "release": release,
-                    "type": GroupResolution.Type.in_release,
-                    "status": GroupResolution.Status.resolved,
-                    "actor_id": actor.id if actor is not None else None,
-                },
-            )
-            group = Group.objects.get(id=group_id)
-            should_create_resolution_activity = group.status != GroupStatus.RESOLVED
-            group.update(status=GroupStatus.RESOLVED, substatus=None)
-            remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
-            if should_create_resolution_activity:
-                activity_data: dict[str, Any] = {"version": release.version}
-                resolution_commit_id = commit_id_by_group.get(group_id)
-                if resolution_commit_id is not None:
-                    activity_data["commit"] = resolution_commit_id
-                Activity.objects.create(
-                    project_id=group.project_id,
-                    group=group,
-                    type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-                    user_id=actor.id if actor is not None else None,
-                    ident=resolution.id,
-                    data=activity_data,
+            if interaction_type is not None and normalized_provider is not None
+            else None
+        )
+        lifecycle_context = (
+            event.capture(assume_success=False) if event is not None else nullcontext()
+        )
+        with lifecycle_context as lifecycle:
+            with atomic_transaction(
+                using=(
+                    router.db_for_write(GroupResolution),
+                    router.db_for_write(Group),
+                    # inside the remove_group_from_inbox
+                    router.db_for_write(GroupInbox),
+                    router.db_for_write(Activity),
                 )
-            record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
+            ):
+                resolution, created = GroupResolution.objects.update_or_create(
+                    group_id=group_id,
+                    defaults={
+                        "release": release,
+                        "type": GroupResolution.Type.in_release,
+                        "status": GroupResolution.Status.resolved,
+                        "actor_id": actor.id if actor is not None else None,
+                    },
+                )
+                group = Group.objects.get(id=group_id)
+                was_already_resolved = group.status == GroupStatus.RESOLVED
+                # Every resolution needs a matching activity keyed on its id. Gate on that
+                # invariant, not on the status transition: an already-resolved group whose
+                # resolution gets re-pointed at a new release (e.g. its commit ships in a
+                # later release) still needs a fresh activity for the new release.
+                should_create_resolution_activity = (
+                    created
+                    or not Activity.objects.filter(
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                        ident=resolution.id,
+                    ).exists()
+                )
+                group.update(status=GroupStatus.RESOLVED, substatus=None)
+                remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=actor)
+                if should_create_resolution_activity:
+                    activity_data: dict[str, Any] = {"version": release.version}
+                    resolution_commit_id = commit_id_by_group.get(group_id)
+                    if resolution_commit_id is not None:
+                        activity_data["commit"] = resolution_commit_id
+                    Activity.objects.create(
+                        project_id=group.project_id,
+                        group=group,
+                        type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+                        user_id=actor.id if actor is not None else None,
+                        ident=resolution.id,
+                        data=activity_data,
+                    )
+                record_group_history(group, GroupHistoryStatus.RESOLVED, actor=actor)
 
-            metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+                metrics.incr("group.resolved", instance="in_commit", skip_internal=True)
+
+            if lifecycle is not None:
+                if was_already_resolved:
+                    lifecycle.record_halt(SCMResolutionHaltReason.ISSUE_ALREADY_RESOLVED)
+                else:
+                    lifecycle.record_success()
 
         issue_resolved.send_robust(
             organization_id=release.organization_id,

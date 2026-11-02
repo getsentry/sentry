@@ -94,6 +94,44 @@ Set `label` and `onAction` on each item. Keys must be unique across the complete
 />
 ```
 
+### Icons on some items
+
+Only add icons where they help. When any item in a menu has `leadingItems`, items without them are indented to match, so every label lines up.
+
+<Storybook.Demo>
+  <DropdownMenu
+    triggerLabel="Actions"
+    items={[
+      {key: 'rename', label: 'Rename', onAction: () => {}},
+      {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+      {
+        key: 'download',
+        label: 'Download',
+        leadingItems: <IconDownload size="sm" />,
+        onAction: () => {},
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        leadingItems: <IconDelete size="sm" />,
+        onAction: () => {},
+      },
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<DropdownMenu
+  triggerLabel="Actions"
+  items={[
+    {key: 'rename', label: 'Rename', onAction: () => {}},
+    {key: 'duplicate', label: 'Duplicate', onAction: () => {}},
+    {key: 'download', label: 'Download', leadingItems: <IconDownload size="sm" />},
+    {key: 'delete', label: 'Delete', leadingItems: <IconDelete size="sm" />},
+  ]}
+/>
+```
+
 ## Sections, Links, and Submenus
 
 Group related items by adding `children` without setting `submenu`. Use `to` for internal links and `externalHref` for external links. Set `submenu` and `children` together to create a nested menu.
@@ -311,6 +349,9 @@ Use `trigger` when the default trigger does not fit the layout. The custom trigg
 - Menu items support keyboard focus and selection.
 - Links retain their destination and close the menu after selection.
 - Submenus support hover and left/right arrow navigation.
+- Escape closes one submenu level and returns focus to its parent item. At the root menu, Escape closes the menu.
+- In a searchable menu, Down Arrow moves from search to the items; Up Arrow on the first item returns to search.
+- When an item has a trailing action, Right Arrow moves focus to it and Left Arrow returns to the item.
 
 ### Developer responsibilities
 

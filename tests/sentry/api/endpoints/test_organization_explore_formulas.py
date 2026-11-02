@@ -1,5 +1,6 @@
 from typing import Any
 
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.api.endpoints.organization_explore_formulas import sync_prebuilt_formulas
@@ -11,6 +12,7 @@ from sentry.explore.models import (
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class BaseFormulaTest(APITestCase):
@@ -130,6 +132,101 @@ class TestFormulaDetails(BaseFormulaTest):
         assert response.data["description"] == "test description"
         assert response.data["dataset"] == "logs"
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_update_explore_formula_as_service_account(self) -> None:
+        formula = self.create_formula()
+        formula.update(created_by_id=self.user.id, updated_by_id=self.user.id)
+        service_account = self.create_service_account(
+            organization=self.org, scope_list=["org:read", "org:write"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        self.formula_object["name"] = "formula.by_service_account"
+        with self.feature({**self.feature_flags, "organizations:service-accounts": True}):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["createdBy"]["email"] == self.user.email
+        assert response.data["updatedBy"] is None
+
+    def test_too_many_input_parameters(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        self.formula_object["params"].append(
+            {
+                "name": "extra",
+                "value": "test",
+                "type": "column",
+                "order": 3,
+            }
+        )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "params" in response.data
+        assert "number or column parameters per formula" in str(response.data["params"][0])
+
+    def test_too_many_params(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        for i in range(3, 8):
+            self.formula_object["params"].append(
+                {
+                    "name": f"extra{i}",
+                    "value": "test",
+                    "type": "calculation",
+                    "order": i,
+                }
+            )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "params" in response.data
+        assert "number or column parameters per formula" not in str(response.data["params"][0])
+        assert "parameters per formula" in str(response.data["params"][0])
+
+    def test_too_many_references(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["name"] = "formula.hello"
+        self.formula_object["formula"] = "count() + count()"
+        self.formula_object["description"] = "test description"
+        self.formula_object["dataset"] = "logs"
+        for i in range(3, 8):
+            self.formula_object["references"].append(
+                {
+                    "name": f"extra{i}",
+                    "value": "test",
+                }
+            )
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert "references" in response.data
+        assert "references per formula" in str(response.data["references"][0])
+
     def test_update_explore_formula_with_name_already_in_db(self) -> None:
         formula = self.create_formula()
         formula_object2 = self.formula_object.copy()
@@ -144,6 +241,20 @@ class TestFormulaDetails(BaseFormulaTest):
             )
             assert response.status_code == 400, response.content
         assert str(response.data["detail"]) == "Formula name must be unique"
+
+    def test_update_explore_formula_with_invalid_param_default(self) -> None:
+        formula = self.create_formula()
+        self.formula_object["params"][1]["value"] = "foobar"
+        with self.feature(self.feature_flags):
+            response = self.client.put(
+                reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
+                data=self.formula_object,
+            )
+            assert response.status_code == 400, response.content
+        assert (
+            str(response.data["params"]["value"][0])
+            == "'foobar' is an invalid value for a numeric default"
+        )
 
 
 class TestFormulas(BaseFormulaTest):
@@ -483,6 +594,7 @@ class TestFormulas(BaseFormulaTest):
         assert len(response.data) == 2
         assert response.data[0]["name"] == "formula.apdex"
         assert response.data[1]["name"] == "formula.user_misery"
+        assert response.data[0]["params"][0]["value"] == "span.duration"
 
     def test_list_with_orderby(self) -> None:
         for i in range(5):
@@ -622,5 +734,5 @@ class TestFormulas(BaseFormulaTest):
             "name": "duration",
             "type": "column",
             "order": 0,
-            "value": "",
+            "value": "span.duration",
         }

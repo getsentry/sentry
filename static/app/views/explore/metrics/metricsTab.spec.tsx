@@ -17,6 +17,7 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   defaultMetricQuery,
@@ -198,6 +199,92 @@ describe('MetricsTabContent', () => {
     });
   });
 
+  it('edits panel transformations in the URL without changing other metrics', async () => {
+    const firstMetric = JSON.stringify({
+      metric: {name: 'bar', type: 'distribution'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['p50(value,bar,distribution,none)'], transformations: ['fill(locf)']},
+        {yAxes: ['p90(value,bar,distribution,none)'], transformations: ['fill(linear)']},
+        {groupBy: 'project'},
+      ],
+      aggregateSortBys: [],
+      mode: 'samples',
+    });
+    const otherMetric = JSON.stringify({
+      metric: {name: 'foo', type: 'counter'},
+      query: '',
+      aggregateFields: [
+        {yAxes: ['sum(value,foo,counter,none)'], transformations: ['smooth(asap)']},
+      ],
+      aggregateSortBys: [{field: 'sum(value,foo,counter,none)', kind: 'desc'}],
+      sortBys: [{field: 'timestamp', kind: 'desc'}],
+      mode: 'samples',
+    });
+    const {router} = render(
+      <MetricsTabContent datePageFilterProps={datePageFilterProps} />,
+      {
+        additionalWrapper: ProviderWrapper,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-interpolation-and-smoothing'],
+        },
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialLocation,
+            query: {...initialLocation.query, metric: [firstMetric, otherMetric]},
+          },
+        },
+      }
+    );
+
+    const firstPanel = screen.getAllByTestId('metric-panel')[0]!;
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Add Transformation'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
+    await userEvent.click(within(firstPanel).getByRole('button', {name: 'Window Size'}));
+    await userEvent.click(screen.getByRole('option', {name: '4'}));
+
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {
+            yAxes: ['p50(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
+          },
+          {
+            yAxes: ['p90(value,bar,distribution,none)'],
+            transformations: ['fill(locf)', 'smooth(sma,4)'],
+          },
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[1]).toBe(otherMetric);
+    });
+
+    await userEvent.click(
+      within(firstPanel).getAllByRole('button', {name: 'Remove transformation'})[1]!
+    );
+    await userEvent.click(
+      within(firstPanel).getByRole('button', {name: 'Remove transformation'})
+    );
+    await waitFor(() => {
+      const encodedMetrics = decodeList(router.location.query.metric);
+      expect(JSON.parse(encodedMetrics[0]!)).toMatchObject({
+        aggregateFields: [
+          {yAxes: ['p50(value,bar,distribution,none)']},
+          {yAxes: ['p90(value,bar,distribution,none)']},
+          {groupBy: 'project'},
+        ],
+      });
+      expect(encodedMetrics[0]).not.toContain('transformations');
+      expect(encodedMetrics[1]).toBe(otherMetric);
+    });
+  });
+
   it('disables saving when a later metric row has transformations', async () => {
     render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
       additionalWrapper: ProviderWrapper,
@@ -234,39 +321,6 @@ describe('MetricsTabContent', () => {
         name: 'bar',
       })
     ).toBeInTheDocument();
-  });
-
-  it('should add a metric when Add Metric button is clicked', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
-    );
-
-    let toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(toolbars).toHaveLength(1);
-    // have to wait for the response to load
-    await waitFor(() => {
-      // selects the first metric available - sorted alphanumerically
-      expect(within(toolbars[0]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    });
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(1);
-
-    const addButton = screen.getAllByRole('button', {name: 'Add Metric'})[0]!;
-    expect(addButton).toBeEnabled();
-
-    await userEvent.click(addButton);
-
-    await waitFor(() => {
-      expect(screen.getAllByTestId('metric-toolbar')).toHaveLength(2);
-    });
-    toolbars = screen.getAllByTestId('metric-toolbar');
-    expect(within(toolbars[1]!).getByRole('button', {name: 'bar'})).toBeInTheDocument();
-    expect(screen.getAllByTestId('metric-panel')).toHaveLength(2);
   });
 
   it.each(['Add Metric', 'Add Equation'])(
@@ -951,19 +1005,6 @@ describe('MetricsTabContent', () => {
       expect(parsedQuery.mode).toBe('aggregate');
     });
     expect(parsedQuery.aggregateFields).toContainEqual({groupBy: 'test.region'});
-  });
-
-  it('shows the Add Equation button', async () => {
-    render(
-      <ProviderWrapper>
-        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
-      </ProviderWrapper>,
-      {
-        organization,
-      }
-    );
-    expect(await screen.findAllByText('Add Metric')).toHaveLength(1);
-    expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {

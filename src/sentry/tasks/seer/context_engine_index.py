@@ -52,6 +52,7 @@ from sentry.utils.hashlib import md5_text
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -68,7 +69,7 @@ def _organization_viewer_context_scope(
         return contextlib.nullcontext()
 
     return viewer_context_scope(
-        ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+        ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=organization_id)
     )
 
 
@@ -449,7 +450,7 @@ def schedule_context_engine_indexing_tasks() -> None:
     processing_deadline_duration=30,
 )
 def index_sentry_knowledge() -> None:
-    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+    with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
         response = make_index_sentry_knowledge_request(
             body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
         )
