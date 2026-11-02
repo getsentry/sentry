@@ -10,6 +10,7 @@ import {Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 
+import {SeerOutOfCreditsCta} from 'getsentry/components/ai/seerOutOfCreditsCta';
 import {SeerOutOfCreditsNotice} from 'getsentry/components/ai/seerOutOfCreditsNotice';
 
 Product code renders `SeerOutOfCreditsCta` with the surface the org can't
@@ -26,8 +27,8 @@ underneath it. The copy and buttons follow the Billing Gates designs in Figma.
 ## Agent chat
 
 Shown above the chat composer when the org can't afford another message.
-Billing members turn on auto-reload. The chat uses full-size buttons; Autofix
-uses small ones.
+Billing members turn on auto-reload, which opens the Seer credits modal in
+place. The chat uses full-size buttons; Autofix uses small ones.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice
@@ -209,4 +210,18 @@ says who to ask.
 
 ```jsx
 <SeerOutOfCreditsNotice reason="agent-chat" escalation="contact" />
+```
+
+## For the signed-in viewer
+
+`SeerOutOfCreditsCta` itself, with the escalation and copy it picks for you.
+"Configure auto reload" and "Request credits" do the real thing: the modal reads
+and saves your org's Seer wallet, and the request emails your billing members.
+
+<Storybook.Demo>
+  <SeerOutOfCreditsCta reason="agent-chat" />
+</Storybook.Demo>
+
+```jsx
+<SeerOutOfCreditsCta reason="agent-chat" />
 ```

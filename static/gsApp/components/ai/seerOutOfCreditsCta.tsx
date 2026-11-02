@@ -16,6 +16,7 @@ import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {Subscription} from 'getsentry/types';
 import {trialPromptIsDismissed} from 'getsentry/utils/billing';
 import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
+import {openSeerTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/topUpModal';
 
 function getEscalation(
   organization: Organization,
@@ -92,9 +93,7 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      onConfigureAutoReload={() => openSeerTopUpModal({organization})}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}
       hasRequestedCredits={isPromptDismissed[TOP_UP_REQUESTED_PROMPT]}

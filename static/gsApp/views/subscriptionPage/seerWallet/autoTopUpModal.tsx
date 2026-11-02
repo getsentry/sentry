@@ -16,6 +16,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
@@ -43,7 +44,7 @@ function toWholeDollarCents(cents: number) {
   return Math.floor(cents / 100) * 100;
 }
 
-function AutoTopUpModal({
+export function AutoTopUpModal({
   Header,
   Body,
   Footer,
@@ -81,6 +82,8 @@ function AutoTopUpModal({
       queryClient.invalidateQueries({
         queryKey: seerWalletBalanceOptions(organization).queryKey,
       });
+      // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
+      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
       if (!data.enabled) {
         toast.success(t('Auto-reload turned off'));
       } else if (isTurningOn) {
@@ -313,10 +316,10 @@ function DollarInput({
   );
 }
 
-const modalCss = css`
+export const autoTopUpModalCss = css`
   width: 480px;
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
-  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss});
+  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss: autoTopUpModalCss});
 }

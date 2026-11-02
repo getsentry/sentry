@@ -2,6 +2,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -32,6 +33,18 @@ export function seerCreditCheckApiOptions(
       staleTime: 0,
     }
   );
+}
+
+/**
+ * Matches the org's credit checks for every operation, so they can all be
+ * rechecked at once, for example after credits are added.
+ */
+export function seerCreditChecksQueryKey(organization: Organization) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
 }
 
 interface UseSeerCreditCheckOptions {
