@@ -6,6 +6,7 @@ from typing import Any
 from uuid import UUID, uuid5
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
@@ -45,6 +46,7 @@ from sentry.notebooks.models import (
     NotebookBlock,
     NotebookBlockExecution,
     NotebookBlockExecutionStatus,
+    NotebookBlockKind,
     NotebookProject,
     NotebookStatus,
 )
@@ -539,18 +541,35 @@ def _clear_report(
         revision == current_revision and control.get("reportCleared") and not force
     ):
         return False
-    live_block_ids = list(
-        NotebookBlock.objects.filter(
-            notebook=run.investigation,
-            producer_revision__isnull=False,
-            producer_key__isnull=False,
-            deleted_at__isnull=True,
+    live_blocks = NotebookBlock.objects.filter(
+        notebook=run.investigation,
+        producer_revision__isnull=False,
+        producer_key__isnull=False,
+        deleted_at__isnull=True,
+    )
+    live_block_ids = list(live_blocks.values_list("id", flat=True))
+    completed_ids = set(
+        live_blocks.filter(
+            Q(
+                kind=NotebookBlockKind.QUERY,
+                result_execution__status=NotebookBlockExecutionStatus.COMPLETED,
+            )
+            | (
+                ~Q(kind=NotebookBlockKind.QUERY)
+                & Q(content_execution__status=NotebookBlockExecutionStatus.COMPLETED)
+            )
         ).values_list("id", flat=True)
     )
     _cancel_report_executions(run, block_ids=live_block_ids)
     supersede_action_requests_before(run.investigation, revision)
-    # The old blocks stay visible until the new report completes or replaces them.
-    replaced_ids = set(_replaced_report_block_ids(run)) | set(live_block_ids)
+    # A block whose shown output never completed goes now. The rest stay visible
+    # until the new report completes or replaces them.
+    partial_ids = [block_id for block_id in live_block_ids if block_id not in completed_ids]
+    if partial_ids:
+        supersede_block_action_requests(
+            run.investigation, remove_blocks(run.investigation, block_ids=partial_ids)
+        )
+    replaced_ids = (set(_replaced_report_block_ids(run)) - set(partial_ids)) | completed_ids
     if replaced_ids:
         control[_REPLACED_BLOCK_IDS_KEY] = sorted(replaced_ids)
     control.update(

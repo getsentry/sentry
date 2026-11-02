@@ -1099,6 +1099,12 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
             producer_revision=1,
             producer_key="stale-summary",
         )
+        execution = self.create_notebook_block_execution(
+            block=block,
+            block_version=block.version,
+            status=NotebookBlockExecutionStatus.COMPLETED,
+        )
+        block.update(current_execution=execution, content_execution=execution)
 
         reconcile_orchestration_projection(
             orchestration_run_id=self.orchestration_run.id,
@@ -2185,6 +2191,84 @@ class InvestigationOrchestrationEventTest(SeerRunMirrorMixin, TestCase):
 
         old.refresh_from_db()
         assert old.deleted_at is not None
+
+    def test_cancelled_report_keeps_replaced_blocks(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "old", 1, "old body"))
+        self.deliver(self.event(3, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.event(
+                4,
+                "workflow_updated",
+                {
+                    "projection": self.projection(
+                        workflow_version=2,
+                        phase="cancelled",
+                        status="cancelled",
+                        report_revision=2,
+                    )
+                },
+            )
+        )
+
+        old = NotebookBlock.objects.get(producer_key="old")
+        assert old.deleted_at is None
+        assert old.content == "old body"
+
+    def test_report_clear_removes_blocks_without_completed_output(self) -> None:
+        self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
+        self.deliver(self.text_block_upserted(2, "done", 1, "done body"))
+        self.deliver(self.text_block_upserted(3, "rewriting", 1, "first body"))
+        self.deliver(
+            self.event(
+                4,
+                "report_block_started",
+                {
+                    "reportRevision": 1,
+                    "stableAgentKey": "streaming",
+                    "position": 2,
+                    "kind": "text",
+                    "title": "streaming",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        self.deliver(
+            self.event(
+                5,
+                "report_text_delta",
+                {"reportRevision": 1, "stableAgentKey": "streaming", "delta": "partial"},
+            )
+        )
+        self.deliver(self.event(6, "report_clear", {"reportRevision": 2}))
+        self.deliver(
+            self.event(
+                7,
+                "report_block_started",
+                {
+                    "reportRevision": 2,
+                    "stableAgentKey": "rewriting",
+                    "position": 1,
+                    "kind": "text",
+                    "title": "rewriting",
+                    "projectIds": [self.project.id],
+                },
+            )
+        )
+        streaming = NotebookBlock.objects.get(producer_key="streaming")
+        assert streaming.deleted_at is not None
+
+        self.deliver(self.event(8, "report_clear", {"reportRevision": 3}))
+
+        done = NotebookBlock.objects.get(producer_key="done")
+        rewriting = NotebookBlock.objects.get(producer_key="rewriting")
+        assert done.deleted_at is None
+        assert rewriting.deleted_at is None
+        assert rewriting.content == "first body"
+        self.orchestration_run.refresh_from_db()
+        assert self.orchestration_run.projection["_sentryControl"][
+            "reportReplacedBlockIds"
+        ] == sorted([done.id, rewriting.id])
 
     def test_snapshot_drops_unlisted_blocks_of_its_revision(self) -> None:
         self.deliver(self.event(1, "report_clear", {"reportRevision": 1}))
