@@ -1,6 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
 import partition from 'lodash/partition';
-import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  createParser,
+  parseAsJson,
+  parseAsNativeArrayOf,
+  parseAsString,
+} from 'nuqs';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -1429,19 +1436,16 @@ function deserializeDataset(value: string): WidgetType {
   return WidgetType.ERRORS;
 }
 
+const parseAsAliasedField = parseAsJson(
+  z.object({field: z.string(), alias: z.string().optional().catch(undefined)})
+);
+
 /**
  * Takes fields from the query params in list form and converts
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(stringifiedField => {
-    try {
-      const {field, alias} = JSON.parse(stringifiedField);
-      return explodeField({field, alias});
-    } catch (error) {
-      return explodeField({field: stringifiedField, alias: undefined});
-    }
-  });
+  return fields.map(field => explodeField(parseAsAliasedField.parse(field) ?? {field}));
 }
 
 function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
