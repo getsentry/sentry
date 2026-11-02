@@ -614,7 +614,13 @@ const voice = {
 
 export default {
   model: jev,
-  files: ['src/sentry/**/*.py', 'static/app/**/*.ts', 'static/app/**/*.tsx', 'static/gsApp/**/*.ts', 'static/gsApp/**/*.tsx'],
+  files: [
+    'src/sentry/**/*.py',
+    'static/app/**/*.ts',
+    'static/app/**/*.tsx',
+    'static/gsApp/**/*.ts',
+    'static/gsApp/**/*.tsx',
+  ],
   ignores: ['**/tests/**', '**/testutils/**'],
   suites: {api, audit, frontend, security, voice},
 } satisfies Config;
