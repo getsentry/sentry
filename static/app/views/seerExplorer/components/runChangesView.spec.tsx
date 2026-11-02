@@ -243,7 +243,7 @@ describe('RunChangesView', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Repository'}));
+    await userEvent.click(screen.getByRole('button', {name: 'acme/web#482'}));
     await userEvent.click(screen.getByRole('option', {name: 'acme/api'}));
 
     expect(onSelectRepo).toHaveBeenCalledWith('acme/api');
@@ -259,6 +259,19 @@ describe('RunChangesView', () => {
     rerender(<RunChangesView {...props} changes={api} />);
 
     expect(screen.getByRole('radio', {name: 'All changes'})).toBeChecked();
+  });
+
+  it("starts another repo's diff at the top", () => {
+    const web = makeChanges();
+    const api = makeChanges({repoName: 'acme/api'});
+    const props = {allChanges: [web, api], onBack: jest.fn(), onSelectRepo: jest.fn()};
+    const {rerender} = render(<RunChangesView {...props} changes={web} />);
+    const line = screen.getByText('cart on the PR');
+
+    rerender(<RunChangesView {...props} changes={api} />);
+
+    // The file list remounts rather than keeping the last repo's scroll offset.
+    expect(screen.getByText('cart on the PR')).not.toBe(line);
   });
 
   it('goes back with Escape after clicking the diff', async () => {
