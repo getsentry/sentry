@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models.fields.bounded import I64_MAX
+from sentry.incidents.grouptype import MetricIssue
 from sentry.models.project import Project
 from sentry.seer.endpoints.organization_seer_workflow_configs import serialize_workflow_configs
 from sentry.seer.models.workflow import (
@@ -21,6 +22,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.users.models.user import User
+from sentry.workflow_engine.models import Detector
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -681,6 +683,121 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             == MAX_WORKFLOW_CONFIGS_PER_ORG
         )
 
+    def test_rejects_monitor_ids_for_non_metric_strategy(self) -> None:
+        monitor = self.create_monitor(self.project)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            monitorIds=[monitor.id],
+            status_code=400,
+        )
+
+        assert response.data == {
+            "monitorIds": ["Only metric automations support monitor selection."]
+        }
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_breached_metric_creates_with_monitors(self) -> None:
+        monitors = [self.create_monitor(self.create_project()) for _ in range(2)]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            enabled=True,
+            environments=["production"],
+            monitorIds=[monitor.id for monitor in monitors],
+            name="Latency breaches",
+            status_code=201,
+        )
+
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        assert config.enabled is True
+        assert config.filters == {"all_projects": False, "environments": ["production"]}
+        assert config.extras == {"name": "Latency breaches"}
+        assert config.version == 1
+        assert config.backing_workflow is not None
+        assert set(
+            config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
+        ) == {monitor.id for monitor in monitors}
+
+    def test_breached_metric_creates_without_monitors(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, strategy="breached_metric_investigation", status_code=201
+        )
+
+        config = SeerWorkflowConfig.objects.get(id=response.data["id"])
+        assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        assert config.backing_workflow_id is None
+
+    def test_breached_metric_rejects_project_ids_and_schedule(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            projectIds=[self.project.id],
+            status_code=400,
+        )
+        assert response.data == {
+            "projectIds": ["Metric automation projects are selected by connecting monitors."]
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            schedule="daily",
+            status_code=400,
+        )
+        assert response.data == {
+            "schedule": ["Metric automations run when a monitor breaches, not on a schedule."]
+        }
+
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
+        member, accessible_project = self.create_member_with_project(open_membership=False)
+        accessible = self.create_monitor(accessible_project)
+        hidden = self.create_monitor(
+            self.create_project(teams=[self.create_team(organization=self.organization)])
+        )
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            monitorIds=[accessible.id, hidden.id],
+            status_code=403,
+        )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+        self.get_success_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            monitorIds=[accessible.id],
+            status_code=201,
+        )
+
+    def test_breached_metric_rejects_ineligible_monitors(self) -> None:
+        ineligible = [
+            self.create_detector(project=self.project),
+            self.create_detector(
+                project=self.project, type=MetricIssue.slug, status=ObjectStatus.DISABLED
+            ),
+            self.create_monitor(self.create_project(organization=self.create_organization())),
+        ]
+        for monitor in ineligible:
+            response = self.get_error_response(
+                self.organization.slug,
+                strategy="breached_metric_investigation",
+                monitorIds=[monitor.id],
+                status_code=400,
+            )
+            assert response.data == {
+                "detail": "Selected monitors must be active metric monitors in this organization."
+            }
+
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
     def test_rate_limits_creation(self) -> None:
         for _ in range(5):
             self.get_success_response(
@@ -689,6 +806,9 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         self.get_error_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=429
         )
+
+    def create_monitor(self, project: Project) -> Detector:
+        return self.create_detector(project=project, type=MetricIssue.slug)
 
     def create_member_with_project(self, *, open_membership: bool) -> tuple[User, Project]:
         """Create a member of one team and return them with that team's project."""

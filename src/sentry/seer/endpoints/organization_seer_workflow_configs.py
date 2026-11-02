@@ -37,7 +37,10 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.breached_metrics import (
+    BreachedMetricWorkflow,
+    get_monitor_project_ids,
+)
 from sentry.seer.workflows.registry import get_seer_workflow
 from sentry.seer.workflows.workflow import (
     AllProjects,
@@ -90,9 +93,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
     )
     enabled = serializers.BooleanField(default=False)
-    schedule = serializers.ChoiceField(
-        choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
-    )
+    schedule = serializers.ChoiceField(choices=SeerWorkflowSchedule.choices, required=False)
     environments = serializers.ListField(
         child=serializers.CharField(max_length=64), default=list, allow_empty=True
     )
@@ -103,11 +104,37 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
         allow_empty=True,
     )
     name = serializers.CharField(default=None, allow_null=True, max_length=64)
+    # Metric automations only; their projects come from the connected monitors.
+    monitorIds = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        allow_empty=True,
+    )
 
     def validate_projectIds(self, value: list[int]) -> list[int]:
         if ALL_ACCESS_PROJECT_ID in value and value != [ALL_ACCESS_PROJECT_ID]:
             raise serializers.ValidationError("[-1] cannot be combined with project IDs.")
         return value
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        if data["strategy"] == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            if "projectIds" in data:
+                raise serializers.ValidationError(
+                    {
+                        "projectIds": "Metric automation projects are selected by connecting monitors."
+                    }
+                )
+            if "schedule" in data:
+                raise serializers.ValidationError(
+                    {
+                        "schedule": "Metric automations run when a monitor breaches, not on a schedule."
+                    }
+                )
+        elif "monitorIds" in data:
+            raise serializers.ValidationError(
+                {"monitorIds": "Only metric automations support monitor selection."}
+            )
+        return data
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
@@ -264,6 +291,10 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         daily, and ``environments`` to all. ``name`` is optional. Omitting
         ``projectIds`` selects no projects. Use ``[-1]`` for all projects.
 
+        Metric automations (``breached_metric_investigation``) take ``monitorIds``
+        instead of ``projectIds``; their projects come from the connected monitors, and
+        the caller needs read access to each monitor's project.
+
         The number of automations per organization is capped, and creation is rate
         limited. Failures past request validation, such as reaching the cap, return an
         empty 400. Returns the new config in the same shape as an item in ``configs``.
@@ -278,22 +309,41 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         strategy = SeerWorkflowStrategy(data["strategy"])
 
         project_ids: list[int] = data.get("projectIds") or []
-        denied = check_project_access(
-            project_ids, request=request, organization=organization, endpoint=self
-        )
+        monitor_ids: list[int] = data.get("monitorIds") or []
+        if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            denied = check_project_access(
+                get_monitor_project_ids(monitor_ids, organization),
+                request=request,
+                organization=organization,
+                endpoint=self,
+            )
+        else:
+            denied = check_project_access(
+                project_ids, request=request, organization=organization, endpoint=self
+            )
         if denied is not None:
             raise PermissionDenied(detail=denied)
 
         try:
-            workflow = SeerWorkflow.create(
-                organization_id=organization.id,
-                strategy=strategy,
-                enabled=data["enabled"],
-                schedule=SeerWorkflowSchedule(data["schedule"]),
-                environments=data["environments"],
-                project_ids=project_ids,
-                name=data.get("name"),
-            )
+            workflow: SeerWorkflow
+            if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+                workflow = BreachedMetricWorkflow.create_with_monitors(
+                    organization.id,
+                    enabled=data["enabled"],
+                    environments=data["environments"],
+                    monitor_ids=monitor_ids,
+                    name=data.get("name"),
+                )
+            else:
+                workflow = SeerWorkflow.create(
+                    organization_id=organization.id,
+                    strategy=strategy,
+                    enabled=data["enabled"],
+                    schedule=SeerWorkflowSchedule(data.get("schedule", SeerWorkflowSchedule.DAILY)),
+                    environments=data["environments"],
+                    project_ids=project_ids,
+                    name=data.get("name"),
+                )
         except ValueError as e:
             logger.exception("bad request", extra={ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: 400})
             if isinstance(e, WorkflowUpdateError):

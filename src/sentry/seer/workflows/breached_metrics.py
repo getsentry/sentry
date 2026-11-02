@@ -19,6 +19,7 @@ from sentry.investigations.services import create_agentic_breached_metric_invest
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import get_latest_open_period
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
@@ -116,6 +117,14 @@ MetricBreachAdmission = Annotated[
 
 class MetricBreachRunExtras(SeerWorkflowRunExtras):
     admission: MetricBreachAdmission
+
+
+def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organization) -> list[int]:
+    return list(
+        Detector.objects.filter(id__in=monitor_ids, project__organization_id=organization.id)
+        .values_list("project_id", flat=True)
+        .distinct()
+    )
 
 
 class BreachedMetricWorkflow(SeerWorkflow):
