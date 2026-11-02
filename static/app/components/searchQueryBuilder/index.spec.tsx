@@ -1734,7 +1734,11 @@ describe('SearchQueryBuilder', () => {
         });
         await userEvent.click(getLastInput());
 
-        await userEvent.keyboard(`timesSeen${operator}{Escape}`);
+        await userEvent.keyboard(`timesSeen${operator}`);
+        const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+        expect(input).toHaveValue('');
+        expect(input).toHaveAttribute('placeholder', '100');
+        await userEvent.keyboard('{Escape}');
 
         expect(await screen.findByRole('row', {name: expectedQuery})).toBeInTheDocument();
       }
@@ -1756,6 +1760,9 @@ describe('SearchQueryBuilder', () => {
       await userEvent.click(getLastInput());
 
       await userEvent.paste('tags[bar,number]>');
+      const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+      expect(input).toHaveValue('');
+      expect(input).toHaveAttribute('placeholder', '100');
       await userEvent.keyboard('{Escape}');
 
       expect(
@@ -5271,6 +5278,143 @@ describe('SearchQueryBuilder', () => {
         }
       );
 
+      it.each(['', '7', '123456', 'invalid'])(
+        'removes a new numeric filter while editing %j',
+        async value => {
+          const onChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:Firefox"
+              onChange={onChange}
+            />
+          );
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+          if (value) {
+            await userEvent.keyboard(value);
+          }
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Remove filter: timesSeen', hidden: true})
+          );
+
+          expect(
+            screen.getByRole('row', {name: 'browser.name:Firefox'})
+          ).toBeInTheDocument();
+          if (value === 'invalid') {
+            expect(onChange).not.toHaveBeenCalled();
+          } else {
+            expect(onChange).toHaveBeenLastCalledWith(
+              'browser.name:Firefox',
+              expect.anything()
+            );
+          }
+          expect(getLastInput()).toHaveValue('');
+          expect(
+            screen.queryByRole('button', {name: 'Remove filter: timesSeen'})
+          ).not.toBeInTheDocument();
+        }
+      );
+
+      it.each(['', '7', '123456', 'invalid'])(
+        'clears the query while editing a new numeric filter with %j',
+        async value => {
+          const onChange = jest.fn();
+          const onSearch = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:Firefox"
+              onChange={onChange}
+              onSearch={onSearch}
+            />
+          );
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+          if (value) {
+            await userEvent.keyboard(value);
+          }
+
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Clear search query', hidden: true})
+          );
+
+          expect(onChange).toHaveBeenLastCalledWith('', expect.anything());
+          expect(onSearch).toHaveBeenLastCalledWith('', expect.anything());
+          expect(getLastInput()).toHaveValue('');
+          expect(getLastInput()).toHaveFocus();
+          expect(
+            screen.queryByRole('button', {name: 'Remove filter: timesSeen'})
+          ).not.toBeInTheDocument();
+        }
+      );
+
+      it.each(['Backspace', 'Delete'])(
+        'clears the query with Ctrl+%s from a blank numeric input',
+        async key => {
+          const onSearch = jest.fn();
+          render(<SearchQueryBuilder {...defaultProps} onSearch={onSearch} />);
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+          await userEvent.keyboard(`{Control>}{${key}}{/Control}`);
+
+          expect(getLastInput()).toHaveValue('');
+          expect(getLastInput()).toHaveFocus();
+          expect(onSearch).toHaveBeenLastCalledWith('', expect.anything());
+          expect(
+            screen.queryByRole('button', {name: 'Remove filter: timesSeen'})
+          ).not.toBeInTheDocument();
+        }
+      );
+
+      it.each(['Backspace', 'Delete'])(
+        'can remove a blank new numeric filter with %s',
+        async key => {
+          render(<SearchQueryBuilder {...defaultProps} />);
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+
+          await userEvent.keyboard(`{${key}}{${key}}`);
+
+          expect(getLastInput()).toHaveValue('');
+          expect(getLastInput()).toHaveFocus();
+          expect(
+            screen.queryByRole('button', {name: 'Remove filter: timesSeen'})
+          ).not.toBeInTheDocument();
+        }
+      );
+
+      it.each([
+        ['0', 'timesSeen:>0'],
+        ['25', 'timesSeen:>25'],
+      ])(
+        'uses the field default %s as the placeholder and fallback',
+        async (defaultValue, expectedQuery) => {
+          const onChange = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              fieldDefinitionGetter={() => ({
+                kind: FieldKind.FIELD,
+                valueType: FieldValueType.NUMBER,
+                defaultValue,
+              })}
+              onChange={onChange}
+            />
+          );
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'timesSeen'}));
+
+          const input = screen.getByRole('combobox', {name: 'Edit filter value'});
+          expect(input).toHaveValue('');
+          expect(input).toHaveAttribute('placeholder', defaultValue);
+          await userEvent.tab();
+
+          expect(onChange).toHaveBeenLastCalledWith(expectedQuery, expect.anything());
+        }
+      );
+
       it('pre-fills input with current value when editing', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>42" />);
         await userEvent.click(
@@ -6519,6 +6663,11 @@ describe('SearchQueryBuilder', () => {
         expect(screen.getByLabelText('count():>100')).toBeInTheDocument();
 
         expect(await screen.findByLabelText('Edit filter value')).toHaveFocus();
+        expect(screen.getByLabelText('Edit filter value')).toHaveValue('');
+        expect(screen.getByLabelText('Edit filter value')).toHaveAttribute(
+          'placeholder',
+          '100'
+        );
       });
 
       it('focuses on the filter value when user input looks like an aggregate filter with no arguments', async () => {
@@ -6551,6 +6700,11 @@ describe('SearchQueryBuilder', () => {
 
         jest.spyOn(console, 'error').mockRestore();
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
+        expect(screen.getByLabelText('Edit filter value')).toHaveValue('');
+        expect(screen.getByLabelText('Edit filter value')).toHaveAttribute(
+          'placeholder',
+          '300ms'
+        );
       });
 
       it('focuses on the filter value after all arguments is specified', async () => {
