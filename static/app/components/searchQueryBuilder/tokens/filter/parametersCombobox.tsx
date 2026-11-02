@@ -42,6 +42,7 @@ type SuggestionItem = {
   value: string;
   description?: ReactNode;
   label?: ReactNode;
+  textValue?: string;
 };
 
 function getInitialInputValue(token: AggregateFilter) {
@@ -179,7 +180,7 @@ function useParameterSuggestions({
             fieldDef?.kind !== FieldKind.EQUATION && fieldDef?.kind !== FieldKind.FUNCTION
           );
         });
-        const {columnTypes} = parameterDefinition;
+        const {columnTypes, defaultLabel, defaultValue} = parameterDefinition;
 
         const filterFn: (field: {key: string; valueType: FieldValueType}) => boolean =
           typeof columnTypes === 'function'
@@ -194,10 +195,11 @@ function useParameterSuggestions({
               valueType: definition?.valueType ?? FieldValueType.STRING,
             })
           )
-          .map(([col, definition]) => ({
-            value: col.key,
-            label: getKeyLabel(col, definition),
-          }));
+          .map(([col, definition]) =>
+            defaultLabel && col.key === defaultValue
+              ? {value: col.key, label: defaultLabel, textValue: defaultLabel}
+              : {value: col.key, label: getKeyLabel(col, definition)}
+          );
       }
       case 'value':
         if (parameterDefinition.options) {
@@ -223,7 +225,7 @@ function useParameterSuggestions({
         label: suggestion.label ?? suggestion.value,
         value: suggestion.value,
         details: suggestion.description,
-        textValue: suggestion.value,
+        textValue: suggestion.textValue ?? suggestion.value,
         hideCheck: true,
       };
     },
@@ -294,9 +296,18 @@ export function SearchQueryBuilderParametersCombobox({
       if (inputChanged) {
         const definition = getFieldDefinition(token.key.name.text);
         const parameters = splitParameters(value).map((parameter, i) => {
-          return definition?.parameters?.[i]?.kind === 'column'
-            ? resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey})
-            : parameter;
+          const parameterDefinition = definition?.parameters?.[i];
+          if (parameterDefinition?.kind !== 'column') {
+            return parameter;
+          }
+          if (
+            parameterDefinition.defaultLabel &&
+            parameterDefinition.defaultValue &&
+            parameter.trim() === parameterDefinition.defaultLabel
+          ) {
+            return parameterDefinition.defaultValue;
+          }
+          return resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey});
         });
 
         dispatch({

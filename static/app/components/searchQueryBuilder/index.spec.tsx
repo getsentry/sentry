@@ -6524,6 +6524,73 @@ describe('SearchQueryBuilder', () => {
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
     });
+
+    describe('span count aggregate', () => {
+      const spanCountProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: {
+          count: {key: 'count', name: 'count', kind: FieldKind.FUNCTION},
+          'span.duration': {
+            key: 'span.duration',
+            name: 'span.duration',
+            kind: FieldKind.MEASUREMENT,
+          },
+        },
+        fieldDefinitionGetter: (key, options) =>
+          getFieldDefinition(key, 'span', options?.kind),
+        filterKeySections: [],
+      };
+
+      it('displays span.duration as spans', async () => {
+        render(
+          <SearchQueryBuilder
+            {...spanCountProps}
+            initialQuery="count(span.duration):>100"
+          />
+        );
+
+        expect(
+          await screen.findByRole('button', {name: 'Edit parameters for filter: count'})
+        ).toHaveTextContent('count(spans)');
+      });
+
+      it('shows spans while editing and keeps span.duration as the value', async () => {
+        render(
+          <SearchQueryBuilder
+            {...spanCountProps}
+            initialQuery="count(span.duration):>100"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count'})
+        );
+        const input = await screen.findByRole('combobox', {
+          name: 'Edit function parameters',
+        });
+        expect(input).toHaveAttribute('placeholder', 'spans');
+
+        await userEvent.click(await screen.findByRole('option', {name: 'spans'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'count(span.duration):>100'})
+        ).toBeInTheDocument();
+      });
+
+      it('resolves a typed spans parameter to span.duration', async () => {
+        render(<SearchQueryBuilder {...spanCountProps} initialQuery="count():>100" />);
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit parameters for filter: count'})
+        );
+        await userEvent.keyboard('spans');
+        await userEvent.click(document.body);
+
+        expect(
+          await screen.findByRole('row', {name: 'count(span.duration):>100'})
+        ).toBeInTheDocument();
+      });
+    });
   });
 
   describe('disallowLogicalOperators', () => {

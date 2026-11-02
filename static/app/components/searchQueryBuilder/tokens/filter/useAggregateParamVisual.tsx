@@ -16,10 +16,16 @@ export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions)
 
     const params =
       token.key.args?.args?.map((arg, i) => {
-        const argumentKind = aggregateDefinition?.parameters?.[i]?.kind;
+        const parameterDefinition = aggregateDefinition?.parameters?.[i];
 
         let argumentText = arg.value?.text ?? '';
-        if (argumentKind === 'column') {
+        if (
+          parameterDefinition?.kind === 'column' &&
+          parameterDefinition.defaultLabel &&
+          argumentText === parameterDefinition.defaultValue
+        ) {
+          argumentText = parameterDefinition.defaultLabel;
+        } else if (parameterDefinition?.kind === 'column') {
           const argumentKey = Object.hasOwn(filterKeys, argumentText)
             ? filterKeys[argumentText]
             : undefined;
