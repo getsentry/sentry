@@ -1,5 +1,7 @@
 from unittest import mock
 
+import pytest
+
 from sentry.metrics.dualwrite import DualWriteMetricsBackend
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 
@@ -124,3 +126,63 @@ def test_dualwrite_set_experimental_backend(primary_set, experimental_set):
     backend.set("allowed", 4242, tags={"test": "tag"})
     primary_set.assert_called_once()
     experimental_set.assert_called_once()
+
+
+@mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
+@mock.patch("datadog.dogstatsd.base.statsd.increment")
+@thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
+def test_dualwrite_default_secondary(primary_incr, secondary_incr):
+    backend = DualWriteMetricsBackend(
+        primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
+        secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
+        default_backend="secondary",
+        primary_keys=["legacy.metric"],
+    )
+
+    backend.incr("legacy.metric")
+    primary_incr.assert_called_once()
+    secondary_incr.assert_not_called()
+
+    primary_incr.reset_mock()
+
+    # Keys are matched exactly, so sharing a prefix with a legacy key is not enough.
+    for key in ("new.metric", "legacy.metric.new", "legacy"):
+        backend.incr(key)
+    primary_incr.assert_not_called()
+    assert secondary_incr.call_count == 3
+
+
+@mock.patch("datadog.threadstats.base.ThreadStats.timing")
+@mock.patch("datadog.dogstatsd.base.DogStatsd.distribution")
+@thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
+def test_dualwrite_default_secondary_distribution(distribution, timing):
+    backend = DualWriteMetricsBackend(
+        primary_backend="sentry.metrics.datadog.DatadogMetricsBackend",
+        secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
+        default_backend="secondary",
+        primary_keys=["legacy.timer", "both.timer"],
+        distribution_prefixes=["both."],
+    )
+
+    backend.timing("legacy.timer", 100)
+    timing.assert_called_once()
+    distribution.assert_not_called()
+
+    timing.reset_mock()
+
+    # distribution_prefixes still dual-writes, even for a legacy key.
+    backend.timing("both.timer", 100)
+    timing.assert_called_once()
+    distribution.assert_called_once()
+
+    timing.reset_mock()
+    distribution.reset_mock()
+
+    backend.distribution("new.timer", 100)
+    timing.assert_not_called()
+    distribution.assert_called_once()
+
+
+def test_dualwrite_invalid_default_backend():
+    with pytest.raises(ValueError):
+        DualWriteMetricsBackend(default_backend="both")
