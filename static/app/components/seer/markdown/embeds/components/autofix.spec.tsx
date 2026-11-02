@@ -509,6 +509,101 @@ describe('AutofixRef embed', () => {
     expect(getButtons('Continue: Code Changes')).toHaveLength(0);
     expect(getButtons('Draft a pull request')).toHaveLength(1);
   });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['seer-credit-checks'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    it.each([
+      {step: 'root_cause', button: 'Continue: Plan', operation: 'autofix_solution'},
+      {
+        step: 'solution',
+        button: 'Continue: Code Changes',
+        operation: 'autofix_code_changes',
+      },
+      {
+        step: 'code_changes',
+        button: 'Draft a pull request',
+        operation: 'autofix_create_pr',
+      },
+    ] as const)('swaps $button for the CTA', async ({step, button, operation}) => {
+      mockRun(makeRunThrough(step));
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step={step} />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(getButtons(button)).toHaveLength(0);
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the step result visible', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(screen.getByText('The cache key collides across orgs')).toBeInTheDocument();
+    });
+
+    it('offers the next step when the org can afford it', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
+      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('does not check credits in a read-only conversation', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixRefFor step="root_cause" />, {
+        organization: creditCheckOrganization,
+      });
+      await expandAll(1);
+
+      expect(getButtons('Continue: Plan')).toHaveLength(1);
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+  });
 });
 
 const ISSUE = {id: '6789012345', shortId: 'CHECKOUT-42'};

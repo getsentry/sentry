@@ -12,6 +12,11 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
+import {
+  AutofixCreditGate,
+  AutofixOutOfCreditsCta,
+  useAutofixCreditCheck,
+} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
 import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
@@ -133,12 +138,14 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
   return (
-    <PrIterationFeedbackForm
-      autofix={autofix}
-      groupId={group.id}
-      runId={runId}
-      referrer={referrer}
-    />
+    <AutofixCreditGate action="pr_iteration">
+      <PrIterationFeedbackForm
+        autofix={autofix}
+        groupId={group.id}
+        runId={runId}
+        referrer={referrer}
+      />
+    </AutofixCreditGate>
   );
 }
 
@@ -200,30 +207,34 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   }
 
   return (
-    <NextStepTemplate
-      isProcessing={isPolling}
-      prompt={t('Are you happy with this root cause?')}
-      labelNo={t('No')}
-      onClickNo={handleNoClick}
-      yesButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Yes, make a plan')}
-        </Button>
-      }
-      nevermindButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Nevermind, make a plan')}
-        </Button>
-      }
-      placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-      rethinkPrompt={rethinkPrompt}
-      rethinkInChat={rethinkInChat}
-      labelRethink={t('Rethink root cause')}
-      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
-      codingAgentIntegrations={codingAgentIntegrations}
-      codingAgentDisabledReason={codingAgentDisabledReason}
-      onCodingAgentHandoff={handleCodingAgentHandoff}
-    />
+    <AutofixCreditGate action="solution">
+      <NextStepTemplate
+        isProcessing={isPolling}
+        prompt={t('Are you happy with this root cause?')}
+        labelNo={t('No')}
+        onClickNo={handleNoClick}
+        yesButton={
+          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+            {t('Yes, make a plan')}
+          </Button>
+        }
+        nevermindButton={
+          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+            {t('Nevermind, make a plan')}
+          </Button>
+        }
+        placeholderPrompt={t('Give seer additional context to improve this root cause.')}
+        rethinkPrompt={rethinkPrompt}
+        rethinkInChat={rethinkInChat}
+        labelRethink={t('Rethink root cause')}
+        askSeer={
+          isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined
+        }
+        codingAgentIntegrations={codingAgentIntegrations}
+        codingAgentDisabledReason={codingAgentDisabledReason}
+        onCodingAgentHandoff={handleCodingAgentHandoff}
+      />
+    </AutofixCreditGate>
   );
 }
 
@@ -277,30 +288,32 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   }
 
   return (
-    <NextStepTemplate
-      isProcessing={isPolling}
-      prompt={t('Are you happy with this plan?')}
-      labelNo={t('No')}
-      onClickNo={handleNoClick}
-      yesButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Yes, write a code fix')}
-        </Button>
-      }
-      nevermindButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Nevermind, write a code fix')}
-        </Button>
-      }
-      placeholderPrompt={t('Give seer additional context to improve this plan.')}
-      rethinkPrompt={rethinkPrompt}
-      rethinkInChat={rethinkInChat}
-      labelRethink={t('Rethink plan')}
-      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
-      codingAgentIntegrations={codingAgentIntegrations}
-      codingAgentDisabledReason={codingAgentDisabledReason}
-      onCodingAgentHandoff={handleCodingAgentHandoff}
-    />
+    <AutofixCreditGate action="code_changes">
+      <NextStepTemplate
+        isProcessing={isPolling}
+        prompt={t('Are you happy with this plan?')}
+        labelNo={t('No')}
+        onClickNo={handleNoClick}
+        yesButton={
+          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+            {t('Yes, write a code fix')}
+          </Button>
+        }
+        nevermindButton={
+          <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
+            {t('Nevermind, write a code fix')}
+          </Button>
+        }
+        placeholderPrompt={t('Give seer additional context to improve this plan.')}
+        rethinkPrompt={rethinkPrompt}
+        rethinkInChat={rethinkInChat}
+        labelRethink={t('Rethink plan')}
+        askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
+        codingAgentIntegrations={codingAgentIntegrations}
+        codingAgentDisabledReason={codingAgentDisabledReason}
+        onCodingAgentHandoff={handleCodingAgentHandoff}
+      />
+    </AutofixCreditGate>
   );
 }
 
@@ -311,9 +324,20 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     group,
     enabled: defined(artifact),
   });
+  // Checked alongside the permission check rather than after it, so neither
+  // waits on the other.
+  const creditCheck = useAutofixCreditCheck('create_pr', {enabled: defined(artifact)});
 
   if (!defined(artifact)) {
     return null;
+  }
+
+  if (creditCheck.isPending) {
+    return null;
+  }
+
+  if (!creditCheck.hasEnoughCredits) {
+    return <AutofixOutOfCreditsCta />;
   }
 
   if (isPending) {

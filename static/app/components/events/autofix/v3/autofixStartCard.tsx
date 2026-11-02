@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {IconBug} from '@sentry/icons/bug';
 
@@ -10,7 +10,12 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  AutofixOutOfCreditsCta,
+  useAutofixCreditCheck,
+} from 'sentry/components/events/autofix/autofixCredits';
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 
@@ -37,6 +42,8 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
+  const creditCheck = useAutofixCreditCheck('root_cause');
+
   const [startingRun, setStartingRun] = useState(false);
   const isStarting = startingRun || autofix.isWaitingForRun;
   const openSingleRunChat = useOpenSingleRunChat();
@@ -54,9 +61,12 @@ export function AutofixStartCard({
     }
   };
 
-  return (
-    <Stack gap="md">
-      <AutofixStartCardContent />
+  let startButton: ReactNode;
+  if (creditCheck.isPending) {
+    // Holds the button's place so it doesn't flash up and then get swapped out.
+    startButton = <Placeholder height="36px" />;
+  } else if (creditCheck.hasEnoughCredits) {
+    startButton = (
       <Button
         size="md"
         icon={<IconBug />}
@@ -71,6 +81,15 @@ export function AutofixStartCard({
       >
         {t('Start Analysis')}
       </Button>
+    );
+  } else {
+    startButton = <AutofixOutOfCreditsCta />;
+  }
+
+  return (
+    <Stack gap="md">
+      <AutofixStartCardContent />
+      {startButton}
     </Stack>
   );
 }

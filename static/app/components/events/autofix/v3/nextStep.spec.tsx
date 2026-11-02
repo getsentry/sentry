@@ -1279,4 +1279,119 @@ describe('SeerDrawerNextStep', () => {
       expect(autofix.startStep).not.toHaveBeenCalled();
     });
   });
+
+  describe('out of Seer credits', () => {
+    const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
+    const creditCheckOrganization = OrganizationFixture({
+      features: ['seer-credit-checks', 'autofix-pr-iteration-manual'],
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it.each([
+      ['root_cause', 'autofix_solution', 'Yes, make a plan'],
+      ['solution', 'autofix_code_changes', 'Yes, write a code fix'],
+      ['code_changes', 'autofix_create_pr', 'Yes, draft a PR'],
+    ])(
+      'swaps the next step after %s for the CTA when %s is unaffordable',
+      async (step, operation, yesLabel) => {
+        const creditCheck = MockApiClient.addMockResponse({
+          url: creditCheckUrl,
+          match: [MockApiClient.matchQuery({operation})],
+          body: {hasEnoughCredits: false},
+        });
+
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection(step)]}
+            autofix={makeAutofix()}
+          />,
+          {organization: creditCheckOrganization}
+        );
+
+        // Nothing is offered while the check is in flight.
+        expect(screen.queryByRole('button', {name: yesLabel})).not.toBeInTheDocument();
+        expect(
+          await screen.findByTestId('autofix-out-of-credits-cta')
+        ).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: yesLabel})).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'No'})).not.toBeInTheDocument();
+        expect(creditCheck).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('offers the next step when the org can afford it', async () => {
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation: 'autofix_solution'})],
+        body: {hasEnoughCredits: true},
+      });
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Yes, make a plan'})
+      ).toBeInTheDocument();
+      expect(screen.queryByTestId('autofix-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('swaps the PR feedback form for the CTA', async () => {
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('pull_request')]}
+          autofix={makeAutofix({runState: {run_id: 1, blocks: []} as any})}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      expect(await screen.findByTestId('autofix-out-of-credits-cta')).toBeInTheDocument();
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    });
+
+    it('does not check credits for a step that is not offered', () => {
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause', [])]}
+          autofix={makeAutofix()}
+        />,
+        {organization: creditCheckOrganization}
+      );
+
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+  });
 });
