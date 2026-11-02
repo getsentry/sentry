@@ -57,7 +57,6 @@ class ActivityManager(BaseManager["Activity"]):
         self, project_id: int, cutoff: datetime
     ) -> QuerySet[Activity]:
         """Any SET_UNRESOLVED grants another auto-resolution interval, including snooze expiry."""
-        # Scope by project/time to use the existing composite indexes.
         return self.filter(
             project_id=project_id,
             datetime__gt=cutoff,
