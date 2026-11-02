@@ -2,7 +2,6 @@ import * as Sentry from '@sentry/react';
 import type {PaymentIntentResult, Stripe} from '@stripe/stripe-js';
 import {useMutation} from '@tanstack/react-query';
 import camelCase from 'lodash/camelCase';
-import moment from 'moment-timezone';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {Client} from 'sentry/api';
@@ -34,7 +33,6 @@ import type {
 import {
   getReservedBudgetCategoryForAddOn,
   getSlot,
-  hasPartnerMigrationFeature,
   hasSomeBillingDetails,
   isBizPlanFamily,
   isTeamPlanFamily,
@@ -184,8 +182,7 @@ type CategoryReservations = Partial<
 function recordAnalytics(
   organization: Organization,
   subscription: Subscription,
-  data: CheckoutAPIData,
-  isMigratingPartnerAccount: boolean
+  data: CheckoutAPIData
 ) {
   trackMarketingEvent('Upgrade');
   const currentData: CheckoutData = {
@@ -298,16 +295,6 @@ function recordAnalytics(
       plan: data.plan,
       previous_transactions: previousData.previous_transactions,
       transactions: currentData.transactions,
-    });
-  }
-
-  if (isMigratingPartnerAccount) {
-    trackGetsentryAnalytics('partner_billing_migration.checkout.completed', {
-      subscription,
-      organization,
-      applyNow: data.applyNow ?? false,
-      daysLeft: moment(subscription.billingPeriodEnd).diff(moment(), 'days'),
-      partner: subscription.partner?.partnership.id,
     });
   }
 }
@@ -479,10 +466,6 @@ export function useSubmitCheckout({
 }) {
   const navigate = useNavigate();
 
-  // this is necessary for recording partner billing migration-specific analytics after
-  // the migration is successful (during which the flag is flipped off)
-  const isMigratingPartnerAccount = hasPartnerMigrationFeature(organization);
-
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
       return fetchMutation<{
@@ -499,12 +482,7 @@ export function useSubmitCheckout({
       });
     },
     onSuccess: (response, _variables) => {
-      recordAnalytics(
-        organization,
-        subscription,
-        _variables.data,
-        isMigratingPartnerAccount
-      );
+      recordAnalytics(organization, subscription, _variables.data);
 
       // seer automation alert
       const alreadyHasSeer =

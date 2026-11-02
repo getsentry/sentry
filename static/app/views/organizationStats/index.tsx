@@ -227,7 +227,7 @@ function CategoryPageControl({
       return !hasProfilingStats;
     }
     if (opt.value === DataCategory.INSTALLABLE_BUILD) {
-      return organization.features.includes('expose-category-installable-build');
+      return false;
     }
     return true;
   }).map(opt => {

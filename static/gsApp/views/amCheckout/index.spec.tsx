@@ -227,8 +227,7 @@ describe('Default Tier Checkout', () => {
     await assertCheckoutSteps({tier: PlanTier.AM3});
   });
 
-  it('renders for customers migrating from partner billing', async () => {
-    organization.features.push('partner-billing-migration');
+  it('renders sponsored partner plans', async () => {
     const contractPeriodEnd = moment();
     const sub = SubscriptionFixture({
       organization,
@@ -270,8 +269,8 @@ describe('Default Tier Checkout', () => {
       )
     ).toBeInTheDocument();
 
-    // 500 replays from sponsored plan becomes 50 on am3
-    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('50');
+    // Existing reserved volume rounds up to the next supported bucket.
+    expect(screen.getByTestId('replays-volume-item')).toHaveTextContent('5K');
   });
 
   it('renders for self-serve partners', async () => {

@@ -52,7 +52,7 @@ function DisabledPerformancePage({
     </Fragment>
   );
 
-  const SandboxButton = organization.features.includes('sandbox-kill-switch') ? null : (
+  const SandboxButton = (
     <DemoSandboxButton
       scenario="oneTransaction"
       projectSlug="react"

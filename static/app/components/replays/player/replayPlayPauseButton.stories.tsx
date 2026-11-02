@@ -3,10 +3,10 @@ import {Fragment} from 'react';
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
 
+import {ReplayPlayPauseButton} from './__stories__/replayPlayPauseButton';
 import {ReplaySlugChooser} from './__stories__/replaySlugChooser';
 import {ReplayPlayer} from './replayPlayer';
 import {ReplayPlayerMeasurer} from './replayPlayerMeasurer';
-import {ReplayPlayPauseButton} from './replayPlayPauseButton';
 
 export default Storybook.story('ReplayPlayer', story => {
   story('Default', () => {
