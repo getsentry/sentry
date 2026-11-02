@@ -147,7 +147,9 @@ class QuerySubscription(Model):
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
     subscription_id = models.TextField(unique=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
-    date_updated = models.DateTimeField(default=timezone.now, null=True)
+    # Bumped on every write so jobs can find subscriptions whose Snuba-side state
+    # changed after a point in time, e.g. to resync Snuba's store from a backup.
+    date_updated = models.DateTimeField(auto_now=True, null=True)
     query_extra = models.TextField(
         null=True
     )  # additional query filters to attach to the query created in Snuba such as datetime filters, or release/deploy tags
